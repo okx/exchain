@@ -1,27 +1,30 @@
 package types
 
 import (
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/VictoriaMetrics/fastcache"
 	"github.com/spf13/viper"
 )
 
 const (
 	FlagEvmCodeCache = "evm-code-cache"
-	CodeCacheSize    = 500000
+	CodeCacheSize    = 67108864 // 64 MB
 )
 
-var isEvmCacheCode = viper.GetBool(FlagEvmCodeCache)
+var (
+	CODE_PREFIX      = []byte{'c'}
+	CODE_HASH_PREFIX = []byte{'h'}
+
+	isEvmCacheCode = viper.GetBool(FlagEvmCodeCache)
+)
 
 type Cache struct {
 	enable bool
-	cache  *lru.Cache
+	cache  *fastcache.Cache
 }
 
 func NewCache() *Cache {
-	c, err := lru.New(CodeCacheSize)
-	if err != nil {
-		return nil
-	}
+	// c, err := fastcache.New(CodeCacheSize)
+	c := fastcache.New(CodeCacheSize)
 
 	return &Cache{
 		cache:  c,
@@ -29,20 +32,16 @@ func NewCache() *Cache {
 	}
 }
 
-func (c *Cache) Set(key, value interface{}) {
+func (c *Cache) Set(prefix, key, value []byte) {
 	if !c.enable {
 		return
 	}
-	c.cache.Add(key, value)
+	c.cache.SetBig(append(prefix, key...), value)
 }
 
-func (c *Cache) Get(key interface{}) interface{} {
+func (c *Cache) Get(prefix, key []byte) []byte {
 	if !c.enable {
 		return nil
 	}
-	r, ok := c.cache.Get(key)
-	if !ok {
-		return nil
-	}
-	return r
+	return c.cache.GetBig(nil, append(prefix, key...))
 }

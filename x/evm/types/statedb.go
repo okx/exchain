@@ -585,21 +585,17 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
 		panic(addr)
 	}
-	cacheCode := csdb.cache.Get(addr)
+
+	cacheCode := csdb.cache.Get(CODE_PREFIX, addr.Bytes())
 	if cacheCode != nil {
-		value, ok := cacheCode.(CacheCode)
-		if ok {
-			return value.Code
-		}
+		return cacheCode
 	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		code := so.Code(nil)
-		csdb.cache.Set(addr, CacheCode{
-			CodeHash: so.CodeHash(),
-			Code:     code,
-		})
+		csdb.cache.Set(CODE_PREFIX, addr.Bytes(), code)
+		csdb.cache.Set(CODE_HASH_PREFIX, addr.Bytes(), so.CodeHash())
 
 		return code
 	}
@@ -643,25 +639,20 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 		analyzer.StartTxLog(funcName)
 		defer analyzer.StopTxLog(funcName)
 	}
-	cacheCode := csdb.cache.Get(addr)
-	if cacheCode != nil {
-		value, ok := cacheCode.(CacheCode)
-		if ok {
-			return ethcmn.BytesToHash(value.CodeHash)
-		}
+	cacheCodeHash := csdb.cache.Get(CODE_HASH_PREFIX, addr.Bytes())
+	if cacheCodeHash != nil {
+		return ethcmn.BytesToHash(cacheCodeHash)
 	}
 
 	so := csdb.getStateObject(addr)
 	if so == nil {
 		return ethcmn.Hash{}
 	}
-	hash := ethcmn.BytesToHash(so.CodeHash())
-	csdb.cache.Set(addr, CacheCode{
-		CodeHash: so.CodeHash(),
-		Code:     so.Code(nil),
-	})
 
-	return hash
+	csdb.cache.Set(CODE_PREFIX, addr.Bytes(), so.Code(nil))
+	csdb.cache.Set(CODE_HASH_PREFIX, addr.Bytes(), so.CodeHash())
+
+	return ethcmn.BytesToHash(so.CodeHash())
 }
 
 // GetState retrieves a value from the given account's storage store.

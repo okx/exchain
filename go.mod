@@ -6,6 +6,7 @@ require (
 	github.com/99designs/keyring v1.1.6
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/Comcast/pulsar-client-go v0.1.1
+	github.com/VictoriaMetrics/fastcache v1.6.0
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 	github.com/apolloconfig/agollo/v4 v4.0.8
@@ -72,7 +73,6 @@ require (
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.18 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
