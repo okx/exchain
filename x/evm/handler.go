@@ -21,11 +21,15 @@ func NewHandler(k *Keeper) sdk.Handler {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		defer func() {
+			if bam.GetGlobalMempool().GetConfig().MaxGasUsedPerBlock < 0 {
+				return
+			}
+
 			if err != nil {
 				return
 			}
 
-			db := bam.InstanceOfGasUsedRecordDB()
+			db := bam.InstanceOfHistoryGasUsedRecordDB()
 			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
 
 			if msgFnSignature == nil {

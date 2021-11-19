@@ -23,7 +23,7 @@ var (
 	GasUsedFactor = 0.4
 )
 
-func InstanceOfGasUsedRecordDB() db.DB {
+func InstanceOfHistoryGasUsedRecordDB() db.DB {
 	once.Do(func() {
 		guDB = initDb()
 	})
