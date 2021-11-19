@@ -1209,5 +1209,3 @@ func IsMainNet() bool {
 func IsTestNet() bool {
 	return startBlockHeightStr == "1121818"
 }
-
-
