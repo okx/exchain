@@ -75,7 +75,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	// get async commit version
 	commitVersion, err := repairApp.GetCommitVersion()
-	log.Println(fmt.Sprintf("latestBlockHeight = %d \t commitVersion = %d", latestBlockHeight, commitVersion))
+	log.Println(fmt.Sprintf("repair state latestBlockHeight = %d \t commitVersion = %d", latestBlockHeight, commitVersion))
 	panicError(err)
 
 	if onStart && commitVersion == latestBlockHeight {

@@ -85,4 +85,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
+	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 }

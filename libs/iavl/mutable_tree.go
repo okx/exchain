@@ -334,7 +334,7 @@ func (tree *MutableTree) Load() (int64, error) {
 func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := tree.ndb.getLatestVersion()
 	if latestVersion < targetVersion {
-		return latestVersion, fmt.Errorf("wanted to load target %d but only found up to %d, db = %s", targetVersion, latestVersion, tree.String())
+		return latestVersion, fmt.Errorf("wanted to load target %d but only found up to %d", targetVersion, latestVersion)
 	}
 
 	// no versions have been saved if the latest version is non-positive
@@ -403,8 +403,8 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	if !(targetVersion == 0 || latestVersion == targetVersion) {
-		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v, db = %s",
-			targetVersion, latestVersion, tree.String())
+		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
+			targetVersion, latestVersion)
 	}
 
 	if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {
