@@ -2,6 +2,8 @@ package conn
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"runtime/debug"
 
 	"fmt"
@@ -891,16 +893,34 @@ func RegisterPacket(cdc *amino.Codec) {
 	cdc.RegisterConcrete(PacketMsg{}, PacketMsgName, nil)
 
 	cdc.RegisterConcreteMarshaller(PacketPingName, func(_ *amino.Codec, i interface{}) ([]byte, error) {
-		return PacketPing{}.MarshalToAmino()
+		return []byte{}, nil
 	})
 	cdc.RegisterConcreteMarshaller(PacketPongName, func(_ *amino.Codec, i interface{}) ([]byte, error) {
-		return PacketPong{}.MarshalToAmino()
+		return []byte{}, nil
+	})
+	cdc.RegisterConcreteMarshaller(PacketMsgName, func(codec *amino.Codec, i interface{}) ([]byte, error) {
+		if packet, ok := i.(PacketMsg); ok {
+			return packet.MarshalToAmino()
+		} else if ppacket, ok := i.(*PacketMsg); ok {
+			return ppacket.MarshalToAmino()
+		} else {
+			return nil, fmt.Errorf("%v must be of type %v", i, PacketMsg{})
+		}
 	})
 	cdc.RegisterConcreteUnmarshaller(PacketPingName, func(_ *amino.Codec, _ []byte) (interface{}, int, error) {
 		return PacketPing{}, 0, nil
 	})
 	cdc.RegisterConcreteUnmarshaller(PacketPongName, func(_ *amino.Codec, _ []byte) (interface{}, int, error) {
 		return PacketPong{}, 0, nil
+	})
+	cdc.RegisterConcreteUnmarshaller(PacketMsgName, func(codec *amino.Codec, data []byte) (interface{}, int, error) {
+		var msg PacketMsg
+		err := msg.UnmarshalFromAmino(data)
+		if err != nil {
+			return nil, 0, err
+		} else {
+			return msg, len(data), nil
+		}
 	})
 }
 
@@ -939,3 +959,124 @@ type PacketMsg struct {
 func (mp PacketMsg) String() string {
 	return fmt.Sprintf("PacketMsg{%X:%X T:%X}", mp.ChannelID, mp.Bytes, mp.EOF)
 }
+
+func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [5]byte{1 << 3, 2 << 3, 3<<3 | 2}
+	for pos := 1; pos <= 3; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		err := buf.WriteByte(fieldKeysType[pos-1])
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			if mp.ChannelID == 0 {
+				noWrite = true
+				break
+			}
+			if mp.ChannelID <= 0b0111_1111 {
+				err = buf.WriteByte(mp.ChannelID)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				err = buf.WriteByte(0b1000_0000 | (mp.ChannelID & 0x7F))
+				if err != nil {
+					return nil, err
+				}
+				err = buf.WriteByte(mp.ChannelID >> 7)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 2:
+			if mp.EOF == 0 {
+				noWrite = true
+				break
+			}
+			if mp.EOF <= 0b0111_1111 {
+				err = buf.WriteByte(mp.EOF)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				err = buf.WriteByte(0b1000_0000 | (mp.EOF & 0x7F))
+				if err != nil {
+					return nil, err
+				}
+				err = buf.WriteByte(mp.EOF >> 7)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 3:
+			if len(mp.Bytes) == 0 {
+				noWrite = true
+				break
+			}
+			err = amino.EncodeByteSlice(&buf, mp.Bytes)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			vari, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return nil
+			}
+			mp.ChannelID = byte(vari)
+			dataLen = uint64(n)
+		case 2:
+			vari, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return nil
+			}
+			mp.EOF = byte(vari)
+			dataLen = uint64(n)
+		case 3:
+			mp.Bytes = make([]byte, len(subData))
+			copy(mp.Bytes, subData)
+		}
+	}
+	return nil
+}
+
