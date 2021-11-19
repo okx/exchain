@@ -253,7 +253,13 @@ func (blockExec *BlockExecutor) Commit(
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) ([]byte, int64, error) {
 	blockExec.mempool.Lock()
-	defer blockExec.mempool.Unlock()
+	defer func() {
+		blockExec.mempool.Unlock()
+		// Forced flushing mempool
+		if cfg.DynamicConfig.GetMempoolFlush() {
+			blockExec.mempool.Flush()
+		}
+	}()
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.

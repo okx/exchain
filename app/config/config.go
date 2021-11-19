@@ -16,6 +16,8 @@ type OecConfig struct {
 	mempoolForceRecheckGap int64
 	// mempool.size
 	mempoolSize int
+	// mempool flush
+	mempoolFlush bool
 	// max tx num per block
 	maxTxNumPerBlock int64
 	// max gas used per block
@@ -35,6 +37,7 @@ const (
 	FlagMempoolRecheck         = "mempool.recheck"
 	FlagMempoolForceRecheckGap = "mempool.force_recheck_gap"
 	FlagMempoolSize            = "mempool.size"
+	FlagMempoolFlush           = "mempool.flush"
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
@@ -76,6 +79,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
@@ -109,6 +113,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMempoolSize(r)
+	case FlagMempoolFlush:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetMempoolFlush(r)
 	case FlagMaxTxNumPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -170,6 +180,13 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
+}
+
+func (c *OecConfig) GetMempoolFlush() bool {
+	return c.mempoolFlush
+}
+func (c *OecConfig) SetMempoolFlush(value bool) {
+	c.mempoolFlush = value
 }
 
 func (c *OecConfig) GetMaxTxNumPerBlock() int64 {

@@ -6,6 +6,7 @@ type IDynamicConfig interface {
 	GetMempoolSize() int
 	GetMaxTxNumPerBlock() int64
 	GetMaxGasUsedPerBlock() int64
+	GetMempoolFlush() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -35,4 +36,8 @@ func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
 
 func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
 	return DefaultMempoolConfig().MaxGasUsedPerBlock
+}
+
+func (d MockDynamicConfig) GetMempoolFlush() bool {
+	return false
 }
