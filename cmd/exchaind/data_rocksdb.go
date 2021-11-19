@@ -1,3 +1,4 @@
+//go:build rocksdb
 // +build rocksdb
 
 package main
@@ -5,7 +6,7 @@ package main
 import (
 	"log"
 
-	"github.com/tecbot/gorocksdb"
+	gorocksdb "github.com/tecbot/gorocksdb"
 	dbm "github.com/tendermint/tm-db"
 )
 
