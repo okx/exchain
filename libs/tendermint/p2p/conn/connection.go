@@ -878,11 +878,30 @@ type Packet interface {
 	AssertIsPacket()
 }
 
+const (
+	PacketPingName = "tendermint/p2p/PacketPing"
+	PacketPongName = "tendermint/p2p/PacketPong"
+	PacketMsgName  = "tendermint/p2p/PacketMsg"
+)
+
 func RegisterPacket(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Packet)(nil), nil)
-	cdc.RegisterConcrete(PacketPing{}, "tendermint/p2p/PacketPing", nil)
-	cdc.RegisterConcrete(PacketPong{}, "tendermint/p2p/PacketPong", nil)
-	cdc.RegisterConcrete(PacketMsg{}, "tendermint/p2p/PacketMsg", nil)
+	cdc.RegisterConcrete(PacketPing{}, PacketPingName, nil)
+	cdc.RegisterConcrete(PacketPong{}, PacketPongName, nil)
+	cdc.RegisterConcrete(PacketMsg{}, PacketMsgName, nil)
+
+	cdc.RegisterConcreteMarshaller(PacketPingName, func(_ *amino.Codec, i interface{}) ([]byte, error) {
+		return PacketPing{}.MarshalToAmino()
+	})
+	cdc.RegisterConcreteMarshaller(PacketPongName, func(_ *amino.Codec, i interface{}) ([]byte, error) {
+		return PacketPong{}.MarshalToAmino()
+	})
+	cdc.RegisterConcreteUnmarshaller(PacketPingName, func(_ *amino.Codec, _ []byte) (interface{}, int, error) {
+		return PacketPing{}, 0, nil
+	})
+	cdc.RegisterConcreteUnmarshaller(PacketPongName, func(_ *amino.Codec, _ []byte) (interface{}, int, error) {
+		return PacketPong{}, 0, nil
+	})
 }
 
 func (PacketPing) AssertIsPacket() {}
@@ -892,7 +911,23 @@ func (PacketMsg) AssertIsPacket()  {}
 type PacketPing struct {
 }
 
+func (p *PacketPing) UnmarshalFromAmino([]byte) error {
+	return nil
+}
+
+func (PacketPing) MarshalToAmino() ([]byte, error) {
+	return []byte{}, nil
+}
+
 type PacketPong struct {
+}
+
+func (PacketPong) MarshalToAmino() ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (p *PacketPong) UnmarshalFromAmino(data []byte) error {
+	return nil
 }
 
 type PacketMsg struct {

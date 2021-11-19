@@ -533,3 +533,42 @@ func TestMConnectionTrySend(t *testing.T) {
 	assert.False(t, mconn.TrySend(0x01, msg))
 	assert.Equal(t, "TrySend", <-resultCh)
 }
+
+func TestPacketAmino(t *testing.T) {
+	var packet Packet
+
+	packet = PacketPing{}
+	bz, err := cdc.MarshalBinaryLengthPrefixed(packet)
+	require.Nil(t, err)
+
+	nbz, err := cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+	require.NoError(t, err)
+	require.EqualValues(t, bz, nbz)
+
+	packet = nil
+	err = cdc.UnmarshalBinaryLengthPrefixed(bz, &packet)
+	require.NoError(t, err)
+
+	v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz, &packet)
+	require.NoError(t, err)
+	newPacket, ok := v.(Packet)
+	require.True(t, ok)
+	require.EqualValues(t, packet, newPacket)
+}
+
+func BenchmarkPacketAmino(b *testing.B) {
+	b.Run("ping-amino-marshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketPing{}
+			_, _ = cdc.MarshalBinaryLengthPrefixed(packet)
+		}
+	})
+	b.Run("ping-amino-marshaller", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketPing{}
+			_, _ = cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+		}
+	})
+}
