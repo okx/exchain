@@ -227,6 +227,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
+
 	home := cfg.RootDir
 	//startInProcess hooker
 	callHooker(FlagHookstartInProcess, ctx)

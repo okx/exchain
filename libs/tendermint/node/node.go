@@ -528,7 +528,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	// TODO persistent peers ? so we can have their DNS addrs saved
 	pexReactor := pex.NewReactor(addrBook,
 		&pex.ReactorConfig{
-			Seeds:    splitAndTrimEmpty(convertSeeds(config.P2P.Seeds, NetEnv), ",", " "),
+			Seeds:    splitAndTrimEmpty(setDefaultSeeds(config.P2P.Seeds, NetEnv), ",", " "),
 			SeedMode: config.P2P.SeedMode,
 			// See consensus/reactor.go: blocksToContributeToBecomeGoodPeer 10000
 			// blocks assuming 10s blocks ~ 28 hours.
@@ -541,21 +541,6 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	pexReactor.SetLogger(logger.With("module", "pex"))
 	sw.AddReactor("PEX", pexReactor)
 	return pexReactor
-}
-
-func convertSeeds(seeds, net string) string {
-	switch net {
-	case "mainnet":
-		if seeds == "" {
-			seeds = p2p.MAIN_SEEDS
-		}
-	case "testnet":
-		if seeds == "" {
-			seeds = p2p.TEST_SEEDS
-		}
-	default:
-	}
-	return seeds
 }
 
 // NewNode returns a new, ready to go, Tendermint Node.
@@ -1265,4 +1250,20 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 		}
 	}
 	return nonEmptyStrings
+}
+
+// this method will work if seeds is null and net in (mainnet, testnet)
+func setDefaultSeeds(seeds, net string) string {
+	switch net {
+	case "mainnet":
+		if seeds == "" {
+			seeds = p2p.MAIN_SEEDS
+		}
+	case "testnet":
+		if seeds == "" {
+			seeds = p2p.TEST_SEEDS
+		}
+	default:
+	}
+	return seeds
 }
