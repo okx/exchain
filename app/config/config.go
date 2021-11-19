@@ -188,7 +188,7 @@ func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
 }
 
 func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
-	if value < 0 {
+	if value < -1 {
 		return
 	}
 	c.maxGasUsedPerBlock = value
