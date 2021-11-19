@@ -884,6 +884,7 @@ func (api *PublicEthereumAPI) doCall(
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
+
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
