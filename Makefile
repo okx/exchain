@@ -52,6 +52,7 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X "$(GithubTop)/okex/exchain/libs/tendermint/node.NetEnv=$(NetEnv)" \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
