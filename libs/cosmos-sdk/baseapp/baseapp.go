@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -564,6 +565,9 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 	if app.parallelTxManage.isAsyncDeliverTx {
 		ctx = ctx.WithAsync()
+		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
+			ctx = ctx.WithSigCache(s.signCache)
+		}
 	}
 
 	return ctx
@@ -1003,3 +1007,29 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 
 	return app.GetTxInfo(app.checkState.ctx, tx)
 }
+
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
+	tx, err := app.txDecoder(rawTx)
+	if err != nil {
+		return -1
+	}
+
+	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
+	if txFnSig == nil {
+		return -1
+	}
+
+	db := InstanceOfHistoryGasUsedRecordDB()
+	data, err := db.Get(txFnSig)
+	if err != nil || len(data) == 0 {
+		return -1
+	}
+
+	if toDeployContractSize > 0 {
+		// if deploy contract case, the history gas used value is unit gas used
+		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+	}
+
+	return int64(binary.BigEndian.Uint64(data))
+}
+

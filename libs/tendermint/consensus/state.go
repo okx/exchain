@@ -910,6 +910,19 @@ func (cs *State) needProofBlock(height int64) bool {
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
+func (cs *State) isBlockProducer() string {
+	isBlockProducer := "n"
+	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
+		address := cs.privValidatorPubKey.Address()
+
+		if cs.isProposer != nil && cs.isProposer(address) {
+			isBlockProducer = "y"
+		}
+	}
+
+	return isBlockProducer
+}
+
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
 // 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
@@ -927,7 +940,8 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
-	cs.trc.Pin("Propose-%d", round)
+
+	cs.trc.Pin("Propose-%d-%s", round, cs.isBlockProducer())
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -961,7 +975,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 	address := cs.privValidatorPubKey.Address()
-
+	
 	// if not a validator, we're done
 	if !cs.Validators.HasAddress(address) {
 		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
