@@ -114,8 +114,8 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 
 	// Fetch a limited amount of valid txs
 	maxDataBytes := types.MaxDataBytes(maxBytes, state.Validators.Size(), len(evidence))
-	if blockExec.mempool.GetConfig().MaxGasUsedPerBlock > -1 {
-		maxGas = blockExec.mempool.GetConfig().MaxGasUsedPerBlock
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
+		maxGas = cfg.DynamicConfig.GetMaxGasUsedPerBlock()
 	}
 	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
 
@@ -253,7 +253,13 @@ func (blockExec *BlockExecutor) Commit(
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) ([]byte, int64, error) {
 	blockExec.mempool.Lock()
-	defer blockExec.mempool.Unlock()
+	defer func() {
+		blockExec.mempool.Unlock()
+		// Forced flushing mempool
+		if cfg.DynamicConfig.GetMempoolFlush() {
+			blockExec.mempool.Flush()
+		}
+	}()
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
