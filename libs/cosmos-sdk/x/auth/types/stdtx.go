@@ -69,7 +69,7 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		switch pos {
 		case 1:
 			var msg sdk.Msg
-			v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(subData, &msg)
+			v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(subData, &msg)
 			if err != nil {
 				err = cdc.UnmarshalBinaryBare(subData, &msg)
 				if err != nil {

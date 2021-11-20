@@ -52,7 +52,7 @@ func TestStdTxUnmarshalFromAmino(t *testing.T) {
 	require.NoError(t, err)
 
 	tx3 := StdTx{}
-	v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(txBytes, &tx3)
+	v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
 	require.NoError(t, err)
 	tx3 = v.(StdTx)
 

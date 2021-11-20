@@ -180,7 +180,7 @@ func TestModuleAccountAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var account authexported.Account
-		v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(bz, &account)
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &account)
 		require.NoError(t, err)
 		accountActual, ok := v.(authexported.Account)
 		require.True(t, ok)
