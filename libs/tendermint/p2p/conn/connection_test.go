@@ -533,3 +533,74 @@ func TestMConnectionTrySend(t *testing.T) {
 	assert.False(t, mconn.TrySend(0x01, msg))
 	assert.Equal(t, "TrySend", <-resultCh)
 }
+
+func TestPacketAmino(t *testing.T) {
+
+	packets := []Packet{
+		PacketPing{},
+		PacketPong{},
+		PacketMsg{},
+		PacketMsg{0, 0, nil},
+		PacketMsg{0, 0, []byte{}},
+		PacketMsg{225, 225, []byte{}},
+		PacketMsg{0x7f, 45, []byte{0x12, 0x34, 0x56, 0x78}},
+	}
+
+	for _, packet := range packets {
+		bz, err := cdc.MarshalBinaryLengthPrefixed(packet)
+		require.Nil(t, err)
+
+		nbz, err := cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, nbz)
+
+		packet = nil
+		err = cdc.UnmarshalBinaryLengthPrefixed(bz, &packet)
+		require.NoError(t, err)
+
+		v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz, &packet)
+		require.NoError(t, err)
+		newPacket, ok := v.(Packet)
+		require.True(t, ok)
+
+		var buf bytes.Buffer
+		buf.Write(bz)
+		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()))
+		require.NoError(t, err)
+		require.EqualValues(t, len(bz), n)
+
+		require.EqualValues(t, packet, newPacket)
+		require.EqualValues(t, packet, newPacket2)
+	}
+}
+
+func BenchmarkPacketAmino(b *testing.B) {
+	b.Run("ping-amino-marshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketPing{}
+			_, _ = cdc.MarshalBinaryLengthPrefixed(packet)
+		}
+	})
+	b.Run("ping-amino-marshaller", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketPing{}
+			_, _ = cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+		}
+	})
+	b.Run("msg-amino-marshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketMsg{32, 45, []byte{0x12, 0x34, 0x56, 0x78}}
+			_, _ = cdc.MarshalBinaryLengthPrefixed(packet)
+		}
+	})
+	b.Run("msg-amino-marshaller", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			packet = PacketMsg{32, 45, []byte{0x12, 0x34, 0x56, 0x78}}
+			_, _ = cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+		}
+	})
+}
