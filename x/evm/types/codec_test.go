@@ -36,7 +36,7 @@ func TestUnmarshalChainConfigFromAmino(t *testing.T) {
 	require.NoError(t, err)
 
 	var configFromUnmarshaller ChainConfig
-	configi, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(data, &configFromUnmarshaller)
+	configi, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &configFromUnmarshaller)
 	require.NoError(t, err)
 	configFromUnmarshaller = configi.(ChainConfig)
 
@@ -77,7 +77,7 @@ func BenchmarkUnmarshalChainConfigFromAmino(b *testing.B) {
 	b.Run("unmarshaller", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var config ChainConfig
-			_config, _ := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(data, &config)
+			_config, _ := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &config)
 			config = _config.(ChainConfig)
 		}
 	})
