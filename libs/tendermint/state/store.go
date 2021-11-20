@@ -1,7 +1,10 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
+
+	"github.com/tendermint/go-amino"
 
 	dbm "github.com/tendermint/tm-db"
 
@@ -123,6 +126,69 @@ type ABCIResponses struct {
 	DeliverTxs []*abci.ResponseDeliverTx `json:"deliver_txs"`
 	EndBlock   *abci.ResponseEndBlock    `json:"end_block"`
 	BeginBlock *abci.ResponseBeginBlock  `json:"begin_block"`
+}
+
+func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
+	for pos := 1; pos <= 3; pos++ {
+		switch pos {
+		case 1:
+			if len(arz.DeliverTxs) == 0 {
+				break
+			}
+			for i := 0; i < len(arz.DeliverTxs); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				data, err := abci.MarshalResponseDeliverTxToAmino(arz.DeliverTxs[i])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSlice(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 2:
+			if arz.EndBlock == nil {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			data, err := abci.MarshalResponseEndBlockToAmino(arz.EndBlock)
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSlice(&buf, data)
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			if arz.BeginBlock == nil {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			data, err := abci.MarshalResponseBeginBlockToAmino(arz.BeginBlock)
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSlice(&buf, data)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 // PruneStates deletes states between the given heights (including from, excluding to). It is not

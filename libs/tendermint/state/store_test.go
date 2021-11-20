@@ -5,6 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -172,6 +176,53 @@ func TestPruneStates(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestABCIResponsesAmino(t *testing.T) {
+	var resps = []sm.ABCIResponses{
+		{
+			nil,
+			nil,
+			nil,
+		},
+		{
+			[]*abci.ResponseDeliverTx{},
+			&abci.ResponseEndBlock{},
+			&abci.ResponseBeginBlock{},
+		},
+		{
+			[]*abci.ResponseDeliverTx{
+				{}, nil, {12, []byte{1}, "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+			},
+			&abci.ResponseEndBlock{
+				Events: []abci.Event{},
+			},
+			&abci.ResponseBeginBlock{
+				Events: []abci.Event{
+					{},
+					{"", nil, struct{}{}, nil, 0},
+					{
+						Type: "type", Attributes: []kv.Pair{
+							{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+							{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+							{Key: nil, Value: nil},
+							{Key: []byte{}, Value: []byte{}},
+						},
+					},
+				},
+				XXX_sizecache: 10,
+			},
+		},
+	}
+
+	for _, resp := range resps {
+		expect, err := sm.ModuleCodec.MarshalBinaryBare(resp)
+		require.NoError(t, err)
+
+		actual, err := resp.MarshalToAmino()
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
 	}
 }
 
