@@ -13,8 +13,6 @@ const (
 var (
 	CODE_PREFIX      = []byte{'c'}
 	CODE_HASH_PREFIX = []byte{'h'}
-
-	isEvmCacheCode = viper.GetBool(FlagEvmCodeCache)
 )
 
 type Cache struct {
@@ -23,12 +21,12 @@ type Cache struct {
 }
 
 func NewCache() *Cache {
-	// c, err := fastcache.New(CodeCacheSize)
+	EnableEvmCacheCode := viper.GetBool(FlagEvmCodeCache)
 	c := fastcache.New(CodeCacheSize)
 
 	return &Cache{
 		cache:  c,
-		enable: isEvmCacheCode,
+		enable: EnableEvmCacheCode,
 	}
 }
 

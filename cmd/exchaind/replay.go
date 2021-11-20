@@ -25,6 +25,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -91,6 +92,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Bool(evmtypes.FlagEvmCodeCache, false, "Enable evm code cache")
+
 	return cmd
 }
 
