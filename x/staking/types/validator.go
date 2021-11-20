@@ -2,9 +2,15 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+
+	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -146,7 +152,31 @@ func MustUnmarshalValidator(cdc *codec.Codec, value []byte) Validator {
 
 // UnmarshalValidator unmarshals a validator from a store value
 func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, err error) {
-	err = cdc.UnmarshalBinaryLengthPrefixed(value, &validator)
+	if len(value) == 0 {
+		err = errors.New("UnmarshalValidator cannot decode empty bytes")
+		return
+	}
+
+	// Read byte-length prefix.
+	u64, n := binary.Uvarint(value)
+	if n < 0 {
+		err = fmt.Errorf("Error reading msg byte-length prefix: got code %v", n)
+		return
+	}
+	if u64 > uint64(len(value)-n) {
+		err = fmt.Errorf("Not enough bytes to read in UnmarshalValidator, want %v more bytes but only have %v",
+			u64, len(value)-n)
+		return
+	} else if u64 < uint64(len(value)-n) {
+		err = fmt.Errorf("Bytes left over in UnmarshalValidator, should read %v more bytes but have %v",
+			u64, len(value)-n)
+		return
+	}
+	value = value[n:]
+
+	if err = validator.UnmarshalFromAmino(value); err != nil {
+		err = cdc.UnmarshalBinaryBare(value, &validator)
+	}
 	return validator, err
 }
 
@@ -249,6 +279,104 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (v *Validator) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+	var unbondingCompletionTimeUpdated bool
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			v.OperatorAddress = make([]byte, dataLen)
+			copy(v.OperatorAddress, subData)
+		case 2:
+			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if data[0] == 0 {
+				v.Jailed = false
+			} else if data[0] == 1 {
+				v.Jailed = true
+			} else {
+				return fmt.Errorf("Validator : Jailed, invalid data")
+			}
+			dataLen = 1
+		case 4:
+			status, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			v.Status = sdk.BondStatus(status)
+			dataLen = uint64(n)
+		case 5:
+			if err = v.Tokens.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 6:
+			if err = v.DelegatorShares.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 7:
+			if err = v.Description.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 8:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			v.UnbondingHeight = int64(u64)
+			dataLen = uint64(n)
+		case 9:
+			v.UnbondingCompletionTime, _, err = amino.DecodeTime(subData)
+			if err != nil {
+				return err
+			}
+			unbondingCompletionTimeUpdated = true
+		case 10:
+			if err = v.Commission.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 11:
+			if err = v.MinSelfDelegation.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	if !unbondingCompletionTimeUpdated {
+		v.UnbondingCompletionTime = amino.ZeroTime
+	}
+	return nil
+}
+
 // TestEquivalent is only for the ut
 func (v Validator) TestEquivalent(v2 Validator) bool {
 	return v.ConsPubKey.Equals(v2.ConsPubKey) &&
@@ -341,6 +469,54 @@ func (d Description) EnsureLength() (Description, error) {
 	}
 
 	return d, nil
+}
+
+func (d *Description) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("expect proto3 type 2")
+		}
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid data len")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			d.Moniker = string(subData)
+		case 2:
+			d.Identity = string(subData)
+		case 3:
+			d.Website = string(subData)
+		case 4:
+			d.Details = string(subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // ABCIValidatorUpdate returns an abci.ValidatorUpdate from a staking validator type

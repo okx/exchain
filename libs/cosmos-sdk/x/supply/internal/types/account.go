@@ -1,9 +1,12 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/tendermint/go-amino"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -34,6 +37,88 @@ type ModuleAccount struct {
 
 	Name        string   `json:"name" yaml:"name"`               // name of the module
 	Permissions []string `json:"permissions" yaml:"permissions"` // permissions of module account
+}
+
+func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
+	for pos := 1; pos < 4; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		err := buf.WriteByte(fieldKeysType[pos-1])
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			if acc.BaseAccount == nil {
+				noWrite = true
+				break
+			}
+			data, err := acc.BaseAccount.MarshalToAmino()
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(data)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			if acc.Name == "" {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(len(acc.Name)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.WriteString(acc.Name)
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			permsLen := len(acc.Permissions)
+			if permsLen == 0 {
+				noWrite = true
+				break
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(acc.Permissions[0])))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.WriteString(acc.Permissions[0])
+			if err != nil {
+				return nil, err
+			}
+
+			for i := 1; i < permsLen; i++ {
+				err := buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				perm := acc.Permissions[i]
+				err = amino.EncodeUvarint(&buf, uint64(len(perm)))
+				if err != nil {
+					return nil, err
+				}
+				_, err = buf.WriteString(perm)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			panic("unreachable")
+		}
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 // NewModuleAddress creates an AccAddress from the hash of the module's name
