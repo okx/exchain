@@ -1,8 +1,11 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/utils"
 
@@ -45,6 +48,83 @@ type encodableTxData struct {
 
 	// hash is only used when marshaling to JSON
 	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+}
+
+func (tx *encodableTxData) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid tx data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			tx.AccountNonce, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 2:
+			tx.Price = string(subData)
+		case 3:
+			var n int
+			tx.GasLimit, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 4:
+			if dataLen != ethcmn.AddressLength {
+				return errors.New("eth addr len error")
+			}
+			tx.Recipient = new(ethcmn.Address)
+			copy(tx.Recipient[:], subData)
+		case 5:
+			tx.Amount = string(subData)
+		case 6:
+			tx.Payload = make([]byte, dataLen)
+			copy(tx.Payload, subData)
+		case 7:
+			tx.V = string(subData)
+		case 8:
+			tx.R = string(subData)
+		case 9:
+			tx.S = string(subData)
+		case 10:
+			if dataLen != ethcmn.HashLength {
+				return errors.New("hash len error")
+			}
+			tx.Hash = new(ethcmn.Hash)
+			copy(tx.Hash[:], subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func (td TxData) String() string {
@@ -108,6 +188,76 @@ func (td *TxData) UnmarshalAmino(data []byte) error {
 		return err
 	}
 
+	td.AccountNonce = e.AccountNonce
+	td.GasLimit = e.GasLimit
+	td.Recipient = e.Recipient
+	td.Payload = e.Payload
+	td.Hash = e.Hash
+
+	price, err := utils.UnmarshalBigInt(e.Price)
+	if err != nil {
+		return err
+	}
+
+	if td.Price != nil {
+		td.Price.Set(price)
+	} else {
+		td.Price = price
+	}
+
+	amt, err := utils.UnmarshalBigInt(e.Amount)
+	if err != nil {
+		return err
+	}
+
+	if td.Amount != nil {
+		td.Amount.Set(amt)
+	} else {
+		td.Amount = amt
+	}
+
+	v, err := utils.UnmarshalBigInt(e.V)
+	if err != nil {
+		return err
+	}
+
+	if td.V != nil {
+		td.V.Set(v)
+	} else {
+		td.V = v
+	}
+
+	r, err := utils.UnmarshalBigInt(e.R)
+	if err != nil {
+		return err
+	}
+
+	if td.R != nil {
+		td.R.Set(r)
+	} else {
+		td.R = r
+	}
+
+	s, err := utils.UnmarshalBigInt(e.S)
+	if err != nil {
+		return err
+	}
+
+	if td.S != nil {
+		td.S.Set(s)
+	} else {
+		td.S = s
+	}
+
+	return nil
+}
+
+func (td *TxData) UnmarshalFromAmino(data []byte) error {
+	var e encodableTxData
+	err := e.UnmarshalFromAmino(data)
+	if err != nil {
+		return nil
+	}
 	td.AccountNonce = e.AccountNonce
 	td.GasLimit = e.GasLimit
 	td.Recipient = e.Recipient

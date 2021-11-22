@@ -1,10 +1,11 @@
 package types
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/stretchr/testify/require"
 
@@ -38,9 +39,49 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 
 	require.Equal(t, txData, txData2)
 
+	var txData3 TxData
+	err = txData3.UnmarshalFromAmino(bz)
+	require.NoError(t, err)
+	require.Equal(t, txData2, txData3)
+
 	// check error
 	err = txData2.UnmarshalAmino(bz[1:])
 	require.Error(t, err)
+	err = txData3.UnmarshalAmino(bz[1:])
+	require.Error(t, err)
+}
+
+func BenchmarkUnmarshalTxData(b *testing.B) {
+	addr := GenerateEthAddress()
+	hash := ethcmn.BigToHash(big.NewInt(2))
+
+	txData := TxData{
+		AccountNonce: 2,
+		Price:        big.NewInt(3),
+		GasLimit:     1,
+		Recipient:    &addr,
+		Amount:       big.NewInt(4),
+		Payload:      []byte("test"),
+		V:            big.NewInt(5),
+		R:            big.NewInt(6),
+		S:            big.NewInt(7),
+		Hash:         &hash,
+	}
+
+	bz, _ := txData.MarshalAmino()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.Run("amino", func(b *testing.B) {
+		var txData2 TxData
+		_ = txData2.UnmarshalAmino(bz)
+	})
+
+	b.Run("unmarshaller", func(b *testing.B) {
+		var txData3 TxData
+		_ = txData3.UnmarshalFromAmino(bz)
+	})
 }
 
 func TestMsgEthereumTxAmino(t *testing.T) {

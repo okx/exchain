@@ -96,6 +96,7 @@ run() {
     --consensus.timeout_commit 3s \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
+    --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
     --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
 

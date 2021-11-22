@@ -98,7 +98,11 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.prePersistNodeCache[string(node.hash)] = node
 }
 
-func (ndb *nodeDB) persistTpp(version int64, batch dbm.Batch, tpp map[string]*Node, trc *trace.Tracer) {
+func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
+
+	batch := event.batch
+	tpp := event.tpp
+
 	trc.Pin("batchSet")
 	for _, node := range tpp {
 		ndb.batchSet(node, batch)
@@ -110,7 +114,7 @@ func (ndb *nodeDB) persistTpp(version int64, batch dbm.Batch, tpp map[string]*No
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
-	ndb.asyncPersistTppFinised(version, tpp, trc)
+	ndb.asyncPersistTppFinised(event, trc)
 }
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
@@ -136,7 +140,12 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	return tpp
 }
 
-func (ndb *nodeDB) asyncPersistTppFinised(version int64, tpp map[string]*Node, trc *trace.Tracer) {
+func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
+
+	version := event.version
+	tpp := event.tpp
+	iavlHeight := event.iavlHeight
+
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
@@ -156,7 +165,8 @@ func (ndb *nodeDB) asyncPersistTppFinised(version int64, tpp map[string]*Node, t
 	}
 	delete(ndb.tppMap, version)
 
-	ndb.log(IavlInfo, "CommitSchedule: Height<%d>, Tree<%s>, NodeNum<%d>, %s", version, ndb.name, nodeNum, trc.Format())
+	ndb.log(IavlInfo, "CommitSchedule: Height<%d>, Tree<%s>, IavlHeight<%d>, NodeNum<%d>, %s",
+		version, ndb.name, iavlHeight, nodeNum, trc.Format())
 }
 
 // SaveNode saves a node to disk.

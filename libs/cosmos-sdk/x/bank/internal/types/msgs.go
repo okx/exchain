@@ -1,8 +1,11 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/tendermint/go-amino"
 )
 
 // RouterKey is they name of the bank module
@@ -53,6 +56,57 @@ func (msg MsgSend) GetSignBytes() []byte {
 // GetSigners Implements Msg.
 func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
+}
+
+func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid pbType: %v in MsgSend", pbType)
+		}
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid tx data")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			msg.FromAddress = make([]byte, dataLen)
+			copy(msg.FromAddress, subData)
+		case 2:
+			msg.ToAddress = make([]byte, dataLen)
+			copy(msg.ToAddress, subData)
+		case 3:
+			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			msg.Amount = append(msg.Amount, coin)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // MsgMultiSend - high level transaction of the coin module
