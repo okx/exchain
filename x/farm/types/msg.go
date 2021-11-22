@@ -1,6 +1,7 @@
 package types
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -69,6 +70,7 @@ func (m MsgCreatePool) GetSigners() []sdk.AccAddress {
 type MsgDestroyPool struct {
 	Owner    sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
+	Contract ethcmn.Address `json:"contract" yaml:"contract"`
 }
 
 var _ sdk.Msg = MsgDestroyPool{}
