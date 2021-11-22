@@ -12,9 +12,10 @@ func init() {
 }
 
 func handleMsgRmKeys(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool) (*sdk.Result, error) {
+	contract := ethcmn.HexToAddress(msg.PoolName)
 	evmKeeper := k.EvmKeeper()
-	err := evmKeeper.ForEachStorage(ctx, msg.Contract, func(key, value ethcmn.Hash) bool {
-		evmKeeper.DeleteStateDirectly(ctx, msg.Contract, key)
+	err := evmKeeper.ForEachStorage(ctx, contract, func(key, value ethcmn.Hash) bool {
+		evmKeeper.DeleteStateDirectly(ctx, contract, key)
 		return false // todo: need to add a judgement, in case of deleting too many keys in one transaction
 	})
 	if err != nil {
