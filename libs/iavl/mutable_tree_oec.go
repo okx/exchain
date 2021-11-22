@@ -178,7 +178,7 @@ func (tree *MutableTree) StopTree() {
 	if !EnableAsyncCommit {
 		return
 	}
-	time.Sleep(time.Second * 8)
+	time.Sleep(time.Second * 3)
 	batch := tree.NewBatch()
 	if tree.root == nil {
 		if err := tree.ndb.SaveEmptyRoot(batch, tree.version); err != nil {
