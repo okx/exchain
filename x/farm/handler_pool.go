@@ -122,4 +122,3 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	))
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
-
