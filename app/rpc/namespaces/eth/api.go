@@ -1222,12 +1222,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 // GetTransactionReceiptsByBlock returns the transaction receipt identified by block hash or number.
 func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.TransactionReceipt, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
-	defer func() {
-		if err := recover(); err != nil {
-			api.logger.Error("eth_getTransactionReceiptsByBlock_yls", "err", err)
-		}
-		monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
-	}()
+	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
@@ -1294,11 +1289,9 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		// Set status codes based on tx result
-		var status hexutil.Uint64
+		var status = hexutil.Uint64(0)
 		if tx.TxResult.IsOK() {
 			status = hexutil.Uint64(1)
-		} else {
-			status = hexutil.Uint64(0)
 		}
 
 		txData := tx.TxResult.GetData()
