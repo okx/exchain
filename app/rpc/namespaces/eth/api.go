@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -1236,6 +1238,8 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	start = time.Now()
 	var receipts []*watcher.TransactionReceipt
 	var t1, t2, t3, t4, t5, t6, t7 int64
+	var block *ctypes.ResultBlock
+	var blockHash common.Hash
 	for _, tx := range txs {
 		startTime := time.Now()
 		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
@@ -1251,16 +1255,19 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, nil
 		}
 		t2 += time.Since(startTime).Milliseconds()
+
 		startTime = time.Now()
-		// Query block for consensus hash
-		block, err := api.clientCtx.Client.Block(&tx.Height)
-		if err != nil {
-			return nil, err
+		if block != nil {
+			// Query block for consensus hash
+			block, err = api.clientCtx.Client.Block(&tx.Height)
+			if err != nil {
+				return nil, err
+			}
+			blockHash = common.BytesToHash(block.Block.Hash())
 		}
 		t3 += time.Since(startTime).Milliseconds()
-		startTime = time.Now()
-		blockHash := common.BytesToHash(block.Block.Hash())
 
+		startTime = time.Now()
 		// Convert tx bytes to eth transaction
 		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
 		if err != nil {
@@ -1273,6 +1280,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, err
 		}
 		t5 += time.Since(startTime).Milliseconds()
+
 		startTime = time.Now()
 		from := fromSigCache.GetFrom()
 		cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
@@ -1294,6 +1302,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			status = 0 // transaction failed
 		}
 		t6 += time.Since(startTime).Milliseconds()
+
 		startTime = time.Now()
 		if len(data.Logs) == 0 {
 			data.Logs = []*ethtypes.Log{}
