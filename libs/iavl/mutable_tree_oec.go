@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
@@ -177,7 +178,7 @@ func (tree *MutableTree) StopTree() {
 	if !EnableAsyncCommit {
 		return
 	}
-
+	time.Sleep(time.Second * 8)
 	batch := tree.NewBatch()
 	if tree.root == nil {
 		if err := tree.ndb.SaveEmptyRoot(batch, tree.version); err != nil {
