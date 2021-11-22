@@ -1262,7 +1262,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		t2 += time.Since(startTime).Milliseconds()
 
 		startTime = time.Now()
-		if block != nil {
+		if block == nil {
 			// Query block for consensus hash
 			block, err = api.clientCtx.Client.Block(&tx.Height)
 			if err != nil {
