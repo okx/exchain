@@ -245,7 +245,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err == nil && len(vs) > 0 {
 		rs.versions = vs
 	}
-	rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+	if rs.logger != nil {
+		rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
 		return fmt.Errorf("the length of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", maxPruneHeightsLength)
 	}
