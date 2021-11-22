@@ -1,7 +1,6 @@
 package farm
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/farm/keeper"
@@ -66,13 +65,61 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 }
 
 func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool) (*sdk.Result, error) {
-	evmKeeper := k.EvmKeeper()
-	err := evmKeeper.ForEachStorage(ctx, msg.Contract, func(key, value ethcmn.Hash) bool {
-		evmKeeper.DeleteStateDirectly(ctx, msg.Contract, key)
-		return false // todo: need to add a judgement, in case of deleting too many keys in one transaction
-	})
-	if err != nil {
-		return nil, err
+	// 0. check pool and owner
+	pool, found := k.GetFarmPool(ctx, msg.PoolName)
+	if !found {
+		return types.ErrNoFarmPoolFound(msg.PoolName).Result()
 	}
-	return &sdk.Result{}, nil
+
+	if !pool.Owner.Equals(msg.Owner) {
+		return types.ErrInvalidPoolOwner(msg.Owner.String(), msg.PoolName).Result()
+	}
+
+	// 1. calculate how many provided token & native token could be yielded in current period
+	updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
+
+	// 2. check pool status
+	if !updatedPool.Finished() {
+		return types.ErrPoolNotFinished(msg.PoolName).Result()
+	}
+
+	// 3. give remaining rewards to the owner of pool
+	if !updatedPool.TotalAccumulatedRewards.IsZero() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(
+			ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards,
+		)
+		if err != nil {
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
+		}
+	}
+
+	// 4. withdraw deposit
+	withdrawAmount := pool.DepositAmount
+	if withdrawAmount.IsPositive() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
+		if err != nil {
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
+		}
+	}
+
+	// 5. delete pool and white list
+	k.DeleteFarmPool(ctx, msg.PoolName)
+
+	// 6. delete historical period rewards and current period rewards.
+	k.IteratePoolHistoricalRewards(ctx, msg.PoolName,
+		func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
+			store.Delete(key)
+			return false
+		},
+	)
+	k.DeletePoolCurrentRewards(ctx, msg.PoolName)
+
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDestroyPool,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
+	))
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
+
