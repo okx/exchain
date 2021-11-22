@@ -30,6 +30,7 @@ const (
 	pruneHeightsKey  = "s/pruneheights"
 	versionsKey      = "s/versions"
 	commitInfoKeyFmt = "s/%d" // s/<version>
+	maxPruneHeightsLength = 100
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -244,7 +245,10 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err == nil && len(vs) > 0 {
 		rs.versions = vs
 	}
-
+	rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+	if len(rs.pruneHeights) > maxPruneHeightsLength {
+		return fmt.Errorf("the length of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", maxPruneHeightsLength)
+	}
 	return nil
 }
 
@@ -833,6 +837,17 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 func setPruningHeights(batch dbm.Batch, pruneHeights []int64) {
 	bz := cdc.MustMarshalBinaryBare(pruneHeights)
 	batch.Set([]byte(pruneHeightsKey), bz)
+}
+
+func SetPruningHeights(db dbm.DB, pruneHeights []int64) {
+	batch := db.NewBatch()
+	setPruningHeights(batch, pruneHeights)
+	batch.Write()
+	batch.Close()
+}
+
+func GetPruningHeights(db dbm.DB) ([]int64, error) {
+	return getPruningHeights(db)
 }
 
 func getPruningHeights(db dbm.DB) ([]int64, error) {
