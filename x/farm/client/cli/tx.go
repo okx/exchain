@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
@@ -88,9 +87,8 @@ $ %s tx farm destroy-pool pool-eth-xxb --from mykey
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			contract := args[0]
-			msg := types.NewMsgDestroyPool(cliCtx.GetFromAddress(), contract)
-			msg.Contract = ethcmn.HexToAddress(contract)
+			poolName := args[0]
+			msg := types.NewMsgDestroyPool(cliCtx.GetFromAddress(), poolName)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
