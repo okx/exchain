@@ -168,6 +168,20 @@ func NewIntWithDecimal(n int64, dec int) Int {
 	return Int{i}
 }
 
+func NewIntFromAmino(data []byte) (Int, error) {
+	ret := Int{new(big.Int)}
+
+	if err := ret.i.UnmarshalText(data); err != nil {
+		return Int{}, err
+	}
+
+	if ret.i.BitLen() > maxBitLen {
+		return Int{}, fmt.Errorf("integer out of range: %s", string(data))
+	}
+
+	return ret, nil
+}
+
 // ZeroInt returns Int value with zero
 func ZeroInt() Int { return Int{big.NewInt(0)} }
 
@@ -363,6 +377,21 @@ func (i *Int) UnmarshalAmino(text string) error {
 		i.i = new(big.Int)
 	}
 	return unmarshalAmino(i.i, text)
+}
+
+func (i *Int) UnmarshalFromAmino(data []byte) error {
+	if i.i == nil { // Necessary since default Int initialization has i.i as nil
+		i.i = new(big.Int)
+	}
+
+	if err := i.i.UnmarshalText(data); err != nil {
+		return err
+	}
+
+	if i.i.BitLen() > maxBitLen {
+		return fmt.Errorf("integer out of range: %s", string(data))
+	}
+	return nil
 }
 
 // MarshalJSON defines custom encoding scheme

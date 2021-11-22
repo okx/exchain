@@ -693,6 +693,24 @@ func (d *Dec) UnmarshalAmino(text string) (err error) {
 	return nil
 }
 
+func (d *Dec) UnmarshalFromAmino(data []byte) error {
+	tempInt := new(big.Int)
+	err := tempInt.UnmarshalText(data)
+	if err != nil {
+		return err
+	}
+	d.Int = tempInt
+	return nil
+}
+
+func (d Dec) MarshalToAmino() ([]byte, error) {
+	if d.Int == nil {
+		return []byte(nilAmino), nil
+	}
+	bz, err := d.Int.MarshalText()
+	return bz, err
+}
+
 // MarshalJSON marshals the decimal
 func (d Dec) MarshalJSON() ([]byte, error) {
 	if d.Int == nil {

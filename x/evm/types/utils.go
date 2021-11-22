@@ -1,19 +1,23 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"math/big"
+	"strings"
+
+	"github.com/tendermint/go-amino"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
-	"math/big"
-	"strings"
 )
 
 // GenerateEthAddress generates an Ethereum address.
@@ -58,6 +62,240 @@ type ResultData struct {
 	TxHash          ethcmn.Hash     `json:"tx_hash"`
 }
 
+func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
+	if log == nil {
+		return []byte{}, nil
+	}
+	var buf bytes.Buffer
+	fieldKeysType := [9]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5<<3 | 2, 6 << 3, 7<<3 | 2, 8 << 3, 9 << 3}
+	for pos := 1; pos < 10; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		err := buf.WriteByte(fieldKeysType[pos-1])
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			err := buf.WriteByte(byte(ethcmn.AddressLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(log.Address.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			topicsLen := len(log.Topics)
+			if topicsLen == 0 {
+				noWrite = true
+				break
+			}
+			err = buf.WriteByte(byte(ethcmn.HashLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(log.Topics[0].Bytes())
+			if err != nil {
+				return nil, err
+			}
+
+			for i := 1; i < topicsLen; i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+
+				err = buf.WriteByte(byte(ethcmn.HashLength))
+				if err != nil {
+					return nil, err
+				}
+				_, err = buf.Write(log.Topics[i].Bytes())
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 3:
+			dataLen := len(log.Data)
+			if dataLen == 0 {
+				noWrite = true
+				break
+			}
+			err = amino.EncodeUvarint(&buf, uint64(dataLen))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(log.Data)
+			if err != nil {
+				return nil, err
+			}
+		case 4:
+			if log.BlockNumber == 0 {
+				noWrite = true
+				break
+			}
+			err = amino.EncodeUvarint(&buf, log.BlockNumber)
+			if err != nil {
+				return nil, err
+			}
+		case 5:
+			err := buf.WriteByte(byte(ethcmn.HashLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(log.TxHash.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		case 6:
+			if log.TxIndex == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(log.TxIndex))
+			if err != nil {
+				return nil, err
+			}
+		case 7:
+			err := buf.WriteByte(byte(ethcmn.HashLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(log.BlockHash.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		case 8:
+			if log.Index == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(log.Index))
+			if err != nil {
+				return nil, err
+			}
+		case 9:
+			if log.Removed {
+				err = buf.WriteByte(byte(1))
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				noWrite = true
+				break
+			}
+		default:
+			panic("unreachable")
+		}
+
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func (rd ResultData) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
+	for pos := 1; pos < 6; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		err := buf.WriteByte(fieldKeysType[pos-1])
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			err := buf.WriteByte(byte(ethcmn.AddressLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(rd.ContractAddress.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			_, err := buf.Write([]byte{0b10000000, 0b00000010}) // bloom length 256
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(rd.Bloom.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			logsLen := len(rd.Logs)
+			if logsLen == 0 {
+				noWrite = true
+				break
+			}
+			data, err := MarshalEthLogToAmino(rd.Logs[0])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(data)
+			if err != nil {
+				return nil, err
+			}
+			for i := 1; i < logsLen; i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				data, err = MarshalEthLogToAmino(rd.Logs[i])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				if err != nil {
+					return nil, err
+				}
+				_, err = buf.Write(data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 4:
+			retLen := len(rd.Ret)
+			if retLen == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(retLen))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(rd.Ret)
+			if err != nil {
+				return nil, err
+			}
+		case 5:
+			err := buf.WriteByte(byte(ethcmn.HashLength))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(rd.TxHash.Bytes())
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
+}
+
 // String implements fmt.Stringer interface.
 func (rd ResultData) String() string {
 	var logsStr string
@@ -78,7 +316,29 @@ func (rd ResultData) String() string {
 // EncodeResultData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
 func EncodeResultData(data ResultData) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
+	var buf = new(bytes.Buffer)
+
+	bz, err := data.MarshalToAmino()
+	if err != nil {
+		bz, err = ModuleCdc.MarshalBinaryBare(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Write uvarint(len(bz)).
+	err = amino.EncodeUvarint(buf, uint64(len(bz)))
+	if err != nil {
+		return nil, err
+	}
+
+	// Write bz.
+	_, err = buf.Write(bz)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
@@ -107,9 +367,14 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// sdk.Tx is an interface. The concrete message types
 		// are registered by MakeTxCodec
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+		v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx)
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+			if err != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			}
+		} else {
+			tx = v.(sdk.Tx)
 		}
 
 		return tx, nil
