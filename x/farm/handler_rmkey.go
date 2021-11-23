@@ -25,7 +25,7 @@ func handleMsgRmKeys(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool)
 		}
 		evmKeeper.DeleteStateDirectly(ctx, contract, key)
 		total++
-		return false // todo: need to add a judgement, in case of deleting too many keys in one transaction
+		return false
 	})
 	if err != nil {
 		return nil, err
