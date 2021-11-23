@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -45,6 +43,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
