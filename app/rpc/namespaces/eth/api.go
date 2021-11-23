@@ -1173,10 +1173,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	}
 
 	from := fromSigCache.GetFrom()
-	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
-	if tx.Index != 0 {
-		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
-	}
+	// Too time-consuming, not used for now, remove
+	//cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
+	//if tx.Index != 0 {
+	//	cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
+	//}
 
 	// Set status codes based on tx result
 	var status hexutil.Uint64
@@ -1202,18 +1203,18 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	}
 
 	receipt := &watcher.TransactionReceipt{
-		Status:            status,
-		CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
-		LogsBloom:         data.Bloom,
-		Logs:              data.Logs,
-		TransactionHash:   hash.String(),
-		ContractAddress:   contractAddr,
-		GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
-		BlockHash:         blockHash.String(),
-		BlockNumber:       hexutil.Uint64(tx.Height),
-		TransactionIndex:  hexutil.Uint64(tx.Index),
-		From:              from.String(),
-		To:                ethTx.To(),
+		Status: status,
+		//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+		LogsBloom:        data.Bloom,
+		Logs:             data.Logs,
+		TransactionHash:  hash.String(),
+		ContractAddress:  contractAddr,
+		GasUsed:          hexutil.Uint64(tx.TxResult.GasUsed),
+		BlockHash:        blockHash.String(),
+		BlockNumber:      hexutil.Uint64(tx.Height),
+		TransactionIndex: hexutil.Uint64(tx.Index),
+		From:             from.String(),
+		To:               ethTx.To(),
 	}
 
 	return receipt, nil
@@ -1283,10 +1284,11 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 
 		startTime = time.Now()
 		from := fromSigCache.GetFrom()
-		cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
-		if tx.Index != 0 {
-			cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
-		}
+		// Too time-consuming, not used for now, remove
+		//cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
+		//if tx.Index != 0 {
+		//	cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
+		//}
 
 		// Set status codes based on tx result
 		var status = hexutil.Uint64(0)
@@ -1313,18 +1315,18 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		receipt := &watcher.TransactionReceipt{
-			Status:            status,
-			CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
-			LogsBloom:         data.Bloom,
-			Logs:              data.Logs,
-			TransactionHash:   common.BytesToHash(tx.Hash.Bytes()).String(),
-			ContractAddress:   contractAddr,
-			GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
-			BlockHash:         blockHash.String(),
-			BlockNumber:       hexutil.Uint64(tx.Height),
-			TransactionIndex:  hexutil.Uint64(tx.Index),
-			From:              from.String(),
-			To:                ethTx.To(),
+			Status: status,
+			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+			LogsBloom:        data.Bloom,
+			Logs:             data.Logs,
+			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
+			ContractAddress:  contractAddr,
+			GasUsed:          hexutil.Uint64(tx.TxResult.GasUsed),
+			BlockHash:        blockHash.String(),
+			BlockNumber:      hexutil.Uint64(tx.Height),
+			TransactionIndex: hexutil.Uint64(tx.Index),
+			From:             from.String(),
+			To:               ethTx.To(),
 		}
 		t7 += time.Since(startTime).Milliseconds()
 		startTime = time.Now()
