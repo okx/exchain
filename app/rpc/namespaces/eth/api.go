@@ -1237,7 +1237,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "GetTransactionsByBlock", time.Since(start).Milliseconds(), "len(txs)", len(txs))
 	start = time.Now()
 	var receipts []*watcher.TransactionReceipt
-	var t1, t2, t3, t4, t5, t6, t7 int64
+	var t1, t2, t3, t4, t5, t6, t7, t8 int64
 	var block *ctypes.ResultBlock
 	var blockHash common.Hash
 	for _, tx := range txs {
@@ -1293,7 +1293,9 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		if tx.TxResult.IsOK() {
 			status = hexutil.Uint64(1)
 		}
+		t8 += time.Since(startTime).Milliseconds()
 
+		startTime = time.Now()
 		txData := tx.TxResult.GetData()
 		data, err := evmtypes.DecodeResultData(txData)
 		if err != nil {
@@ -1328,7 +1330,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		startTime = time.Now()
 		receipts = append(receipts, receipt)
 	}
-	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "t1", t1, "t2", t2, "t3", t3, "t4", t4, "t5", t5, "t6", t6, "t7", t7)
+	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "t1", t1, "t2", t2, "t3", t3, "t4", t4, "t5", t5, "t8", t8, "t6", t6, "t7", t7)
 	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "rangeTxs", time.Since(start).Milliseconds(), "len(receipts)", len(receipts))
 
 	return receipts, nil
