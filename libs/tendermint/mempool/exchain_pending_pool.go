@@ -6,6 +6,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+const (
+	FlagEnablePendingPool = "mempool.enable_pending_pool"
+)
+
 type PendingPool struct {
 	maxSize         int
 	addressTxsMap   map[string]map[uint64]*PendingTx

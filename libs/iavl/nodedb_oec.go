@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
@@ -18,7 +19,7 @@ type heightOrphansItem struct {
 }
 
 type tppItem struct {
-	nodeMap map[string]*Node
+	nodeMap  map[string]*Node
 	listItem *list.Element
 }
 
@@ -73,8 +74,11 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 	}
 }
 
-
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
+	ts := time.Now()
+	defer func() {
+		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
+	}()
 	ndb.addDBReadCount()
 	return ndb.db.Get(k)
 }
@@ -94,7 +98,11 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.prePersistNodeCache[string(node.hash)] = node
 }
 
-func (ndb *nodeDB) persistTpp(version int64, batch dbm.Batch, tpp map[string]*Node, trc *trace.Tracer) {
+func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
+
+	batch := event.batch
+	tpp := event.tpp
+
 	trc.Pin("batchSet")
 	for _, node := range tpp {
 		ndb.batchSet(node, batch)
@@ -106,7 +114,7 @@ func (ndb *nodeDB) persistTpp(version int64, batch dbm.Batch, tpp map[string]*No
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
-	ndb.asyncPersistTppFinised(version, tpp, trc)
+	ndb.asyncPersistTppFinised(event, trc)
 }
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
@@ -118,7 +126,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 
 	lItem := ndb.tppVersionList.PushBack(version)
 	ndb.tppMap[version] = &tppItem{
-		nodeMap: tpp,
+		nodeMap:  tpp,
 		listItem: lItem,
 	}
 
@@ -132,7 +140,12 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	return tpp
 }
 
-func (ndb *nodeDB) asyncPersistTppFinised(version int64, tpp map[string]*Node, trc *trace.Tracer) {
+func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
+
+	version := event.version
+	tpp := event.tpp
+	iavlHeight := event.iavlHeight
+
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
@@ -152,9 +165,9 @@ func (ndb *nodeDB) asyncPersistTppFinised(version int64, tpp map[string]*Node, t
 	}
 	delete(ndb.tppMap, version)
 
-	ndb.log(IavlInfo, "CommitSchedule: Height<%d>, Tree<%s>, NodeNum<%d>, %s", version, ndb.name, nodeNum, trc.Format())
+	ndb.log(IavlInfo, "CommitSchedule: Height<%d>, Tree<%s>, IavlHeight<%d>, NodeNum<%d>, %s",
+		version, ndb.name, iavlHeight, nodeNum, trc.Format())
 }
-
 
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
@@ -180,15 +193,17 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey) + len(nodeValue)))
+	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey)+len(nodeValue)))
 	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-
+func (ndb *nodeDB) addDBReadTime(ts int64) {
+	atomic.AddInt64(&ndb.dbReadTime, ts)
+}
 
 func (ndb *nodeDB) addDBReadCount() {
-	atomic.AddInt64(&ndb.dbReadCount,1)
+	atomic.AddInt64(&ndb.dbReadCount, 1)
 }
 
 func (ndb *nodeDB) addDBWriteCount(count int64) {
@@ -196,7 +211,11 @@ func (ndb *nodeDB) addDBWriteCount(count int64) {
 }
 
 func (ndb *nodeDB) addNodeReadCount() {
-	atomic.AddInt64(&ndb.nodeReadCount,1)
+	atomic.AddInt64(&ndb.nodeReadCount, 1)
+}
+
+func (ndb *nodeDB) resetDBReadTime() {
+	atomic.StoreInt64(&ndb.dbReadTime, 0)
 }
 
 func (ndb *nodeDB) resetDBReadCount() {
@@ -209,6 +228,10 @@ func (ndb *nodeDB) resetDBWriteCount() {
 
 func (ndb *nodeDB) resetNodeReadCount() {
 	atomic.StoreInt64(&ndb.nodeReadCount, 0)
+}
+
+func (ndb *nodeDB) getDBReadTime() int {
+	return int(atomic.LoadInt64(&ndb.dbReadTime))
 }
 
 func (ndb *nodeDB) getDBReadCount() int {
@@ -224,6 +247,7 @@ func (ndb *nodeDB) getNodeReadCount() int {
 }
 
 func (ndb *nodeDB) resetCount() {
+	ndb.resetDBReadTime()
 	ndb.resetDBReadCount()
 	ndb.resetDBWriteCount()
 	ndb.resetNodeReadCount()
@@ -301,7 +325,6 @@ func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
 	return nil, fmt.Errorf("version %d is not in heightOrphansMap", version)
 }
 
-
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
 // orphans: the orphan nodes created since version-1
@@ -331,7 +354,7 @@ func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
-		root, err :=  ndb.getRootWithCache(version)
+		root, err := ndb.getRootWithCache(version)
 		if err == nil {
 			return root, err
 		}

@@ -20,7 +20,6 @@ function testExample() {
 	sleep 2
 	abci-cli --log_level=error --verbose batch < "$INPUT" > "${INPUT}.out.new"
 	killall "$3"
-
 	pre=$(shasum < "${INPUT}.out")
 	post=$(shasum < "${INPUT}.out.new")
 

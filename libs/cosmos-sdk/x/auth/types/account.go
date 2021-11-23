@@ -5,11 +5,14 @@ import (
 	"errors"
 	"time"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	yaml "gopkg.in/yaml.v2"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 )
 
 //-----------------------------------------------------------------------------
@@ -28,6 +31,118 @@ type BaseAccount struct {
 	PubKey        crypto.PubKey  `json:"public_key" yaml:"public_key"`
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
+}
+
+func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5 << 3}
+	for pos := 1; pos < 6; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		err := buf.WriteByte(fieldKeysType[pos-1])
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			addressLen := len(acc.Address)
+			if addressLen == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(addressLen))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(acc.Address)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			coinsLen := len(acc.Coins)
+			if coinsLen == 0 {
+				noWrite = true
+				break
+			}
+			if coinsLen == 1 {
+				data, err := acc.Coins[0].MarshalToAmino()
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				if err != nil {
+					return nil, err
+				}
+				_, err = buf.Write(data)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				buf.Truncate(lBeforeKey)
+				for _, coin := range acc.Coins {
+					err := buf.WriteByte(fieldKeysType[pos-1])
+					if err != nil {
+						return nil, err
+					}
+					data, err := coin.MarshalToAmino()
+					if err != nil {
+						return nil, err
+					}
+					err = amino.EncodeUvarint(&buf, uint64(len(data)))
+					if err != nil {
+						return nil, err
+					}
+					_, err = buf.Write(data)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		case 3:
+			if acc.PubKey == nil {
+				noWrite = true
+				break
+			}
+			data, err := cryptoamino.MarshalPubKeyToAminoWithTypePrefix(acc.PubKey)
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(data)
+			if err != nil {
+				return nil, err
+			}
+		case 4:
+			if acc.AccountNumber == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, acc.AccountNumber)
+			if err != nil {
+				return nil, err
+			}
+		case 5:
+			if acc.Sequence == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, acc.Sequence)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 // NewBaseAccount creates a new BaseAccount object

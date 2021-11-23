@@ -2,11 +2,14 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -17,6 +20,47 @@ import (
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+		defer func() {
+			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
+				return
+			}
+
+			if err != nil {
+				return
+			}
+
+			db := bam.InstanceOfHistoryGasUsedRecordDB()
+			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
+
+			if msgFnSignature == nil {
+				return
+			}
+
+			hisGu, err := db.Get(msgFnSignature)
+			if err != nil {
+				return
+			}
+
+			gc := int64(ctx.GasMeter().GasConsumed())
+			if toDeployContractSize > 0 {
+				// calculate average gas consume for deploy contract case
+				gc = gc / int64(toDeployContractSize)
+			}
+
+			var avgGas int64
+			if hisGu != nil {
+				hgu := common2.BytesToInt64(hisGu)
+				avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
+			} else {
+				avgGas = gc
+			}
+
+			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
+			if err != nil {
+				return
+			}
+		}()
 
 		var handlerFun func() (*sdk.Result, error)
 		var name string
@@ -43,6 +87,15 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 
 		return result, err
+	}
+}
+
+func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
+	switch msg := msg.(type) {
+	case types.MsgEthereumTx:
+		return msg.GetTxFnSignatureInfo()
+	default:
+		return nil, 0
 	}
 }
 
@@ -128,8 +181,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			pm := k.GenerateCSDBParams()
 			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			//fix sender's balance in watcher with refund fees
+			gasConsumed := ctx.GasMeter().GasConsumed()
+			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
+			coins := sendAcc.GetCoins().Add2(fixedFees)
+			_ = sendAcc.SetCoins(coins)
 			if sendAcc != nil {
-				pm.Watcher.SaveAccount(sendAcc, true)
+				pm.Watcher.SaveAccount(sendAcc, false)
 			}
 			ctx.WithGasMeter(currentGasMeter)
 		}

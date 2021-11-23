@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -195,6 +196,7 @@ func NewBaseApp(
 	if app.interBlockCache != nil {
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
+	app.cms.SetLogger(app.logger)
 
 	app.parallelTxManage.workgroup.Start()
 
@@ -563,6 +565,9 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 	if app.parallelTxManage.isAsyncDeliverTx {
 		ctx = ctx.WithAsync()
+		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
+			ctx = ctx.WithSigCache(s.signCache)
+		}
 	}
 
 	return ctx
@@ -712,7 +717,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		ctx = app.getContextForTx(mode, txBytes)
 	}
 
-
 	ms := ctx.MultiStore()
 
 	// only run the tx if there is block gas remaining
@@ -768,7 +772,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	defer func() {
 		app.pin(ConsumeGas, true, mode)
 		defer app.pin(ConsumeGas, false, mode)
-		if mode == runTxModeDeliver || app.parallelTxManage.isReRun(string(txBytes)) {
+		if mode == runTxModeDeliver || (mode == runTxModeDeliverInAsync && app.parallelTxManage.isReRun(string(txBytes))) {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)
@@ -1003,3 +1007,29 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 
 	return app.GetTxInfo(app.checkState.ctx, tx)
 }
+
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
+	tx, err := app.txDecoder(rawTx)
+	if err != nil {
+		return -1
+	}
+
+	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
+	if txFnSig == nil {
+		return -1
+	}
+
+	db := InstanceOfHistoryGasUsedRecordDB()
+	data, err := db.Get(txFnSig)
+	if err != nil || len(data) == 0 {
+		return -1
+	}
+
+	if toDeployContractSize > 0 {
+		// if deploy contract case, the history gas used value is unit gas used
+		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+	}
+
+	return int64(binary.BigEndian.Uint64(data))
+}
+

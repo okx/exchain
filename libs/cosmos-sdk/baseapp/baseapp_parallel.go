@@ -10,26 +10,54 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
+type extraDataForTx struct {
+	fee       sdk.Coins
+	isEvm     bool
+	signCache sdk.SigCache
+}
+
+func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
+	res := make([]*extraDataForTx, len(txs), len(txs))
+	var wg sync.WaitGroup
+	for index, txBytes := range txs {
+		wg.Add(1)
+		index := index
+		txBytes := txBytes
+		go func() {
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				panic(err)
+			}
+			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliverInAsync, txBytes), tx)
+			res[index] = &extraDataForTx{
+				fee:       coin,
+				isEvm:     isEvm,
+				signCache: s,
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return res
+}
+
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k, v := range txs {
-		tx, err := app.txDecoder(v)
-		if err != nil {
-			panic(err)
-		}
 		t := &txStatus{
 			indexInBlock: uint32(k),
+			signCache:    extraData[k].signCache,
 		}
-		fee, isEvm := app.getTxFee(tx)
-		if isEvm {
+		if extraData[k].isEvm {
 			t.evmIndex = evmIndex
 			t.isEvmTx = true
 			evmIndex++
 		}
 
 		vString := string(v)
-		app.parallelTxManage.setFee(vString, fee)
+		app.parallelTxManage.setFee(vString, extraData[k].fee)
 
 		app.parallelTxManage.txStatus[vString] = t
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
@@ -37,6 +65,24 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	return app.runTxs(txs)
 
+}
+
+func (app *BaseApp) fixFeeCollector(txString string) {
+	if app.parallelTxManage.txStatus[txString].anteErr != nil {
+		return
+	}
+
+	txFee := app.parallelTxManage.getFee(txString)
+	refundFee := app.parallelTxManage.getRefundFee(txString)
+	txFee = txFee.Sub(refundFee)
+
+	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(txFee...)
+
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
+		panic(err)
+	}
+	cache.Write()
 }
 
 func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
@@ -75,7 +121,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			deliverTxs[txIndex] = &txRs
 			res.Collect(asCache)
 			res.Commit()
-
+			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex])
 			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
@@ -111,23 +157,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 }
 
 func (app *BaseApp) endParallelTxs() [][]byte {
-	txFeeInBlock := sdk.Coins{}
-	feeMap := app.parallelTxManage.getFeeMap()
-	refundMap := app.parallelTxManage.getRefundFeeMap()
-	for tx, v := range feeMap {
-		if app.parallelTxManage.txStatus[tx].anteErr != nil {
-			continue
-		}
-		txFeeInBlock = txFeeInBlock.Add(v...)
-		if refundFee, ok := refundMap[tx]; ok {
-			txFeeInBlock = txFeeInBlock.Sub(refundFee)
-		}
-	}
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
-	if err := app.updateFeeCollectorAccHandler(ctx, txFeeInBlock); err != nil {
-		panic(err)
-	}
-	cache.Write()
 
 	txExecStats := make([][]string, 0)
 	for _, v := range app.parallelTxManage.indexMapBytes {
@@ -279,6 +308,8 @@ type parallelTxManager struct {
 
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
+
+	currTxFee sdk.Coins
 }
 
 type txStatus struct {
@@ -287,6 +318,7 @@ type txStatus struct {
 	evmIndex     uint32
 	indexInBlock uint32
 	anteErr      error
+	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -309,6 +341,7 @@ func (f *parallelTxManager) clear() {
 
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
+	f.currTxFee = sdk.Coins{}
 
 }
 func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
@@ -317,10 +350,10 @@ func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
 	f.fee[key] = value
 }
 
-func (f *parallelTxManager) getFeeMap() map[string]sdk.Coins {
+func (f *parallelTxManager) getFee(key string) sdk.Coins {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	return f.fee
+	return f.fee[key]
 }
 func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
 	f.mu.Lock()
@@ -328,10 +361,10 @@ func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
 	f.refundFee[key] = value
 }
 
-func (f *parallelTxManager) getRefundFeeMap() map[string]sdk.Coins {
+func (f *parallelTxManager) getRefundFee(key string) sdk.Coins {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	return f.refundFee
+	return f.refundFee[key]
 }
 
 func (f *parallelTxManager) isReRun(tx string) bool {

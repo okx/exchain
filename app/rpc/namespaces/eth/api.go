@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -885,6 +886,7 @@ func (api *PublicEthereumAPI) doCall(
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
+
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -1581,6 +1583,25 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
+}
+
+// GetTxTrace returns the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
+	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
+}
+
+// DeleteTxTrace delete the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
+	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
+		return "delete trace failed"
+	}
+	return "delete trace succeed"
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

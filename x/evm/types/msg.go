@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 
@@ -30,6 +32,8 @@ var (
 )
 
 var big8 = big.NewInt(8)
+var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
+var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
 
 // message type and route constants
 const (
@@ -116,6 +120,74 @@ func (msg MsgEthermint) To() *ethcmn.Address {
 
 	addr := ethcmn.BytesToAddress(msg.Recipient.Bytes())
 	return &addr
+}
+
+func (msg *MsgEthermint) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid tx data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			msg.AccountNonce, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 2:
+			msg.Price, err = sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 3:
+			var n int
+			msg.GasLimit, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 4:
+			tmp := make(sdk.AccAddress, dataLen)
+			msg.Recipient = &tmp
+			copy(tmp[:], subData)
+		case 5:
+			msg.Amount, err = sdk.NewIntFromAmino(subData)
+		case 6:
+			msg.Payload = make([]byte, dataLen)
+			copy(msg.Payload, subData)
+		case 7:
+			msg.From = make([]byte, dataLen)
+			copy(msg.From, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
@@ -509,4 +581,63 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 // GetGasPrice return gas price
 func (msg MsgEthereumTx) GetGasPrice() *big.Int {
 	return msg.Data.Price
+}
+
+func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid tx data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			if err := msg.Data.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
+func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
+	// deploy contract case
+	if msg.Data.Recipient == nil {
+		return DefaultDeployContractFnSignature, len(msg.Data.Payload)
+	}
+
+	// most case is transfer token
+	if len(msg.Data.Payload) < 4 {
+		return DefaultSendCoinFnSignature, 0
+	}
+
+	// call contract case (some times will together with transfer token case)
+	recipient := msg.Data.Recipient.Bytes()
+	methodId := msg.Data.Payload[0:4]
+	return append(recipient, methodId...), 0
 }

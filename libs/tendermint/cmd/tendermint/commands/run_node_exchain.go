@@ -6,7 +6,6 @@ import (
 
 // AddNodeFlags exposes some common configuration options on the command-line
 // These are exposed for convenience of commands embedding a tendermint node
-
 func addMoreFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("p2p.addr_book_strict", config.P2P.AddrBookStrict,
 		"Set true for strict address routability rules, Set false for private or local networks")
@@ -17,6 +16,19 @@ func addMoreFlags(cmd *cobra.Command) {
 	//pprof flags
 	cmd.Flags().String("prof_laddr", config.ProfListenAddress,
 		"Node listen address. (0.0.0.0:0 means any interface, any port)")
-
-	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit, "Set node block interval time")
+	
+	cmd.Flags().Duration("consensus.timeout_propose", config.Consensus.TimeoutPropose,
+		"Set TimeoutPropose")
+	cmd.Flags().Duration("consensus.timeout_propose_delta", config.Consensus.TimeoutProposeDelta,
+		"Set TimeoutProposeDelta")
+	cmd.Flags().Duration("consensus.timeout_prevote", config.Consensus.TimeoutPrevote,
+		"Set TimeoutPrevote")
+	cmd.Flags().Duration("consensus.timeout_prevote_delta", config.Consensus.TimeoutPrevoteDelta,
+		"Set TimeoutPrevoteDelta")
+	cmd.Flags().Duration("consensus.timeout_precommit", config.Consensus.TimeoutPrecommit,
+		"Set TimeoutPrecommit")
+	cmd.Flags().Duration("consensus.timeout_precommit_delta", config.Consensus.TimeoutPrecommitDelta,
+		"Set TimeoutPrecommitDelta")
+	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit,
+		"Set TimeoutCommit")
 }

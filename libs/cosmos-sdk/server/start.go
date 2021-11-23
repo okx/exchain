@@ -4,32 +4,31 @@ package server
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"os"
 	"runtime/pprof"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
 	"github.com/okex/exchain/libs/tendermint/proxy"
+	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
 	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -64,7 +63,8 @@ const (
 func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
-	registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
+	registerAppFlagFn func(cmd *cobra.Command),
+	appPreRun func(ctx *Context)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -91,7 +91,11 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set external package flags
 			setExternalPackageValue(cmd)
+			// app pre run
+			appPreRun(ctx)
+			// pruning options
 			_, err := GetPruningOptionsFromFlags()
 			return err
 		},
@@ -152,8 +156,11 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
+	cmd.Flags().Bool(tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
+
+	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -327,6 +334,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
+	tmiavl.EnableGid = viper.GetBool(tmiavl.FlagIavlEnableGid)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 

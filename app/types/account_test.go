@@ -1,4 +1,4 @@
-package types_test
+package types
 
 import (
 	"encoding/json"
@@ -10,11 +10,9 @@ import (
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/types"
 )
 
 func init() {
@@ -25,15 +23,15 @@ func init() {
 type AccountTestSuite struct {
 	suite.Suite
 
-	account *types.EthAccount
+	account *EthAccount
 }
 
 func (suite *AccountTestSuite) SetupTest() {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
-	suite.account = &types.EthAccount{
+	suite.account = &EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
 	}
@@ -51,10 +49,10 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 		initialCoins sdk.Coins
 		amount       sdk.Int
 	}{
-		{"positive diff", types.NativeToken, sdk.Coins{}, sdk.OneInt()},
-		{"zero diff, same coin", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"negative diff", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
+		{"positive diff", NativeToken, sdk.Coins{}, sdk.OneInt()},
+		{"zero diff, same coin", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"negative diff", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
 	}
 
 	for _, tc := range testCases {
@@ -77,7 +75,7 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	suite.Require().NoError(err)
 	suite.Require().Equal(string(bz1), string(bz))
 
-	var a types.EthAccount
+	var a EthAccount
 	suite.Require().NoError(a.UnmarshalJSON(bz))
 	suite.Require().Equal(suite.account.String(), a.String())
 	suite.Require().Equal(suite.account.PubKey, a.PubKey)
@@ -104,7 +102,7 @@ func (suite *AccountTestSuite) TestSecpPubKeyJSON() {
 
 func (suite *AccountTestSuite) TestEthermintAccount_String() {
 	config := sdk.GetConfig()
-	types.SetBech32Prefixes(config)
+	SetBech32Prefixes(config)
 
 	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.PubKey)
 	suite.Require().NoError(err)
@@ -138,7 +136,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	suite.Require().NoError(err)
 	suite.Require().Contains(string(bz), suite.account.EthAddress().String())
 
-	res := new(types.EthAccount)
+	res := new(EthAccount)
 	err = res.UnmarshalJSON(bz)
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account, res)
@@ -152,7 +150,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		suite.account.EthAddress().String(), bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account.Address.String(), res.Address.String())
@@ -162,7 +160,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().Error(err, "should fail if both address are empty")
 
@@ -172,7 +170,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		suite.account.Address.String(), bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().Error(err, "should fail if addresses mismatch")
 }
