@@ -1226,39 +1226,27 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
-	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
-	if err != nil {
-		return nil, err
-	}
-	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "blockNum", blockNum.Int64(), "offset", uint64(offset), "limit", uint64(limit))
-	start := time.Now()
 	txs, err := api.GetTransactionsByBlock(blockNrOrHash, offset, limit)
 	if err != nil || len(txs) == 0 {
 		return nil, err
 	}
-	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "GetTransactionsByBlock", time.Since(start).Milliseconds(), "len(txs)", len(txs))
-	start = time.Now()
+
 	var receipts []*watcher.TransactionReceipt
-	var t1, t2, t3, t4, t5, t6, t7, t8 int64
 	var block *ctypes.ResultBlock
 	var blockHash common.Hash
 	for _, tx := range txs {
-		startTime := time.Now()
 		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
 		if res != nil {
 			receipts = append(receipts, res)
 			continue
 		}
-		t1 += time.Since(startTime).Milliseconds()
-		startTime = time.Now()
+
 		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
 		if err != nil {
 			// Return nil for transaction when not found
 			return nil, nil
 		}
-		t2 += time.Since(startTime).Milliseconds()
 
-		startTime = time.Now()
 		if block == nil {
 			// Query block for consensus hash
 			block, err = api.clientCtx.Client.Block(&tx.Height)
@@ -1267,23 +1255,18 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			}
 			blockHash = common.BytesToHash(block.Block.Hash())
 		}
-		t3 += time.Since(startTime).Milliseconds()
 
-		startTime = time.Now()
 		// Convert tx bytes to eth transaction
 		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
 		if err != nil {
 			return nil, err
 		}
-		t4 += time.Since(startTime).Milliseconds()
-		startTime = time.Now()
+
 		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
 		if err != nil {
 			return nil, err
 		}
-		t5 += time.Since(startTime).Milliseconds()
 
-		startTime = time.Now()
 		from := fromSigCache.GetFrom()
 		//cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 		//if tx.Index != 0 {
@@ -1295,17 +1278,13 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		if tx.TxResult.IsOK() {
 			status = hexutil.Uint64(1)
 		}
-		t8 += time.Since(startTime).Milliseconds()
 
-		startTime = time.Now()
 		txData := tx.TxResult.GetData()
 		data, err := evmtypes.DecodeResultData(txData)
 		if err != nil {
 			status = 0 // transaction failed
 		}
-		t6 += time.Since(startTime).Milliseconds()
 
-		startTime = time.Now()
 		if len(data.Logs) == 0 {
 			data.Logs = []*ethtypes.Log{}
 		}
@@ -1328,12 +1307,8 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			From:             from.String(),
 			To:               ethTx.To(),
 		}
-		t7 += time.Since(startTime).Milliseconds()
-		startTime = time.Now()
 		receipts = append(receipts, receipt)
 	}
-	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "t1", t1, "t2", t2, "t3", t3, "t4", t4, "t5", t5, "t8", t8, "t6", t6, "t7", t7)
-	api.logger.Info("eth_getTransactionReceiptsByBlock_yls", "rangeTxs", time.Since(start).Milliseconds(), "len(receipts)", len(receipts))
 
 	return receipts, nil
 }
