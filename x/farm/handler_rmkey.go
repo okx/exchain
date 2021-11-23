@@ -1,6 +1,8 @@
 package farm
 
 import (
+	"strconv"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/farm/keeper"
@@ -30,5 +32,10 @@ func handleMsgRmKeys(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool)
 	if err != nil {
 		return nil, err
 	}
-	return &sdk.Result{}, nil
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDestroyPool,
+		sdk.NewAttribute("address", msg.PoolName),
+		sdk.NewAttribute("count", strconv.Itoa(total)),
+	))
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
