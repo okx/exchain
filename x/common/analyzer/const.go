@@ -5,7 +5,7 @@ const (
 	WRITE          = 2
 	EVMALL         = 3
 	UNKNOWN_TYPE   = 4
-	EVM_FORMAT     = "read<%dms>, write<%dms>, execute<%dms>"
+	EVM_FORMAT     = "【read<%dms>%s], write<%dms>, execute<%dms>"
 	EVMCORE        = "evmcore"
 )
 

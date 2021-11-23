@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/viper"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/trace"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 var singleAnalys *analyer
@@ -195,12 +195,18 @@ func (s *analyer) format() {
 	var evmcore int64
 	var format string
 	var record = make(map[string]int64)
+	var readDetail = make(map[string]int64)
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
 			operType := dbOper.GetOperType(oper)
 			switch operType {
 			case READ:
 				s.dbRead += operObj.TimeCost
+				if _, ok := readDetail[oper]; !ok {
+					readDetail[oper] = operObj.TimeCost
+				} else {
+					readDetail[oper] += operObj.TimeCost
+				}
 			case WRITE:
 				s.dbWrite += operObj.TimeCost
 			case EVMALL:
@@ -245,7 +251,19 @@ func (s *analyer) format() {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 	}
 	format = strings.TrimRight(format, ", ")
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
+	var readFormat string
+	for _, v := range STATEDB_READ {
+		if timeUse, ok := readDetail[v]; ok {
+			readFormat += fmt.Sprintf("%s<%dms>, ", v, timeUse)
+		}
+	}
+	if readFormat != "" {
+		readFormat = ", " + readFormat
+		readFormat = strings.TrimRight(readFormat, ", ")
+	}
+
+
+	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, readFormat, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
 }
