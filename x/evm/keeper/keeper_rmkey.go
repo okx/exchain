@@ -9,6 +9,6 @@ import (
 
 // DeleteStateDirectly commit one state into db with no cache
 func (k Keeper) DeleteStateDirectly(ctx sdk.Context, addr ethcmn.Address, key ethcmn.Hash) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr)) // todo: instead of global store
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
 	store.Delete(key.Bytes())
 }
