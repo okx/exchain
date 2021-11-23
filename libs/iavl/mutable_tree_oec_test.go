@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	db "github.com/tendermint/tm-db"
 	"math/rand"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -318,8 +319,10 @@ func batchSaveVersion(t *testing.T, tree *MutableTree, n int) {
 
 func openLog(moduleName string) {
 	SetLogFunc(func(level int, format string, args ...interface{}) {
-		fmt.Printf(format, args...)
-		fmt.Printf("\n")
+		if level == IavlInfo {
+			fmt.Printf(format, args...)
+			fmt.Printf("\n")
+		}
 	})
 	OutputModules = make(map[string]int)
 	OutputModules[moduleName] = 1
@@ -540,6 +543,112 @@ func TestCommitSchedule(t *testing.T) {
 
 	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, &wg, 0}
 	wg.Wait()
+}
+
+var dbDir = "testdata"
+func prepareTree(t *testing.T, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
+	moduleName := "test"
+	dir := dbDir
+	if openLogFlag {
+		openLog(moduleName)
+	}
+	ldb, err := db.NewGoLevelDB(dbName, dir)
+	memDB := db.NewPrefixDB(ldb, []byte(moduleName))
+	tree, err := NewMutableTree(memDB, 0)
+	require.NoError(t, err)
+
+	fmt.Printf("init setting test %d data to MutableTree\n", size)
+	dataSet := make(map[string]string)
+	keySet := make([]string, 0, size)
+	for i:=0;i<size;i++ {
+		key := randstr(32)
+		value := randstr(100)
+		dataSet[key] = string(value)
+		keySet = append(keySet, key)
+		tree.Set([]byte(key), []byte(value))
+	}
+	tree.SaveVersion()
+	tree.commitCh <- commitEvent{-1, nil,nil, nil, nil, 0}
+	fmt.Println("init setting done")
+	return tree, keySet, dataSet
+}
+
+func benchmarkTreeRead(t *testing.T, tree *MutableTree, keySet []string, readNum int) {
+	fmt.Println("benchmark testing")
+	t1 := time.Now()
+	for i:=0;i<readNum;i++ {
+		idx := rand.Int()%len(keySet)
+		key := keySet[idx]
+		_, v :=tree.Get([]byte(key))
+		require.NotNil(t, v)
+	}
+	duration := time.Since(t1)
+	fmt.Println("time:", duration.String())
+}
+
+func clearDB(dbName string) {
+	path := dbDir + "/" + dbName + ".db"
+	fmt.Println("clear db", path)
+	err := os.RemoveAll(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	treeMap.mutableTreeList = nil
+	treeMap.mutableTreeSavedMap = make(map[string]bool)
+}
 
 
+func TestBenchmarkMutableTree_Get(t *testing.T) {
+	EnableAsyncCommit = true
+	EnablePruningHistoryState = true
+	CommitIntervalHeight = 1
+	defer func() {
+		EnableAsyncCommit = false
+		EnablePruningHistoryState = false
+		CommitIntervalHeight = 100
+	}()
+	testCases := []struct {
+		dbName string
+		openLog bool
+		initDataSize int
+		readNum int
+	}{
+		{
+			dbName: "130-test",
+			openLog: true,
+			initDataSize: 1300000,
+			readNum: 10000,
+		},
+		{
+			dbName: "100-test",
+			openLog: true,
+			initDataSize: 1000000,
+			readNum: 10000,
+		},
+		{
+			dbName: "80-test",
+			openLog: true,
+			initDataSize: 800000,
+			readNum: 10000,
+		},
+		{
+			dbName: "50-test",
+			openLog: true,
+			initDataSize: 500000,
+			readNum: 10000,
+		},
+		{
+			dbName: "30-test",
+			openLog: true,
+			initDataSize: 300000,
+			readNum: 10000,
+		},
+	}
+	for i, testCase := range testCases {
+		fmt.Println("test case", i, ": ", testCase.dbName)
+		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		clearDB(testCase.dbName)
+		fmt.Println()
+	}
 }
