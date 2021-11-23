@@ -35,6 +35,7 @@ type Context struct {
 	minGasPrice   DecCoins
 	consParams    *abci.ConsensusParams
 	eventManager  *EventManager
+	basicCheckTx  bool
 	accountNonce  uint64
 	sigCache      SigCache
 	isAsync       bool
@@ -61,6 +62,7 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) IsBasicCheckTx() bool        { return c.basicCheckTx }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -187,6 +189,11 @@ func (c Context) WithConsensusParams(params *abci.ConsensusParams) Context {
 
 func (c Context) WithEventManager(em *EventManager) Context {
 	c.eventManager = em
+	return c
+}
+
+func (c Context) WithBasicCheckTx(IsBasicCheck bool) Context {
+	c.basicCheckTx = IsBasicCheck
 	return c
 }
 

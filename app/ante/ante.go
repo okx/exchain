@@ -145,6 +145,10 @@ func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedV
 
 // AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
 func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	if ctx.IsBasicCheckTx() {
+		return next(ctx, tx, simulate)
+	}
+
 	signers, err := getSigners(tx)
 	if err != nil {
 		return ctx, err

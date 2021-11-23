@@ -830,7 +830,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
 		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
-		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+
+		//WithBasicCheckTx mode == runTxModeCheck can use basic checkTx e: nonce, gas, balance
+		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager()).WithBasicCheckTx(mode == runTxModeCheck || mode == runTxModeReCheck)
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
 
 		accountNonce = newCtx.AccountNonce()
@@ -1027,9 +1029,8 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-
