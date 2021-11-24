@@ -13,8 +13,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	swap "github.com/okex/exchain/x/ammswap"
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	evm "github.com/okex/exchain/x/evm/keeper"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/okex/exchain/x/gov"
 	govkeeper "github.com/okex/exchain/x/gov/keeper"
@@ -22,9 +27,6 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -95,6 +97,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keyToken := sdk.NewKVStoreKey(token.StoreKey)
 	keyLock := sdk.NewKVStoreKey(token.KeyLock)
 	keySwap := sdk.NewKVStoreKey(swaptypes.StoreKey)
+	keyEvm := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	keyGov := sdk.NewKVStoreKey(govtypes.StoreKey)
 
 	// 0.2 init db
@@ -182,9 +185,11 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 
 	// 1.6 init swap keeper
 	swapKeeper := swap.NewKeeper(sk, tk, cdc, keySwap, pk.Subspace(swaptypes.DefaultParamspace))
+	evmKeeper := evm.NewKeeper(cdc, keyEvm, pk.Subspace(evmtypes.DefaultParamspace), &ak, sk, bk)
 
 	// 1.7 init farm keeper
-	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)
+	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, *evmKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)
+
 	fk.SetParams(ctx, types.DefaultParams())
 
 	// 1.8 init gov keeper
