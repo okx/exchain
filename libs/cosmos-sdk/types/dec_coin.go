@@ -1,9 +1,12 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
 )
@@ -151,6 +154,57 @@ func (coin DecCoin) IsValid() bool {
 		return false
 	}
 	return !coin.IsNegative()
+}
+
+func (coin DecCoin) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	for pos := 1; pos < 3; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
+		if err != nil {
+			return nil, err
+		}
+		err = buf.WriteByte(posByte)
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			if coin.Denom == "" {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(len(coin.Denom)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.WriteString(coin.Denom)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			data, err := coin.Amount.MarshalToAmino()
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(data)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 // ----------------------------------------------------------------------------
@@ -651,4 +705,3 @@ func ParseDecCoins(coinsStr string) (DecCoins, error) {
 
 	return coins, nil
 }
-

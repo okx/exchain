@@ -239,7 +239,11 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	}
 
 	var config types.ChainConfig
-	k.cdc.MustUnmarshalBinaryBare(bz, &config)
+	// first 4 bytes are type prefix
+	// bz len must > 4; otherwise, MustUnmarshalBinaryBare will panic
+	if err := config.UnmarshalFromAmino(bz[4:]); err != nil {
+		k.cdc.MustUnmarshalBinaryBare(bz, &config)
+	}
 	return config, true
 }
 

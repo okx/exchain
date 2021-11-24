@@ -30,7 +30,7 @@ run() {
       --iavl-enable-async-commit \
       --iavl-enable-gid \
       --iavl-commit-interval-height 10 \
-      --iavl-output-modules evm=1,acc=0 \
+      --iavl-output-modules evm=1,acc=1 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
@@ -88,9 +88,13 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
 # Enable EVM
-sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
-sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
-
+if [ "$(uname -s)" == "Darwin" ]; then
+    sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
+    sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
+else 
+    sed -i 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
+    sed -i 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
+fi
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
 exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okt --home $HOME_SERVER
