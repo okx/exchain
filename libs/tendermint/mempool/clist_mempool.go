@@ -266,6 +266,11 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	txSize := len(tx)
+
+	if err := mem.isFull(txSize); err != nil {
+		return err
+	}
 	// CACHE
 	if !mem.cache.Push(tx) {
 		return ErrTxInCache
@@ -287,12 +292,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()
-
-	txSize := len(tx)
-
-	if err = mem.isFull(txSize); err != nil {
-		return err
-	}
 
 	// The size of the corresponding amino-encoded TxMessage
 	// can't be larger than the maxMsgSize, otherwise we can't
