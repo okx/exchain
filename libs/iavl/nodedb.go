@@ -546,6 +546,10 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 }
 
 func (ndb *nodeDB) updateNodeCacheSize(size int) {
+	if size < 0 {
+		size = 0
+	}
+	ndb.log(IavlInfo, "Update nodeCacheSize: %d", size)
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	ndb.nodeCacheSize = size
