@@ -270,6 +270,12 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if err := mem.isFull(txSize); err != nil {
 		return err
 	}
+	// The size of the corresponding amino-encoded TxMessage
+	// can't be larger than the maxMsgSize, otherwise we can't
+	// relay it to peers.
+	if txSize > mem.config.MaxTxBytes {
+		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
+	}
 	// CACHE
 	if !mem.cache.Push(tx) {
 		return ErrTxInCache
@@ -291,13 +297,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()
-
-	// The size of the corresponding amino-encoded TxMessage
-	// can't be larger than the maxMsgSize, otherwise we can't
-	// relay it to peers.
-	if txSize > mem.config.MaxTxBytes {
-		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
-	}
 
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
