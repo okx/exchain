@@ -764,3 +764,7 @@ func (tree *MutableTree) addOrphans(orphans []*Node) {
 		}
 	}
 }
+
+func (tree *MutableTree) UpdateNodeCacheSize(size int)  {
+	tree.ndb.updateNodeCacheSize(size)
+}

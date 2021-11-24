@@ -545,13 +545,19 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	}
 }
 
+func (ndb *nodeDB) updateNodeCacheSize(size int) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	ndb.nodeCacheSize = size
+}
+
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
 
-	if ndb.nodeCacheQueue.Len() > ndb.nodeCacheSize {
+	for ndb.nodeCacheQueue.Len() > ndb.nodeCacheSize {
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
 		delete(ndb.nodeCache, string(hash))
