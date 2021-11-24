@@ -83,7 +83,8 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	addressRecord *AddressRecord
+	addressRecord    *AddressRecord
+	checkRepeatedMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
@@ -957,6 +958,8 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 }
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
+	mem.checkRepeatedMtx.Lock()
+	defer mem.checkRepeatedMtx.Unlock()
 	repeatElement := 0
 	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
 		for _, node := range userMap {
