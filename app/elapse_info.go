@@ -107,7 +107,3 @@ func (e *ElapsedTimeInfos) SetElapsedTime(elapsedTime int64) {
 func (e *ElapsedTimeInfos) GetElapsedTime() int64 {
 	return e.elapsedTime
 }
-
-func (e *ElapsedTimeInfos) GetStartTime() int64 {
-	return 0
-}

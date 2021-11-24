@@ -36,7 +36,6 @@ type IElapsedTimeInfos interface {
 	Dump(logger log.Logger)
 	SetElapsedTime(elapsedTime int64)
 	GetElapsedTime() int64
-	GetStartTime() int64
 }
 
 func SetInfoObject(e IElapsedTimeInfos) {
@@ -117,10 +116,6 @@ func (t *Tracer) GetElapsedTime() int64 {
 	return t.elapsedTime
 }
 
-func (t *Tracer) GetStartTime() int64 {
-	return t.startTime
-}
-
 func (t *Tracer) Reset() {
 	t.startTime = time.Now().UnixNano()
 	t.lastPin = ""
@@ -142,9 +137,5 @@ func (e *EmptyTimeInfo) SetElapsedTime(elapsedTime int64) {
 }
 
 func (e *EmptyTimeInfo) GetElapsedTime() int64 {
-	return 0
-}
-
-func (e *EmptyTimeInfo) GetStartTime() int64 {
 	return 0
 }

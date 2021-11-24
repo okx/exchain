@@ -479,7 +479,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
 	sleepDuration := rs.StartTime.Sub(tmtime.Now())
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 {
-		sleepDuration -= cs.CommitTime.Sub(time.Unix(0, cs.trc.GetStartTime()))
+		sleepDuration -= cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
@@ -577,6 +577,7 @@ func (cs *State) updateToState(state sm.State) {
 	} else {
 		cs.StartTime = cs.config.Commit(cs.CommitTime)
 	}
+	cs.Round0StartTime = time.Now().UnixNano()
 
 	cs.Validators = validators
 	cs.Proposal = nil
