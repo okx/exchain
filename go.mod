@@ -84,6 +84,9 @@ require (
 	github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea // indirect
 	github.com/dvsekhvalnov/jose2go v0.0.0-20200901110807-248326c1351b // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
+	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
+	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
+	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
@@ -150,7 +153,7 @@ require (
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-	github.com/tecbot/gorocksdb => github.com/linxGnu/grocksdb v1.6.42
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.2-0.20211120080923-5ccee577b032
-	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20211119064845-42ff70591976
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20211124110033-4520ad297846
+	github.com/tecbot/gorocksdb => github.com/okex/grocksdb v1.6.43-oec2
 )
