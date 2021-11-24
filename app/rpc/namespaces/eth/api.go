@@ -1090,6 +1090,10 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
 func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*rpctypes.Transaction, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_getTransactionsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
@@ -1222,6 +1226,10 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 
 // GetTransactionReceiptsByBlock returns the transaction receipt identified by block hash or number.
 func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.TransactionReceipt, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
