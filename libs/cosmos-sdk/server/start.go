@@ -184,6 +184,7 @@ which accepts a path for the resulting pprof file.
 	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
+	cmd.AddCommand(nodeModeCmd(ctx))
 	return cmd
 }
 
