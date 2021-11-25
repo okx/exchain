@@ -120,9 +120,6 @@ func NewConsumeGasForTxSizeDecorator(ak keeper.AccountKeeper) ConsumeTxSizeGasDe
 }
 
 func (cgts ConsumeTxSizeGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if ctx.IsBasicCheckTx() {
-		return next(ctx, tx, simulate)
-	}
 
 	sigTx, ok := tx.(SigVerifiableTx)
 	if !ok {
