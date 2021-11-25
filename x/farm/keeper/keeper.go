@@ -4,10 +4,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	swap "github.com/okex/exchain/x/ammswap/keeper"
+	evm "github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/okex/exchain/x/token"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Keeper of the farm store
@@ -19,6 +20,7 @@ type Keeper struct {
 	supplyKeeper     supply.Keeper
 	tokenKeeper      token.Keeper
 	swapKeeper       swap.Keeper
+	evmKeeper        evm.Keeper
 	govKeeper        GovKeeper
 	ObserverKeeper   []types.BackendKeeper
 }
@@ -27,6 +29,7 @@ type Keeper struct {
 func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper,
 	tokenKeeper token.Keeper,
 	swapKeeper swap.Keeper,
+	evmKeeper evm.Keeper,
 	paramSubspace types.ParamSubspace, key sdk.StoreKey, cdc *codec.Codec) Keeper {
 	return Keeper{
 		storeKey:         key,
@@ -36,6 +39,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper,
 		supplyKeeper:     supplyKeeper,
 		tokenKeeper:      tokenKeeper,
 		swapKeeper:       swapKeeper,
+		evmKeeper:        evmKeeper,
 	}
 }
 
@@ -53,6 +57,10 @@ func (k Keeper) TokenKeeper() token.Keeper {
 
 func (k Keeper) SwapKeeper() swap.Keeper {
 	return k.swapKeeper
+}
+
+func (k Keeper) EvmKeeper() evm.Keeper {
+	return k.evmKeeper
 }
 
 // GetFeeCollector returns feeCollectorName

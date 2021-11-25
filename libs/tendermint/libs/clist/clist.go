@@ -392,7 +392,10 @@ func (l *CList) PushBack(v interface{}) *CElement {
 // NOTE: As per the contract of CList, removed elements cannot be added back.
 func (l *CList) Remove(e *CElement) interface{} {
 	l.mtx.Lock()
-
+	if e.removed {
+		e.mtx.Unlock()
+		return e.Value
+	}
 	prev := e.Prev()
 	next := e.Next()
 
