@@ -86,7 +86,7 @@ func setArchiveConfig(ctx *server.Context) {
 		server.FlagCORS, "*"))
 }
 
-func logConfig(logger log.Logger) {
+func logStartingFlags(logger log.Logger) {
 	flagMap := map[string]interface{}{
 		server.FlagPruning:                viper.GetString(server.FlagPruning),
 		abcitypes.FlagDisableCheckTxMutex: viper.GetBool(abcitypes.FlagDisableCheckTxMutex),
