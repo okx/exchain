@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -118,7 +116,6 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				genAccount = okexchain.EthAccount{
 					BaseAccount: baseAccount,
 					CodeHash:    ethcrypto.Keccak256(nil),
-					StateRoot:   common.Hash{},
 				}
 			}
 

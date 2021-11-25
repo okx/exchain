@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -54,7 +55,9 @@ type CacheCode struct {
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
 type CommitStateDB struct {
-	db ethstate.Database
+	db   ethstate.Database
+	trie ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
+
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
 	// StateDB interface. Perhaps there is a better way.
@@ -106,8 +109,8 @@ type CommitStateDB struct {
 }
 
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
-	return &CommitStateDB{
-		db: InstanceOfWatchStore(),
+	csdb := &CommitStateDB{
+		db: InstanceOfEvmStore(),
 
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
@@ -129,6 +132,12 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
 	}
+
+	latestHeight := csdb.GetLatestBlockHeight()
+	lastRootHash := csdb.GetRootMptHash(latestHeight)
+	csdb.OpenTrie(lastRootHash)
+
+	return csdb
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
@@ -143,6 +152,14 @@ func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
 	return csdb
+}
+
+func (csdb *CommitStateDB) OpenTrie(root ethcmn.Hash) {
+	tr, err := csdb.db.OpenTrie(root)
+	if err != nil {
+		panic("Fail to open root mpt: " + err.Error())
+	}
+	csdb.trie = tr
 }
 
 // GetParams returns the total set of evm parameters.
@@ -653,13 +670,13 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	}
 
 	so := csdb.getStateObject(addr)
-	if so == nil || so.account.StateRoot == (ethcmn.Hash{}) {
+	if so == nil {
 		return nil
 	}
 	it := trie.NewIterator(so.getTrie(csdb.db).NodeIterator(nil))
 
 	for it.Next() {
-		key := ethcmn.BytesToHash(so.trie.GetKey(it.Key))
+		key := ethcmn.BytesToHash(csdb.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
 			if !cb(key, value) {
 				return nil
@@ -824,7 +841,37 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 		}
 	}
 
-	return ethcmn.Hash{}, nil
+	// The onleaf func is called _serially_, so we can reuse the same account
+	// for unmarshalling every time.
+	var storageRoot ethcmn.Hash
+	root, err := csdb.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+		_, content, _, err := rlp.Split(leaf)
+		if err != nil {
+			csdb.setError(err)
+		}
+		storageRoot.SetBytes(content)
+		if storageRoot != emptyRoot {
+			csdb.db.TrieDB().Reference(storageRoot, parent)
+		}
+
+		return nil
+
+		//if err := rlp.DecodeBytes(leaf, &storageRoot); err != nil {
+		//	return nil
+		//}
+		//if storageRoot != emptyRoot {
+		//	csdb.db.TrieDB().Reference(storageRoot, parent)
+		//}
+		//return nil
+	})
+
+	if err == nil {
+		latestHeight := uint64(csdb.ctx.BlockHeight())
+		csdb.SetRootMptHash(latestHeight, root)
+		csdb.SetLatestBlockHeight(latestHeight)
+	}
+
+	return root, err
 }
 
 // Finalise finalises the state by removing the s destructed objects and clears
@@ -922,11 +969,24 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
+	// Encode the account and update the account trie
+	addr := so.Address()
+
+	// Encoding []byte cannot fail, ok to ignore the error.
+	data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(so.stateRoot.Bytes()))
+	csdb.setError(csdb.trie.TryUpdate(addr[:], data))
+
 	return nil
 }
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
+	// Delete the account from the trie
+	addr := so.Address()
+	if err := csdb.trie.TryDelete(addr[:]); err != nil {
+		csdb.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
+	}
+
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 }
@@ -955,8 +1015,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 	prevObj = csdb.getStateObject(addr)
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
-
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, emptyRoot)
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -964,9 +1023,12 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 	} else {
 		csdb.journal.append(resetObjectChange{prev: prevObj})
 	}
-
 	csdb.setStateObject(newObj)
-	return newObj, prevObj
+
+	if prevObj != nil && !prevObj.deleted {
+		return newObj, prevObj
+	}
+	return newObj, nil
 }
 
 // getStateObject retrieves a state object given by the address, returning nil if
@@ -1000,8 +1062,32 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		return nil
 	}
 
+	// 我们这里只在顶层mpt树中存储 addr -> storageMptRoot
+	enc, err := csdb.trie.TryGet(addr.Bytes())
+	if err != nil {
+		csdb.setError(fmt.Errorf("fail to get data from trie db, addr: %s,  error: %v", addr.String(), err))
+		return nil
+	}
+
+	var storageRoot ethcmn.Hash
+	if len(enc) == 0 {
+		// means the account is a normal account, not a contract account
+		storageRoot = emptyRoot
+	} else {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
+			csdb.setError(err)
+		}
+		storageRoot.SetBytes(content)
+
+		//if err := rlp.DecodeBytes(enc, &storageRoot); err != nil {
+		//	csdb.setError(fmt.Errorf("failed to decode storage root, addr: %s, error: %v", addr.String(), err))
+		//	return nil
+		//}
+	}
+
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
+	so := newStateObject(csdb, acc, storageRoot)
 	csdb.setStateObject(so)
 
 	return so
@@ -1143,13 +1229,13 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 
 // GetProof returns the Merkle proof for a given account.
 func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
+	return csdb.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
+}
+
+// GetProofByHash returns the Merkle proof for a given account.
+func (csdb *CommitStateDB) GetProofByHash(addrHash ethcmn.Hash) ([][]byte, error) {
 	var proof proofList
-	addrTrie := csdb.StorageTrie(addr)
-	if addrTrie == nil {
-		return proof, errors.New("storage trie for requested address does not exist")
-	}
-	addrHash := crypto.Keccak256Hash(addr.Bytes())
-	err := addrTrie.Prove(addrHash[:], 0, &proof)
+	err := csdb.trie.Prove(addrHash[:], 0, &proof)
 	return proof, err
 }
 
@@ -1162,4 +1248,44 @@ func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([
 	}
 	err := addrTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
 	return proof, err
+}
+
+// ----------------------------------------------------------------------------
+// Auxiliary storage
+// ----------------------------------------------------------------------------
+var (
+	KeyPrefixLatestHeight = []byte{0x01}
+	KeyPrefixRootMptHash  = []byte{0x02}
+)
+
+// GetLatestBlockHeight get latest mpt storage height
+func (csdb *CommitStateDB) GetLatestBlockHeight() uint64 {
+	rst, err := csdb.db.TrieDB().DiskDB().Get(KeyPrefixLatestHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+// SetLatestBlockHeight sets the latest storage height
+func (csdb *CommitStateDB) SetLatestBlockHeight(height uint64) {
+	hhash := sdk.Uint64ToBigEndian(height)
+	csdb.db.TrieDB().DiskDB().Put(KeyPrefixLatestHeight, hhash)
+}
+
+// GetRootMptHash gets root mpt hash from block height
+func (csdb *CommitStateDB) GetRootMptHash(height uint64) ethcmn.Hash {
+	hhash := sdk.Uint64ToBigEndian(height)
+	rst, err := csdb.db.TrieDB().DiskDB().Get(append(KeyPrefixRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(rst)
+}
+
+// SetRootMptHash sets the mapping from block height to root mpt hash
+func (csdb *CommitStateDB) SetRootMptHash(height uint64, hash ethcmn.Hash) {
+	hhash := sdk.Uint64ToBigEndian(height)
+	csdb.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }

@@ -49,10 +49,11 @@ type StateObject interface {
 // Account values can be accessed and modified through the object.
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
-	address  ethcmn.Address
-	addrHash ethcmn.Hash
-	stateDB  *CommitStateDB
-	account  *types.EthAccount
+	address   ethcmn.Address
+	addrHash  ethcmn.Hash
+	stateDB   *CommitStateDB
+	account   *types.EthAccount
+	stateRoot ethcmn.Hash // merkle root of the storage trie
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -82,7 +83,7 @@ type stateObject struct {
 	deleted   bool
 }
 
-func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authexported.Account, stateRoot ethcmn.Hash) *stateObject {
 	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
@@ -94,14 +95,11 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	if ethermintAccount.StateRoot == (ethcmn.Hash{}) {
-		ethermintAccount.StateRoot = emptyRoot
-	}
-
 	ethAddr := ethermintAccount.EthAddress()
 	return &stateObject{
 		stateDB:        db,
 		account:        ethermintAccount,
+		stateRoot:      stateRoot,
 		address:        ethAddr,
 		addrHash:       ethcrypto.Keccak256Hash(ethAddr[:]),
 		originStorage:  make(ethstate.Storage),
@@ -113,7 +111,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 func (s *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 	if s.trie == nil {
 		var err error
-		s.trie, err = db.OpenStorageTrie(s.addrHash, s.account.StateRoot)
+		s.trie, err = db.OpenStorageTrie(s.addrHash, s.stateRoot)
 		if err != nil {
 			s.trie, _ = db.OpenStorageTrie(s.addrHash, ethcmn.Hash{})
 			s.setError(fmt.Errorf("can't create storage trie: %v", err))
@@ -250,7 +248,7 @@ func (s *stateObject) updateRoot(db ethstate.Database) {
 	if s.updateTrie(db) == nil {
 		return
 	}
-	s.account.StateRoot = s.trie.Hash()
+	s.stateRoot = s.trie.Hash()
 }
 
 // ----------------------------------------------------------------------------
@@ -367,7 +365,7 @@ func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
-	newStateObj := newStateObject(db, acc)
+	newStateObj := newStateObject(db, acc, so.stateRoot)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
 	}
@@ -423,7 +421,7 @@ func (s *stateObject) CommitTrie(db ethstate.Database) error {
 
 	root, err := s.trie.Commit(nil)
 	if err == nil {
-		s.account.StateRoot = root
+		s.stateRoot = root
 	}
 	return err
 }

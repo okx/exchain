@@ -30,10 +30,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash
 	lastHash := req.Header.LastBlockId.GetHash()
-	height := req.Header.GetHeight() - 1
+	lastHeight := req.Header.GetHeight() - 1
 
-	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
-	k.SetBlockHash(ctx, lastHash, height)
+	k.SetHeightHash(ctx, uint64(lastHeight), common.BytesToHash(lastHash))
+	k.SetBlockHash(ctx, lastHash, lastHeight)
 	k.InitInnerBlock(common.BytesToHash(currentHash).Hex())
 
 	// reset counters that are used on CommitStateDB.Prepare
@@ -106,7 +106,12 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.Commit()
 	}
 
-	k.EvmStateDb.WithContext(ctx).Commit(true)
+	root, err := k.EvmStateDb.WithContext(ctx).Commit(true)
+	if err != nil {
+		panic("fail to commit evm trie")
+	}
+
+	types.InstanceOfEvmStore().TrieDB().Commit(root, false, nil)
 
 	k.UpdateInnerBlockData()
 

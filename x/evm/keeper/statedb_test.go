@@ -443,8 +443,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Commit() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		hash, err := suite.stateDB.WithContext(suite.ctx).Commit(tc.deleteObjs)
-		suite.Require().Equal(ethcmn.Hash{}, hash)
+		_, err := suite.stateDB.WithContext(suite.ctx).Commit(tc.deleteObjs)
 
 		if !tc.expPass {
 			suite.Require().Error(err, tc.name)

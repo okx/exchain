@@ -58,7 +58,6 @@ func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccA
 	acc := types.EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
-		StateRoot:   common.Hash{},
 	}
 	acc.SetAddress(addr)
 	a.cachedAcc[addr.String()] = &acc
