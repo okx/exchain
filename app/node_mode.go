@@ -10,6 +10,7 @@ import (
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/iavl"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -83,4 +84,27 @@ func setArchiveConfig(ctx *server.Context) {
 		watcher.FlagFastQueryLru, 10000, watcher.FlagFastQuery, true,
 		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
 		server.FlagCORS, "*"))
+}
+
+func logConfig(logger log.Logger) {
+	flagMap := map[string]interface{}{
+		server.FlagPruning:                viper.GetString(server.FlagPruning),
+		abcitypes.FlagDisableCheckTxMutex: viper.GetBool(abcitypes.FlagDisableCheckTxMutex),
+		abcitypes.FlagDisableQueryMutex:   viper.GetBool(abcitypes.FlagDisableQueryMutex),
+		evmtypes.FlagEnableBloomFilter:    viper.GetBool(evmtypes.FlagEnableBloomFilter),
+		watcher.FlagFastQueryLru:          viper.GetInt(watcher.FlagFastQueryLru),
+		watcher.FlagFastQuery:             viper.GetBool(watcher.FlagFastQuery),
+		iavl.FlagIavlEnableAsyncCommit:    viper.GetBool(iavl.FlagIavlEnableAsyncCommit),
+		flags.FlagMaxOpenConnections:      viper.GetInt(flags.FlagMaxOpenConnections),
+		server.FlagCORS:                   viper.GetString(server.FlagCORS),
+		appconfig.FlagEnableDynamicGp:     viper.GetBool(appconfig.FlagEnableDynamicGp),
+		store.FlagIavlCacheSize:           viper.GetInt(store.FlagIavlCacheSize),
+		mempool.FlagEnablePendingPool:     viper.GetBool(mempool.FlagEnablePendingPool),
+	}
+	msg := "starting flags:"
+	for k, v := range flagMap {
+		msg += fmt.Sprintf("\n%s=%v", k, v)
+	}
+
+	logger.Info(msg)
 }

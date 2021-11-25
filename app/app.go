@@ -208,6 +208,7 @@ func NewOKExChainApp(
 			}
 		}
 		iavl.SetLogFunc(logFunc)
+		logConfig(logger)
 	})
 	// get config
 	appConfig, err := config.ParseConfig()
