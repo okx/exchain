@@ -42,6 +42,7 @@ type commitEvent struct {
 	batch    dbm.Batch
 	tpp      map[string]*Node
 	wg       *sync.WaitGroup
+	iavlHeight int
 }
 
 
@@ -110,7 +111,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 }
 
 func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
 	var tpp map[string]*Node = nil
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
@@ -128,7 +129,8 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 	}
 	tree.commitOrphans = map[string]int64{}
 	versions := tree.deepCopyVersions()
-	tree.commitCh <- commitEvent{version, versions, batch, tpp, nil}
+	tree.commitCh <- commitEvent{version, versions, batch,
+		tpp, nil, int(tree.Height())}
 	tree.lastPersistHeight = version
 	return nil
 }
@@ -152,7 +154,7 @@ func (tree *MutableTree) commitSchedule() {
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
-		tree.ndb.persistTpp(event.version, event.batch, event.tpp, trc)
+		tree.ndb.persistTpp(&event, trc)
 
 		if event.wg != nil {
 			event.wg.Done()
@@ -205,7 +207,7 @@ func (tree *MutableTree) StopTree() {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
 	wg.Wait()
 }
 

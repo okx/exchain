@@ -43,6 +43,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -884,6 +885,7 @@ func (api *PublicEthereumAPI) doCall(
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
+
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -1088,6 +1090,10 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
 func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*rpctypes.Transaction, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_getTransactionsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
@@ -1220,6 +1226,10 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 
 // GetTransactionReceiptsByBlock returns the transaction receipt identified by block hash or number.
 func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.TransactionReceipt, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
@@ -1229,6 +1239,8 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	}
 
 	var receipts []*watcher.TransactionReceipt
+	var block *ctypes.ResultBlock
+	var blockHash common.Hash
 	for _, tx := range txs {
 		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
 		if res != nil {
@@ -1242,13 +1254,14 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, nil
 		}
 
-		// Query block for consensus hash
-		block, err := api.clientCtx.Client.Block(&tx.Height)
-		if err != nil {
-			return nil, err
+		if block == nil {
+			// Query block for consensus hash
+			block, err = api.clientCtx.Client.Block(&tx.Height)
+			if err != nil {
+				return nil, err
+			}
+			blockHash = common.BytesToHash(block.Block.Hash())
 		}
-
-		blockHash := common.BytesToHash(block.Block.Hash())
 
 		// Convert tx bytes to eth transaction
 		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
@@ -1262,17 +1275,15 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		from := fromSigCache.GetFrom()
-		cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
-		if tx.Index != 0 {
-			cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
-		}
+		//cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
+		//if tx.Index != 0 {
+		//	cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
+		//}
 
 		// Set status codes based on tx result
-		var status hexutil.Uint64
+		var status = hexutil.Uint64(0)
 		if tx.TxResult.IsOK() {
 			status = hexutil.Uint64(1)
-		} else {
-			status = hexutil.Uint64(0)
 		}
 
 		txData := tx.TxResult.GetData()
@@ -1290,18 +1301,18 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		receipt := &watcher.TransactionReceipt{
-			Status:            status,
-			CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
-			LogsBloom:         data.Bloom,
-			Logs:              data.Logs,
-			TransactionHash:   common.BytesToHash(tx.Hash.Bytes()).String(),
-			ContractAddress:   contractAddr,
-			GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
-			BlockHash:         blockHash.String(),
-			BlockNumber:       hexutil.Uint64(tx.Height),
-			TransactionIndex:  hexutil.Uint64(tx.Index),
-			From:              from.String(),
-			To:                ethTx.To(),
+			Status: status,
+			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+			LogsBloom:        data.Bloom,
+			Logs:             data.Logs,
+			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
+			ContractAddress:  contractAddr,
+			GasUsed:          hexutil.Uint64(tx.TxResult.GasUsed),
+			BlockHash:        blockHash.String(),
+			BlockNumber:      hexutil.Uint64(tx.Height),
+			TransactionIndex: hexutil.Uint64(tx.Index),
+			From:             from.String(),
+			To:               ethTx.To(),
 		}
 		receipts = append(receipts, receipt)
 	}

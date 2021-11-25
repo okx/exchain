@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
+
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
@@ -100,4 +106,88 @@ func TestModuleAccountJSON(t *testing.T) {
 	var a ModuleAccount
 	require.NoError(t, json.Unmarshal(bz, &a))
 	require.Equal(t, acc.String(), a.String())
+}
+
+func TestModuleAccountAmino(t *testing.T) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*authexported.Account)(nil), nil)
+	RegisterCodec(cdc)
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+
+	accounts := []ModuleAccount{
+		{
+			authtypes.NewBaseAccount(
+				addr,
+				sdk.NewCoins(sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}}),
+				pubkey,
+				1,
+				1,
+			),
+			"name",
+			[]string{"perm1", "perm2"},
+		},
+		{
+			authtypes.NewBaseAccount(
+				addr,
+				sdk.NewCoins(sdk.NewInt64Coin("test", 5), sdk.NewInt64Coin("ok", 100000)),
+				pubkey,
+				9098,
+				1000,
+			),
+			"name",
+			[]string{"perm1", "perm2"},
+		},
+		{
+			authtypes.NewBaseAccount(
+				nil,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			"",
+			[]string{""},
+		},
+		{
+			authtypes.NewBaseAccount(
+				nil,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			"",
+			nil,
+		},
+	}
+
+	for _, acc := range accounts {
+		var iacc authexported.Account = acc
+		bz, err := cdc.MarshalBinaryBare(iacc)
+		require.NoError(t, err)
+
+		var accountExpect authexported.Account
+		err = cdc.UnmarshalBinaryBare(bz, &accountExpect)
+		require.NoError(t, err)
+
+		var account authexported.Account
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &account)
+		require.NoError(t, err)
+		accountActual, ok := v.(authexported.Account)
+		require.True(t, ok)
+		require.EqualValues(t, accountExpect, accountActual)
+
+		nbz, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(iacc)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, nbz)
+	}
 }

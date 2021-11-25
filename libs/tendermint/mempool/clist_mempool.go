@@ -30,6 +30,7 @@ import (
 
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
+	GetTxHistoryGasUsed(tx types.Tx) int64
 }
 
 //--------------------------------------------------------------------------------
@@ -82,13 +83,15 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	addressRecord *AddressRecord
+	addressRecord    *AddressRecord
+	checkRepeatedMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
+	checkCnt     int64
 }
 
 var _ Mempool = &CListMempool{}
@@ -265,58 +268,62 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	var simuRes *SimulationResponse
-	var err error
-	if mem.config.MaxGasUsedPerBlock > -1 {
-		simuRes, err = mem.simulateTx(tx)
-	}
-
-	mem.updateMtx.RLock()
-	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
-
 	txSize := len(tx)
-
 	if err := mem.isFull(txSize); err != nil {
 		return err
 	}
-
 	// The size of the corresponding amino-encoded TxMessage
 	// can't be larger than the maxMsgSize, otherwise we can't
 	// relay it to peers.
 	if txSize > mem.config.MaxTxBytes {
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
+	// CACHE
+	if !mem.cache.Push(tx) {
+		return ErrTxInCache
+	}
+
+	var err error
+	var gasUsed int64
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
+		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		if gasUsed < 0 {
+			simuRes, err := mem.simulateTx(tx)
+			if err != nil {
+				return err
+			}
+			gasUsed = int64(simuRes.GasUsed)
+		}
+	}
+
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer mem.updateMtx.RUnlock()
 
 	if mem.preCheck != nil {
-		if err := mem.preCheck(tx); err != nil {
+		if err = mem.preCheck(tx); err != nil {
 			return ErrPreCheck{err}
 		}
 	}
 
 	// CACHE
-	if !mem.cache.Push(tx) {
-		// Record a new sender for a tx we've already seen.
-		// Note it's possible a tx is still in the cache but no longer in the mempool
-		// (eg. after committing a block, txs are removed from mempool but not cache),
-		// so we only record the sender for txs still in the mempool.
-		if e, ok := mem.txsMap.Load(txKey(tx)); ok {
-			memTx := e.(*clist.CElement).Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
-			// TODO: consider punishing peer for dups,
-			// its non-trivial since invalid txs can become valid,
-			// but they can spam the same tx with little cost to them atm.
-
-		}
-
-		return ErrTxInCache
+	// Record a new sender for a tx we've already seen.
+	// Note it's possible a tx is still in the cache but no longer in the mempool
+	// (eg. after committing a block, txs are removed from mempool but not cache),
+	// so we only record the sender for txs still in the mempool.
+	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
+		memTx := e.(*clist.CElement).Value.(*mempoolTx)
+		memTx.senders.LoadOrStore(txInfo.SenderID, true)
+		// TODO: consider punishing peer for dups,
+		// its non-trivial since invalid txs can become valid,
+		// but they can spam the same tx with little cost to them atm.
 	}
 	// END CACHE
 
 	// WAL
 	if mem.wal != nil {
 		// TODO: Notify administrators when WAL fails
-		_, err := mem.wal.Write([]byte(tx))
+		_, err = mem.wal.Write([]byte(tx))
 		if err != nil {
 			mem.logger.Error("Error writing to WAL", "err", err)
 		}
@@ -328,20 +335,20 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// END WAL
 
 	// NOTE: proxyAppConn may error if tx buffer is full
-	if err := mem.proxyAppConn.Error(); err != nil {
+	if err = mem.proxyAppConn.Error(); err != nil {
 		return err
 	}
 
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx})
-	if mem.config.MaxGasUsedPerBlock > -1 {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, simuRes.GasUsed))
-			r.CheckTx.GasWanted = int64(simuRes.GasUsed)
+				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
+			r.CheckTx.GasWanted = gasUsed
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
-
+	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
 
@@ -725,7 +732,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 		if maxGas > -1 && newTotalGas > maxGas {
 			return txs
 		}
-		if totalTxNum >= mem.config.MaxTxNumPerBlock {
+		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
 			return txs
 		}
 
@@ -888,6 +895,10 @@ func (mem *CListMempool) Update(
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
+
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
@@ -949,6 +960,8 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 }
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
+	mem.checkRepeatedMtx.Lock()
+	defer mem.checkRepeatedMtx.Unlock()
 	repeatElement := 0
 	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
 		for _, node := range userMap {

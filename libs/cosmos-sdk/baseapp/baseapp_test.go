@@ -592,6 +592,10 @@ func (tx txTest) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
+func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
+	return nil, 0
+}
+
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"

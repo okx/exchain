@@ -547,7 +547,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	// TODO persistent peers ? so we can have their DNS addrs saved
 	pexReactor := pex.NewReactor(addrBook,
 		&pex.ReactorConfig{
-			Seeds:    splitAndTrimEmpty(config.P2P.Seeds, ",", " "),
+			Seeds:    splitAndTrimEmpty(setDefaultSeeds(config.P2P.Seeds), ",", " "),
 			SeedMode: config.P2P.SeedMode,
 			// See consensus/reactor.go: blocksToContributeToBecomeGoodPeer 10000
 			// blocks assuming 10s blocks ~ 28 hours.
@@ -1269,4 +1269,18 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 		}
 	}
 	return nonEmptyStrings
+}
+
+// this method will work if seeds is null and judge net is main or test
+func setDefaultSeeds(seeds string) string {
+	if seeds == "" {
+		if types.IsMainNet() {
+			seeds = p2p.MAIN_NET_SEEDS
+		}
+
+		if types.IsTestNet() {
+			seeds = p2p.TEST_NET_SEEDS
+		}
+	}
+	return seeds
 }

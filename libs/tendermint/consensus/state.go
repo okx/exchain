@@ -922,6 +922,25 @@ func (cs *State) needProofBlock(height int64) bool {
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
+func (cs *State) isBlockProducer() (string, string) {
+	const len2display int = 6
+	bpAddr := cs.Validators.GetProposer().Address
+	bpStr := bpAddr.String()
+	if len(bpStr) > len2display {
+		bpStr = bpStr[:len2display]
+	}
+	isBlockProducer := "n"
+	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
+		address := cs.privValidatorPubKey.Address()
+
+		if bytes.Equal(bpAddr, address) {
+			isBlockProducer = "y"
+		}
+	}
+
+	return isBlockProducer, bpStr
+}
+
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
 // 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
@@ -939,7 +958,9 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
-	cs.trc.Pin("Propose-%d", round)
+
+	isBlockProducer, bpAddr := cs.isBlockProducer()
+	cs.trc.Pin("Propose-%d-%s-%s", round, isBlockProducer, bpAddr)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 

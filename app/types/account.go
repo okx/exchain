@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/tendermint/go-amino"
+
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -33,6 +35,62 @@ func init() {
 type EthAccount struct {
 	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
+}
+
+func (acc EthAccount) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	for pos := 1; pos < 3; pos++ {
+		lBeforeKey := buf.Len()
+		var noWrite bool
+		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
+		if err != nil {
+			return nil, err
+		}
+		err = buf.WriteByte(posByte)
+		if err != nil {
+			return nil, err
+		}
+
+		switch pos {
+		case 1:
+			if acc.BaseAccount == nil {
+				noWrite = true
+				break
+			}
+			data, err := acc.BaseAccount.MarshalToAmino()
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(data)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			codeHashLen := len(acc.CodeHash)
+			if codeHashLen == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarint(&buf, uint64(codeHashLen))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(acc.CodeHash)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+		if noWrite {
+			buf.Truncate(lBeforeKey)
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
