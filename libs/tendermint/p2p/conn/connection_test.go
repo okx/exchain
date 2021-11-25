@@ -2,6 +2,7 @@ package conn
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -603,4 +604,14 @@ func BenchmarkPacketAmino(b *testing.B) {
 			_, _ = cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
 		}
 	})
+}
+
+func TestBytesStringer(t *testing.T) {
+	var testData = []byte("test data !!!")
+	expect := fmt.Sprintf("%X", testData)
+	var testStringer = bytesHexStringer(testData)
+	actual := testStringer.String()
+	require.EqualValues(t, expect, actual)
+	actual = fmt.Sprintf("%s", testStringer)
+	require.EqualValues(t, expect, actual)
 }
