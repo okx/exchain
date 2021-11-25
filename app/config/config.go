@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -102,6 +103,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	// set the dynamic config
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
+	iavlconfig.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {

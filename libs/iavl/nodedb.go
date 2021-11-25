@@ -8,6 +8,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
@@ -545,23 +546,13 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	}
 }
 
-func (ndb *nodeDB) updateNodeCacheSize(size int) {
-	if size < 0 {
-		size = 0
-	}
-	ndb.log(IavlInfo, "Update nodeCacheSize: %d", size)
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	ndb.nodeCacheSize = size
-}
-
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
 
-	for ndb.nodeCacheQueue.Len() > ndb.nodeCacheSize {
+	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
 		delete(ndb.nodeCache, string(hash))
