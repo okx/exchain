@@ -3,17 +3,17 @@ package types
 import (
 	"bytes"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
-	"io"
-	"math/big"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"io"
+	"math/big"
+	"time"
 )
 
 const keccak256HashSize = 100000
@@ -91,7 +91,6 @@ type stateObject struct {
 }
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -257,6 +256,7 @@ func (so *stateObject) commitState() {
 		// delete empty values from the store
 		if (state.Value == ethcmn.Hash{}) {
 			store.Delete(state.Key.Bytes())
+			so.stateDB.ctx.Cache().UpdateStorage(so.address, state.Key, state.Value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.Watcher.Enabled() {
 					so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), ethcmn.Hash{}.Bytes())
@@ -283,6 +283,7 @@ func (so *stateObject) commitState() {
 
 		so.originStorage[idx].Value = state.Value
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
+		so.stateDB.ctx.Cache().UpdateStorage(so.address, state.Key, state.Value.Bytes(), true)
 		if !so.stateDB.ctx.IsCheckTx() {
 			if so.stateDB.Watcher.Enabled() {
 				so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
@@ -373,6 +374,10 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	return value
 }
 
+var (
+	StateGet = time.Duration(0)
+)
+
 // GetCommittedState retrieves a value from the committed account storage trie.
 //
 // NOTE: the key will be prefixed with the address of the state object.
@@ -389,8 +394,17 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	state := NewState(prefixKey, ethcmn.Hash{})
 
 	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
+	rawValue := make([]byte, 0)
+	var ok bool
+
+	ts := time.Now()
+	rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
+	if !ok {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+		rawValue = store.Get(prefixKey.Bytes())
+		ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
+	}
+	StateGet += time.Now().Sub(ts)
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)

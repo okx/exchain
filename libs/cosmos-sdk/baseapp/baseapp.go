@@ -162,6 +162,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+	cache            *sdk.Cache
 }
 
 type recordHandle func(string)
@@ -188,6 +189,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
+		cache:            sdk.NewCache(nil, true),
 	}
 	for _, option := range options {
 		option(app)
@@ -682,6 +684,13 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 	}
 }
 
+func useCache(mode runTxMode) bool {
+	if mode == runTxModeDeliver {
+		return true
+	}
+	return false
+}
+
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted
@@ -716,6 +725,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
 	}
+	ctx = ctx.WithCache(sdk.NewCache(app.cache, useCache(mode)))
 
 	ms := ctx.MultiStore()
 
@@ -801,6 +811,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			if err != nil {
 				panic(err)
 			}
+			ctx.Cache().Write(true)
 			msCache.Write()
 			if mode == runTxModeDeliverInAsync {
 				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
@@ -853,10 +864,12 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		}
 
 		if err != nil {
+			ctx.Cache().Write(false)
 			return gInfo, nil, nil, err
 		}
 
 		if mode != runTxModeDeliverInAsync {
+			ctx.Cache().Write(true)
 			msCacheAnte.Write()
 		}
 	}
@@ -881,7 +894,10 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
+		ctx.Cache().Write(true)
 		msCache.Write()
+	} else {
+		ctx.Cache().Write(false)
 	}
 
 	runMsgFinish = true

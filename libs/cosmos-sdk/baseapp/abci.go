@@ -131,6 +131,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
 	}
+	app.deliverState.ctx = app.deliverState.ctx.WithCache(sdk.NewCache(app.cache, useCache(runTxModeDeliver)))
 
 	// add block gas meter
 	var gasMeter sdk.GasMeter
@@ -145,6 +146,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
+	app.deliverState.ctx.Cache().Write(true)
 
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
