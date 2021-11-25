@@ -567,6 +567,8 @@ func prepareTree(t *testing.T, openLogFlag bool, dbName string, size int) (*Muta
 		keySet = append(keySet, key)
 		tree.Set([]byte(key), []byte(value))
 	}
+	//recursivePrint(tree.root, 0)
+
 	tree.SaveVersion()
 	tree.commitCh <- commitEvent{-1, nil,nil, nil, nil, 0}
 	fmt.Println("init setting done")
@@ -617,31 +619,31 @@ func TestBenchmarkMutableTree_Get(t *testing.T) {
 			dbName: "130-test",
 			openLog: true,
 			initDataSize: 1300000,
-			readNum: 10000,
+			readNum: 100000,
 		},
 		{
 			dbName: "100-test",
 			openLog: true,
 			initDataSize: 1000000,
-			readNum: 10000,
+			readNum: 100000,
 		},
 		{
 			dbName: "80-test",
 			openLog: true,
 			initDataSize: 800000,
-			readNum: 10000,
+			readNum: 100000,
 		},
 		{
 			dbName: "50-test",
 			openLog: true,
 			initDataSize: 500000,
-			readNum: 10000,
+			readNum: 100000,
 		},
 		{
 			dbName: "30-test",
 			openLog: true,
 			initDataSize: 300000,
-			readNum: 10000,
+			readNum: 100000,
 		},
 	}
 	for i, testCase := range testCases {
@@ -651,4 +653,104 @@ func TestBenchmarkMutableTree_Get(t *testing.T) {
 		clearDB(testCase.dbName)
 		fmt.Println()
 	}
+}
+
+
+func TestBenchmarkMutableTree_Get2(t *testing.T) {
+	EnableAsyncCommit = true
+	EnablePruningHistoryState = true
+	CommitIntervalHeight = 1
+	defer func() {
+		EnableAsyncCommit = false
+		EnablePruningHistoryState = false
+		CommitIntervalHeight = 100
+	}()
+	testCases := []struct {
+		dbName string
+		openLog bool
+		initDataSize int
+		readNum int
+	}{
+		{
+			dbName: "16-test",
+			openLog: true,
+			initDataSize: 16,
+			readNum: 100000,
+		},
+		{
+			dbName: "256-test",
+			openLog: true,
+			initDataSize: 256,
+			readNum: 100000,
+		},
+		{
+			dbName: "4096-test",
+			openLog: true,
+			initDataSize: 4096,
+			readNum: 100000,
+		},
+		{
+			dbName: "65536-test",
+			openLog: true,
+			initDataSize: 65536,
+			readNum: 100000,
+		},
+		{
+			dbName: "1048576-test",
+			openLog: true,
+			initDataSize: 1048576,
+			readNum: 100000,
+		},
+	}
+	for i, testCase := range testCases {
+		fmt.Println("test case", i, ": ", testCase.dbName)
+		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		clearDB(testCase.dbName)
+		fmt.Println()
+	}
+}
+
+
+func TestBenchmarkMutableTree_Get3(t *testing.T) {
+	EnableAsyncCommit = true
+	EnablePruningHistoryState = true
+	CommitIntervalHeight = 1
+	defer func() {
+		EnableAsyncCommit = false
+		EnablePruningHistoryState = false
+		CommitIntervalHeight = 100
+	}()
+	testCases := []struct {
+		dbName string
+		openLog bool
+		initDataSize int
+		readNum int
+	}{
+		{
+			dbName: "16-test",
+			openLog: true,
+			initDataSize: 16,
+			readNum: 100000,
+		},
+	}
+	for i, testCase := range testCases {
+		fmt.Println("test case", i, ": ", testCase.dbName)
+		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		clearDB(testCase.dbName)
+		fmt.Println()
+	}
+}
+
+func recursivePrint(node *Node, n int) {
+	if node == nil {
+		return
+	}
+	for i:=0;i<n;i++ {
+		fmt.Printf("   ")
+	}
+	fmt.Printf("height:%d key:%s\n", node.height, string(node.key))
+	recursivePrint(node.leftNode, n+1)
+	recursivePrint(node.rightNode, n+1)
 }
