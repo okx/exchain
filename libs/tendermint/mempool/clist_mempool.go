@@ -91,6 +91,7 @@ type CListMempool struct {
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
+	checkCnt     int64
 }
 
 var _ Mempool = &CListMempool{}
@@ -347,7 +348,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
-
+	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
 
@@ -893,6 +894,10 @@ func (mem *CListMempool) Update(
 		mem.pendingPoolNotify <- addressNonce
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
+
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
