@@ -16,25 +16,25 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SetNodeConfig(context *server.Context) {
+func SetNodeConfig(ctx *server.Context) {
 	nodeMode := viper.GetString(types.FlagNodeMode)
 	switch types.NodeMode(nodeMode) {
 	case types.RpcNode:
-		setRpcConfig()
+		setRpcConfig(ctx)
 	case types.ValidatorNode:
-		setValidatorConfig()
+		setValidatorConfig(ctx)
 	case types.ArchiveNode:
-		setArchiveConfig()
+		setArchiveConfig(ctx)
 	case "":
-		context.Logger.Info("The node mode is not set for this node")
+		ctx.Logger.Info("The node mode is not set for this node")
 	default:
-		context.Logger.Error(
+		ctx.Logger.Error(
 			fmt.Sprintf("Wrong value (%s) is set for %s, the correct value should be one of %s, %s, and %s",
 				nodeMode, types.FlagNodeMode, types.RpcNode, types.ValidatorNode, types.ArchiveNode))
 	}
 }
 
-func setRpcConfig() {
+func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
 	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
@@ -44,18 +44,29 @@ func setRpcConfig() {
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)
 	viper.SetDefault(server.FlagCORS, "*")
+	ctx.Logger.Info(fmt.Sprintf(
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
+		abcitypes.FlagDisableCheckTxMutex, true, abcitypes.FlagDisableQueryMutex, true,
+		evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
+		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
+		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
+		server.FlagCORS, "*"))
 }
 
-func setValidatorConfig() {
+func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
 	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
 	viper.SetDefault(appconfig.FlagEnableDynamicGp, false)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+		abcitypes.FlagDisableCheckTxMutex, true, abcitypes.FlagDisableQueryMutex, true,
+		appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
+		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything"))
 }
 
-func setArchiveConfig() {
+func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
 	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
@@ -65,4 +76,11 @@ func setArchiveConfig() {
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
+	ctx.Logger.Info(fmt.Sprintf(
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc archive mode",
+		server.FlagPruning, "nothing", abcitypes.FlagDisableCheckTxMutex, true,
+		abcitypes.FlagDisableQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
+		watcher.FlagFastQueryLru, 10000, watcher.FlagFastQuery, true,
+		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
+		server.FlagCORS, "*"))
 }
