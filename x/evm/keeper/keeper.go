@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -235,12 +234,8 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	ts := time.Now()
-	defer func() {
-		ParamTs += time.Now().Sub(ts)
-	}()
 	if data, gas := k.configCache.chainConfig, k.configCache.gasChainConfig; gas != 0 {
-		ctx.GasMeter().ConsumeGas(gas, "chainConfig")
+		ctx.GasMeter().ConsumeGas(gas, "evm.keeper.GetChainConfig")
 		return data, true
 	}
 	startGas := ctx.GasMeter().GasConsumed()

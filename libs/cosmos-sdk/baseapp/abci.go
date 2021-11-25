@@ -131,7 +131,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
 	}
-	app.deliverState.ctx = app.deliverState.ctx.WithCache(sdk.NewCache(app.cache, useCache(runTxModeDeliver)))
+	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
+	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
 
 	// add block gas meter
 	var gasMeter sdk.GasMeter
@@ -295,6 +296,8 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+	app.blockCache.Write(true)
+	app.chainCache.Delete(app.logger, app.deliverState.ctx.BlockHeight())
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.

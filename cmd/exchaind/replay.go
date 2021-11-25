@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/evm/keeper"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -17,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	autoKeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -27,7 +25,6 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
-	evmType "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -99,7 +96,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
-	ts := time.Now()
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
 
@@ -131,11 +127,6 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
-	fmt.Println("AllTs", time.Now().Sub(ts).Seconds())
-	sdk.DisplayTs()
-	fmt.Println("param", keeper.ParamTs.Seconds())
-	fmt.Println("account", autoKeeper.GetAccountTs.Seconds())
-	fmt.Println("Storage", evmType.StateGet.Seconds())
 }
 
 // panic if error is not nil
@@ -284,9 +275,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
-		//if height >= lastBlockHeight+200 {
-		//	break
-		//}
 	}
 }
 

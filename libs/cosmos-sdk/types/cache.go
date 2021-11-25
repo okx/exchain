@@ -1,11 +1,34 @@
 package types
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 )
+
+var (
+	maxAccInMap        = 1000 * 1000
+	deleteAccCount     = 100 * 1000
+	maxStorageInMap    = 100 * 1000
+	deleteStorageCount = 10 * 1000
+)
+
+type account interface {
+	GetAddress() AccAddress
+	SetAddress(AccAddress) error
+	GetPubKey() crypto.PubKey
+	SetPubKey(crypto.PubKey) error
+	GetAccountNumber() uint64
+	SetAccountNumber(uint64) error
+	GetSequence() uint64
+	SetSequence(uint64) error
+	GetCoins() Coins
+	SetCoins(Coins) error
+	SpendableCoins(blockTime time.Time) Coins
+	String() string
+}
 
 type storageWithCache struct {
 	value []byte
@@ -25,21 +48,8 @@ type Cache struct {
 	storageMap map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache
 
 	accMap map[ethcmn.Address]*accountWithCache
-}
 
-type account interface {
-	GetAddress() AccAddress
-	SetAddress(AccAddress) error
-	GetPubKey() crypto.PubKey
-	SetPubKey(crypto.PubKey) error
-	GetAccountNumber() uint64
-	SetAccountNumber(uint64) error
-	GetSequence() uint64
-	SetSequence(uint64) error
-	GetCoins() Coins
-	SetCoins(Coins) error
-	SpendableCoins(blockTime time.Time) Coins
-	String() string
+	gasConfig types.GasConfig
 }
 
 func NewCache(parent *Cache, useCache bool) *Cache {
@@ -49,17 +59,20 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 
 		storageMap: make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache, 0),
 		accMap:     make(map[ethcmn.Address]*accountWithCache, 0),
+		gasConfig:  types.KVGasConfig(),
 	}
 
 }
 
-func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
-	ts := time.Now()
-	defer func() {
-		UpdateStorage += time.Now().Sub(ts)
-	}()
+func (c *Cache) skip() bool {
+	if c == nil || !c.useCache {
+		return true
+	}
+	return false
+}
 
-	if !c.useCache {
+func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
+	if c.skip() {
 		return
 	}
 
@@ -72,31 +85,20 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 	}
 }
 
-func (c *Cache) UpdateAcc(addr AccAddress, acc account, lenBytes int, isDirty bool) {
-	ts := time.Now()
-	defer func() {
-		UpdataAcc += time.Now().Sub(ts)
-	}()
-
-	if !c.useCache {
+func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
+	if c.skip() {
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
-	//fmt.Println("update-----", ethAddr.String(), lenBytes*3+1000)
 	c.accMap[ethAddr] = &accountWithCache{
 		acc:     acc,
 		isDirty: isDirty,
-		gas:     uint64(lenBytes*3 + 1000),
+		gas:     types.Gas(lenBytes)*c.gasConfig.ReadCostPerByte + c.gasConfig.ReadCostFlat,
 	}
 }
 
-func (c *Cache) GetAcc(addr ethcmn.Address) (account, uint64, bool) {
-	ts := time.Now()
-	defer func() {
-		AccountTs += time.Now().Sub(ts)
-	}()
-
-	if !c.useCache {
+func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
+	if c.skip() {
 		return nil, 0, false
 	}
 
@@ -105,20 +107,14 @@ func (c *Cache) GetAcc(addr ethcmn.Address) (account, uint64, bool) {
 	}
 
 	if c.parent != nil {
-		if data, ok := c.parent.accMap[addr]; ok {
-			return data.acc, data.gas, ok
-		}
+		return c.parent.GetAccount(addr)
 	}
 	return nil, 0, false
 
 }
 
 func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) {
-	ts := time.Now()
-	defer func() {
-		StorageTs += time.Now().Sub(ts)
-	}()
-	if !c.useCache {
+	if c.skip() {
 		return nil, false
 	}
 	if _, hasAddr := c.storageMap[addr]; hasAddr {
@@ -129,35 +125,17 @@ func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) 
 	}
 
 	if c.parent != nil {
-		if _, hasAddr := c.parent.storageMap[addr]; hasAddr {
-			data, hasKey := c.parent.storageMap[addr][key]
-			if hasKey {
-				return data.value, hasKey
-			}
-		}
+		return c.parent.GetStorage(addr, key)
 	}
 	return nil, false
 }
 
-//TODO delete
-var (
-	UpdateStorage = time.Duration(0)
-	UpdataAcc     = time.Duration(0)
-	WriteTs       = time.Duration(0)
-	StorageTs     = time.Duration(0)
-	AccountTs     = time.Duration(0)
-)
-
-func DisplayTs() {
-	fmt.Println("Write", WriteTs.Seconds(), "UpdateStorage", UpdateStorage.Seconds(), "UpdateAcc", UpdataAcc.Seconds(), "GetStorage", StorageTs.Seconds(), "GetAcc", AccountTs.Seconds())
-}
-
 func (c *Cache) Write(updateDirty bool) {
-	ts := time.Now()
-	defer func() {
-		WriteTs += time.Now().Sub(ts)
-	}()
-	if !c.useCache {
+	if c.skip() {
+		return
+	}
+
+	if c.parent == nil {
 		return
 	}
 	c.writeStorage(updateDirty)
@@ -186,4 +164,43 @@ func (c *Cache) writeAcc(updateDirty bool) {
 		}
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
+}
+
+func (c *Cache) Delete(logger log.Logger, height int64) {
+	if height%1000 == 0 {
+		logger.Info("MultiCache:info", "len(acc)", len(c.accMap), "len(storage)", len(c.storageMap))
+	}
+
+	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxStorageInMap {
+		return
+	}
+
+	ts := time.Now()
+	isDelete := false
+	if len(c.accMap) >= maxAccInMap {
+		isDelete = true
+		cnt := 0
+		for key := range c.accMap {
+			delete(c.accMap, key)
+			cnt++
+			if cnt > deleteAccCount {
+				break
+			}
+		}
+	}
+
+	if len(c.storageMap) >= maxStorageInMap {
+		isDelete = true
+		cnt := 0
+		for key := range c.storageMap {
+			delete(c.storageMap, key)
+			cnt++
+			if cnt > deleteStorageCount {
+				break
+			}
+		}
+	}
+	if isDelete {
+		logger.Info("MultiCache:info", "time", time.Now().Sub(ts).Seconds(), "len(acc)", len(c.accMap), "len(storage)", len(c.storageMap))
+	}
 }

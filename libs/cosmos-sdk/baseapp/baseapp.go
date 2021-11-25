@@ -162,7 +162,9 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-	cache            *sdk.Cache
+
+	chainCache *sdk.Cache
+	blockCache *sdk.Cache
 }
 
 type recordHandle func(string)
@@ -189,7 +191,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		cache:            sdk.NewCache(nil, true),
+		chainCache:       sdk.NewCache(nil, true),
 	}
 	for _, option := range options {
 		option(app)
@@ -725,7 +727,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
 	}
-	ctx = ctx.WithCache(sdk.NewCache(app.cache, useCache(mode)))
+	ctx = ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
 
 	ms := ctx.MultiStore()
 
@@ -1043,9 +1045,8 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-

@@ -3,6 +3,9 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"math/big"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -11,9 +14,6 @@ import (
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"io"
-	"math/big"
-	"time"
 )
 
 const keccak256HashSize = 100000
@@ -374,10 +374,6 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 	return value
 }
 
-var (
-	StateGet = time.Duration(0)
-)
-
 // GetCommittedState retrieves a value from the committed account storage trie.
 //
 // NOTE: the key will be prefixed with the address of the state object.
@@ -397,14 +393,12 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	rawValue := make([]byte, 0)
 	var ok bool
 
-	ts := time.Now()
 	rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
 	if !ok {
 		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 		rawValue = store.Get(prefixKey.Bytes())
 		ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
 	}
-	StateGet += time.Now().Sub(ts)
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)
