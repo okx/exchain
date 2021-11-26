@@ -30,6 +30,7 @@ const (
 	pruneHeightsKey  = "s/pruneheights"
 	versionsKey      = "s/versions"
 	commitInfoKeyFmt = "s/%d" // s/<version>
+	maxPruneHeightsLength = 100
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -244,7 +245,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err == nil && len(vs) > 0 {
 		rs.versions = vs
 	}
-
+	if rs.logger != nil {
+		rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+	}
+	if len(rs.pruneHeights) > maxPruneHeightsLength {
+		return fmt.Errorf("the length of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", maxPruneHeightsLength)
+	}
 	return nil
 }
 
@@ -335,40 +341,40 @@ func (rs *Store) Commit() types.CommitID {
 	version := previousHeight + 1
 	rs.lastCommitInfo = commitStores(version, rs.stores)
 
-	// Determine if pruneHeight height needs to be added to the list of heights to
-	// be pruned, where pruneHeight = (commitHeight - 1) - KeepRecent.
-	if int64(rs.pruningOpts.KeepRecent) < previousHeight {
-		pruneHeight := previousHeight - int64(rs.pruningOpts.KeepRecent)
-		// We consider this height to be pruned iff:
-		//
-		// - KeepEvery is zero as that means that all heights should be pruned.
-		// - KeepEvery % (height - KeepRecent) != 0 as that means the height is not
-		// a 'snapshot' height.
-		if rs.pruningOpts.KeepEvery == 0 || pruneHeight%int64(rs.pruningOpts.KeepEvery) != 0 {
-			rs.pruneHeights = append(rs.pruneHeights, pruneHeight)
-			for k, v := range rs.versions {
-				if v == pruneHeight {
-					rs.versions = append(rs.versions[:k], rs.versions[k+1:]...)
-					break
+	if !iavltree.EnableAsyncCommit {
+		// Determine if pruneHeight height needs to be added to the list of heights to
+		// be pruned, where pruneHeight = (commitHeight - 1) - KeepRecent.
+		if int64(rs.pruningOpts.KeepRecent) < previousHeight {
+			pruneHeight := previousHeight - int64(rs.pruningOpts.KeepRecent)
+			// We consider this height to be pruned iff:
+			//
+			// - KeepEvery is zero as that means that all heights should be pruned.
+			// - KeepEvery % (height - KeepRecent) != 0 as that means the height is not
+			// a 'snapshot' height.
+			if rs.pruningOpts.KeepEvery == 0 || pruneHeight%int64(rs.pruningOpts.KeepEvery) != 0 {
+				rs.pruneHeights = append(rs.pruneHeights, pruneHeight)
+				for k, v := range rs.versions {
+					if v == pruneHeight {
+						rs.versions = append(rs.versions[:k], rs.versions[k+1:]...)
+						break
+					}
 				}
 			}
 		}
-	}
 
-	if uint64(len(rs.versions)) > rs.pruningOpts.MaxRetainNum {
-		rs.pruneHeights = append(rs.pruneHeights, rs.versions[:uint64(len(rs.versions))-rs.pruningOpts.MaxRetainNum]...)
-		rs.versions = rs.versions[uint64(len(rs.versions))-rs.pruningOpts.MaxRetainNum:]
-	}
-
-	// batch prune if the current height is a pruning interval height
-	if rs.pruningOpts.Interval > 0 && version%int64(rs.pruningOpts.Interval) == 0 {
-		if !iavltree.EnableAsyncCommit {
-			rs.pruneStores() // use pruning logic from iavl project
+		if uint64(len(rs.versions)) > rs.pruningOpts.MaxRetainNum {
+			rs.pruneHeights = append(rs.pruneHeights, rs.versions[:uint64(len(rs.versions))-rs.pruningOpts.MaxRetainNum]...)
+			rs.versions = rs.versions[uint64(len(rs.versions))-rs.pruningOpts.MaxRetainNum:]
 		}
+
+		// batch prune if the current height is a pruning interval height
+		if rs.pruningOpts.Interval > 0 && version%int64(rs.pruningOpts.Interval) == 0 {
+			rs.pruneStores()
+
+		}
+
+		rs.versions = append(rs.versions, version)
 	}
-
-	rs.versions = append(rs.versions, version)
-
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
 
 	return types.CommitID{
@@ -833,6 +839,17 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 func setPruningHeights(batch dbm.Batch, pruneHeights []int64) {
 	bz := cdc.MustMarshalBinaryBare(pruneHeights)
 	batch.Set([]byte(pruneHeightsKey), bz)
+}
+
+func SetPruningHeights(db dbm.DB, pruneHeights []int64) {
+	batch := db.NewBatch()
+	setPruningHeights(batch, pruneHeights)
+	batch.Write()
+	batch.Close()
+}
+
+func GetPruningHeights(db dbm.DB) ([]int64, error) {
+	return getPruningHeights(db)
 }
 
 func getPruningHeights(db dbm.DB) ([]int64, error) {
