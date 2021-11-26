@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -55,6 +56,51 @@ type ABCIMessageLog struct {
 	Events StringEvents `json:"events"`
 }
 
+func (log ABCIMessageLog) MarshalJsonToBuffer(buf *bytes.Buffer) error {
+	var err error
+
+	err = buf.WriteByte('{')
+	if err != nil {
+		return err
+	}
+
+	buf.WriteString(`"msg_index":`)
+	blob, err := json.Marshal(log.MsgIndex)
+	if err != nil {
+		return err
+	}
+	_, err = buf.Write(blob)
+	if err != nil {
+		return err
+	}
+	err = buf.WriteByte(',')
+	if err != nil {
+		return err
+	}
+
+	buf.WriteString(`"log":`)
+	blob, err = json.Marshal(log.Log)
+	if err != nil {
+		return err
+	}
+	_, err = buf.Write(blob)
+	if err != nil {
+		return err
+	}
+	err = buf.WriteByte(',')
+	if err != nil {
+		return err
+	}
+
+	buf.WriteString(`"events":`)
+	err = log.Events.MarshalJsonToBuffer(buf)
+	if err != nil {
+		return err
+	}
+
+	return buf.WriteByte('}')
+}
+
 func NewABCIMessageLog(i uint16, log string, events Events) ABCIMessageLog {
 	return ABCIMessageLog{
 		MsgIndex: i,
@@ -73,6 +119,32 @@ func (logs ABCIMessageLogs) String() (str string) {
 	}
 
 	return str
+}
+
+func (logs ABCIMessageLogs) MarshalJsonToBuffer(buf *bytes.Buffer) error {
+	var err error
+	if logs == nil {
+		_, err = buf.WriteString("null")
+		return err
+	}
+
+	err = buf.WriteByte('[')
+	if err != nil {
+		return err
+	}
+	for i, log := range logs {
+		if i != 0 {
+			err = buf.WriteByte(',')
+			if err != nil {
+				return err
+			}
+		}
+		err = log.MarshalJsonToBuffer(buf)
+		if err != nil {
+			return err
+		}
+	}
+	return buf.WriteByte(']')
 }
 
 // TxResponse defines a structure containing relevant tx data and metadata. The
