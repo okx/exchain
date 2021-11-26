@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	maxAccInMap        = 1000 * 1000
-	deleteAccCount     = 100 * 1000
-	maxStorageInMap    = 100 * 1000
-	deleteStorageCount = 10 * 1000
+	maxAccInMap        = 1000000
+	deleteAccCount     = 100000
+	maxStorageInMap    = 100000
+	deleteStorageCount = 10000
 )
 
 type account interface {
