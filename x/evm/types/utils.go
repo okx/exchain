@@ -62,6 +62,97 @@ type ResultData struct {
 	TxHash          ethcmn.Hash     `json:"tx_hash"`
 }
 
+func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
+	var dataLen uint64 = 0
+	var subData []byte
+	log := &ethtypes.Log{}
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			if int(dataLen) != ethcmn.AddressLength {
+				return nil, fmt.Errorf("invalid address length: %d", dataLen)
+			}
+			copy(log.Address[:], subData)
+		case 2:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			var hash ethcmn.Hash
+			copy(hash[:], subData)
+			log.Topics = append(log.Topics, hash)
+		case 3:
+			log.Data = make([]byte, dataLen)
+			copy(log.Data, subData)
+		case 4:
+			var n int
+			log.BlockNumber, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 5:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			copy(log.TxHash[:], subData)
+		case 6:
+			var n int
+			var uv uint64
+			uv, n, err = amino.DecodeUvarint(data)
+			log.TxIndex = uint(uv)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 7:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			copy(log.BlockHash[:], subData)
+		case 8:
+			var n int
+			var uv uint64
+			uv, n, err = amino.DecodeUvarint(data)
+			log.Index = uint(uv)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 9:
+			if data[0] == 0 {
+				log.Removed = false
+			} else if data[0] == 1 {
+				log.Removed = true
+			} else {
+				return nil, fmt.Errorf("invalid removed flag: %d", data[0])
+			}
+			dataLen = 1
+		}
+	}
+	return log, nil
+}
+
 func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 	if log == nil {
 		return []byte{}, nil

@@ -132,6 +132,55 @@ func TestTxDecoder(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEthLogAmino(t *testing.T) {
+	tests := []ethtypes.Log{
+		{},
+		{Topics: []ethcmn.Hash{}, Data: []byte{}},
+		{
+			Address: ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49"),
+			Topics: []ethcmn.Hash{
+				ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+				ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			},
+			Data:        []byte{1, 2, 3, 4},
+			BlockNumber: 17,
+			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			TxIndex:     123456,
+			BlockHash:   ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			Index:       543121,
+			Removed:     false,
+		},
+		{
+			Address: ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49"),
+			Topics: []ethcmn.Hash{
+				ethcmn.HexToHash("0x00000000FF0000000000000000000AC0000000000000EF000000000000000000"),
+				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			},
+			Data:        []byte{5, 6, 7, 8},
+			BlockNumber: 18,
+			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			TxIndex:     0,
+			BlockHash:   ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			Index:       0,
+			Removed:     true,
+		},
+	}
+	cdc := codec.New()
+	for _, test := range tests {
+		bz, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+
+		var expect ethtypes.Log
+		err = cdc.UnmarshalBinaryBare(bz, &expect)
+		require.NoError(t, err)
+
+		actual, err := UnmarshalEthLogFromAmino(bz)
+		require.NoError(t, err)
+		require.EqualValues(t, expect, *actual)
+	}
+}
+
 func TestResultDataAmino(t *testing.T) {
 	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
 	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3, 0x5, 0x7})
