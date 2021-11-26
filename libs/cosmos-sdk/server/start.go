@@ -92,10 +92,12 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// set external package flags
-			setExternalPackageValue(cmd)
 			// app pre run
 			appPreRun(ctx)
+
+			// set external package flags
+			setExternalPackageValue(cmd)
+
 			// pruning options
 			_, err := GetPruningOptionsFromFlags()
 			return err
@@ -188,6 +190,7 @@ which accepts a path for the resulting pprof file.
 	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
+	cmd.AddCommand(nodeModeCmd(ctx))
 	return cmd
 }
 

@@ -29,25 +29,25 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-	*ImmutableTree                  // The current, working tree.
-	lastSaved      *ImmutableTree   // The most recently saved tree.
-	orphans        []*Node          // Nodes removed by changes to working tree.Will refresh after each block
-	commitOrphans  map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
-	versions       *SyncMap   // The previous, saved versions of the tree.
-	removedVersions   sync.Map      // The removed versions of the tree.
-	ndb            *nodeDB
+
+	*ImmutableTree                   // The current, working tree.
+	lastSaved       *ImmutableTree   // The most recently saved tree.
+	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
+	commitOrphans   map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
+	versions        *SyncMap         // The previous, saved versions of the tree.
+	removedVersions sync.Map         // The removed versions of the tree.
+	ndb             *nodeDB
+
 	savedNodes      map[string]*Node
 	deltas          *TreeDelta // For using in other peer
 
-	committedHeightQueue  *list.List
-	committedHeightMap    map[int64]bool
-	historyStateNum int
+	committedHeightQueue *list.List
+	committedHeightMap   map[int64]bool
+	historyStateNum      int
 
-	commitCh chan commitEvent
+	commitCh          chan commitEvent
 	lastPersistHeight int64
 }
-
-
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
 func NewMutableTree(db dbm.DB, cacheSize int) (*MutableTree, error) {
@@ -74,11 +74,11 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 		versions:      NewSyncMap(),
 		ndb:           ndb,
 
-		committedHeightMap:    map[int64]bool{},
-		committedHeightQueue:  list.New(),
-		historyStateNum: MaxCommittedHeightNum,
+		committedHeightMap:   map[int64]bool{},
+		committedHeightQueue: list.New(),
+		historyStateNum:      MaxCommittedHeightNum,
 
-		commitCh: make(chan commitEvent),
+		commitCh:          make(chan commitEvent),
 		lastPersistHeight: initVersion,
 	}
 
