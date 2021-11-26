@@ -12,8 +12,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
-	"github.com/spf13/cobra"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/spf13/cobra"
 )
 
 // exchain full-node start flags
@@ -275,5 +275,45 @@ func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarDepthTopic)
 	cmd.Flags().String(FlagStreamRedisRequirePass, streamConf.RedisRequirePass, "Stream plugin`s redis require pass")
 	cmd.Flags().MarkHidden(FlagStreamRedisRequirePass)
+	return cmd
+}
+
+func nodeModeCmd(ctx *Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "node-mode",
+		Short: "exchaind start --node-mode help info",
+		Long: `There are three node modes that can be set when the exchaind start
+set --node-mode=rpc to manage the following flags:
+	--disable-checktx-mutex=true
+	--disable-query-mutex=true
+	--enable-bloom-filter=true
+	--fast-lru=10000
+	--fast-query=true
+	--iavl-enable-async-commit=true
+	--max-open=20000
+	--mempool.enable_pending_pool=true
+	--cors=*
+
+set --node-mode=validator to manage the following flags:
+	--disable-checktx-mutex=true
+	--disable-query-mutex=true
+	--enable-dynamic-gp=false
+	--iavl-enable-async-commit=true
+	--iavl-cache-size=10000000
+	--pruning=everything
+
+set --node-mode=archive to manage the following flags:
+	--pruning=nothing
+	--disable-checktx-mutex=true
+	--disable-query-mutex=true
+	--enable-bloom-filter=true
+	--fast-lru=10000
+	--fast-query=true
+	--iavl-enable-async-commit=true
+	--max-open=20000
+	--cors=*`,
+		Run: func(cmd *cobra.Command, args []string) {
+		},
+	}
 	return cmd
 }

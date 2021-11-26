@@ -208,6 +208,7 @@ func NewOKExChainApp(
 			}
 		}
 		iavl.SetLogFunc(logFunc)
+		logStartingFlags(logger)
 	})
 	// get config
 	appConfig, err := config.ParseConfig()
@@ -605,7 +606,7 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 
 func PreRun(context *server.Context) {
 	// set the dynamic config
-	appconfig.RegisterDynamicConfig()
+	appconfig.RegisterDynamicConfig(context.Logger.With("module", "config"))
 
 	// set config by node mode
 	SetNodeConfig(context)
