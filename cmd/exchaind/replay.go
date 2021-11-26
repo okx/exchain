@@ -17,6 +17,7 @@ import (
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -96,6 +97,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
+	iavlconfig.SetDynamicConfig(config.GetOecConfig())
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
 
