@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 
 	// "sync"
 	"testing"
@@ -102,6 +104,61 @@ func TestWALEncoderDecoder(t *testing.T) {
 		assert.Equal(t, msg.Time.UTC(), decoded.Time)
 		assert.Equal(t, msg.Msg, decoded.Msg)
 	}
+}
+
+func BenchmarkWALEncode(b *testing.B) {
+	cdc.RegisterConcrete([]byte{}, "tendermint/wal/byte", nil)
+	size := 1024 * 1024
+
+	data := nBytes(1024 * 2)
+	msgs := []TimedWALMessage{}
+	for i := 0; i < size; i++ {
+		msgs = append(msgs) //timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}
+	}
+	buffer := new(bytes.Buffer)
+	msg := TimedWALMessage{Msg: data, Time: time.Now().Round(time.Second).UTC()}
+	b.Run("Encode", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			buffer.Reset()
+			enc := NewWALEncoder(buffer)
+			err := enc.Encode(&msg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.ReportAllocs()
+	})
+}
+func TestWALEncode(t *testing.T) {
+	cdc.RegisterConcrete([]byte{}, "tendermint/wal/byte", nil)
+	size := 1024 * 1024
+
+	data := nBytes(1024 * 2)
+	msgs := []TimedWALMessage{}
+	for i := 0; i < size; i++ {
+		msgs = append(msgs, TimedWALMessage{Msg: data, Time: time.Now().Round(time.Second).UTC()}) //timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}
+	}
+	debug.SetGCPercent(-1)
+	m := getMemStats()
+	t.Logf("Encode之前:%dMB,GC:%d", m.Alloc/1024/1024, m.NumGC)
+
+	b := new(bytes.Buffer)
+	for i := 0; i < size; i++ {
+		b.Reset()
+		enc := NewWALEncoder(b)
+		err := enc.Encode(&msgs[i])
+		require.NoError(t, err)
+	}
+
+	m = getMemStats()
+	t.Logf("Encode之后:%dMB,GC:%d", m.Alloc/1024/1024, m.NumGC)
+
+}
+
+func getMemStats() (m runtime.MemStats) {
+	runtime.ReadMemStats(&m)
+	return m
 }
 
 func TestWALWrite(t *testing.T) {
