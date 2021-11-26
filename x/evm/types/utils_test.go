@@ -171,6 +171,10 @@ func TestEthLogAmino(t *testing.T) {
 		bz, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
+		bz2, err := MarshalEthLogToAmino(&test)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, bz2)
+
 		var expect ethtypes.Log
 		err = cdc.UnmarshalBinaryBare(bz, &expect)
 		require.NoError(t, err)
@@ -191,6 +195,8 @@ func TestResultDataAmino(t *testing.T) {
 	RegisterCodec(cdc)
 
 	testDataSet := []ResultData{
+		{},
+		{Logs: []*ethtypes.Log{}, Ret: []byte{}},
 		{
 			ContractAddress: addr,
 			Bloom:           bloom,
@@ -203,7 +209,6 @@ func TestResultDataAmino(t *testing.T) {
 			Ret:    ret,
 			TxHash: ethcmn.HexToHash("0x00"),
 		},
-		{},
 		{
 			ContractAddress: addr,
 			Bloom:           bloom,
@@ -226,5 +231,13 @@ func TestResultDataAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 		t.Log(fmt.Sprintf("%d pass\n", i))
+
+		var expectRd ResultData
+		err = cdc.UnmarshalBinaryBare(expect, &expectRd)
+		require.NoError(t, err)
+		var actualRd ResultData
+		err = actualRd.UnmarshalFromAmino(expect)
+		require.NoError(t, err)
+		require.EqualValues(t, expectRd, actualRd)
 	}
 }

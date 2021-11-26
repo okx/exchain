@@ -287,6 +287,67 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		if aminoType != amino.Typ3_ByteLength {
+			return fmt.Errorf("unexpect proto type %d", aminoType)
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, _ = amino.DecodeUvarint(data)
+
+		data = data[n:]
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			if int(dataLen) != ethcmn.AddressLength {
+				return fmt.Errorf("invalid contract address length: %d", dataLen)
+			}
+			copy(rd.ContractAddress[:], subData)
+		case 2:
+			if int(dataLen) != ethtypes.BloomByteLength {
+				return fmt.Errorf("invalid bloom length: %d", dataLen)
+			}
+			copy(rd.Bloom[:], subData)
+		case 3:
+			var log *ethtypes.Log
+			if dataLen == 0 {
+				log, err = nil, nil
+			} else {
+				log, err = UnmarshalEthLogFromAmino(subData)
+			}
+			if err != nil {
+				return nil
+			}
+			rd.Logs = append(rd.Logs, log)
+		case 4:
+			rd.Ret = make([]byte, dataLen)
+			copy(rd.Ret, subData)
+		case 5:
+			if dataLen != ethcmn.HashLength {
+				return fmt.Errorf("invalid tx hash length %d", dataLen)
+			}
+			copy(rd.TxHash[:], subData)
+		}
+	}
+	return nil
+}
+
 func (rd ResultData) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
