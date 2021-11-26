@@ -89,6 +89,7 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 	}
+	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
 	}
