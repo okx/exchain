@@ -916,7 +916,7 @@ func (cs *State) isBlockProducer() (string, string) {
 	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
 		address := cs.privValidatorPubKey.Address()
 
-		if cs.isProposer != nil && cs.isProposer(address) {
+		if cs.isProposer(address) {
 			isBlockProducer = "y"
 			bpAddr = cs.Validators.GetProposer().Address.String()
 			const len2display int = 6
@@ -982,7 +982,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 	address := cs.privValidatorPubKey.Address()
-	
+
 	// if not a validator, we're done
 	if !cs.Validators.HasAddress(address) {
 		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)

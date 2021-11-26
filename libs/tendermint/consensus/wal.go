@@ -1,11 +1,13 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
 	"io"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,6 +33,19 @@ const (
 	// how often the WAL should be sync'd during period sync'ing
 	walDefaultFlushInterval = 2 * time.Second
 )
+
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
+var bytesPool = sync.Pool{
+	New: func() interface{} {
+		buff := make([]byte, 8)
+		return &buff
+	},
+}
 
 //--------------------------------------------------------
 // types and functions for savings consensus messages
@@ -300,21 +315,27 @@ func NewWALEncoder(wr io.Writer) *WALEncoder {
 // the amino-encoded size of v is greater than 1MB. Any error encountered
 // during the write is also returned.
 func (enc *WALEncoder) Encode(v *TimedWALMessage) error {
-	data := cdc.MustMarshalBinaryBare(v)
+	buffer := bufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer bufferPool.Put(buffer)
+	cdc.MustMarshalBinaryBareToWriter(buffer, v)
 
-	crc := crc32.Checksum(data, crc32c)
-	length := uint32(len(data))
+	crc := crc32.Checksum(buffer.Bytes(), crc32c)
+	length := uint32(buffer.Len())
 	if length > maxMsgSizeBytes {
 		return fmt.Errorf("msg is too big: %d bytes, max: %d bytes", length, maxMsgSizeBytes)
 	}
-	totalLength := 8 + int(length)
 
-	msg := make([]byte, totalLength)
+	msgHeader := bytesPool.Get().(*[]byte)
+	msg := *msgHeader
+	msg = msg[:0]
+	defer bytesPool.Put(msgHeader)
+
 	binary.BigEndian.PutUint32(msg[0:4], crc)
 	binary.BigEndian.PutUint32(msg[4:8], length)
-	copy(msg[8:], data)
 
 	_, err := enc.wr.Write(msg)
+	_, err = enc.wr.Write(buffer.Bytes())
 	return err
 }
 
