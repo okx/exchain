@@ -301,7 +301,11 @@ func NewABCIResponses(block *types.Block) *ABCIResponses {
 
 // Bytes serializes the ABCIResponse using go-amino.
 func (arz *ABCIResponses) Bytes() []byte {
-	return cdc.MustMarshalBinaryBare(arz)
+	bz, err := arz.MarshalToAmino()
+	if err != nil {
+		return cdc.MustMarshalBinaryBare(arz)
+	}
+	return bz
 }
 
 func (arz *ABCIResponses) ResultsHash() []byte {
