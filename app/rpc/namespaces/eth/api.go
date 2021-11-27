@@ -20,8 +20,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -37,6 +35,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -46,6 +45,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -1200,6 +1200,12 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		contractAddr = nil
 	}
 
+	// fix gasUsed when deliverTx ante handler check sequence invalid
+	gasUsed := tx.TxResult.GasUsed
+	if tx.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
+		gasUsed = 0
+	}
+
 	receipt := &watcher.TransactionReceipt{
 		Status:            status,
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
@@ -1207,7 +1213,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		Logs:              data.Logs,
 		TransactionHash:   hash.String(),
 		ContractAddress:   contractAddr,
-		GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
+		GasUsed:           hexutil.Uint64(gasUsed),
 		BlockHash:         blockHash.String(),
 		BlockNumber:       hexutil.Uint64(tx.Height),
 		TransactionIndex:  hexutil.Uint64(tx.Index),
