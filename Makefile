@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v0.19.14
+Version=v0.19.15.3
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
