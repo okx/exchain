@@ -61,15 +61,78 @@ func TestNodePool(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestNode_SoftReset(t *testing.T) {
+func TestKMakNodeGC(t *testing.T) {
 	k := []byte("key")
 	v := []byte("value")
 	h := []byte{1, 2, 3}
 	leaf := &Node{key: k, value: v, version: 1, size: 1}
 	inner := &Node{key: k, version: 1, size: 1, height: 1, leftHash: h, rightHash: h}
 
-	leaf.SoftReset(true)
-	inner.SoftReset(true)
+	//MakeNodeGC with pool get empty node
+	var buf bytes.Buffer
+	buf.Grow(leaf.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err := MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(&Node{})
+	actual, err, _ := MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	//MakeNodeGC with pool get empty node
+	buf.Reset()
+	buf.Grow(inner.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err = MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(&Node{})
+	actual, err, _ = MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	//MakeNodeGC for leaf with pool get leaf node
+	buf.Reset()
+	buf.Grow(leaf.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err = MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(leaf)
+	actual, err, _ = MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	//MakeNodeGC for inner with pool get leaf node
+	buf.Reset()
+	buf.Grow(inner.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err = MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(leaf)
+	actual, err, _ = MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	//MakeNodeGC for leaf with pool get inner node
+	buf.Reset()
+	buf.Grow(leaf.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err = MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(inner)
+	actual, err, _ = MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+
+	//MakeNodeGC for inner with pool get inner node
+	buf.Reset()
+	buf.Grow(inner.aminoSize())
+	leaf.writeBytes(&buf)
+	expected, err = MakeNode(buf.Bytes())
+	require.NoError(t, err)
+	nodePool.Put(inner)
+	actual, err, _ = MakeNodeForGC(buf.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
 }
 
 func nBytes(n int) []byte {
