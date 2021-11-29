@@ -100,6 +100,7 @@ func logStartingFlags(logger log.Logger) {
 		appconfig.FlagEnableDynamicGp:     viper.GetBool(appconfig.FlagEnableDynamicGp),
 		store.FlagIavlCacheSize:           viper.GetInt(store.FlagIavlCacheSize),
 		mempool.FlagEnablePendingPool:     viper.GetBool(mempool.FlagEnablePendingPool),
+		appconfig.FlagMaxGasUsedPerBlock:  viper.GetInt64(appconfig.FlagMaxGasUsedPerBlock),
 	}
 	msg := "starting flags:"
 	for k, v := range flagMap {
