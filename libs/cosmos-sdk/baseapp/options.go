@@ -113,11 +113,18 @@ func (app *BaseApp) SetGasRefundHandler(gh sdk.GasRefundHandler) {
 	app.GasRefundHandler = gh
 }
 
-func (app *BaseApp) SetAccHandler(ah sdk.AccHandler) {
+func (app *BaseApp) SetAccNonceHandler(ah sdk.AccNonceHandler) {
 	if app.sealed {
-		panic("SetAccHandler() on sealed BaseApp")
+		panic("SetAccNonceHandler() on sealed BaseApp")
 	}
-	app.AccHandler = ah
+	app.AccNonceHandler = ah
+}
+
+func (app *BaseApp) SetAccUpdateHandler(ah sdk.AccUpdateHandler) {
+	if app.sealed {
+		panic("SetAccUpdateHandler() on sealed BaseApp")
+	}
+	app.AccUpdateHandler = ah
 }
 
 func (app *BaseApp) SetAddrPeerFilter(pf sdk.PeerFilter) {

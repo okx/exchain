@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"

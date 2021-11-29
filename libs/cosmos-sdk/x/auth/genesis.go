@@ -17,6 +17,9 @@ func InitGenesis(ctx sdk.Context, ak AccountKeeper, data GenesisState) {
 		acc := ak.NewAccount(ctx, a)
 		ak.SetAccount(ctx, acc)
 	}
+
+	ak.Update(ctx, nil)
+	ak.Commit(ctx)
 }
 
 // ExportGenesis returns a GenesisState for a given context and keeper

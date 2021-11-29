@@ -432,7 +432,8 @@ func NewOKExChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
+	app.SetAccUpdateHandler(NewAccUpdateHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	if loadLatest {
@@ -599,10 +600,18 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	}
 }
 
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
 		return ak.GetAccount(ctx, addr).GetSequence()
+	}
+}
+
+func NewAccUpdateHandler(ak auth.AccountKeeper) sdk.AccUpdateHandler {
+	return func(
+		ctx sdk.Context, err error,
+	) {
+		ak.Update(ctx, err)
 	}
 }

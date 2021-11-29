@@ -1,10 +1,15 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
-
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
+	lru "github.com/hashicorp/golang-lru"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -29,6 +34,13 @@ type AccountKeeper struct {
 	paramSubspace subspace.Subspace
 
 	observers []ObserverI
+
+	trie ethstate.Trie
+	db ethstate.Database
+
+	accLRU   *lru.Cache
+	deliverTxStore *types.CacheStore
+	checkTxStore *types.CacheStore
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
@@ -37,13 +49,25 @@ type AccountKeeper struct {
 func NewAccountKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
+	accLRU, e := lru.New(100000)
+	if e != nil {
+		panic(errors.New("Failed to init LRU Cause " + e.Error()))
+	}
 
-	return AccountKeeper{
+	ak := AccountKeeper{
 		key:           key,
 		proto:         proto,
 		cdc:           cdc,
 		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
+		db: types.InstanceOfAccStore(),
+		accLRU: accLRU,
+		deliverTxStore: types.NewCacheStore(),
+		checkTxStore: types.NewCacheStore(),
 	}
+
+	ak.OpenTrie()
+
+	return ak
 }
 
 // Logger returns a module-specific logger.
@@ -100,4 +124,73 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 		panic(err)
 	}
 	return
+}
+
+func (ak *AccountKeeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	ak.OpenTrie()
+}
+
+func (ak *AccountKeeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
+	ak.Commit(ctx)
+
+	return []abci.ValidatorUpdate{}
+}
+
+var (
+	KeyPrefixLatestHeight = []byte{0x01}
+	KeyPrefixRootMptHash  = []byte{0x02}
+)
+
+// GetLatestBlockHeight get latest mpt storage height
+func (ak *AccountKeeper) GetLatestBlockHeight() uint64 {
+	rst, err := ak.db.TrieDB().DiskDB().Get(KeyPrefixLatestHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+// SetLatestBlockHeight sets the latest storage height
+func (ak *AccountKeeper) SetLatestBlockHeight(height uint64) {
+	hhash := sdk.Uint64ToBigEndian(height)
+	ak.db.TrieDB().DiskDB().Put(KeyPrefixLatestHeight, hhash)
+}
+
+// GetRootMptHash gets root mpt hash from block height
+func (ak *AccountKeeper) GetRootMptHash(height uint64) ethcmn.Hash {
+	hhash := sdk.Uint64ToBigEndian(height)
+	rst, err := ak.db.TrieDB().DiskDB().Get(append(KeyPrefixRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(rst)
+}
+
+// SetRootMptHash sets the mapping from block height to root mpt hash
+func (ak *AccountKeeper) SetRootMptHash(height uint64, hash ethcmn.Hash) {
+	hhash := sdk.Uint64ToBigEndian(height)
+	ak.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
+}
+
+func (ak *AccountKeeper) OpenTrie() {
+	latestHeight := ak.GetLatestBlockHeight()
+	lastRootHash := ak.GetRootMptHash(latestHeight)
+
+	tr, err := ak.db.OpenTrie(lastRootHash)
+	if err != nil {
+		panic("Fail to open root mpt: " + err.Error())
+	}
+	ak.trie = tr
+}
+
+func (ak *AccountKeeper) Commit(ctx sdk.Context) {
+	root, _ := ak.trie.Commit(nil)
+	latestHeight := uint64(ctx.BlockHeight())
+
+	ak.SetRootMptHash(latestHeight, root)
+	ak.SetLatestBlockHeight(latestHeight)
+	ak.CleanCacheStore()
+
+	ak.db.TrieDB().Commit(root, false, nil)
 }
