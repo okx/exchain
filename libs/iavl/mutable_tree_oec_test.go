@@ -695,12 +695,6 @@ func TestBenchmarkMutableTree_Get2(t *testing.T) {
 			initDataSize: 65536,
 			readNum: 100000,
 		},
-		{
-			dbName: "1048576-test",
-			openLog: true,
-			initDataSize: 1048576,
-			readNum: 100000,
-		},
 	}
 	for i, testCase := range testCases {
 		fmt.Println("test case", i, ": ", testCase.dbName)
