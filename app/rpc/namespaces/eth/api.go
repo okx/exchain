@@ -1306,6 +1306,12 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			contractAddr = nil
 		}
 
+		// fix gasUsed when deliverTx ante handler check sequence invalid
+		gasUsed := tx.TxResult.GasUsed
+		if tx.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
+			gasUsed = 0
+		}
+
 		receipt := &watcher.TransactionReceipt{
 			Status: status,
 			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
@@ -1313,7 +1319,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			Logs:             data.Logs,
 			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
 			ContractAddress:  contractAddr,
-			GasUsed:          hexutil.Uint64(tx.TxResult.GasUsed),
+			GasUsed:          hexutil.Uint64(gasUsed),
 			BlockHash:        blockHash.String(),
 			BlockNumber:      hexutil.Uint64(tx.Height),
 			TransactionIndex: hexutil.Uint64(tx.Index),
