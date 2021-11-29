@@ -60,6 +60,7 @@ func (a *ApolloClient) LoadConfig() (loaded bool) {
 		a.oecConf.update(key, value)
 		return true
 	})
+	confLogger.Info(a.oecConf.format())
 	return
 }
 
@@ -73,6 +74,7 @@ func (c *CustomChangeListener) OnChange(changeEvent *storage.ChangeEvent) {
 			c.oecConf.update(key, value.NewValue)
 		}
 	}
+	confLogger.Info(c.oecConf.format())
 }
 
 func (c *CustomChangeListener) OnNewestChange(event *storage.FullChangeEvent) {

@@ -82,6 +82,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd.AddCommand(pruneAllCmd(ctx),
 		pruneAppCmd(ctx),
 		pruneBlockCmd(ctx),
+		clearPruneHeightsCmd(ctx),
 	)
 
 	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
@@ -160,6 +161,38 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 			go compactDB(appDB, appDBName, dbm.BackendType(ctx.Config.DBBackend))
 			wg.Wait()
 			log.Println("--------- compact end ---------")
+
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+
+func clearPruneHeightsCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "clear-prune-heights",
+		Short: "clear the prune heights",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			if err := checkBackend(dbm.BackendType(ctx.Config.DBBackend)); err != nil {
+				return err
+			}
+
+			appDB := initDB(config, appDBName)
+
+			heights, err := rootmulti.GetPruningHeights(appDB)
+			if err != nil {
+				log.Fatal(err)
+				return nil
+			}
+			log.Printf("pruning heights %v\n", heights)
+			log.Println("--------- clear start ---------")
+			rootmulti.SetPruningHeights(appDB, nil)
+			log.Println("--------- clear done ---------")
 
 			return nil
 		},
