@@ -98,7 +98,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
-	//iavlconfig.SetDynamicConfig(config.GetOecConfig())
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
