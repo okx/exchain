@@ -32,6 +32,52 @@ func TestNode_aminoSize(t *testing.T) {
 	require.Equal(t, 57, node.aminoSize())
 }
 
+func TestNodePool(t *testing.T) {
+	node := &Node{
+		key:       randBytes(10),
+		value:     randBytes(10),
+		version:   1,
+		height:    0,
+		size:      100,
+		hash:      nBytes(10),
+		leftHash:  randBytes(20),
+		leftNode:  nil,
+		rightHash: randBytes(20),
+		rightNode: nil,
+		persisted: false,
+	}
+	var buf bytes.Buffer
+	buf.Grow(node.aminoSize())
+	node.writeBytes(&buf)
+
+	np := nodePool.Get()
+	require.Nil(t, np)
+
+	nodePool.Put(node)
+	np = nodePool.Get()
+	require.NotNil(t, np)
+
+	node, ok := np.(*Node)
+	require.True(t, ok)
+}
+
+func TestNode_SoftReset(t *testing.T) {
+	k := []byte("key")
+	v := []byte("value")
+	h := []byte{1, 2, 3}
+	leaf := &Node{key: k, value: v, version: 1, size: 1}
+	inner := &Node{key: k, version: 1, size: 1, height: 1, leftHash: h, rightHash: h}
+
+	leaf.SoftReset(true)
+	inner.SoftReset(true)
+}
+
+func nBytes(n int) []byte {
+	buf := make([]byte, n)
+	n, _ = rand.Read(buf)
+	return buf[:n]
+}
+
 func TestNode_validate(t *testing.T) {
 	k := []byte("key")
 	v := []byte("value")

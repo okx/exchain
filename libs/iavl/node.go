@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/pkg/errors"
 
-	amino "github.com/tendermint/go-amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	amino "github.com/tendermint/go-amino"
 )
 
 // Node represents a node in a Tree.
@@ -30,6 +31,8 @@ type Node struct {
 	prePersisted bool
 }
 
+var nodePool = sync.Pool{}
+
 // NewNode returns a new node from a key, value and version.
 func NewNode(key []byte, value []byte, version int64) *Node {
 	return &Node{
@@ -41,12 +44,54 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	}
 }
 
+func (node *Node) SoftReset(normal bool) {
+	if normal {
+		node.version = 0
+		node.size = 0
+		node.leftNode = nil
+		node.rightNode = nil
+		node.height = 0
+		node.persisted = false
+		node.prePersisted = false
+		node.hash = nil
+		if node.key != nil {
+			node.key = node.key[:0]
+		} else {
+			node.key = make([]byte, 0)
+		}
+	} else {
+		if node.isLeaf() {
+			if node.value != nil {
+				node.value = node.value[:0]
+			} else {
+				node.value = make([]byte, 0)
+			}
+			node.leftHash = nil
+			node.rightHash = nil
+		} else {
+			node.value = nil
+			if node.leftHash != nil {
+				node.leftHash = node.leftHash[:0]
+			} else {
+				node.leftHash = make([]byte, 0)
+			}
+			if node.rightHash != nil {
+				node.rightHash = node.rightHash[:0]
+			} else {
+				node.rightHash = make([]byte, 0)
+			}
+		}
+	}
+}
+
 // MakeNode constructs an *Node from an encoded byte slice.
 //
 // The new node doesn't have its hash saved or set. The caller must set it
 // afterwards.
 func MakeNode(buf []byte) (*Node, error) {
-
+	if n, err, useGC := MakeNodeForGC(buf); useGC {
+		return n, err
+	}
 	// Read node header (height, size, version, key).
 	height, n, cause := amino.DecodeInt8(buf)
 	if cause != nil {
@@ -102,6 +147,79 @@ func MakeNode(buf []byte) (*Node, error) {
 		node.rightHash = rightHash
 	}
 	return node, nil
+}
+
+// MakeNode constructs an *Node from an encoded byte slice.
+//
+// The new node doesn't have its hash saved or set. The caller must set it
+// afterwards.
+func MakeNodeForGC(buf []byte) (*Node, error, bool) {
+	useGC := true
+	np := nodePool.Get()
+	if np == nil {
+		useGC = false
+		return nil, nil, useGC
+	}
+	node, ok := np.(*Node)
+	if !ok {
+		useGC = false
+		return nil, errors.New("nodePool item is not type of *Node"), useGC
+	}
+
+	// Read node header (height, size, version, key).
+	height, n, cause := amino.DecodeInt8(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.height"), useGC
+	}
+	buf = buf[n:]
+
+	size, n, cause := amino.DecodeVarint(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.size"), useGC
+	}
+	buf = buf[n:]
+
+	ver, n, cause := amino.DecodeVarint(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.version"), useGC
+	}
+	buf = buf[n:]
+
+	key, n, cause := amino.DecodeByteSlice(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.key"), useGC
+	}
+	buf = buf[n:]
+
+	node.SoftReset(true)
+	node.height = height
+	node.size = size
+	node.version = ver
+	node.key = append(node.key, key...)
+
+	node.SoftReset(false)
+	// Read node body.
+	if node.isLeaf() {
+		val, _, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "decoding node.value"), useGC
+		}
+		node.value = append(node.value, val...)
+	} else { // Read children.
+		leftHash, n, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "deocding node.leftHash"), useGC
+		}
+		buf = buf[n:]
+
+		rightHash, _, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "decoding node.rightHash"), useGC
+		}
+		node.leftHash = append(node.leftHash, leftHash...)
+		node.rightHash = append(node.rightHash, rightHash...)
+	}
+	return node, nil, useGC
 }
 
 // String returns a string representation of the node.
@@ -169,9 +287,16 @@ func (node *Node) get(t *ImmutableTree, key []byte) (index int64, value []byte) 
 	}
 
 	if bytes.Compare(key, node.key) < 0 {
-		return node.getLeftNode(t).get(t, key)
+		leftNode, ok := node.getLeftClearNode(t)
+		if ok {
+			defer nodePool.Put(leftNode)
+		}
+		return leftNode.get(t, key)
 	}
-	rightNode := node.getRightNode(t)
+	rightNode, ok := node.getRightClearNode(t)
+	if ok {
+		defer nodePool.Put(rightNode)
+	}
 	index, value = rightNode.get(t, key)
 	index += node.size - rightNode.size
 	return index, value
@@ -403,11 +528,27 @@ func (node *Node) writeBytes(w io.Writer) error {
 	return nil
 }
 
+// getLeftClearNode.return node,can clear node
+func (node *Node) getLeftClearNode(t *ImmutableTree) (*Node, bool) {
+	if node.leftNode != nil {
+		return node.leftNode, false
+	}
+	return t.ndb.GetNode(node.leftHash), true
+}
+
 func (node *Node) getLeftNode(t *ImmutableTree) *Node {
 	if node.leftNode != nil {
 		return node.leftNode
 	}
 	return t.ndb.GetNode(node.leftHash)
+}
+
+// getRightClearNode.return node,can clear node
+func (node *Node) getRightClearNode(t *ImmutableTree) (*Node, bool) {
+	if node.rightNode != nil {
+		return node.rightNode, false
+	}
+	return t.ndb.GetNode(node.rightHash), true
 }
 
 func (node *Node) getRightNode(t *ImmutableTree) *Node {
