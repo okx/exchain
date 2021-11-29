@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
@@ -56,10 +55,9 @@ func TestABCIMessageLogJson(t *testing.T) {
 		bz, err := codec.Cdc.MarshalJSON(msgLogs)
 		require.NoError(t, err)
 
-		var buf bytes.Buffer
-		err = msgLogs.MarshalJsonToBuffer(&buf)
+		nbz, err := msgLogs.MarshalToJson()
 		require.NoError(t, err)
-		require.Equal(t, string(bz), buf.String())
+		require.EqualValues(t, bz, nbz)
 
 		t.Log(fmt.Sprintf("%d passed", i))
 	}

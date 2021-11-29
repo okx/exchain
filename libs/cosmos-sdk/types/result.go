@@ -112,13 +112,25 @@ func NewABCIMessageLog(i uint16, log string, events Events) ABCIMessageLog {
 // String implements the fmt.Stringer interface for the ABCIMessageLogs type.
 func (logs ABCIMessageLogs) String() (str string) {
 	if logs != nil {
-		raw, err := codec.Cdc.MarshalJSON(logs)
+		raw, err := logs.MarshalToJson()
+		if err != nil {
+			raw, err = codec.Cdc.MarshalJSON(logs)
+		}
 		if err == nil {
 			str = string(raw)
 		}
 	}
 
 	return str
+}
+
+func (logs ABCIMessageLogs) MarshalToJson() ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+	err := logs.MarshalJsonToBuffer(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (logs ABCIMessageLogs) MarshalJsonToBuffer(buf *bytes.Buffer) error {
