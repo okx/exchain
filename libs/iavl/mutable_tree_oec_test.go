@@ -616,33 +616,33 @@ func TestBenchmarkMutableTree_Get(t *testing.T) {
 		readNum int
 	}{
 		{
-			dbName: "130-test",
+			dbName: "13-test",
 			openLog: true,
-			initDataSize: 1300000,
+			initDataSize: 130000,
 			readNum: 100000,
 		},
 		{
-			dbName: "100-test",
+			dbName: "10-test",
 			openLog: true,
-			initDataSize: 1000000,
+			initDataSize: 100000,
 			readNum: 100000,
 		},
 		{
-			dbName: "80-test",
+			dbName: "8-test",
 			openLog: true,
-			initDataSize: 800000,
+			initDataSize: 80000,
 			readNum: 100000,
 		},
 		{
-			dbName: "50-test",
+			dbName: "5-test",
 			openLog: true,
-			initDataSize: 500000,
+			initDataSize: 50000,
 			readNum: 100000,
 		},
 		{
-			dbName: "30-test",
+			dbName: "3-test",
 			openLog: true,
-			initDataSize: 300000,
+			initDataSize: 30000,
 			readNum: 100000,
 		},
 	}
