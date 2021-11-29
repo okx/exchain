@@ -130,6 +130,10 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
+	defer func() {
+		fmt.Println("Type", sdk.TypeMap)
+	}()
+
 }
 
 // panic if error is not nil

@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"reflect"
 	"time"
 )
 
@@ -16,6 +17,7 @@ var (
 )
 
 type account interface {
+	Copy() interface{}
 	GetAddress() AccAddress
 	SetAddress(AccAddress) error
 	GetPubKey() crypto.PubKey
@@ -85,11 +87,16 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 	}
 }
 
+var (
+	TypeMap = make(map[reflect.Type]bool)
+)
+
 func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
 	if c.skip() {
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
+	TypeMap[reflect.TypeOf(acc)] = true
 	c.accMap[ethAddr] = &accountWithCache{
 		acc:     acc,
 		isDirty: isDirty,
@@ -97,19 +104,20 @@ func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirt
 	}
 }
 
-func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
+func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool, bool) {
 	if c.skip() {
-		return nil, 0, false
+		return nil, 0, false, false
 	}
 
 	if data, ok := c.accMap[addr]; ok {
-		return data.acc, data.gas, ok
+		return data.acc, data.gas, ok, false
 	}
 
 	if c.parent != nil {
-		return c.parent.GetAccount(addr)
+		addr, gas, ok, _ := c.parent.GetAccount(addr)
+		return addr, gas, ok, true
 	}
-	return nil, 0, false
+	return nil, 0, false, false
 
 }
 

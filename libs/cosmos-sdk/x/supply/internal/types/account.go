@@ -8,7 +8,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 
@@ -39,6 +39,9 @@ type ModuleAccount struct {
 	Permissions []string `json:"permissions" yaml:"permissions"` // permissions of module account
 }
 
+func (acc ModuleAccount) Copy() interface{} {
+	return NewModuleAccount(authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence), acc.Name, acc.Permissions...)
+}
 func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
