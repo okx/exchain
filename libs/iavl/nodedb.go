@@ -98,7 +98,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
 // load its children.
-func (ndb *nodeDB) GetNode(hash []byte) *Node {
+func (ndb *nodeDB) GetNode(hash []byte) (*Node, bool) {
 
 	res := func() *Node {
 
@@ -129,7 +129,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	}()
 
 	if res != nil {
-		return res
+		return res, false
 	}
 
 	// Doesn't exist, load.
@@ -152,7 +152,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	node.persisted = true
 	ndb.cacheNodeByCheck(node)
 
-	return node
+	return node, true
 }
 
 func (ndb *nodeDB) getDbName() string {
@@ -373,7 +373,7 @@ func (ndb *nodeDB) deleteNodesFrom(batch dbm.Batch, version int64, hash []byte) 
 		return nil
 	}
 
-	node := ndb.GetNode(hash)
+	node, _ := ndb.GetNode(hash)
 	if node.leftHash != nil {
 		if err := ndb.deleteNodesFrom(batch, version, node.leftHash); err != nil {
 			return err

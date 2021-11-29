@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/require"
 	db "github.com/tendermint/tm-db"
@@ -40,11 +41,16 @@ func TestSaveVersion(t *testing.T) {
 	modifiedData[k2] = modifiedValue
 	modifiedData[k3] = modifiedValue
 
-	testTree := func(data map[string]string, tree *ImmutableTree) {
+	testTree := func(data map[string]string, tree *ImmutableTree) bool {
 		for k, v := range data {
 			_, value := tree.Get([]byte(k))
+			if bytes.Compare(value, []byte(v)) != 0 {
+				tree.Get([]byte(k))
+				return false
+			}
 			require.Equal(t, value, []byte(v))
 		}
+		return true
 	}
 
 	tree := newTestTree(t, false, 100, "test")
@@ -84,7 +90,9 @@ func TestSaveVersion(t *testing.T) {
 		for j := 0; j < 8; j++ {
 			tree, err := tree.GetImmutable(tree.version - int64(j))
 			require.NoError(t, err)
-			testTree(modifiedData, tree)
+			if ok := testTree(modifiedData, tree); !ok {
+				t.Log("i", i, "j", j)
+			}
 		}
 
 	}
@@ -232,7 +240,7 @@ func TestShareNode(t *testing.T) {
 	oldK1Node := oldTree.root.getLeftNode(oldTree)
 	newK1Node := tree.root.getLeftNode(tree.ImmutableTree)
 	require.Equal(t, oldK1Node, newK1Node)
-	nodeDBK1Node := tree.ndb.GetNode(oldK1Node.hash)
+	nodeDBK1Node, _ := tree.ndb.GetNode(oldK1Node.hash)
 	require.Equal(t, oldK1Node, nodeDBK1Node)
 
 	for i := 0; i < 10; i++ {
@@ -242,7 +250,7 @@ func TestShareNode(t *testing.T) {
 	oldK1Node = oldTree.root.getLeftNode(oldTree)
 	newK1Node = tree.root.getLeftNode(tree.ImmutableTree)
 	require.Equal(t, oldK1Node, newK1Node)
-	nodeDBK1Node = tree.ndb.GetNode(oldK1Node.hash)
+	nodeDBK1Node, _ = tree.ndb.GetNode(oldK1Node.hash)
 	require.Equal(t, oldK1Node, nodeDBK1Node)
 }
 
@@ -421,7 +429,7 @@ func TestConcurrentQuery(t *testing.T) {
 				require.Nil(t, newErr, "query:%d current:%d\n", queryVersion, tree.version)
 				idx := rand.Int() % len(dataKey)
 				_, value := queryTree.Get([]byte(dataKey[idx]))
-				require.NotNil(t, value)
+				require.NotNil(t, value, dataKey[idx])
 				require.NotEqual(t, []byte{}, value)
 				wg.Done()
 				<-ch

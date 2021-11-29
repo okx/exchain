@@ -65,9 +65,29 @@ func TestKMakNodeGC(t *testing.T) {
 	k := []byte("key")
 	v := []byte("value")
 	h := []byte{1, 2, 3}
-	leaf := &Node{key: k, value: v, version: 1, size: 1}
-	inner := &Node{key: k, version: 1, size: 1, height: 1, leftHash: h, rightHash: h}
 
+	testcases := []struct {
+		name string
+		node *Node
+	}{
+		{"leaf", &Node{key: k, value: v, version: 1, size: 1}},
+		{"leaf with empty key", &Node{key: []byte{}, value: v, version: 1, size: 1}},
+		{"leaf with empty value", &Node{key: k, value: []byte{}, version: 1, size: 1}},
+		{"inner", &Node{key: k, version: 1, size: 1, height: 1, leftHash: h, rightHash: h}},
+		//{"inner with left child", &Node{key: k, version: 1, size: 1, height: 1, leftHash: h}},
+		//{"inner with right child", &Node{key: k, version: 1, size: 1, height: 1, rightHash: h}},
+	}
+	length := len(testcases)
+	for i := 0; i < length; i++ {
+		for j := 0; j < length; j++ {
+			testMakeNodeForGC(t, testcases[i].node, testcases[j].node)
+		}
+	}
+	var buf bytes.Buffer
+	buf.Grow(testcases[length-1].node.aminoSize())
+}
+
+func testMakeNodeForGC(t *testing.T, leaf, inner *Node) {
 	//MakeNodeGC with pool get empty node
 	var buf bytes.Buffer
 	buf.Grow(leaf.aminoSize())
@@ -82,7 +102,7 @@ func TestKMakNodeGC(t *testing.T) {
 	//MakeNodeGC with pool get empty node
 	buf.Reset()
 	buf.Grow(inner.aminoSize())
-	leaf.writeBytes(&buf)
+	inner.writeBytes(&buf)
 	expected, err = MakeNode(buf.Bytes())
 	require.NoError(t, err)
 	nodePool.Put(&Node{})
@@ -104,7 +124,7 @@ func TestKMakNodeGC(t *testing.T) {
 	//MakeNodeGC for inner with pool get leaf node
 	buf.Reset()
 	buf.Grow(inner.aminoSize())
-	leaf.writeBytes(&buf)
+	inner.writeBytes(&buf)
 	expected, err = MakeNode(buf.Bytes())
 	require.NoError(t, err)
 	nodePool.Put(leaf)
@@ -126,7 +146,7 @@ func TestKMakNodeGC(t *testing.T) {
 	//MakeNodeGC for inner with pool get inner node
 	buf.Reset()
 	buf.Grow(inner.aminoSize())
-	leaf.writeBytes(&buf)
+	inner.writeBytes(&buf)
 	expected, err = MakeNode(buf.Bytes())
 	require.NoError(t, err)
 	nodePool.Put(inner)

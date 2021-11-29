@@ -289,13 +289,13 @@ func (node *Node) get(t *ImmutableTree, key []byte) (index int64, value []byte) 
 	if bytes.Compare(key, node.key) < 0 {
 		leftNode, ok := node.getLeftClearNode(t)
 		if ok {
-			defer nodePool.Put(leftNode)
+			//defer nodePool.Put(leftNode)
 		}
 		return leftNode.get(t, key)
 	}
 	rightNode, ok := node.getRightClearNode(t)
 	if ok {
-		defer nodePool.Put(rightNode)
+		//defer nodePool.Put(rightNode)
 	}
 	index, value = rightNode.get(t, key)
 	index += node.size - rightNode.size
@@ -533,14 +533,15 @@ func (node *Node) getLeftClearNode(t *ImmutableTree) (*Node, bool) {
 	if node.leftNode != nil {
 		return node.leftNode, false
 	}
-	return t.ndb.GetNode(node.leftHash), true
+	return t.ndb.GetNode(node.leftHash)
 }
 
 func (node *Node) getLeftNode(t *ImmutableTree) *Node {
 	if node.leftNode != nil {
 		return node.leftNode
 	}
-	return t.ndb.GetNode(node.leftHash)
+	n, _ := t.ndb.GetNode(node.leftHash)
+	return n
 }
 
 // getRightClearNode.return node,can clear node
@@ -548,14 +549,15 @@ func (node *Node) getRightClearNode(t *ImmutableTree) (*Node, bool) {
 	if node.rightNode != nil {
 		return node.rightNode, false
 	}
-	return t.ndb.GetNode(node.rightHash), true
+	return t.ndb.GetNode(node.rightHash)
 }
 
 func (node *Node) getRightNode(t *ImmutableTree) *Node {
 	if node.rightNode != nil {
 		return node.rightNode
 	}
-	return t.ndb.GetNode(node.rightHash)
+	n, _ := t.ndb.GetNode(node.rightHash)
+	return n
 }
 
 // NOTE: mutates height and size
