@@ -259,7 +259,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 
 		if needClean {
 			if rs.logger != nil {
-				rs.logger.Info("pruneHeights will be cleaned", "pruneHeightsLen", len(rs.pruneHeights))
+				msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%s>",
+					len(ph), len(rs.pruneHeights))
+				rs.logger.Info(msg)
 			}
 			batch := rs.db.NewBatch()
 			setPruningHeights(batch, newPh)
@@ -274,10 +276,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		rs.versions = vs
 	}
 	if rs.logger != nil {
-		rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("the length(%d) of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", len(rs.pruneHeights), maxPruneHeightsLength)
+		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, " +
+			"need to prune them with command <exchaind data prune-compact all> before running exchaind",
+			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil
 }
