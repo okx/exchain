@@ -162,6 +162,8 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+
+	customizeModuleOnStop []sdk.CustomizeOnStop
 }
 
 type recordHandle func(string)
@@ -982,8 +984,12 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 	return fromCms.Export(toCms, version)
 }
 
-func (app *BaseApp) StopStore() {
+func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
+
+	for _, fn := range app.customizeModuleOnStop {
+		fn()
+	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {

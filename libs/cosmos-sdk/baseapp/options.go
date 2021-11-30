@@ -179,3 +179,10 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.getTxFee = txFee
 	app.logFix = fixLog
 }
+
+func (app *BaseApp) AddCustomizeModuleOnStopLogic(cs sdk.CustomizeOnStop) {
+	if app.sealed {
+		panic("AddCustomizeModuleOnStopLogic() on sealed BaseApp")
+	}
+	app.customizeModuleOnStop = append(app.customizeModuleOnStop, cs)
+}

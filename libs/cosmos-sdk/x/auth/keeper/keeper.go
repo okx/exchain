@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -43,6 +44,7 @@ type AccountKeeper struct {
 	accLRU   *lru.Cache
 	deliverTxStore *types.CacheStore
 	checkTxStore *types.CacheStore
+	triegc *prque.Prque
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
@@ -65,6 +67,7 @@ func NewAccountKeeper(
 		accLRU: accLRU,
 		deliverTxStore: types.NewCacheStore(),
 		checkTxStore: types.NewCacheStore(),
+		triegc: prque.New(nil),
 	}
 
 	ak.OpenTrie()
@@ -209,6 +212,13 @@ func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 	ak.SetLatestBlockHeight(latestHeight)
 	ak.CleanCacheStore()
 
-	// always flush all node to database
-	ak.db.TrieDB().Commit(root, false, nil)
+	ak.PushData2Database(ctx, root)
+}
+
+func (ak *AccountKeeper) OnStop() error {
+	for !ak.triegc.Empty() {
+		ak.db.TrieDB().Dereference(ak.triegc.PopItem().(ethcmn.Hash))
+	}
+
+	return nil
 }

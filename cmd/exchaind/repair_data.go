@@ -92,7 +92,7 @@ func repairState(ctx *server.Context) {
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
-	repairApp.StopStore()
+	repairApp.StopBaseApp()
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

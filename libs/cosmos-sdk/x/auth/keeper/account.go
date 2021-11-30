@@ -2,6 +2,9 @@ package keeper
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -187,4 +190,45 @@ func (ak *AccountKeeper) Update(ctx sdk.Context, err error) {
 func (ak *AccountKeeper) CleanCacheStore() {
 	ak.checkTxStore.Clean()
 	ak.deliverTxStore.Clean()
+}
+
+func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
+	triedb := ak.db.TrieDB()
+	// Full but not archive node, do proper garbage collection
+	triedb.Reference(root, ethcmn.Hash{}) // metadata reference to keep trie alive
+	ak.triegc.Push(root, -int64(ctx.BlockHeight()))
+
+	if ctx.BlockHeight() > core.TriesInMemory {
+		// If we exceeded our memory allowance, flush matured singleton nodes to disk
+		var (
+			nodes, imgs = triedb.Size()
+			limit       = ethcmn.StorageSize(256) * 1024 * 1024
+		)
+
+		if nodes > limit || imgs > 4*1024*1024 {
+			triedb.Cap(limit - ethdb.IdealBatchSize)
+		}
+		// Find the next state trie we need to commit
+		chosen := ctx.BlockHeight() - core.TriesInMemory
+
+		// If the header is missing (canonical chain behind), we're reorging a low
+		// diff sidechain. Suspend committing until this operation is completed.
+		chRoot := ak.GetRootMptHash(uint64(chosen))
+		if chRoot == (ethcmn.Hash{}) {
+			ak.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
+		} else {
+			// Flush an entire trie and restart the counters
+			go triedb.Commit(chRoot, true, nil)
+		}
+
+		// Garbage collect anything below our required write retention
+		for !ak.triegc.Empty() {
+			root, number := ak.triegc.Pop()
+			if int64(-number) > chosen {
+				ak.triegc.Push(root, number)
+				break
+			}
+			triedb.Dereference(root.(ethcmn.Hash))
+		}
+	}
 }
