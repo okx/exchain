@@ -96,7 +96,7 @@ func UnsafeNewStore(tree *iavl.MutableTree) *Store {
 func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var iTree *iavl.ImmutableTree
 	var err error
-	if !abci.GetDisableQueryMutex() {
+	if !abci.GetDisableABCIQueryMutex() {
 		if !st.VersionExists(version) {
 			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
 		}
