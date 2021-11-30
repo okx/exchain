@@ -84,7 +84,7 @@ type CListMempool struct {
 	metrics *Metrics
 
 	addressRecord    *AddressRecord
-	checkRepeatedMtx sync.Mutex
+	addressRecordMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
@@ -228,6 +228,8 @@ func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
+	mem.addressRecordMtx.Lock()
+	defer mem.addressRecordMtx.Unlock()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		mem.removeTx(e.Value.(*mempoolTx).tx, e, false)
 	}
@@ -412,6 +414,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+	mem.addressRecordMtx.Lock()
+	defer mem.addressRecordMtx.Unlock()
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -839,8 +843,9 @@ func (mem *CListMempool) Update(
 			ele := e.(*clist.CElement)
 			addr = ele.Address
 			nonce = ele.Nonce
-
+			mem.addressRecordMtx.Lock()
 			mem.removeTx(tx, ele, false)
+			mem.addressRecordMtx.Unlock()
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else if mem.txInfoparser != nil {
 			txInfo := mem.txInfoparser.GetRawTxInfo(tx)
@@ -860,6 +865,7 @@ func (mem *CListMempool) Update(
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))
 
+	mem.addressRecordMtx.Lock()
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		if txsRecord, ok := mem.addressRecord.GetItem(accAddr); ok {
 			for _, ele := range txsRecord {
@@ -869,6 +875,7 @@ func (mem *CListMempool) Update(
 			}
 		}
 	}
+	mem.addressRecordMtx.Unlock()
 
 	// Either recheck non-committed txs to see if they became invalid
 	// or just notify there're some txs left.
@@ -960,8 +967,6 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 }
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
-	mem.checkRepeatedMtx.Lock()
-	defer mem.checkRepeatedMtx.Unlock()
 	repeatElement := 0
 	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
 		for _, node := range userMap {
