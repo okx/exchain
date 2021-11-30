@@ -243,36 +243,16 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	rs.lastCommitInfo = cInfo
 	rs.stores = newStores
 
-	// load any pruned heights we missed from disk to be pruned on the next run
-	ph, err := getPruningHeights(rs.db)
-	if err == nil && len(ph) > 0 {
-		needClean := false
-		var newPh []int64
-		for _, h := range ph {
-			if _, ok := roots[h] ;ok {
-				newPh = append(newPh, h)
-			} else {
-				needClean = true
-			}
-		}
-		rs.pruneHeights = newPh
-
-		if needClean {
-			if rs.logger != nil {
-				msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%s>",
-					len(ph), len(rs.pruneHeights))
-				rs.logger.Info(msg)
-			}
-			batch := rs.db.NewBatch()
-			setPruningHeights(batch, newPh)
-			batch.Write()
-			batch.Close()
-		}
-
+	err := rs.checkAndResetPruningHeights(roots)
+	if err != nil {
+		return err
 	}
 
 	vs, err := getVersions(rs.db)
-	if err == nil && len(vs) > 0 {
+	if err != nil {
+		return err
+	}
+	if len(vs) > 0 {
 		rs.versions = vs
 	}
 	if rs.logger != nil {
@@ -286,6 +266,41 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	return nil
 }
 
+func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
+	ph, err := getPruningHeights(rs.db)
+	if err != nil {
+		return err
+	}
+
+	if len(ph) == 0 {
+		return nil
+	}
+
+	needClean := false
+	var newPh []int64
+	for _, h := range ph {
+		if _, ok := roots[h] ;ok {
+			newPh = append(newPh, h)
+		} else {
+			needClean = true
+		}
+	}
+	rs.pruneHeights = newPh
+
+	if needClean {
+		if rs.logger != nil {
+			msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%s>",
+				len(ph), len(rs.pruneHeights))
+			rs.logger.Info(msg)
+		}
+		batch := rs.db.NewBatch()
+		setPruningHeights(batch, newPh)
+		batch.Write()
+		batch.Close()
+	}
+
+	return nil
+}
 func (rs *Store) getCommitID(infos map[string]storeInfo, name string) types.CommitID {
 	info, ok := infos[name]
 	if !ok {
