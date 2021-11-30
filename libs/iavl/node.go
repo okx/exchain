@@ -202,8 +202,9 @@ func (node *Node) _hash() []byte {
 	}
 
 	h := tmhash.New()
-	buf := new(bytes.Buffer)
-	if err := node.writeHashBytesToBuffer(buf); err != nil {
+	buf := bytes.Buffer{}
+	buf.Grow(node.aminoHashSize())
+	if err := node.writeHashBytesToBuffer(&buf); err != nil {
 		panic(err)
 	}
 	_, err := h.Write(buf.Bytes())
@@ -368,6 +369,20 @@ func (node *Node) writeHashBytesToBuffer(w *bytes.Buffer) error {
 	}
 
 	return nil
+}
+
+func (node *Node) aminoHashSize() int {
+	n := 1 +
+		amino.VarintSize(node.size) +
+		amino.VarintSize(node.version)
+
+	if node.isLeaf() {
+		n += amino.ByteSliceSize(node.key) + 256 + 2
+	} else {
+		n += amino.ByteSliceSize(node.leftHash) +
+			amino.ByteSliceSize(node.rightHash)
+	}
+	return n
 }
 
 // Writes the node's hash to the given io.Writer.
