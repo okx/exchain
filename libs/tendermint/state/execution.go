@@ -42,6 +42,8 @@ type BlockExecutor struct {
 	metrics *Metrics
 
 	isAsync bool
+
+	abciResCache map[*types.Block]*ABCIResponses
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -168,12 +170,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 	var abciResponses *ABCIResponses
 	var err error
+	//TO DO: sync read abciResponses from result channel
 	if blockExec.isAsync {
 		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	} else {
 		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	}
 
+	// 这下面都不能提前执行
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
@@ -214,6 +218,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
+
 	appHash, retainHeight, err := blockExec.Commit(state, block, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)

@@ -787,6 +787,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		cs.enterPrevote(ti.Height, ti.Round)
 	case cstypes.RoundStepPrevoteWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
+		//prevoteWait 超时后进入enterPrecommit
 		cs.enterPrecommit(ti.Height, ti.Round)
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
@@ -995,6 +996,7 @@ func (cs *State) enterPropose(height int64, round int) {
 			address,
 			"privValidator",
 			cs.privValidator)
+		// 提案人 使用ValidBlock 提案
 		cs.decideProposal(height, round)
 	} else {
 		logger.Info("enterPropose: Not our turn to propose",
@@ -1157,6 +1159,11 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
+	//cs.ProposalBlock is valid， we can begin parrel runTx
+	// TO DO:  提前验证我认为合法的block， 如果存在前一个任务没有执行完
+
+
+
 
 	// Prevote cs.ProposalBlock
 	// NOTE: the proposal signature is validated when it is received,
@@ -1193,6 +1200,7 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}()
 
 	// Wait for some more prevotes; enterPrecommit
+	// 强制进入
 	cs.scheduleTimeout(cs.config.Prevote(round), height, round, cstypes.RoundStepPrevoteWait)
 }
 
@@ -1226,7 +1234,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	// check for a polka
+	// check for a polka  当前轮是否有+2/3的共识 如果没有投空
 	blockID, ok := cs.Votes.Prevotes(round).TwoThirdsMajority()
 
 	// If we don't have a polka, we must precommit nil.
@@ -1236,6 +1244,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		} else {
 			logger.Info("enterPrecommit: No +2/3 prevotes during enterPrecommit. Precommitting nil.")
 		}
+		// precomit nil means this node think vc
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1260,6 +1269,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 			cs.LockedBlockParts = nil
 			cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 		}
+		// +2/3 precomit nil means vc happened
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1283,6 +1293,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 			panic(fmt.Sprintf("enterPrecommit: +2/3 prevoted for an invalid block: %v", err))
 		}
 		cs.LockedRound = round
+		// 这里设置LockedBlock 为ProposalBlock  ，如果发生vc 在下一轮 defaultDoPrevote 直接投票LockedBlock
 		cs.LockedBlock = cs.ProposalBlock
 		cs.LockedBlockParts = cs.ProposalBlockParts
 		cs.eventBus.PublishEventLock(cs.RoundStateEvent())
@@ -1298,10 +1309,13 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlock = nil
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
+		// 如果block 有问题这里重置ProposalBlock ，
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
+	//
 	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
+	// precomit nil means this node think vc
 	cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 }
 
@@ -1411,6 +1425,7 @@ func (cs *State) tryFinalizeCommit(height int64) {
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	if !ok || len(blockID.Hash) == 0 {
+		// 没有共识的block 或者 2/3的nil cancel 并行runTx
 		logger.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.")
 		return
 	}
@@ -1427,6 +1442,7 @@ func (cs *State) tryFinalizeCommit(height int64) {
 	}
 
 	//	go
+	// tryFinalizeCommit --> finalizeCommit
 	cs.finalizeCommit(height)
 }
 
@@ -1510,6 +1526,8 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
+	// finalizeCommit --> ApplyBlock
+	// 这里直接返回预执行的结果
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -1722,6 +1740,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
+		// we got a complete block,then we can parelle runTx
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
 			cs.ProposalBlockParts.GetReader(),
 			&cs.ProposalBlock,
@@ -1742,6 +1761,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.Logger.Info("Updating valid block to new proposal block",
 					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
 				cs.ValidRound = cs.Round
+				// 如果round 更新那么valid 都更新
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
 			}
@@ -1753,13 +1773,15 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
-			// Move onto the next step
+			// Move onto the next stepS
 			cs.enterPrevote(height, cs.Round)
 			if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
+
 				cs.enterPrecommit(height, cs.Round)
 			}
 		} else if cs.Step == cstypes.RoundStepCommit {
 			// If we're waiting on the proposal block...
+			//
 			cs.tryFinalizeCommit(height)
 		}
 		return added, nil
@@ -1903,9 +1925,11 @@ func (cs *State) addVote(
 			if len(blockID.Hash) != 0 && (cs.ValidRound < vote.Round) && (vote.Round == cs.Round) {
 
 				if cs.ProposalBlock.HashesTo(blockID.Hash) {
+					// 确认ProposalBlock 合法
 					cs.Logger.Info(
 						"Updating ValidBlock because of POL.", "validRound", cs.ValidRound, "POLRound", vote.Round)
 					cs.ValidRound = vote.Round
+					// 如果prevote 投票已经+2/3 且ProposalBlock合法用ProposalBlock替换ValidBlock， 如果下一轮我做proposer 直接投这个validBlock
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
 				} else {
@@ -1913,8 +1937,10 @@ func (cs *State) addVote(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
+					// here cancel parelle runTx ,send cacncel signal
 					cs.ProposalBlock = nil
 				}
+				//
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
@@ -1927,12 +1953,15 @@ func (cs *State) addVote(
 		switch {
 		case cs.Round < vote.Round && prevotes.HasTwoThirdsAny():
 			// Round-skip if there is any 2/3+ of votes ahead of us
+			// 跳轮， 立刻进入下一轮  prevotes 有超过2/3的任何投票
 			cs.enterNewRound(height, vote.Round)
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
 			blockID, ok := prevotes.TwoThirdsMajority()
 			if ok && (cs.isProposalComplete() || len(blockID.Hash) == 0) {
+				// 2/3 maybe valid block or nil block， so len(blockID.Hash) == 0 is possible
 				cs.enterPrecommit(height, vote.Round)
 			} else if prevotes.HasTwoThirdsAny() {
+				//
 				cs.enterPrevoteWait(height, vote.Round)
 			}
 		case cs.Proposal != nil && 0 <= cs.Proposal.POLRound && cs.Proposal.POLRound == vote.Round:
@@ -1949,6 +1978,7 @@ func (cs *State) addVote(
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
 			// Executed as TwoThirdsMajority could be from a higher round
+			// 快速追赶自身step 避免被主流程拉的太远  如果step 已经过了就不会执行
 			cs.enterNewRound(height, vote.Round)
 			cs.enterPrecommit(height, vote.Round)
 			if len(blockID.Hash) != 0 {
@@ -2041,6 +2071,7 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
+		// call addVote function
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}

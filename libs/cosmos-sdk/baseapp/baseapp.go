@@ -125,6 +125,8 @@ type BaseApp struct { // nolint: maligned
 	// deliverState is set on InitChain and BeginBlock and set to nil on Commit
 	checkState   *state // for CheckTx
 	deliverState *state // for DeliverTx
+	deliverStateCache  *state // for DeliverTx Bak
+
 
 	// an inter-block write-through cache provided to the context during deliverState
 	interBlockCache sdk.MultiStorePersistentCache
@@ -474,6 +476,19 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 		ctx: sdk.NewContext(ms, header, false, app.logger),
 	}
 }
+
+// setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
+// (i.e. a CacheMultiStore) and a new Context with the cache-wrapped multi-store,
+// and provided header. It is set on InitChain and BeginBlock and set to nil on
+// Commit.
+func (app *BaseApp) setDeliverStateBak(header abci.Header) {
+	ms := app.cms.CacheMultiStore()
+	app.deliverStateCache = &state{
+		ms:  ms,
+		ctx: sdk.NewContext(ms, header, false, app.logger),
+	}
+}
+
 
 // setConsensusParams memoizes the consensus params.
 func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {

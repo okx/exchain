@@ -123,10 +123,17 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
 	if app.deliverState == nil {
-		app.setDeliverState(req.Header)
+		// 大部分模块走这里
+		//app.setDeliverState(req.Header)
+		// 强制更新到备份上
+		app.setDeliverStateBak(req.Header)
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
+		app.deliverState.ctx = app.deliverState.ctx.
+			WithBlockHeader(req.Header).
+			WithBlockHeight(req.Header.Height)
+
 		app.deliverState.ctx = app.deliverState.ctx.
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
@@ -143,6 +150,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
+		//执行业务方法
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
 
@@ -158,6 +166,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	if app.endBlocker != nil {
+		//执行业务方法
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
@@ -219,6 +228,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // Otherwise, the ResponseDeliverTx will contain releveant error information.
 // Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
 // gas execution context.
+// DeliverTx 没有修改，使用 deliverState 比较安全
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	app.pin(DeliverTx, true, runTxModeDeliver)
 	defer app.pin(DeliverTx, false, runTxModeDeliver)

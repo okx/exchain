@@ -248,6 +248,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *HasVoteMessage:
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
+			// 收到peer的信息 已经达成maj23 投票共识了
 			cs := conR.conS
 			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
@@ -272,6 +273,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			default:
 				panic("Bad VoteSetBitsMessage field Type. Forgot to add a check in ValidateBasic?")
 			}
+			//走p2p peer 发送我们的投票 做为响应
 			src.TrySend(VoteSetBitsChannel, cdc.MustMarshalBinaryBare(&VoteSetBitsMessage{
 				Height:  msg.Height,
 				Round:   msg.Round,
@@ -284,6 +286,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 
 	case DataChannel:
+		//
 		if conR.FastSync() {
 			conR.Logger.Info("Ignoring message received during fastSync", "msg", msg)
 			return
@@ -297,6 +300,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *BlockPartMessage:
 			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
 			conR.metrics.BlockParts.With("peer_id", string(src.ID())).Add(1)
+			// 把从peer 收到的blockPart 传给 state peerMsgQueue
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		default:
 			conR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
@@ -474,6 +478,7 @@ OUTER_LOOP:
 			logger.Info("Stopping gossipDataRoutine for peer")
 			return
 		}
+		// state
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
@@ -822,7 +827,7 @@ OUTER_LOOP:
 		continue OUTER_LOOP
 	}
 }
-
+// 给peer 打分，忽略
 func (conR *Reactor) peerStatsRoutine() {
 	for {
 		if !conR.IsRunning() {
@@ -832,7 +837,7 @@ func (conR *Reactor) peerStatsRoutine() {
 
 		select {
 		case msg := <-conR.conS.statsMsgQueue:
-			// Get peer
+			// Get peer  // 接收blockPart 或者 vote
 			peer := conR.Switch.Peers().Get(msg.PeerID)
 			if peer == nil {
 				conR.Logger.Debug("Attempt to update stats for non-existent peer",
@@ -1335,6 +1340,7 @@ func (ps *PeerState) ApplyHasVoteMessage(msg *HasVoteMessage) {
 	defer ps.mtx.Unlock()
 
 	if ps.PRS.Height != msg.Height {
+		// 投票必须判断高度相等
 		return
 	}
 
