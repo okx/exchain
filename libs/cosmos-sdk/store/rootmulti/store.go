@@ -190,6 +190,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		}
 	}
 
+	roots := make(map[int64][]byte)
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
@@ -206,6 +207,13 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			return fmt.Errorf("failed to load Store: %v", err)
 		}
 		newStores[key] = store
+
+		if storeParams.typ == types.StoreTypeIAVL {
+			if len(roots) == 0 {
+				iStore := store.(*iavl.Store)
+				roots = iStore.GetHeights()
+			}
+		}
 
 		// If it was deleted, remove all data
 		if upgrades.IsDeleted(key.Name()) {
@@ -238,7 +246,27 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load any pruned heights we missed from disk to be pruned on the next run
 	ph, err := getPruningHeights(rs.db)
 	if err == nil && len(ph) > 0 {
-		rs.pruneHeights = ph
+		needClean := false
+		var newPh []int64
+		for _, h := range ph {
+			if _, ok := roots[h] ;ok {
+				newPh = append(newPh, h)
+			} else {
+				needClean = true
+			}
+		}
+		rs.pruneHeights = newPh
+
+		if needClean {
+			if rs.logger != nil {
+				rs.logger.Info("pruneHeights will be cleaned", "pruneHeightsLen", len(rs.pruneHeights))
+			}
+			batch := rs.db.NewBatch()
+			setPruningHeights(batch, newPh)
+			batch.Write()
+			batch.Close()
+		}
+
 	}
 
 	vs, err := getVersions(rs.db)
@@ -249,7 +277,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("the length of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", maxPruneHeightsLength)
+		return fmt.Errorf("the length(%d) of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil
 }
