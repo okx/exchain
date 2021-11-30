@@ -186,7 +186,7 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	var buf bytes.Buffer
 	buf.Grow(node.aminoSize())
 
-	if err := node.writeBytes(&buf); err != nil {
+	if err := node.writeBytesToBuffer(&buf); err != nil {
 		panic(err)
 	}
 

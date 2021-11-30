@@ -124,4 +124,12 @@ func BenchmarkNode_WriteBytes(b *testing.B) {
 			_ = node.writeBytes(&buf)
 		}
 	})
+	b.Run("PreAllocate-buffer", func(sub *testing.B) {
+		sub.ReportAllocs()
+		for i := 0; i < sub.N; i++ {
+			var buf bytes.Buffer
+			buf.Grow(node.aminoSize())
+			_ = node.writeBytesToBuffer(&buf)
+		}
+	})
 }

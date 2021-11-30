@@ -176,7 +176,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	var buf bytes.Buffer
 	buf.Grow(node.aminoSize())
 
-	if err := node.writeBytes(&buf); err != nil {
+	if err := node.writeBytesToBuffer(&buf); err != nil {
 		panic(err)
 	}
 
