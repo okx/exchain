@@ -1,30 +1,20 @@
 package types
 
-var disableQueryMutex bool
-var disableCheckTxMutex bool
+var disableABCIQueryMutex bool
 var disableCheckTx bool
 
 const (
-	FlagCloseMutex          = "close-mutex"
-	FlagDisableQueryMutex   = "disable-query-mutex"
-	FlagDisableCheckTxMutex = "disable-checktx-mutex"
-	FlagDisableCheckTx      = "disable-checktx"
+	FlagCloseMutex            = "close-mutex"
+	FlagDisableABCIQueryMutex = "disable-abci-query-mutex"
+	FlagDisableCheckTx        = "disable-checktx"
 )
 
-func GetDisableQueryMutex() bool {
-	return disableQueryMutex
+func GetDisableABCIQueryMutex() bool {
+	return disableABCIQueryMutex
 }
 
-func SetDisableQueryMutex(isClose bool) {
-	disableQueryMutex = isClose
-}
-
-func GetDisableCheckTxMutex() bool {
-	return disableCheckTxMutex
-}
-
-func SetDisableCheckTxMutex(isClose bool) {
-	disableCheckTxMutex = isClose
+func SetDisableABCIQueryMutex(isClose bool) {
+	disableABCIQueryMutex = isClose
 }
 
 func GetDisableCheckTx() bool {
