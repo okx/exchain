@@ -129,9 +129,9 @@ func BenchmarkWALEncode(b *testing.B) {
 	msg := TimedWALMessage{Msg: data, Time: time.Now().Round(time.Second).UTC()}
 	b.Run("Encode", func(b *testing.B) {
 		b.ResetTimer()
+		enc := NewWALEncoder(buffer)
 		for i := 0; i < b.N; i++ {
 			buffer.Reset()
-			enc := NewWALEncoder(buffer)
 			err := enc.Encode(&msg)
 			if err != nil {
 				b.Fatal(err)
@@ -141,9 +141,9 @@ func BenchmarkWALEncode(b *testing.B) {
 	})
 	b.Run("EncodeOld", func(b *testing.B) {
 		b.ResetTimer()
+		enc := NewWALEncoder(buffer)
 		for i := 0; i < b.N; i++ {
 			buffer.Reset()
-			enc := NewWALEncoder(buffer)
 			err := encodeOld(enc, &msg)
 			if err != nil {
 				b.Fatal(err)
