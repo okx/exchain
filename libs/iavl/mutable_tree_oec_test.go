@@ -546,7 +546,7 @@ func TestCommitSchedule(t *testing.T) {
 }
 
 var dbDir = "testdata"
-func prepareTree(t *testing.T, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
+func prepareTree(t *testing.B, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
 	moduleName := "test"
 	dir := dbDir
 	if openLogFlag {
@@ -575,7 +575,7 @@ func prepareTree(t *testing.T, openLogFlag bool, dbName string, size int) (*Muta
 	return tree, keySet, dataSet
 }
 
-func benchmarkTreeRead(t *testing.T, tree *MutableTree, keySet []string, readNum int) {
+func benchmarkTreeRead(t *testing.B, tree *MutableTree, keySet []string, readNum int) {
 	fmt.Println("benchmark testing")
 	t1 := time.Now()
 	for i:=0;i<readNum;i++ {
