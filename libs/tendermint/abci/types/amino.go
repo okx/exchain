@@ -247,7 +247,7 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 
 func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 	if tx == nil {
-		return []byte{}, nil
+		return nil, nil
 	}
 	var buf bytes.Buffer
 	fieldKeysType := [8]byte{1 << 3, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5 << 3, 6 << 3, 7<<3 | 2, 8<<3 | 2}
@@ -363,7 +363,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 
 func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, error) {
 	if beginBlock == nil {
-		return []byte{}, nil
+		return nil, nil
 	}
 	var buf bytes.Buffer
 	fieldKey := byte(1<<3 | 2)
@@ -448,7 +448,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 
 func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) {
 	if endBlock == nil {
-		return []byte{}, nil
+		return nil, nil
 	}
 	var buf bytes.Buffer
 	var err error

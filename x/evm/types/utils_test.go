@@ -239,5 +239,11 @@ func TestResultDataAmino(t *testing.T) {
 		err = actualRd.UnmarshalFromAmino(expect)
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
+
+		encoded, err := EncodeResultData(data)
+		require.NoError(t, err)
+		decodedRd, err := DecodeResultData(encoded)
+		require.NoError(t, err)
+		require.EqualValues(t, expectRd, decodedRd)
 	}
 }
