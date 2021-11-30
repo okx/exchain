@@ -64,6 +64,7 @@ func (suite *JournalTestSuite) SetupTest() {
 	acc := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot: ethcmn.Hash{},
 	}
 
 	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
@@ -164,7 +165,7 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			suicideChange{
 				account:     &suite.address,
 				prev:        false,
-				prevBalance: sdk.OneDec(),
+				prevbalance: sdk.OneDec(),
 			},
 		},
 		{
@@ -186,15 +187,15 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			storageChange{
 				account:   &suite.address,
 				key:       ethcmn.BytesToHash([]byte("key")),
-				prevValue: ethcmn.BytesToHash([]byte("value")),
+				prevalue: ethcmn.BytesToHash([]byte("value")),
 			},
 		},
 		{
 			"codeChange",
 			codeChange{
 				account:  &suite.address,
-				prevCode: []byte("code"),
-				prevHash: []byte("hash"),
+				prevcode: []byte("code"),
+				prevhash: []byte("hash"),
 			},
 		},
 		{

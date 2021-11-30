@@ -106,13 +106,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.Commit()
 	}
 
-	root, err := k.EvmStateDb.WithContext(ctx).Commit(true)
-	if err != nil {
-		panic("fail to commit evm trie")
-	}
-
-	types.InstanceOfEvmStore().TrieDB().Commit(root, false, nil)
-
+	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.UpdateInnerBlockData()
 
 	return []abci.ValidatorUpdate{}

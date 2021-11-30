@@ -1,6 +1,7 @@
 package token_test
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -112,6 +113,7 @@ func CreateEthAccounts(numAccs int, genCoins sdk.SysCoins) (genAccs []app.EthAcc
 				Coins:   genCoins,
 			},
 			CodeHash: ethcrypto.Keccak256(nil),
+			StateRoot: ethcmn.Hash{},
 		}
 		genAccs = append(genAccs, testAccount)
 	}

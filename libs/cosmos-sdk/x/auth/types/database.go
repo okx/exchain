@@ -12,17 +12,17 @@ import (
 )
 
 var (
-	gAccMptDatabase ethstate.Database = nil
+	gEvmMptDatabase ethstate.Database = nil
 
 	initOnce sync.Once
 )
 
 const (
 	EvmDataDir = "data"
-	EvmSpace   = "acc"
+	EvmSpace   = "evm"
 )
 
-func InstanceOfAccStore() ethstate.Database {
+func InstanceOfEvmStore() ethstate.Database {
 	initOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
 		file := filepath.Join(homeDir, EvmDataDir, EvmSpace+".db")
@@ -40,12 +40,12 @@ func InstanceOfAccStore() ethstate.Database {
 		//	panic(fmt.Sprintf("fail to init evm mpt database: %v", err))
 		//}
 
-		gAccMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
+		gEvmMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     256,
 			Journal:   "",
 			Preimages: true,
 		})
 	})
 
-	return gAccMptDatabase
+	return gEvmMptDatabase
 }

@@ -1,6 +1,7 @@
 package exported
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -36,6 +37,8 @@ type Account interface {
 
 	// Ensure that account implements stringer
 	String() string
+
+	GetStorageRoot() ethcmn.Hash
 }
 
 // GenesisAccounts defines a slice of GenesisAccount objects

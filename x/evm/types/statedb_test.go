@@ -48,6 +48,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 	acc := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), balance, nil, 0, 0),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot: ethcmn.Hash{},
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)

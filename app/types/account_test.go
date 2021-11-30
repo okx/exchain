@@ -3,6 +3,7 @@ package types_test
 import (
 	"encoding/json"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -36,6 +37,7 @@ func (suite *AccountTestSuite) SetupTest() {
 	suite.account = &types.EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
+		StateRoot: ethcmn.Hash{},
 	}
 }
 

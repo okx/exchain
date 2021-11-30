@@ -5,6 +5,8 @@ import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -59,7 +61,7 @@ func NewAccountKeeper(
 		proto:         proto,
 		cdc:           cdc,
 		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
-		db: types.InstanceOfAccStore(),
+		db: types.InstanceOfEvmStore(),
 		accLRU: accLRU,
 		deliverTxStore: types.NewCacheStore(),
 		checkTxStore: types.NewCacheStore(),
@@ -185,12 +187,28 @@ func (ak *AccountKeeper) OpenTrie() {
 }
 
 func (ak *AccountKeeper) Commit(ctx sdk.Context) {
-	root, _ := ak.trie.Commit(nil)
+	// The onleaf func is called _serially_, so we can reuse the same account
+	// for unmarshalling every time.
+	var data []byte
+	root, _ := ak.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+		if err := rlp.DecodeBytes(leaf, &data); err != nil {
+			return nil
+		}
+		accStorageRoot := ak.decodeAccount(data).GetStorageRoot()
+
+		if accStorageRoot != types2.EmptyRootHash && accStorageRoot != (ethcmn.Hash{}) {
+			ak.db.TrieDB().Reference(accStorageRoot, parent)
+		}
+
+		return nil
+	})
+
 	latestHeight := uint64(ctx.BlockHeight())
 
 	ak.SetRootMptHash(latestHeight, root)
 	ak.SetLatestBlockHeight(latestHeight)
 	ak.CleanCacheStore()
 
+	// always flush all node to database
 	ak.db.TrieDB().Commit(root, false, nil)
 }

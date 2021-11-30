@@ -32,6 +32,7 @@ func init() {
 type EthAccount struct {
 	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
+	StateRoot ethcmn.Hash  // merkle root of the storage trie
 }
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
@@ -40,6 +41,7 @@ func ProtoAccount() exported.Account {
 	return &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot: ethcmn.Hash{},
 	}
 }
 
@@ -207,4 +209,8 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 func (acc EthAccount) String() string {
 	out, _ := yaml.Marshal(acc)
 	return string(out)
+}
+
+func (acc EthAccount)  GetStorageRoot() ethcmn.Hash {
+	return acc.StateRoot
 }
