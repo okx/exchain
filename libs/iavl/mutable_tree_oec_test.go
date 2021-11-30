@@ -600,7 +600,7 @@ func clearDB(dbName string) {
 }
 
 
-func TestBenchmarkMutableTree_Get(t *testing.T) {
+func BenchmarkMutableTree_Get(t *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
@@ -656,7 +656,7 @@ func TestBenchmarkMutableTree_Get(t *testing.T) {
 }
 
 
-func TestBenchmarkMutableTree_Get2(t *testing.T) {
+func BenchmarkMutableTree_Get2(t *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
@@ -706,7 +706,7 @@ func TestBenchmarkMutableTree_Get2(t *testing.T) {
 }
 
 
-func TestBenchmarkMutableTree_Get3(t *testing.T) {
+func BenchmarkMutableTree_Get3(t *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
