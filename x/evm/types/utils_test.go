@@ -247,3 +247,41 @@ func TestResultDataAmino(t *testing.T) {
 		require.EqualValues(t, expectRd, decodedRd)
 	}
 }
+
+func BenchmarkDecodeResultData(b *testing.B) {
+	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
+	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
+	ret := []byte{0x5, 0x8}
+
+	data := ResultData{
+		ContractAddress: addr,
+		Bloom:           bloom,
+		Logs: []*ethtypes.Log{{
+			Data:        []byte{1, 2, 3, 4},
+			BlockNumber: 17,
+		}},
+		Ret:    ret,
+		TxHash: ethcmn.BigToHash(big.NewInt(10)),
+	}
+
+	enc, err := EncodeResultData(data)
+	require.NoError(b, err)
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var rd ResultData
+			err = ModuleCdc.UnmarshalBinaryLengthPrefixed(enc, &rd)
+			if err != nil {
+				panic("err should be nil")
+			}
+		}
+	})
+	b.Run("unmarshaler", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, err = DecodeResultData(enc)
+			if err != nil {
+				panic("err should be nil")
+			}
+		}
+	})
+}
