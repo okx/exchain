@@ -546,7 +546,7 @@ func TestCommitSchedule(t *testing.T) {
 }
 
 var dbDir = "testdata"
-func prepareTree(t *testing.B, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
+func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
 	moduleName := "test"
 	dir := dbDir
 	if openLogFlag {
@@ -555,7 +555,7 @@ func prepareTree(t *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	ldb, err := db.NewGoLevelDB(dbName, dir)
 	memDB := db.NewPrefixDB(ldb, []byte(moduleName))
 	tree, err := NewMutableTree(memDB, 0)
-	require.NoError(t, err)
+	require.NoError(b, err)
 
 	fmt.Printf("init setting test %d data to MutableTree\n", size)
 	dataSet := make(map[string]string)
@@ -575,14 +575,14 @@ func prepareTree(t *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	return tree, keySet, dataSet
 }
 
-func benchmarkTreeRead(t *testing.B, tree *MutableTree, keySet []string, readNum int) {
+func benchmarkTreeRead(b *testing.B, tree *MutableTree, keySet []string, readNum int) {
 	fmt.Println("benchmark testing")
 	t1 := time.Now()
 	for i:=0;i<readNum;i++ {
 		idx := rand.Int()%len(keySet)
 		key := keySet[idx]
 		_, v :=tree.Get([]byte(key))
-		require.NotNil(t, v)
+		require.NotNil(b, v)
 	}
 	duration := time.Since(t1)
 	fmt.Println("time:", duration.String())
@@ -600,7 +600,7 @@ func clearDB(dbName string) {
 }
 
 
-func BenchmarkMutableTree_Get(t *testing.B) {
+func BenchmarkMutableTree_Get(b *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
@@ -648,15 +648,15 @@ func BenchmarkMutableTree_Get(t *testing.B) {
 	}
 	for i, testCase := range testCases {
 		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
 		clearDB(testCase.dbName)
 		fmt.Println()
 	}
 }
 
 
-func BenchmarkMutableTree_Get2(t *testing.B) {
+func BenchmarkMutableTree_Get2(b *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
@@ -698,15 +698,15 @@ func BenchmarkMutableTree_Get2(t *testing.B) {
 	}
 	for i, testCase := range testCases {
 		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
 		clearDB(testCase.dbName)
 		fmt.Println()
 	}
 }
 
 
-func BenchmarkMutableTree_Get3(t *testing.B) {
+func BenchmarkMutableTree_Get3(b *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	CommitIntervalHeight = 1
@@ -730,8 +730,8 @@ func BenchmarkMutableTree_Get3(t *testing.B) {
 	}
 	for i, testCase := range testCases {
 		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(t, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(t, tree, keySet, testCase.readNum)
+		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
+		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
 		clearDB(testCase.dbName)
 		fmt.Println()
 	}
