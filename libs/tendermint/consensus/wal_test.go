@@ -3,6 +3,9 @@ package consensus
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
+	"fmt"
+	"hash/crc32"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -97,6 +100,13 @@ func TestWALEncoderDecoder(t *testing.T) {
 		err := enc.Encode(&msg)
 		require.NoError(t, err)
 
+		c := new(bytes.Buffer)
+		c.Reset()
+		enc1 := NewWALEncoder(c)
+		err = encodeOld(enc1, &msg)
+		require.NoError(t, err)
+		require.Equal(t, c.Bytes(), b.Bytes())
+
 		dec := NewWALDecoder(b)
 		decoded, err := dec.Decode()
 		require.NoError(t, err)
@@ -129,7 +139,39 @@ func BenchmarkWALEncode(b *testing.B) {
 		}
 		b.ReportAllocs()
 	})
+	b.Run("EncodeOld", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			buffer.Reset()
+			enc := NewWALEncoder(buffer)
+			err := encodeOld(enc, &msg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.ReportAllocs()
+	})
 }
+
+func encodeOld(enc *WALEncoder, v *TimedWALMessage) error {
+	data := cdc.MustMarshalBinaryBare(v)
+
+	crc := crc32.Checksum(data, crc32c)
+	length := uint32(len(data))
+	if length > maxMsgSizeBytes {
+		return fmt.Errorf("msg is too big: %d bytes, max: %d bytes", length, maxMsgSizeBytes)
+	}
+	totalLength := 8 + int(length)
+
+	msg := make([]byte, totalLength)
+	binary.BigEndian.PutUint32(msg[0:4], crc)
+	binary.BigEndian.PutUint32(msg[4:8], length)
+	copy(msg[8:], data)
+
+	_, err := enc.wr.Write(msg)
+	return err
+}
+
 func TestWALEncode(t *testing.T) {
 	cdc.RegisterConcrete([]byte{}, "tendermint/wal/byte", nil)
 	size := 1024 * 1024
@@ -139,20 +181,47 @@ func TestWALEncode(t *testing.T) {
 	for i := 0; i < size; i++ {
 		msgs = append(msgs, TimedWALMessage{Msg: data, Time: time.Now().Round(time.Second).UTC()}) //timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}
 	}
-	debug.SetGCPercent(-1)
-	m := getMemStats()
-	t.Logf("Encode之前:%dMB,GC:%d", m.Alloc/1024/1024, m.NumGC)
-
 	b := new(bytes.Buffer)
+	enc := NewWALEncoder(b)
+
+	//debug.SetGCPercent(-1)
+	startM := getMemStats()
 	for i := 0; i < size; i++ {
 		b.Reset()
-		enc := NewWALEncoder(b)
 		err := enc.Encode(&msgs[i])
 		require.NoError(t, err)
 	}
 
-	m = getMemStats()
-	t.Logf("Encode之后:%dMB,GC:%d", m.Alloc/1024/1024, m.NumGC)
+	encodeM := getMemStats()
+	t.Logf("After Encode   :GC<enable> MEMORY increase:%dMB,GC increase:%d", int64(encodeM.Alloc/1024/1024)-int64(startM.Alloc/1024/1024), encodeM.NumGC-startM.NumGC)
+	for i := 0; i < size; i++ {
+		b.Reset()
+		err := encodeOld(enc, &msgs[i])
+		require.NoError(t, err)
+	}
+
+	encodeOldM := getMemStats()
+	t.Logf("After EncodeOld:GC<enable> MEMORY increase:%dMB,GC increase:%d", int64(encodeOldM.Alloc/1024/1024)-int64(encodeM.Alloc/1024/1024), encodeOldM.NumGC-encodeM.NumGC)
+
+	//GC disable
+	debug.SetGCPercent(-1)
+	startM1 := getMemStats()
+	for i := 0; i < size; i++ {
+		b.Reset()
+		err := enc.Encode(&msgs[i])
+		require.NoError(t, err)
+	}
+
+	encodeM1 := getMemStats()
+	t.Logf("After Encode   :GC<disable> MEMORY increase:%dMB,GC increase:%d", int64(encodeM1.Alloc/1024/1024)-int64(startM1.Alloc/1024/1024), encodeM1.NumGC-startM1.NumGC)
+	for i := 0; i < size; i++ {
+		b.Reset()
+		err := encodeOld(enc, &msgs[i])
+		require.NoError(t, err)
+	}
+
+	encodeOldM1 := getMemStats()
+	t.Logf("After EncodeOld:GC<disable> MEMORY increase:%dMB,GC increase:%d", int64(encodeOldM1.Alloc/1024/1024)-int64(encodeM1.Alloc/1024/1024), encodeOldM1.NumGC-encodeM1.NumGC)
 
 }
 

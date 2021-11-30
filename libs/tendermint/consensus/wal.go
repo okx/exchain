@@ -328,8 +328,7 @@ func (enc *WALEncoder) Encode(v *TimedWALMessage) error {
 
 	msgHeader := bytesPool.Get().(*[]byte)
 	msg := *msgHeader
-	msg = msg[:0]
-	defer bytesPool.Put(msgHeader)
+	defer bytesPool.Put(&msg)
 
 	binary.BigEndian.PutUint32(msg[0:4], crc)
 	binary.BigEndian.PutUint32(msg[4:8], length)
