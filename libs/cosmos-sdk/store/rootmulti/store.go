@@ -289,7 +289,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 
 	if needClean {
 		if rs.logger != nil {
-			msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%s>",
+			msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%d>",
 				len(ph), len(rs.pruneHeights))
 			rs.logger.Info(msg)
 		}
