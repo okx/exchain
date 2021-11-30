@@ -276,18 +276,18 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 		return nil
 	}
 
-	needClean := false
+	needReset := false
 	var newPh []int64
 	for _, h := range ph {
 		if _, ok := roots[h] ;ok {
 			newPh = append(newPh, h)
 		} else {
-			needClean = true
+			needReset = true
 		}
 	}
 	rs.pruneHeights = newPh
 
-	if needClean {
+	if needReset {
 		if rs.logger != nil {
 			msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%d>",
 				len(ph), len(rs.pruneHeights))
