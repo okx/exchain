@@ -43,7 +43,11 @@ type BlockExecutor struct {
 
 	isAsync bool
 
-	abciResCache map[*types.Block]*ABCIResponses
+	processBlock *types.Block
+
+	cancelChan chan struct{}
+
+	resChan chan *PreExecBlockResult
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -65,14 +69,16 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:       db,
-		proxyApp: proxyApp,
-		eventBus: types.NopEventBus{},
-		mempool:  mempool,
-		evpool:   evpool,
-		logger:   logger,
-		metrics:  NopMetrics(),
-		isAsync:  viper.GetBool(FlagParalleledTx),
+		db:         db,
+		proxyApp:   proxyApp,
+		eventBus:   types.NopEventBus{},
+		mempool:    mempool,
+		evpool:     evpool,
+		logger:     logger,
+		metrics:    NopMetrics(),
+		isAsync:    viper.GetBool(FlagParalleledTx),
+		cancelChan: make(chan struct{}),
+		resChan:    make(chan *PreExecBlockResult),
 	}
 
 	for _, option := range options {
@@ -170,14 +176,25 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 	var abciResponses *ABCIResponses
 	var err error
-	//TO DO: sync read abciResponses from result channel
-	if blockExec.isAsync {
-		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-	} else {
-		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+
+	abciChain := blockExec.GetPreExecBlockRes()
+	v, _ := <-abciChain
+	abciResponses = v.ABCIResponses
+	err = v.error
+
+	if v.Block != block {
+		// also we got a result, but this is not we want relate to the block
+		if v.Block != nil {
+			//TO DO: here reset deliverState
+
+		}
+		if blockExec.isAsync {
+			abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+		} else {
+			abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+		}
 	}
 
-	// 这下面都不能提前执行
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}

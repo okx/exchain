@@ -792,6 +792,13 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
+		//vc checkpoint to CancelPreExecBlock
+		cs.Logger.Error("Exchain come to a vc checkpoint", "LockedBlock", cs.LockedBlock.String(), "ProposalBlock", cs.ProposalBlock.String())
+		if cs.LockedBlock != nil {
+			cs.blockExec.CancelPreExecBlock(cs.LockedBlock)
+		} else if cs.ProposalBlock != nil {
+			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+		}
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
@@ -1162,9 +1169,6 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 	//cs.ProposalBlock is valid， we can begin parrel runTx
 	// TO DO:  提前验证我认为合法的block， 如果存在前一个任务没有执行完
 
-
-
-
 	// Prevote cs.ProposalBlock
 	// NOTE: the proposal signature is validated when it is received,
 	// and the proposal block parts are validated as they are received (against the merkle hash in the proposal)
@@ -1309,13 +1313,13 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlock = nil
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
-		// 如果block 有问题这里重置ProposalBlock ，
+		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
+		cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
-	//
+
 	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
-	// precomit nil means this node think vc
 	cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 }
 
@@ -1403,7 +1407,8 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				"commit",
 				blockID.Hash)
 			// We're getting the wrong block.
-			// Set up ProposalBlockParts and keep waiting.
+			cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock" , cs.ProposalBlock.String())
+			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
@@ -1761,9 +1766,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.Logger.Info("Updating valid block to new proposal block",
 					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
 				cs.ValidRound = cs.Round
-				// 如果round 更新那么valid 都更新
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
+				fmt.Println("addProposalBlockPart StartPreExecBlock")
+				cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1925,19 +1931,20 @@ func (cs *State) addVote(
 			if len(blockID.Hash) != 0 && (cs.ValidRound < vote.Round) && (vote.Round == cs.Round) {
 
 				if cs.ProposalBlock.HashesTo(blockID.Hash) {
-					// 确认ProposalBlock 合法
 					cs.Logger.Info(
 						"Updating ValidBlock because of POL.", "validRound", cs.ValidRound, "POLRound", vote.Round)
 					cs.ValidRound = vote.Round
 					// 如果prevote 投票已经+2/3 且ProposalBlock合法用ProposalBlock替换ValidBlock， 如果下一轮我做proposer 直接投这个validBlock
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
+					cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
 				} else {
 					cs.Logger.Info(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
-					// here cancel parelle runTx ,send cacncel signal
+					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock" , "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash" , blockID.Hash.String())
+					cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
 				//
