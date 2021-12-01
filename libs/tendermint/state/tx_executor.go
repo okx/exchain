@@ -42,7 +42,6 @@ func (blockExec *BlockExecutor) DoPreExecBlock(block *types.Block) {
 	} else {
 		preBlockRes = &PreExecBlockResult{block, abciResponses, nil}
 	}
-	//fmt.Println("execBlockOnProxyApp花费时间:", time.Now().UnixNano()-localStarttime)
 
 	select {
 	case <-blockExec.cancelChan:
