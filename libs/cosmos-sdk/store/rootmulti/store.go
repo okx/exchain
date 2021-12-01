@@ -905,8 +905,12 @@ func getPruningHeights(db dbm.DB, reportZeroLengthErr bool) ([]int64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pruned heights: %w", err)
 	}
-	if reportZeroLengthErr && len(bz) == 0 {
-		return nil, errors.New("no pruned heights found")
+	if len(bz) == 0 {
+		if reportZeroLengthErr {
+			return nil, errors.New("no pruned heights found")
+		} else {
+			return nil, nil
+		}
 	}
 
 	var prunedHeights []int64
@@ -941,9 +945,10 @@ func getVersions(db dbm.DB) ([]int64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get versions: %w", err)
 	}
-	//if len(bz) == 0 {
-	//	return nil, errors.New("no versions found")
-	//}
+
+	if len(bz) == 0 {
+		return nil, nil
+	}
 
 	var versions []int64
 	if err := cdc.UnmarshalBinaryBare(bz, &versions); err != nil {
