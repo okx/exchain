@@ -2,7 +2,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"time"
 )
@@ -32,7 +31,6 @@ func (blockExec *BlockExecutor) DoPreExecBlock(block *types.Block) {
 	var abciResponses *ABCIResponses
 	var err error
 	var preBlockRes *PreExecBlockResult
-	localStarttime := time.Now().UnixNano()
 	if blockExec.isAsync {
 		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	} else {
@@ -44,13 +42,12 @@ func (blockExec *BlockExecutor) DoPreExecBlock(block *types.Block) {
 	} else {
 		preBlockRes = &PreExecBlockResult{block, abciResponses, nil}
 	}
-	fmt.Println("execBlockOnProxyApp花费时间:", time.Now().UnixNano()-localStarttime)
+	//fmt.Println("execBlockOnProxyApp花费时间:", time.Now().UnixNano()-localStarttime)
 
 	select {
 	case <-blockExec.cancelChan:
 		blockExec.resChan <- &PreExecBlockResult{nil, nil, errors.New("cancel_error")}
 	case blockExec.resChan <- preBlockRes:
-		fmt.Println("真正取到结果时间: ", time.Now().UnixNano()-recordTime)
 	}
 
 	blockExec.processBlock = nil
@@ -70,6 +67,5 @@ func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
 }
 
 func (blockExec *BlockExecutor) GetPreExecBlockRes() chan *PreExecBlockResult {
-	fmt.Println("并行提前预执行节省时间：", time.Now().UnixNano()-recordTime)
 	return blockExec.resChan
 }

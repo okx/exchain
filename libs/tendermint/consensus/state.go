@@ -1164,8 +1164,6 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
-	//cs.ProposalBlock is valid， we can begin parrel runTx
-	// TO DO:  提前验证我认为合法的block， 如果存在前一个任务没有执行完
 
 	// Prevote cs.ProposalBlock
 	// NOTE: the proposal signature is validated when it is received,
@@ -1245,7 +1243,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		} else {
 			logger.Info("enterPrecommit: No +2/3 prevotes during enterPrecommit. Precommitting nil.")
 		}
-
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1270,7 +1267,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 			cs.LockedBlockParts = nil
 			cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 		}
-
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1442,7 +1438,6 @@ func (cs *State) tryFinalizeCommit(height int64) {
 	}
 
 	//	go
-	// tryFinalizeCommit --> finalizeCommit
 	cs.finalizeCommit(height)
 }
 
@@ -1760,7 +1755,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
-				fmt.Println("addProposalBlockPart StartPreExecBlock")
 				cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
@@ -1936,7 +1930,6 @@ func (cs *State) addVote(
 					cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
-
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
@@ -1949,7 +1942,6 @@ func (cs *State) addVote(
 		switch {
 		case cs.Round < vote.Round && prevotes.HasTwoThirdsAny():
 			// Round-skip if there is any 2/3+ of votes ahead of us
-			// 跳轮， 立刻进入下一轮  prevotes 有超过2/3的任何投票
 			cs.enterNewRound(height, vote.Round)
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
 			blockID, ok := prevotes.TwoThirdsMajority()
