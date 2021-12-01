@@ -166,8 +166,12 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	deltas := bcR.dstore.LoadDeltas(msg.Height)
-	wd := bcR.wStore.LoadWatch(msg.Height)
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
+	if types.IsP2PDeltaEnabled() {
+		deltas = bcR.dstore.LoadDeltas(msg.Height)
+		wd = bcR.wStore.LoadWatch(msg.Height)
+	}
 	if block != nil {
 		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas, WatchData: wd})
 		return src.TrySend(BlockchainChannel, msgBytes)
@@ -366,16 +370,17 @@ FOR_LOOP:
 				}
 				blocksSynced++
 
-				// persists the given deltas to the underlying db.
-				if deltaMode != types.NoDelta && deltas.Size() > 0 {
-					deltas.Height = first.Height
-					bcR.dstore.SaveDeltas(deltas, first.Height)
-				}
-
-				// persists the given WatchData to the underlying db.
-				if wd != nil {
-					wd.Height = first.Height
-					bcR.wStore.SaveWatch(wd, first.Height)
+				if deltaMode != types.NoDelta && types.IsP2PDeltaEnabled() {
+					// persists the given deltas to the underlying db.
+					if deltas.Size() > 0 {
+						deltas.Height = first.Height
+						bcR.dstore.SaveDeltas(deltas, first.Height)
+					}
+					// persists the given WatchData to the underlying db.
+					if wd != nil {
+						wd.Height = first.Height
+						bcR.wStore.SaveWatch(wd, first.Height)
+					}
 				}
 
 				if blocksSynced%100 == 0 {

@@ -68,6 +68,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().String(types.FlagStateDelta, types.NoDelta, "sync through state delta")
+	cmd.Flags().Bool(types.FlagP2PDelta, false, "transfer delta in p2p or not")
 	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
 	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")

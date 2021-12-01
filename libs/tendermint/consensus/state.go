@@ -1573,14 +1573,17 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	if deltaMode != types.NoDelta && deltas.Size() > 0 {
-		deltas.Height = block.Height
-		cs.deltaStore.SaveDeltas(deltas, block.Height)
-	}
-	// persists the given WatchData to the underlying db.
-	if fastQuery && wd != nil {
-		wd.Height = block.Height
-		cs.watchStore.SaveWatch(wd, block.Height)
+	if deltaMode != types.NoDelta && types.IsP2PDeltaEnabled() {
+		// persists the given deltas to the underlying db.
+		if deltas.Size() > 0 {
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
+		// persists the given WatchData to the underlying db.
+		if fastQuery && wd != nil {
+			wd.Height = block.Height
+			cs.watchStore.SaveWatch(wd, block.Height)
+		}
 	}
 
 	fail.Fail() // XXX

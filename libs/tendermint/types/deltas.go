@@ -6,18 +6,23 @@ import (
 	"sync"
 )
 
-// state-delta mode
-// 0 same as no state-delta
-// 1 product delta and save into deltastore.db
-// 2 consume delta and save into deltastore.db; if get no delta, do as 1
 const (
 	// for getting flag of delta-mode
 	FlagStateDelta = "state-sync-mode"
 
 	// delta-mode
+	// state-delta mode
+	// na:not available. same as no FlagStateDelta
+	// producer. product delta
+	// consumer. consume delta; if get no delta, do as producer
 	NoDelta      = "na"
 	ProductDelta = "producer"
 	ConsumeDelta = "consumer"
+
+	// p2p-delta
+	// the switch of delta in p2p
+	// true: save into deltastore.db
+	FlagP2PDelta = "p2p-delta-mode"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
@@ -31,13 +36,19 @@ const (
 var (
 	deltaMode = NoDelta
 	fastQuery = false
+	p2pDelta = false
 	centerMode = false
 	centerUrl = "127.0.0.1:8030"
-	onceEnable     sync.Once
+
+	onceDeltaMode     sync.Once
+	onceFastQuery	sync.Once
+	onceP2PDelta	sync.Once
+	onceCenterMode	sync.Once
+	onceCenterUrl	sync.Once
 )
 
 func GetDeltaMode() string {
-	onceEnable.Do(func() {
+	onceDeltaMode.Do(func() {
 		deltaMode = viper.GetString(FlagStateDelta)
 		iavl.SetDeltaMode(deltaMode)
 	})
@@ -45,21 +56,28 @@ func GetDeltaMode() string {
 }
 
 func IsFastQuery() bool {
-	onceEnable.Do(func() {
+	onceFastQuery.Do(func() {
 		fastQuery = viper.GetBool(FlagFastQuery)
 	})
 	return fastQuery
 }
 
+func IsP2PDeltaEnabled() bool {
+	onceP2PDelta.Do(func() {
+		p2pDelta = viper.GetBool(FlagP2PDelta)
+	})
+	return p2pDelta
+}
+
 func IsCenterEnabled() bool {
-	onceEnable.Do(func() {
+	onceCenterMode.Do(func() {
 		centerMode = viper.GetBool(FlagDataCenter)
 	})
 	return centerMode
 }
 
 func GetCenterUrl() string {
-	onceEnable.Do(func() {
+	onceCenterUrl.Do(func() {
 		centerUrl = viper.GetString(DataCenterUrl)
 	})
 	return centerUrl
