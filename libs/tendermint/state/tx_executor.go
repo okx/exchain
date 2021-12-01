@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"time"
 )
@@ -67,4 +68,12 @@ func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
 
 func (blockExec *BlockExecutor) GetPreExecBlockRes() chan *PreExecBlockResult {
 	return blockExec.resChan
+}
+
+//reset base deliverState
+func (blockExec *BlockExecutor) ResetDeliverState() {
+	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
+		Key: "ResetDeliverState",
+	})
+
 }

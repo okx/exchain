@@ -22,6 +22,7 @@ import (
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 	// stash the consensus params in the cms main store and memoize
+
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.storeConsensusParams(req.ConsensusParams)
@@ -86,6 +87,14 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
+	case "ResetDeliverState":
+		// reset deliver state
+
+		// Reset the DeliverTx state. If this is the first block, it should
+		// already be initialized in InitChain. Otherwise app.deliverState will be
+		// nil, since it is reset on Commit.
+		// init chain will set deliverstate without blockHeight
+		app.deliverState = nil
 	default:
 		// do nothing
 	}
@@ -123,6 +132,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
+
 	if app.deliverState == nil {
 		app.setDeliverState(req.Header)
 	} else {
@@ -142,7 +152,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
-
 	if !req.UseDeltas {
 		if app.beginBlocker != nil {
 			res = app.beginBlocker(app.deliverState.ctx, req)
@@ -151,6 +160,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
+
 	return res
 }
 

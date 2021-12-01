@@ -30,7 +30,6 @@ package module
 
 import (
 	"encoding/json"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
@@ -292,11 +291,9 @@ func (m *Manager) ExportGenesis(ctx sdk.Context) map[string]json.RawMessage {
 // modules.
 func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-
 	for _, moduleName := range m.OrderBeginBlockers {
 		m.Modules[moduleName].BeginBlock(ctx, req)
 	}
-
 	return abci.ResponseBeginBlock{
 		Events: ctx.EventManager().ABCIEvents(),
 	}

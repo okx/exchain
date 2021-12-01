@@ -245,11 +245,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		v, _ := <-abciChain
 		abciResponses = v.ABCIResponses
 		err = v.error
+
 		if v.Block != block {
 			// also we got a result, but this is not we want relate to the block
 			if v.Block != nil {
 				//TO DO: here reset deliverState
-
+				blockExec.ResetDeliverState()
 			}
 
 			if blockExec.isAsync {

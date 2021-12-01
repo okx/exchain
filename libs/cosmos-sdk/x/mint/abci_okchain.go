@@ -17,6 +17,7 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 
 	logger := ctx.Logger().With("module", "mint")
 	// fetch stored minter & params
+
 	params := k.GetParams(ctx)
 	minter := k.GetMinterCustom(ctx)
 	if ctx.BlockHeight() == 0 || uint64(ctx.BlockHeight()) >= minter.NextBlockToUpdate {
