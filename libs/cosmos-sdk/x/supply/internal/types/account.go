@@ -60,7 +60,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -73,7 +73,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(len(acc.Name)))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(len(acc.Name)))
 			if err != nil {
 				return nil, err
 			}
@@ -87,7 +87,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(acc.Permissions[0])))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(acc.Permissions[0])))
 			if err != nil {
 				return nil, err
 			}
@@ -102,7 +102,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 					return nil, err
 				}
 				perm := acc.Permissions[i]
-				err = amino.EncodeUvarint(&buf, uint64(len(perm)))
+				err = amino.EncodeUvarintToBuffer(&buf, uint64(len(perm)))
 				if err != nil {
 					return nil, err
 				}

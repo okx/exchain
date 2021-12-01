@@ -214,7 +214,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(dataLen))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(dataLen))
 			if err != nil {
 				return nil, err
 			}
@@ -227,7 +227,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, log.BlockNumber)
+			err = amino.EncodeUvarintToBuffer(&buf, log.BlockNumber)
 			if err != nil {
 				return nil, err
 			}
@@ -245,7 +245,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(log.TxIndex))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(log.TxIndex))
 			if err != nil {
 				return nil, err
 			}
@@ -263,7 +263,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(log.Index))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(log.Index))
 			if err != nil {
 				return nil, err
 			}
@@ -389,7 +389,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -406,7 +406,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 				if err != nil {
 					return nil, err
 				}
@@ -421,7 +421,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(retLen))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(retLen))
 			if err != nil {
 				return nil, err
 			}
@@ -480,7 +480,7 @@ func EncodeResultData(data ResultData) ([]byte, error) {
 	}
 
 	// Write uvarint(len(bz)).
-	err = amino.EncodeUvarint(buf, uint64(len(bz)))
+	err = amino.EncodeUvarintToBuffer(buf, uint64(len(bz)))
 	if err != nil {
 		return nil, err
 	}

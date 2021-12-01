@@ -1036,7 +1036,7 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeByteSlice(&buf, mp.Bytes)
+			err = amino.EncodeByteSliceToBuffer(&buf, mp.Bytes)
 			if err != nil {
 				return nil, err
 			}

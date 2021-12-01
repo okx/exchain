@@ -51,7 +51,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(addressLen))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(addressLen))
 			if err != nil {
 				return nil, err
 			}
@@ -70,7 +70,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 				if err != nil {
 					return nil, err
 				}
@@ -89,7 +89,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 					if err != nil {
 						return nil, err
 					}
-					err = amino.EncodeUvarint(&buf, uint64(len(data)))
+					err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 					if err != nil {
 						return nil, err
 					}
@@ -108,7 +108,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -121,7 +121,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, acc.AccountNumber)
+			err := amino.EncodeUvarintToBuffer(&buf, acc.AccountNumber)
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, acc.Sequence)
+			err := amino.EncodeUvarintToBuffer(&buf, acc.Sequence)
 			if err != nil {
 				return nil, err
 			}

@@ -176,7 +176,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(len(coin.Denom)))
+			err := amino.EncodeUvarintToBuffer(&buf, uint64(len(coin.Denom)))
 			if err != nil {
 				return nil, err
 			}
@@ -189,7 +189,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
