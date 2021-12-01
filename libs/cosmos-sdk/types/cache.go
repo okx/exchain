@@ -1,10 +1,12 @@
 package types
 
 import (
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
 	"reflect"
 	"time"
 )
@@ -14,6 +16,9 @@ var (
 	deleteAccCount     = 100000
 	maxStorageInMap    = 100000
 	deleteStorageCount = 10000
+)
+var (
+	FlagMultiCache = "multi-cache"
 )
 
 type account interface {
@@ -60,6 +65,15 @@ type Cache struct {
 	gasConfig types.GasConfig
 }
 
+var (
+	UseCache bool
+)
+
+func NewChainCache() *Cache {
+	UseCache = viper.GetBool(FlagMultiCache)
+	return NewCache(nil, UseCache)
+}
+
 func NewCache(parent *Cache, useCache bool) *Cache {
 	return &Cache{
 		useCache: useCache,
@@ -82,8 +96,10 @@ func (c *Cache) skip() bool {
 
 func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
 	if c.skip() {
+		fmt.Println("return ")
 		return
 	}
+	fmt.Printf("not return")
 
 	if _, ok := c.storageMap[addr]; !ok {
 		c.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)

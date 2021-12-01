@@ -191,7 +191,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewCache(nil, true),
+		chainCache:       sdk.NewChainCache(),
 	}
 	for _, option := range options {
 		option(app)
@@ -687,6 +687,9 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 }
 
 func useCache(mode runTxMode) bool {
+	if !sdk.UseCache {
+		return false
+	}
 	if mode == runTxModeDeliver {
 		return true
 	}
