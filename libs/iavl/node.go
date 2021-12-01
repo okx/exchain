@@ -377,10 +377,11 @@ func (node *Node) aminoHashSize() int {
 		amino.VarintSize(node.version)
 
 	if node.isLeaf() {
-		n += amino.ByteSliceSize(node.key) + 256 + 2
+		n += amino.ByteSliceSize(node.key) +
+			1 + 32 // 1 byte for varint, 32 bytes for value hash (sha256)
 	} else {
-		n += amino.ByteSliceSize(node.leftHash) +
-			amino.ByteSliceSize(node.rightHash)
+		n += 1 + 32 + // 1 byte for varint, 32 bytes for left hash
+			1 + 32 // 1 byte for varint, 32 bytes for right hash
 	}
 	return n
 }
