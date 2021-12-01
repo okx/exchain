@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 
+	"go.uber.org/atomic"
+
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -194,6 +196,9 @@ func (node *Node) getByIndex(t *ImmutableTree, index int64) (key []byte, value [
 	return node.getRightNode(t).getByIndex(t, index-leftNode.size)
 }
 
+var hashBuffer bytes.Buffer
+var useGlobalHashBufferFlag atomic.Uint32
+
 // Computes the hash of the node without computing its descendants. Must be
 // called on nodes which have descendant node hashes already computed.
 func (node *Node) _hash() []byte {
@@ -202,9 +207,19 @@ func (node *Node) _hash() []byte {
 	}
 
 	h := tmhash.New()
-	buf := bytes.Buffer{}
+
+	var buf *bytes.Buffer
+	if useGlobalHashBufferFlag.CAS(0, 1) {
+		defer useGlobalHashBufferFlag.Store(0)
+		buf = &hashBuffer
+		buf.Reset()
+	} else {
+		buf = new(bytes.Buffer)
+	}
+
+	// buf := bytes.Buffer{}
 	buf.Grow(node.aminoHashSize())
-	if err := node.writeHashBytesToBuffer(&buf); err != nil {
+	if err := node.writeHashBytesToBuffer(buf); err != nil {
 		panic(err)
 	}
 	_, err := h.Write(buf.Bytes())
