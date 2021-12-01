@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -26,12 +27,34 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
+	if data, gas, ok, isParent := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
+		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper.GetAccount")
+		if data == nil {
+			return nil
+		}
+
+		if isParent {
+			// Avoid overwriting of previous data
+			// Only support
+			//		*types.EthAccount
+			//		*types.ModuleAccount
+			//TODO other better solutions ??????
+			return data.Copy().(exported.Account)
+
+		}
+		return data
+
+	}
+
 	store := ctx.KVStore(ak.key)
 	bz := store.Get(types.AddressStoreKey(addr))
+
 	if bz == nil {
+		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
+	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
 	return acc
 }
 
@@ -57,7 +80,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		panic(err)
 	}
 	store.Set(types.AddressStoreKey(addr), bz)
-
+	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 	if ak.observers != nil {
 		for _, observer := range ak.observers {
 			if observer != nil {
@@ -73,6 +96,8 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
 	store.Delete(types.AddressStoreKey(addr))
+
+	ctx.Cache().UpdateAccount(addr, nil, 0, true)
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function

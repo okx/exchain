@@ -3,17 +3,17 @@ package types
 import (
 	"bytes"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
 	"io"
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 const keccak256HashSize = 100000
@@ -91,7 +91,6 @@ type stateObject struct {
 }
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
-	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -257,6 +256,7 @@ func (so *stateObject) commitState() {
 		// delete empty values from the store
 		if (state.Value == ethcmn.Hash{}) {
 			store.Delete(state.Key.Bytes())
+			so.stateDB.ctx.Cache().UpdateStorage(so.address, state.Key, state.Value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.Watcher.Enabled() {
 					so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), ethcmn.Hash{}.Bytes())
@@ -283,6 +283,7 @@ func (so *stateObject) commitState() {
 
 		so.originStorage[idx].Value = state.Value
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
+		so.stateDB.ctx.Cache().UpdateStorage(so.address, state.Key, state.Value.Bytes(), true)
 		if !so.stateDB.ctx.IsCheckTx() {
 			if so.stateDB.Watcher.Enabled() {
 				so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
@@ -300,6 +301,7 @@ func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	store.Set(so.CodeHash(), so.code)
+	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
 }
 
 // ----------------------------------------------------------------------------
@@ -346,9 +348,15 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 		return nil
 	}
 
+	code := make([]byte, 0)
 	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	code := store.Get(so.CodeHash())
+	if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
+		code = data
+	} else {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+		code = store.Get(so.CodeHash())
+		ctx.Cache().UpdateCode(so.CodeHash(), code, false)
+	}
 
 	if len(code) == 0 {
 		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
@@ -389,8 +397,15 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	state := NewState(prefixKey, ethcmn.Hash{})
 
 	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
+	rawValue := make([]byte, 0)
+	var ok bool
+
+	rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
+	if !ok {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+		rawValue = store.Get(prefixKey.Bytes())
+		ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
+	}
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)

@@ -132,6 +132,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
 	}
+	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
+	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
 
 	// add block gas meter
 	var gasMeter sdk.GasMeter
@@ -148,6 +150,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			res = app.beginBlocker(app.deliverState.ctx, req)
 		}
 	}
+	app.deliverState.ctx.Cache().Write(true)
 
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
@@ -299,6 +302,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	if req.Deltas == nil {
 		req.Deltas = &abci.Deltas{}
 	}
+	app.blockCache.Write(true)
+	app.chainCache.Delete(app.logger, app.deliverState.ctx.BlockHeight())
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
@@ -341,7 +346,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data: commitID.Hash,
+		Data:   commitID.Hash,
 		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }
