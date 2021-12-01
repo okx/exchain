@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
-	"reflect"
 	"time"
 )
 
@@ -137,16 +136,11 @@ func (c *Cache) GetCode(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-var (
-	TypeMap = make(map[reflect.Type]bool)
-)
-
 func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
 	if c.skip() {
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
-	TypeMap[reflect.TypeOf(acc)] = true
 	c.accMap[ethAddr] = &accountWithCache{
 		acc:     acc,
 		isDirty: isDirty,
