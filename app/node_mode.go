@@ -97,7 +97,7 @@ func logStartingFlags(logger log.Logger) {
 	}
 	msg := "starting flags:"
 	for k, v := range flagMap {
-		msg += fmt.Sprintf("\n%s=%v", k, v)
+		msg += fmt.Sprintf("	\n%s=%v", k, v)
 	}
 
 	logger.Info(msg)

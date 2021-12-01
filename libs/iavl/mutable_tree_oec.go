@@ -325,3 +325,6 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 
 	return node.hash
 }
+func (t *ImmutableTree) GetPersistedRoots()  map[int64][]byte {
+	return t.ndb.roots()
+}
