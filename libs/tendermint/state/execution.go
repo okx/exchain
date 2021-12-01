@@ -237,11 +237,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		} else {
 			abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 		}
-		bytes, err := types.Json.Marshal(abciResponses)
-		if err != nil {
-			panic(err)
+		if deltaMode != types.NoDelta {
+			bytes, err := types.Json.Marshal(abciResponses)
+			if err != nil {
+				panic(err)
+			}
+			deltas.ABCIRsp = bytes
 		}
-		deltas.ABCIRsp = bytes
 	}
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
