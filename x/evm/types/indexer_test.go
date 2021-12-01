@@ -26,7 +26,7 @@ func TestIndexer_ProcessSection(t *testing.T) {
 		mock.SetBlockBloom(sdk.Context{}, int64(i), ethtypes.Bloom{})
 	}
 
-	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks))
+	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), nil)
 
 	require.Equal(t, uint64(2), indexer.StoredSection())
 	require.Equal(t, uint64(2), indexer.GetValidSections())

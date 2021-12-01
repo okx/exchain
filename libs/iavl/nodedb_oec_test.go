@@ -163,7 +163,7 @@ func Test_updateBranch(t *testing.T) {
 		capacity += c.nodeNums
 
 		root, nodelist := mockNodes(c.version, c.nodeNums)
-		ndb.updateBranch(root)
+		ndb.updateBranch(root, map[string]*Node{})
 		for elem := nodelist.Front(); elem != nil; elem = elem.Next() {
 			node := elem.Value.(*Node)
 			require.True(t, node.prePersisted)

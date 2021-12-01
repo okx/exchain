@@ -630,6 +630,8 @@ func testHandshakeReplay(t *testing.T, config *cfg.Config, nBlocks int, mode uin
 	var chain []*types.Block
 	var commits []*types.Commit
 	var store *mockBlockStore
+	var dStore sm.DeltaStore
+	var wStore sm.WatchStore
 	var stateDB dbm.DB
 	var genisisState sm.State
 	if testValidatorsChange {
@@ -697,7 +699,7 @@ func testHandshakeReplay(t *testing.T, config *cfg.Config, nBlocks int, mode uin
 
 	// now start the app using the handshake - it should sync
 	genDoc, _ := sm.MakeGenesisDocFromFile(config.GenesisFile())
-	handshaker := NewHandshaker(stateDB, state, store, genDoc)
+	handshaker := NewHandshaker(stateDB, state, store, dStore, wStore, genDoc)
 	proxyApp := proxy.NewAppConns(clientCreator2)
 	if err := proxyApp.Start(); err != nil {
 		t.Fatalf("Error starting proxy app connections: %v", err)
@@ -742,7 +744,7 @@ func applyBlock(stateDB dbm.DB, st sm.State, blk *types.Block, proxyApp proxy.Ap
 	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool)
 
 	blkID := types.BlockID{Hash: blk.Hash(), PartsHeader: blk.MakePartSet(testPartSize).Header()}
-	newState, _, err := blockExec.ApplyBlock(st, blkID, blk)
+	newState, _, err := blockExec.ApplyBlock(st, blkID, blk, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -851,6 +853,8 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 	stateDB, state, store := stateAndStore(config, pubKey, appVersion)
+	var dStore sm.DeltaStore
+	var wStore sm.WatchStore
 	genDoc, _ := sm.MakeGenesisDocFromFile(config.GenesisFile())
 	state.LastValidators = state.Validators.Copy()
 	// mode = 0 for committing all the blocks
@@ -870,7 +874,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 		defer proxyApp.Stop()
 
 		assert.Panics(t, func() {
-			h := NewHandshaker(stateDB, state, store, genDoc)
+			h := NewHandshaker(stateDB, state, store, dStore, wStore, genDoc)
 			h.Handshake(proxyApp)
 		})
 	}
@@ -888,7 +892,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 		defer proxyApp.Stop()
 
 		assert.Panics(t, func() {
-			h := NewHandshaker(stateDB, state, store, genDoc)
+			h := NewHandshaker(stateDB, state, store, dStore, wStore, genDoc)
 			h.Handshake(proxyApp)
 		})
 	}
@@ -1151,12 +1155,14 @@ func TestHandshakeUpdatesValidators(t *testing.T) {
 	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
 	stateDB, state, store := stateAndStore(config, pubKey, 0x0)
+	var dStore sm.DeltaStore
+	var wStore sm.WatchStore
 
 	oldValAddr := state.Validators.Validators[0].Address
 
 	// now start the app using the handshake - it should sync
 	genDoc, _ := sm.MakeGenesisDocFromFile(config.GenesisFile())
-	handshaker := NewHandshaker(stateDB, state, store, genDoc)
+	handshaker := NewHandshaker(stateDB, state, store, dStore, wStore, genDoc)
 	proxyApp := proxy.NewAppConns(clientCreator)
 	if err := proxyApp.Start(); err != nil {
 		t.Fatalf("Error starting proxy app connections: %v", err)

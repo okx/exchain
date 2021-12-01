@@ -26,7 +26,7 @@ func createTestApp() *simapp.SimApp {
 			AppStateBytes: stateBytes,
 		},
 	)
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: app.LastBlockHeight() + 1}})
 
 	return app
