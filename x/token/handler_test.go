@@ -93,7 +93,7 @@ func initApp(isCheckTx bool) *okexchain.OKExChainApp {
 			},
 		)
 		app.EndBlock(abci.RequestEndBlock{})
-		app.Commit()
+		app.Commit(abci.RequestCommit{})
 	}
 
 	return app

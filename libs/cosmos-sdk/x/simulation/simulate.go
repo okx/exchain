@@ -178,7 +178,7 @@ func SimulateFromSeed(
 		logWriter.AddEntry(EndBlockEntry(int64(height)))
 
 		if config.Commit {
-			app.Commit()
+			app.Commit(abci.RequestCommit{})
 		}
 
 		if header.ProposerAddress == nil {

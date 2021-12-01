@@ -3,10 +3,12 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"sync"
 
 	"github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -39,6 +41,10 @@ type Store struct {
 func (st *Store) StopStore() {
 	tr := st.tree.(*iavl.MutableTree)
 	tr.StopTree()
+}
+
+func (st *Store) GetHeights() map[int64][]byte {
+	return st.tree.GetPersistedRoots()
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
@@ -92,7 +98,7 @@ func UnsafeNewStore(tree *iavl.MutableTree) *Store {
 func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var iTree *iavl.ImmutableTree
 	var err error
-	if !abci.GetDisableQueryMutex() {
+	if !abci.GetDisableABCIQueryMutex() {
 		if !st.VersionExists(version) {
 			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
 		}
@@ -114,8 +120,13 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 
 // Commit commits the current store state and returns a CommitID with the new
 // version and hash.
-func (st *Store) Commit() types.CommitID {
-	hash, version, err := st.tree.SaveVersion()
+func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID, iavl.TreeDelta, []byte) {
+	flag := false
+	if viper.GetString(tmtypes.FlagStateDelta) == tmtypes.ConsumeDelta && len(deltas) != 0 {
+		flag = true
+		st.tree.SetDelta(inDelta)
+	}
+	hash, version, delta, err := st.tree.SaveVersion(flag)
 	if err != nil {
 		panic(err)
 	}
@@ -123,7 +134,7 @@ func (st *Store) Commit() types.CommitID {
 	return types.CommitID{
 		Version: version,
 		Hash:    hash,
-	}
+	}, delta, nil
 }
 
 // Implements Committer.

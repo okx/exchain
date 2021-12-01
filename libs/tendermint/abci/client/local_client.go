@@ -60,7 +60,7 @@ func (app *localClient) EchoAsync(msg string) *ReqRes {
 }
 
 func (app *localClient) InfoAsync(req types.RequestInfo) *ReqRes {
-	if !types.GetDisableQueryMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -94,7 +94,7 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 }
 
 func (app *localClient) CheckTxAsync(req types.RequestCheckTx) *ReqRes {
-	if !types.GetDisableCheckTxMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -107,7 +107,7 @@ func (app *localClient) CheckTxAsync(req types.RequestCheckTx) *ReqRes {
 }
 
 func (app *localClient) QueryAsync(req types.RequestQuery) *ReqRes {
-	if !types.GetDisableQueryMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -118,13 +118,13 @@ func (app *localClient) QueryAsync(req types.RequestQuery) *ReqRes {
 	)
 }
 
-func (app *localClient) CommitAsync() *ReqRes {
+func (app *localClient) CommitAsync(req types.RequestCommit) *ReqRes {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	res := app.Application.Commit()
+	res := app.Application.Commit(req)
 	return app.callback(
-		types.ToRequestCommit(),
+		types.ToRequestCommit(req),
 		types.ToResponseCommit(res),
 	)
 }
@@ -179,7 +179,7 @@ func (app *localClient) EchoSync(msg string) (*types.ResponseEcho, error) {
 }
 
 func (app *localClient) InfoSync(req types.RequestInfo) (*types.ResponseInfo, error) {
-	if !types.GetDisableQueryMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -204,7 +204,7 @@ func (app *localClient) DeliverTxSync(req types.RequestDeliverTx) (*types.Respon
 }
 
 func (app *localClient) CheckTxSync(req types.RequestCheckTx) (*types.ResponseCheckTx, error) {
-	if !types.GetDisableCheckTxMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -214,7 +214,7 @@ func (app *localClient) CheckTxSync(req types.RequestCheckTx) (*types.ResponseCh
 }
 
 func (app *localClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery, error) {
-	if !types.GetDisableQueryMutex() {
+	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
 		defer app.mtx.Unlock()
 	}
@@ -222,11 +222,11 @@ func (app *localClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery,
 	return &res, nil
 }
 
-func (app *localClient) CommitSync() (*types.ResponseCommit, error) {
+func (app *localClient) CommitSync(req types.RequestCommit) (*types.ResponseCommit, error) {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	res := app.Application.Commit()
+	res := app.Application.Commit(req)
 	return &res, nil
 }
 

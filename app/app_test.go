@@ -34,7 +34,7 @@ func TestOKExChainAppExport(t *testing.T) {
 			AppStateBytes: stateBytes,
 		},
 	)
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	// Making a new app object with the db, so that initchain hasn't been called
 	app2 := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)

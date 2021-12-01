@@ -43,7 +43,7 @@ func TestApplyBlock(t *testing.T) {
 	block := makeBlock(state, 1)
 	blockID := types.BlockID{Hash: block.Hash(), PartsHeader: block.MakePartSet(testPartSize).Header()}
 
-	_, retainHeight, err := blockExec.ApplyBlock(state, blockID, block)
+	_, retainHeight, err := blockExec.ApplyBlock(state, blockID, block, nil, nil)
 	require.Nil(t, err)
 	assert.EqualValues(t, retainHeight, 1)
 
@@ -358,7 +358,7 @@ func TestEndBlockValidatorUpdates(t *testing.T) {
 		{PubKey: types.TM2PB.PubKey(pubkey), Power: 10},
 	}
 
-	state, _, err = blockExec.ApplyBlock(state, blockID, block)
+	state, _, err = blockExec.ApplyBlock(state, blockID, block, nil, nil)
 	require.Nil(t, err)
 
 	// test new validator was added to NextValidators
@@ -412,7 +412,7 @@ func TestEndBlockValidatorUpdatesResultingInEmptySet(t *testing.T) {
 		{PubKey: types.TM2PB.PubKey(state.Validators.Validators[0].PubKey), Power: 0},
 	}
 
-	assert.NotPanics(t, func() { state, _, err = blockExec.ApplyBlock(state, blockID, block) })
+	assert.NotPanics(t, func() { state, _, err = blockExec.ApplyBlock(state, blockID, block, nil, nil) })
 	assert.NotNil(t, err)
 	assert.NotEmpty(t, state.NextValidators.Validators)
 

@@ -105,9 +105,9 @@ func ToRequestCheckTx(req RequestCheckTx) *Request {
 	}
 }
 
-func ToRequestCommit() *Request {
+func ToRequestCommit(req RequestCommit) *Request {
 	return &Request{
-		Value: &Request_Commit{&RequestCommit{}},
+		Value: &Request_Commit{&req},
 	}
 }
 

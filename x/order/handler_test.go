@@ -1024,7 +1024,7 @@ func getHash(t *testing.T, orderIdList []string, order *Order) {
 	for _, key := range orderIdList {
 		keeper.SetOrder(ctx, key, order)
 	}
-	res := app.Commit()
+	res := app.Commit(abci.RequestCommit{})
 	fmt.Println(orderIdList)
 	fmt.Println(res)
 }

@@ -36,8 +36,7 @@ func SetNodeConfig(ctx *server.Context) {
 }
 
 func setRpcConfig(ctx *server.Context) {
-	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
-	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
+	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
 	viper.SetDefault(watcher.FlagFastQuery, true)
@@ -46,31 +45,27 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
-		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
-		abcitypes.FlagDisableCheckTxMutex, true, abcitypes.FlagDisableQueryMutex, true,
-		evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
+		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
 		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }
 
 func setValidatorConfig(ctx *server.Context) {
-	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
-	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
+	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(appconfig.FlagEnableDynamicGp, false)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
-	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableCheckTxMutex, true, abcitypes.FlagDisableQueryMutex, true,
-		appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything"))
 }
 
 func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
-	viper.SetDefault(abcitypes.FlagDisableCheckTxMutex, true)
-	viper.SetDefault(abcitypes.FlagDisableQueryMutex, true)
+	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
 	viper.SetDefault(watcher.FlagFastQuery, true)
@@ -78,9 +73,8 @@ func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
-		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc archive mode",
-		server.FlagPruning, "nothing", abcitypes.FlagDisableCheckTxMutex, true,
-		abcitypes.FlagDisableQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc archive mode",
+		server.FlagPruning, "nothing", abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
 		watcher.FlagFastQueryLru, 10000, watcher.FlagFastQuery, true,
 		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
 		server.FlagCORS, "*"))
@@ -88,22 +82,22 @@ func setArchiveConfig(ctx *server.Context) {
 
 func logStartingFlags(logger log.Logger) {
 	flagMap := map[string]interface{}{
-		server.FlagPruning:                viper.GetString(server.FlagPruning),
-		abcitypes.FlagDisableCheckTxMutex: viper.GetBool(abcitypes.FlagDisableCheckTxMutex),
-		abcitypes.FlagDisableQueryMutex:   viper.GetBool(abcitypes.FlagDisableQueryMutex),
-		evmtypes.FlagEnableBloomFilter:    viper.GetBool(evmtypes.FlagEnableBloomFilter),
-		watcher.FlagFastQueryLru:          viper.GetInt(watcher.FlagFastQueryLru),
-		watcher.FlagFastQuery:             viper.GetBool(watcher.FlagFastQuery),
-		iavl.FlagIavlEnableAsyncCommit:    viper.GetBool(iavl.FlagIavlEnableAsyncCommit),
-		flags.FlagMaxOpenConnections:      viper.GetInt(flags.FlagMaxOpenConnections),
-		server.FlagCORS:                   viper.GetString(server.FlagCORS),
-		appconfig.FlagEnableDynamicGp:     viper.GetBool(appconfig.FlagEnableDynamicGp),
-		store.FlagIavlCacheSize:           viper.GetInt(store.FlagIavlCacheSize),
-		mempool.FlagEnablePendingPool:     viper.GetBool(mempool.FlagEnablePendingPool),
+		server.FlagPruning:                  viper.GetString(server.FlagPruning),
+		abcitypes.FlagDisableABCIQueryMutex: viper.GetBool(abcitypes.FlagDisableABCIQueryMutex),
+		evmtypes.FlagEnableBloomFilter:      viper.GetBool(evmtypes.FlagEnableBloomFilter),
+		watcher.FlagFastQueryLru:            viper.GetInt(watcher.FlagFastQueryLru),
+		watcher.FlagFastQuery:               viper.GetBool(watcher.FlagFastQuery),
+		iavl.FlagIavlEnableAsyncCommit:      viper.GetBool(iavl.FlagIavlEnableAsyncCommit),
+		flags.FlagMaxOpenConnections:        viper.GetInt(flags.FlagMaxOpenConnections),
+		server.FlagCORS:                     viper.GetString(server.FlagCORS),
+		appconfig.FlagEnableDynamicGp:       viper.GetBool(appconfig.FlagEnableDynamicGp),
+		store.FlagIavlCacheSize:             viper.GetInt(store.FlagIavlCacheSize),
+		mempool.FlagEnablePendingPool:       viper.GetBool(mempool.FlagEnablePendingPool),
+		appconfig.FlagMaxGasUsedPerBlock:    viper.GetInt64(appconfig.FlagMaxGasUsedPerBlock),
 	}
 	msg := "starting flags:"
 	for k, v := range flagMap {
-		msg += fmt.Sprintf("\n%s=%v", k, v)
+		msg += fmt.Sprintf("	\n%s=%v", k, v)
 	}
 
 	logger.Info(msg)
