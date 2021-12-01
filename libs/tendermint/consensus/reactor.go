@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"sync"
 	"time"
@@ -589,12 +588,12 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		}
 		var deltas *types.Deltas
 		var wd *types.WatchData
-		if viper.GetString(types.FlagStateDelta) != types.NoDelta {
+		if types.GetDeltaMode() != types.NoDelta {
 			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
 			if deltas == nil || deltas.Height != prs.Height {
 				deltas = &types.Deltas{}
 			}
-			if viper.GetBool(types.FlagFastQuery) {
+			if types.IsFastQuery() {
 				wd = conR.conS.watchStore.LoadWatch(prs.Height)
 			}
 		}

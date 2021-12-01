@@ -180,9 +180,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if deltas == nil {
 		deltas = &types.Deltas{}
 	}
-	deltaMode := viper.GetString(types.FlagStateDelta)
-	fastQuery := viper.GetBool(types.FlagFastQuery)
-	centerMode := viper.GetBool(types.FlagDataCenter)
+	deltaMode := types.GetDeltaMode()
+	fastQuery := types.IsFastQuery()
+	centerMode := types.IsCenterEnabled()
 	batchOK := true
 	useDeltas := false
 
@@ -321,7 +321,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	if viper.GetBool(types.FlagDataCenter) {
+	if types.IsCenterEnabled() {
 		go sendToDatacenter(blockExec.logger, block, deltas, wd)
 	}
 
@@ -352,7 +352,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 		return
 	}
 
-	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -367,7 +367,7 @@ func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, err
 	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err

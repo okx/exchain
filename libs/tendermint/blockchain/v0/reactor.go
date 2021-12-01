@@ -3,7 +3,6 @@ package v0
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"time"
 
@@ -318,7 +317,7 @@ FOR_LOOP:
 			}
 			bcR.Logger.Debug("Delta from requster", "len(deltas)", deltas.Size(), "height", first.Height)
 
-			deltaMode := viper.GetString(types.FlagStateDelta)
+			deltaMode := types.GetDeltaMode()
 			bcR.Logger.Debug("deltaMode", "getFlagDelta", deltaMode, "ConsumeDelta", types.ConsumeDelta)
 			if deltaMode != types.ConsumeDelta {
 				deltas = &types.Deltas{}

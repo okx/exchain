@@ -3,7 +3,6 @@ package v0
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -549,9 +548,9 @@ func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, wd *t
 	}
 	bpr.block = block
 
-	if viper.GetString(types.FlagStateDelta) == types.ConsumeDelta {
+	if types.GetDeltaMode() == types.ConsumeDelta {
 		bpr.deltas = deltas
-		if viper.GetBool(types.FlagFastQuery) {
+		if types.IsFastQuery() {
 			bpr.wd = wd
 		}
 	}

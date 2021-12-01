@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/spf13/viper"
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -841,7 +840,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	returnedDeltas := map[string]iavltree.TreeDelta{}
 
 	var err error
-	deltaMode := viper.GetString(tmtypes.FlagStateDelta)
+	deltaMode := tmtypes.GetDeltaMode()
 
 	if deltaMode == tmtypes.ConsumeDelta && len(deltas) != 0 {
 		err = itjs.Unmarshal(deltas, &appliedDeltas)

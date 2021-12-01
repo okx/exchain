@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -1042,7 +1041,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Decide on Deltas
 	if cs.Deltas != nil {
 		deltas = cs.Deltas
-		if viper.GetBool(types.FlagFastQuery) {
+		if types.IsFastQuery() {
 			if cs.WatchData != nil {
 				wd = cs.WatchData
 			} else {
@@ -1541,8 +1540,8 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 	var deltas *types.Deltas
 	var wd *types.WatchData
-	deltaMode := viper.GetString(types.FlagStateDelta)
-	fastQuery := viper.GetBool(types.FlagFastQuery)
+	deltaMode := types.GetDeltaMode()
+	fastQuery := types.IsFastQuery()
 	if deltaMode != types.ConsumeDelta {
 		deltas = &types.Deltas{}
 		wd = &types.WatchData{}

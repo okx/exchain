@@ -1,5 +1,10 @@
 package types
 
+import (
+	"github.com/spf13/viper"
+	"sync"
+)
+
 // state-delta mode
 // 0 same as no state-delta
 // 1 product delta and save into deltastore.db
@@ -21,6 +26,42 @@ const (
 	// fast-query
 	FlagFastQuery = "fast-query"
 )
+
+var (
+	deltaMode = NoDelta
+	fastQuery = false
+	centerMode = false
+	centerUrl = "127.0.0.1:8030"
+	onceEnable     sync.Once
+)
+
+func GetDeltaMode() string {
+	onceEnable.Do(func() {
+		deltaMode = viper.GetString(FlagStateDelta)
+	})
+	return deltaMode
+}
+
+func IsFastQuery() bool {
+	onceEnable.Do(func() {
+		fastQuery = viper.GetBool(FlagFastQuery)
+	})
+	return fastQuery
+}
+
+func IsCenterEnabled() bool {
+	onceEnable.Do(func() {
+		centerMode = viper.GetBool(FlagDataCenter)
+	})
+	return centerMode
+}
+
+func GetCenterUrl() string {
+	onceEnable.Do(func() {
+		centerUrl = viper.GetString(DataCenterUrl)
+	})
+	return centerUrl
+}
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
