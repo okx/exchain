@@ -43,13 +43,19 @@ type accountWithCache struct {
 	isDirty bool
 }
 
+type codeWithCache struct {
+	code    []byte
+	isDirty bool
+}
+
 type Cache struct {
 	useCache bool
 	parent   *Cache
 
 	storageMap map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache
+	accMap     map[ethcmn.Address]*accountWithCache
 
-	accMap map[ethcmn.Address]*accountWithCache
+	codeMap map[ethcmn.Hash]*codeWithCache
 
 	gasConfig types.GasConfig
 }
@@ -61,6 +67,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 
 		storageMap: make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache, 0),
 		accMap:     make(map[ethcmn.Address]*accountWithCache, 0),
+		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
 	}
 
@@ -85,6 +92,33 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 		value: value,
 		dirty: isDirty,
 	}
+}
+
+func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
+	if c.skip() {
+		return
+	}
+	hash := ethcmn.BytesToHash(key)
+	c.codeMap[hash] = &codeWithCache{
+		code:    value,
+		isDirty: isdirty,
+	}
+}
+
+func (c *Cache) GetCode(key []byte) ([]byte, bool) {
+	hash := ethcmn.BytesToHash(key)
+	if c.skip() {
+		return nil, false
+	}
+
+	if data, ok := c.codeMap[hash]; ok {
+		return data.code, ok
+	}
+
+	if c.parent != nil {
+		return c.parent.GetCode(hash.Bytes())
+	}
+	return nil, false
 }
 
 var (
@@ -148,6 +182,7 @@ func (c *Cache) Write(updateDirty bool) {
 	}
 	c.writeStorage(updateDirty)
 	c.writeAcc(updateDirty)
+	c.writeCode(updateDirty)
 }
 
 func (c *Cache) writeStorage(updateDirty bool) {
@@ -172,6 +207,14 @@ func (c *Cache) writeAcc(updateDirty bool) {
 		}
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
+}
+func (c *Cache) writeCode(updateDirty bool) {
+	for hash, v := range c.codeMap {
+		if !v.isDirty || (updateDirty && v.isDirty) {
+			c.parent.codeMap[hash] = v
+		}
+	}
+	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
 }
 
 func (c *Cache) Delete(logger log.Logger, height int64) {

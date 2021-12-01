@@ -28,6 +28,13 @@ var (
 	zeroBalance = sdk.ZeroInt().BigInt()
 )
 
+type cacheInterface interface {
+	GetParams() (Params, uint64)
+	SetBlackList(addrs []sdk.AccAddress)
+	IsBlackList(addr sdk.AccAddress) (bool, bool)
+	CleanBlackList()
+}
+
 type revision struct {
 	id           int
 	journalIndex int
@@ -79,8 +86,8 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects         map[ethcmn.Address]*stateEntry
-	stateObjectsDirty    map[ethcmn.Address]struct{}
+	stateObjects      map[ethcmn.Address]*stateEntry
+	stateObjectsDirty map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -120,6 +127,7 @@ type CommitStateDB struct {
 	codeCache map[ethcmn.Address]CacheCode
 
 	dbAdapter DbAdapter
+	cache     cacheInterface
 }
 
 type StoreProxy interface {
@@ -149,23 +157,23 @@ func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
-		ctx:                  ctx,
-		storeKey:             storeKey,
-		paramSpace:           paramSpace,
-		accountKeeper:        ak,
-		supplyKeeper:         sk,
-		bankKeeper:           bk,
-		Watcher:              watcher,
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            DefaultPrefixDb{},
+		ctx:                 ctx,
+		storeKey:            storeKey,
+		paramSpace:          paramSpace,
+		accountKeeper:       ak,
+		supplyKeeper:        sk,
+		bankKeeper:          bk,
+		Watcher:             watcher,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:           DefaultPrefixDb{},
 	}
 }
 
@@ -180,17 +188,17 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
 
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logSize:              0,
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            csdbParams.Ada,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logSize:             0,
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:           csdbParams.Ada,
 	}
 }
 
@@ -497,6 +505,10 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 	return csdb.accessList.Contains(addr, slot)
 }
 
+func (csdb *CommitStateDB) SetCache(cache cacheInterface) {
+	csdb.cache = cache
+}
+
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
@@ -515,6 +527,11 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() Params {
+	if csdb.cache != nil {
+		if par, gas := csdb.cache.GetParams(); gas != 0 {
+			return par
+		}
+	}
 	if csdb.params == nil {
 		var params Params
 		csdb.paramSpace.GetParamSet(csdb.ctx, &params)
@@ -1224,6 +1241,9 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 	}
+	if csdb.cache != nil {
+		csdb.cache.CleanBlackList()
+	}
 }
 
 // DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
@@ -1236,6 +1256,9 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
+	}
+	if csdb.cache != nil {
+		csdb.cache.CleanBlackList()
 	}
 }
 
@@ -1299,6 +1322,12 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
+	if csdb.cache != nil {
+		if stats, ok := csdb.cache.IsBlackList(contractAddr); ok {
+			return stats
+		}
+	}
+
 	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	return bs.Has(contractAddr)
 }

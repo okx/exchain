@@ -52,7 +52,7 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	configCache *configCache
+	ConfigCache *configCache
 }
 
 // NewKeeper generates new evm module keeper
@@ -90,7 +90,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
-		configCache:    &configCache{},
+		ConfigCache:    &configCache{blackList: make(map[ethcmn.Address]bool)},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -237,7 +237,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	if data, gas := k.configCache.chainConfig, k.configCache.gasChainConfig; gas != 0 {
+	if data, gas := k.ConfigCache.chainConfig, k.ConfigCache.gasChainConfig; gas != 0 {
 		ctx.GasMeter().ConsumeGas(gas, "evm.keeper.GetChainConfig")
 		return data, true
 	}
@@ -255,7 +255,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
-	k.configCache.setChainConfig(config, ctx.GasMeter().GasConsumed()-startGas)
+	k.ConfigCache.setChainConfig(config, ctx.GasMeter().GasConsumed()-startGas)
 	return config, true
 }
 
@@ -274,24 +274,59 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 
 // checks whether the address is blocked
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
+	if stats, ok := k.ConfigCache.IsBlackList(addr); ok {
+		return stats
+	}
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return k.GetParams(ctx).EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
 
 type configCache struct {
-	params   types.Params
-	gasParam uint64
+	param types.Params
+	gas   uint64
 
 	chainConfig    types.ChainConfig
 	gasChainConfig uint64
+
+	blackList map[ethcmn.Address]bool
+}
+
+func newConfigCache() *configCache {
+	return &configCache{
+		blackList: make(map[ethcmn.Address]bool),
+	}
+}
+
+func (c *configCache) SetBlackList(addrs []sdk.AccAddress) {
+	for _, v := range addrs {
+		c.blackList[ethcmn.BytesToAddress(v)] = true
+	}
+}
+
+func (c *configCache) IsBlackList(addr sdk.AccAddress) (bool, bool) {
+	if len(c.blackList) == 0 {
+		return false, false
+	}
+	return c.blackList[ethcmn.BytesToAddress(addr)], true
+}
+
+func (c *configCache) BlackListLen() int {
+	return len(c.blackList)
+}
+func (c *configCache) CleanBlackList() {
+
+}
+
+func (c *configCache) GetParams() (types.Params, uint64) {
+	return c.param, c.gas
 }
 
 func (c *configCache) setParams(data types.Params, gasConsumed uint64) {
-	if c.gasParam != 0 {
+	if c.gas != 0 {
 		return
 	}
-	c.params = data
-	c.gasParam = gasConsumed
+	c.param = data
+	c.gas = gasConsumed
 }
 
 func (c *configCache) setChainConfig(data types.ChainConfig, gasConsumed uint64) {

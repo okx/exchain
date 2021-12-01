@@ -301,6 +301,7 @@ func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	store.Set(so.CodeHash(), so.code)
+	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
 }
 
 // ----------------------------------------------------------------------------
@@ -347,9 +348,15 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 		return nil
 	}
 
+	code := make([]byte, 0)
 	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	code := store.Get(so.CodeHash())
+	if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
+		code = data
+	} else {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+		code = store.Get(so.CodeHash())
+		ctx.Cache().UpdateCode(so.CodeHash(), code, false)
+	}
 
 	if len(code) == 0 {
 		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
