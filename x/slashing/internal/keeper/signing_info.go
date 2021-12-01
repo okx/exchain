@@ -10,7 +10,8 @@ import (
 // GetValidatorSigningInfo retruns the ValidatorSigningInfo for a specific validator
 // ConsAddress
 func (k Keeper) GetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress) (info types.ValidatorSigningInfo, found bool) {
-	if data, ok := k.cache.get(address); ok {
+	if data, gas, ok := k.cache.getCacheValSignInfo(address); ok {
+		ctx.GasMeter().ConsumeGas(gas, "x/slashing/internal/kepper/GetValidatorSigningInfo")
 		return data, true
 	}
 	store := ctx.KVStore(k.storeKey)
@@ -34,9 +35,10 @@ func (k Keeper) HasValidatorSigningInfo(ctx sdk.Context, consAddr sdk.ConsAddres
 // SetValidatorSigningInfo sets the validator signing info to a consensus address key
 func (k Keeper) SetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress, info types.ValidatorSigningInfo) {
 	store := ctx.KVStore(k.storeKey)
+	beforeGas := ctx.GasMeter().GasConsumed()
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(info)
 	store.Set(types.GetValidatorSigningInfoKey(address), bz)
-	k.cache.set(address, info)
+	k.cache.setCacheValSignInfo(address, info, ctx.GasMeter().GasConsumed()-beforeGas)
 }
 
 // IterateValidatorSigningInfos iterates over the stored ValidatorSigningInfo

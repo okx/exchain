@@ -52,11 +52,6 @@ func (c *cache) updateCache(addrByte []byte, value types.ValidatorAccumulatedCom
 	c.mpGasUsed[addr] = gas
 }
 
-func (c *cache) clear() {
-	c.mp = make(map[ethcmn.Address]types.ValidatorAccumulatedCommission, 0)
-	c.mpGasUsed = make(map[ethcmn.Address]uint64, 0)
-}
-
 // NewKeeper creates a new distribution Keeper instance
 func NewKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace,

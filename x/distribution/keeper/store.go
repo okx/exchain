@@ -101,6 +101,7 @@ func (k Keeper) GetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress,
 	commission types.ValidatorAccumulatedCommission) {
 
+	beforeGas := ctx.GasMeter().GasConsumed()
 	var bz []byte
 	store := ctx.KVStore(k.storeKey)
 	if commission.IsZero() {
@@ -109,14 +110,15 @@ func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 		bz = k.cdc.MustMarshalBinaryLengthPrefixed(commission)
 	}
 	store.Set(types.GetValidatorAccumulatedCommissionKey(val), bz)
-	k.cache.updateCache(val, commission, 1)
+	k.cache.updateCache(val, commission, ctx.GasMeter().GasConsumed()-beforeGas)
 }
 
 // deleteValidatorAccumulatedCommission deletes accumulated commission for a validator
 func (k Keeper) deleteValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
+	beforeGas := ctx.GasMeter().GasConsumed()
 	store.Delete(types.GetValidatorAccumulatedCommissionKey(val))
-	k.cache.updateCache(val, types.ValidatorAccumulatedCommission{}, 1)
+	k.cache.updateCache(val, types.ValidatorAccumulatedCommission{}, ctx.GasMeter().GasConsumed()-beforeGas)
 }
 
 // IterateValidatorAccumulatedCommissions iterates over accumulated commissions

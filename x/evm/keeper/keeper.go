@@ -90,7 +90,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
-		ConfigCache:    &configCache{blackList: make(map[ethcmn.Address]bool)},
+		ConfigCache:    newConfigCache(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -314,7 +314,7 @@ func (c *configCache) BlackListLen() int {
 	return len(c.blackList)
 }
 func (c *configCache) CleanBlackList() {
-
+	c.blackList = make(map[ethcmn.Address]bool)
 }
 
 func (c *configCache) GetParams() (types.Params, uint64) {
