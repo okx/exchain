@@ -268,7 +268,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 }
 
 func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
-	ph, err := getPruningHeights(rs.db)
+	ph, err := getPruningHeights(rs.db, false)
 	if err != nil {
 		return err
 	}
@@ -897,15 +897,15 @@ func SetPruningHeights(db dbm.DB, pruneHeights []int64) {
 }
 
 func GetPruningHeights(db dbm.DB) ([]int64, error) {
-	return getPruningHeights(db)
+	return getPruningHeights(db, true)
 }
 
-func getPruningHeights(db dbm.DB) ([]int64, error) {
+func getPruningHeights(db dbm.DB, reportZeroLengthErr bool) ([]int64, error) {
 	bz, err := db.Get([]byte(pruneHeightsKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pruned heights: %w", err)
 	}
-	if len(bz) == 0 {
+	if reportZeroLengthErr && len(bz) == 0 {
 		return nil, errors.New("no pruned heights found")
 	}
 
