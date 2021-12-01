@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"fmt"
-
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -17,6 +17,35 @@ type Keeper struct {
 	cdc        *codec.Codec
 	sk         types.StakingKeeper
 	paramspace types.ParamSubspace
+	cache      *paramCache
+}
+type paramCache struct {
+	mp  map[ethcmn.Address]types.ValidatorSigningInfo
+	pub map[ethcmn.Address]crypto.PubKey
+}
+
+func newParamcache() *paramCache {
+	return &paramCache{
+		mp:  make(map[ethcmn.Address]types.ValidatorSigningInfo, 0),
+		pub: make(map[ethcmn.Address]crypto.PubKey),
+	}
+}
+func (p *paramCache) get(addr []byte) (types.ValidatorSigningInfo, bool) {
+	data, ok := p.mp[ethcmn.BytesToAddress(addr)]
+	return data, ok
+
+}
+
+func (p *paramCache) set(addr []byte, value types.ValidatorSigningInfo) {
+	p.mp[ethcmn.BytesToAddress(addr)] = value
+}
+
+func (p *paramCache) getpub(addr []byte) (crypto.PubKey, bool) {
+	data, ok := p.pub[ethcmn.BytesToAddress(addr)]
+	return data, ok
+}
+func (p *paramCache) setPub(addr []byte, pub crypto.PubKey) {
+	p.pub[ethcmn.BytesToAddress(addr)] = pub
 }
 
 // NewKeeper creates a slashing keeper
@@ -26,6 +55,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, sk types.StakingKeeper, param
 		cdc:        cdc,
 		sk:         sk,
 		paramspace: paramspace.WithKeyTable(types.ParamKeyTable()),
+		cache:      newParamcache(),
 	}
 }
 
@@ -47,12 +77,16 @@ func (k Keeper) AddPubkey(ctx sdk.Context, pubkey crypto.PubKey) {
 
 // GetPubkey returns the pubkey from the adddress-pubkey relation
 func (k Keeper) GetPubkey(ctx sdk.Context, address crypto.Address) (crypto.PubKey, error) {
+	if data, ok := k.cache.getpub(address); ok {
+		return data, nil
+	}
 	store := ctx.KVStore(k.storeKey)
 	var pubkey crypto.PubKey
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(store.Get(types.GetAddrPubkeyRelationKey(address)), &pubkey)
 	if err != nil {
 		return nil, fmt.Errorf("address %s not found", sdk.ConsAddress(address))
 	}
+	k.cache.setPub(address, pubkey)
 	return pubkey, nil
 }
 
@@ -88,9 +122,11 @@ func (k Keeper) setAddrPubkeyRelation(ctx sdk.Context, addr crypto.Address, pubk
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(pubkey)
 	store.Set(types.GetAddrPubkeyRelationKey(addr), bz)
+	k.cache.setPub(addr, pubkey)
 }
 
 func (k Keeper) deleteAddrPubkeyRelation(ctx sdk.Context, addr crypto.Address) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetAddrPubkeyRelationKey(addr))
+	k.cache.setPub(addr, nil)
 }

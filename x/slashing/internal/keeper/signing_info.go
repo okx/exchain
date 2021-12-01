@@ -10,6 +10,9 @@ import (
 // GetValidatorSigningInfo retruns the ValidatorSigningInfo for a specific validator
 // ConsAddress
 func (k Keeper) GetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress) (info types.ValidatorSigningInfo, found bool) {
+	if data, ok := k.cache.get(address); ok {
+		return data, true
+	}
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.GetValidatorSigningInfoKey(address))
 	if bz == nil {
@@ -33,6 +36,7 @@ func (k Keeper) SetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(info)
 	store.Set(types.GetValidatorSigningInfoKey(address), bz)
+	k.cache.set(address, info)
 }
 
 // IterateValidatorSigningInfos iterates over the stored ValidatorSigningInfo

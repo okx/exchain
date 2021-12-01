@@ -2,11 +2,12 @@ package keeper
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/params"
 
 	"github.com/okex/exchain/x/distribution/types"
 )
@@ -22,6 +23,38 @@ type Keeper struct {
 	blacklistedAddrs map[string]bool
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
+	cache            *cache
+}
+
+func newCache() *cache {
+	return &cache{
+		mp:        make(map[ethcmn.Address]types.ValidatorAccumulatedCommission, 0),
+		mpGasUsed: make(map[ethcmn.Address]uint64),
+	}
+}
+
+type cache struct {
+	mp        map[ethcmn.Address]types.ValidatorAccumulatedCommission
+	mpGasUsed map[ethcmn.Address]uint64
+}
+
+func (c *cache) getCache(addrByte []byte) (types.ValidatorAccumulatedCommission, uint64, bool) {
+	addr := ethcmn.BytesToAddress(addrByte)
+	if _, ok := c.mp[addr]; ok {
+		return c.mp[addr], c.mpGasUsed[addr], true
+	}
+	return types.ValidatorAccumulatedCommission{}, 0, false
+}
+
+func (c *cache) updateCache(addrByte []byte, value types.ValidatorAccumulatedCommission, gas uint64) {
+	addr := ethcmn.BytesToAddress(addrByte)
+	c.mp[addr] = value
+	c.mpGasUsed[addr] = gas
+}
+
+func (c *cache) clear() {
+	c.mp = make(map[ethcmn.Address]types.ValidatorAccumulatedCommission, 0)
+	c.mpGasUsed = make(map[ethcmn.Address]uint64, 0)
 }
 
 // NewKeeper creates a new distribution Keeper instance
@@ -49,6 +82,7 @@ func NewKeeper(
 		supplyKeeper:     supplyKeeper,
 		feeCollectorName: feeCollectorName,
 		blacklistedAddrs: blacklistedAddrs,
+		cache:            newCache(),
 	}
 }
 
