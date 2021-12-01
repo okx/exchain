@@ -503,6 +503,8 @@ func (l *CList) InsertElement(ele *CElement, logger log.Logger) *CElement {
 				tmp := cur
 				for cur.prev != nil && cur.prev.Address == cur.Address {
 					cur = cur.prev
+					logger.Debug(fmt.Sprintf("InsertElement prev != nil:%s, %d, %s, %p, %p",
+						cur.Address, cur.Nonce, cur.GasPrice.String(), cur.prev, cur.next))
 				}
 
 				// If the same addr appears consecutively and the gasPrice of the minimum nonce element is greater than the gasPrice
