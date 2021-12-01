@@ -41,6 +41,10 @@ func (st *Store) StopStore() {
 	tr.StopTree()
 }
 
+func (st *Store) GetHeights() map[int64][]byte {
+	return st.tree.GetPersistedRoots()
+}
+
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
 // store's version (id) from the provided DB. An error is returned if the version
 // fails to load.

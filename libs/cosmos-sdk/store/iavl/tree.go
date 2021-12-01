@@ -37,6 +37,7 @@ type (
 		GetVersionedWithProof(key []byte, version int64) ([]byte, *iavl.RangeProof, error)
 		GetImmutable(version int64) (*iavl.ImmutableTree, error)
 		SetInitialVersion(version uint64)
+		GetPersistedRoots()  map[int64][]byte
 	}
 
 	// immutableTree is a simple wrapper around a reference to an iavl.ImmutableTree

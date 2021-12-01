@@ -282,3 +282,7 @@ func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 
 	return tree.versions.Clone()
 }
+
+func (t *ImmutableTree) GetPersistedRoots()  map[int64][]byte {
+	return t.ndb.roots()
+}
