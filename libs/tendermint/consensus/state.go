@@ -1314,7 +1314,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
-
 	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 	cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 }
@@ -1527,7 +1526,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	// finalizeCommit --> ApplyBlock
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -1740,7 +1738,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
-		// we got a complete block,then we can parelle runTx
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
 			cs.ProposalBlockParts.GetReader(),
 			&cs.ProposalBlock,
@@ -1777,12 +1774,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			// Move onto the next step
 			cs.enterPrevote(height, cs.Round)
 			if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
-
 				cs.enterPrecommit(height, cs.Round)
 			}
 		} else if cs.Step == cstypes.RoundStepCommit {
 			// If we're waiting on the proposal block...
-			//
 			cs.tryFinalizeCommit(height)
 		}
 		return added, nil
@@ -1959,10 +1954,8 @@ func (cs *State) addVote(
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
 			blockID, ok := prevotes.TwoThirdsMajority()
 			if ok && (cs.isProposalComplete() || len(blockID.Hash) == 0) {
-				// 2/3 maybe valid block or nil block， so len(blockID.Hash) == 0 is possible
 				cs.enterPrecommit(height, vote.Round)
 			} else if prevotes.HasTwoThirdsAny() {
-				//
 				cs.enterPrevoteWait(height, vote.Round)
 			}
 		case cs.Proposal != nil && 0 <= cs.Proposal.POLRound && cs.Proposal.POLRound == vote.Round:
@@ -1979,7 +1972,6 @@ func (cs *State) addVote(
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
 			// Executed as TwoThirdsMajority could be from a higher round
-			// 快速追赶自身step 避免被主流程拉的太远  如果step 已经过了就不会执行
 			cs.enterNewRound(height, vote.Round)
 			cs.enterPrecommit(height, vote.Round)
 			if len(blockID.Hash) != 0 {
@@ -2072,7 +2064,6 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
-		// call addVote function
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}

@@ -272,7 +272,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			default:
 				panic("Bad VoteSetBitsMessage field Type. Forgot to add a check in ValidateBasic?")
 			}
-
 			src.TrySend(VoteSetBitsChannel, cdc.MustMarshalBinaryBare(&VoteSetBitsMessage{
 				Height:  msg.Height,
 				Round:   msg.Round,
@@ -475,7 +474,6 @@ OUTER_LOOP:
 			logger.Info("Stopping gossipDataRoutine for peer")
 			return
 		}
-
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 
