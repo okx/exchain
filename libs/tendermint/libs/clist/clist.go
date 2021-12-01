@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // MaxLength is the max allowed number of elements a linked list is
@@ -385,6 +386,7 @@ func (l *CList) PushBack(v interface{}) *CElement {
 		l.tail = e        // Update the list.
 	}
 	l.mtx.Unlock()
+	l.CheckCircle()
 	return e
 }
 
@@ -437,6 +439,7 @@ func (l *CList) Remove(e *CElement) interface{} {
 	e.SetRemoved()
 
 	l.mtx.Unlock()
+	l.CheckCircle()
 	return e.Value
 }
 
@@ -449,7 +452,7 @@ func waitGroup1() (wg *sync.WaitGroup) {
 // ===============================================
 
 // head -> tail: gasPrice(big -> samll)
-func (l *CList) InsertElement(ele *CElement) *CElement {
+func (l *CList) InsertElement(ele *CElement, logger log.Logger) *CElement {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 
@@ -472,6 +475,8 @@ func (l *CList) InsertElement(ele *CElement) *CElement {
 
 	cur := l.tail
 	for cur != nil {
+		logger.Debug(fmt.Sprintf("InsertElement:%s, %d, %s, %p, %p",
+			cur.Address, cur.Nonce, cur.GasPrice.String(), cur.prev, cur.next))
 		if cur.Address == ele.Address {
 			// same address, check Nonce first
 			if ele.Nonce < cur.Nonce {
@@ -583,7 +588,7 @@ func (l *CList) DetachElement(ele *CElement) interface{} {
 	return ele.Value
 }
 
-func (l *CList) AddTxWithExInfo(v interface{}, addr string, gasPrice *big.Int, nonce uint64) *CElement {
+func (l *CList) AddTxWithExInfo(v interface{}, addr string, gasPrice *big.Int, nonce uint64, logger log.Logger) *CElement {
 	// Construct a new element
 	e := &CElement{
 		prev:       nil,
@@ -599,7 +604,23 @@ func (l *CList) AddTxWithExInfo(v interface{}, addr string, gasPrice *big.Int, n
 		Nonce:      nonce,
 	}
 
-	l.InsertElement(e)
+	l.InsertElement(e, logger)
+	l.CheckCircle()
 
 	return e
+}
+
+func (l *CList) CheckCircle() {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+
+	cur := l.tail
+	count := 0
+	for cur != nil {
+		if count > l.len+10 {
+			panic("have circle here")
+		}
+		cur = cur.prev
+		count++
+	}
 }

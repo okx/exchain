@@ -421,7 +421,7 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
 	ele := mem.bcTxsList.PushBack(memTx)
 	mem.bcTxsMap.Store(txKey(memTx.tx), ele)
 
-	e := mem.txs.AddTxWithExInfo(memTx, info.Sender, info.GasPrice, info.Nonce)
+	e := mem.txs.AddTxWithExInfo(memTx, info.Sender, info.GasPrice, info.Nonce, mem.logger)
 	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx), e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
@@ -471,7 +471,9 @@ func (mem *CListMempool) removeTx(tx types.Tx, elem *clist.CElement, removeFromC
 	}
 
 	mem.txs.Remove(elem)
+	mem.txs.CheckCircle()
 	elem.DetachPrev()
+	mem.txs.CheckCircle()
 
 	mem.addressRecord.DeleteItem(elem)
 
@@ -940,8 +942,11 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 
 		for _, node := range userMap {
 			mem.txs.DetachElement(node)
+			mem.txs.CheckCircle()
 			node.NewDetachPrev()
+			mem.txs.CheckCircle()
 			node.NewDetachNext()
+			mem.txs.CheckCircle()
 
 			tmpMap[node.Nonce] = node
 			keys = append(keys, node.Nonce)
@@ -952,7 +957,8 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 		sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 
 		for _, key := range keys {
-			mem.txs.InsertElement(tmpMap[key])
+			mem.txs.InsertElement(tmpMap[key], mem.logger)
+			mem.txs.CheckCircle()
 		}
 	}
 
