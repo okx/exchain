@@ -412,6 +412,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+	mem.logger.Debug(fmt.Sprintf("addAndSortTx:%s, %d, %s",
+		info.Sender, info.Nonce, info.GasPrice.String()))
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -841,7 +843,8 @@ func (mem *CListMempool) Update(
 			ele := e.(*clist.CElement)
 			addr = ele.Address
 			nonce = ele.Nonce
-
+			mem.logger.Debug(fmt.Sprintf("Update txsMap.Load:%s, %d, %s, %p, %p",
+				ele.Address, ele.Nonce, ele.GasPrice.String(), ele.Prev(), ele.Next()))
 			mem.removeTx(tx, ele, false)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else if mem.txInfoparser != nil {
@@ -866,6 +869,8 @@ func (mem *CListMempool) Update(
 		if txsRecord, ok := mem.addressRecord.GetItem(accAddr); ok {
 			for _, ele := range txsRecord {
 				if ele.Nonce <= accMaxNonce {
+					mem.logger.Debug(fmt.Sprintf("Update toCleanAccMap:%s, %d, %s, %p, %p",
+						ele.Address, ele.Nonce, ele.GasPrice.String(), ele.Prev(), ele.Next()))
 					mem.removeTx(ele.Value.(*mempoolTx).tx, ele, false)
 				}
 			}
@@ -957,6 +962,8 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 		sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 
 		for _, key := range keys {
+			mem.logger.Debug(fmt.Sprintf("reOrgTxs:%s, %d, %s, %p, %p",
+				tmpMap[key].Address, tmpMap[key].Nonce, tmpMap[key].GasPrice.String(), tmpMap[key].Prev(), tmpMap[key].Next()))
 			mem.txs.InsertElement(tmpMap[key], mem.logger)
 			mem.txs.CheckCircle()
 		}
