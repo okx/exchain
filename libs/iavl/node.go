@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	amino "github.com/tendermint/go-amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	amino "github.com/tendermint/go-amino"
 )
 
 // NodeJson provide json Marshal of Node.
@@ -68,6 +68,10 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 	if nj == nil {
 		return nil
 	}
+	if n := GetNodeFromPool(); n != nil {
+		n.Reset(nj.Key, nj.Value, nj.Hash, nj.LeftHash, nj.RightHash, nj.Version, nj.Size, nil, nil, nj.Height, nj.Persisted, nj.prePersisted)
+		return n
+	}
 	return &Node{
 		key:          nj.Key,
 		value:        nj.Value,
@@ -84,6 +88,10 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 
 // NewNode returns a new node from a key, value and version.
 func NewNode(key []byte, value []byte, version int64) *Node {
+	if n := GetNodeFromPool(); n != nil {
+		n.Reset(key, value, nil, nil, nil, version, 1, nil, nil, 0, false, false)
+		return n
+	}
 	return &Node{
 		key:     key,
 		value:   value,
@@ -98,7 +106,9 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 // The new node doesn't have its hash saved or set. The caller must set it
 // afterwards.
 func MakeNode(buf []byte) (*Node, error) {
-
+	if n := GetNodeFromPool(); n != nil {
+		return MakeNodeForGC(n, buf)
+	}
 	// Read node header (height, size, version, key).
 	height, n, cause := amino.DecodeInt8(buf)
 	if cause != nil {
@@ -156,6 +166,63 @@ func MakeNode(buf []byte) (*Node, error) {
 	return node, nil
 }
 
+// MakeNode constructs an *Node from an encoded byte slice.
+//
+// The new node doesn't have its hash saved or set. The caller must set it
+// afterwards.
+func MakeNodeForGC(node *Node, buf []byte) (*Node, error) {
+
+	// Read node header (height, size, version, key).
+	height, n, cause := amino.DecodeInt8(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.height")
+	}
+	buf = buf[n:]
+
+	size, n, cause := amino.DecodeVarint(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.size")
+	}
+	buf = buf[n:]
+
+	ver, n, cause := amino.DecodeVarint(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.version")
+	}
+	buf = buf[n:]
+
+	key, n, cause := amino.DecodeByteSlice(buf)
+	if cause != nil {
+		return nil, errors.Wrap(cause, "decoding node.key")
+	}
+	buf = buf[n:]
+
+	node.Reset(key, nil, nil, nil, nil, ver, size, nil, nil, height, false, false)
+
+	// Read node body.
+	if node.isLeaf() {
+		val, _, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "decoding node.value")
+		}
+		node.value = val
+	} else { // Read children.
+		leftHash, n, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "deocding node.leftHash")
+		}
+		buf = buf[n:]
+
+		rightHash, _, cause := amino.DecodeByteSlice(buf)
+		if cause != nil {
+			return nil, errors.Wrap(cause, "decoding node.rightHash")
+		}
+		node.leftHash = leftHash
+		node.rightHash = rightHash
+	}
+	return node, nil
+}
+
 // String returns a string representation of the node.
 func (node *Node) String() string {
 	hashstr := "<no hash>"
@@ -174,6 +241,10 @@ func (node *Node) String() string {
 func (node *Node) clone(version int64) *Node {
 	if node.isLeaf() {
 		panic("Attempt to copy a leaf node")
+	}
+	if n := GetNodeFromPool(); n != nil {
+		n.Reset(node.key, nil, nil, node.leftHash, node.rightHash, version, node.size, node.leftNode, node.rightNode, node.height, false, false)
+		return n
 	}
 	return &Node{
 		key:       node.key,

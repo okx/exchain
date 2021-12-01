@@ -29,7 +29,6 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-
 	*ImmutableTree                   // The current, working tree.
 	lastSaved       *ImmutableTree   // The most recently saved tree.
 	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
@@ -38,8 +37,8 @@ type MutableTree struct {
 	removedVersions sync.Map         // The removed versions of the tree.
 	ndb             *nodeDB
 
-	savedNodes      map[string]*Node
-	deltas          *TreeDelta // For using in other peer
+	savedNodes map[string]*Node
+	deltas     *TreeDelta // For using in other peer
 
 	committedHeightQueue *list.List
 	committedHeightMap   map[int64]bool
@@ -186,10 +185,20 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	newSelf *Node, updated bool,
 ) {
 	version := tree.version + 1
-
+	//defer func() {
+	//	stack := fmt.Sprintf("%s", debug.Stack())
+	//	if strings.Contains(stack, "TestShareNode") {
+	//		//fmt.Printf("node.Key:%X - newSelf.Key:%X - key:%X\n", node.key, newSelf.key, key)
+	//		PrintNode("recursiveSet value", tree.ndb, newSelf)
+	//	}
+	//}()
 	if node.isLeaf() {
 		switch bytes.Compare(key, node.key) {
 		case -1:
+			if n := GetNodeFromPool(); n != nil {
+				n.Reset(node.key, nil, nil, nil, nil, version, 2, NewNode(key, value, version), node, 1, false, false)
+				return n, false
+			}
 			return &Node{
 				key:       node.key,
 				height:    1,
@@ -199,6 +208,10 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 				version:   version,
 			}, false
 		case 1:
+			if n := GetNodeFromPool(); n != nil {
+				n.Reset(key, nil, nil, nil, nil, version, 2, node, NewNode(key, value, version), 1, false, false)
+				return n, false
+			}
 			return &Node{
 				key:       key,
 				height:    1,
@@ -881,7 +894,7 @@ func (tree *MutableTree) GetDelta() {
 	//	orphans[i] = NodeToNodeJson(orphan)
 	//}
 	//tree.deltas.OrphansDelta = orphans
-	for _ , orphan := range tree.orphans {
+	for _, orphan := range tree.orphans {
 		tree.deltas.OrphansDelta[hex.EncodeToString(orphan.hash)] = orphan.version
 	}
 }

@@ -49,7 +49,6 @@ func TestSaveVersion(t *testing.T) {
 
 	tree := newTestTree(t, false, 100, "test")
 
-
 	//_, _, err = tree.SaveVersion()
 	//require.NoError(t, err)
 	for k, v := range originData {
@@ -155,7 +154,6 @@ func TestConcurrentGetNode(t *testing.T) {
 	}
 
 	tree := newTestTree(t, false, 10000, "test")
-
 
 	//_, _, err = tree.SaveVersion()
 	//require.NoError(t, err)
@@ -282,7 +280,7 @@ func TestPruningHistoryState(t *testing.T) {
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	batchSaveVersion(t, tree, minHistoryStateNum * int(CommitIntervalHeight) - 2)
+	batchSaveVersion(t, tree, minHistoryStateNum*int(CommitIntervalHeight)-2)
 
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
 
@@ -327,7 +325,6 @@ func openLog(moduleName string) {
 	OutputModules[moduleName] = 1
 }
 
-
 func TestPruningHistoryStateRandom(t *testing.T) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
@@ -344,30 +341,29 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {
-		tree.Set(k2, randBytes(i % 64 + 1))
+		tree.Set(k2, randBytes(i%64+1))
 		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
 
-
 	nodeCount := 0
 	tree.ndb.traverseNodes(func(hash []byte, node *Node) {
 		nodeCount++
 	})
-	require.Equal(t, (minHistoryStateNum - 1) * 3 + 5, nodeCount)
+	require.Equal(t, (minHistoryStateNum-1)*3+5, nodeCount)
 
 	orphansCount := 0
 	tree.ndb.traverseOrphans(func(k, v []byte) {
 		orphansCount++
 	})
-	require.Equal(t, (minHistoryStateNum - 1) * 3, orphansCount)
+	require.Equal(t, (minHistoryStateNum-1)*3, orphansCount)
 
 	for i := 0; i < 10000; i++ {
-		tree.Set(k1, randBytes(i % 64 + 1))
-		tree.Set(k2, randBytes(i % 64 + 1))
-		tree.Set(k3, randBytes(i % 64 + 1))
+		tree.Set(k1, randBytes(i%64+1))
+		tree.Set(k2, randBytes(i%64+1))
+		tree.Set(k3, randBytes(i%64+1))
 		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
@@ -376,13 +372,13 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	tree.ndb.traverseNodes(func(hash []byte, node *Node) {
 		nodeCount++
 	})
-	require.Equal(t, minHistoryStateNum * 5, nodeCount)
+	require.Equal(t, minHistoryStateNum*5, nodeCount)
 
 	orphansCount = 0
 	tree.ndb.traverseOrphans(func(k, v []byte) {
 		orphansCount++
 	})
-	require.Equal(t, (minHistoryStateNum - 1) * 5, orphansCount)
+	require.Equal(t, (minHistoryStateNum-1)*5, orphansCount)
 }
 
 func TestConcurrentQuery(t *testing.T) {
@@ -406,7 +402,6 @@ func TestConcurrentQuery(t *testing.T) {
 
 	tree := newTestTree(t, false, 10000, "test")
 
-
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
@@ -414,7 +409,7 @@ func TestConcurrentQuery(t *testing.T) {
 	require.NoError(t, err)
 	const num = 1000000
 	queryEnd := false
-	endCh :=make(chan struct{})
+	endCh := make(chan struct{})
 	go func() {
 		ch := make(chan struct{}, 20)
 		wg := sync.WaitGroup{}
@@ -431,14 +426,14 @@ func TestConcurrentQuery(t *testing.T) {
 				require.NotNil(t, value)
 				require.NotEqual(t, []byte{}, value)
 				wg.Done()
-				<- ch
+				<-ch
 			}()
 		}
 		wg.Wait()
 		queryEnd = true
 	}()
 	go func() {
-		for i := 0;; i++ {
+		for i := 0; ; i++ {
 			fmt.Println(time.Now().String(), "current version:", tree.version)
 			for j := 0; j < 100; j++ {
 				key := dataKey[rand.Intn(len(dataKey))]
@@ -473,7 +468,7 @@ func TestStopTree(t *testing.T) {
 	require.Equal(t, 5, len(tree.ndb.nodeCache))
 }
 
-func TestLog( t *testing.T) {
+func TestLog(t *testing.T) {
 	defer func() {
 		treeMap.resetMap()
 	}()
@@ -529,7 +524,7 @@ func TestCommitSchedule(t *testing.T) {
 	tree := newTestTree(t, false, 10000, "test")
 	initSetTree(tree)
 
-	for i:=0; i < int(CommitIntervalHeight); i++ {
+	for i := 0; i < int(CommitIntervalHeight); i++ {
 		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
@@ -538,8 +533,8 @@ func TestCommitSchedule(t *testing.T) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, nil, 0}
+	tree.commitCh <- commitEvent{CommitIntervalHeight, versions, batch, nil, nil, 0}
 
-	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, &wg, 0}
+	tree.commitCh <- commitEvent{CommitIntervalHeight, versions, batch, nil, &wg, 0}
 	wg.Wait()
 }
