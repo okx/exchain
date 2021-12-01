@@ -941,9 +941,9 @@ func getVersions(db dbm.DB) ([]int64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get versions: %w", err)
 	}
-	if len(bz) == 0 {
-		return nil, errors.New("no versions found")
-	}
+	//if len(bz) == 0 {
+	//	return nil, errors.New("no versions found")
+	//}
 
 	var versions []int64
 	if err := cdc.UnmarshalBinaryBare(bz, &versions); err != nil {
