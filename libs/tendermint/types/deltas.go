@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/spf13/viper"
 	"sync"
 )
@@ -38,6 +39,7 @@ var (
 func GetDeltaMode() string {
 	onceEnable.Do(func() {
 		deltaMode = viper.GetString(FlagStateDelta)
+		iavl.SetDeltaMode(deltaMode)
 	})
 	return deltaMode
 }
