@@ -787,7 +787,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		cs.enterPrevote(ti.Height, ti.Round)
 	case cstypes.RoundStepPrevoteWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
-		//prevoteWait 超时后进入enterPrecommit
 		cs.enterPrecommit(ti.Height, ti.Round)
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
@@ -1003,7 +1002,6 @@ func (cs *State) enterPropose(height int64, round int) {
 			address,
 			"privValidator",
 			cs.privValidator)
-		// 提案人 使用ValidBlock 提案
 		cs.decideProposal(height, round)
 	} else {
 		logger.Info("enterPropose: Not our turn to propose",
@@ -1204,7 +1202,6 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}()
 
 	// Wait for some more prevotes; enterPrecommit
-	// 强制进入
 	cs.scheduleTimeout(cs.config.Prevote(round), height, round, cstypes.RoundStepPrevoteWait)
 }
 
@@ -1238,7 +1235,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	// check for a polka  当前轮是否有+2/3的共识 如果没有投空
+	// check for a polka
 	blockID, ok := cs.Votes.Prevotes(round).TwoThirdsMajority()
 
 	// If we don't have a polka, we must precommit nil.
@@ -1248,7 +1245,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		} else {
 			logger.Info("enterPrecommit: No +2/3 prevotes during enterPrecommit. Precommitting nil.")
 		}
-		// precomit nil means this node think vc
+
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1273,7 +1270,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 			cs.LockedBlockParts = nil
 			cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 		}
-		// +2/3 precomit nil means vc happened
+
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1297,7 +1294,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 			panic(fmt.Sprintf("enterPrecommit: +2/3 prevoted for an invalid block: %v", err))
 		}
 		cs.LockedRound = round
-		// 这里设置LockedBlock 为ProposalBlock  ，如果发生vc 在下一轮 defaultDoPrevote 直接投票LockedBlock
 		cs.LockedBlock = cs.ProposalBlock
 		cs.LockedBlockParts = cs.ProposalBlockParts
 		cs.eventBus.PublishEventLock(cs.RoundStateEvent())
@@ -1407,6 +1403,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				"commit",
 				blockID.Hash)
 			// We're getting the wrong block.
+			// Set up ProposalBlockParts and keep waiting.
 			cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock" , cs.ProposalBlock.String())
 			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 			cs.ProposalBlock = nil
@@ -1430,7 +1427,6 @@ func (cs *State) tryFinalizeCommit(height int64) {
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	if !ok || len(blockID.Hash) == 0 {
-		// 没有共识的block 或者 2/3的nil cancel 并行runTx
 		logger.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.")
 		return
 	}
@@ -1532,7 +1528,6 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	// finalizeCommit --> ApplyBlock
-	// 这里直接返回预执行的结果
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -1779,7 +1774,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
-			// Move onto the next stepS
+			// Move onto the next step
 			cs.enterPrevote(height, cs.Round)
 			if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
 
@@ -1934,7 +1929,6 @@ func (cs *State) addVote(
 					cs.Logger.Info(
 						"Updating ValidBlock because of POL.", "validRound", cs.ValidRound, "POLRound", vote.Round)
 					cs.ValidRound = vote.Round
-					// 如果prevote 投票已经+2/3 且ProposalBlock合法用ProposalBlock替换ValidBlock， 如果下一轮我做proposer 直接投这个validBlock
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
 					cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
@@ -1947,7 +1941,7 @@ func (cs *State) addVote(
 					cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
-				//
+
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}

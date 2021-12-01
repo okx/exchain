@@ -158,7 +158,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	if app.endBlocker != nil {
-		//执行业务方法
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
@@ -220,7 +219,6 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // Otherwise, the ResponseDeliverTx will contain releveant error information.
 // Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
 // gas execution context.
-// DeliverTx 没有修改，使用 deliverState 比较安全
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	app.pin(DeliverTx, true, runTxModeDeliver)
 	defer app.pin(DeliverTx, false, runTxModeDeliver)

@@ -125,8 +125,6 @@ type BaseApp struct { // nolint: maligned
 	// deliverState is set on InitChain and BeginBlock and set to nil on Commit
 	checkState   *state // for CheckTx
 	deliverState *state // for DeliverTx
-	deliverStateCache  *state // for DeliverTx Bak
-
 
 	// an inter-block write-through cache provided to the context during deliverState
 	interBlockCache sdk.MultiStorePersistentCache

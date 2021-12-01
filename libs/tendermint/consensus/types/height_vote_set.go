@@ -146,8 +146,6 @@ func (hvs *HeightVoteSet) Precommits(round int) *types.VoteSet {
 
 // Last round and blockID that has +2/3 prevotes for a particular block or nil.
 // Returns -1 if no such round exists.
-// 查找最近一轮有+2/3优先权的区块或者nil 。
-// 如果没有就返回 -1 空block
 func (hvs *HeightVoteSet) POLInfo() (polRound int, polBlockID types.BlockID) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
