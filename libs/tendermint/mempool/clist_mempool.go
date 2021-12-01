@@ -56,6 +56,8 @@ type CListMempool struct {
 	updateMtx sync.RWMutex
 	preCheck  PreCheckFunc
 	postCheck PostCheckFunc
+	//add for idle job
+	addJob AddJobFunc
 
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
@@ -169,6 +171,11 @@ func WithPostCheck(f PostCheckFunc) CListMempoolOption {
 // WithMetrics sets the metrics.
 func WithMetrics(metrics *Metrics) CListMempoolOption {
 	return func(mem *CListMempool) { mem.metrics = metrics }
+}
+
+// WithAddJob set job
+func WithAddJob(f AddJobFunc) CListMempoolOption {
+	return func(mem *CListMempool) { mem.addJob = f }
 }
 
 func (mem *CListMempool) InitWAL() error {
@@ -610,6 +617,8 @@ func (mem *CListMempool) resCbFirstTime(
 					"height", memTx.height,
 					"total", mem.Size(),
 				)
+				//simulate run tx for iavl caching improvement
+				go mem.addJob(func() { mem.simulateTx(tx) })
 				mem.notifyTxsAvailable()
 			} else {
 				// ignore bad transaction

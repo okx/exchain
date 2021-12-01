@@ -27,6 +27,7 @@ import (
 	cs "github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/evidence"
+	"github.com/okex/exchain/libs/tendermint/libs/dispatcher"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmpubsub "github.com/okex/exchain/libs/tendermint/libs/pubsub"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
@@ -318,7 +319,7 @@ func onlyValidatorIsUs(state sm.State, pubKey crypto.PubKey) bool {
 }
 
 func createMempoolAndMempoolReactor(config *cfg.Config, proxyApp proxy.AppConns,
-	state sm.State, memplMetrics *mempl.Metrics, logger log.Logger) (*mempl.Reactor, *mempl.CListMempool) {
+	state sm.State, memplMetrics *mempl.Metrics, logger log.Logger, idp *dispatcher.IdleDispatcher) (*mempl.Reactor, *mempl.CListMempool) {
 
 	mempool := mempl.NewCListMempool(
 		config.Mempool,
@@ -327,6 +328,7 @@ func createMempoolAndMempoolReactor(config *cfg.Config, proxyApp proxy.AppConns,
 		mempl.WithMetrics(memplMetrics),
 		mempl.WithPreCheck(sm.TxPreCheck(state)),
 		mempl.WithPostCheck(sm.TxPostCheck(state)),
+		mempl.WithAddJob(idp.AddJob),
 	)
 	mempoolLogger := logger.With("module", "mempool")
 	mempoolReactor := mempl.NewReactor(config.Mempool, mempool)
@@ -389,7 +391,8 @@ func createConsensusReactor(config *cfg.Config,
 	csMetrics *cs.Metrics,
 	fastSync bool,
 	eventBus *types.EventBus,
-	consensusLogger log.Logger) (*consensus.Reactor, *consensus.State) {
+	consensusLogger log.Logger,
+	idp *dispatcher.IdleDispatcher) (*consensus.Reactor, *consensus.State) {
 
 	consensusState := cs.NewState(
 		config.Consensus,
@@ -401,6 +404,7 @@ func createConsensusReactor(config *cfg.Config,
 		mempool,
 		evidencePool,
 		cs.StateMetrics(csMetrics),
+		cs.StateCritical(idp),
 	)
 	consensusState.SetLogger(consensusLogger)
 	if privValidator != nil {
@@ -639,8 +643,12 @@ func NewNode(config *cfg.Config,
 
 	csMetrics, p2pMetrics, memplMetrics, smMetrics := metricsProvider(genDoc.ChainID)
 
+	// Add Goroutine coordinate for idle job(e:simulate) when consensus final commit block not running
+	idp := dispatcher.NewIdleDispatcher()
+	proxyApp.Consensus()
+	go idp.IdleDo()
 	// Make MempoolReactor
-	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger)
+	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger, idp)
 
 	// Make Evidence Reactor
 	evidenceReactor, evidencePool, err := createEvidenceReactor(config, dbProvider, stateDB, logger)
@@ -665,9 +673,10 @@ func NewNode(config *cfg.Config,
 	}
 
 	// Make ConsensusReactor
+	// pass dispatcher channel to deliver simulate tx task
 	consensusReactor, consensusState := createConsensusReactor(
 		config, state, blockExec, blockStore, deltasStore, watchStore, mempool, evidencePool,
-		privValidator, csMetrics, fastSync, eventBus, consensusLogger,
+		privValidator, csMetrics, fastSync, eventBus, consensusLogger, idp,
 	)
 
 	nodeInfo, err := makeNodeInfo(config, nodeKey, txIndexer, genDoc, state)

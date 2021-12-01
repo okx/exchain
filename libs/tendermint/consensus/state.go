@@ -3,11 +3,12 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -69,6 +70,12 @@ type txNotifier interface {
 	TxsAvailable() <-chan struct{}
 }
 
+// interface to idle dispatcher
+type criticalState interface {
+	EnterCriticalState()
+	LeaveCriticalState()
+}
+
 // interface to the evidence pool
 type evidencePool interface {
 	AddEvidence(types.Evidence) error
@@ -99,6 +106,8 @@ type State struct {
 
 	// notify us if txs are available
 	txNotifier txNotifier
+	// notify idle job
+	criticalState criticalState
 
 	// add evidence to the pool
 	// when it's detected
@@ -222,6 +231,10 @@ func (cs *State) SetEventBus(b *types.EventBus) {
 // StateMetrics sets the metrics.
 func StateMetrics(metrics *Metrics) StateOption {
 	return func(cs *State) { cs.metrics = metrics }
+}
+
+func StateCritical(criticalState criticalState) StateOption {
+	return func(cs *State) { cs.criticalState = criticalState }
 }
 
 // String returns a string.
@@ -1559,6 +1572,9 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 	}
 
+	// Add priority control for other gorutines use idle cpu
+	// e: run simulate runtxs when idle
+	cs.criticalState.EnterCriticalState()
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -1571,8 +1587,10 @@ func (cs *State) finalizeCommit(height int64) {
 		if err != nil {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
+		cs.criticalState.LeaveCriticalState()
 		return
 	}
+	cs.criticalState.LeaveCriticalState()
 
 	if deltaMode != types.NoDelta && deltas.Size() > 0 {
 		deltas.Height = block.Height

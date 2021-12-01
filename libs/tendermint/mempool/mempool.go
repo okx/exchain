@@ -3,6 +3,7 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
+
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -108,6 +109,8 @@ type PreCheckFunc func(types.Tx) error
 // transaction if false is returned. An example would be to ensure a
 // transaction doesn't require more gas than available for the block.
 type PostCheckFunc func(types.Tx, *abci.ResponseCheckTx) error
+
+type AddJobFunc func(job func())
 
 // TxInfo are parameters that get passed when attempting to add a tx to the
 // mempool.
