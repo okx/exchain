@@ -1538,14 +1538,11 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	var deltas *types.Deltas
-	var wd *types.WatchData
-	deltaMode := types.GetDeltaMode()
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
+
 	fastQuery := types.IsFastQuery()
-	if deltaMode != types.ConsumeDelta {
-		deltas = &types.Deltas{}
-		wd = &types.WatchData{}
-	} else {
+	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
 		if deltas == nil || deltas.Height != block.Height {
 			deltas = &types.Deltas{}
@@ -1573,7 +1570,7 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	if deltaMode != types.NoDelta && types.IsP2PDeltaEnabled() {
+	if types.EnableBroadcastP2PDelta() {
 		// persists the given deltas to the underlying db.
 		if deltas.Size() > 0 {
 			deltas.Height = block.Height

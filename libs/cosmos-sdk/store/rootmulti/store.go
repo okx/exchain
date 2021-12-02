@@ -840,9 +840,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	returnedDeltas := map[string]iavltree.TreeDelta{}
 
 	var err error
-	deltaMode := tmtypes.GetDeltaMode()
-
-	if deltaMode == tmtypes.ConsumeDelta && len(deltas) != 0 {
+	if tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta() && len(deltas) != 0 {
 		err = itjs.Unmarshal(deltas, &appliedDeltas)
 		if err != nil {
 			panic(err)
@@ -863,7 +861,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		returnedDeltas[key.Name()] = reDelta
 	}
 
-	if deltaMode != tmtypes.NoDelta {
+	if tmtypes.EnableBroadcastP2PDelta() || tmtypes.EnableUploadDelta() {
 		deltas, err = itjs.Marshal(returnedDeltas)
 		if err != nil {
 			panic(err)

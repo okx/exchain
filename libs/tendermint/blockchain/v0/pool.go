@@ -548,7 +548,7 @@ func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, wd *t
 	}
 	bpr.block = block
 
-	if types.GetDeltaMode() == types.ConsumeDelta {
+	if types.EnableApplyP2PDelta() || types.EnableDownloadDelta() {
 		bpr.deltas = deltas
 		if types.IsFastQuery() {
 			bpr.wd = wd

@@ -168,7 +168,7 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	block := bcR.store.LoadBlock(msg.Height)
 	deltas := &types.Deltas{}
 	wd := &types.WatchData{}
-	if types.IsP2PDeltaEnabled() {
+	if types.EnableBroadcastP2PDelta() {
 		deltas = bcR.dstore.LoadDeltas(msg.Height)
 		wd = bcR.wStore.LoadWatch(msg.Height)
 	}
@@ -321,13 +321,6 @@ FOR_LOOP:
 			}
 			bcR.Logger.Debug("Delta from requster", "len(deltas)", deltas.Size(), "height", first.Height)
 
-			deltaMode := types.GetDeltaMode()
-			bcR.Logger.Debug("deltaMode", "getFlagDelta", deltaMode, "ConsumeDelta", types.ConsumeDelta)
-			if deltaMode != types.ConsumeDelta {
-				deltas = &types.Deltas{}
-				wd = &types.WatchData{}
-			}
-
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
@@ -370,7 +363,7 @@ FOR_LOOP:
 				}
 				blocksSynced++
 
-				if deltaMode != types.NoDelta && types.IsP2PDeltaEnabled() {
+				if types.EnableBroadcastP2PDelta() {
 					// persists the given deltas to the underlying db.
 					if deltas.Size() > 0 {
 						deltas.Height = first.Height

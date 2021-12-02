@@ -16,13 +16,13 @@ func SetIgnoreVersionCheck(check bool) {
 	ignoreVersionCheck = check
 }
 
-func SetDeltaMode(dm string) {
-	deltaMode = dm
+func SetProduceDelta(pd bool) {
+	produceDelta = pd
 }
 
 var (
 	ignoreVersionCheck = false
-	deltaMode = "na"
+	produceDelta = false
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
@@ -584,7 +584,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			tree.ndb.SaveBranch(batch, tree.root, tree.savedNodes)
 		}
 		// generate state delta
-		if deltaMode != "na" {
+		if produceDelta {
 			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
 			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()

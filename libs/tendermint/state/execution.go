@@ -180,17 +180,20 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if deltas == nil {
 		deltas = &types.Deltas{}
 	}
-	deltaMode := types.GetDeltaMode()
+
 	fastQuery := types.IsFastQuery()
-	originDDS := types.EnableOriginDDS()
+	applyDelta := types.EnableApplyP2PDelta()
+	broadDelta := types.EnableBroadcastP2PDelta()
+	downloadDelta := types.EnableDownloadDelta()
+	uploadDelta := types.EnableUploadDelta()
 	batchOK := true
 	useDeltas := false
 
-	if deltaMode == types.ConsumeDelta {
+	if applyDelta || downloadDelta {
 		// only when it's consumer, can use deltas
 		if fastQuery {
 			if wd.Size() <= 0 {
-				if originDDS {
+				if downloadDelta {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
 					batchOK = GetCenterBatch(block.Height)
 				} else {
@@ -204,7 +207,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		if batchOK {
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() <= 0 && originDDS {
+			if deltas.Size() <= 0 && downloadDelta {
 				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
 					deltas = delta
 				}
@@ -216,9 +219,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			}
 		}
 	}
-
-	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
-		"FlagDelta", deltaMode, "originDDS", originDDS, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
@@ -237,7 +237,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		} else {
 			abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 		}
-		if deltaMode != types.NoDelta {
+		if broadDelta || uploadDelta {
 			bytes, err := types.Json.Marshal(abciResponses)
 			if err != nil {
 				panic(err)
@@ -323,9 +323,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	if types.EnableSendDDS() {
+	if types.EnableUploadDelta() {
 		go sendToDatacenter(blockExec.logger, block, deltas, wd)
 	}
+
+	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
+		"applyDelta", applyDelta, "downloadDelta", downloadDelta, "uploadDelta", uploadDelta, "broadDelta", broadDelta,
+		"fastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
 	return state, retainHeight, nil
 }

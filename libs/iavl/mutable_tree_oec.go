@@ -62,7 +62,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 
 		// generate state delta
-		if deltaMode != "na" {
+		if produceDelta {
 			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
 			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()

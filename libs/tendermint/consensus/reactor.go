@@ -588,7 +588,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		}
 		deltas := &types.Deltas{}
 		wd := &types.WatchData{}
-		if types.GetDeltaMode() != types.NoDelta && types.IsP2PDeltaEnabled() {
+		if types.EnableBroadcastP2PDelta() {
 			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
 			if deltas == nil || deltas.Height != prs.Height {
 				deltas = &types.Deltas{}

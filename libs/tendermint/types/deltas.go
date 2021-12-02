@@ -7,65 +7,43 @@ import (
 )
 
 const (
-	// for getting flag of delta-mode
-	FlagStateDelta = "state-sync-mode"
-
-	// delta-mode
-	// state-delta mode
-	// na:not available. same as no FlagStateDelta
-	// producer. product delta
-	// consumer. consume delta; if get no delta, do as producer
-	NoDelta      = "na"
-	ProductDelta = "producer"
-	ConsumeDelta = "consumer"
-
-	// p2p-delta
-	// the switch of delta to p2p
-	// true: save into deltastore.db, and add delta into bcBlockResponseMessage
-	FlagP2PDelta = "send-p2p-delta"
+	// use delta from bcBlockResponseMessage or not
+	FlagApplyP2PDelta = "apply-p2p-delta"
+	// save into deltastore.db, and add delta into bcBlockResponseMessage
+	FlagBroadcastP2PDelta = "broadcast-delta"
+	// get delta from dc/redis
+	FlagDownloadDDS = "download-delta"
+	// send delta to dc/redis
+	FlagUploadDDS = "upload-delta"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
 	DataCenterUrl  = "data-center-url"
-	DataCenterStr  = "dataCenter"
-
-	// origin direct delta
-	// get delta from dc/redis
-	FlagOriginDDS = "origin-direct-delta"
-
-	// send direct delta
-	// send delta to dc/redis
-	FlagSendDDS = "send-direct-delta"
 
 	// fast-query
 	FlagFastQuery = "fast-query"
 )
 
 var (
-	deltaMode = NoDelta
 	fastQuery = false
-	p2pDelta = false
-	originDDS = false
-	sendDDS = false
 	centerMode = false
 	centerUrl = "127.0.0.1:8030"
 
-	onceDeltaMode     sync.Once
+	applyP2PDelta = false
+	broadcatP2PDelta = false
+	downloadDelta = false
+	uploadDelta = false
+
 	onceFastQuery	sync.Once
-	onceP2PDelta	sync.Once
-	onceOriginDDS	sync.Once
-	onceSendDDS		sync.Once
 	onceCenterMode	sync.Once
 	onceCenterUrl	sync.Once
+
+	onceApplyP2P sync.Once
+	onceBroadcastP2P sync.Once
+	onceDownload sync.Once
+	onceUpload sync.Once
 )
 
-func GetDeltaMode() string {
-	onceDeltaMode.Do(func() {
-		deltaMode = viper.GetString(FlagStateDelta)
-		iavl.SetDeltaMode(deltaMode)
-	})
-	return deltaMode
-}
 
 func IsFastQuery() bool {
 	onceFastQuery.Do(func() {
@@ -74,25 +52,34 @@ func IsFastQuery() bool {
 	return fastQuery
 }
 
-func IsP2PDeltaEnabled() bool {
-	onceP2PDelta.Do(func() {
-		p2pDelta = viper.GetBool(FlagP2PDelta)
+func EnableApplyP2PDelta() bool {
+	onceApplyP2P.Do(func() {
+		applyP2PDelta = viper.GetBool(FlagApplyP2PDelta)
 	})
-	return p2pDelta
+	return applyP2PDelta
 }
 
-func EnableOriginDDS() bool {
-	onceOriginDDS.Do(func() {
-		originDDS = viper.GetBool(FlagOriginDDS)
+func EnableBroadcastP2PDelta() bool {
+	onceBroadcastP2P.Do(func() {
+		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
+		iavl.SetProduceDelta(true)
 	})
-	return originDDS
+	return broadcatP2PDelta
 }
 
-func EnableSendDDS() bool {
-	onceSendDDS.Do(func() {
-		sendDDS = viper.GetBool(FlagSendDDS)
+func EnableDownloadDelta() bool {
+	onceDownload.Do(func() {
+		downloadDelta = viper.GetBool(FlagDownloadDDS)
 	})
-	return sendDDS
+	return downloadDelta
+}
+
+func EnableUploadDelta() bool {
+	onceUpload.Do(func() {
+		uploadDelta = viper.GetBool(FlagUploadDDS)
+		iavl.SetProduceDelta(true)
+	})
+	return uploadDelta
 }
 
 func IsCenterEnabled() bool {
