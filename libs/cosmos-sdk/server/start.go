@@ -147,8 +147,8 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().String(tmtypes.FlagStateDelta, tmtypes.NoDelta, "sync through state delta")
 	cmd.Flags().Bool(tmtypes.FlagP2PDelta, false, "transfer delta in p2p or not")
-	cmd.Flags().Bool(tmtypes.EnableOriginDDS, false, "get delta from dc/redis or not")
-	cmd.Flags().Bool(tmtypes.EnableSendDDS, false, "send delta to dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagOriginDDS, false, "get delta from dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagSendDDS, false, "send delta to dc/redis or not")
 	cmd.Flags().Bool(tmtypes.FlagDataCenter, false, "Use data-center-mode or not")
 	cmd.Flags().String(tmtypes.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
 
