@@ -10,6 +10,7 @@ import (
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/iavl"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
+	idp "github.com/okex/exchain/libs/tendermint/libs/dispatcher"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -58,6 +59,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
+	viper.SetDefault(idp.FlagIdleSimulateTx, false)
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything"))

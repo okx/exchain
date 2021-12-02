@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -14,7 +16,12 @@ const (
 	JOB_DONE
 )
 
+var (
+	FlagIdleSimulateTx = "idle-simulate-tx"
+)
+
 type IdleDispatcher struct {
+	enable bool
 	chJobs chan func()
 	isIdle bool
 	cond   *sync.Cond
@@ -24,13 +31,14 @@ type IdleDispatcher struct {
 }
 
 func NewIdleDispatcher() *IdleDispatcher {
-
+	enableIdleSimulateTx := viper.GetBool(FlagIdleSimulateTx)
 	idp := &IdleDispatcher{
 		isIdle:    false,
 		cond:      sync.NewCond(&sync.Mutex{}),
 		chJobs:    make(chan func()),
 		chJobDone: make(chan struct{}, 1),
 		jobStatus: JOB_DONE,
+		enable:    enableIdleSimulateTx,
 	}
 	//start
 	idp.chJobDone <- struct{}{}
@@ -39,32 +47,52 @@ func NewIdleDispatcher() *IdleDispatcher {
 }
 
 func (idp *IdleDispatcher) EnterCriticalState() {
+	if !idp.enable {
+		return
+	}
 	idp.cond.L.Lock()
 	defer idp.cond.L.Unlock()
 	idp.isIdle = false
 	idp.cond.Broadcast()
+
 }
 
 func (idp *IdleDispatcher) LeaveCriticalState() {
+	if !idp.enable {
+		return
+	}
 	idp.cond.L.Lock()
 	defer idp.cond.L.Unlock()
 	idp.isIdle = true
 	idp.cond.Broadcast()
+
 }
 
 func (idp *IdleDispatcher) AddJob(job func()) {
+	if !idp.enable {
+		return
+	}
 	idp.chJobs <- job
 }
 
 func (idp *IdleDispatcher) JobDoneChan() chan struct{} {
+	if !idp.enable {
+		return nil
+	}
 	return idp.chJobDone
 }
 
 func (idp *IdleDispatcher) JobChan() chan func() {
+	if !idp.enable {
+		return nil
+	}
 	return idp.chJobs
 }
 
 func (idp *IdleDispatcher) IdleDo() {
+	if !idp.enable {
+		return
+	}
 	for {
 		func() {
 			idp.cond.L.Lock()
@@ -99,4 +127,5 @@ func (idp *IdleDispatcher) IdleDo() {
 			}()
 		}()
 	}
+
 }

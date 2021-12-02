@@ -19,6 +19,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	idp "github.com/okex/exchain/libs/tendermint/libs/dispatcher"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -156,6 +157,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
+	cmd.Flags().Bool(idp.FlagIdleSimulateTx, false, "Enable idle simulate tx")
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
