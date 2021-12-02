@@ -172,6 +172,7 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 		deltas = bcR.dstore.LoadDeltas(msg.Height)
 		wd = bcR.wStore.LoadWatch(msg.Height)
 	}
+
 	if block != nil {
 		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas, WatchData: wd})
 		return src.TrySend(BlockchainChannel, msgBytes)

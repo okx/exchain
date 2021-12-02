@@ -43,6 +43,7 @@ type Watcher struct {
 
 var (
 	watcherEnable  = false
+	centerEnable   = false
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
@@ -53,6 +54,13 @@ func IsWatcherEnabled() bool {
 		watcherEnable = viper.GetBool(FlagFastQuery)
 	})
 	return watcherEnable
+}
+
+func IsCenterEnabled() bool {
+	onceEnable.Do(func() {
+		centerEnable = viper.GetBool(tmtypes.FlagDataCenter)
+	})
+	return centerEnable
 }
 
 func GetWatchLruSize() int {

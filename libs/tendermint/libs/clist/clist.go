@@ -393,7 +393,7 @@ func (l *CList) PushBack(v interface{}) *CElement {
 func (l *CList) Remove(e *CElement) interface{} {
 	l.mtx.Lock()
 	if e.removed {
-		e.mtx.Unlock()
+		l.mtx.Unlock()
 		return e.Value
 	}
 	prev := e.Prev()
@@ -477,6 +477,8 @@ func (l *CList) InsertElement(ele *CElement) *CElement {
 			if ele.Nonce < cur.Nonce {
 				// small Nonce put ahead
 				cur = cur.prev
+			} else if ele.Nonce == cur.Nonce {
+				panic(fmt.Sprintf("should not happen: insert same nonce transactions, ele=%+v,cur=%+v", ele, cur))
 			} else {
 				// The tx of the same Nonce has been processed in checkElement, and there are only cases of big nonce
 				// Big Nonce’s transaction, regardless of gasPrice, has to be in the back

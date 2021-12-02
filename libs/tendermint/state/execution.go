@@ -357,7 +357,6 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 	if err != nil {
 		return
 	}
-
 	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)

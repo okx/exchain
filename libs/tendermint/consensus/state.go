@@ -1540,7 +1540,6 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 	deltas := &types.Deltas{}
 	wd := &types.WatchData{}
-
 	fastQuery := types.IsFastQuery()
 	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
