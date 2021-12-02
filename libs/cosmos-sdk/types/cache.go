@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -95,10 +94,8 @@ func (c *Cache) skip() bool {
 
 func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
 	if c.skip() {
-		fmt.Println("return ")
 		return
 	}
-	fmt.Printf("not return")
 
 	if _, ok := c.storageMap[addr]; !ok {
 		c.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
@@ -121,11 +118,11 @@ func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
 }
 
 func (c *Cache) GetCode(key []byte) ([]byte, bool) {
-	hash := ethcmn.BytesToHash(key)
 	if c.skip() {
 		return nil, false
 	}
 
+	hash := ethcmn.BytesToHash(key)
 	if data, ok := c.codeMap[hash]; ok {
 		return data.code, ok
 	}
@@ -195,6 +192,19 @@ func (c *Cache) Write(updateDirty bool) {
 	c.writeCode(updateDirty)
 }
 
+func needUpdate(updateDirty bool, isDirty bool) bool {
+	//Read-Only Data
+	if !isDirty {
+		return true
+	}
+
+	// Dirty Data
+	if updateDirty {
+		return true
+	}
+	return false
+}
+
 func (c *Cache) writeStorage(updateDirty bool) {
 	for addr, storages := range c.storageMap {
 		if _, ok := c.parent.storageMap[addr]; !ok {
@@ -202,7 +212,7 @@ func (c *Cache) writeStorage(updateDirty bool) {
 		}
 
 		for key, v := range storages {
-			if !v.dirty || (updateDirty && v.dirty) {
+			if needUpdate(updateDirty, v.dirty) {
 				c.parent.storageMap[addr][key] = v
 			}
 		}
@@ -212,7 +222,7 @@ func (c *Cache) writeStorage(updateDirty bool) {
 
 func (c *Cache) writeAcc(updateDirty bool) {
 	for addr, v := range c.accMap {
-		if !v.isDirty || (updateDirty && v.isDirty) {
+		if needUpdate(updateDirty, v.isDirty) {
 			c.parent.accMap[addr] = v
 		}
 	}
@@ -220,14 +230,17 @@ func (c *Cache) writeAcc(updateDirty bool) {
 }
 func (c *Cache) writeCode(updateDirty bool) {
 	for hash, v := range c.codeMap {
-		if !v.isDirty || (updateDirty && v.isDirty) {
+		if needUpdate(updateDirty, v.isDirty) {
 			c.parent.codeMap[hash] = v
 		}
 	}
 	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
 }
 
-func (c *Cache) Delete(logger log.Logger, height int64) {
+func (c *Cache) TryDelete(logger log.Logger, height int64) {
+	if c.skip() {
+		return
+	}
 	if height%1000 == 0 {
 		logger.Info("MultiCache:info", "len(acc)", len(c.accMap), "len(storage)", len(c.storageMap))
 	}

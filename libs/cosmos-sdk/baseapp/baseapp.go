@@ -696,6 +696,11 @@ func useCache(mode runTxMode) bool {
 	return false
 }
 
+func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
+	ctx.Cache().Write(true)
+	cache.Write()
+}
+
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted
@@ -775,6 +780,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			result = nil
 		}
 
+		// update read-only data while tx failed
+		ctx.Cache().Write(false)
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 
 	}()
@@ -816,8 +823,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			if err != nil {
 				panic(err)
 			}
-			ctx.Cache().Write(true)
-			msCache.Write()
+			writeCache(msCache, ctx)
 			if mode == runTxModeDeliverInAsync {
 				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
@@ -869,13 +875,11 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		}
 
 		if err != nil {
-			ctx.Cache().Write(false)
 			return gInfo, nil, nil, err
 		}
 
 		if mode != runTxModeDeliverInAsync {
-			ctx.Cache().Write(true)
-			msCacheAnte.Write()
+			writeCache(msCacheAnte, ctx)
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -899,10 +903,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
-		ctx.Cache().Write(true)
-		msCache.Write()
-	} else {
-		ctx.Cache().Write(false)
+		writeCache(msCache, ctx)
 	}
 
 	runMsgFinish = true
