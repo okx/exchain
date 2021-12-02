@@ -521,7 +521,7 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 	pruneHeights := []int64{1, 2, 4, 5, 7}
 
 	// ensure we've persisted the current batch of heights to prune to the store's DB
-	ph, err := getPruningHeights(ms.db)
+	ph, err := getPruningHeights(ms.db, true)
 	require.NoError(t, err)
 	require.Equal(t, pruneHeights, ph)
 
