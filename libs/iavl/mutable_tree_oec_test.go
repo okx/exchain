@@ -342,7 +342,7 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 
 	for i := 0; i < 10000; i++ {
 		tree.Set(k2, randBytes(i%64+1))
-		_, _, _, err := tree.SaveVersion(false)
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 

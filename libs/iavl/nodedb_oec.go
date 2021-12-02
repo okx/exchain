@@ -68,9 +68,13 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 	for ndb.heightOrphansCacheQueue.Len() > ndb.heightOrphansCacheSize {
 		orphans := ndb.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
-		for i, node := range oldHeightOrphanItem.orphans {
+		for _, node := range oldHeightOrphanItem.orphans {
+			hash := string(node.hash)
 			delete(ndb.orphanNodeCache, string(node.hash))
-			SetNodeToPool(oldHeightOrphanItem.orphans[i])
+			node, ok := ndb.orphanNodeCache[hash]
+			if ok {
+				SetNodeToPool(node)
+			}
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
