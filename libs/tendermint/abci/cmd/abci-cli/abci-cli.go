@@ -577,7 +577,7 @@ func cmdCheckTx(cmd *cobra.Command, args []string) error {
 
 // Get application Merkle root hash
 func cmdCommit(cmd *cobra.Command, args []string) error {
-	res, err := client.CommitSync()
+	res, err := client.CommitSync(types.RequestCommit{})
 	if err != nil {
 		return err
 	}

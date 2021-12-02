@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"container/list"
+	"encoding/hex"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -295,16 +296,16 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
 
-func (ndb *nodeDB) updateBranch(node *Node) []byte {
+func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte {
 	if node.persisted || node.prePersisted {
 		return node.hash
 	}
 
 	if node.leftNode != nil {
-		node.leftHash = ndb.updateBranch(node.leftNode)
+		node.leftHash = ndb.updateBranch(node.leftNode, savedNodes)
 	}
 	if node.rightNode != nil {
-		node.rightHash = ndb.updateBranch(node.rightNode)
+		node.rightHash = ndb.updateBranch(node.rightNode, savedNodes)
 	}
 
 	node._hash()
@@ -312,6 +313,10 @@ func (ndb *nodeDB) updateBranch(node *Node) []byte {
 
 	node.leftNode = nil
 	node.rightNode = nil
+
+	// TODO: handle magic number
+	savedNodes[hex.EncodeToString(node.hash)] = node
+
 	return node.hash
 }
 

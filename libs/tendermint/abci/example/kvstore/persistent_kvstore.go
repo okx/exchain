@@ -85,8 +85,8 @@ func (app *PersistentKVStoreApplication) CheckTx(req types.RequestCheckTx) types
 }
 
 // Commit will panic if InitChain was not called
-func (app *PersistentKVStoreApplication) Commit() types.ResponseCommit {
-	return app.app.Commit()
+func (app *PersistentKVStoreApplication) Commit(req types.RequestCommit) types.ResponseCommit {
+	return app.app.Commit(req)
 }
 
 // When path=/val and data={validator address}, returns the validator update (types.ValidatorUpdate) varint encoded.

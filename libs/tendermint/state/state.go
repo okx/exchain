@@ -17,6 +17,14 @@ var (
 )
 
 //-----------------------------------------------------------------------------
+// function for exchain get watchDB batch
+var (
+	GetCenterBatch func(int64) bool
+	GetWatchData func() *types.WatchData
+	UseWatchData func(data *types.WatchData)
+)
+
+//-----------------------------------------------------------------------------
 
 // Version is for versioning the State.
 // It holds the Block and App version needed for making blocks,
