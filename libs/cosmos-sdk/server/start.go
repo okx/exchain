@@ -170,7 +170,7 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
-	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Use multi cache")
+	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Multi cache")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.

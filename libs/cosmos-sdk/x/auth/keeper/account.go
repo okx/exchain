@@ -48,7 +48,6 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 
 	store := ctx.KVStore(ak.key)
 	bz := store.Get(types.AddressStoreKey(addr))
-
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
@@ -96,7 +95,6 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
 	store.Delete(types.AddressStoreKey(addr))
-
 	ctx.Cache().UpdateAccount(addr, nil, 0, true)
 }
 

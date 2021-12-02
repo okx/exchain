@@ -150,7 +150,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			res = app.beginBlocker(app.deliverState.ctx, req)
 		}
 	}
-	app.deliverState.ctx.Cache().Write(true)
 
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
@@ -303,7 +302,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		req.Deltas = &abci.Deltas{}
 	}
 	app.blockCache.Write(true)
-	app.chainCache.Delete(app.logger, app.deliverState.ctx.BlockHeight())
+	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
