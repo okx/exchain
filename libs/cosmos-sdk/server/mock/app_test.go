@@ -30,7 +30,7 @@ func TestInitApp(t *testing.T) {
 		AppStateBytes: appState,
 	}
 	app.InitChain(req)
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	// make sure we can query these values
 	query := abci.RequestQuery{
@@ -65,7 +65,7 @@ func TestDeliverTx(t *testing.T) {
 	dres := app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes})
 	require.Equal(t, uint32(0), dres.Code, dres.Log)
 	app.EndBlock(abci.RequestEndBlock{})
-	cres := app.Commit()
+	cres := app.Commit(abci.RequestCommit{})
 	require.NotEmpty(t, cres.Data)
 
 	// make sure we can query these values

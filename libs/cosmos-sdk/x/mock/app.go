@@ -202,7 +202,7 @@ func SetGenesis(app *App, accs []authexported.Account) {
 	app.GenesisAccounts = accs
 
 	app.InitChain(abci.RequestInitChain{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 }
 
 // GenTx generates a signed mock transaction.

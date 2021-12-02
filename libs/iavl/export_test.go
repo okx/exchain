@@ -22,21 +22,21 @@ func setupExportTreeBasic(t require.TestingT) *ImmutableTree {
 	tree.Set([]byte("a"), []byte{1})
 	tree.Set([]byte("b"), []byte{2})
 	tree.Set([]byte("c"), []byte{3})
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	tree.Remove([]byte("x"))
 	tree.Remove([]byte("b"))
 	tree.Set([]byte("c"), []byte{255})
 	tree.Set([]byte("d"), []byte{4})
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	tree.Set([]byte("b"), []byte{2})
 	tree.Set([]byte("c"), []byte{3})
 	tree.Set([]byte("e"), []byte{5})
 	tree.Remove([]byte("z"))
-	_, version, err := tree.SaveVersion()
+	_, version, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	itree, err := tree.GetImmutable(version)
@@ -94,7 +94,7 @@ func setupExportTreeRandom(t *testing.T) *ImmutableTree {
 				keys = append(keys, key)
 			}
 		}
-		_, version, err = tree.SaveVersion()
+		_, version, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -130,7 +130,7 @@ func setupExportTreeSized(t require.TestingT, treeSize int) *ImmutableTree {
 		}
 	}
 
-	_, version, err := tree.SaveVersion()
+	_, version, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	itree, err := tree.GetImmutable(version)
@@ -248,15 +248,15 @@ func TestExporter_DeleteVersionErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{1})
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	tree.Set([]byte("b"), []byte{2})
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	tree.Set([]byte("c"), []byte{3})
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	itree, err := tree.GetImmutable(2)

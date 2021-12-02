@@ -70,7 +70,7 @@ func SetupWithGenesisAccounts(genAccs []authexported.GenesisAccount) *SimApp {
 		},
 	)
 
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: app.LastBlockHeight() + 1}})
 
 	return app
@@ -154,7 +154,7 @@ func SignCheckDeliver(
 	}
 
 	app.EndBlock(abci.RequestEndBlock{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	return gInfo, res, err
 }

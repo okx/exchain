@@ -91,7 +91,7 @@ func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx 
 	return types.ResponseCheckTx{Code: code.CodeTypeOK, Data: data}
 }
 
-func (app *Application) Commit() (resp types.ResponseCommit) {
+func (app *Application) Commit(req types.RequestCommit) types.ResponseCommit {
 	app.hashCount++
 	if app.txCount == 0 {
 		return types.ResponseCommit{}
