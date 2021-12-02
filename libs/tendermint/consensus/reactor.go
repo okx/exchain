@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"reflect"
 	"sync"
 	"time"
@@ -26,7 +27,8 @@ const (
 	VoteChannel        = byte(0x22)
 	VoteSetBitsChannel = byte(0x23)
 
-	maxMsgSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
+	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
+	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
@@ -585,11 +587,24 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 			return
 		}
+		var deltas *types.Deltas
+		var wd *types.WatchData
+		if viper.GetString(types.FlagStateDelta) != types.NoDelta {
+			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
+			if deltas == nil || deltas.Height != prs.Height {
+				deltas = &types.Deltas{}
+			}
+			if viper.GetBool(types.FlagFastQuery) {
+				wd = conR.conS.watchStore.LoadWatch(prs.Height)
+			}
+		}
 		// Send the part
 		msg := &BlockPartMessage{
 			Height: prs.Height, // Not our height, so it doesn't matter.
 			Round:  prs.Round,  // Not our height, so it doesn't matter.
 			Part:   part,
+			Deltas: deltas,
+			WatchData: wd,
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
@@ -1547,9 +1562,11 @@ func (m *ProposalPOLMessage) String() string {
 
 // BlockPartMessage is sent when gossipping a piece of the proposed block.
 type BlockPartMessage struct {
-	Height int64
-	Round  int
-	Part   *types.Part
+	Height    int64
+	Round     int
+	Part      *types.Part
+	Deltas    *types.Deltas
+	WatchData *types.WatchData
 }
 
 // ValidateBasic performs basic validation.

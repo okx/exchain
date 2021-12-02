@@ -11,14 +11,14 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 var (
@@ -60,6 +60,27 @@ type MsgEthTx struct {
 
 func (m MsgEthTx) GetType() uint32 {
 	return TypeOthers
+}
+
+type Batch struct {
+	Key       []byte `json:"key"`
+	Value     []byte `json:"value"`
+	TypeValue uint32 `json:"type_value"`
+}
+
+type WatchData struct {
+	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
+	Batches       []*Batch          `json:"batches"`
+	DelayEraseKey [][]byte          `json:"delay_erase_key"`
+	BloomData     []*types.KV       `json:"bloom_data"`
+	DirtyList     [][]byte          `json:"dirty_list"`
+}
+
+func (w *WatchData) Size() int {
+	if w == nil {
+		return 0
+	}
+	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {

@@ -62,3 +62,23 @@ func TestABCIMessageLogJson(t *testing.T) {
 		t.Log(fmt.Sprintf("%d passed", i))
 	}
 }
+
+func BenchmarkABCIMessageLogJson(b *testing.B) {
+	events := Events{NewEvent("transfer", NewAttribute("sender", "foo")), NewEvent("type", NewAttribute("key", "value"), NewAttribute("", ""))}
+	msgLogs := ABCIMessageLogs{NewABCIMessageLog(1000, "test log", events)}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = codec.Cdc.MarshalJSON(msgLogs)
+		}
+	})
+
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = msgLogs.MarshalToJson()
+		}
+	})
+}

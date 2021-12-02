@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"reflect"
 	"time"
 
@@ -56,6 +57,7 @@ type BlockchainReactor struct {
 
 	blockExec *sm.BlockExecutor
 	store     *store.BlockStore
+	dstore    *store.DeltaStore
 
 	fastSync bool
 
@@ -77,7 +79,7 @@ type BlockchainReactor struct {
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore,
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
 	fastSync bool) *BlockchainReactor {
 
 	if state.LastBlockHeight != store.Height() {
@@ -97,6 +99,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		blockExec:        blockExec,
 		fastSync:         fastSync,
 		store:            store,
+		dstore:           dstore,
 		messagesForFSMCh: messagesForFSMCh,
 		eventsFromFSMCh:  eventsFromFSMCh,
 		errorsForFSMCh:   errorsForFSMCh,
@@ -187,8 +190,12 @@ func (bcR *BlockchainReactor) sendBlockToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
+	deltas := bcR.dstore.LoadDeltas(msg.Height)
+	if deltas == nil || deltas.Height != msg.Height {
+		deltas = &types.Deltas{}
+	}
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -257,6 +264,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 				peerID: src.ID(),
 				height: msg.Block.Height,
 				block:  msg.Block,
+				deltas: msg.Deltas,
 				length: len(msgBytes),
 			},
 		}
@@ -412,10 +420,17 @@ func (bcR *BlockchainReactor) reportPeerErrorToSwitch(err error, peerID p2p.ID) 
 
 func (bcR *BlockchainReactor) processBlock() error {
 
-	first, second, err := bcR.fsm.FirstTwoBlocks()
+	first, second, deltas, err := bcR.fsm.FirstTwoBlocks()
 	if err != nil {
 		// We need both to sync the first block.
 		return err
+	}
+	if deltas == nil {
+		deltas = &types.Deltas{}
+	}
+	deltaMode := viper.GetString(types.FlagStateDelta)
+	if deltaMode != types.ConsumeDelta {
+		deltas = &types.Deltas{}
 	}
 
 	chainID := bcR.initialState.ChainID
@@ -436,9 +451,14 @@ func (bcR *BlockchainReactor) processBlock() error {
 
 	bcR.store.SaveBlock(first, firstParts, second.LastCommit)
 
-	bcR.state, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first)
+	bcR.state, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first, deltas, nil)
 	if err != nil {
 		panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
+	}
+
+	if deltaMode != types.NoDelta && len(deltas.DeltasBytes) > 0 {
+		deltas.Height = first.Height
+		bcR.dstore.SaveDeltas(deltas, first.Height)
 	}
 
 	return nil
@@ -583,7 +603,8 @@ func (m *bcNoBlockResponseMessage) String() string {
 //-------------------------------------
 
 type bcBlockResponseMessage struct {
-	Block *types.Block
+	Block  *types.Block
+	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

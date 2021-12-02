@@ -5,7 +5,6 @@ import (
 	"github.com/stretchr/testify/require"
 	db "github.com/tendermint/tm-db"
 	"math/rand"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -56,7 +55,7 @@ func TestSaveVersion(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	oldVersion := tree.version
 	tree.Set([]byte(k1), []byte(modifiedValue))
@@ -65,7 +64,7 @@ func TestSaveVersion(t *testing.T) {
 	tree.Remove([]byte(k1))
 	delete(modifiedData, k1)
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	oldTree, err := tree.GetImmutable(oldVersion)
@@ -77,11 +76,11 @@ func TestSaveVersion(t *testing.T) {
 	testTree(modifiedData, newTree)
 
 	for i := 0; i < 10; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 	for i := 0; i < 200; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 		for j := 0; j < 8; j++ {
 			tree, err := tree.GetImmutable(tree.version - int64(j))
@@ -101,28 +100,28 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	}()
 	tree := newTestTree(t, false, 10000, "test")
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.Set([]byte(k2), []byte("k22"))
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 
 	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache)+len(tree.ndb.nodeCache))
 	require.Equal(t, 3, len(tree.ndb.orphanNodeCache))
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.NoError(t, err)
 	for i := 0; i < 96; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(tree.ndb.prePersistNodeCache))
 	require.Equal(t, 0, len(tree.ndb.orphanNodeCache))
@@ -130,11 +129,11 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	//require.Equal(t, 5, len(tree.ndb.nodeCache)+len(tree.ndb.tempPrePersistNodeCache))
 	tree.Set([]byte("k5"), []byte("5555555555"))
 	for i := 0; i < 98; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 }
@@ -163,7 +162,7 @@ func TestConcurrentGetNode(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	wg := sync.WaitGroup{}
 	const num = 50
@@ -200,7 +199,7 @@ func TestConcurrentGetNode(t *testing.T) {
 			tree.Set([]byte(key), []byte(value))
 
 		}
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 
 	}
@@ -218,16 +217,16 @@ func TestShareNode(t *testing.T) {
 
 	tree := newTestTree(t, false, 10000, "test")
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, oldVersion, err := tree.SaveVersion()
+	_, oldVersion, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.Set([]byte(k2), []byte("k2new"))
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 
 	oldTree, err := tree.GetImmutable(oldVersion)
 	require.NoError(t, err)
@@ -239,7 +238,7 @@ func TestShareNode(t *testing.T) {
 	require.Equal(t, oldK1Node, nodeDBK1Node)
 
 	for i := 0; i < 10; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 	oldK1Node = oldTree.root.getLeftNode(oldTree)
@@ -273,14 +272,14 @@ func TestPruningHistoryState(t *testing.T) {
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	batchSaveVersion(t, tree, int(CommitIntervalHeight))
 
 	v2New := []byte("v22")
 	tree.Set(k2, v2New)
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	batchSaveVersion(t, tree, minHistoryStateNum * int(CommitIntervalHeight) - 2)
@@ -312,7 +311,7 @@ func TestPruningHistoryState(t *testing.T) {
 
 func batchSaveVersion(t *testing.T, tree *MutableTree, n int) {
 	for i := 0; i < n; i++ {
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 }
@@ -341,12 +340,12 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	keys, _ := initSetTree(tree)
 	k1, k2, k3 := keys[0], keys[1], keys[2]
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {
 		tree.Set(k2, randBytes(i % 64 + 1))
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -369,7 +368,7 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 		tree.Set(k1, randBytes(i % 64 + 1))
 		tree.Set(k2, randBytes(i % 64 + 1))
 		tree.Set(k3, randBytes(i % 64 + 1))
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -411,7 +410,7 @@ func TestConcurrentQuery(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	const num = 1000000
 	queryEnd := false
@@ -447,7 +446,7 @@ func TestConcurrentQuery(t *testing.T) {
 				originData[key] = value
 				tree.Set([]byte(key), []byte(value))
 			}
-			_, _, err = tree.SaveVersion()
+			_, _, _, err = tree.SaveVersion(false)
 			require.NoError(t, err)
 			if queryEnd {
 				break
@@ -468,7 +467,7 @@ func TestStopTree(t *testing.T) {
 	tree := newTestTree(t, false, 10000, "test")
 	initSetTree(tree)
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.StopTree()
 	require.Equal(t, 5, len(tree.ndb.nodeCache))
@@ -531,7 +530,7 @@ func TestCommitSchedule(t *testing.T) {
 	initSetTree(tree)
 
 	for i:=0; i < int(CommitIntervalHeight); i++ {
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -543,208 +542,4 @@ func TestCommitSchedule(t *testing.T) {
 
 	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, &wg, 0}
 	wg.Wait()
-}
-
-var dbDir = "testdata"
-func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
-	moduleName := "test"
-	dir := dbDir
-	if openLogFlag {
-		openLog(moduleName)
-	}
-	ldb, err := db.NewGoLevelDB(dbName, dir)
-	memDB := db.NewPrefixDB(ldb, []byte(moduleName))
-	tree, err := NewMutableTree(memDB, 0)
-	require.NoError(b, err)
-
-	fmt.Printf("init setting test %d data to MutableTree\n", size)
-	dataSet := make(map[string]string)
-	keySet := make([]string, 0, size)
-	for i:=0;i<size;i++ {
-		key := randstr(32)
-		value := randstr(100)
-		dataSet[key] = string(value)
-		keySet = append(keySet, key)
-		tree.Set([]byte(key), []byte(value))
-	}
-	//recursivePrint(tree.root, 0)
-
-	tree.SaveVersion()
-	tree.commitCh <- commitEvent{-1, nil,nil, nil, nil, 0}
-	fmt.Println("init setting done")
-	return tree, keySet, dataSet
-}
-
-func benchmarkTreeRead(b *testing.B, tree *MutableTree, keySet []string, readNum int) {
-	fmt.Println("benchmark testing")
-	t1 := time.Now()
-	for i:=0;i<readNum;i++ {
-		idx := rand.Int()%len(keySet)
-		key := keySet[idx]
-		_, v :=tree.Get([]byte(key))
-		require.NotNil(b, v)
-	}
-	duration := time.Since(t1)
-	fmt.Println("time:", duration.String())
-}
-
-func clearDB(dbName string) {
-	path := dbDir + "/" + dbName + ".db"
-	fmt.Println("clear db", path)
-	err := os.RemoveAll(path)
-	if err != nil {
-		fmt.Println(err)
-	}
-	treeMap.mutableTreeList = nil
-	treeMap.mutableTreeSavedMap = make(map[string]bool)
-}
-
-
-func BenchmarkMutableTree_Get(b *testing.B) {
-	EnableAsyncCommit = true
-	EnablePruningHistoryState = true
-	CommitIntervalHeight = 1
-	defer func() {
-		EnableAsyncCommit = false
-		EnablePruningHistoryState = false
-		CommitIntervalHeight = 100
-	}()
-	testCases := []struct {
-		dbName string
-		openLog bool
-		initDataSize int
-		readNum int
-	}{
-		{
-			dbName: "13-test",
-			openLog: true,
-			initDataSize: 130000,
-			readNum: 100000,
-		},
-		{
-			dbName: "10-test",
-			openLog: true,
-			initDataSize: 100000,
-			readNum: 100000,
-		},
-		{
-			dbName: "8-test",
-			openLog: true,
-			initDataSize: 80000,
-			readNum: 100000,
-		},
-		{
-			dbName: "5-test",
-			openLog: true,
-			initDataSize: 50000,
-			readNum: 100000,
-		},
-		{
-			dbName: "3-test",
-			openLog: true,
-			initDataSize: 30000,
-			readNum: 100000,
-		},
-	}
-	for i, testCase := range testCases {
-		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
-		clearDB(testCase.dbName)
-		fmt.Println()
-	}
-}
-
-
-func BenchmarkMutableTree_Get2(b *testing.B) {
-	EnableAsyncCommit = true
-	EnablePruningHistoryState = true
-	CommitIntervalHeight = 1
-	defer func() {
-		EnableAsyncCommit = false
-		EnablePruningHistoryState = false
-		CommitIntervalHeight = 100
-	}()
-	testCases := []struct {
-		dbName string
-		openLog bool
-		initDataSize int
-		readNum int
-	}{
-		{
-			dbName: "16-test",
-			openLog: true,
-			initDataSize: 16,
-			readNum: 100000,
-		},
-		{
-			dbName: "256-test",
-			openLog: true,
-			initDataSize: 256,
-			readNum: 100000,
-		},
-		{
-			dbName: "4096-test",
-			openLog: true,
-			initDataSize: 4096,
-			readNum: 100000,
-		},
-		{
-			dbName: "65536-test",
-			openLog: true,
-			initDataSize: 65536,
-			readNum: 100000,
-		},
-	}
-	for i, testCase := range testCases {
-		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
-		clearDB(testCase.dbName)
-		fmt.Println()
-	}
-}
-
-
-func BenchmarkMutableTree_Get3(b *testing.B) {
-	EnableAsyncCommit = true
-	EnablePruningHistoryState = true
-	CommitIntervalHeight = 1
-	defer func() {
-		EnableAsyncCommit = false
-		EnablePruningHistoryState = false
-		CommitIntervalHeight = 100
-	}()
-	testCases := []struct {
-		dbName string
-		openLog bool
-		initDataSize int
-		readNum int
-	}{
-		{
-			dbName: "16-test",
-			openLog: true,
-			initDataSize: 16,
-			readNum: 100000,
-		},
-	}
-	for i, testCase := range testCases {
-		fmt.Println("test case", i, ": ", testCase.dbName)
-		tree, keySet, _ := prepareTree(b, testCase.openLog, testCase.dbName, testCase.initDataSize)
-		benchmarkTreeRead(b, tree, keySet, testCase.readNum)
-		clearDB(testCase.dbName)
-		fmt.Println()
-	}
-}
-
-func recursivePrint(node *Node, n int) {
-	if node == nil {
-		return
-	}
-	for i:=0;i<n;i++ {
-		fmt.Printf("   ")
-	}
-	fmt.Printf("height:%d key:%s\n", node.height, string(node.key))
-	recursivePrint(node.leftNode, n+1)
-	recursivePrint(node.rightNode, n+1)
 }
