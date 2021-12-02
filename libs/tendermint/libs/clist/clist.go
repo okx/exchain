@@ -395,7 +395,7 @@ func (l *CList) PushBack(v interface{}) *CElement {
 func (l *CList) Remove(e *CElement) interface{} {
 	l.mtx.Lock()
 	if e.removed {
-		e.mtx.Unlock()
+		l.mtx.Unlock()
 		return e.Value
 	}
 	prev := e.Prev()
