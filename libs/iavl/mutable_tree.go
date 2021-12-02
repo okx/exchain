@@ -185,13 +185,6 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	newSelf *Node, updated bool,
 ) {
 	version := tree.version + 1
-	//defer func() {
-	//	stack := fmt.Sprintf("%s", debug.Stack())
-	//	if strings.Contains(stack, "TestShareNode") {
-	//		//fmt.Printf("node.Key:%X - newSelf.Key:%X - key:%X\n", node.key, newSelf.key, key)
-	//		PrintNode("recursiveSet value", tree.ndb, newSelf)
-	//	}
-	//}()
 	if node.isLeaf() {
 		switch bytes.Compare(key, node.key) {
 		case -1:

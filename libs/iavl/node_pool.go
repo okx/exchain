@@ -4,22 +4,32 @@ import (
 	"sync"
 )
 
+var EnableNodePool = true
 var nodePool = sync.Pool{}
+var GetNodeFromPoolCounter = 0
+var SetNodeFromPoolCounter = 0
 
 func GetNodeFromPool() *Node {
-	np := nodePool.Get()
-	if np == nil {
-		return nil
+	if EnableNodePool {
+		np := nodePool.Get()
+		if np == nil {
+			return nil
+		}
+		n, ok := np.(*Node)
+		if !ok {
+			return nil
+		}
+		GetNodeFromPoolCounter++
+		return n
 	}
-	n, ok := np.(*Node)
-	if !ok {
-		return nil
-	}
-	return n
+	return nil
 }
 
 func SetNodeToPool(node *Node) {
-	nodePool.Put(node)
+	if EnableNodePool {
+		SetNodeFromPoolCounter++
+		nodePool.Put(node)
+	}
 }
 
 func (node *Node) Reset(key, value, hash, leftHash, rightHash []byte, version, size int64, leftNode, rightNode *Node, height int8, persisted, prePersisted bool) {
