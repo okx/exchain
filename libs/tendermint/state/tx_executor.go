@@ -4,31 +4,44 @@ import (
 	"errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"time"
+	"strings"
 )
 
 type PreExecBlockResult struct {
-	*types.Block
 	*ABCIResponses
 	error
 }
 
+type InternalMsg struct {
+	cancelChan chan struct{}
+	resChan    chan *PreExecBlockResult
+}
+
+var (
+	RepeatedErr = errors.New("block can not start over twice")
+	CancelErr   = errors.New("block has been canceled")
+	NotMatchErr = errors.New("block has no start record")
+)
+
 var recordTime int64
 
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
-	if blockExec.processBlock != nil {
-		blockExec.logger.Error("can be execute only once for a block")
-		return errors.New("can be execute only once for a block")
+	if _, ok := blockExec.abciResponse.Load(block); ok {
+		// start block twice
+		return RepeatedErr
+	} else {
+		intMsg := &InternalMsg{
+			cancelChan: make(chan struct{}),
+			resChan:    make(chan *PreExecBlockResult),
+		}
+		blockExec.abciResponse.Store(block, intMsg)
+		go blockExec.DoPreExecBlock(intMsg, block)
+		blockExec.lastBlock = block
+		return nil
 	}
-
-	recordTime = time.Now().UnixNano()
-	blockExec.processBlock = block
-	go blockExec.DoPreExecBlock(block)
-
-	return nil
 }
 
-func (blockExec *BlockExecutor) DoPreExecBlock(block *types.Block) {
+func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *types.Block) {
 	var abciResponses *ABCIResponses
 	var err error
 	var preBlockRes *PreExecBlockResult
@@ -39,35 +52,56 @@ func (blockExec *BlockExecutor) DoPreExecBlock(block *types.Block) {
 	}
 
 	if err != nil {
-		preBlockRes = &PreExecBlockResult{block, abciResponses, err}
+		preBlockRes = &PreExecBlockResult{abciResponses, err}
 	} else {
-		preBlockRes = &PreExecBlockResult{block, abciResponses, nil}
+		preBlockRes = &PreExecBlockResult{abciResponses, nil}
 	}
 
 	select {
-	case <-blockExec.cancelChan:
-		blockExec.resChan <- &PreExecBlockResult{nil, nil, errors.New("cancel_error")}
-	case blockExec.resChan <- preBlockRes:
+	case <-channels.cancelChan:
+		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
+	case channels.resChan <- preBlockRes:
 	}
 
-	blockExec.processBlock = nil
 }
 
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
-	if blockExec.processBlock != block {
-		blockExec.logger.Error("block: %v was cancel", block)
-		return errors.New("cancel block has not begin")
+
+	if channels, ok := blockExec.abciResponse.Load(block); !ok {
+		// cancel block not start
+		return NotMatchErr
+	} else {
+		chann := channels.(*InternalMsg)
+		go func() {
+			chann.cancelChan <- struct{}{}
+		}()
+		return nil
 	}
-	// here set processBlock = nil ensure repeat call safe
-	blockExec.processBlock = nil
-	go func() {
-		blockExec.cancelChan <- struct{}{}
-	}()
-	return nil
 }
 
-func (blockExec *BlockExecutor) GetPreExecBlockRes() chan *PreExecBlockResult {
-	return blockExec.resChan
+func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *PreExecBlockResult, error) {
+	if channels, ok := blockExec.abciResponse.Load(block); !ok {
+		// cancel block not start
+		return nil, NotMatchErr
+	} else {
+		chann := channels.(*InternalMsg)
+		return chann.resChan, nil
+	}
+}
+
+func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
+	if channels, ok := blockExec.abciResponse.Load(block); !ok {
+		// cancel block not start
+		return
+	} else {
+		chann := channels.(*InternalMsg)
+		close(chann.resChan)
+		close(chann.cancelChan)
+		blockExec.abciResponse.Delete(block)
+		if blockExec.lastBlock == block {
+			blockExec.ResetLastBlock()
+		}
+	}
 }
 
 //reset base deliverState
@@ -75,5 +109,21 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
 		Key: "ResetDeliverState",
 	})
+}
 
+//get lastBlock
+func (blockExec *BlockExecutor) GetLastBlock() *types.Block {
+	return blockExec.lastBlock
+}
+
+//reset lastBlock
+func (blockExec *BlockExecutor) ResetLastBlock() {
+	blockExec.lastBlock = nil
+}
+
+func IsCancelErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), CancelErr.Error())
 }

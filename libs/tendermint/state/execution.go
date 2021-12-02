@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -54,11 +55,9 @@ type BlockExecutor struct {
 
 	isAsync bool
 
-	processBlock *types.Block
+	abciResponse sync.Map
 
-	cancelChan chan struct{}
-
-	resChan chan *PreExecBlockResult
+	lastBlock *types.Block
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -80,16 +79,14 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:         db,
-		proxyApp:   proxyApp,
-		eventBus:   types.NopEventBus{},
-		mempool:    mempool,
-		evpool:     evpool,
-		logger:     logger,
-		metrics:    NopMetrics(),
-		isAsync:    viper.GetBool(FlagParalleledTx),
-		cancelChan: make(chan struct{}),
-		resChan:    make(chan *PreExecBlockResult),
+		db:       db,
+		proxyApp: proxyApp,
+		eventBus: types.NopEventBus{},
+		mempool:  mempool,
+		evpool:   evpool,
+		logger:   logger,
+		metrics:  NopMetrics(),
+		isAsync:  viper.GetBool(FlagParalleledTx),
 	}
 
 	for _, option := range options {
@@ -227,12 +224,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
 		"FlagDelta", deltaMode, "FlagCenter", centerMode, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
-
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
 	var abciResponses *ABCIResponses
 	var err error
-
 	if useDeltas {
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 
@@ -241,16 +236,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
-		abciChain := blockExec.GetPreExecBlockRes()
-		v, _ := <-abciChain
-		abciResponses = v.ABCIResponses
-		err = v.error
-
-		if v.Block != block {
-			// also we got a result, but this is not we want relate to the block
-			if v.Block != nil {
-				//TO DO: here reset deliverState
+		abciChain, err := blockExec.GetPreExecBlockRes(block)
+		if err != nil {
+			if blockExec.GetLastBlock() != nil {
+				// executed unknown block, first reset deliverState and lastBlock ensure below function can execute sucesss
 				blockExec.ResetDeliverState()
+				blockExec.ResetLastBlock()
 			}
 
 			if blockExec.isAsync {
@@ -258,6 +249,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			} else {
 				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			}
+		} else {
+			v, _ := <-abciChain
+			abciResponses = v.ABCIResponses
+			err = v.error
+			if err != nil {
+				blockExec.logger.Error("execBlockOnProxyApp execute failed", "abciResponses", abciResponses, "err", err)
+			}
+			blockExec.CleanPreExecBlockRes(block)
 		}
 
 		bytes, err := types.Json.Marshal(abciResponses)
@@ -365,7 +364,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0{
+	if wd != nil && wd.Size() > 0 {
 		wdBytes = wd.WatchDataByte
 	}
 

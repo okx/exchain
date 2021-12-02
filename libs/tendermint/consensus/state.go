@@ -1428,11 +1428,15 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock" , cs.ProposalBlock.String())
+			cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String())
+
 			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
+
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
 		// else {
@@ -1813,6 +1817,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// Update Valid* if we can.
 		prevotes := cs.Votes.Prevotes(cs.Round)
 		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+
 		if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 			if cs.ProposalBlock.HashesTo(blockID.Hash) {
 				cs.Logger.Info("Updating valid block to new proposal block",
@@ -1820,6 +1825,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
+				fmt.Println("StartPreExecBlock1")
 				cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
@@ -1991,7 +1997,7 @@ func (cs *State) addVote(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
-					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock" , "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash" , blockID.Hash.String())
+					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
 					cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
