@@ -83,7 +83,7 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	addressRecord    *AddressRecord
+	addressRecord *AddressRecord
 	addAndSortMtx sync.Mutex
 
 	pendingPool       *PendingPool
