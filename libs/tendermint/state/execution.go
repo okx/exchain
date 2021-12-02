@@ -182,7 +182,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	deltaMode := types.GetDeltaMode()
 	fastQuery := types.IsFastQuery()
-	centerMode := types.IsCenterEnabled()
+	originDDS := types.EnableOriginDDS()
 	batchOK := true
 	useDeltas := false
 
@@ -190,7 +190,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		// only when it's consumer, can use deltas
 		if fastQuery {
 			if wd.Size() <= 0 {
-				if centerMode {
+				if originDDS {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
 					batchOK = GetCenterBatch(block.Height)
 				} else {
@@ -204,7 +204,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		if batchOK {
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() <= 0 && centerMode {
+			if deltas.Size() <= 0 && originDDS {
 				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
 					deltas = delta
 				}
@@ -218,7 +218,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
-		"FlagDelta", deltaMode, "FlagCenter", centerMode, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
+		"FlagDelta", deltaMode, "originDDS", originDDS, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
@@ -323,7 +323,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	if types.IsCenterEnabled() {
+	if types.EnableSendDDS() {
 		go sendToDatacenter(blockExec.logger, block, deltas, wd)
 	}
 
