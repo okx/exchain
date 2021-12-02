@@ -645,7 +645,6 @@ func NewNode(config *cfg.Config,
 
 	// Add Goroutine coordinate for idle job(e:simulate) when consensus final commit block not running
 	idp := dispatcher.NewIdleDispatcher()
-	proxyApp.Consensus()
 	go idp.IdleDo()
 	// Make MempoolReactor
 	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger, idp)

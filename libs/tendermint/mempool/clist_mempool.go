@@ -119,6 +119,7 @@ func NewCListMempool(
 		eventBus:      types.NopEventBus{},
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
+		addJob:        nil,
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -618,7 +619,9 @@ func (mem *CListMempool) resCbFirstTime(
 					"total", mem.Size(),
 				)
 				//simulate run tx for iavl caching improvement
-				go mem.addJob(func() { mem.simulateTx(tx) })
+				if mem.addJob != nil {
+					go mem.addJob(func() { mem.simulateTx(tx) })
+				}
 				mem.notifyTxsAvailable()
 			} else {
 				// ignore bad transaction
