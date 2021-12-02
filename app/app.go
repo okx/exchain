@@ -369,6 +369,7 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
+		auth.ModuleName,
 		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
@@ -390,6 +391,7 @@ func NewOKExChainApp(
 		backend.ModuleName,
 		stream.ModuleName,
 		evm.ModuleName,
+		auth.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are

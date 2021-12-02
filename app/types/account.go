@@ -87,6 +87,7 @@ type ethermintAccountPretty struct {
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
 	CodeHash      string         `json:"code_hash" yaml:"code_hash"`
+	StorageRoot string `json:"storage_root" yaml:"storage_root"`
 }
 
 // MarshalYAML returns the YAML representation of an account.
@@ -98,6 +99,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+		StorageRoot: acc.StateRoot.String(),
 	}
 
 	var err error
@@ -132,6 +134,7 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+		StorageRoot: acc.StateRoot.String(),
 	}
 
 	var err error
@@ -195,6 +198,7 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		Sequence:      alias.Sequence,
 	}
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
+	acc.StateRoot = ethcmn.HexToHash(alias.StorageRoot)
 
 	if alias.PubKey != "" {
 		acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)

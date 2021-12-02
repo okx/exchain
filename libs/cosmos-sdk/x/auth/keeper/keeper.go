@@ -53,7 +53,7 @@ type AccountKeeper struct {
 func NewAccountKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
-	accLRU, e := lru.New(100000)
+	accLRU, e := lru.New(500000)
 	if e != nil {
 		panic(errors.New("Failed to init LRU Cause " + e.Error()))
 	}

@@ -817,6 +817,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			if err := obj.CommitTrie(csdb.db); err != nil {
 				return ethcmn.Hash{}, err
 			}
+			csdb.updateStateObject(obj)
 		}
 	}
 
@@ -946,7 +947,7 @@ func (csdb *CommitStateDB) ClearStateObjects() {
 
 // GetOrNewStateObject retrieves a state object or create a new state object if
 // nil.
-func (csdb *CommitStateDB) GetOrNewStateObject(addr ethcmn.Address) StateObject {
+func (csdb *CommitStateDB) GetOrNewStateObject(addr ethcmn.Address) *stateObject {
 	so := csdb.getStateObject(addr)
 	if so == nil || so.deleted {
 		so, _ = csdb.createObject(addr)
