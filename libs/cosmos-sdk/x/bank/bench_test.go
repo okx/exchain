@@ -41,7 +41,7 @@ func BenchmarkOneBankSendTxPerBlock(b *testing.B) {
 
 		benchmarkApp.Deliver(txs[i])
 		benchmarkApp.EndBlock(abci.RequestEndBlock{})
-		benchmarkApp.Commit()
+		benchmarkApp.Commit(abci.RequestCommit{})
 	}
 }
 
@@ -71,6 +71,6 @@ func BenchmarkOneBankMultiSendTxPerBlock(b *testing.B) {
 
 		benchmarkApp.Deliver(txs[i])
 		benchmarkApp.EndBlock(abci.RequestEndBlock{})
-		benchmarkApp.Commit()
+		benchmarkApp.Commit(abci.RequestCommit{})
 	}
 }
