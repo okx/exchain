@@ -217,8 +217,9 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 		if chRoot == (ethcmn.Hash{}) {
 			ak.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
 		} else {
-			// Flush an entire trie and restart the counters
-			go triedb.Commit(chRoot, true, nil)
+			// Flush an entire trie and restart the counters, it's not a thread safe process,
+			// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+			triedb.Commit(chRoot, true, nil)
 		}
 
 		// Garbage collect anything below our required write retention
