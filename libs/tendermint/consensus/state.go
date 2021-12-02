@@ -1825,7 +1825,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
-				fmt.Println("StartPreExecBlock1")
 				cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
@@ -1991,7 +1990,9 @@ func (cs *State) addVote(
 					cs.ValidRound = vote.Round
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
+					//fmt.Println("StartPreExecBlock22")
 					cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
+
 				} else {
 					cs.Logger.Info(
 						"Valid block we don't know about. Set ProposalBlock=nil",

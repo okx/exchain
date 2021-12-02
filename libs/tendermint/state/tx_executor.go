@@ -5,6 +5,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
+	"time"
 )
 
 type PreExecBlockResult struct {
@@ -23,13 +24,32 @@ var (
 	NotMatchErr = errors.New("block has no start record")
 )
 
-var recordTime int64
+//var AllTimeSave int64
+//var recordTime int64
+
+func GetNowTimeMs() int64 {
+	return time.Now().UnixNano() / 1e6
+}
+
+func GetNowTimeNs() int64 {
+	return time.Now().UnixNano()
+}
+
+
+type elaped struct {
+	ExecuteHaust int64 // execBlockOnProxyApp 耗时
+	ExecuteHaust1 int64 // execBlockOnProxyApp 耗时
+}
+
+var uu *elaped
 
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	if _, ok := blockExec.abciResponse.Load(block); ok {
 		// start block twice
 		return RepeatedErr
 	} else {
+		//uu = &elaped{}
+		//recordTime = GetNowTimeMs()
 		intMsg := &InternalMsg{
 			cancelChan: make(chan struct{}),
 			resChan:    make(chan *PreExecBlockResult),
@@ -57,12 +77,16 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 		preBlockRes = &PreExecBlockResult{abciResponses, nil}
 	}
 
+	//uu.ExecuteHaust = GetNowTimeMs() - recordTime
+	//recordTime = GetNowTimeMs()
 	select {
 	case <-channels.cancelChan:
 		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
 	case channels.resChan <- preBlockRes:
-	}
 
+	}
+	//uu.ExecuteHaust1 = GetNowTimeMs() - recordTime
+	//fmt.Println(" exe done -->" , *uu)
 }
 
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
@@ -84,6 +108,17 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 		// cancel block not start
 		return nil, NotMatchErr
 	} else {
+		/*
+		if uu.ExecuteHaust == 0 {
+			//
+			fmt.Println(" runTx 未执行完,需要等待 , 已经执行 ", GetNowTimeMs() - recordTime )
+		}else{
+			fmt.Println(" runTx已经执行完,会立刻返回")
+		}
+
+		fmt.Println("uu --->" , *uu)
+
+		 */
 		chann := channels.(*InternalMsg)
 		return chann.resChan, nil
 	}
@@ -109,10 +144,13 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
 		Key: "ResetDeliverState",
 	})
+
+
 }
 
 //get lastBlock
 func (blockExec *BlockExecutor) GetLastBlock() *types.Block {
+
 	return blockExec.lastBlock
 }
 

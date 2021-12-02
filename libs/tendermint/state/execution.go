@@ -243,7 +243,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 				blockExec.ResetDeliverState()
 				blockExec.ResetLastBlock()
 			}
-
+			fmt.Println("got a block not pre execute, here executor")
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {

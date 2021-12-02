@@ -3,6 +3,7 @@ package consensus
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -86,8 +87,18 @@ func (conR *Reactor) OnStart() error {
 		}
 	}
 
+	tt := time.After(600*time.Second)
+	go func() {
+		<- tt
+		fmt.Println("10 分钟到，退出")
+		os.Exit(-1)
+	}()
+
 	return nil
 }
+
+
+
 
 // OnStop implements BaseService by unsubscribing from events and stopping
 // state.
