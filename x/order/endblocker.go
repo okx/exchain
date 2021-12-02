@@ -12,7 +12,7 @@ import (
 
 // EndBlocker called every block
 // 1. execute matching engine
-// 2. flush cache
+// 2. flush cache111
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	seq := perf.GetPerf().OnEndBlockEnter(ctx, types.ModuleName)
@@ -20,7 +20,7 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	match.GetEngine().Run(ctx, keeper)
 
-	// flush cache at the end
+	// flush cache111 at the end
 	keeper.Cache2Disk(ctx)
 
 	keeper.SetMetric()

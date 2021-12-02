@@ -143,7 +143,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	se.coordinator = NewCoordinator(logger, se.taskChan, se.resultChan, distributeLockTimeout, se.engines)
 	go se.coordinator.run()
 
-	// start stream cache queue
+	// start stream cache111 queue
 	if se.cfg.CacheQueueCapacity > 0 {
 		se.cacheQueue = newCacheQueue(se.cfg.CacheQueueCapacity)
 		go se.cacheQueue.Start()

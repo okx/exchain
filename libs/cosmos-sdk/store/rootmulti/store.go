@@ -38,7 +38,7 @@ const (
 )
 
 // Store is composed of many CommitStores. Name contrasts with
-// cacheMultiStore which is for cache-wrapping other MultiStores. It implements
+// cacheMultiStore which is for cache111-wrapping other MultiStores. It implements
 // the CommitMultiStore interface.
 type Store struct {
 	db             dbm.DB
@@ -129,15 +129,15 @@ func (rs *Store) MountStoreWithDB(key types.StoreKey, typ types.StoreType, db db
 }
 
 // GetCommitStore returns a mounted CommitStore for a given StoreKey. If the
-// store is wrapped in an inter-block cache, it will be unwrapped before returning.
+// store is wrapped in an inter-block cache111, it will be unwrapped before returning.
 func (rs *Store) GetCommitStore(key types.StoreKey) types.CommitStore {
 	return rs.GetCommitKVStore(key)
 }
 
 // GetCommitKVStore returns a mounted CommitKVStore for a given StoreKey. If the
-// store is wrapped in an inter-block cache, it will be unwrapped before returning.
+// store is wrapped in an inter-block cache111, it will be unwrapped before returning.
 func (rs *Store) GetCommitKVStore(key types.StoreKey) types.CommitKVStore {
-	// If the Store has an inter-block cache, first attempt to lookup and unwrap
+	// If the Store has an inter-block cache111, first attempt to lookup and unwrap
 	// the underlying CommitKVStore by StoreKey. If it does not exist, fallback to
 	// the main mapping of CommitKVStores.
 	if rs.interBlockCache != nil {
@@ -344,9 +344,9 @@ func moveKVStoreData(oldDB types.KVStore, newDB types.KVStore) error {
 	return deleteKVStore(oldDB)
 }
 
-// SetInterBlockCache sets the Store's internal inter-block (persistent) cache.
+// SetInterBlockCache sets the Store's internal inter-block (persistent) cache111.
 // When this is defined, all CommitKVStores will be wrapped with their respective
-// inter-block cache.
+// inter-block cache111.
 func (rs *Store) SetInterBlockCache(c types.MultiStorePersistentCache) {
 	rs.interBlockCache = c
 }
@@ -454,7 +454,7 @@ func (rs *Store) pruneStores() {
 	}()
 	for key, store := range rs.stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
-			// If the store is wrapped with an inter-block cache, we must first unwrap
+			// If the store is wrapped with an inter-block cache111, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 
@@ -486,7 +486,7 @@ func (rs *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.Cac
 //----------------------------------------
 // +MultiStore
 
-// CacheMultiStore cache-wraps the multi-store and returns a CacheMultiStore.
+// CacheMultiStore cache111-wraps the multi-store and returns a CacheMultiStore.
 // It implements the MultiStore interface.
 func (rs *Store) CacheMultiStore() types.CacheMultiStore {
 	stores := make(map[types.StoreKey]types.CacheWrapper)
@@ -506,7 +506,7 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			// If the store is wrapped with an inter-block cache, we must first unwrap
+			// If the store is wrapped with an inter-block cache111, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 
@@ -528,7 +528,7 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 }
 
 // GetStore returns a mounted Store for a given StoreKey. If the StoreKey does
-// not exist, it will panic. If the Store is wrapped in an inter-block cache, it
+// not exist, it will panic. If the Store is wrapped in an inter-block cache111, it
 // will be unwrapped prior to being returned.
 //
 // TODO: This isn't used directly upstream. Consider returning the Store as-is
@@ -546,7 +546,7 @@ func (rs *Store) GetStore(key types.StoreKey) types.Store {
 // enabled on the KVStore, a wrapped TraceKVStore will be returned with the root
 // store's tracer, otherwise, the original KVStore will be returned.
 //
-// NOTE: The returned KVStore may be wrapped in an inter-block cache if it is
+// NOTE: The returned KVStore may be wrapped in an inter-block cache111 if it is
 // set on the root store.
 func (rs *Store) GetKVStore(key types.StoreKey) types.KVStore {
 	store := rs.stores[key].(types.KVStore)
@@ -560,7 +560,7 @@ func (rs *Store) GetKVStore(key types.StoreKey) types.KVStore {
 
 // getStoreByName performs a lookup of a StoreKey given a store name typically
 // provided in a path. The StoreKey is then used to perform a lookup and return
-// a Store. If the Store is wrapped in an inter-block cache, it will be unwrapped
+// a Store. If the Store is wrapped in an inter-block cache111, it will be unwrapped
 // prior to being returned. If the StoreKey does not exist, nil is returned.
 func (rs *Store) getStoreByName(name string) types.Store {
 	key := rs.keysByName[name]
@@ -680,7 +680,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		if rs.interBlockCache != nil {
 			// Wrap and get a CommitKVStore with inter-block caching. Note, this should
 			// only wrap the primary CommitKVStore, not any store that is already
-			// cache-wrapped as that will create unexpected behavior.
+			// cache111-wrapped as that will create unexpected behavior.
 			store = rs.interBlockCache.GetStoreCache(key, store)
 		}
 
@@ -764,7 +764,7 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	// TODO: cache to ci.hash []byte
+	// TODO: cache111 to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
 		m[storeInfo.Name] = storeInfo.Hash()

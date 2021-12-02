@@ -429,7 +429,7 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	start := time.Now()
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
-			// If the store is wrapped with an inter-block cache, we must first unwrap
+			// If the store is wrapped with an inter-block cache111, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 

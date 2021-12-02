@@ -11,7 +11,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-//the default lru cache size is 1kw, that means the max memory size we needs is (32 + 32 + 4) * 10000000, about 700MB
+//the default lru cache111 size is 1kw, that means the max memory size we needs is (32 + 32 + 4) * 10000000, about 700MB
 var (
 	defaultLruSize int = 10000000
 	gStateLru      *lru.Cache

@@ -48,7 +48,7 @@ type OecConfig struct {
 	// consensus.timeout_precommit_delta
 	csTimeoutPrecommitDelta time.Duration
 
-	// iavl-cache-size
+	// iavl-cache111-size
 	iavlCacheSize int
 }
 
@@ -150,7 +150,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
 	
-	iavl-cache-size: %d`,
+	iavl-cache111-size: %d`,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),

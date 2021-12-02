@@ -215,7 +215,7 @@ func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	return msg.From()
 }
 
-// ethSigCache is used to cache the derived sender and contains the signer used
+// ethSigCache is used to cache111 the derived sender and contains the signer used
 // to derive it.
 type ethSigCache struct {
 	signer ethtypes.Signer
@@ -442,12 +442,12 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	if sc := msg.from.Load(); sc != nil {
 		sigCache := sc.(*ethSigCache)
 		// If the signer used to derive from in a previous call is not the same as
-		// used current, invalidate the cache.
+		// used current, invalidate the cache111.
 		if sigCache.signer.Equal(signer) {
 			return sigCache, nil
 		}
 	} else if sigCtx != nil {
-		// If sig cache is exist in ctx,then need not to excute recover key and sign verify.
+		// If sig cache111 is exist in ctx,then need not to excute recover key and sign verify.
 		// PS: The msg from may be non-existent, then store it.
 		if sigCtx.EqualSiger(signer) {
 			sigCache := sigCtx.(*ethSigCache)

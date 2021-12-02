@@ -1546,7 +1546,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	fail.Fail() // XXX
 
-	// Create a copy of the state for staging and an event cache for txs.
+	// Create a copy of the state for staging and an event cache111 for txs.
 	stateCopy := cs.state.Copy()
 
 	// Execute and commit the block, update and save the state, and update the mempool.

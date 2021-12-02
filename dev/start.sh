@@ -37,14 +37,14 @@ run() {
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \
-#      --iavl-cache-size int                              Max size of iavl cache (default 1000000)
-#      --iavl-commit-interval-height int                  Max interval to commit node cache into leveldb (default 100)
+#      --iavl-cache111-size int                              Max size of iavl cache111 (default 1000000)
+#      --iavl-commit-interval-height int                  Max interval to commit node cache111 into leveldb (default 100)
 #      --iavl-debug int                                   Enable iavl project debug
 #      --iavl-enable-async-commit                         Enable async commit
 #      --iavl-enable-pruning-history-state                Enable pruning history state
-#      --iavl-height-orphans-cache-size int               Max orphan version to cache in memory (default 8)
-#      --iavl-max-committed-height-num int                Max committed version to cache in memory (default 8)
-#      --iavl-min-commit-item-count int                   Min nodes num to triggle node cache commit (default 500000)
+#      --iavl-height-orphans-cache111-size int               Max orphan version to cache111 in memory (default 8)
+#      --iavl-max-committed-height-num int                Max committed version to cache111 in memory (default 8)
+#      --iavl-min-commit-item-count int                   Min nodes num to triggle node cache111 commit (default 500000)
 #      --iavl-output-modules
     exit
 }

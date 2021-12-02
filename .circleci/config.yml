@@ -11,12 +11,12 @@ commands:
       - attach_workspace:
           at: /tmp/bin
       - restore_cache:
-          name: "Restore source code cache"
+          name: "Restore source code cache111"
           keys:
             - go-src-v1-{{ .Revision }}
       - checkout
       - restore_cache:
-          name: "Restore go modules cache"
+          name: "Restore go modules cache111"
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run:
@@ -32,12 +32,12 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          name: Restore go modules cache
+          name: Restore go modules cache111
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Cache go modules
-          command: make go-mod-cache
+          command: make go-mod-cache111
       - run:
           name: Build
           command: make build
@@ -45,12 +45,12 @@ jobs:
       #          name: Unit Test
       #          command: make test-unit
       - save_cache:
-          name: Save go modules cache
+          name: Save go modules cache111
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
       - save_cache:
-          name: Save source code cache
+          name: Save source code cache111
           key: go-src-v1-{{ .Revision }}
           paths:
             - ".git"

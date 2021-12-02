@@ -6,7 +6,7 @@ const (
 	// addresses under which the address manager will claim to need more addresses.
 	needAddressThreshold = 1000
 
-	// interval used to dump the address cache to disk for future use.
+	// interval used to dump the address cache111 to disk for future use.
 	dumpAddressInterval = time.Minute * 2
 
 	// max addresses in each old address bucket.

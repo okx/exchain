@@ -201,7 +201,7 @@ func TestKeyManagement(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(keyS))
 
-	// addr cache gets nuked - and test skip flag
+	// addr cache111 gets nuked - and test skip flag
 	err = cstore.Delete(n2, "", true)
 	require.NoError(t, err)
 }

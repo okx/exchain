@@ -9,6 +9,7 @@ import (
 )
 
 type PreExecBlockResult struct {
+	*Elaped
 	*ABCIResponses
 	error
 }
@@ -24,8 +25,8 @@ var (
 	NotMatchErr = errors.New("block has no start record")
 )
 
-//var AllTimeSave int64
-//var recordTime int64
+var waitrecordTime int64
+var recordTime int64
 
 func GetNowTimeMs() int64 {
 	return time.Now().UnixNano() / 1e6
@@ -36,20 +37,20 @@ func GetNowTimeNs() int64 {
 }
 
 
-type elaped struct {
-	ExecuteHaust int64 // execBlockOnProxyApp 耗时
-	ExecuteHaust1 int64 // execBlockOnProxyApp 耗时
+type Elaped struct {
+	ExecuteExhaust int64 // 执行耗时 耗时
+	WaitingExhaust int64 // 等待耗时 耗时
 }
 
-var uu *elaped
+var uu *Elaped
 
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	if _, ok := blockExec.abciResponse.Load(block); ok {
 		// start block twice
 		return RepeatedErr
 	} else {
-		//uu = &elaped{}
-		//recordTime = GetNowTimeMs()
+		uu = &Elaped{}
+		recordTime = GetNowTimeMs()
 		intMsg := &InternalMsg{
 			cancelChan: make(chan struct{}),
 			resChan:    make(chan *PreExecBlockResult),
@@ -72,21 +73,22 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 	}
 
 	if err != nil {
-		preBlockRes = &PreExecBlockResult{abciResponses, err}
+		preBlockRes = &PreExecBlockResult{uu,abciResponses, err}
 	} else {
-		preBlockRes = &PreExecBlockResult{abciResponses, nil}
+		preBlockRes = &PreExecBlockResult{uu,abciResponses, nil}
 	}
 
-	//uu.ExecuteHaust = GetNowTimeMs() - recordTime
+	uu.ExecuteExhaust = GetNowTimeMs() - recordTime
 	//recordTime = GetNowTimeMs()
 	select {
 	case <-channels.cancelChan:
-		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
+		channels.resChan <- &PreExecBlockResult{uu, nil, CancelErr}
 	case channels.resChan <- preBlockRes:
 
 	}
 	//uu.ExecuteHaust1 = GetNowTimeMs() - recordTime
 	//fmt.Println(" exe done -->" , *uu)
+	uu.WaitingExhaust = GetNowTimeMs() - waitrecordTime
 }
 
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
@@ -108,17 +110,7 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 		// cancel block not start
 		return nil, NotMatchErr
 	} else {
-		/*
-		if uu.ExecuteHaust == 0 {
-			//
-			fmt.Println(" runTx 未执行完,需要等待 , 已经执行 ", GetNowTimeMs() - recordTime )
-		}else{
-			fmt.Println(" runTx已经执行完,会立刻返回")
-		}
-
-		fmt.Println("uu --->" , *uu)
-
-		 */
+		waitrecordTime =GetNowTimeMs()
 		chann := channels.(*InternalMsg)
 		return chann.resChan, nil
 	}

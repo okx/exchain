@@ -236,6 +236,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
+		trc.Pin(trace.Abci + "1" )
+		fmt.Println("blockExec.isAsync" , blockExec.isAsync)
 		abciChain, err := blockExec.GetPreExecBlockRes(block)
 		if err != nil {
 			if blockExec.GetLastBlock() != nil {
@@ -250,15 +252,19 @@ func (blockExec *BlockExecutor) ApplyBlock(
 				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			}
 		} else {
+
 			v, _ := <-abciChain
+			uu := v.Elaped
 			abciResponses = v.ABCIResponses
 			err = v.error
 			if err != nil {
 				blockExec.logger.Error("execBlockOnProxyApp execute failed", "abciResponses", abciResponses, "err", err)
 			}
+			fmt.Println("uu --->" , uu)
 			blockExec.CleanPreExecBlockRes(block)
 		}
 
+		trc.Pin(trace.Abci + "2")
 		bytes, err := types.Json.Marshal(abciResponses)
 		if err != nil {
 			panic(err)
@@ -620,7 +626,7 @@ func getBeginBlockValidatorInfo(block *types.Block, stateDB dbm.DB) (abci.LastCo
 	byzVals := make([]abci.Evidence, len(block.Evidence.Evidence))
 	for i, ev := range block.Evidence.Evidence {
 		// We need the validator set. We already did this in validateBlock.
-		// TODO: Should we instead cache the valset in the evidence itself and add
+		// TODO: Should we instead cache111 the valset in the evidence itself and add
 		// `SetValidatorSet()` and `ToABCI` methods ?
 		valset, err := LoadValidators(stateDB, ev.Height())
 		if err != nil {

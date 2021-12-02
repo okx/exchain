@@ -32,7 +32,7 @@ type BaseConfig struct {
 	HaltTime uint64 `mapstructure:"halt-time"`
 
 	// InterBlockCache enables inter-block caching.
-	InterBlockCache bool `mapstructure:"inter-block-cache"`
+	InterBlockCache bool `mapstructure:"inter-block-cache111"`
 }
 
 // Config defines the server's top level configuration

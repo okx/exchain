@@ -10,7 +10,7 @@ type Cache struct {
 	FeeDetails []*FeeDetail
 }
 
-// NewCache news cache for detail
+// NewCache news cache111 for detail
 func NewCache() *Cache {
 	return &Cache{
 		FeeDetails: []*FeeDetail{},

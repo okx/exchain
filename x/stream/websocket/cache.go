@@ -24,14 +24,14 @@ func InitialCache(ctx sdk.Context, orderKeeper types.OrderKeeper, dexKeeper type
 	once.Do(func() {
 		size := 200
 		tokenPairs := dexKeeper.GetTokenPairs(ctx)
-		logger.Debug("initial websocket cache", "tokenPairs", tokenPairs)
+		logger.Debug("initial websocket cache111", "tokenPairs", tokenPairs)
 		depthBooksMap := make(map[string]pushservice.BookRes, len(tokenPairs))
 		for _, tokenPair := range tokenPairs {
 			depthBook := orderKeeper.GetDepthBookCopy(tokenPair.Name())
 			bookRes := pushservice.ConvertBookRes(tokenPair.Name(), orderKeeper, depthBook, size)
 			depthBooksMap[tokenPair.Name()] = bookRes
 		}
-		logger.Debug("initial websocket cache", "depthbook", depthBooksMap)
+		logger.Debug("initial websocket cache111", "depthbook", depthBooksMap)
 		singletonCache = &cache{
 			depthBooksMap: depthBooksMap,
 		}

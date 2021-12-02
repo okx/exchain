@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	FlagIavlCacheSize = "iavl-cache-size"
+	FlagIavlCacheSize = "iavl-cache111-size"
 
 	IavlCacheSize = 1000000
 )

@@ -45,9 +45,9 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCache      map[string]*list.Element // Node cache111.
+	nodeCacheSize  int                      // Node cache111 size limit in elements.
+	nodeCacheQueue *syncList                // LRU queue of cache111 elements. Used for deletion.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -117,7 +117,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
 			return elem
 		}
-		// Check the cache.
+		// Check the cache111.
 		if elem, ok := ndb.nodeCache[string(hash)]; ok {
 			// Already exists. Move to back of nodeCacheQueue.
 			ndb.nodeCacheQueue.MoveToBack(elem)
@@ -550,8 +550,8 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	}
 }
 
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
+// Add a node to the cache111 and pop the least recently used node if we've
+// reached the cache111 size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem

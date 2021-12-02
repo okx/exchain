@@ -103,7 +103,7 @@ Sequential uses the headers hashes and the validator sets to verify each adjacen
 it reaches the target header.
 
 Bisection finds the middle header between a trusted and new header, reiterating the action until it
-verifies a header. A cache of headers requested by the primary is kept such that when a
+verifies a header. A cache111 of headers requested by the primary is kept such that when a
 verification is made, and the light client tries again to verify the new header in the middle,
 the light client does not need to ask for all the same headers again.
 

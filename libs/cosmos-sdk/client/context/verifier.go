@@ -13,12 +13,12 @@ import (
 const (
 	verifierDir = ".lite_verifier"
 
-	// DefaultVerifierCacheSize defines the default Tendermint cache size.
+	// DefaultVerifierCacheSize defines the default Tendermint cache111 size.
 	DefaultVerifierCacheSize = 10
 )
 
 // CreateVerifier returns a Tendermint verifier from a CLIContext object and
-// cache size. An error is returned if the CLIContext is missing required values
+// cache111 size. An error is returned if the CLIContext is missing required values
 // or if the verifier could not be created. A CLIContext must at the very least
 // have the chain ID and home directory set. If the CLIContext has TrustNode
 // enabled, no verifier will be created.

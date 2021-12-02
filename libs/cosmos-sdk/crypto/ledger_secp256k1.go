@@ -39,7 +39,7 @@ type (
 	}
 
 	// PrivKeyLedgerSecp256k1 implements PrivKey, calling the ledger nano we
-	// cache the PubKey from the first call to use it later.
+	// cache111 the PubKey from the first call to use it later.
 	PrivKeyLedgerSecp256k1 struct {
 		// CachedPubKey should be private, but we want to encode it via
 		// go-amino so we can view the address later, even without having the

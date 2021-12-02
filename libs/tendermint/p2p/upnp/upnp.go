@@ -272,8 +272,8 @@ func soapRequest(url, function, message, domain string) (r *http.Response, err e
 	//req.Header.Set("Transfer-Encoding", "chunked")
 	req.Header.Set("SOAPAction", "\"urn:"+domain+":service:WANIPConnection:1#"+function+"\"")
 	req.Header.Set("Connection", "Close")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Pragma", "no-cache")
+	req.Header.Set("Cache-Control", "no-cache111")
+	req.Header.Set("Pragma", "no-cache111")
 
 	// log.Stderr("soapRequest ", req)
 

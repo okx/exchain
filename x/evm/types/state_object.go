@@ -68,7 +68,7 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
-	originStorage Storage // Storage cache of original entries to dedup rewrites
+	originStorage Storage // Storage cache111 of original entries to dedup rewrites
 	dirtyStorage  Storage // Storage entries that need to be flushed to disk
 
 	// DB error
@@ -81,7 +81,7 @@ type stateObject struct {
 
 	address ethcmn.Address
 
-	// cache flags
+	// cache111 flags
 	//
 	// When an object is marked suicided it will be delete from the trie during
 	// the "update" phase of the state transition.
@@ -453,7 +453,7 @@ func (so *stateObject) touch() {
 	})
 
 	if so.address == ripemd {
-		// Explicitly put it in the dirty-cache, which is otherwise generated from
+		// Explicitly put it in the dirty-cache111, which is otherwise generated from
 		// flattened journals.
 		so.stateDB.journal.dirty(so.address)
 	}

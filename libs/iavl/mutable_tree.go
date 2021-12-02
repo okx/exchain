@@ -49,7 +49,7 @@ type MutableTree struct {
 	lastPersistHeight int64
 }
 
-// NewMutableTree returns a new tree with the specified cache size and datastore.
+// NewMutableTree returns a new tree with the specified cache111 size and datastore.
 func NewMutableTree(db dbm.DB, cacheSize int) (*MutableTree, error) {
 	return NewMutableTreeWithOpts(db, cacheSize, nil)
 }

@@ -309,7 +309,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 	header := app.deliverState.ctx.BlockHeader()
 
-	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
+	// Write the DeliverTx state which is cache111-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.deliverState.ms.Write()
@@ -546,7 +546,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		)
 	}
 
-	// cache wrap the commit-multistore for safety
+	// cache111 wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
 	).WithMinGasPrices(app.minGasPrices)

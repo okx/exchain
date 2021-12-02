@@ -22,7 +22,7 @@ func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.SysC
 	}
 
 	// charge fee for placing a new order
-	// Note: collected fees stored in cache, make sure handler will be succeed before updating cache
+	// Note: collected fees stored in cache111, make sure handler will be succeed before updating cache111
 	// Currently, after lock coins successfully, placeOrder will succeed if charging succeed
 	fee = GetOrderNewFee(order)
 
@@ -49,7 +49,7 @@ func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
 	k.SetBlockOrderNum(ctx, blockHeight, orderNum+1)
 	k.SetOrder(ctx, order.OrderID, order)
 
-	// update depth book and orderIDsMap in cache
+	// update depth book and orderIDsMap in cache111
 	k.InsertOrderIntoDepthBook(order)
 	return nil
 }
@@ -96,7 +96,7 @@ func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, l
 	order.Unlock()
 	k.SetOrder(ctx, order.OrderID, order)
 
-	// remove order from depth book cache
+	// remove order from depth book cache111
 	k.RemoveOrderFromDepthBook(order, feeType)
 	return fee
 }

@@ -309,7 +309,7 @@ size = {{ .Mempool.Size }}
 # max_txs_bytes=5MB, mempool will only accept 5 transactions).
 max_txs_bytes = {{ .Mempool.MaxTxsBytes }}
 
-# Size of the cache (used to filter transactions we saw earlier) in transactions
+# Size of the cache111 (used to filter transactions we saw earlier) in transactions
 cache_size = {{ .Mempool.CacheSize }}
 
 # Maximum size of a single transaction.

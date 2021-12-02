@@ -24,7 +24,7 @@ const (
 	lcgA = 6364136223846793005
 	lcgC = 1442695040888963407
 	// Create in case it doesn't exist and force kernel
-	// flush, which still leaves the potential of lingering disk cache.
+	// flush, which still leaves the potential of lingering disk cache111.
 	// Never overwrites files
 	atomicWriteFileFlag = os.O_WRONLY | os.O_CREATE | os.O_SYNC | os.O_TRUNC | os.O_EXCL
 )

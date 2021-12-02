@@ -27,12 +27,12 @@ func TestCacheKVStore(t *testing.T) {
 
 	require.Empty(t, st.Get(keyFmt(1)), "Expected `key1` to be empty")
 
-	// put something in mem and in cache
+	// put something in mem and in cache111
 	mem.Set(keyFmt(1), valFmt(1))
 	st.Set(keyFmt(1), valFmt(1))
 	require.Equal(t, valFmt(1), st.Get(keyFmt(1)))
 
-	// update it in cache, shoudn't change mem
+	// update it in cache111, shoudn't change mem
 	st.Set(keyFmt(1), valFmt(2))
 	require.Equal(t, valFmt(2), st.Get(keyFmt(1)))
 	require.Equal(t, valFmt(1), mem.Get(keyFmt(1)))
@@ -153,7 +153,7 @@ func TestCacheKVIteratorBounds(t *testing.T) {
 func TestCacheKVMergeIteratorBasics(t *testing.T) {
 	st := newCacheKVStore()
 
-	// set and delete an item in the cache, iterator should be empty
+	// set and delete an item in the cache111, iterator should be empty
 	k, v := keyFmt(0), valFmt(0)
 	st.Set(k, v)
 	st.Delete(k)
@@ -167,7 +167,7 @@ func TestCacheKVMergeIteratorBasics(t *testing.T) {
 	st.Write()
 	assertIterateDomain(t, st, 1)
 
-	// remove it in cache and assert its not
+	// remove it in cache111 and assert its not
 	st.Delete(k)
 	assertIterateDomain(t, st, 0)
 
@@ -185,7 +185,7 @@ func TestCacheKVMergeIteratorBasics(t *testing.T) {
 	st.Write()
 	assertIterateDomain(t, st, 2)
 
-	// remove one in cache and assert its not
+	// remove one in cache111 and assert its not
 	st.Delete(k1)
 	assertIterateDomain(t, st, 1)
 
@@ -193,7 +193,7 @@ func TestCacheKVMergeIteratorBasics(t *testing.T) {
 	st.Write()
 	assertIterateDomain(t, st, 1)
 
-	// delete the other key in cache and asserts its empty
+	// delete the other key in cache111 and asserts its empty
 	st.Delete(k)
 	assertIterateDomain(t, st, 0)
 }
@@ -269,20 +269,20 @@ func TestCacheKVMergeIteratorChunks(t *testing.T) {
 	setRange(st, truth, 40, 60)
 	st.Write()
 
-	// sets to the cache
+	// sets to the cache111
 	setRange(st, truth, 20, 40)
 	setRange(st, truth, 60, 80)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 80}})
 
-	// remove some parents and some cache
+	// remove some parents and some cache111
 	deleteRange(st, truth, 15, 25)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 15}, {25, 80}})
 
-	// remove some parents and some cache
+	// remove some parents and some cache111
 	deleteRange(st, truth, 35, 45)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 15}, {25, 35}, {45, 80}})
 
-	// write, add more to the cache, and delete some cache
+	// write, add more to the cache111, and delete some cache111
 	st.Write()
 	setRange(st, truth, 38, 42)
 	deleteRange(st, truth, 40, 43)

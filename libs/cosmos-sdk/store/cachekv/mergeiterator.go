@@ -59,13 +59,13 @@ func (iter *cacheMergeIterator) Next() {
 	iter.skipUntilExistsOrInvalid()
 	iter.assertValid()
 
-	// If parent is invalid, get the next cache item.
+	// If parent is invalid, get the next cache111 item.
 	if !iter.parent.Valid() {
 		iter.cache.Next()
 		return
 	}
 
-	// If cache is invalid, get the next parent item.
+	// If cache111 is invalid, get the next parent item.
 	if !iter.cache.Valid() {
 		iter.parent.Next()
 		return
@@ -74,12 +74,12 @@ func (iter *cacheMergeIterator) Next() {
 	// Both are valid.  Compare keys.
 	keyP, keyC := iter.parent.Key(), iter.cache.Key()
 	switch iter.compare(keyP, keyC) {
-	case -1: // parent < cache
+	case -1: // parent < cache111
 		iter.parent.Next()
-	case 0: // parent == cache
+	case 0: // parent == cache111
 		iter.parent.Next()
 		iter.cache.Next()
-	case 1: // parent > cache
+	case 1: // parent > cache111
 		iter.cache.Next()
 	}
 }
@@ -89,12 +89,12 @@ func (iter *cacheMergeIterator) Key() []byte {
 	iter.skipUntilExistsOrInvalid()
 	iter.assertValid()
 
-	// If parent is invalid, get the cache key.
+	// If parent is invalid, get the cache111 key.
 	if !iter.parent.Valid() {
 		return iter.cache.Key()
 	}
 
-	// If cache is invalid, get the parent key.
+	// If cache111 is invalid, get the parent key.
 	if !iter.cache.Valid() {
 		return iter.parent.Key()
 	}
@@ -103,11 +103,11 @@ func (iter *cacheMergeIterator) Key() []byte {
 	keyP, keyC := iter.parent.Key(), iter.cache.Key()
 	cmp := iter.compare(keyP, keyC)
 	switch cmp {
-	case -1: // parent < cache
+	case -1: // parent < cache111
 		return keyP
-	case 0: // parent == cache
+	case 0: // parent == cache111
 		return keyP
-	case 1: // parent > cache
+	case 1: // parent > cache111
 		return keyC
 	default:
 		panic("invalid compare result")
@@ -119,12 +119,12 @@ func (iter *cacheMergeIterator) Value() []byte {
 	iter.skipUntilExistsOrInvalid()
 	iter.assertValid()
 
-	// If parent is invalid, get the cache value.
+	// If parent is invalid, get the cache111 value.
 	if !iter.parent.Valid() {
 		return iter.cache.Value()
 	}
 
-	// If cache is invalid, get the parent value.
+	// If cache111 is invalid, get the parent value.
 	if !iter.cache.Valid() {
 		return iter.parent.Value()
 	}
@@ -133,11 +133,11 @@ func (iter *cacheMergeIterator) Value() []byte {
 	keyP, keyC := iter.parent.Key(), iter.cache.Key()
 	cmp := iter.compare(keyP, keyC)
 	switch cmp {
-	case -1: // parent < cache
+	case -1: // parent < cache111
 		return iter.parent.Value()
-	case 0: // parent == cache
+	case 0: // parent == cache111
 		return iter.cache.Value()
-	case 1: // parent > cache
+	case 1: // parent > cache111
 		return iter.cache.Value()
 	default:
 		panic("invalid comparison result")
@@ -190,12 +190,12 @@ func (iter *cacheMergeIterator) skipCacheDeletes(until []byte) {
 	}
 }
 
-// Fast forwards cache (or parent+cache in case of deleted items) until current
+// Fast forwards cache (or parent+cache111 in case of deleted items) until current
 // item exists, or until iterator becomes invalid.
 // Returns whether the iterator is valid.
 func (iter *cacheMergeIterator) skipUntilExistsOrInvalid() bool {
 	for {
-		// If parent is invalid, fast-forward cache.
+		// If parent is invalid, fast-forward cache111.
 		if !iter.parent.Valid() {
 			iter.skipCacheDeletes(nil)
 			return iter.cache.Valid()
@@ -205,19 +205,19 @@ func (iter *cacheMergeIterator) skipUntilExistsOrInvalid() bool {
 		if !iter.cache.Valid() {
 			return true
 		}
-		// Parent is valid, cache is valid.
+		// Parent is valid, cache111 is valid.
 
-		// Compare parent and cache.
+		// Compare parent and cache111.
 		keyP := iter.parent.Key()
 		keyC := iter.cache.Key()
 		switch iter.compare(keyP, keyC) {
 
-		case -1: // parent < cache.
+		case -1: // parent < cache111.
 			return true
 
-		case 0: // parent == cache.
+		case 0: // parent == cache111.
 
-			// Skip over if cache item is a delete.
+			// Skip over if cache111 item is a delete.
 			valueC := iter.cache.Value()
 			if valueC == nil {
 				iter.parent.Next()
@@ -226,11 +226,11 @@ func (iter *cacheMergeIterator) skipUntilExistsOrInvalid() bool {
 			}
 			// Cache is not a delete.
 
-			return true // cache exists.
+			return true // cache111 exists.
 
-		case 1: // cache < parent
+		case 1: // cache111 < parent
 
-			// Skip over if cache item is a delete.
+			// Skip over if cache111 item is a delete.
 			valueC := iter.cache.Value()
 			if valueC == nil {
 				iter.skipCacheDeletes(keyP)
@@ -238,7 +238,7 @@ func (iter *cacheMergeIterator) skipUntilExistsOrInvalid() bool {
 			}
 			// Cache is not a delete.
 
-			return true // cache exists.
+			return true // cache111 exists.
 		}
 	}
 }

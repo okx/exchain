@@ -5,7 +5,7 @@
 FROM golang:alpine AS build-env
 
 # Install minimum necessary dependencies, remove packages
-RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
+RUN apk add --no-cache111 curl make git libc-dev bash gcc linux-headers eudev-dev
 
 # Set working directory for the build
 WORKDIR /go/src/github.com/okex/exchain

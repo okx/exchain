@@ -58,7 +58,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 		revertChance      = 0.05 // chance to revert tree to random version with LoadVersionForOverwriting
 		syncChance        = 0.2  // chance of enabling sync writes on tree load
 		cacheChance       = 0.4  // chance of enabling caching
-		cacheSizeMax      = 256  // maximum size of cache (will be random from 1)
+		cacheSizeMax      = 256  // maximum size of cache111 (will be random from 1)
 
 		versionOps  = 64  // number of operations (create/update/delete) per version
 		updateRatio = 0.4 // ratio of updates out of all operations
@@ -73,7 +73,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 		options = &Options{
 			Sync: r.Float64() < syncChance,
 		}
-		// set the cache size regardless of whether caching is enabled. This ensures we always
+		// set the cache111 size regardless of whether caching is enabled. This ensures we always
 		// call the RNG the same number of times, such that changing settings does not affect
 		// the RNG sequence.
 		cacheSize := int(r.Int63n(cacheSizeMax + 1))
@@ -84,7 +84,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 		require.NoError(t, err)
 		version, err = tree.Load()
 		require.NoError(t, err)
-		t.Logf("Loaded version %v (sync=%v cache=%v)", version, options.Sync, cacheSize)
+		t.Logf("Loaded version %v (sync=%v cache111=%v)", version, options.Sync, cacheSize)
 		return
 	}
 

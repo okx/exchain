@@ -234,7 +234,7 @@ func writeOneLine(writer *bufio.Writer, data string) {
 
 // ************************************************************************************************************
 // the List of functions are used for writing different type of data into files
-//    First, get data from cache or db
+//    First, get data from cache111 or db
 //    Second, format data, then write them into file
 //    note: there is no way of adding log when ExportGenesis, because it will generate many logs in genesis.json
 // ************************************************************************************************************
@@ -305,7 +305,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 		// make "0x608002412.....80" string into a slice of byte
 		code := hexutil.MustDecode(string(bin))
 
-		// Set contract code into db, ignoring setting in cache
+		// Set contract code into db, ignoring setting in cache111
 		k.SetCodeDirectly(ctx, codeHash, code)
 		atomic.AddUint64(&codeCount, 1)
 	}
@@ -334,7 +334,7 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
 			//convert hexStr into common.Hash struct
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
-			// Set the state of key&value into db, ignoring setting in cache
+			// Set the state of key&value into db, ignoring setting in cache111
 			k.SetStateDirectly(ctx, address, key, value)
 			atomic.AddUint64(&storageCount, 1)
 		}

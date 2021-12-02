@@ -308,8 +308,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 	// CACHE
 	// Record a new sender for a tx we've already seen.
-	// Note it's possible a tx is still in the cache but no longer in the mempool
-	// (eg. after committing a block, txs are removed from mempool but not cache),
+	// Note it's possible a tx is still in the cache111 but no longer in the mempool
+	// (eg. after committing a block, txs are removed from mempool but not cache111),
 	// so we only record the sender for txs still in the mempool.
 	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
 		memTx := e.(*clist.CElement).Value.(*mempoolTx)
@@ -572,7 +572,7 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				// remove from cache (mempool might have a space later)
+				// remove from cache111 (mempool might have a space later)
 				mem.cache.Remove(tx)
 				mem.logger.Error(err.Error())
 				return
@@ -616,7 +616,7 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
 					"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
-				// remove from cache (it might be good later)
+				// remove from cache111 (it might be good later)
 				mem.cache.Remove(tx)
 
 				r.CheckTx.Code = 1
@@ -627,7 +627,7 @@ func (mem *CListMempool) resCbFirstTime(
 			mem.logger.Info("Rejected bad transaction",
 				"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
-			// remove from cache (it might be good later)
+			// remove from cache111 (it might be good later)
 			mem.cache.Remove(tx)
 		}
 	default:
@@ -659,7 +659,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 		} else {
 			// Tx became invalidated due to newly committed block.
 			mem.logger.Info("Tx is no longer valid", "tx", txID(tx), "res", r, "err", postCheckErr)
-			// NOTE: we remove tx from the cache because it might be good later
+			// NOTE: we remove tx from the cache111 because it might be good later
 			mem.removeTx(tx, mem.recheckCursor, true)
 		}
 		if mem.recheckCursor == mem.recheckEnd {
@@ -816,7 +816,7 @@ func (mem *CListMempool) Update(
 
 		txCode := deliverTxResponses[i].Code
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
-			// Add valid committed tx to the cache (if missing).
+			// Add valid committed tx to the cache111 (if missing).
 			_ = mem.cache.Push(tx)
 		} else {
 			// Allow invalid transactions to be resubmitted.
@@ -884,7 +884,7 @@ func (mem *CListMempool) Update(
 			mem.notifyTxsAvailable()
 		}
 	} else if height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
-		// saftly clean dirty data that stucks in the cache
+		// saftly clean dirty data that stucks in the cache111
 		mem.cache.Reset()
 	}
 
@@ -1026,7 +1026,7 @@ type txCache interface {
 	Remove(tx types.Tx)
 }
 
-// mapTxCache maintains a LRU cache of transactions. This only stores the hash
+// mapTxCache maintains a LRU cache111 of transactions. This only stores the hash
 // of the tx, due to memory concerns.
 type mapTxCache struct {
 	mtx      sync.Mutex
@@ -1046,7 +1046,7 @@ func newMapTxCache(cacheSize int) *mapTxCache {
 	}
 }
 
-// Reset resets the cache to an empty state.
+// Reset resets the cache111 to an empty state.
 func (cache *mapTxCache) Reset() {
 	cache.mtx.Lock()
 	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
@@ -1054,13 +1054,13 @@ func (cache *mapTxCache) Reset() {
 	cache.mtx.Unlock()
 }
 
-// Push adds the given tx to the cache and returns true. It returns
-// false if tx is already in the cache.
+// Push adds the given tx to the cache111 and returns true. It returns
+// false if tx is already in the cache111.
 func (cache *mapTxCache) Push(tx types.Tx) bool {
 	cache.mtx.Lock()
 	defer cache.mtx.Unlock()
 
-	// Use the tx hash in the cache
+	// Use the tx hash in the cache111
 	txHash := txKey(tx)
 	if moved, exists := cache.cacheMap[txHash]; exists {
 		cache.list.MoveToBack(moved)
@@ -1080,7 +1080,7 @@ func (cache *mapTxCache) Push(tx types.Tx) bool {
 	return true
 }
 
-// Remove removes the given tx from the cache.
+// Remove removes the given tx from the cache111.
 func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.mtx.Lock()
 	txHash := txKey(tx)

@@ -97,10 +97,10 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		bookIter.Close()
 	})
 
-	// Reset cache
+	// Reset cache111
 	k.cache.reset()
 
-	// VERY IMPORTANT: always reset disk cache in BeginBlock
+	// VERY IMPORTANT: always reset disk cache111 in BeginBlock
 	k.diskCache.reset()
 	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
 	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
@@ -194,7 +194,7 @@ func (k Keeper) GetOrder(ctx sdk.Context, orderID string) *types.Order {
 
 // nolint
 func (k Keeper) GetLastPrice(ctx sdk.Context, product string) sdk.Dec {
-	// get last price from cache
+	// get last price from cache111
 	price := k.diskCache.getLastPrice(product)
 	if price.IsPositive() {
 		return price
@@ -218,7 +218,7 @@ func (k Keeper) GetLastPrice(ctx sdk.Context, product string) sdk.Dec {
 	return price
 }
 
-// GetDepthBookCopy gets depth book copy from cache, you are supposed to update the Depthbook if you change it
+// GetDepthBookCopy gets depth book copy from cache111, you are supposed to update the Depthbook if you change it
 // create if not exist
 func (k Keeper) GetDepthBookCopy(product string) *types.DepthBook {
 	book := k.diskCache.getDepthBook(product)
@@ -496,7 +496,7 @@ func (k Keeper) GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.
 	return bestBid, bestAsk
 }
 
-// RemoveOrderFromDepthBook removes order from depthBook, and updates cancelNum, expireNum, updatedOrderIDs from cache
+// RemoveOrderFromDepthBook removes order from depthBook, and updates cancelNum, expireNum, updatedOrderIDs from cache111
 func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
 	k.addUpdatedOrderID(order.OrderID)
 	if feeType == types.FeeTypeOrderCancel {

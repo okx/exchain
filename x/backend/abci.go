@@ -25,7 +25,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeSwapInfos(keeper)
 		storeClaimInfos(keeper)
 		keeper.EmitAllWsItems(ctx)
-		// refresh cache
+		// refresh cache111
 		keeper.Flush()
 		keeper.Logger.Debug(fmt.Sprintf("end backend endblocker: block---%d", ctx.BlockHeight()))
 	}

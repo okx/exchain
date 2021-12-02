@@ -116,7 +116,7 @@ func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	return tokenPair
 }
 
-// GetTokenPairFromStore returns token pair from store without cache
+// GetTokenPairFromStore returns token pair from store without cache111
 func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair types.TokenPair
 	store := ctx.KVStore(k.tokenPairStoreKey)
@@ -132,7 +132,7 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 	return &tokenPair
 }
 
-// GetTokenPairs returns all token pairs from store without cache
+// GetTokenPairs returns all token pairs from store without cache111
 func (k Keeper) GetTokenPairs(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairKey)
@@ -184,14 +184,14 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	}
 }
 
-// UpdateUserTokenPair updates token pair in the store and the cache
+// UpdateUserTokenPair updates token pair in the store and the cache111
 func (k Keeper) UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Delete(types.GetUserTokenPairAddress(owner, product))
 	store.Set(types.GetUserTokenPairAddress(to, product), []byte{})
 }
 
-// UpdateTokenPair updates token pair in the store and the cache
+// UpdateTokenPair updates token pair in the store and the cache111
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))

@@ -161,13 +161,13 @@ func (tkv *Store) GetStoreType() types.StoreType {
 }
 
 // CacheWrap implements the KVStore interface. It panics as a Store
-// cannot be cache wrapped.
+// cannot be cache111 wrapped.
 func (tkv *Store) CacheWrap() types.CacheWrap {
 	panic("cannot CacheWrap a Store")
 }
 
 // CacheWrapWithTrace implements the KVStore interface. It panics as a
-// Store cannot be cache wrapped.
+// Store cannot be cache111 wrapped.
 func (tkv *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
 	panic("cannot CacheWrapWithTrace a Store")
 }

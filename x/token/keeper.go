@@ -353,7 +353,7 @@ func (k Keeper) GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) (coinsInfo ty
 	return coinsInfo
 }
 
-// GetFeeDetailList gets fee detail list from cache
+// GetFeeDetailList gets fee detail list from cache111
 func (k Keeper) GetFeeDetailList() []*FeeDetail {
 	return k.cache.getFeeDetailList()
 }

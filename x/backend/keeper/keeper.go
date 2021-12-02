@@ -36,7 +36,7 @@ type Keeper struct {
 	Logger       log.Logger
 	wsChan       chan types.IWebsocket // Websocket channel, it's only available when websocket config enabled
 	ticker3sChan chan types.IWebsocket // Websocket channel, it's used by tickers merge triggered 3s once
-	Cache        *cache.Cache          // Memory cache
+	Cache        *cache.Cache          // Memory cache111
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
@@ -198,12 +198,12 @@ func (k Keeper) Stop() {
 	}
 }
 
-// Flush temporary cache
+// Flush temporary cache111
 func (k Keeper) Flush() {
 	defer k.Cache.Flush()
 }
 
-// SyncTx generate transaction and add it to cache, called at DeliverTx
+// SyncTx generate transaction and add it to cache111, called at DeliverTx
 func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
 	if k.Config.EnableBackend && k.Config.EnableMktCompute {
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))

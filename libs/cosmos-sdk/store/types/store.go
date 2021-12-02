@@ -111,7 +111,7 @@ type MultiStore interface { //nolint
 	// call CacheMultiStore.Write().
 	CacheMultiStore() CacheMultiStore
 
-	// CacheMultiStoreWithVersion cache-wraps the underlying MultiStore where
+	// CacheMultiStoreWithVersion cache111-wraps the underlying MultiStore where
 	// each stored is loaded at a specific version (height).
 	CacheMultiStoreWithVersion(version int64) (CacheMultiStore, error)
 
@@ -141,7 +141,7 @@ type CacheMultiStore interface {
 	Write() // Writes operations to underlying KVStore
 }
 
-// A non-cache MultiStore.
+// A non-cache111 MultiStore.
 type CommitMultiStore interface {
 	Committer
 	MultiStore
@@ -176,7 +176,7 @@ type CommitMultiStore interface {
 	// undefined.
 	LoadVersion(ver int64) error
 
-	// Set an inter-block (persistent) cache that maintains a mapping from
+	// Set an inter-block (persistent) cache111 that maintains a mapping from
 	// StoreKeys to CommitKVStores.
 	SetInterBlockCache(MultiStorePersistentCache)
 
@@ -227,7 +227,7 @@ type CacheManager interface {
 // Alias iterator to db's Iterator for convenience.
 type Iterator = dbm.Iterator
 
-// CacheKVStore cache-wraps a KVStore.  After calling .Write() on
+// CacheKVStore cache111-wraps a KVStore.  After calling .Write() on
 // the CacheKVStore, all previously created CacheKVStores on the
 // object expire.
 type CacheKVStore interface {
@@ -246,9 +246,9 @@ type CommitKVStore interface {
 //----------------------------------------
 // CacheWrap
 
-// CacheWrap makes the most appropriate cache-wrap. For example,
+// CacheWrap makes the most appropriate cache111-wrap. For example,
 // IAVLStore.CacheWrap() returns a CacheKVStore. CacheWrap should not return
-// a Committer, since Commit cache-wraps make no sense. It can return KVStore,
+// a Committer, since Commit cache111-wraps make no sense. It can return KVStore,
 // HeapStore, SpaceStore, etc.
 type CacheWrap interface {
 	CacheManager
@@ -263,10 +263,10 @@ type CacheWrap interface {
 }
 
 type CacheWrapper interface { //nolint
-	// CacheWrap cache wraps.
+	// CacheWrap cache111 wraps.
 	CacheWrap() CacheWrap
 
-	// CacheWrapWithTrace cache wraps with tracing enabled.
+	// CacheWrapWithTrace cache111 wraps with tracing enabled.
 	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
@@ -370,7 +370,7 @@ type TraceContext map[string]interface{}
 // (persistent) caching capabilities for multiple CommitKVStores based on StoreKeys.
 type MultiStorePersistentCache interface {
 	// Wrap and return the provided CommitKVStore with an inter-block (persistent)
-	// cache.
+	// cache111.
 	GetStoreCache(key StoreKey, store CommitKVStore) CommitKVStore
 
 	// Return the underlying CommitKVStore for a StoreKey.
