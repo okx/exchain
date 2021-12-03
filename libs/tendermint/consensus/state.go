@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -1042,7 +1041,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Decide on Deltas
 	if cs.Deltas != nil {
 		deltas = cs.Deltas
-		if viper.GetBool(types.FlagFastQuery) {
+		if types.IsFastQuery() {
 			if cs.WatchData != nil {
 				wd = cs.WatchData
 			} else {
@@ -1539,14 +1538,10 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	var deltas *types.Deltas
-	var wd *types.WatchData
-	deltaMode := viper.GetString(types.FlagStateDelta)
-	fastQuery := viper.GetBool(types.FlagFastQuery)
-	if deltaMode != types.ConsumeDelta {
-		deltas = &types.Deltas{}
-		wd = &types.WatchData{}
-	} else {
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
+	fastQuery := types.IsFastQuery()
+	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
 		if deltas == nil || deltas.Height != block.Height {
 			deltas = &types.Deltas{}
@@ -1574,14 +1569,17 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	if deltaMode != types.NoDelta && deltas.Size() > 0 {
-		deltas.Height = block.Height
-		cs.deltaStore.SaveDeltas(deltas, block.Height)
-	}
-	// persists the given WatchData to the underlying db.
-	if fastQuery && wd != nil {
-		wd.Height = block.Height
-		cs.watchStore.SaveWatch(wd, block.Height)
+	if types.EnableBroadcastP2PDelta() {
+		// persists the given deltas to the underlying db.
+		if deltas.Size() > 0 {
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
+		// persists the given WatchData to the underlying db.
+		if fastQuery && wd != nil {
+			wd.Height = block.Height
+			cs.watchStore.SaveWatch(wd, block.Height)
+		}
 	}
 
 	fail.Fail() // XXX

@@ -426,7 +426,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		if err != nil {
 			return false
 		}
-		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadWatch", "application/json", bytes.NewBuffer(msgBody))
+		response, err := http.Post(tmtypes.GetCenterUrl() + "loadWatch", "application/json", bytes.NewBuffer(msgBody))
 		if err != nil {
 			return false
 		}
