@@ -348,7 +348,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0{
+	if wd != nil && wd.Size() > 0 {
 		wdBytes = wd.WatchDataByte
 	}
 
@@ -357,7 +357,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 	if err != nil {
 		return
 	}
-	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -372,7 +372,7 @@ func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, err
 	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err
@@ -462,6 +462,10 @@ func (blockExec *BlockExecutor) Commit(
 	)
 
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
+		proxyCb := func(req *abci.Request, res *abci.Response) {
+
+		}
+		blockExec.proxyApp.SetResponseCallback(proxyCb)
 		// reset checkState
 		blockExec.proxyApp.SetOptionAsync(abci.RequestSetOption{
 			Key: "ResetCheckState",
