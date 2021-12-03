@@ -7,6 +7,7 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	common2 "github.com/okex/exchain/x/common"
@@ -185,6 +186,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			pm := k.GenerateCSDBParams()
 			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			sendAcc = sendAcc.Copy().(auth.Account)
 			//fix sender's balance in watcher with refund fees
 			gasConsumed := ctx.GasMeter().GasConsumed()
 			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
