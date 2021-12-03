@@ -38,14 +38,18 @@ func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
 }
 
 func (r *RedisClient) SetDelta(deltas *tmtypes.Deltas) error {
-	if deltas == nil || len(deltas.DeltasBytes) == 0 {
+	if deltas.Size() <= 0 {
 		return fmt.Errorf("delta is empty")
 	}
-	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), deltas.DeltasBytes, TTL).Err()
+	deltaBytes, err := deltas.Marshal()
+	if err != nil {
+		return err
+	}
+	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), deltaBytes, TTL).Err()
 }
 
 func (r *RedisClient) SetWatch(watch *tmtypes.WatchData) error {
-	if watch == nil || len(watch.WatchDataByte) == 0 {
+	if watch.Size() <= 0 {
 		return fmt.Errorf("watch is empty")
 	}
 	return r.rdb.SetNX(context.Background(), setWatchKey(watch.Height), watch.WatchDataByte, TTL).Err()
@@ -57,8 +61,7 @@ func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 		return nil, err
 	}
 	block := &tmtypes.Block{}
-	err = block.Unmarshal(blockBytes)
-	if err != nil {
+	if err = block.Unmarshal(blockBytes); err != nil {
 		return nil, err
 	}
 	return block, nil
@@ -69,12 +72,13 @@ func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tmtypes.Deltas{
-		DeltasBytes: deltaBytes,
-		Height:      height,
-		ABCIRsp:     nil,
-	}, nil
+	deltas := &tmtypes.Deltas{}
+	if err = deltas.Unmarshal(deltaBytes); err != nil {
+		return nil, err
+	}
+	return deltas, nil
 }
+
 func (r *RedisClient) GetWatch(height int64) (*tmtypes.WatchData, error) {
 	watchBytes, err := r.rdb.Get(context.Background(), setWatchKey(height)).Bytes()
 	if err != nil {
