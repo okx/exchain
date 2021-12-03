@@ -19,7 +19,7 @@ var (
 //-----------------------------------------------------------------------------
 // function for exchain get watchDB batch
 var (
-	GetCenterBatch func(int64) bool
+	GetCenterBatch func([]byte) bool
 	GetWatchData func() *types.WatchData
 	UseWatchData func(data *types.WatchData)
 )

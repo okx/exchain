@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	redis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 )
 
 const TTL = 1500 * time.Second
@@ -17,9 +16,9 @@ type RedisClient struct {
 	rdb *redis.Client
 }
 
-func NewRedisClient() *RedisClient {
+func NewRedisClient(url string) *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     viper.GetString(tmtypes.DataCenterUrl),
+		Addr:     url,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
@@ -57,6 +56,9 @@ func (r *RedisClient) SetWatch(watch *tmtypes.WatchData) error {
 
 func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 	blockBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +71,9 @@ func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 
 func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
 	deltaBytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +86,9 @@ func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
 
 func (r *RedisClient) GetWatch(height int64) (*tmtypes.WatchData, error) {
 	watchBytes, err := r.rdb.Get(context.Background(), setWatchKey(height)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

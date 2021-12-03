@@ -1,11 +1,8 @@
 package watcher
 
 import (
-	"bytes"
 	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
 	"math/big"
-	"net/http"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -420,20 +417,9 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	gcb := func(height int64) bool {
-		msg := tmstate.DataCenterMsg{Height: height}
-		msgBody, err := tmtypes.Json.Marshal(&msg)
-		if err != nil {
-			return false
-		}
-		response, err := http.Post(tmtypes.GetCenterUrl() + "loadWatch", "application/json", bytes.NewBuffer(msgBody))
-		if err != nil {
-			return false
-		}
-		defer response.Body.Close()
-		rlt, _ := ioutil.ReadAll(response.Body)
+	gcb := func(watchBytes []byte) bool {
 		data := WatchData{}
-		if err = itjs.Unmarshal(rlt, &data); err != nil {
+		if itjs.Unmarshal(watchBytes, &data) != nil {
 			return false
 		}
 		if data.Size() == 0 {

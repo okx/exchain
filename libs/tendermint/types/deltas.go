@@ -16,6 +16,9 @@ const (
 	// send delta to dc/redis
 	FlagUploadDDS = "upload-delta"
 
+	// redis
+	FlagRedisUrl = "redis-url"
+
 	// data-center
 	FlagDataCenter = "data-center-mode"
 	DataCenterUrl  = "data-center-url"
@@ -28,6 +31,7 @@ var (
 	fastQuery = false
 	centerMode = false
 	centerUrl = "127.0.0.1:8030"
+	redisUrl = "127.0.0.1:8030"
 
 	applyP2PDelta = false
 	broadcatP2PDelta = false
@@ -37,6 +41,7 @@ var (
 	onceFastQuery	sync.Once
 	onceCenterMode	sync.Once
 	onceCenterUrl	sync.Once
+	onceRedisUrl	sync.Once
 
 	onceApplyP2P sync.Once
 	onceBroadcastP2P sync.Once
@@ -80,6 +85,13 @@ func EnableUploadDelta() bool {
 		iavl.SetProduceDelta(true)
 	})
 	return uploadDelta
+}
+
+func RedisUrl() string {
+	onceRedisUrl.Do(func() {
+		redisUrl = viper.GetString(FlagRedisUrl)
+	})
+	return redisUrl
 }
 
 func IsCenterEnabled() bool {

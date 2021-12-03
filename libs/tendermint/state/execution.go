@@ -1,8 +1,8 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
+	redis_cgi "github.com/okex/exchain/libs/thirdpart/redis-cgi"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -15,17 +15,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
-	"io/ioutil"
-	"net/http"
 )
-
-// DataCenterMsg is the format of Data send to DataCenter
-type DataCenterMsg struct {
-	Height    int64  `json:"height"`
-	Block     []byte `json:"block"`
-	Delta     []byte `json:"delta"`
-	WatchData []byte `json:"watch_data"`
-}
 
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
@@ -36,6 +26,9 @@ type DataCenterMsg struct {
 type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
 	db dbm.DB
+
+	// download or upload data to redis
+	redisClient *redis_cgi.RedisClient
 
 	// execute the app against this
 	proxyApp proxy.AppConnConsensus
@@ -87,6 +80,8 @@ func NewBlockExecutor(
 	for _, option := range options {
 		option(res)
 	}
+
+	res.redisClient = redis_cgi.NewRedisClient(types.RedisUrl())
 
 	return res
 }
@@ -195,7 +190,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			if wd.Size() <= 0 {
 				if downloadDelta {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
-					batchOK = GetCenterBatch(block.Height)
+					wd, _ = blockExec.redisClient.GetWatch(block.Height)
+					if wd.Size() <= 0 {
+						// can't get watchData
+						batchOK = false
+					} else {
+						// set wd into watcher.go
+						batchOK = GetCenterBatch(wd.WatchDataByte)
+					}
 				} else {
 					batchOK = false
 				}
@@ -208,7 +210,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
 			if deltas.Size() <= 0 && downloadDelta {
-				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
+				if delta, err := blockExec.redisClient.GetDeltas(block.Height); err == nil {
 					deltas = delta
 				}
 			}
@@ -303,6 +305,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			// commitBatch with wd in exchain
 			UseWatchData(wd)
 		}
+		wd.Height = block.Height
 	}
 
 	trc.Pin("evpool")
@@ -323,8 +326,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
+	if broadDelta || uploadDelta {
+		deltas.Height = block.Height
+	}
 	if types.EnableUploadDelta() {
-		go sendToDatacenter(blockExec.logger, block, deltas, wd)
+		go blockExec.uploadData(block, deltas, wd)
 	}
 
 	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
@@ -334,60 +340,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-// sendToDatacenter send bcBlockResponseMessage to DataCenter
-func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
-	var blockBytes, deltaBytes, wdBytes []byte
-	var err error
-	if block != nil {
-		if blockBytes, err = block.Marshal(); err != nil {
-			return
-		}
-	}
-	if deltas != nil {
-		if deltaBytes, err = deltas.Marshal(); err != nil {
-			return
-		}
-	}
-	if wd != nil && wd.Size() > 0{
-		wdBytes = wd.WatchDataByte
-	}
-
-	msg := DataCenterMsg{block.Height, blockBytes, deltaBytes, wdBytes}
-	msgBody, err := types.Json.Marshal(&msg)
-	if err != nil {
-		return
-	}
-	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
-	if err != nil {
-		logger.Error("sendToDatacenter err ,", err)
-		return
-	}
-	defer response.Body.Close()
-}
-
-// getDataFromDatacenter send bcBlockResponseMessage to DataCenter
-func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, error) {
-	msg := DataCenterMsg{Height: height}
-	msgBody, err := types.Json.Marshal(&msg)
-	if err != nil {
-		return nil, err
-	}
-	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
-	if err != nil {
-		logger.Error("getDataFromDatacenter err ,", err)
-		return nil, err
-	}
-
-	defer response.Body.Close()
-	rlt, _ := ioutil.ReadAll(response.Body)
-	logger.Info("GetDataFromDatacenter", "height", height, "len", len(rlt))
-
-	delta := &types.Deltas{}
-	if delta.Unmarshal(rlt) != nil {
-		return nil, err
-	}
-
-	return delta, nil
+func (blockExec *BlockExecutor)uploadData(block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
+	blockExec.logger.Info("uploadData",
+		"height:", block.Height,
+		"blockLen:", block.Size(),
+		"deltaLen:", deltas.Size(),
+		"watchLen:", wd.Size())
+	go blockExec.redisClient.SetBlock(block)
+	go blockExec.redisClient.SetDelta(deltas)
+	go blockExec.redisClient.SetWatch(wd)
 }
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
