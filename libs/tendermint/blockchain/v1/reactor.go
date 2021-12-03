@@ -3,7 +3,6 @@ package v1
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"time"
 
@@ -425,13 +424,7 @@ func (bcR *BlockchainReactor) processBlock() error {
 		// We need both to sync the first block.
 		return err
 	}
-	if deltas == nil {
-		deltas = &types.Deltas{}
-	}
-	deltaMode := viper.GetString(types.FlagStateDelta)
-	if deltaMode != types.ConsumeDelta {
-		deltas = &types.Deltas{}
-	}
+
 
 	chainID := bcR.initialState.ChainID
 
@@ -456,10 +449,6 @@ func (bcR *BlockchainReactor) processBlock() error {
 		panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 	}
 
-	if deltaMode != types.NoDelta && len(deltas.DeltasBytes) > 0 {
-		deltas.Height = first.Height
-		bcR.dstore.SaveDeltas(deltas, first.Height)
-	}
 
 	return nil
 }
