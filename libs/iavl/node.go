@@ -14,6 +14,20 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
+// NodeJson provide json Marshal of Node.
+type NodeJson struct {
+	Key          []byte `json:"key"`
+	Value        []byte `json:"value"`
+	Hash         []byte `json:"hash"`
+	LeftHash     []byte `json:"left_hash"`
+	RightHash    []byte `json:"right_hash"`
+	Version      int64  `json:"version"`
+	Size         int64  `json:"size"`
+	Height       int8   `json:"height"`
+	Persisted    bool   `json:"persisted"`
+	prePersisted bool   `json:"pre_persisted"`
+}
+
 // Node represents a node in a Tree.
 type Node struct {
 	key          []byte
@@ -28,6 +42,44 @@ type Node struct {
 	height       int8
 	persisted    bool
 	prePersisted bool
+}
+
+// NodeToNodeJson get NodeJson from Node
+func NodeToNodeJson(node *Node) *NodeJson {
+	if node == nil {
+		return &NodeJson{}
+	}
+	return &NodeJson{
+		Key:          node.key,
+		Value:        node.value,
+		Hash:         node.hash,
+		LeftHash:     node.leftHash,
+		RightHash:    node.rightHash,
+		Version:      node.version,
+		Size:         node.size,
+		Height:       node.height,
+		Persisted:    node.persisted,
+		prePersisted: node.prePersisted,
+	}
+}
+
+// NodeJsonToNode get Node from NodeJson
+func NodeJsonToNode(nj *NodeJson) *Node {
+	if nj == nil {
+		return nil
+	}
+	return &Node{
+		key:          nj.Key,
+		value:        nj.Value,
+		hash:         nj.Hash,
+		leftHash:     nj.LeftHash,
+		rightHash:    nj.RightHash,
+		version:      nj.Version,
+		size:         nj.Size,
+		height:       nj.Height,
+		persisted:    nj.Persisted,
+		prePersisted: nj.prePersisted,
+	}
 }
 
 // NewNode returns a new node from a key, value and version.

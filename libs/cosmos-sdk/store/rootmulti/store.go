@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"log"
 	"sort"
@@ -24,6 +25,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
+
+var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	latestVersionKey = "s/latest"
@@ -190,6 +193,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		}
 	}
 
+	roots := make(map[int64][]byte)
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
@@ -206,6 +210,13 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			return fmt.Errorf("failed to load Store: %v", err)
 		}
 		newStores[key] = store
+
+		if storeParams.typ == types.StoreTypeIAVL {
+			if len(roots) == 0 {
+				iStore := store.(*iavl.Store)
+				roots = iStore.GetHeights()
+			}
+		}
 
 		// If it was deleted, remove all data
 		if upgrades.IsDeleted(key.Name()) {
@@ -235,25 +246,65 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	rs.lastCommitInfo = cInfo
 	rs.stores = newStores
 
-	// load any pruned heights we missed from disk to be pruned on the next run
-	ph, err := getPruningHeights(rs.db)
-	if err == nil && len(ph) > 0 {
-		rs.pruneHeights = ph
+	err := rs.checkAndResetPruningHeights(roots)
+	if err != nil {
+		return err
 	}
 
 	vs, err := getVersions(rs.db)
-	if err == nil && len(vs) > 0 {
+	if err != nil {
+		return err
+	}
+	if len(vs) > 0 {
 		rs.versions = vs
 	}
 	if rs.logger != nil {
-		rs.logger.Info("loadVersion info", "pruneHeightsLen", len(rs.pruneHeights), "versions", len(rs.versions))
+		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("the length of pruneHeights exceeds %d, please prune them with command 'exchaind data prune-compact all'", maxPruneHeightsLength)
+		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, " +
+			"need to prune them with command " +
+			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
+			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil
 }
 
+func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
+	ph, err := getPruningHeights(rs.db, false)
+	if err != nil {
+		return err
+	}
+
+	if len(ph) == 0 {
+		return nil
+	}
+
+	needReset := false
+	var newPh []int64
+	for _, h := range ph {
+		if _, ok := roots[h] ;ok {
+			newPh = append(newPh, h)
+		} else {
+			needReset = true
+		}
+	}
+	rs.pruneHeights = newPh
+
+	if needReset {
+		if rs.logger != nil {
+			msg := fmt.Sprintf("Detected pruned heights length <%d>, reset to <%d>",
+				len(ph), len(rs.pruneHeights))
+			rs.logger.Info(msg)
+		}
+		batch := rs.db.NewBatch()
+		setPruningHeights(batch, newPh)
+		batch.Write()
+		batch.Close()
+	}
+
+	return nil
+}
 func (rs *Store) getCommitID(infos map[string]storeInfo, name string) types.CommitID {
 	info, ok := infos[name]
 	if !ok {
@@ -336,10 +387,10 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) Commit() types.CommitID {
+func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo = commitStores(version, rs.stores)
+	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -380,7 +431,7 @@ func (rs *Store) Commit() types.CommitID {
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
-	}
+	}, iavltree.TreeDelta{}, deltas
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -782,11 +833,22 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore) commitInfo {
-	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
+//	storeInfos := make([]storeInfo, 0, len(storeMap))
+	var storeInfos []storeInfo
+	appliedDeltas := map[string]*iavltree.TreeDelta{}
+	returnedDeltas := map[string]iavltree.TreeDelta{}
+
+	var err error
+	if tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta() && len(deltas) != 0 {
+		err = itjs.Unmarshal(deltas, &appliedDeltas)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	for key, store := range storeMap {
-		commitID := store.Commit()
+		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], deltas)
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
@@ -796,12 +858,20 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
+		returnedDeltas[key.Name()] = reDelta
+	}
+
+	if tmtypes.EnableBroadcastP2PDelta() || tmtypes.EnableUploadDelta() {
+		deltas, err = itjs.Marshal(returnedDeltas)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
-	}
+	}, deltas
 }
 
 // Gets commitInfo from disk.
@@ -849,16 +919,20 @@ func SetPruningHeights(db dbm.DB, pruneHeights []int64) {
 }
 
 func GetPruningHeights(db dbm.DB) ([]int64, error) {
-	return getPruningHeights(db)
+	return getPruningHeights(db, true)
 }
 
-func getPruningHeights(db dbm.DB) ([]int64, error) {
+func getPruningHeights(db dbm.DB, reportZeroLengthErr bool) ([]int64, error) {
 	bz, err := db.Get([]byte(pruneHeightsKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pruned heights: %w", err)
 	}
 	if len(bz) == 0 {
-		return nil, errors.New("no pruned heights found")
+		if reportZeroLengthErr {
+			return nil, errors.New("no pruned heights found")
+		} else {
+			return nil, nil
+		}
 	}
 
 	var prunedHeights []int64
@@ -893,8 +967,9 @@ func getVersions(db dbm.DB) ([]int64, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get versions: %w", err)
 	}
+
 	if len(bz) == 0 {
-		return nil, errors.New("no versions found")
+		return nil, nil
 	}
 
 	var versions []int64

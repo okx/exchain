@@ -43,7 +43,7 @@ func newAlohaTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, types.CommitID) {
 		tree.Set(key, value)
 	}
 
-	hash, ver, err := tree.SaveVersion()
+	hash, ver, _, err := tree.SaveVersion(false)
 	require.Nil(t, err)
 
 	return tree, types.CommitID{Version: ver, Hash: hash}
@@ -56,13 +56,13 @@ func TestLoadStore(t *testing.T) {
 
 	// Create non-pruned height H
 	require.True(t, tree.Set([]byte("hello"), []byte("hallo")))
-	hash, verH, err := tree.SaveVersion()
+	hash, verH, _, err := tree.SaveVersion(false)
 	cIDH := types.CommitID{Version: verH, Hash: hash}
 	require.Nil(t, err)
 
 	// Create pruned height Hp
 	require.True(t, tree.Set([]byte("hello"), []byte("hola")))
-	hash, verHp, err := tree.SaveVersion()
+	hash, verHp, _, err := tree.SaveVersion(false)
 	cIDHp := types.CommitID{Version: verHp, Hash: hash}
 	require.Nil(t, err)
 
@@ -70,7 +70,7 @@ func TestLoadStore(t *testing.T) {
 
 	// Create current height Hc
 	require.True(t, tree.Set([]byte("hello"), []byte("ciao")))
-	hash, verHc, err := tree.SaveVersion()
+	hash, verHc, _, err := tree.SaveVersion(false)
 	cIDHc := types.CommitID{Version: verHc, Hash: hash}
 	require.Nil(t, err)
 
@@ -111,7 +111,7 @@ func TestGetImmutable(t *testing.T) {
 	store := UnsafeNewStore(tree)
 
 	require.True(t, tree.Set([]byte("hello"), []byte("adios")))
-	hash, ver, err := tree.SaveVersion()
+	hash, ver, _, err := tree.SaveVersion(false)
 	cID = types.CommitID{Version: ver, Hash: hash}
 	require.Nil(t, err)
 
@@ -132,7 +132,7 @@ func TestGetImmutable(t *testing.T) {
 
 	require.Panics(t, func() { newStore.Set(nil, nil) })
 	require.Panics(t, func() { newStore.Delete(nil) })
-	require.Panics(t, func() { newStore.Commit() })
+	require.Panics(t, func() { newStore.Commit(&iavl.TreeDelta{}, nil) })
 }
 
 func TestTestGetImmutableIterator(t *testing.T) {
@@ -422,11 +422,11 @@ func TestIAVLReversePrefixIterator(t *testing.T) {
 	require.Equal(t, len(expected), i)
 }
 
-func nextVersion(iavl *Store) {
-	key := []byte(fmt.Sprintf("Key for tree: %d", iavl.LastCommitID().Version))
-	value := []byte(fmt.Sprintf("Value for tree: %d", iavl.LastCommitID().Version))
-	iavl.Set(key, value)
-	iavl.Commit()
+func nextVersion(iStore *Store) {
+	key := []byte(fmt.Sprintf("Key for tree: %d", iStore.LastCommitID().Version))
+	value := []byte(fmt.Sprintf("Value for tree: %d", iStore.LastCommitID().Version))
+	iStore.Set(key, value)
+	iStore.Commit(&iavl.TreeDelta{}, nil)
 }
 
 func TestIAVLNoPrune(t *testing.T) {
@@ -473,7 +473,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
 	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
-	cid := iavlStore.Commit()
+	cid, _, _ := iavlStore.Commit(&iavl.TreeDelta{}, nil)
 	ver := cid.Version
 	query := abci.RequestQuery{Path: "/key", Data: k1, Height: ver}
 	querySub := abci.RequestQuery{Path: "/subspace", Data: ksub, Height: ver}
@@ -493,7 +493,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Nil(t, qres.Value)
 
 	// commit it, but still don't see on old version
-	cid = iavlStore.Commit()
+	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
 	qres = iavlStore.Query(query)
 	require.Equal(t, uint32(0), qres.Code)
 	require.Nil(t, qres.Value)
@@ -511,7 +511,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 	// modify
 	iavlStore.Set(k1, v3)
-	cid = iavlStore.Commit()
+	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
 
 	// query will return old values, as height is fixed
 	qres = iavlStore.Query(query)

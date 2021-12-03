@@ -33,7 +33,7 @@ func setOption(client abcicli.Client, key, value string) {
 }
 
 func commit(client abcicli.Client, hashExp []byte) {
-	res, err := client.CommitSync()
+	res, err := client.CommitSync(types.RequestCommit{})
 	if err != nil {
 		panicf("client error: %v", err)
 	}

@@ -65,7 +65,7 @@ func (i instruction) Execute(tree *MutableTree) {
 	case "REMOVE":
 		tree.Remove(i.k)
 	case "SAVE":
-		tree.SaveVersion()
+		tree.SaveVersion(false)
 	case "DELETE":
 		tree.DeleteVersion(i.version)
 	default:
