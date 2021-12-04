@@ -81,19 +81,13 @@ func (k Keeper) SetPreviousProposerConsAddr(ctx sdk.Context, consAddr sdk.ConsAd
 // GetValidatorAccumulatedCommission returns accumulated commission for a validator
 func (k Keeper) GetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) (
 	commission types.ValidatorAccumulatedCommission) {
-	if data, gas, ok := k.cache.getCache(val); ok {
-		ctx.GasMeter().ConsumeGas(gas, "cache:x/distribution/keeper/GetValidatorAccumulatedCommission")
-		return data
-	}
-	beforeGas := ctx.GasMeter().GasConsumed()
+
 	store := ctx.KVStore(k.storeKey)
 	b := store.Get(types.GetValidatorAccumulatedCommissionKey(val))
 	if b == nil {
-		k.cache.updateCache(val, types.ValidatorAccumulatedCommission{}, ctx.GasMeter().GasConsumed()-beforeGas)
 		return types.ValidatorAccumulatedCommission{}
 	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &commission)
-	k.cache.updateCache(val, commission, ctx.GasMeter().GasConsumed()-beforeGas)
 	return commission
 }
 
@@ -101,7 +95,6 @@ func (k Keeper) GetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress,
 	commission types.ValidatorAccumulatedCommission) {
 
-	beforeGas := ctx.GasMeter().GasConsumed()
 	var bz []byte
 	store := ctx.KVStore(k.storeKey)
 	if commission.IsZero() {
@@ -110,15 +103,12 @@ func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 		bz = k.cdc.MustMarshalBinaryLengthPrefixed(commission)
 	}
 	store.Set(types.GetValidatorAccumulatedCommissionKey(val), bz)
-	k.cache.updateCache(val, commission, ctx.GasMeter().GasConsumed()-beforeGas)
 }
 
 // deleteValidatorAccumulatedCommission deletes accumulated commission for a validator
 func (k Keeper) deleteValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
-	beforeGas := ctx.GasMeter().GasConsumed()
 	store.Delete(types.GetValidatorAccumulatedCommissionKey(val))
-	k.cache.updateCache(val, types.ValidatorAccumulatedCommission{}, ctx.GasMeter().GasConsumed()-beforeGas)
 }
 
 // IterateValidatorAccumulatedCommissions iterates over accumulated commissions
