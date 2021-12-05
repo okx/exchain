@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/stretchr/testify/require"
+	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"

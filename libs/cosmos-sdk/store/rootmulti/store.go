@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/viper"
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -15,7 +16,6 @@ import (
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"

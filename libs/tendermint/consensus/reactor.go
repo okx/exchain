@@ -2,11 +2,12 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
 

@@ -12,11 +12,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+
 	dbm "github.com/tendermint/tm-db"
 )
 
