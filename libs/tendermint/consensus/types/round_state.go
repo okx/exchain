@@ -65,10 +65,11 @@ func (rs RoundStepType) String() string {
 // NOTE: Not thread safe. Should only be manipulated by functions downstream
 // of the cs.receiveRoutine
 type RoundState struct {
-	Height    int64         `json:"height"` // Height we are working on
-	Round     int           `json:"round"`
-	Step      RoundStepType `json:"step"`
-	StartTime time.Time     `json:"start_time"`
+	Height          int64         `json:"height"` // Height we are working on
+	Round           int           `json:"round"`
+	Step            RoundStepType `json:"step"`
+	StartTime       time.Time     `json:"start_time"`
+	Round0StartTime int64         `json:"round0_start_time"`
 
 	// Subjective time when +2/3 precommits for Block at Round were found
 	CommitTime         time.Time           `json:"commit_time"`

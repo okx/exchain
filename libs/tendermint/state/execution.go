@@ -180,17 +180,20 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if deltas == nil {
 		deltas = &types.Deltas{}
 	}
-	deltaMode := viper.GetString(types.FlagStateDelta)
-	fastQuery := viper.GetBool(types.FlagFastQuery)
-	centerMode := viper.GetBool(types.FlagDataCenter)
+
+	fastQuery := types.IsFastQuery()
+	applyDelta := types.EnableApplyP2PDelta()
+	broadDelta := types.EnableBroadcastP2PDelta()
+	downloadDelta := types.EnableDownloadDelta()
+	uploadDelta := types.EnableUploadDelta()
 	batchOK := true
 	useDeltas := false
 
-	if deltaMode == types.ConsumeDelta {
+	if applyDelta || downloadDelta {
 		// only when it's consumer, can use deltas
 		if fastQuery {
 			if wd.Size() <= 0 {
-				if centerMode {
+				if downloadDelta {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
 					batchOK = GetCenterBatch(block.Height)
 				} else {
@@ -204,7 +207,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		if batchOK {
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() <= 0 && centerMode {
+			if deltas.Size() <= 0 && downloadDelta {
 				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
 					deltas = delta
 				}
@@ -216,9 +219,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			}
 		}
 	}
-
-	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
-		"FlagDelta", deltaMode, "FlagCenter", centerMode, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
@@ -237,11 +237,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		} else {
 			abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 		}
-		bytes, err := types.Json.Marshal(abciResponses)
-		if err != nil {
-			panic(err)
+		if broadDelta || uploadDelta {
+			bytes, err := types.Json.Marshal(abciResponses)
+			if err != nil {
+				panic(err)
+			}
+			deltas.ABCIRsp = bytes
 		}
-		deltas.ABCIRsp = bytes
 	}
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -321,9 +323,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	if viper.GetBool(types.FlagDataCenter) {
+	if types.EnableUploadDelta() {
 		go sendToDatacenter(blockExec.logger, block, deltas, wd)
 	}
+
+	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
+		"applyDelta", applyDelta, "downloadDelta", downloadDelta, "uploadDelta", uploadDelta, "broadDelta", broadDelta,
+		"fastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
 	return state, retainHeight, nil
 }
@@ -351,8 +357,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 	if err != nil {
 		return
 	}
-
-	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -367,7 +372,7 @@ func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, err
 	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err

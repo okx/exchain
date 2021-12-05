@@ -145,8 +145,11 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(FlagEvmImportMode, "default", "Select import mode for evm state (default|files|db)")
 	cmd.Flags().String(FlagEvmImportPath, "", "Evm contract & storage db or files used for InitGenesis")
 	cmd.Flags().Uint64(FlagGoroutineNum, 0, "Limit on the number of goroutines used to import evm data(ignored if evm-import-mode is 'default')")
-
-	cmd.Flags().String(tmtypes.FlagStateDelta, tmtypes.NoDelta, "sync through state delta")
+	
+	cmd.Flags().Bool(tmtypes.FlagDownloadDDS, false, "get delta from dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "send delta to dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
+	cmd.Flags().Bool(tmtypes.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().Bool(tmtypes.FlagDataCenter, false, "Use data-center-mode or not")
 	cmd.Flags().String(tmtypes.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
 
