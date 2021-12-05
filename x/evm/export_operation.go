@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-
 	dbm "github.com/tendermint/tm-db"
 )
 

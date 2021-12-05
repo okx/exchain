@@ -45,7 +45,6 @@ var (
 var (
 	msgQueueSize = 1000
 	EnableProactivelyRunTx = "enable-proactively-runtx"
-
 )
 
 // msgs from the reactor which may update the state
