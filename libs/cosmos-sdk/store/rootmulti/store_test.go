@@ -75,7 +75,7 @@ func TestCacheMultiStoreWithVersion(t *testing.T) {
 	_, err = ms.CacheMultiStoreWithVersion(cID.Version + 1)
 	require.NoError(t, err)
 
-	// require a valid version can be cache111-loaded
+	// require a valid version can be cache-loaded
 	cms, err := ms.CacheMultiStoreWithVersion(cID.Version)
 	require.NoError(t, err)
 
@@ -84,7 +84,7 @@ func TestCacheMultiStoreWithVersion(t *testing.T) {
 	require.NotNil(t, kvStore)
 	require.Equal(t, kvStore.Get(k), v)
 
-	// require we cannot commit (write) to a cache111-versioned multi-store
+	// require we cannot commit (write) to a cache-versioned multi-store
 	require.Panics(t, func() {
 		kvStore.Set(k, []byte("newValue"))
 		cms.Write()

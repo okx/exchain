@@ -97,10 +97,10 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		bookIter.Close()
 	})
 
-	// Reset cache111
+	// Reset cache
 	k.cache.reset()
 
-	// VERY IMPORTANT: always reset disk cache111 in BeginBlock
+	// VERY IMPORTANT: always reset disk cache in BeginBlock
 	k.diskCache.reset()
 	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
 	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))

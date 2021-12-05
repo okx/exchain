@@ -258,7 +258,7 @@ func cleanupExpiredOrders(ctx sdk.Context, keeper keeper.Keeper) {
 	// Clean the expired orders which is collected by the last block
 	cleanLastBlockClosedOrders(ctx, keeper)
 
-	// Look backward to see who is expired and cache111 the expired orders
+	// Look backward to see who is expired and cache the expired orders
 	cacheExpiredBlockToCurrentHeight(ctx, keeper)
 }
 

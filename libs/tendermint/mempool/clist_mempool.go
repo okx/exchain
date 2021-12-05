@@ -816,7 +816,7 @@ func (mem *CListMempool) Update(
 
 		txCode := deliverTxResponses[i].Code
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
-			// Add valid committed tx to the cache111 (if missing).
+			// Add valid committed tx to the cache (if missing).
 			_ = mem.cache.Push(tx)
 		} else {
 			// Allow invalid transactions to be resubmitted.
@@ -884,7 +884,7 @@ func (mem *CListMempool) Update(
 			mem.notifyTxsAvailable()
 		}
 	} else if height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
-		// saftly clean dirty data that stucks in the cache111
+		// saftly clean dirty data that stucks in the cache
 		mem.cache.Reset()
 	}
 
@@ -1026,7 +1026,7 @@ type txCache interface {
 	Remove(tx types.Tx)
 }
 
-// mapTxCache maintains a LRU cache111 of transactions. This only stores the hash
+// mapTxCache maintains a LRU cache of transactions. This only stores the hash
 // of the tx, due to memory concerns.
 type mapTxCache struct {
 	mtx      sync.Mutex
@@ -1046,7 +1046,7 @@ func newMapTxCache(cacheSize int) *mapTxCache {
 	}
 }
 
-// Reset resets the cache111 to an empty state.
+// Reset resets the cache to an empty state.
 func (cache *mapTxCache) Reset() {
 	cache.mtx.Lock()
 	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
@@ -1054,13 +1054,13 @@ func (cache *mapTxCache) Reset() {
 	cache.mtx.Unlock()
 }
 
-// Push adds the given tx to the cache111 and returns true. It returns
-// false if tx is already in the cache111.
+// Push adds the given tx to the cache and returns true. It returns
+// false if tx is already in the cache.
 func (cache *mapTxCache) Push(tx types.Tx) bool {
 	cache.mtx.Lock()
 	defer cache.mtx.Unlock()
 
-	// Use the tx hash in the cache111
+	// Use the tx hash in the cache
 	txHash := txKey(tx)
 	if moved, exists := cache.cacheMap[txHash]; exists {
 		cache.list.MoveToBack(moved)
@@ -1080,7 +1080,7 @@ func (cache *mapTxCache) Push(tx types.Tx) bool {
 	return true
 }
 
-// Remove removes the given tx from the cache111.
+// Remove removes the given tx from the cache.
 func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.mtx.Lock()
 	txHash := txKey(tx)

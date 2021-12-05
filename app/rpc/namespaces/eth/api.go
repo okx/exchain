@@ -986,7 +986,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		return pendingTx, nil
 	}
 
-	// Can either cache111 or just leave this out if not necessary
+	// Can either cache or just leave this out if not necessary
 	block, err := api.clientCtx.Client.Block(&tx.Height)
 	if err != nil {
 		return nil, err

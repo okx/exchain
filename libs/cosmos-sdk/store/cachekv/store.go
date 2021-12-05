@@ -24,7 +24,7 @@ type cValue struct {
 	dirty   bool
 }
 
-// Store wraps an in-memory cache111 around an underlying types.KVStore.
+// Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
 	cache         map[string]*cValue
@@ -139,14 +139,14 @@ func (store *Store) Write() {
 		}
 	}
 
-	// Clear the cache111
+	// Clear the cache
 	store.cache = make(map[string]*cValue)
 	store.unsortedCache = make(map[string]struct{})
 	store.sortedCache = list.New()
 }
 
 //----------------------------------------
-// To cache111-wrap this Store further.
+// To cache-wrap this Store further.
 
 // Implements CacheWrapper.
 func (store *Store) CacheWrap() types.CacheWrap {
@@ -263,7 +263,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 //----------------------------------------
 // etc
 
-// Only entrypoint to mutate store.cache111.
+// Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	store.cache[string(key)] = &cValue{
 		value:   value,

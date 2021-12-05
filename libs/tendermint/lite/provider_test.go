@@ -43,7 +43,7 @@ func TestMultiProvider(t *testing.T) {
 		NewDBProvider("mem", dbm.NewMemDB()),
 		NewMissingProvider(),
 	)
-	checkProvider(t, p, "test-cache111", "kjfhekfhkewhgit")
+	checkProvider(t, p, "test-cache", "kjfhekfhkewhgit")
 }
 
 func checkProvider(t *testing.T, p PersistentProvider, chainID, app string) {
@@ -106,13 +106,13 @@ func checkLatestFullCommit(t *testing.T, p PersistentProvider, chainID string, a
 func TestMultiLatestFullCommit(t *testing.T) {
 	require := require.New(t)
 
-	// We will write data to the second level of the cache111 (p2), and see what
+	// We will write data to the second level of the cache (p2), and see what
 	// gets cached/stored in.
 	p := NewDBProvider("mem1", dbm.NewMemDB())
 	p2 := NewDBProvider("mem2", dbm.NewMemDB())
 	cp := NewMultiProvider(p, p2)
 
-	chainID := "cache111-best-height"
+	chainID := "cache-best-height"
 	appHash := []byte("01234567")
 	keys := genPrivKeys(5)
 	count := 10
@@ -126,7 +126,7 @@ func TestMultiLatestFullCommit(t *testing.T) {
 		require.NoError(err)
 	}
 
-	// Get a few heights from the cache111 and set them proper.
+	// Get a few heights from the cache and set them proper.
 	checkLatestFullCommit(t, cp, chainID, 57, 50)
 	checkLatestFullCommit(t, cp, chainID, 33, 30)
 
@@ -135,7 +135,7 @@ func TestMultiLatestFullCommit(t *testing.T) {
 	checkLatestFullCommit(t, p, chainID, 50, 50)
 	checkLatestFullCommit(t, p, chainID, 99, 50)
 
-	// now, query the cache111 for a higher value
+	// now, query the cache for a higher value
 	checkLatestFullCommit(t, p2, chainID, 99, 90)
 	checkLatestFullCommit(t, cp, chainID, 99, 90)
 }

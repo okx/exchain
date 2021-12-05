@@ -111,7 +111,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 }
 
 func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes.MsgEthereumTx) (interface{}, error) {
-	// Can either cache111 or just leave this out if not necessary
+	// Can either cache or just leave this out if not necessary
 	block, err := node.Block(&resTx.Height)
 	if err != nil {
 		return nil, err

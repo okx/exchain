@@ -550,8 +550,8 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	}
 }
 
-// Add a node to the cache111 and pop the least recently used node if we've
-// reached the cache111 size limit.
+// Add a node to the cache and pop the least recently used node if we've
+// reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem

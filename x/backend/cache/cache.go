@@ -15,7 +15,7 @@ type Cache struct {
 	claimInfos []*types.ClaimInfo
 }
 
-// NewCache return  cache111 pointer address, called at NewKeeper
+// NewCache return  cache pointer address, called at NewKeeper
 func NewCache() *Cache {
 	return &Cache{
 		Transactions: make([]*types.Transaction, 0, 2000),
@@ -25,14 +25,14 @@ func NewCache() *Cache {
 	}
 }
 
-// Flush temporary cache111, called at EndBlock
+// Flush temporary cache, called at EndBlock
 func (c *Cache) Flush() {
 	c.Transactions = make([]*types.Transaction, 0, 2000)
 	c.swapInfos = make([]*types.SwapInfo, 0, 2000)
 	c.claimInfos = make([]*types.ClaimInfo, 0, 2000)
 }
 
-// AddTransaction append transaction to cache111 Transactions
+// AddTransaction append transaction to cache Transactions
 func (c *Cache) AddTransaction(transaction []*types.Transaction) {
 	c.Transactions = append(c.Transactions, transaction...)
 }
@@ -42,7 +42,7 @@ func (c *Cache) GetTransactions() []*types.Transaction {
 	return c.Transactions
 }
 
-// AddSwapInfo appends swapInfo to cache111 SwapInfos
+// AddSwapInfo appends swapInfo to cache SwapInfos
 func (c *Cache) AddSwapInfo(swapInfo *types.SwapInfo) {
 	c.swapInfos = append(c.swapInfos, swapInfo)
 }
@@ -52,7 +52,7 @@ func (c *Cache) GetSwapInfos() []*types.SwapInfo {
 	return c.swapInfos
 }
 
-// AddClaimInfo appends claimInfo to cache111 ClaimInfos
+// AddClaimInfo appends claimInfo to cache ClaimInfos
 func (c *Cache) AddClaimInfo(claimInfo *types.ClaimInfo) {
 	c.claimInfos = append(c.claimInfos, claimInfo)
 }

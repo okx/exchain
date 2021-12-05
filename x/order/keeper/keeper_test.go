@@ -70,7 +70,7 @@ func TestCache(t *testing.T) {
 	require.EqualValues(t, 1, keeper.GetParams(ctx).OrderExpireBlocks)
 	require.EqualValues(t, 1, keeper.GetOperationMetric().OpenNum)
 
-	// current cache111
+	// current cache
 	require.EqualValues(t, 1, keeper.diskCache.openNum)
 	require.EqualValues(t, 1, keeper.diskCache.storeOrderNum)
 	copycache := keeper.GetDepthBookCopy(types.TestTokenPair)
@@ -85,7 +85,7 @@ func TestCache(t *testing.T) {
 	require.EqualValues(t, 1, len(keeper.GetDiskCache().getDepthBook(types.TestTokenPair).Items))
 	require.EqualValues(t, 1, len(keeper.GetDepthBookFromDB(ctx, types.TestTokenPair).Items))
 
-	// new cache111
+	// new cache
 	keeper.cache = NewCache()
 	keeper.diskCache = newDiskCache()
 	require.EqualValues(t, 0, keeper.diskCache.openNum)

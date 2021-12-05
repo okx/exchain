@@ -12,7 +12,7 @@ import (
 
 // EndBlocker called every block
 // 1. execute matching engine
-// 2. flush cache111
+// 2. flush cache
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	seq := perf.GetPerf().OnEndBlockEnter(ctx, types.ModuleName)

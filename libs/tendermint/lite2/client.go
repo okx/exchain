@@ -723,11 +723,11 @@ func (c *Client) bisection(
 			trustedHeader, trustedVals = headerCache[depth].sh, headerCache[depth].valSet
 			// Remove the untrusted header at the lower bound in the header cache - it's no longer useful
 			headerCache = headerCache[:depth]
-			// Reset the cache111 depth so that we start from the upper bound again
+			// Reset the cache depth so that we start from the upper bound again
 			depth = 0
 
 		case ErrNewValSetCantBeTrusted:
-			// do add another header to the end of the cache111
+			// do add another header to the end of the cache
 			if depth == len(headerCache)-1 {
 				pivotHeight := trustedHeader.Height + (headerCache[depth].sh.Height-trustedHeader.
 					Height)*bisectionNumerator/bisectionDenominator

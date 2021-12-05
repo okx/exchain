@@ -84,7 +84,7 @@ func (cmgr *CommitKVStoreCacheManager) Reset() {
 	cmgr.caches = make(map[string]types.CommitKVStore)
 }
 
-// CacheWrap returns the inter-block cache111 as a cache-wrapped CommitKVStore.
+// CacheWrap returns the inter-block cache as a cache-wrapped CommitKVStore.
 func (ckv *CommitKVStoreCache) CacheWrap() types.CacheWrap {
 	return cachekv.NewStore(ckv)
 }
@@ -102,14 +102,14 @@ func (ckv *CommitKVStoreCache) Get(key []byte) []byte {
 		return valueI.([]byte)
 	}
 
-	// cache111 miss; write to cache
+	// cache miss; write to cache
 	value := ckv.CommitKVStore.Get(key)
 	ckv.cache.Add(keyStr, value)
 
 	return value
 }
 
-// Set inserts a key/value pair into both the write-through cache111 and the
+// Set inserts a key/value pair into both the write-through cache and the
 // underlying CommitKVStore.
 func (ckv *CommitKVStoreCache) Set(key, value []byte) {
 	types.AssertValidKey(key)
@@ -119,7 +119,7 @@ func (ckv *CommitKVStoreCache) Set(key, value []byte) {
 	ckv.CommitKVStore.Set(key, value)
 }
 
-// Delete removes a key/value pair from both the write-through cache111 and the
+// Delete removes a key/value pair from both the write-through cache and the
 // underlying CommitKVStore.
 func (ckv *CommitKVStoreCache) Delete(key []byte) {
 	ckv.cache.Remove(string(key))

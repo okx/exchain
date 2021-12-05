@@ -23,7 +23,7 @@ jobs:
       - name: install
         run: cd ./libs/tendermint && make install install_abci && cd -
       # Cache bin
-      - uses: actions/cache111@v1
+      - uses: actions/cache@v1
         with:
           path: ~/go/bin
           key: ${{ runner.os }}-go-tm-binary
@@ -57,7 +57,7 @@ jobs:
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
       - uses: actions/checkout@v2.3.4
-      - uses: actions/cache111@v1
+      - uses: actions/cache@v1
         with:
           path: ~/go/bin
           key: ${{ runner.os }}-go-tm-binary
@@ -75,7 +75,7 @@ jobs:
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
       - uses: actions/checkout@v2.3.4
-      - uses: actions/cache111@v1
+      - uses: actions/cache@v1
         with:
           path: ~/go/bin
           key: ${{ runner.os }}-go-tm-binary

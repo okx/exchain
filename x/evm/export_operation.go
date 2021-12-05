@@ -12,11 +12,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/x/evm/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -234,7 +234,7 @@ func writeOneLine(writer *bufio.Writer, data string) {
 
 // ************************************************************************************************************
 // the List of functions are used for writing different type of data into files
-//    First, get data from cache111 or db
+//    First, get data from cache or db
 //    Second, format data, then write them into file
 //    note: there is no way of adding log when ExportGenesis, because it will generate many logs in genesis.json
 // ************************************************************************************************************
@@ -305,7 +305,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 		// make "0x608002412.....80" string into a slice of byte
 		code := hexutil.MustDecode(string(bin))
 
-		// Set contract code into db, ignoring setting in cache111
+		// Set contract code into db, ignoring setting in cache
 		k.SetCodeDirectly(ctx, codeHash, code)
 		atomic.AddUint64(&codeCount, 1)
 	}
@@ -334,7 +334,7 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
 			//convert hexStr into common.Hash struct
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
-			// Set the state of key&value into db, ignoring setting in cache111
+			// Set the state of key&value into db, ignoring setting in cache
 			k.SetStateDirectly(ctx, address, key, value)
 			atomic.AddUint64(&storageCount, 1)
 		}

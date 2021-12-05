@@ -23,7 +23,7 @@ func (data *PushData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, to
 	data.eventMgr = ctx.EventManager()
 	data.RedisBlock.SetData(ctx, orderKeeper, tokenKeeper, dexKeeper, swapKeeper, cache)
 
-	// update depthBook cache111
+	// update depthBook cache
 	products := orderKeeper.GetUpdatedDepthbookKeys()
 	for _, product := range products {
 		depthBook := orderKeeper.GetDepthBookCopy(product)
