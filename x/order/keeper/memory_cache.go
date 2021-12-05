@@ -27,7 +27,7 @@ func NewCache() *Cache {
 	}
 }
 
-// reset resets temporary cache111, called at BeginBlock
+// reset resets temporary cache, called at BeginBlock
 func (c *Cache) reset() {
 	c.updatedOrderIDs = []string{}
 	c.blockMatchResult = &types.BlockMatchResult{}

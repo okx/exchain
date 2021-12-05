@@ -463,8 +463,8 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	}
 }
 
-// setDeliverState sets the BaseApp's deliverState with a cache111-wrapped multi-store
-// (i.e. a CacheMultiStore) and a new Context with the cache111-wrapped multi-store,
+// setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
+// (i.e. a CacheMultiStore) and a new Context with the cache-wrapped multi-store,
 // and provided header. It is set on InitChain and BeginBlock and set to nil on
 // Commit.
 func (app *BaseApp) setDeliverState(header abci.Header) {
@@ -649,7 +649,7 @@ func blockHeaderToABCIHeader(header tmtypes.Header) abci.Header {
 }
 
 // cacheTxContext returns a new context based off of the provided context with
-// a cache111 wrapped multi-store.
+// a cache wrapped multi-store.
 func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore) {
 	ms := ctx.MultiStore()
 	// TODO: https://github.com/cosmos/cosmos-sdk/issues/2824
@@ -835,9 +835,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 		accountNonce = newCtx.AccountNonce()
 		if !newCtx.IsZero() {
-			// At this point, newCtx.MultiStore() is cache111-wrapped, or something else
+			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 			// replaced by the AnteHandler. We want the original multistore, not one
-			// which was cache111-wrapped for the AnteHandler.
+			// which was cache-wrapped for the AnteHandler.
 			//
 			// Also, in the case of the tx aborting, we need to track gas consumed via
 			// the instantiated gas meter in the AnteHandler, so we update the context
@@ -864,7 +864,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	app.pin(RunMsgs, true, mode)
 
-	// Create a new Context based off of the existing Context with a cache111-wrapped
+	// Create a new Context based off of the existing Context with a cache-wrapped
 	// MultiStore in case message processing fails. At this point, the MultiStore
 	// is doubly cached-wrapped.
 

@@ -93,7 +93,7 @@ func TestGetTokenPair(t *testing.T) {
 	getTokenPairs := keeper.GetTokenPairs(ctx)
 	require.Equal(t, 1, len(getTokenPairs))
 
-	// GetTokenPairs from cache111
+	// GetTokenPairs from cache
 	getTokenPairs = keeper.GetTokenPairs(ctx)
 	require.Equal(t, 1, len(getTokenPairs))
 

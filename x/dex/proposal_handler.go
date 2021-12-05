@@ -41,7 +41,7 @@ func handleDelistProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Pr
 		}
 	}
 
-	// delete the token pair by its name from store and cache111
+	// delete the token pair by its name from store and cache
 	keeper.DeleteTokenPairByName(ctx, tokenPair.Owner, tokenPairName)
 
 	// remove the delistProposal from the active proposal queue

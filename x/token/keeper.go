@@ -8,13 +8,13 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	app "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
@@ -353,7 +353,7 @@ func (k Keeper) GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) (coinsInfo ty
 	return coinsInfo
 }
 
-// GetFeeDetailList gets fee detail list from cache111
+// GetFeeDetailList gets fee detail list from cache
 func (k Keeper) GetFeeDetailList() []*FeeDetail {
 	return k.cache.getFeeDetailList()
 }

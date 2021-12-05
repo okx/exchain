@@ -20,7 +20,7 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	match.GetEngine().Run(ctx, keeper)
 
-	// flush cache111 at the end
+	// flush cache at the end
 	keeper.Cache2Disk(ctx)
 
 	keeper.SetMetric()

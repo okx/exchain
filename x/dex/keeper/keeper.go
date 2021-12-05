@@ -184,14 +184,14 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	}
 }
 
-// UpdateUserTokenPair updates token pair in the store and the cache111
+// UpdateUserTokenPair updates token pair in the store and the cache
 func (k Keeper) UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Delete(types.GetUserTokenPairAddress(owner, product))
 	store.Set(types.GetUserTokenPairAddress(to, product), []byte{})
 }
 
-// UpdateTokenPair updates token pair in the store and the cache111
+// UpdateTokenPair updates token pair in the store and the cache
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))

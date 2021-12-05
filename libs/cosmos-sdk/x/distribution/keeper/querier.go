@@ -129,7 +129,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	// cache111-wrap context as to not persist state changes during querying
+	// cache-wrap context as to not persist state changes during querying
 	ctx, _ = ctx.CacheContext()
 
 	val := k.stakingKeeper.Validator(ctx, params.ValidatorAddress)
@@ -163,7 +163,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	// cache111-wrap context as to not persist state changes during querying
+	// cache-wrap context as to not persist state changes during querying
 	ctx, _ = ctx.CacheContext()
 
 	total := sdk.DecCoins{}
@@ -200,7 +200,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	// cache111-wrap context as to not persist state changes during querying
+	// cache-wrap context as to not persist state changes during querying
 	ctx, _ = ctx.CacheContext()
 
 	var validators []sdk.ValAddress
@@ -228,7 +228,7 @@ func queryDelegatorWithdrawAddress(ctx sdk.Context, _ []string, req abci.Request
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	// cache111-wrap context as to not persist state changes during querying
+	// cache-wrap context as to not persist state changes during querying
 	ctx, _ = ctx.CacheContext()
 	withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, params.DelegatorAddress)
 

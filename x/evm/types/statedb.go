@@ -1026,7 +1026,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 	}
 }
 
-// ClearStateObjects clears cache111 of state objects to handle account changes outside of the EVM
+// ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
 func (csdb *CommitStateDB) ClearStateObjects() {
 	csdb.stateObjects = make(map[ethcmn.Address]*stateEntry)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})

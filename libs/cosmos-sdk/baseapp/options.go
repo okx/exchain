@@ -39,7 +39,7 @@ func SetHaltTime(haltTime uint64) func(*BaseApp) {
 }
 
 // SetInterBlockCache provides a BaseApp option function that sets the
-// inter-block cache111.
+// inter-block cache.
 func SetInterBlockCache(cache sdk.MultiStorePersistentCache) func(*BaseApp) {
 	return func(app *BaseApp) { app.setInterBlockCache(cache) }
 }
