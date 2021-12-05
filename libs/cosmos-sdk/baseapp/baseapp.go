@@ -780,8 +780,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			result = nil
 		}
 
-		// update read-only data while tx failed
-		ctx.Cache().Write(false)
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 
 	}()
@@ -875,6 +873,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		}
 
 		if err != nil {
+			ctx.Cache().Write(false)
 			return gInfo, nil, nil, err
 		}
 
@@ -904,6 +903,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		writeCache(msCache, ctx)
+	} else {
+		ctx.Cache().Write(false)
 	}
 
 	runMsgFinish = true
