@@ -13,7 +13,7 @@ import (
 const (
 	verifierDir = ".lite_verifier"
 
-	// DefaultVerifierCacheSize defines the default Tendermint cache111 size.
+	// DefaultVerifierCacheSize defines the default Tendermint cache size.
 	DefaultVerifierCacheSize = 10
 )
 

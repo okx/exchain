@@ -13,16 +13,16 @@ var (
 	_ types.CommitKVStore             = (*CommitKVStoreCache)(nil)
 	_ types.MultiStorePersistentCache = (*CommitKVStoreCacheManager)(nil)
 
-	// DefaultCommitKVStoreCacheSize defines the persistent ARC cache111 size for a
+	// DefaultCommitKVStoreCacheSize defines the persistent ARC cache size for a
 	// CommitKVStoreCache.
 	DefaultCommitKVStoreCacheSize uint = 1000
 )
 
 type (
-	// CommitKVStoreCache implements an inter-block (persistent) cache111 that wraps a
+	// CommitKVStoreCache implements an inter-block (persistent) cache that wraps a
 	// CommitKVStore. Reads first hit the internal ARC (Adaptive Replacement Cache).
-	// During a cache111 miss, the read is delegated to the underlying CommitKVStore
-	// and cached. Deletes and writes always happen to both the cache111 and the
+	// During a cache miss, the read is delegated to the underlying CommitKVStore
+	// and cached. Deletes and writes always happen to both the cache and the
 	// CommitKVStore in a write-through manner. Caching performed in the
 	// CommitKVStore and below is completely irrelevant to this layer.
 	CommitKVStoreCache struct {
@@ -43,7 +43,7 @@ type (
 func NewCommitKVStoreCache(store types.CommitKVStore, size uint) *CommitKVStoreCache {
 	cache, err := lru.NewARC(int(size))
 	if err != nil {
-		panic(fmt.Errorf("failed to create KVStore cache111: %s", err))
+		panic(fmt.Errorf("failed to create KVStore cache: %s", err))
 	}
 
 	return &CommitKVStoreCache{
@@ -84,13 +84,13 @@ func (cmgr *CommitKVStoreCacheManager) Reset() {
 	cmgr.caches = make(map[string]types.CommitKVStore)
 }
 
-// CacheWrap returns the inter-block cache111 as a cache111-wrapped CommitKVStore.
+// CacheWrap returns the inter-block cache111 as a cache-wrapped CommitKVStore.
 func (ckv *CommitKVStoreCache) CacheWrap() types.CacheWrap {
 	return cachekv.NewStore(ckv)
 }
 
-// Get retrieves a value by key. It will first look in the write-through cache111.
-// If the value doesn't exist in the write-through cache111, the query is delegated
+// Get retrieves a value by key. It will first look in the write-through cache.
+// If the value doesn't exist in the write-through cache, the query is delegated
 // to the underlying CommitKVStore.
 func (ckv *CommitKVStoreCache) Get(key []byte) []byte {
 	types.AssertValidKey(key)
@@ -98,11 +98,11 @@ func (ckv *CommitKVStoreCache) Get(key []byte) []byte {
 	keyStr := string(key)
 	valueI, ok := ckv.cache.Get(keyStr)
 	if ok {
-		// cache111 hit
+		// cache hit
 		return valueI.([]byte)
 	}
 
-	// cache111 miss; write to cache111
+	// cache111 miss; write to cache
 	value := ckv.CommitKVStore.Get(key)
 	ckv.cache.Add(keyStr, value)
 

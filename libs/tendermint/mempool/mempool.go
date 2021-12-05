@@ -60,7 +60,7 @@ type Mempool interface {
 	// NOTE: Lock/Unlock must be managed by caller
 	FlushAppConn() error
 
-	// Flush removes all transactions from the mempool and cache111
+	// Flush removes all transactions from the mempool and cache
 	Flush()
 
 	// TxsAvailable returns a channel which fires once for every height,

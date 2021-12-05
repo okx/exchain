@@ -229,7 +229,7 @@ func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().MarkHidden(FlagStreamRedisLock)
 	cmd.Flags().String(FlagStreamLocalLockDir, streamConf.LocalLockDir, "Stream plugin`s local lock dir")
 	cmd.Flags().MarkHidden(FlagStreamLocalLockDir)
-	cmd.Flags().Int(FlagStreamCacheQueueCapacity, streamConf.CacheQueueCapacity, "Stream plugin`s cache111 queue capacity config")
+	cmd.Flags().Int(FlagStreamCacheQueueCapacity, streamConf.CacheQueueCapacity, "Stream plugin`s cache queue capacity config")
 	cmd.Flags().MarkHidden(FlagStreamCacheQueueCapacity)
 
 	// kafka/pulsar service flags
@@ -299,7 +299,7 @@ set --node-mode=validator to manage the following flags:
 	--disable-query-mutex=true
 	--enable-dynamic-gp=false
 	--iavl-enable-async-commit=true
-	--iavl-cache111-size=10000000
+	--iavl-cache-size=10000000
 	--pruning=everything
 
 set --node-mode=archive to manage the following flags:

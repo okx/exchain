@@ -79,7 +79,7 @@ type Environment struct {
 
 	// objects
 	PubKey           crypto.PubKey
-	GenDoc           *types.GenesisDoc // cache111 the genesis structure
+	GenDoc           *types.GenesisDoc // cache the genesis structure
 	TxIndexer        txindex.TxIndexer
 	ConsensusReactor *consensus.Reactor
 	EventBus         *types.EventBus // thread safe
