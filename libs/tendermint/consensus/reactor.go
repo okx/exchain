@@ -3,11 +3,9 @@ package consensus
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"os"
 	"reflect"
 	"sync"
 	"time"
-
 	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
@@ -86,13 +84,6 @@ func (conR *Reactor) OnStart() error {
 			return err
 		}
 	}
-
-	tt := time.After(600*time.Second)
-	go func() {
-		<- tt
-		fmt.Println("10 分钟到，退出")
-		os.Exit(-1)
-	}()
 
 	return nil
 }

@@ -58,6 +58,8 @@ type BlockExecutor struct {
 	abciResponse sync.Map
 
 	lastBlock *types.Block
+
+
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -87,6 +89,7 @@ func NewBlockExecutor(
 		logger:   logger,
 		metrics:  NopMetrics(),
 		isAsync:  viper.GetBool(FlagParalleledTx),
+
 	}
 
 	for _, option := range options {
@@ -236,8 +239,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
-		trc.Pin(trace.Abci + "1" )
-		fmt.Println("blockExec.isAsync" , blockExec.isAsync)
 		abciChain, err := blockExec.GetPreExecBlockRes(block)
 		if err != nil {
 			if blockExec.GetLastBlock() != nil {
@@ -245,26 +246,21 @@ func (blockExec *BlockExecutor) ApplyBlock(
 				blockExec.ResetDeliverState()
 				blockExec.ResetLastBlock()
 			}
-			fmt.Println("got a block not pre execute, here executor")
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
 				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			}
 		} else {
-
 			v, _ := <-abciChain
-			uu := v.Elaped
 			abciResponses = v.ABCIResponses
 			err = v.error
 			if err != nil {
 				blockExec.logger.Error("execBlockOnProxyApp execute failed", "abciResponses", abciResponses, "err", err)
 			}
-			fmt.Println("uu --->" , uu)
 			blockExec.CleanPreExecBlockRes(block)
 		}
 
-		trc.Pin(trace.Abci + "2")
 		bytes, err := types.Json.Marshal(abciResponses)
 		if err != nil {
 			panic(err)

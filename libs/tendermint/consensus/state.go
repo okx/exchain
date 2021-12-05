@@ -44,6 +44,8 @@ var (
 
 var (
 	msgQueueSize = 1000
+	EnableProactivelyRunTx = "enable-proactively-runtx"
+
 )
 
 // msgs from the reactor which may update the state
@@ -151,6 +153,9 @@ type State struct {
 	metrics *Metrics
 
 	trc *trace.Tracer
+
+	parallelFlag bool
+
 }
 
 // StateOption sets an optional parameter on the State.
@@ -186,7 +191,9 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
+		parallelFlag: viper.GetBool(EnableProactivelyRunTx),
 	}
+
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
@@ -806,9 +813,9 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		//vc checkpoint to CancelPreExecBlock
 		cs.Logger.Error("Exchain come to a vc checkpoint", "LockedBlock", cs.LockedBlock.String(), "ProposalBlock", cs.ProposalBlock.String())
 		if cs.LockedBlock != nil {
-			cs.blockExec.CancelPreExecBlock(cs.LockedBlock)
+			cs.CancelPreExecBlock(cs.LockedBlock)
 		} else if cs.ProposalBlock != nil {
-			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+			cs.CancelPreExecBlock(cs.ProposalBlock)
 		}
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
@@ -1335,7 +1342,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
-		cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+		cs.CancelPreExecBlock(cs.ProposalBlock)
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1428,9 +1435,9 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String())
+			//cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String())
 
-			cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+			cs.CancelPreExecBlock(cs.ProposalBlock)
 
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
@@ -1825,7 +1832,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
-				cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
+				cs.StartPreExecBlock(cs.ProposalBlock)
+				//err = cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
+				//if err != nil {
+				//	cs.Logger.Error("StartPreExecBlock11 " , "err" , err)
+				//}
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1842,11 +1853,30 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			}
 		} else if cs.Step == cstypes.RoundStepCommit {
 			// If we're waiting on the proposal block...
+			cs.StartPreExecBlock(cs.ProposalBlock)
 			cs.tryFinalizeCommit(height)
 		}
 		return added, nil
 	}
 	return added, nil
+}
+
+func (cs *State) StartPreExecBlock(block *types.Block) {
+	if cs.parallelFlag{
+		err := cs.blockExec.StartPreExecBlock(block)
+		if err != nil {
+			cs.Logger.Error("StartPreExecBlock " , "err" , err)
+		}
+	}
+}
+
+func (cs *State) CancelPreExecBlock(block *types.Block)  {
+	if cs.parallelFlag{
+		err := cs.blockExec.CancelPreExecBlock(block)
+		if err != nil {
+			cs.Logger.Error("StartPreExecBlock " , "err" , err)
+		}
+	}
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator
@@ -1991,7 +2021,7 @@ func (cs *State) addVote(
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
 					//fmt.Println("StartPreExecBlock22")
-					cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
+					cs.StartPreExecBlock(cs.ProposalBlock)
 
 				} else {
 					cs.Logger.Info(
@@ -1999,7 +2029,7 @@ func (cs *State) addVote(
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
 					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
-					cs.blockExec.CancelPreExecBlock(cs.ProposalBlock)
+					cs.CancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {

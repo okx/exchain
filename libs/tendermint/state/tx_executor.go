@@ -9,7 +9,7 @@ import (
 )
 
 type PreExecBlockResult struct {
-	*Elaped
+	//*Elaped
 	*ABCIResponses
 	error
 }
@@ -32,24 +32,22 @@ func GetNowTimeMs() int64 {
 	return time.Now().UnixNano() / 1e6
 }
 
-func GetNowTimeNs() int64 {
-	return time.Now().UnixNano()
-}
-
-
 type Elaped struct {
 	ExecuteExhaust int64 // 执行耗时 耗时
 	WaitingExhaust int64 // 等待耗时 耗时
 }
 
+
+
 var uu *Elaped
+
 
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	if _, ok := blockExec.abciResponse.Load(block); ok {
 		// start block twice
 		return RepeatedErr
 	} else {
-		uu = &Elaped{}
+		//uu = &Elaped{}
 		recordTime = GetNowTimeMs()
 		intMsg := &InternalMsg{
 			cancelChan: make(chan struct{}),
@@ -73,22 +71,22 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 	}
 
 	if err != nil {
-		preBlockRes = &PreExecBlockResult{uu,abciResponses, err}
+		preBlockRes = &PreExecBlockResult{abciResponses, err}
 	} else {
-		preBlockRes = &PreExecBlockResult{uu,abciResponses, nil}
+		preBlockRes = &PreExecBlockResult{abciResponses, nil}
 	}
 
-	uu.ExecuteExhaust = GetNowTimeMs() - recordTime
+	//uu.ExecuteExhaust = GetNowTimeMs() - recordTime
 	//recordTime = GetNowTimeMs()
 	select {
 	case <-channels.cancelChan:
-		channels.resChan <- &PreExecBlockResult{uu, nil, CancelErr}
+		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
 	case channels.resChan <- preBlockRes:
 
 	}
 	//uu.ExecuteHaust1 = GetNowTimeMs() - recordTime
 	//fmt.Println(" exe done -->" , *uu)
-	uu.WaitingExhaust = GetNowTimeMs() - waitrecordTime
+	//uu.WaitingExhaust = GetNowTimeMs() - waitrecordTime
 }
 
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
@@ -110,13 +108,14 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 		// cancel block not start
 		return nil, NotMatchErr
 	} else {
-		waitrecordTime =GetNowTimeMs()
+		waitrecordTime = GetNowTimeMs()
 		chann := channels.(*InternalMsg)
 		return chann.resChan, nil
 	}
 }
 
 func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
+
 	if channels, ok := blockExec.abciResponse.Load(block); !ok {
 		// cancel block not start
 		return
@@ -137,7 +136,6 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 		Key: "ResetDeliverState",
 	})
 
-
 }
 
 //get lastBlock
@@ -148,6 +146,7 @@ func (blockExec *BlockExecutor) GetLastBlock() *types.Block {
 
 //reset lastBlock
 func (blockExec *BlockExecutor) ResetLastBlock() {
+
 	blockExec.lastBlock = nil
 }
 
