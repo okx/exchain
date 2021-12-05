@@ -1431,9 +1431,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-
 			cs.CancelPreExecBlock(cs.ProposalBlock)
-
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
@@ -1862,7 +1860,7 @@ func (cs *State) CancelPreExecBlock(block *types.Block)  {
 	if cs.parallelFlag{
 		err := cs.blockExec.CancelPreExecBlock(block)
 		if err != nil {
-			cs.Logger.Error("StartPreExecBlock " , "err" , err)
+			cs.Logger.Error("CancelPreExecBlock " , "err" , err)
 		}
 	}
 }
