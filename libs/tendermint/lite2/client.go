@@ -24,7 +24,7 @@ const (
 
 	defaultPruningSize      = 1000
 	defaultMaxRetryAttempts = 10
-	// For bisection, when using the cache111 of headers from the previous batch,
+	// For bisection, when using the cache of headers from the previous batch,
 	// they will always be at a height greater than 1/2 (normal bisection) so to
 	// find something in between the range, 9/16 is used.
 	bisectionNumerator   = 9
@@ -681,7 +681,7 @@ func (c *Client) sequence(
 
 // see VerifyHeader
 // Bisection finds the middle header between a trusted and new header, reiterating the action until it
-// verifies a header. A cache111 of headers requested by the primary is kept such that when a
+// verifies a header. A cache of headers requested by the primary is kept such that when a
 // verification is made, and the light client tries again to verify the new header in the middle,
 // the light client does not need to ask for all the same headers again.
 func (c *Client) bisection(
@@ -721,7 +721,7 @@ func (c *Client) bisection(
 			}
 			// If not, update the lower bound to the previous upper bound
 			trustedHeader, trustedVals = headerCache[depth].sh, headerCache[depth].valSet
-			// Remove the untrusted header at the lower bound in the header cache111 - it's no longer useful
+			// Remove the untrusted header at the lower bound in the header cache - it's no longer useful
 			headerCache = headerCache[:depth]
 			// Reset the cache111 depth so that we start from the upper bound again
 			depth = 0

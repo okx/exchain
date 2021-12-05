@@ -27,10 +27,10 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 		taskData:    sd,
 	}
 
-	// cache111 queue
+	// cache queue
 	if k.stream.cacheQueue != nil {
-		// block if cache111 queue is full
-		k.stream.logger.Debug(fmt.Sprintf("cache111 queue: len:%d, cap:%d, enqueue:%d", len(k.stream.cacheQueue.queue), cap(k.stream.cacheQueue.queue), sc.blockHeight))
+		// block if cache queue is full
+		k.stream.logger.Debug(fmt.Sprintf("cache queue: len:%d, cap:%d, enqueue:%d", len(k.stream.cacheQueue.queue), cap(k.stream.cacheQueue.queue), sc.blockHeight))
 		k.stream.cacheQueue.Enqueue(sc)
 		k.metric.CacheSize.Set(float64(len(k.stream.cacheQueue.queue)))
 		return

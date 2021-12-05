@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-GITIAN_CACHE_DIRNAME='.gitian-builder-cache111'
+GITIAN_CACHE_DIRNAME='.gitian-builder-cache'
 GO_RELEASE='1.13.3'
 GO_TARBALL="go${GO_RELEASE}.linux-amd64.tar.gz"
 GO_TARBALL_URL="https://dl.google.com/go/${GO_TARBALL}"

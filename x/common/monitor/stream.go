@@ -32,7 +32,7 @@ func NewStreamMetrics(labelsAndValues ...string) *StreamMetrics {
 			Namespace: xNameSpace,
 			Subsystem: streamSubSystem,
 			Name:      "cache_size",
-			Help:      "the excuting cache111 queue size in stream module.",
+			Help:      "the excuting cache queue size in stream module.",
 		}, labels).With(labelsAndValues...),
 	}
 }

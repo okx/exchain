@@ -127,7 +127,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool(
 		"mempool.enable_pending_pool",
 		config.Mempool.EnablePendingPool,
-		"Enable pending pool to cache111 txs with discontinuous nonce",
+		"Enable pending pool to cache txs with discontinuous nonce",
 	)
 	cmd.Flags().Int(
 		"mempool.pending_pool_size",

@@ -16,7 +16,7 @@ const (
 	minHistoryStateNum             = 30
 	FlagIavlCommitIntervalHeight   = "iavl-commit-interval-height"
 	FlagIavlMinCommitItemCount     = "iavl-min-commit-item-count"
-	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache111-size"
+	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
 	FlagIavlEnableGid              = "iavl-enable-gid"

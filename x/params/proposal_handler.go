@@ -124,7 +124,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 		return govtypes.ErrInvalidHeight(paramsChangeProposal.Height, curHeight, maxHeight)
 	}
 
-	// run simulation with cache111 context
+	// run simulation with cache context
 	cacheCtx, _ := ctx.CacheContext()
 	return changeParams(cacheCtx, &keeper, paramsChangeProposal)
 }

@@ -189,7 +189,7 @@ func TestMempoolUpdate(t *testing.T) {
 	mempool, cleanup := newMempoolWithApp(cc)
 	defer cleanup()
 
-	// 1. Adds valid txs to the cache111
+	// 1. Adds valid txs to the cache
 	{
 		mempool.Update(1, []types.Tx{[]byte{0x01}}, abciResponses(1, abci.CodeTypeOK), nil, nil)
 		err := mempool.CheckTx([]byte{0x01}, nil, TxInfo{})
@@ -206,7 +206,7 @@ func TestMempoolUpdate(t *testing.T) {
 		assert.Zero(t, mempool.Size())
 	}
 
-	// 3. Removes invalid transactions from the cache111 and the mempool (if present)
+	// 3. Removes invalid transactions from the cache and the mempool (if present)
 	{
 		err := mempool.CheckTx([]byte{0x03}, nil, TxInfo{})
 		require.NoError(t, err)

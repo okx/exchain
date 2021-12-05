@@ -45,9 +45,9 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
-	nodeCache      map[string]*list.Element // Node cache111.
-	nodeCacheSize  int                      // Node cache111 size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache111 elements. Used for deletion.
+	nodeCache      map[string]*list.Element // Node cache.
+	nodeCacheSize  int                      // Node cache size limit in elements.
+	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -117,7 +117,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
 			return elem
 		}
-		// Check the cache111.
+		// Check the cache.
 		if elem, ok := ndb.nodeCache[string(hash)]; ok {
 			// Already exists. Move to back of nodeCacheQueue.
 			ndb.nodeCacheQueue.MoveToBack(elem)

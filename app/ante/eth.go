@@ -7,14 +7,14 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethcore "github.com/ethereum/go-ethereum/core"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/ethereum/go-ethereum/common"
-	ethcore "github.com/ethereum/go-ethereum/core"
-	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -147,7 +147,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, err
 	}
 
-	// validate sender/signature and cache111 the address
+	// validate sender/signature and cache the address
 	signerSigCache, err := msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
@@ -186,7 +186,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache111 from the previous AnteHandle call
+	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
@@ -241,7 +241,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache111 from the previous AnteHandle call
+	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
@@ -359,7 +359,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache111 from the previous AnteHandle call
+	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
@@ -415,7 +415,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 // main difference with the SDK's IncrementSequenceDecorator is that the MsgEthereumTx
 // doesn't implement the SigVerifiableTx interface.
 //
-// CONTRACT: must be called after msg.VerifySig in order to cache111 the sender address.
+// CONTRACT: must be called after msg.VerifySig in order to cache the sender address.
 type IncrementSenderSequenceDecorator struct {
 	ak auth.AccountKeeper
 }

@@ -97,7 +97,7 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 		// If loading trust commit successfully, and trust commit equal to shdr, then don't verify it,
 		// just return nil.
 		if bytes.Equal(trustedFCSameHeight.SignedHeader.Hash(), shdr.Hash()) {
-			dv.logger.Info(fmt.Sprintf("Load full commit at height %d from cache111, there is not need to verify.", shdr.Height))
+			dv.logger.Info(fmt.Sprintf("Load full commit at height %d from cache, there is not need to verify.", shdr.Height))
 			return nil
 		}
 	} else if !lerr.IsErrCommitNotFound(err) {

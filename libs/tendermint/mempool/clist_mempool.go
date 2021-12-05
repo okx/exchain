@@ -308,8 +308,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 	// CACHE
 	// Record a new sender for a tx we've already seen.
-	// Note it's possible a tx is still in the cache111 but no longer in the mempool
-	// (eg. after committing a block, txs are removed from mempool but not cache111),
+	// Note it's possible a tx is still in the cache but no longer in the mempool
+	// (eg. after committing a block, txs are removed from mempool but not cache),
 	// so we only record the sender for txs still in the mempool.
 	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
 		memTx := e.(*clist.CElement).Value.(*mempoolTx)
@@ -572,7 +572,7 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				// remove from cache111 (mempool might have a space later)
+				// remove from cache (mempool might have a space later)
 				mem.cache.Remove(tx)
 				mem.logger.Error(err.Error())
 				return
@@ -616,7 +616,7 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
 					"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
-				// remove from cache111 (it might be good later)
+				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
 
 				r.CheckTx.Code = 1
@@ -627,7 +627,7 @@ func (mem *CListMempool) resCbFirstTime(
 			mem.logger.Info("Rejected bad transaction",
 				"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
-			// remove from cache111 (it might be good later)
+			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
 		}
 	default:
@@ -659,7 +659,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 		} else {
 			// Tx became invalidated due to newly committed block.
 			mem.logger.Info("Tx is no longer valid", "tx", txID(tx), "res", r, "err", postCheckErr)
-			// NOTE: we remove tx from the cache111 because it might be good later
+			// NOTE: we remove tx from the cache because it might be good later
 			mem.removeTx(tx, mem.recheckCursor, true)
 		}
 		if mem.recheckCursor == mem.recheckEnd {

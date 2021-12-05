@@ -116,7 +116,7 @@ func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	return tokenPair
 }
 
-// GetTokenPairFromStore returns token pair from store without cache111
+// GetTokenPairFromStore returns token pair from store without cache
 func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair types.TokenPair
 	store := ctx.KVStore(k.tokenPairStoreKey)
@@ -132,7 +132,7 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 	return &tokenPair
 }
 
-// GetTokenPairs returns all token pairs from store without cache111
+// GetTokenPairs returns all token pairs from store without cache
 func (k Keeper) GetTokenPairs(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairKey)

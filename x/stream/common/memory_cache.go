@@ -31,7 +31,7 @@ func NewCache() *Cache {
 	}
 }
 
-// Reset temporary cache111, called at BeginBlock
+// Reset temporary cache, called at BeginBlock
 func (c *Cache) Reset() {
 	c.transactions = make([]*backend.Transaction, 0, 2000)
 	c.newTokenPairMap = []*types.TokenPair{}
@@ -50,12 +50,12 @@ func (c *Cache) GetTransactions() []*backend.Transaction {
 	return c.transactions
 }
 
-// AddNewTokenPair adds a new token pair into cache111
+// AddNewTokenPair adds a new token pair into cache
 func (c *Cache) AddNewTokenPair(tokenPair *types.TokenPair) {
 	c.newTokenPairMap = append(c.newTokenPairMap, tokenPair)
 }
 
-// GetNewTokenPairs returns new token pairs from cache111
+// GetNewTokenPairs returns new token pairs from cache
 func (c *Cache) GetNewTokenPairs() []*types.TokenPair {
 	return c.newTokenPairMap
 }
@@ -84,7 +84,7 @@ func (c *Cache) GetUpdatedAccAddress() (accs []sdk.AccAddress) {
 	return accs
 }
 
-// AddSwapInfo appends swapInfo to cache111 SwapInfos
+// AddSwapInfo appends swapInfo to cache SwapInfos
 func (c *Cache) AddSwapInfo(swapInfo *backend.SwapInfo) {
 	c.swapInfos = append(c.swapInfos, swapInfo)
 }
@@ -94,7 +94,7 @@ func (c *Cache) GetSwapInfos() []*backend.SwapInfo {
 	return c.swapInfos
 }
 
-// AddNewSwapTokenPairs appends swapTokenPair to cache111 newSwapTokenPairs
+// AddNewSwapTokenPairs appends swapTokenPair to cache newSwapTokenPairs
 func (c *Cache) AddNewSwapTokenPair(swapTokenPair *ammswap.SwapTokenPair) {
 	c.newSwapTokenPairs = append(c.newSwapTokenPairs, swapTokenPair)
 }
@@ -104,7 +104,7 @@ func (c *Cache) GetNewSwapTokenPairs() []*ammswap.SwapTokenPair {
 	return c.newSwapTokenPairs
 }
 
-// AddClaimInfo appends claimInfo to cache111 ClaimInfos
+// AddClaimInfo appends claimInfo to cache ClaimInfos
 func (c *Cache) AddClaimInfo(claimInfo *backend.ClaimInfo) {
 	c.claimInfos = append(c.claimInfos, claimInfo)
 }

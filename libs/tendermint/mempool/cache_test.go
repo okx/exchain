@@ -43,7 +43,7 @@ func TestCacheAfterUpdate(t *testing.T) {
 
 	// reAddIndices & txsInCache can have elements > numTxsToCreate
 	// also assumes max index is 255 for convenience
-	// txs in cache111 also checks order of elements
+	// txs in cache also checks order of elements
 	tests := []struct {
 		numTxsToCreate int
 		updateIndices  []int
@@ -51,8 +51,8 @@ func TestCacheAfterUpdate(t *testing.T) {
 		txsInCache     []int
 	}{
 		{1, []int{}, []int{1}, []int{1, 0}},    // adding new txs works
-		{2, []int{1}, []int{}, []int{1, 0}},    // update doesn't remove tx from cache111
-		{2, []int{2}, []int{}, []int{2, 1, 0}}, // update adds new tx to cache111
+		{2, []int{1}, []int{}, []int{1, 0}},    // update doesn't remove tx from cache
+		{2, []int{2}, []int{}, []int{2, 1, 0}}, // update adds new tx to cache
 		{2, []int{1}, []int{1}, []int{1, 0}},   // re-adding after update doesn't make dupe
 	}
 	for tcIndex, tc := range tests {
@@ -79,7 +79,7 @@ func TestCacheAfterUpdate(t *testing.T) {
 		counter := 0
 		for node != nil {
 			require.NotEqual(t, len(tc.txsInCache), counter,
-				"cache111 larger than expected on testcase %d", tcIndex)
+				"cache larger than expected on testcase %d", tcIndex)
 
 			nodeVal := node.Value.([sha256.Size]byte)
 			expectedBz := sha256.Sum256([]byte{byte(tc.txsInCache[len(tc.txsInCache)-counter-1])})
@@ -96,7 +96,7 @@ func TestCacheAfterUpdate(t *testing.T) {
 			node = node.Next()
 		}
 		require.Equal(t, len(tc.txsInCache), counter,
-			"cache111 smaller than expected on testcase %d", tcIndex)
+			"cache smaller than expected on testcase %d", tcIndex)
 		mempool.Flush()
 	}
 }

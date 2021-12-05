@@ -126,7 +126,7 @@ type BaseApp struct { // nolint: maligned
 	checkState   *state // for CheckTx
 	deliverState *state // for DeliverTx
 
-	// an inter-block write-through cache111 provided to the context during deliverState
+	// an inter-block write-through cache provided to the context during deliverState
 	interBlockCache sdk.MultiStorePersistentCache
 
 	// absent validators from begin block

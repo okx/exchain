@@ -18,7 +18,7 @@ const (
 )
 
 // CreateVerifier returns a Tendermint verifier from a CLIContext object and
-// cache111 size. An error is returned if the CLIContext is missing required values
+// cache size. An error is returned if the CLIContext is missing required values
 // or if the verifier could not be created. A CLIContext must at the very least
 // have the chain ID and home directory set. If the CLIContext has TrustNode
 // enabled, no verifier will be created.

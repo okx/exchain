@@ -104,7 +104,7 @@ func TestLazyKeyManagement(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(keyS))
 
-	// addr cache111 gets nuked - and test skip flag
+	// addr cache gets nuked - and test skip flag
 	err = kb.Delete(n2, "", true)
 	require.NoError(t, err)
 }
