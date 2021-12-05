@@ -193,7 +193,6 @@ func NewState(
 		trc:              trace.NewTracer(trace.Consensus),
 		parallelFlag: viper.GetBool(EnableProactivelyRunTx),
 	}
-
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
@@ -810,8 +809,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
-		//vc checkpoint to CancelPreExecBlock
-		cs.Logger.Error("Exchain come to a vc checkpoint", "LockedBlock", cs.LockedBlock.String(), "ProposalBlock", cs.ProposalBlock.String())
 		if cs.LockedBlock != nil {
 			cs.CancelPreExecBlock(cs.LockedBlock)
 		} else if cs.ProposalBlock != nil {
@@ -1824,7 +1821,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// Update Valid* if we can.
 		prevotes := cs.Votes.Prevotes(cs.Round)
 		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-
 		if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 			if cs.ProposalBlock.HashesTo(blockID.Hash) {
 				cs.Logger.Info("Updating valid block to new proposal block",
@@ -2020,7 +2016,6 @@ func (cs *State) addVote(
 					cs.ValidRound = vote.Round
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
-					//fmt.Println("StartPreExecBlock22")
 					cs.StartPreExecBlock(cs.ProposalBlock)
 
 				} else {

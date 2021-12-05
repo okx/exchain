@@ -227,6 +227,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
 		"FlagDelta", deltaMode, "FlagCenter", centerMode, "FlagFastQuery", fastQuery, "FlagUseDelta", useDeltas)
+
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
 	var abciResponses *ABCIResponses
@@ -366,7 +367,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0 {
+	if wd != nil && wd.Size() > 0{
 		wdBytes = wd.WatchDataByte
 	}
 
