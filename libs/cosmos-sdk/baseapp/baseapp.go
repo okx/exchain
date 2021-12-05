@@ -779,7 +779,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			msCache = nil //TODO msCache not write
 			result = nil
 		}
-
+		ctx.Cache().Write(false)
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 
 	}()
