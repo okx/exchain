@@ -25,30 +25,15 @@ var (
 	NotMatchErr = errors.New("block has no start record")
 )
 
-var waitrecordTime int64
-var recordTime int64
-
 func GetNowTimeMs() int64 {
 	return time.Now().UnixNano() / 1e6
 }
-
-type Elaped struct {
-	ExecuteExhaust int64 // 执行耗时 耗时
-	WaitingExhaust int64 // 等待耗时 耗时
-}
-
-
-
-var uu *Elaped
-
 
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	if _, ok := blockExec.abciResponse.Load(block); ok {
 		// start block twice
 		return RepeatedErr
 	} else {
-		//uu = &Elaped{}
-		recordTime = GetNowTimeMs()
 		intMsg := &InternalMsg{
 			cancelChan: make(chan struct{}),
 			resChan:    make(chan *PreExecBlockResult),
@@ -76,17 +61,12 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 		preBlockRes = &PreExecBlockResult{abciResponses, nil}
 	}
 
-	//uu.ExecuteExhaust = GetNowTimeMs() - recordTime
-	//recordTime = GetNowTimeMs()
 	select {
 	case <-channels.cancelChan:
 		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
 	case channels.resChan <- preBlockRes:
 
 	}
-	//uu.ExecuteHaust1 = GetNowTimeMs() - recordTime
-	//fmt.Println(" exe done -->" , *uu)
-	//uu.WaitingExhaust = GetNowTimeMs() - waitrecordTime
 }
 
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
@@ -108,7 +88,6 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 		// cancel block not start
 		return nil, NotMatchErr
 	} else {
-		waitrecordTime = GetNowTimeMs()
 		chann := channels.(*InternalMsg)
 		return chann.resChan, nil
 	}

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -900,4 +901,54 @@ func TestMultiPriceBump(t *testing.T) {
 	for _, tt := range tests {
 		require.True(t, tt.targetPrice.Cmp(MultiPriceBump(tt.rawPrice, int64(tt.priceBump))) == 0)
 	}
+}
+
+func TestAddAndSortTxConcurrency(t *testing.T) {
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGp = true
+	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
+	defer cleanup()
+
+	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
+	type Case struct {
+		Tx   *mempoolTx
+		Info ExTxInfo
+	}
+
+	testCases := []Case{
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, ExTxInfo{"1", 0, big.NewInt(3780), 0}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, ExTxInfo{"1", 0, big.NewInt(3245), 1}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, ExTxInfo{"1", 0, big.NewInt(5315), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, ExTxInfo{"1", 0, big.NewInt(4526), 3}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, ExTxInfo{"1", 0, big.NewInt(2140), 4}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, ExTxInfo{"1", 0, big.NewInt(4227), 5}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, ExTxInfo{"2", 0, big.NewInt(2161), 0}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, ExTxInfo{"2", 0, big.NewInt(5740), 1}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, ExTxInfo{"2", 0, big.NewInt(6574), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, ExTxInfo{"2", 0, big.NewInt(9630), 3}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, ExTxInfo{"2", 0, big.NewInt(6554), 4}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, ExTxInfo{"2", 0, big.NewInt(5609), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, ExTxInfo{"3", 0, big.NewInt(2791), 0}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, ExTxInfo{"3", 0, big.NewInt(2698), 1}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, ExTxInfo{"2", 0, big.NewInt(6925), 3}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, ExTxInfo{"1", 0, big.NewInt(4171), 3}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, ExTxInfo{"1", 0, big.NewInt(2965), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, ExTxInfo{"3", 0, big.NewInt(2484), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, ExTxInfo{"3", 0, big.NewInt(9722), 1}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, ExTxInfo{"2", 0, big.NewInt(4236), 3}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("21")}, ExTxInfo{"1", 0, big.NewInt(8780), 4}},
+	}
+
+	var wait sync.WaitGroup
+	for _, exInfo := range testCases {
+		wait.Add(1)
+		go func(p Case) {
+			mempool.addAndSortTx(p.Tx, p.Info)
+			wait.Done()
+		}(exInfo)
+	}
+
+	wait.Wait()
 }

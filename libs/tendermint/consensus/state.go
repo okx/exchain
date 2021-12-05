@@ -1432,15 +1432,12 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			//cs.Logger.Error("EnterCommit ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String())
 
 			cs.CancelPreExecBlock(cs.ProposalBlock)
 
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
-
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
-
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
 		// else {
@@ -1829,10 +1826,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
 				cs.StartPreExecBlock(cs.ProposalBlock)
-				//err = cs.blockExec.StartPreExecBlock(cs.ProposalBlock)
-				//if err != nil {
-				//	cs.Logger.Error("StartPreExecBlock11 " , "err" , err)
-				//}
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either

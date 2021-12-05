@@ -2,11 +2,11 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"reflect"
 	"sync"
 	"time"
-	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
 
@@ -87,9 +87,6 @@ func (conR *Reactor) OnStart() error {
 
 	return nil
 }
-
-
-
 
 // OnStop implements BaseService by unsubscribing from events and stopping
 // state.
