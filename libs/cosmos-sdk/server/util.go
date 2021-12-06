@@ -102,6 +102,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		conf.P2P.SendRate = 5120000
 		conf.TxIndex.IndexAllKeys = true
 		conf.Consensus.TimeoutCommit = 3 * time.Second
+		conf.Consensus.TimeoutConsensus = 1 * time.Second
 		cfg.WriteConfigFile(configFilePath, conf)
 		// Fall through, just so that its parsed into memory.
 	}

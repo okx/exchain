@@ -62,9 +62,11 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 
 		// generate state delta
-		delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
-		tree.savedNodes["root"] = tree.root
-		tree.GetDelta()
+		if produceDelta {
+			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+			tree.savedNodes["root"] = tree.root
+			tree.GetDelta()
+		}
 	}
 
 	tree.ndb.SaveOrphans(batch, version, tree.orphans)

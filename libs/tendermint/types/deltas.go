@@ -1,26 +1,100 @@
 package types
 
-// state-delta mode
-// 0 same as no state-delta
-// 1 product delta and save into deltastore.db
-// 2 consume delta and save into deltastore.db; if get no delta, do as 1
-const (
-	// for getting flag of delta-mode
-	FlagStateDelta = "state-sync-mode"
+import (
+	"github.com/okex/exchain/libs/iavl"
+	"github.com/spf13/viper"
+	"sync"
+)
 
-	// delta-mode
-	NoDelta      = "na"
-	ProductDelta = "producer"
-	ConsumeDelta = "consumer"
+const (
+	// use delta from bcBlockResponseMessage or not
+	FlagApplyP2PDelta = "apply-p2p-delta"
+	// save into deltastore.db, and add delta into bcBlockResponseMessage
+	FlagBroadcastP2PDelta = "broadcast-delta"
+	// get delta from dc/redis
+	FlagDownloadDDS = "download-delta"
+	// send delta to dc/redis
+	FlagUploadDDS = "upload-delta"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
 	DataCenterUrl  = "data-center-url"
-	DataCenterStr  = "dataCenter"
 
 	// fast-query
 	FlagFastQuery = "fast-query"
 )
+
+var (
+	fastQuery = false
+	centerMode = false
+	centerUrl = "127.0.0.1:8030"
+
+	applyP2PDelta = false
+	broadcatP2PDelta = false
+	downloadDelta = false
+	uploadDelta = false
+
+	onceFastQuery	sync.Once
+	onceCenterMode	sync.Once
+	onceCenterUrl	sync.Once
+
+	onceApplyP2P sync.Once
+	onceBroadcastP2P sync.Once
+	onceDownload sync.Once
+	onceUpload sync.Once
+)
+
+
+func IsFastQuery() bool {
+	onceFastQuery.Do(func() {
+		fastQuery = viper.GetBool(FlagFastQuery)
+	})
+	return fastQuery
+}
+
+func EnableApplyP2PDelta() bool {
+	onceApplyP2P.Do(func() {
+		applyP2PDelta = viper.GetBool(FlagApplyP2PDelta)
+	})
+	return applyP2PDelta
+}
+
+func EnableBroadcastP2PDelta() bool {
+	onceBroadcastP2P.Do(func() {
+		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
+		iavl.SetProduceDelta(true)
+	})
+	return broadcatP2PDelta
+}
+
+func EnableDownloadDelta() bool {
+	onceDownload.Do(func() {
+		downloadDelta = viper.GetBool(FlagDownloadDDS)
+	})
+	return downloadDelta
+}
+
+func EnableUploadDelta() bool {
+	onceUpload.Do(func() {
+		uploadDelta = viper.GetBool(FlagUploadDDS)
+		iavl.SetProduceDelta(true)
+	})
+	return uploadDelta
+}
+
+func IsCenterEnabled() bool {
+	onceCenterMode.Do(func() {
+		centerMode = viper.GetBool(FlagDataCenter)
+	})
+	return centerMode
+}
+
+func GetCenterUrl() string {
+	onceCenterUrl.Do(func() {
+		centerUrl = viper.GetString(DataCenterUrl)
+	})
+	return centerUrl
+}
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
