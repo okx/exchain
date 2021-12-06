@@ -87,11 +87,11 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 }
 
 func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account) {
-	acc, ok := account.(types.EthAccount)
+	acc, ok := account.(*types.EthAccount)
 	if !ok {
 		return
 	}
-	a.cachedAcc[account.GetAddress().String()] = &acc
+	a.cachedAcc[account.GetAddress().String()] = acc
 	return
 }
 

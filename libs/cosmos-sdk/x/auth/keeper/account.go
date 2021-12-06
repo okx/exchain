@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -61,12 +62,13 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return nil
 	}
 
-	var data []byte
-	if err := rlp.DecodeBytes(enc, &data); err != nil {
+	var wrapAcc wrap.WrapAccount
+	err = rlp.DecodeBytes(enc, &wrapAcc)
+	if err != nil {
 		return nil
 	}
 
-	return ak.decodeAccount(data)
+	return wrapAcc.RealAcc
 }
 
 // GetAllAccounts returns all accounts in the accountKeeper.
@@ -135,13 +137,11 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	it := trie.NewIterator(ak.trie.NodeIterator(nil))
 	for it.Next() {
 		if len(it.Value) > 0 {
-			var data []byte
-			if err := rlp.DecodeBytes(it.Value, &data); err != nil {
+			var wrapAcc wrap.WrapAccount
+			if err := rlp.DecodeBytes(it.Value, &wrapAcc); err != nil {
 				continue
 			}
-
-			acc := ak.decodeAccount(data)
-			if cb(acc) {
+			if cb(wrapAcc.RealAcc) {
 				break
 			}
 		}
@@ -165,17 +165,15 @@ func (ak *AccountKeeper) Update(ctx sdk.Context, err error) {
 			} else {
 				ak.accLRU.Add(key, acc)
 
-				//update account
-				value, err := ak.cdc.MarshalBinaryBare(acc)
-				if err != nil {
-					panic(err)
-				}
-
-				// Encode the account and update the account trie
-				data, err := rlp.EncodeToBytes(value)
+				data, err := rlp.EncodeToBytes(acc)
 				if err != nil {
 					panic(fmt.Errorf("can't encode object at %x: %v", key, err))
 				}
+				//var wrapAcc wrap.WrapAccount
+				//if err = rlp.DecodeBytes(data, &wrapAcc); err != nil {
+				//	panic("FUCK to decode account")
+				//}
+				//fmt.Println("After decode: ", wrapAcc.RealAcc)
 
 				if err = ak.trie.TryUpdate(accKey, data); err != nil {
 					panic(err)

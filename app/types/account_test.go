@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -177,4 +178,19 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	res = new(types.EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().Error(err, "should fail if addresses mismatch")
+}
+
+func (suite *AccountTestSuite) TestEthAccountRLP() {
+	suite.SetupTest()
+	//data, err := suite.account.RLPEncodeToBytes()
+	//suite.Require().NoError(err, "fail to use rlp to encode ethAccount")
+
+	data, err := rlp.EncodeToBytes(suite.account)
+	suite.Require().NoError(err, "fail to use rlp to encode ethAccount")
+
+	var acc types.EthAccount
+	err = acc.RLPDecodeBytes(data)
+	suite.Require().NoError(err, "fail to use rlp to decode ethAccount")
+
+	suite.Require().Equal(suite.account.CodeHash, acc.CodeHash)
 }

@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	"io"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -32,7 +35,7 @@ func init() {
 type EthAccount struct {
 	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
-	StateRoot ethcmn.Hash  // merkle root of the storage trie
+	StateRoot ethcmn.Hash  `json:"state_root" yaml:"state_root"`	// merkle root of the storage trie
 }
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
@@ -217,4 +220,89 @@ func (acc EthAccount) String() string {
 
 func (acc EthAccount)  GetStorageRoot() ethcmn.Hash {
 	return acc.StateRoot
+}
+
+type EthAccountPretty struct {
+	authtypes.BaseAccountPretty `json:"base_account_pretty" yaml:"base_account_pretty"`
+	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
+	StateRoot string  `json:"state_root" yaml:"state_root"`	// merkle root of the storage trie
+}
+
+func (alia EthAccountPretty) Pretty2Acc() (EthAccount, error) {
+	bsAcc, err := alia.BaseAccountPretty.Pretty2Acc()
+	if err != nil {
+		return EthAccount{}, err
+	}
+
+	ethAcc := EthAccount{
+		BaseAccount: &bsAcc,
+		CodeHash: alia.CodeHash,
+		StateRoot: ethcmn.HexToHash(alia.StateRoot),
+	}
+
+	return ethAcc, nil
+}
+
+func (acc EthAccount) GetPrettyAccount() (EthAccountPretty, error) {
+	if acc.BaseAccount == nil {
+		return EthAccountPretty{}, errors.New("nil base account")
+	}
+
+	baseAccPretty, err := acc.BaseAccount.GetPrettyAccount()
+	if err != nil {
+		return EthAccountPretty{}, err
+	}
+
+	ethAccPretty := EthAccountPretty{
+		BaseAccountPretty: baseAccPretty,
+		CodeHash:          acc.CodeHash,
+		StateRoot: acc.StateRoot.String(),
+	}
+
+	return ethAccPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (acc EthAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := acc.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (acc *EthAccount) RLPDecodeBytes(data []byte) error {
+	var alia EthAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+	*acc, err = alia.Pretty2Acc()
+	return err
+}
+
+func (acc *EthAccount) EncodeRLP(w io.Writer) error {
+	alias, err := acc.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, exported.EthAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (acc *EthAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia EthAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*acc, err = alia.Pretty2Acc()
+
+	return err
 }

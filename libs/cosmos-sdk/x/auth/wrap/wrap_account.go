@@ -1,0 +1,49 @@
+package wrap
+
+import (
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/pkg/errors"
+	"sync"
+)
+
+var (
+	concreteAccount map[uint]exported.Account
+	initOnce sync.Once
+)
+
+func RegisterConcreteAccountInfo(accType uint, acc exported.Account) {
+	initOnce.Do(func() {
+		if concreteAccount == nil {
+			concreteAccount = make(map[uint]exported.Account)
+		}
+	})
+
+	concreteAccount[accType] = acc
+}
+
+type WrapAccount struct {
+	RealAcc exported.Account
+}
+
+func (acc *WrapAccount) DecodeRLP(s *rlp.Stream) error {
+	var kind uint
+	err := s.Decode(&kind)
+	if err != nil {
+		return err
+	}
+
+	if realType, ok  := concreteAccount[kind]; ok {
+		data, err := s.Raw()
+		if err != nil {
+			return err
+		}
+
+		puppet := realType
+		err = puppet.RLPDecodeBytes(data)
+		acc.RealAcc = puppet
+		return err
+	}
+
+	return errors.New("Unknown Account type")
+}

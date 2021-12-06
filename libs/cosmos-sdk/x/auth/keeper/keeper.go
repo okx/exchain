@@ -9,6 +9,7 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -192,13 +193,12 @@ func (ak *AccountKeeper) OpenTrie() {
 func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
-	var data []byte
+	var wrapAcc wrap.WrapAccount
 	root, _ := ak.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		if err := rlp.DecodeBytes(leaf, &data); err != nil {
+		if err := rlp.DecodeBytes(leaf, &wrapAcc); err != nil {
 			return nil
 		}
-		accStorageRoot := ak.decodeAccount(data).GetStorageRoot()
-
+		accStorageRoot := wrapAcc.RealAcc.GetStorageRoot()
 		if accStorageRoot != types2.EmptyRootHash && accStorageRoot != (ethcmn.Hash{}) {
 			ak.db.TrieDB().Reference(accStorageRoot, parent)
 		}

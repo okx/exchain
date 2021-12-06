@@ -2,10 +2,11 @@ package types
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/rlp"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -127,4 +128,30 @@ func TestGenesisAccountValidate(t *testing.T) {
 			require.Equal(t, tt.expErr, err)
 		})
 	}
+}
+
+func TestBaseAccountRLP(t *testing.T) {
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	baseAcc := NewBaseAccount(addr, nil, pubkey, 0, 0)
+
+	someCoins := sdk.Coins{sdk.NewInt64Coin("atom", 123), sdk.NewInt64Coin("eth", 246)}
+	seq := uint64(7)
+
+	// set everything on the account
+	err := baseAcc.SetSequence(seq)
+	require.Nil(t, err)
+	err = baseAcc.SetCoins(someCoins)
+	require.Nil(t, err)
+
+	rst, err := rlp.EncodeToBytes(baseAcc)
+	//rst, err := baseAcc.RLPEncodeToBytes()
+	require.Nil(t, err)
+
+	var baAcc BaseAccount
+	err = rlp.DecodeBytes(rst, &baAcc)
+	//err = baAcc.RLPDecodeBytes(rst)
+	require.Nil(t, err)
+
+	require.Equal(t, baseAcc.Address, baAcc.Address)
 }

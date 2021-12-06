@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"testing"
-
 	yaml "gopkg.in/yaml.v2"
+	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
@@ -100,4 +99,22 @@ func TestModuleAccountJSON(t *testing.T) {
 	var a ModuleAccount
 	require.NoError(t, json.Unmarshal(bz, &a))
 	require.Equal(t, acc.String(), a.String())
+}
+
+func TestModuleAccountRLP(t *testing.T) {
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 5))
+	baseAcc := authtypes.NewBaseAccount(addr, coins, nil, 10, 50)
+	ma := NewModuleAccount(baseAcc, "test", "burner")
+
+	data, err := ma.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var macc ModuleAccount
+	err = macc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, macc.Name, ma.Name)
+	require.Equal(t, len(macc.Permissions), len(ma.Permissions))
 }

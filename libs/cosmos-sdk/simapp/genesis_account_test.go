@@ -97,3 +97,31 @@ func TestSimGenesisAccountValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestSimGenesisAccountRLP(t *testing.T) {
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+
+	vestingStart := time.Now().UTC()
+
+	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 1000))
+	baseAcc := authtypes.NewBaseAccount(addr, nil, pubkey, 0, 0)
+	require.NoError(t, baseAcc.SetCoins(coins))
+
+	sga := simapp.SimGenesisAccount{
+		BaseAccount:     baseAcc,
+		OriginalVesting: coins.Add(coins...),
+		StartTime:       vestingStart.Unix(),
+		EndTime:         vestingStart.Add(1 * time.Hour).Unix(),
+	}
+
+	data, err := sga.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var sgacc simapp.SimGenesisAccount
+	err = sgacc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, sgacc.ModuleName, sga.ModuleName)
+	require.Equal(t, len(sgacc.ModulePermissions), len(sga.ModulePermissions))
+}

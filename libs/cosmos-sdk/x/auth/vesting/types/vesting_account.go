@@ -2,6 +2,9 @@ package types
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/rlp"
+	"io"
+	"math/big"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -286,6 +289,100 @@ func (bva *BaseVestingAccount) UnmarshalJSON(bz []byte) error {
 	return nil
 }
 
+type BaseVestingAccountPretty struct {
+	authtypes.BaseAccountPretty `json:"base_account_pretty" yaml:"base_account_pretty"`
+
+	OriginalVesting  sdk.Coins `json:"original_vesting" yaml:"original_vesting"`   // coins in account upon initialization
+	DelegatedFree    sdk.Coins `json:"delegated_free" yaml:"delegated_free"`       // coins that are vested and delegated
+	DelegatedVesting sdk.Coins `json:"delegated_vesting" yaml:"delegated_vesting"` // coins that vesting and delegated
+	EndTime          *big.Int     `json:"end_time" yaml:"end_time"`                   // when the coins become unlocked
+}
+
+func (alia BaseVestingAccountPretty) Pretty2Acc() (BaseVestingAccount, error) {
+	bsAcc, err := alia.BaseAccountPretty.Pretty2Acc()
+	if err != nil {
+		return BaseVestingAccount{}, err
+	}
+
+	bva := BaseVestingAccount{
+		BaseAccount: &bsAcc,
+		OriginalVesting: alia.OriginalVesting,
+		DelegatedFree: alia.DelegatedFree,
+		DelegatedVesting: alia.DelegatedVesting,
+		EndTime: alia.EndTime.Int64(),
+	}
+
+	return bva, nil
+}
+
+func (bva BaseVestingAccount) GetPrettyAccount() (BaseVestingAccountPretty, error) {
+	if bva.BaseAccount == nil {
+		return BaseVestingAccountPretty{}, errors.New("nil base account")
+	}
+	baseAccPretty, err := bva.BaseAccount.GetPrettyAccount()
+	if err != nil {
+		return BaseVestingAccountPretty{}, err
+	}
+
+	bvAccPretty := BaseVestingAccountPretty{
+		BaseAccountPretty: baseAccPretty,
+		OriginalVesting: bva.OriginalVesting,
+		DelegatedFree: bva.DelegatedFree,
+		DelegatedVesting: bva.DelegatedVesting,
+	}
+
+	if bva.EndTime > 0 {
+		bvAccPretty.EndTime = big.NewInt(bva.EndTime)
+	}
+
+	return bvAccPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (bva BaseVestingAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := bva.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (bva *BaseVestingAccount) RLPDecodeBytes(data []byte) error {
+	var alia BaseVestingAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+	*bva, err = alia.Pretty2Acc()
+	return err
+}
+
+func (bva *BaseVestingAccount) EncodeRLP(w io.Writer) error {
+	alias, err := bva.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, authexported.BaseVestingAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (bva *BaseVestingAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia BaseVestingAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*bva, err = alia.Pretty2Acc()
+
+	return err
+}
+
 //-----------------------------------------------------------------------------
 // Continuous Vesting Account
 
@@ -457,6 +554,90 @@ func (cva *ContinuousVestingAccount) UnmarshalJSON(bz []byte) error {
 	return nil
 }
 
+type ContinuousVestingAccountPretty struct {
+	BaseVestingAccountPretty `json:"base_vesting_account_pretty" yaml:"base_vesting_account_pretty"`
+	StartTime *big.Int `json:"start_time" yaml:"start_time"` // when the coins start to vest
+}
+
+func (alia ContinuousVestingAccountPretty) Pretty2Acc() (ContinuousVestingAccount, error) {
+	bva, err := alia.BaseVestingAccountPretty.Pretty2Acc()
+	if err != nil {
+		return ContinuousVestingAccount{}, err
+	}
+
+	cva := ContinuousVestingAccount{
+		BaseVestingAccount: &bva,
+		StartTime: alia.StartTime.Int64(),
+	}
+
+	return cva, nil
+}
+
+func (cva ContinuousVestingAccount) GetPrettyAccount() (ContinuousVestingAccountPretty, error) {
+	if cva.BaseVestingAccount == nil {
+		return ContinuousVestingAccountPretty{}, errors.New("nil base vesting account")
+	}
+	baseVestingAccPretty, err := cva.BaseVestingAccount.GetPrettyAccount()
+	if err != nil {
+		return ContinuousVestingAccountPretty{}, err
+	}
+
+	cvaPretty := ContinuousVestingAccountPretty{
+		BaseVestingAccountPretty: baseVestingAccPretty,
+	}
+
+	if cva.StartTime > 0 {
+		cvaPretty.StartTime = big.NewInt(cva.StartTime)
+	}
+
+	return cvaPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (cva ContinuousVestingAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := cva.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (cva *ContinuousVestingAccount) RLPDecodeBytes(data []byte) error {
+	var alia ContinuousVestingAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+
+	*cva, err = alia.Pretty2Acc()
+	return err
+}
+
+func (cva *ContinuousVestingAccount) EncodeRLP(w io.Writer) error {
+	alias, err := cva.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, authexported.ContinuousVestingAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (cva *ContinuousVestingAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia ContinuousVestingAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*cva, err = alia.Pretty2Acc()
+
+	return err
+}
 //-----------------------------------------------------------------------------
 // Periodic Vesting Account
 
@@ -656,6 +837,112 @@ func (pva *PeriodicVestingAccount) UnmarshalJSON(bz []byte) error {
 	return nil
 }
 
+type PeriodRLP struct {
+	Length *big.Int     `json:"length" yaml:"length"` // length of the period, in seconds
+	Amount sdk.Coins `json:"amount" yaml:"amount"` // amount of coins vesting during this period
+}
+
+type PeriodicVestingAccountPretty struct {
+	BaseVestingAccountPretty `json:"base_vesting_account_pretty" yaml:"base_vesting_account_pretty"`
+	StartTime      *big.Int   `json:"start_time" yaml:"start_time"`           // when the coins start to vest
+	VestingPeriods []PeriodRLP `json:"vesting_periods" yaml:"vesting_periods"` // the vesting schedule
+}
+
+func (alia PeriodicVestingAccountPretty) Pretty2Acc() (PeriodicVestingAccount, error) {
+	bva, err := alia.BaseVestingAccountPretty.Pretty2Acc()
+	if err != nil {
+		return PeriodicVestingAccount{}, err
+	}
+
+	pva := PeriodicVestingAccount{
+		BaseVestingAccount: &bva,
+		StartTime: alia.StartTime.Int64(),
+		VestingPeriods: make([]Period, len(alia.VestingPeriods)),
+	}
+
+	for idx, period := range alia.VestingPeriods {
+		pva.VestingPeriods[idx] = Period{
+			Length: period.Length.Int64(),
+			Amount: period.Amount,
+		}
+	}
+
+	return pva, nil
+}
+
+func (pva PeriodicVestingAccount) GetPrettyAccount() (PeriodicVestingAccountPretty, error) {
+	if pva.BaseVestingAccount == nil {
+		return PeriodicVestingAccountPretty{}, errors.New("nil base vesting account")
+	}
+	baseVestingAccPretty, err := pva.BaseVestingAccount.GetPrettyAccount()
+	if err != nil {
+		return PeriodicVestingAccountPretty{}, err
+	}
+
+	pvaPretty := PeriodicVestingAccountPretty{
+		BaseVestingAccountPretty: baseVestingAccPretty,
+		VestingPeriods: make([]PeriodRLP, len(pva.VestingPeriods)),
+	}
+
+	if pva.StartTime > 0 {
+		pvaPretty.StartTime = big.NewInt(pva.StartTime)
+	}
+
+	for idx, period := range pva.VestingPeriods {
+		pvaPretty.VestingPeriods[idx] = PeriodRLP{
+			Length: big.NewInt(period.Length),
+			Amount: period.Amount,
+		}
+	}
+
+	return pvaPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (pva PeriodicVestingAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := pva.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (pva *PeriodicVestingAccount) RLPDecodeBytes(data []byte) error {
+	var alia PeriodicVestingAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+	*pva, err = alia.Pretty2Acc()
+	return err
+}
+
+func (pva *PeriodicVestingAccount) EncodeRLP(w io.Writer) error {
+	alias, err := pva.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, authexported.PeriodicVestingAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (pva *PeriodicVestingAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia PeriodicVestingAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*pva, err = alia.Pretty2Acc()
+
+	return err
+}
+
 //-----------------------------------------------------------------------------
 // Delayed Vesting Account
 
@@ -759,4 +1046,84 @@ func (dva *DelayedVestingAccount) UnmarshalJSON(bz []byte) error {
 	}
 
 	return nil
+}
+
+
+type DelayedVestingAccountPretty struct {
+	BaseVestingAccountPretty `json:"base_vesting_account_pretty" yaml:"base_vesting_account_pretty"`
+}
+
+func (alia DelayedVestingAccountPretty) Pretty2Acc() (DelayedVestingAccount, error) {
+	bva, err := alia.BaseVestingAccountPretty.Pretty2Acc()
+	if err != nil {
+		return DelayedVestingAccount{}, err
+	}
+
+	dva := DelayedVestingAccount{
+		BaseVestingAccount: &bva,
+	}
+
+	return dva, nil
+}
+
+func (dva DelayedVestingAccount) GetPrettyAccount() (DelayedVestingAccountPretty, error) {
+	if dva.BaseVestingAccount == nil {
+		return DelayedVestingAccountPretty{}, errors.New("nil base vesting account")
+	}
+	baseVestingAccPretty, err := dva.BaseVestingAccount.GetPrettyAccount()
+	if err != nil {
+		return DelayedVestingAccountPretty{}, err
+	}
+
+	pvaPretty := DelayedVestingAccountPretty{
+		BaseVestingAccountPretty: baseVestingAccPretty,
+	}
+
+	return pvaPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (dva DelayedVestingAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := dva.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (dva *DelayedVestingAccount) RLPDecodeBytes(data []byte) error {
+	var alia DelayedVestingAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+
+	*dva, err = alia.Pretty2Acc()
+	return err
+}
+
+func (dva *DelayedVestingAccount) EncodeRLP(w io.Writer) error {
+	alias, err := dva.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, authexported.DelayedVestingAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (dva *DelayedVestingAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia DelayedVestingAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*dva, err = alia.Pretty2Acc()
+
+	return err
 }

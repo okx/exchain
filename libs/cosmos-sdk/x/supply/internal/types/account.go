@@ -3,6 +3,8 @@ package types
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/rlp"
+	"io"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -173,4 +175,90 @@ func (ma *ModuleAccount) UnmarshalJSON(bz []byte) error {
 	ma.Permissions = alias.Permissions
 
 	return nil
+}
+
+type ModuleAccountPretty struct {
+	authtypes.BaseAccountPretty `json:"base_account_pretty" yaml:"base_account_pretty"`
+
+	Name        string   `json:"name" yaml:"name"`               // name of the module
+	Permissions []string `json:"permissions" yaml:"permissions"` // permissions of module account
+}
+
+func (alia ModuleAccountPretty) Pretty2Acc() (ModuleAccount, error) {
+	bsAcc, err := alia.BaseAccountPretty.Pretty2Acc()
+	if err != nil {
+		return ModuleAccount{}, err
+	}
+
+	ma := ModuleAccount{
+		BaseAccount: &bsAcc,
+		Name: alia.Name,
+		Permissions: alia.Permissions,
+	}
+
+	return ma, nil
+}
+
+func (ma ModuleAccount) GetPrettyAccount() (ModuleAccountPretty, error) {
+	if ma.BaseAccount == nil {
+		return ModuleAccountPretty{}, errors.New("nil base account")
+	}
+
+	baseAccPretty, err := ma.BaseAccount.GetPrettyAccount()
+	if err != nil {
+		return ModuleAccountPretty{}, err
+	}
+
+	ethAccPretty := ModuleAccountPretty{
+		BaseAccountPretty: baseAccPretty,
+		Name:          ma.Name,
+		Permissions: ma.Permissions,
+	}
+
+	return ethAccPretty, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (ma ModuleAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := ma.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (ma *ModuleAccount) RLPDecodeBytes(data []byte) error {
+	var alia ModuleAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+	*ma, err = alia.Pretty2Acc()
+	return err
+}
+
+func (ma *ModuleAccount) EncodeRLP(w io.Writer) error {
+	alias, err := ma.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, authexported.ModuleAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (ma *ModuleAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia ModuleAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*ma, err = alia.Pretty2Acc()
+
+	return err
 }

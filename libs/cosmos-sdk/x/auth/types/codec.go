@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 )
 
 // ModuleCdc auth module wide codec
@@ -14,6 +15,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/Account", nil)
 	cdc.RegisterConcrete(StdTx{}, "cosmos-sdk/StdTx", nil)
+
+	wrap.RegisterConcreteAccountInfo(uint(exported.BaseAcc), &BaseAccount{})
 }
 
 // RegisterAccountTypeCodec registers an external account type defined in

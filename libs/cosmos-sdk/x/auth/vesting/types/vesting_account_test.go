@@ -817,3 +817,88 @@ func TestDelayedVestingAccountJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(bz, &a))
 	require.Equal(t, acc.String(), a.String())
 }
+
+func TestBaseVestingAccountRLP(t *testing.T) {
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 5))
+	baseAcc := authtypes.NewBaseAccount(addr, coins, pubkey, 10, 50)
+	bva, err := NewBaseVestingAccount(baseAcc, coins, time.Now().Unix())
+
+	data, err := bva.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var bvacc BaseVestingAccount
+	err = bvacc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, bva.DelegatedVesting, bvacc.DelegatedVesting)
+}
+
+func TestContinuousVestingAccountRLP(t *testing.T) {
+	now := tmtime.Now()
+	endTime := now.Add(24 * time.Hour)
+
+	_, pk, addr := KeyTestPubAddr()
+	origCoins := sdk.Coins{sdk.NewInt64Coin(feeDenom, 1000), sdk.NewInt64Coin(stakeDenom, 100)}
+	bacc := authtypes.NewBaseAccountWithAddress(addr)
+	bacc.SetPubKey(pk)
+	bacc.SetCoins(origCoins)
+	cva := NewContinuousVestingAccount(&bacc, now.Unix(), endTime.Unix())
+
+	data, err := cva.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var cvacc ContinuousVestingAccount
+	err = cvacc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, cva.StartTime, cvacc.StartTime)
+}
+
+func TestPeriodicVestingAccountRLP(t *testing.T) {
+	now := tmtime.Now()
+	periods := Periods{
+		Period{Length: int64(12 * 60 * 60), Amount: sdk.Coins{sdk.NewInt64Coin(feeDenom, 500), sdk.NewInt64Coin(stakeDenom, 50)}},
+		Period{Length: int64(6 * 60 * 60), Amount: sdk.Coins{sdk.NewInt64Coin(feeDenom, 250), sdk.NewInt64Coin(stakeDenom, 25)}},
+		Period{Length: int64(6 * 60 * 60), Amount: sdk.Coins{sdk.NewInt64Coin(feeDenom, 250), sdk.NewInt64Coin(stakeDenom, 25)}},
+	}
+
+	_, _, addr := KeyTestPubAddr()
+	origCoins := sdk.Coins{sdk.NewInt64Coin(feeDenom, 1000), sdk.NewInt64Coin(stakeDenom, 100)}
+	bacc := authtypes.NewBaseAccountWithAddress(addr)
+	bacc.SetCoins(origCoins)
+	pva := NewPeriodicVestingAccount(&bacc, now.Unix(), periods)
+
+	data, err := pva.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var pvacc PeriodicVestingAccount
+	err = pvacc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, pvacc.StartTime, pva.StartTime)
+	require.Equal(t, len(pvacc.VestingPeriods), len(pva.VestingPeriods))
+}
+
+func TestDelayedVestingAccountRLP(t *testing.T) {
+	now := tmtime.Now()
+	endTime := now.Add(24 * time.Hour)
+
+	_, _, addr := KeyTestPubAddr()
+	origCoins := sdk.Coins{sdk.NewInt64Coin(feeDenom, 1000), sdk.NewInt64Coin(stakeDenom, 100)}
+	bacc := authtypes.NewBaseAccountWithAddress(addr)
+	bacc.SetCoins(origCoins)
+
+	// require no coins are vested until schedule maturation
+	dva := NewDelayedVestingAccount(&bacc, endTime.Unix())
+
+	data, err := dva.RLPEncodeToBytes()
+	require.NoError(t, err)
+
+	var dvacc DelayedVestingAccount
+	err = dvacc.RLPDecodeBytes(data)
+	require.NoError(t, err)
+
+	require.Equal(t, dvacc.EndTime, dva.EndTime)
+}

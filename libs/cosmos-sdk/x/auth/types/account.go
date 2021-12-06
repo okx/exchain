@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"errors"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
+	"io"
+	"strings"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -130,7 +133,7 @@ func (acc BaseAccount) Validate() error {
 	return nil
 }
 
-type baseAccountPretty struct {
+type BaseAccountPretty struct {
 	Address       sdk.AccAddress `json:"address" yaml:"address"`
 	Coins         sdk.Coins      `json:"coins" yaml:"coins"`
 	PubKey        string         `json:"public_key" yaml:"public_key"`
@@ -145,7 +148,7 @@ func (acc BaseAccount) String() string {
 
 // MarshalYAML returns the YAML representation of an account.
 func (acc BaseAccount) MarshalYAML() (interface{}, error) {
-	alias := baseAccountPretty{
+	alias := BaseAccountPretty{
 		Address:       acc.Address,
 		Coins:         acc.Coins,
 		AccountNumber: acc.AccountNumber,
@@ -171,4 +174,88 @@ func (acc BaseAccount) MarshalYAML() (interface{}, error) {
 
 func (acc BaseAccount) GetStorageRoot() ethcmn.Hash {
 	return ethcmn.Hash{}
+}
+
+func (alia BaseAccountPretty) Pretty2Acc() (BaseAccount, error) {
+	acc := BaseAccount{
+		Address:       alia.Address,
+		Coins:         alia.Coins,
+		AccountNumber: alia.AccountNumber,
+		Sequence:      alia.Sequence,
+	}
+
+	if strings.HasPrefix(alia.PubKey, sdk.GetConfig().GetBech32AccountPubPrefix()) {
+		pk, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alia.PubKey)
+		if err != nil {
+			return BaseAccount{}, err
+		}
+		acc.PubKey = pk
+	}
+
+	return acc, nil
+}
+
+func (acc BaseAccount) GetPrettyAccount() (BaseAccountPretty, error) {
+	alias := BaseAccountPretty{
+		Address:       acc.Address,
+		Coins:         acc.Coins,
+		AccountNumber: acc.AccountNumber,
+		Sequence:      acc.Sequence,
+	}
+
+	if acc.PubKey != nil {
+		pks, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, acc.PubKey)
+		if err != nil {
+			return BaseAccountPretty{}, err
+		}
+		alias.PubKey = pks
+	}
+
+	return alias, nil
+}
+
+// RLPEncodeToBytes returns the rlp representation of an account.
+func (acc BaseAccount) RLPEncodeToBytes() ([]byte, error) {
+	alias, err := acc.GetPrettyAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return rlp.EncodeToBytes(alias)
+}
+
+// RLPDecodeBytes reduction account from rlp encode bytes
+func (acc *BaseAccount) RLPDecodeBytes(data []byte) error {
+	var alia BaseAccountPretty
+	err := rlp.DecodeBytes(data, &alia)
+	if err != nil {
+		return err
+	}
+
+	*acc, err = alia.Pretty2Acc()
+	return err
+}
+
+func (acc *BaseAccount) EncodeRLP(w io.Writer) error {
+	alias, err := acc.GetPrettyAccount()
+	if err != nil {
+		return err
+	}
+
+	if err = rlp.Encode(w, exported.BaseAcc); err != nil {
+		return err
+	}
+	return rlp.Encode(w, alias)
+}
+
+func (acc *BaseAccount) DecodeRLP(s *rlp.Stream) error {
+	var alia BaseAccountPretty
+	err := s.Decode(&alia)
+	if err != nil {
+		return err
+	}
+
+	*acc, err = alia.Pretty2Acc()
+
+	return err
 }

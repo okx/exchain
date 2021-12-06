@@ -39,6 +39,8 @@ type Account interface {
 	String() string
 
 	GetStorageRoot() ethcmn.Hash
+
+	RLPDecodeBytes(data []byte) error
 }
 
 // GenesisAccounts defines a slice of GenesisAccount objects
@@ -61,3 +63,16 @@ type GenesisAccount interface {
 	Account
 	Validate() error
 }
+
+type AccountType uint
+
+const (
+	BaseAcc AccountType = 1
+	BaseVestingAcc AccountType = 2
+	ContinuousVestingAcc AccountType = 3
+	DelayedVestingAcc AccountType = 4
+	EthAcc AccountType = 5
+	ModuleAcc AccountType = 6
+	PeriodicVestingAcc AccountType = 7
+	SimGenesisAcc AccountType = 8
+)
