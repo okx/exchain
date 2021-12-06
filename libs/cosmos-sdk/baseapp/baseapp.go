@@ -821,6 +821,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			if err != nil {
 				panic(err)
 			}
+			ctx.Cache().Write(false)
 			writeCache(msCache, ctx)
 			if mode == runTxModeDeliverInAsync {
 				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
