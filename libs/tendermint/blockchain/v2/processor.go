@@ -2,8 +2,6 @@ package v2
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmState "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -145,13 +143,7 @@ func (state *pcState) handle(event Event) (Event, error) {
 		}
 		first, second := firstItem.block, secondItem.block
 		deltas := firstItem.deltas
-		if deltas == nil {
-			deltas = &types.Deltas{}
-		}
-		deltaMode := viper.GetString(types.FlagStateDelta)
-		if deltaMode != types.ConsumeDelta {
-			deltas = &types.Deltas{}
-		}
+
 
 		firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 		firstPartsHeader := firstParts.Header()
@@ -170,11 +162,6 @@ func (state *pcState) handle(event Event) (Event, error) {
 
 		if err := state.context.applyBlock(firstID, first, deltas); err != nil {
 			panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
-		}
-
-		if deltaMode != types.NoDelta && len(deltas.DeltasBytes) > 0 {
-			deltas.Height = first.Height
-			state.context.saveDeltas(deltas, first.Height)
 		}
 
 		delete(state.queue, first.Height)

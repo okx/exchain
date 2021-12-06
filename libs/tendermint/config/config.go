@@ -795,6 +795,7 @@ type ConsensusConfig struct {
 	TimeoutPrecommit      time.Duration `mapstructure:"timeout_precommit"`
 	TimeoutPrecommitDelta time.Duration `mapstructure:"timeout_precommit_delta"`
 	TimeoutCommit         time.Duration `mapstructure:"timeout_commit"`
+	TimeoutConsensus      time.Duration `mapstructure:"timeout_consensus"`
 
 	// Make progress as soon as we have all the precommits (as if TimeoutCommit = 0)
 	SkipTimeoutCommit bool `mapstructure:"skip_timeout_commit"`
@@ -819,6 +820,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
 		TimeoutCommit:               3000 * time.Millisecond,
+		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
 		CreateEmptyBlocksInterval:   0 * time.Second,
@@ -837,6 +839,7 @@ func TestConsensusConfig() *ConsensusConfig {
 	cfg.TimeoutPrecommit = 10 * time.Millisecond
 	cfg.TimeoutPrecommitDelta = 1 * time.Millisecond
 	cfg.TimeoutCommit = 10 * time.Millisecond
+	cfg.TimeoutConsensus = 60 * time.Millisecond
 	cfg.SkipTimeoutCommit = true
 	cfg.PeerGossipSleepDuration = 5 * time.Millisecond
 	cfg.PeerQueryMaj23SleepDuration = 250 * time.Millisecond
@@ -911,6 +914,9 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	}
 	if cfg.TimeoutCommit < 0 {
 		return errors.New("timeout_commit can't be negative")
+	}
+	if cfg.TimeoutConsensus < 0 {
+		return errors.New("timeout_consensus can't be negative")
 	}
 	if cfg.CreateEmptyBlocksInterval < 0 {
 		return errors.New("create_empty_blocks_interval can't be negative")
