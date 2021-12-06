@@ -43,7 +43,7 @@ var (
 //-----------------------------------------------------------------------------
 
 var (
-	msgQueueSize = 1000
+	msgQueueSize           = 1000
 	EnableProactivelyRunTx = "enable-proactively-runtx"
 )
 
@@ -153,8 +153,7 @@ type State struct {
 
 	trc *trace.Tracer
 
-	parallelFlag bool
-
+	proactivelyFlag bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -190,7 +189,7 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		parallelFlag: viper.GetBool(EnableProactivelyRunTx),
+		proactivelyFlag:  viper.GetBool(EnableProactivelyRunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -198,7 +197,7 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
-
+	cs.blockExec.SetProactivelyFlag(cs.proactivelyFlag)
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -1197,7 +1196,7 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
-		logger.Error("enterPrevote: ProposalBlock is invalid", "err", err)
+		logger.Error("enterPrevote: ProposalBlock is invalid ", " cs.ProposalBlock", cs.ProposalBlock, "height", height, "round", round, "err", err)
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1852,19 +1851,19 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 }
 
 func (cs *State) StartPreExecBlock(block *types.Block) {
-	if cs.parallelFlag{
+	if cs.proactivelyFlag {
 		err := cs.blockExec.StartPreExecBlock(block)
 		if err != nil {
-			cs.Logger.Error("StartPreExecBlock " , "err" , err)
+			cs.Logger.Error("StartPreExecBlock failed ", "err", err)
 		}
 	}
 }
 
-func (cs *State) CancelPreExecBlock(block *types.Block)  {
-	if cs.parallelFlag{
+func (cs *State) CancelPreExecBlock(block *types.Block) {
+	if cs.proactivelyFlag {
 		err := cs.blockExec.CancelPreExecBlock(block)
 		if err != nil {
-			cs.Logger.Error("CancelPreExecBlock " , "err" , err)
+			cs.Logger.Info("CancelPreExecBlock not start yet ", "msg", err)
 		}
 	}
 }

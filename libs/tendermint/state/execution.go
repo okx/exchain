@@ -55,11 +55,11 @@ type BlockExecutor struct {
 
 	isAsync bool
 
+	proactivelyFlag bool
+
 	abciResponse sync.Map
 
 	lastBlock *types.Block
-
-
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -89,7 +89,6 @@ func NewBlockExecutor(
 		logger:   logger,
 		metrics:  NopMetrics(),
 		isAsync:  viper.GetBool(FlagParalleledTx),
-
 	}
 
 	for _, option := range options {
@@ -240,26 +239,36 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
-		abciChain, err := blockExec.GetPreExecBlockRes(block)
-		if err != nil {
-			if blockExec.GetLastBlock() != nil {
-				// executed unknown block, first reset deliverState and lastBlock ensure below function can execute sucesss
-				blockExec.ResetDeliverState()
-				blockExec.ResetLastBlock()
-			}
+		if !blockExec.proactivelyFlag {
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
 				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			}
 		} else {
-			v, _ := <-abciChain
-			abciResponses = v.ABCIResponses
-			err = v.error
+			abciChain, err := blockExec.GetPreExecBlockRes(block)
 			if err != nil {
-				blockExec.logger.Error("execBlockOnProxyApp execute failed", "abciResponses", abciResponses, "err", err)
+				blockExec.logger.Error("GetPreExecBlockRes execute failed ", "err", err)
+				if blockExec.GetLastBlock() != nil {
+					// unknown block
+					// reset deliverState, lastBlock, sync.Map to ensure consensus success
+					blockExec.ResetDeliverState()
+					blockExec.ResetLastBlock()
+				}
+				if blockExec.isAsync {
+					abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+				} else {
+					abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+				}
+			} else {
+				v, _ := <-abciChain
+				abciResponses = v.ABCIResponses
+				err = v.error
+				if err != nil {
+					blockExec.logger.Error("execBlockOnProxyApp execute failed ", "abciResponses", abciResponses, "err", err)
+				}
+				blockExec.CleanPreExecBlockRes(block)
 			}
-			blockExec.CleanPreExecBlockRes(block)
 		}
 
 		if broadDelta || uploadDelta {
@@ -373,7 +382,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0{
+	if wd != nil && wd.Size() > 0 {
 		wdBytes = wd.WatchDataByte
 	}
 
@@ -382,7 +391,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 	if err != nil {
 		return
 	}
-	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -397,7 +406,7 @@ func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, err
 	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err

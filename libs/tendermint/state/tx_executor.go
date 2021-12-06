@@ -4,8 +4,6 @@ import (
 	"errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"strings"
-	"time"
 )
 
 type PreExecBlockResult struct {
@@ -25,10 +23,7 @@ var (
 	NotMatchErr = errors.New("block has no start record")
 )
 
-func GetNowTimeMs() int64 {
-	return time.Now().UnixNano() / 1e6
-}
-
+//start a proactively block execution
 func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	if _, ok := blockExec.abciResponse.Load(block); ok {
 		// start block twice
@@ -45,6 +40,17 @@ func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 	}
 }
 
+//return blockExec.abciResponse num
+func (blockExec *BlockExecutor) mapCount() int {
+	var count int
+	blockExec.abciResponse.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+//gorountine execute block
 func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *types.Block) {
 	var abciResponses *ABCIResponses
 	var err error
@@ -63,14 +69,18 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 
 	select {
 	case <-channels.cancelChan:
-		channels.resChan <- &PreExecBlockResult{nil, CancelErr}
+		// if canceled means result is no use , clean deliverState
+		// we need to reset deliverState, close all channel to avoid deadlock and remove block from sync.Map
+		blockExec.ResetDeliverState()
+		close(channels.resChan)
+		close(channels.cancelChan)
+		blockExec.abciResponse.Delete(blockExec.lastBlock)
 	case channels.resChan <- preBlockRes:
-
 	}
 }
 
+//cancel a block already execute
 func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
-
 	if channels, ok := blockExec.abciResponse.Load(block); !ok {
 		// cancel block not start
 		return NotMatchErr
@@ -83,6 +93,7 @@ func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
 	}
 }
 
+//return result channel for caller
 func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *PreExecBlockResult, error) {
 	if channels, ok := blockExec.abciResponse.Load(block); !ok {
 		// cancel block not start
@@ -93,8 +104,8 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 	}
 }
 
+//close block channel , clean abciResponse and check abciResponse num
 func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
-
 	if channels, ok := blockExec.abciResponse.Load(block); !ok {
 		// cancel block not start
 		return
@@ -106,10 +117,14 @@ func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
 		if blockExec.lastBlock == block {
 			blockExec.ResetLastBlock()
 		}
+		if num := blockExec.mapCount(); num != 0 {
+			//check sync.Map num, should always be 0
+			blockExec.logger.Error("blockExec abciResponse num not 0 " , "num", num)
+		}
 	}
 }
 
-//reset base deliverState
+//reset deliverState
 func (blockExec *BlockExecutor) ResetDeliverState() {
 	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
 		Key: "ResetDeliverState",
@@ -119,19 +134,16 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 
 //get lastBlock
 func (blockExec *BlockExecutor) GetLastBlock() *types.Block {
-
 	return blockExec.lastBlock
 }
 
-//reset lastBlock
+//reset lastBlock and clean abciResponse
 func (blockExec *BlockExecutor) ResetLastBlock() {
-
+	blockExec.abciResponse.Delete(blockExec.lastBlock)
 	blockExec.lastBlock = nil
 }
 
-func IsCancelErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), CancelErr.Error())
+//set blockExec proactivelyFlag
+func (blockExec *BlockExecutor) SetProactivelyFlag(open bool) {
+	blockExec.proactivelyFlag = open
 }
