@@ -3,14 +3,16 @@ package types
 import (
 	"testing"
 
+	"github.com/okex/exchain/libs/tendermint/types/time"
+
 	"github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func TestValidatorTestEquivalent(t *testing.T) {
@@ -137,6 +139,30 @@ func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	err = codec.Cdc.UnmarshalJSON(js, got)
 	assert.NoError(t, err)
 	assert.Equal(t, validator, *got)
+}
+
+func TestValidatorUnmarshalFromAmino(t *testing.T) {
+	common.InitConfig()
+	validator := NewValidator(valAddr1, pk1, Description{"test1", "test2", "test3", "test4"}, DefaultMinSelfDelegation)
+	validator.Jailed = true
+	validator.Status = sdk.Bonded
+	validator.Tokens = sdk.OneInt()
+	validator.UnbondingHeight = 1000
+	validator.Commission = NewCommission(sdk.NewDec(1000), sdk.NewDec(2000), sdk.NewDec(3000))
+	validator.Commission.UpdateTime = time.Now()
+	cdc := ModuleCdc
+	bz, err := cdc.MarshalBinaryBare(validator)
+	require.NoError(t, err)
+
+	var v1 Validator
+	err = cdc.UnmarshalBinaryBare(bz, &v1)
+	require.NoError(t, err)
+
+	var v2 Validator
+	err = v2.UnmarshalFromAmino(bz)
+	require.NoError(t, err)
+
+	require.EqualValues(t, v1, v2)
 }
 
 func TestValidatorSetInitialCommission(t *testing.T) {

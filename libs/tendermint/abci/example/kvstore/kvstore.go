@@ -122,7 +122,7 @@ func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx 
 	return types.ResponseCheckTx{Code: code.CodeTypeOK, GasWanted: 1, Data: data}
 }
 
-func (app *Application) Commit() types.ResponseCommit {
+func (app *Application) Commit(req types.RequestCommit) types.ResponseCommit {
 	// Using a memdb - just return the big endian size of the db
 	appHash := make([]byte, 8)
 	binary.PutVarint(appHash, app.state.Size)

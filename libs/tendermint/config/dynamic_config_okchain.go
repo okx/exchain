@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type IDynamicConfig interface {
 	GetMempoolRecheck() bool
 	GetMempoolForceRecheckGap() int64
@@ -7,6 +9,12 @@ type IDynamicConfig interface {
 	GetMaxTxNumPerBlock() int64
 	GetMaxGasUsedPerBlock() int64
 	GetMempoolFlush() bool
+	GetCsTimeoutPropose() time.Duration
+	GetCsTimeoutProposeDelta() time.Duration
+	GetCsTimeoutPrevote() time.Duration
+	GetCsTimeoutPrevoteDelta() time.Duration
+	GetCsTimeoutPrecommit() time.Duration
+	GetCsTimeoutPrecommitDelta() time.Duration
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -40,4 +48,23 @@ func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
 
 func (d MockDynamicConfig) GetMempoolFlush() bool {
 	return false
+}
+
+func (d MockDynamicConfig) GetCsTimeoutPropose() time.Duration {
+	return DefaultConsensusConfig().TimeoutPropose
+}
+func (d MockDynamicConfig) GetCsTimeoutProposeDelta() time.Duration {
+	return DefaultConsensusConfig().TimeoutProposeDelta
+}
+func (d MockDynamicConfig) GetCsTimeoutPrevote() time.Duration {
+	return DefaultConsensusConfig().TimeoutPrevote
+}
+func (d MockDynamicConfig) GetCsTimeoutPrevoteDelta() time.Duration {
+	return DefaultConsensusConfig().TimeoutPrecommitDelta
+}
+func (d MockDynamicConfig) GetCsTimeoutPrecommit() time.Duration {
+	return DefaultConsensusConfig().TimeoutPrecommit
+}
+func (d MockDynamicConfig) GetCsTimeoutPrecommitDelta() time.Duration {
+	return DefaultConsensusConfig().TimeoutPrecommitDelta
 }

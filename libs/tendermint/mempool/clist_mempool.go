@@ -84,12 +84,14 @@ type CListMempool struct {
 	metrics *Metrics
 
 	addressRecord *AddressRecord
+	addAndSortMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
+	checkCnt     int64
 }
 
 var _ Mempool = &CListMempool{}
@@ -266,6 +268,16 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	txSize := len(tx)
+	if err := mem.isFull(txSize); err != nil {
+		return err
+	}
+	// The size of the corresponding amino-encoded TxMessage
+	// can't be larger than the maxMsgSize, otherwise we can't
+	// relay it to peers.
+	if txSize > mem.config.MaxTxBytes {
+		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
+	}
 	// CACHE
 	if !mem.cache.Push(tx) {
 		return ErrTxInCache
@@ -287,19 +299,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()
-
-	txSize := len(tx)
-
-	if err = mem.isFull(txSize); err != nil {
-		return err
-	}
-
-	// The size of the corresponding amino-encoded TxMessage
-	// can't be larger than the maxMsgSize, otherwise we can't
-	// relay it to peers.
-	if txSize > mem.config.MaxTxBytes {
-		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
-	}
 
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
@@ -349,7 +348,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
-
+	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
 
@@ -413,6 +412,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+	mem.addAndSortMtx.Lock()
+	defer mem.addAndSortMtx.Unlock()
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -840,7 +841,6 @@ func (mem *CListMempool) Update(
 			ele := e.(*clist.CElement)
 			addr = ele.Address
 			nonce = ele.Nonce
-
 			mem.removeTx(tx, ele, false)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else if mem.txInfoparser != nil {
@@ -895,6 +895,10 @@ func (mem *CListMempool) Update(
 		mem.pendingPoolNotify <- addressNonce
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
+
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may

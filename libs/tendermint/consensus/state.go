@@ -87,6 +87,12 @@ type State struct {
 	// store blocks and commits
 	blockStore sm.BlockStore
 
+	// store deltas
+	deltaStore sm.DeltaStore
+
+	// store watchData
+	watchStore sm.WatchStore
+
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
 
@@ -155,6 +161,8 @@ func NewState(
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
+	deltaStore sm.DeltaStore,
+	watchStore sm.WatchStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
@@ -163,6 +171,8 @@ func NewState(
 		config:           config,
 		blockExec:        blockExec,
 		blockStore:       blockStore,
+		deltaStore:       deltaStore,
+		watchStore:       watchStore,
 		txNotifier:       txNotifier,
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
@@ -431,11 +441,12 @@ func (cs *State) SetProposal(proposal *types.Proposal, peerID p2p.ID) error {
 
 // AddProposalBlockPart inputs a part of the proposal block.
 func (cs *State) AddProposalBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) error {
-
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
 	if peerID == "" {
-		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, ""}
+		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas, wd}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, peerID}
+		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas, wd}, peerID}
 	}
 
 	// TODO: wait for event?!
@@ -478,6 +489,10 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
 	sleepDuration := rs.StartTime.Sub(tmtime.Now())
+	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
+	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
+		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
+	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -574,6 +589,7 @@ func (cs *State) updateToState(state sm.State) {
 	} else {
 		cs.StartTime = cs.config.Commit(cs.CommitTime)
 	}
+	cs.Round0StartTime = time.Now().UnixNano()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -910,17 +926,23 @@ func (cs *State) needProofBlock(height int64) bool {
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
-func (cs *State) isBlockProducer() string {
+func (cs *State) isBlockProducer() (string, string) {
+	const len2display int = 6
+	bpAddr := cs.Validators.GetProposer().Address
+	bpStr := bpAddr.String()
+	if len(bpStr) > len2display {
+		bpStr = bpStr[:len2display]
+	}
 	isBlockProducer := "n"
 	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
 		address := cs.privValidatorPubKey.Address()
 
-		if cs.isProposer != nil && cs.isProposer(address) {
+		if bytes.Equal(bpAddr, address) {
 			isBlockProducer = "y"
 		}
 	}
 
-	return isBlockProducer
+	return isBlockProducer, bpStr
 }
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
@@ -941,7 +963,8 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 
-	cs.trc.Pin("Propose-%d-%s", round, cs.isBlockProducer())
+	isBlockProducer, bpAddr := cs.isBlockProducer()
+	cs.trc.Pin("Propose-%d-%s-%s", round, isBlockProducer, bpAddr)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -975,7 +998,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 	address := cs.privValidatorPubKey.Address()
-	
+
 	// if not a validator, we're done
 	if !cs.Validators.HasAddress(address) {
 		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
@@ -1005,6 +1028,8 @@ func (cs *State) isProposer(address []byte) bool {
 func (cs *State) defaultDecideProposal(height int64, round int) {
 	var block *types.Block
 	var blockParts *types.PartSet
+	var deltas *types.Deltas
+	var wd *types.WatchData
 
 	// Decide on block
 	if cs.ValidBlock != nil {
@@ -1016,6 +1041,21 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
+	}
+
+	// Decide on Deltas
+	if cs.Deltas != nil {
+		deltas = cs.Deltas
+		if types.IsFastQuery() {
+			if cs.WatchData != nil {
+				wd = cs.WatchData
+			} else {
+				wd = &types.WatchData{}
+			}
+		}
+	} else {
+		deltas = &types.Deltas{}
+		wd = &types.WatchData{}
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -1031,7 +1071,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, deltas, wd}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
@@ -1503,10 +1543,28 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
+	fastQuery := types.IsFastQuery()
+	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
+		deltas = cs.Deltas
+		if deltas == nil || deltas.Height != block.Height {
+			deltas = &types.Deltas{}
+		}
+		if fastQuery {
+			wd = cs.WatchData
+			if wd == nil {
+				wd = &types.WatchData{}
+			}
+		}
+	}
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
-		block)
+		block,
+		deltas,
+		wd)
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1514,6 +1572,19 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
 		return
+	}
+
+	if types.EnableBroadcastP2PDelta() {
+		// persists the given deltas to the underlying db.
+		if deltas.Size() > 0 {
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
+		// persists the given WatchData to the underlying db.
+		if fastQuery && wd != nil {
+			wd.Height = block.Height
+			cs.watchStore.SaveWatch(wd, block.Height)
+		}
 	}
 
 	fail.Fail() // XXX
@@ -1723,6 +1794,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return added, err
 		}
+
+		// receive Deltas from BlockMessage and put into State(cs)
+		cs.Deltas = msg.Deltas
+
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())

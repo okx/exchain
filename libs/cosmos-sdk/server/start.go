@@ -27,6 +27,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
 	"github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmdb "github.com/tendermint/tm-db"
@@ -91,10 +92,13 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// app pre run
+			if err := appPreRun(ctx); err != nil {
+				return err
+			}
 			// set external package flags
 			setExternalPackageValue(cmd)
-			// app pre run
-			return appPreRun(ctx)
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !viper.GetBool(flagWithTendermint) {
@@ -138,6 +142,14 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(FlagEvmImportMode, "default", "Select import mode for evm state (default|files|db)")
 	cmd.Flags().String(FlagEvmImportPath, "", "Evm contract & storage db or files used for InitGenesis")
 	cmd.Flags().Uint64(FlagGoroutineNum, 0, "Limit on the number of goroutines used to import evm data(ignored if evm-import-mode is 'default')")
+
+	cmd.Flags().Bool(tmtypes.FlagDownloadDDS, false, "get delta from dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "send delta to dc/redis or not")
+	cmd.Flags().Bool(tmtypes.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
+	cmd.Flags().Bool(tmtypes.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
+	cmd.Flags().Bool(tmtypes.FlagDataCenter, false, "Use data-center-mode or not")
+	cmd.Flags().String(tmtypes.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
+
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
@@ -147,11 +159,10 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
-	cmd.Flags().Bool(abci.FlagDisableQueryMutex, false, "Disable local client query mutex for better concurrency")
-	cmd.Flags().Bool(abci.FlagDisableCheckTxMutex, false, "Disable local client checkTx mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
-	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
+	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
 
@@ -179,6 +190,7 @@ which accepts a path for the resulting pprof file.
 	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
+	cmd.AddCommand(nodeModeCmd(ctx))
 	return cmd
 }
 
@@ -338,7 +350,6 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
 	state.HomeDir = viper.GetString(cli.HomeFlag)
 
-	abci.SetDisableQueryMutex(viper.GetBool(abci.FlagDisableQueryMutex))
-	abci.SetDisableCheckTxMutex(viper.GetBool(abci.FlagDisableCheckTxMutex))
+	abci.SetDisableABCIQueryMutex(viper.GetBool(abci.FlagDisableABCIQueryMutex))
 	abci.SetDisableCheckTx(viper.GetBool(abci.FlagDisableCheckTx))
 }

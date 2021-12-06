@@ -3,12 +3,11 @@ package mock
 import (
 	"io"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-
-	dbm "github.com/tendermint/tm-db"
-
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 var _ sdk.MultiStore = multiStore{}
@@ -45,7 +44,7 @@ func (ms multiStore) SetTracer(w io.Writer) sdk.MultiStore {
 	panic("not implemented")
 }
 
-func (ms multiStore) Commit() sdk.CommitID {
+func (ms multiStore) Commit(*iavl.TreeDelta, []byte) (store.CommitID, iavl.TreeDelta, []byte) {
 	panic("not implemented")
 }
 

@@ -3,11 +3,13 @@ package iavl
 import (
 	"bytes"
 	"container/list"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
 	"sync"
 
+	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
@@ -209,16 +211,16 @@ func (ndb *nodeDB) Has(hash []byte) (bool, error) {
 // NOTE: This function clears leftNode/rigthNode recursively and
 // calls _hash() on the given node.
 // TODO refactor, maybe use hashWithCount() but provide a callback.
-func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node) []byte {
+func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string]*Node) []byte {
 	if node.persisted {
 		return node.hash
 	}
 
 	if node.leftNode != nil {
-		node.leftHash = ndb.SaveBranch(batch, node.leftNode)
+		node.leftHash = ndb.SaveBranch(batch, node.leftNode, savedNodes)
 	}
 	if node.rightNode != nil {
-		node.rightHash = ndb.SaveBranch(batch, node.rightNode)
+		node.rightHash = ndb.SaveBranch(batch, node.rightNode, savedNodes)
 	}
 
 	node._hash()
@@ -234,6 +236,9 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node) []byte {
 
 	node.leftNode = nil
 	node.rightNode = nil
+
+	// TODO: handle magic number
+	savedNodes[hex.EncodeToString(node.hash)] = node
 
 	return node.hash
 }
@@ -551,7 +556,7 @@ func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
 
-	if ndb.nodeCacheQueue.Len() > ndb.nodeCacheSize {
+	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
 		delete(ndb.nodeCache, string(hash))

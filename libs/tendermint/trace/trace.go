@@ -29,6 +29,9 @@ const (
 
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
+
+	MempoolCheckTxCnt = "checkTxCnt"
+	MempoolTxsCnt     = "mempoolTxsCnt"
 )
 
 type IElapsedTimeInfos interface {
