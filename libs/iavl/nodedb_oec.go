@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"github.com/go-errors/errors"
 	"sync/atomic"
 	"time"
 
@@ -375,4 +376,31 @@ func (ndb *nodeDB) inVersionCacheMap(version int64) ([]byte, bool) {
 		return item.rootHash, true
 	}
 	return nil, false
+}
+
+// DeleteVersion deletes a tree version from disk.
+func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
+	err := ndb.checkoutVersionReaders(version)
+	if err != nil {
+		return err
+	}
+
+	ndb.deleteOrphans(batch, version)
+	ndb.deleteRoot(batch, version, checkLatestVersion)
+	return nil
+}
+
+func (ndb *nodeDB) checkoutVersionReaders(version int64) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	if ndb.versionReaders[version] > 0 {
+		return errors.Errorf("unable to delete version %v, it has %v active readers", version, ndb.versionReaders[version])
+	}
+	return nil
+}
+
+func (ndb *nodeDB) syncUnCacheNode(hash []byte) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	ndb.uncacheNode(hash)
 }

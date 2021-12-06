@@ -257,20 +257,6 @@ func (ndb *nodeDB) resetBatch(batch dbm.Batch) {
 	batch.Close()
 }
 
-// DeleteVersion deletes a tree version from disk.
-func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
-	if ndb.versionReaders[version] > 0 {
-		return errors.Errorf("unable to delete version %v, it has %v active readers", version, ndb.versionReaders[version])
-	}
-
-	ndb.deleteOrphans(batch, version)
-	ndb.deleteRoot(batch, version, checkLatestVersion)
-	return nil
-}
-
 // DeleteVersionsFrom permanently deletes all tree versions from the given version upwards.
 func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 	latest := ndb.getLatestVersion()
@@ -437,7 +423,7 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 		if predecessor < fromVersion || fromVersion == toVersion {
 			ndb.log(IavlDebug, "DELETE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
 			batch.Delete(ndb.nodeKey(hash))
-			ndb.uncacheNode(hash)
+			ndb.syncUnCacheNode(hash)
 			ndb.totalDeletedCount++
 		} else {
 			ndb.log(IavlDebug, "MOVE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
