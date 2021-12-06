@@ -152,5 +152,5 @@ replace (
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tecbot/gorocksdb => github.com/okex/grocksdb v1.6.43-oec3
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.2-0.20211120080923-5ccee577b032
-	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20211124110033-4520ad297846
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20211206032033-56f1084633e7
 )

@@ -92,6 +92,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().String(dbm.FlagRocksdbOpts, "", "Set the rocksdb options")
+	cmd.Flags().String(dbm.FlagConvienceRocksdbOptions, "", "Set the rocksdb options string in rocksdb string format")
 	return cmd
 }
 
