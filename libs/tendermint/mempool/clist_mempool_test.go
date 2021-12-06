@@ -951,4 +951,6 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	}
 
 	wait.Wait()
+
 }
+
