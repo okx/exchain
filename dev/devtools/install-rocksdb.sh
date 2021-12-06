@@ -110,6 +110,10 @@ do_install() {
           exit 1
         fi
 			fi
+			echo
+      echo "ERROR: Unsupported distribution '$lsb_dist'"
+      echo
+      exit 1
 			;;
 	esac
 
