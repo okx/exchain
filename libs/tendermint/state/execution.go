@@ -2,7 +2,8 @@ package state
 
 import (
 	"fmt"
-	redis_cgi "github.com/okex/exchain/libs/thirdpart/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/delta"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,6 +30,8 @@ type BlockExecutor struct {
 
 	// download or upload data to redis
 	redisClient *redis_cgi.RedisClient
+
+	deltaBroker delta.DeltaBroker
 
 	// execute the app against this
 	proxyApp proxy.AppConnConsensus
@@ -82,6 +85,7 @@ func NewBlockExecutor(
 	}
 
 	res.redisClient = redis_cgi.NewRedisClient(types.RedisUrl())
+	//res.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
 
 	return res
 }
@@ -181,46 +185,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	broadDelta := types.EnableBroadcastP2PDelta()
 	downloadDelta := types.EnableDownloadDelta()
 	uploadDelta := types.EnableUploadDelta()
-	batchOK := true
-	useDeltas := false
 
-	if applyDelta || downloadDelta {
-		// only when it's consumer, can use deltas
-		if fastQuery {
-			if wd.Size() <= 0 {
-				if downloadDelta {
-					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
-					wd, _ = blockExec.redisClient.GetWatch(block.Height)
-					if wd.Size() <= 0 {
-						// can't get watchData
-						batchOK = false
-					} else {
-						// set wd into watcher.go
-						batchOK = GetCenterBatch(wd.WatchDataByte)
-					}
-				} else {
-					batchOK = false
-				}
-			}
-
-		}
-		// only when getting batch success, can use deltas
-		// otherwise, do deliverTx
-		if batchOK {
-			// if len(deltas) != 0, use deltas from p2p
-			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() <= 0 && downloadDelta {
-				if delta, err := blockExec.redisClient.GetDeltas(block.Height); err == nil {
-					deltas = delta
-				}
-			}
-			// when deltas not empty, use deltas
-			// otherwise, do deliverTx
-			if deltas.Size() > 0 {
-				useDeltas = true
-			}
-		}
-	}
+	useDeltas, deltas := blockExec.prepareStateDelta(block , deltas, wd)
 
 	trc.Pin(trace.Abci)
 	startTime := time.Now().UnixNano()
@@ -340,7 +306,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor)uploadData(block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
+func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
 	blockExec.logger.Info("uploadData",
 		"height:", block.Height,
 		"blockLen:", block.Size(),
@@ -349,7 +315,64 @@ func (blockExec *BlockExecutor)uploadData(block *types.Block, deltas *types.Delt
 	go blockExec.redisClient.SetBlock(block)
 	go blockExec.redisClient.SetDelta(deltas)
 	go blockExec.redisClient.SetWatch(wd)
+	//go blockExec.deltaBroker.SetBlock(block)
+	//go blockExec.deltaBroker.SetDelta(deltas)
+	//go blockExec.deltaBroker.SetWatch(wd)
 }
+
+func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block,
+	deltas *types.Deltas, wd *types.WatchData) (bool, *types.Deltas) {
+	batchOK := true
+	useDeltas := false
+
+	fastQuery := types.IsFastQuery()
+	applyDelta := types.EnableApplyP2PDelta()
+	downloadDelta := types.EnableDownloadDelta()
+	if applyDelta || downloadDelta {
+		// only when it's consumer, can use deltas
+		if fastQuery {
+			if wd.Size() <= 0 {
+				if downloadDelta {
+					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
+					wd, _ = blockExec.redisClient.GetWatch(block.Height)
+					//wd, _ = blockExec.deltaBroker.GetWatch(block.Height)
+					if wd.Size() <= 0 {
+						// can't get watchData
+						batchOK = false
+					} else {
+						// set wd into watcher.go
+						batchOK = GetCenterBatch(wd.WatchDataByte)
+					}
+				} else {
+					batchOK = false
+				}
+			}
+
+		}
+		// only when getting batch success, can use deltas
+		// otherwise, do deliverTx
+		if batchOK {
+			// if len(deltas) != 0, use deltas from p2p
+			// otherwise, get state-deltas from DataCenter
+			if deltas.Size() <= 0 && downloadDelta {
+				if delta, err := blockExec.redisClient.GetDeltas(block.Height); err == nil {
+					deltas = delta
+				}
+				//if delta, err := blockExec.deltaBroker.GetDeltas(block.Height); err == nil {
+				//	deltas = delta
+				//}
+			}
+			// when deltas not empty, use deltas
+			// otherwise, do deliverTx
+			if deltas.Size() > 0 {
+				useDeltas = true
+			}
+		}
+	}
+
+	return useDeltas, deltas
+}
+
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
