@@ -6,7 +6,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"io"
 	"math/big"
@@ -15,7 +14,7 @@ import (
 var _ authexported.GenesisAccount = (*SimGenesisAccount)(nil)
 
 func init() {
-	wrap.RegisterConcreteAccountInfo(uint(authexported.SimGenesisAcc), &SimGenesisAccount{})
+	authexported.RegisterConcreteAccountInfo(uint(authexported.SimGenesisAcc), &SimGenesisAccount{})
 }
 
 // SimGenesisAccount defines a type that implements the GenesisAccount interface

@@ -4,7 +4,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 )
 
 // RegisterCodec registers concrete types on the codec
@@ -15,10 +14,10 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&DelayedVestingAccount{}, "cosmos-sdk/DelayedVestingAccount", nil)
 	cdc.RegisterConcrete(&PeriodicVestingAccount{}, "cosmos-sdk/PeriodicVestingAccount", nil)
 
-	wrap.RegisterConcreteAccountInfo(uint(exported2.BaseVestingAcc), &BaseVestingAccount{})
-	wrap.RegisterConcreteAccountInfo(uint(exported2.ContinuousVestingAcc), &ContinuousVestingAccount{})
-	wrap.RegisterConcreteAccountInfo(uint(exported2.DelayedVestingAcc), &DelayedVestingAccount{})
-	wrap.RegisterConcreteAccountInfo(uint(exported2.PeriodicVestingAcc), &PeriodicVestingAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.BaseVestingAcc), &BaseVestingAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.ContinuousVestingAcc), &ContinuousVestingAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.DelayedVestingAcc), &DelayedVestingAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.PeriodicVestingAcc), &PeriodicVestingAccount{})
 }
 
 // VestingCdc module wide codec

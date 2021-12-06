@@ -28,7 +28,6 @@ func TestWrapAccountRLP(t *testing.T) {
 
 	var baAcc WrapAccount
 	err = rlp.DecodeBytes(rst, &baAcc)
-	//err = baAcc.RLPDecodeBytes(rst)
 	require.Nil(t, err)
 
 	require.Equal(t, baseAcc.Address, baAcc.RealAcc.GetAddress())

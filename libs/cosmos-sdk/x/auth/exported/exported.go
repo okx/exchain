@@ -2,6 +2,7 @@ package exported
 
 import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"sync"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -76,3 +77,18 @@ const (
 	PeriodicVestingAcc AccountType = 7
 	SimGenesisAcc AccountType = 8
 )
+
+var (
+	ConcreteAccount map[uint]Account
+	initOnce sync.Once
+)
+
+func RegisterConcreteAccountInfo(accType uint, acc Account) {
+	initOnce.Do(func() {
+		if ConcreteAccount == nil {
+			ConcreteAccount = make(map[uint]Account)
+		}
+	})
+
+	ConcreteAccount[accType] = acc
+}

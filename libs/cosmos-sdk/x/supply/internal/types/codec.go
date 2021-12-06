@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
@@ -14,7 +13,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
 	cdc.RegisterConcrete(&Supply{}, "cosmos-sdk/Supply", nil)
 
-	wrap.RegisterConcreteAccountInfo(uint(exported2.ModuleAcc), &ModuleAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.ModuleAcc), &ModuleAccount{})
 }
 
 // ModuleCdc generic sealed codec to be used throughout module
