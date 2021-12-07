@@ -47,6 +47,22 @@ get_distribution() {
 	echo "$lsb_dist"
 }
 
+install_linux() {
+  $sh_c "git clone https://github.com/facebook/rocksdb.git"
+  $sh_c "cd rocksdb && git checkout ${VERSION}"
+  $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && make shared_lib PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
+}
+
+install_macos(){
+  $sh_c "git clone https://github.com/facebook/rocksdb.git"
+  $sh_c "cd rocksdb && git checkout ${VERSION}"
+  $sh_c "cd rocksdb && make uninstall"
+  $sh_c "cd rocksdb && make shared_lib"
+  $sh_c "cd rocksdb && make install-shared"
+}
+
 do_install() {
 	echo "# Executing rocksdb install script, version: $VERSION"
 
@@ -75,32 +91,25 @@ do_install() {
 	case "$lsb_dist" in
 		ubuntu)
 			pre_reqs="git make libsnappy-dev liblz4-dev"
-			(
-				$sh_c 'apt-get update -qq >/dev/null'
-				$sh_c "apt-get install -y -qq $pre_reqs >/dev/null"
-				$sh_c 'apt-get update -qq >/dev/null'
-			)
+      $sh_c 'apt-get update -qq >/dev/null'
+      $sh_c "apt-get install -y -qq $pre_reqs >/dev/null"
+      install_linux
+			exit 0
 			;;
 		centos)
 		  pre_reqs="git make snappy snappy-devel lz4-devel yum-utils"
-			(
-				$sh_c "yum install -y -q $pre_reqs"
-			)
+      $sh_c "yum install -y -q $pre_reqs"
+      install_linux
+			exit 0
 			;;
 		*)
 			if [ -z "$lsb_dist" ]; then
 				if is_darwin; then
 				  pre_reqs="git make"
-          (
-            $sh_c "xcode-select --install"
-            $sh_c "brew install $pre_reqs"
-            $sh_c "git clone https://github.com/facebook/rocksdb.git"
-            $sh_c "cd rocksdb && git checkout ${VERSION}"
-            $sh_c "cd rocksdb && make uninstall"
-            $sh_c "cd rocksdb && make shared_lib"
-            $sh_c "cd rocksdb && make install-shared"
-            exit 0
-          )
+          $sh_c "xcode-select --install"
+          $sh_c "brew install $pre_reqs"
+          install_macos
+          exit 0
 				fi
 				if is_wsl; then
           echo
@@ -110,19 +119,13 @@ do_install() {
           exit 1
         fi
 			fi
-			echo
+      echo
       echo "ERROR: Unsupported distribution '$lsb_dist'"
       echo
       exit 1
 			;;
 	esac
-
-  $sh_c "git clone https://github.com/facebook/rocksdb.git"
-  $sh_c "cd rocksdb && git checkout ${VERSION}"
-  $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && make shared_lib PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
-	exit 0
+	exit 1
 }
 
 # wrapped up in a function so that we have some protection against only getting
