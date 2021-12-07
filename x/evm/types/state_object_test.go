@@ -1,7 +1,11 @@
 package types_test
 
 import (
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/require"
 	"math/big"
+	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
@@ -132,4 +136,71 @@ func (suite *StateDBTestSuite) TestStateObject_Code() {
 		code := suite.stateObject.Code(nil)
 		suite.Require().Equal(tc.expCode, code, tc.name)
 	}
+}
+
+func TestDefaultGenesisState(t *testing.T) {
+	key := []byte("test1")
+	value := ethcrypto.Keccak256Hash(key)
+	hash1 := getHash([]byte("test2"))
+	tmtypes.HashPool.Put(&hash1)
+	hash := getHash(key)
+	require.Equal(t, value, hash)
+
+	hash1 = getHash([]byte("test2-more"))
+	tmtypes.HashPool.Put(&hash1)
+	hash = getHash(key)
+	require.Equal(t, value, hash)
+
+	hash1 = getHash([]byte("test2-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+	tmtypes.HashPool.Put(&hash1)
+	hash = getHash(key)
+	require.Equal(t, value, hash)
+
+	hash1 = getHash([]byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+	tmtypes.HashPool.Put(&hash1)
+	hash = getHash(key)
+	require.Equal(t, value, hash)
+
+	result := string(key)
+	result1 := tmtypes.ByteSliceToStr(key)
+	require.Equal(t, result1, result)
+
+	priv, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+	ethAddr := ethcrypto.PubkeyToAddress(priv.PublicKey)
+	prefix := ethAddr.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+
+	compositeKeyGC := getKey(prefix, key)
+	require.Equal(t, compositeKey, compositeKeyGC)
+
+	testHash := []byte("defer tmtypes.BytesPool.Put(&compositeKey)defer tmtypes.BytesPool.Put(&compositeKey)")
+	tmtypes.BytesPool.Put(&testHash)
+	compositeKeyGC = getKey(prefix, key)
+	require.Equal(t, compositeKey, compositeKeyGC)
+
+}
+
+func getKey(prefix, key []byte) (hash []byte) {
+	bp := tmtypes.BytesPool.Get().(*[]byte)
+	compositeKey := *bp
+	compositeKey = compositeKey[:0]
+	compositeKey = append(compositeKey, prefix...)
+	compositeKey = append(compositeKey, key...)
+	return compositeKey
+}
+
+func getHash(key []byte) ethcmn.Hash {
+	crytoState := tmtypes.EthCryptoState.Get().(ethcrypto.KeccakState)
+	defer tmtypes.EthCryptoState.Put(crytoState)
+	crytoState.Reset()
+	crytoState.Write(key)
+
+	hashP := tmtypes.HashPool.Get().(*ethcmn.Hash)
+	hash := *hashP
+	crytoState.Read(hash[:])
+	return hash
 }

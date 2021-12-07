@@ -79,8 +79,8 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects         map[ethcmn.Address]*stateEntry
-	stateObjectsDirty    map[ethcmn.Address]struct{}
+	stateObjects      map[ethcmn.Address]*stateEntry
+	stateObjectsDirty map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -149,23 +149,23 @@ func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
-		ctx:                  ctx,
-		storeKey:             storeKey,
-		paramSpace:           paramSpace,
-		accountKeeper:        ak,
-		supplyKeeper:         sk,
-		bankKeeper:           bk,
-		Watcher:              watcher,
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            DefaultPrefixDb{},
+		ctx:                 ctx,
+		storeKey:            storeKey,
+		paramSpace:          paramSpace,
+		accountKeeper:       ak,
+		supplyKeeper:        sk,
+		bankKeeper:          bk,
+		Watcher:             watcher,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:           DefaultPrefixDb{},
 	}
 }
 
@@ -180,17 +180,17 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
 
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logSize:              0,
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            csdbParams.Ada,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logSize:             0,
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:           csdbParams.Ada,
 	}
 }
 

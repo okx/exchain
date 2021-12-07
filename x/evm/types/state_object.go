@@ -3,17 +3,17 @@ package types
 import (
 	"bytes"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
-	"io"
-	"math/big"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"io"
+	"math/big"
 )
 
 const keccak256HashSize = 100000
@@ -26,12 +26,20 @@ var (
 )
 
 func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
-	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
+	if value, ok := keccak256HashCache.Get(tmtypes.ByteSliceToStr(compositeKey)); ok {
 		return value.(ethcmn.Hash)
 	}
-	value := ethcrypto.Keccak256Hash(compositeKey)
-	keccak256HashCache.Add(string(compositeKey), value)
-	return value
+
+	crytoState := tmtypes.EthCryptoState.Get().(ethcrypto.KeccakState)
+	defer tmtypes.EthCryptoState.Put(crytoState)
+	crytoState.Reset()
+	crytoState.Write(compositeKey)
+
+	hashP := tmtypes.HashPool.Get().(*ethcmn.Hash)
+	hash := *hashP
+	crytoState.Read(hash[:])
+	keccak256HashCache.Add(tmtypes.ByteSliceToStr(compositeKey), hash)
+	return hash
 }
 
 // StateObject interface for interacting with state object
@@ -127,7 +135,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 	}
 
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-
+	defer tmtypes.HashPool.Put(&prefixKey)
 	// since the new value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
 		account:   &so.address,
@@ -361,7 +369,7 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 // be prefixed with the address of the state object.
 func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-
+	defer tmtypes.HashPool.Put(&prefixKey)
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
@@ -378,7 +386,7 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-
+	defer tmtypes.HashPool.Put(&prefixKey)
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {
@@ -463,10 +471,13 @@ func (so *stateObject) touch() {
 // object's storage prefixed with it's address.
 func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	prefix := so.Address().Bytes()
-	compositeKey := make([]byte, len(prefix)+len(key))
 
-	copy(compositeKey, prefix)
-	copy(compositeKey[len(prefix):], key)
+	bp := tmtypes.BytesPool.Get().(*[]byte)
+	compositeKey := *bp
+	defer tmtypes.BytesPool.Put(&compositeKey)
+	compositeKey = compositeKey[:0]
+	compositeKey = append(compositeKey, prefix...)
+	compositeKey = append(compositeKey, key...)
 	return Keccak256HashWithCache(compositeKey)
 }
 
