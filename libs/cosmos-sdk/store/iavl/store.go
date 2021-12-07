@@ -121,7 +121,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 // version and hash.
 func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID, iavl.TreeDelta, []byte) {
 	flag := false
-	if tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta() && len(deltas) != 0 {
+	if (tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta()) && len(deltas) != 0 {
 		flag = true
 		st.tree.SetDelta(inDelta)
 	}
