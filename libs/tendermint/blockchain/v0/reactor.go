@@ -3,7 +3,6 @@ package v0
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"reflect"
 	"time"
 
@@ -167,8 +166,13 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	deltas := bcR.dstore.LoadDeltas(msg.Height)
-	wd := bcR.wStore.LoadWatch(msg.Height)
+	deltas := &types.Deltas{}
+	wd := &types.WatchData{}
+	if types.EnableBroadcastP2PDelta() {
+		deltas = bcR.dstore.LoadDeltas(msg.Height)
+		wd = bcR.wStore.LoadWatch(msg.Height)
+	}
+
 	if block != nil {
 		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas, WatchData: wd})
 		return src.TrySend(BlockchainChannel, msgBytes)
@@ -318,13 +322,6 @@ FOR_LOOP:
 			}
 			bcR.Logger.Debug("Delta from requster", "len(deltas)", deltas.Size(), "height", first.Height)
 
-			deltaMode := viper.GetString(types.FlagStateDelta)
-			bcR.Logger.Debug("deltaMode", "getFlagDelta", deltaMode, "ConsumeDelta", types.ConsumeDelta)
-			if deltaMode != types.ConsumeDelta {
-				deltas = &types.Deltas{}
-				wd = &types.WatchData{}
-			}
-
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
@@ -367,16 +364,17 @@ FOR_LOOP:
 				}
 				blocksSynced++
 
-				// persists the given deltas to the underlying db.
-				if deltaMode != types.NoDelta && deltas.Size() > 0 {
-					deltas.Height = first.Height
-					bcR.dstore.SaveDeltas(deltas, first.Height)
-				}
-
-				// persists the given WatchData to the underlying db.
-				if wd != nil {
-					wd.Height = first.Height
-					bcR.wStore.SaveWatch(wd, first.Height)
+				if types.EnableBroadcastP2PDelta() {
+					// persists the given deltas to the underlying db.
+					if deltas.Size() > 0 {
+						deltas.Height = first.Height
+						bcR.dstore.SaveDeltas(deltas, first.Height)
+					}
+					// persists the given WatchData to the underlying db.
+					if wd != nil {
+						wd.Height = first.Height
+						bcR.wStore.SaveWatch(wd, first.Height)
+					}
 				}
 
 				if blocksSynced%100 == 0 {

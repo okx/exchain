@@ -83,8 +83,8 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	addressRecord    *AddressRecord
-	checkRepeatedMtx sync.Mutex
+	addressRecord *AddressRecord
+	addAndSortMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
@@ -412,6 +412,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+	mem.addAndSortMtx.Lock()
+	defer mem.addAndSortMtx.Unlock()
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -839,7 +841,6 @@ func (mem *CListMempool) Update(
 			ele := e.(*clist.CElement)
 			addr = ele.Address
 			nonce = ele.Nonce
-
 			mem.removeTx(tx, ele, false)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else if mem.txInfoparser != nil {
@@ -960,8 +961,6 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 }
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
-	mem.checkRepeatedMtx.Lock()
-	defer mem.checkRepeatedMtx.Unlock()
 	repeatElement := 0
 	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
 		for _, node := range userMap {
