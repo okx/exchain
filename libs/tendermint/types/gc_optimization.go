@@ -20,6 +20,10 @@ var HashPool = sync.Pool{
 	},
 }
 
+func PutHashToPool(hash *ethcmn.Hash) {
+	HashPool.Put(hash)
+}
+
 var BytesPool = sync.Pool{
 	New: func() interface{} {
 		buf := make([]byte, 0)
@@ -47,4 +51,12 @@ func StrToByte(s string) []byte {
 func ByteSliceToStr(b []byte) string {
 	hdr := (*reflect.StringHeader)(unsafe.Pointer(&b))
 	return *(*string)(unsafe.Pointer(hdr))
+}
+
+func UnsafeToString(bytes []byte) *string {
+	hdr := &reflect.StringHeader{
+		Data: uintptr(unsafe.Pointer(&bytes[0])),
+		Len:  len(bytes),
+	}
+	return (*string)(unsafe.Pointer(hdr))
 }

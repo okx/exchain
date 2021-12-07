@@ -23,10 +23,35 @@ var (
 
 	emptyCodeHash         = ethcrypto.Keccak256(nil)
 	keccak256HashCache, _ = lru.NewARC(keccak256HashSize)
+	lifeiCache, _         = lru.NewWithEvict(keccak256HashSize, func(key, value interface{}) {
+
+	})
+	keccakHasher = ethcrypto.NewKeccakState()
 )
 
 func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
-	if value, ok := keccak256HashCache.Get(tmtypes.ByteSliceToStr(compositeKey)); ok {
+	key := string(compositeKey)
+	if value, ok := keccak256HashCache.Get(key); ok {
+		return value.(ethcmn.Hash)
+	}
+	value := Keccak256HashForGC(compositeKey)
+	keccak256HashCache.Add(key, value)
+	return value
+}
+
+func Keccak256HashForGC(data []byte) ethcmn.Hash {
+	hashP := tmtypes.HashPool.Get().(*ethcmn.Hash)
+	hash := *hashP
+
+	keccakHasher.Reset()
+	keccakHasher.Write(data)
+	keccakHasher.Read(hash[:])
+	return hash
+}
+
+func Keccak256HashWithCacheNew(compositeKey []byte) ethcmn.Hash {
+	key := tmtypes.ByteSliceToStr(compositeKey)
+	if value, ok := keccak256HashCache.Get(key); ok {
 		return value.(ethcmn.Hash)
 	}
 
@@ -135,7 +160,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 	}
 
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-	defer tmtypes.HashPool.Put(&prefixKey)
+	defer tmtypes.PutHashToPool(&prefixKey)
 	// since the new value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
 		account:   &so.address,
@@ -369,7 +394,7 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 // be prefixed with the address of the state object.
 func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-	defer tmtypes.HashPool.Put(&prefixKey)
+	defer tmtypes.PutHashToPool(&prefixKey)
 	// if we have a dirty value for this state entry, return it
 	idx, dirty := so.keyToDirtyStorageIndex[prefixKey]
 	if dirty {
@@ -386,7 +411,7 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-	defer tmtypes.HashPool.Put(&prefixKey)
+	defer tmtypes.PutHashToPool(&prefixKey)
 	// if we have the original value cached, return that
 	idx, cached := so.keyToOriginStorageIndex[prefixKey]
 	if cached {

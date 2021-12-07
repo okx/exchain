@@ -1,8 +1,11 @@
 package types_test
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	lru "github.com/hashicorp/golang-lru"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
@@ -203,4 +206,50 @@ func getHash(key []byte) ethcmn.Hash {
 	hash := *hashP
 	crytoState.Read(hash[:])
 	return hash
+}
+
+func (suite *StateDBTestSuite) TestStateObject_GetSate() {
+	suite.stateObject.SetState(nil, ethcmn.BytesToHash([]byte("key")), ethcmn.Hash{})
+
+}
+
+func TestKeccak256HashWithCache(t *testing.T) {
+	priv, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+	ethAddr := ethcrypto.PubkeyToAddress(priv.PublicKey)
+	key, err := hexutil.Decode("0x2B2641734D81a6B93C9aE1Ee6290258FB6666921")
+	require.NoError(t, err)
+
+	compositeKey := make([]byte, 0)
+	compositeKey = append(compositeKey, ethAddr.Bytes()...)
+	compositeKey = append(compositeKey, key...)
+	hash1 := types.Keccak256HashWithCache(compositeKey)
+	hash2 := types.Keccak256HashWithCacheNew(compositeKey)
+	require.Equal(t, hash2, hash1)
+
+	cache, _ := lru.NewARC(1)
+	lifei := []byte("aaa-lifei")
+	test := tmtypes.UnsafeToString(lifei)
+	startStr := *test
+	cache.Add(startStr, 10)
+	t.Log("startStr", startStr)
+	//value, ok := cache.Get(startStr)
+	//t.Log("result0", value, ok)
+	//temp := &lifei
+	//	(*temp)[0] = 105
+	//	(*temp)[1] = 105
+	//	(*temp)[2] = 105
+	lifei[0] = 105
+	lifei[1] = 105
+	lifei[2] = 105
+	//t.Log("test", strings.Compare(startStr, *test))
+	t.Log("testStr", *test, "startStr", startStr)
+	test1 := tmtypes.UnsafeToString(lifei)
+	//t.Log("test", strings.Compare(startStr, *test1))
+	t.Log("testStr", *test1, "startStr", startStr)
+
+	value, ok := cache.Get("aaa-lifei")
+	t.Log("result1", value, ok)
+	value, ok = cache.Get("iii-lifei")
+	t.Log("result2", value, ok)
 }
