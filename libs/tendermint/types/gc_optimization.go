@@ -26,7 +26,7 @@ func PutHashToPool(hash *ethcmn.Hash) {
 
 var BytesPool = sync.Pool{
 	New: func() interface{} {
-		buf := make([]byte, 0)
+		buf := make([]byte, 52)
 		return &buf
 	},
 }

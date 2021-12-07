@@ -228,28 +228,36 @@ func TestKeccak256HashWithCache(t *testing.T) {
 	require.Equal(t, hash2, hash1)
 
 	cache, _ := lru.NewARC(1)
-	lifei := []byte("aaa-lifei")
-	test := tmtypes.UnsafeToString(lifei)
-	startStr := *test
-	cache.Add(startStr, 10)
-	t.Log("startStr", startStr)
-	//value, ok := cache.Get(startStr)
-	//t.Log("result0", value, ok)
-	//temp := &lifei
-	//	(*temp)[0] = 105
-	//	(*temp)[1] = 105
-	//	(*temp)[2] = 105
-	lifei[0] = 105
-	lifei[1] = 105
-	lifei[2] = 105
-	//t.Log("test", strings.Compare(startStr, *test))
-	t.Log("testStr", *test, "startStr", startStr)
-	test1 := tmtypes.UnsafeToString(lifei)
-	//t.Log("test", strings.Compare(startStr, *test1))
-	t.Log("testStr", *test1, "startStr", startStr)
-
-	value, ok := cache.Get("aaa-lifei")
-	t.Log("result1", value, ok)
-	value, ok = cache.Get("iii-lifei")
-	t.Log("result2", value, ok)
+	lifei := []byte("aaa-test")
+	test := tmtypes.ByteSliceToStr(lifei)
+	keyValue := []byte("bbb-value")
+	temp := &keyValue
+	cache.Add(test, keyValue)
+	value, ok := cache.Get("aaa-test")
+	t.Log("result1", string(value.([]byte)), ok)
+	//t.Log("startStr", startStr)
+	////value, ok := cache.Get(startStr)
+	////t.Log("result0", value, ok)
+	////temp := &lifei
+	////	(*temp)[0] = 105
+	////	(*temp)[1] = 105
+	////	(*temp)[2] = 105
+	//lifei[0] = 105
+	//lifei[1] = 105
+	//lifei[2] = 105
+	////t.Log("test", strings.Compare(startStr, *test))
+	//t.Log("testStr", *test, "startStr", startStr)
+	//test1 := tmtypes.UnsafeToString(lifei)
+	////t.Log("test", strings.Compare(startStr, *test1))
+	//t.Log("testStr", *test1, "startStr", startStr)
+	//
+	//value, ok := cache.Get("aaa-lifei")
+	//t.Log("result1", value, ok)
+	//value, ok = cache.Get("iii-lifei")
+	//t.Log("result2", value, ok)
+	(*temp)[0] = 105
+	(*temp)[1] = 105
+	(*temp)[2] = 105
+	value, ok = cache.Get("aaa-test")
+	t.Log("result1", string(value.([]byte)), ok)
 }
