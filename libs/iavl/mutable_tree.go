@@ -16,8 +16,13 @@ func SetIgnoreVersionCheck(check bool) {
 	ignoreVersionCheck = check
 }
 
+func SetProduceDelta(pd bool) {
+	produceDelta = pd
+}
+
 var (
 	ignoreVersionCheck = false
+	produceDelta = false
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
@@ -67,7 +72,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 		ImmutableTree: head,
 		lastSaved:     head.clone(),
 		savedNodes:    map[string]*Node{},
-		deltas:        &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}},
+		deltas:        &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}},
 		orphans:       []*Node{},
 		commitOrphans: map[string]int64{},
 		versions:      NewSyncMap(),
@@ -368,7 +373,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = iTree
@@ -423,7 +428,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = t
@@ -492,7 +497,7 @@ func (tree *MutableTree) Rollback() {
 		tree.ImmutableTree = &ImmutableTree{ndb: tree.ndb, version: 0}
 	}
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 }
@@ -520,7 +525,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
 
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
 
 	if !ignoreVersionCheck && tree.versions.Get(version) {
 		// If the version already exists, return an error as we're attempting to overwrite.
@@ -542,7 +547,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.ImmutableTree = tree.ImmutableTree.clone()
 			tree.lastSaved = tree.ImmutableTree.clone()
 			tree.savedNodes = map[string]*Node{}
-			tree.deltas = &TreeDelta{map[string]*NodeJson{}, map[string]int64{}, map[string]int64{}}
+			tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
 			tree.orphans = []*Node{}
 			tree.commitOrphans = map[string]int64{}
 			return existingHash, version, *tree.deltas, nil
@@ -585,9 +590,11 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			tree.ndb.SaveBranch(batch, tree.root, tree.savedNodes)
 		}
 		// generate state delta
-		delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
-		tree.savedNodes["root"] = tree.root
-		tree.GetDelta()
+		if produceDelta {
+			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+			tree.savedNodes["root"] = tree.root
+			tree.GetDelta()
+		}
 
 		tree.ndb.SaveOrphans(batch, version, tree.orphans)
 		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
@@ -859,17 +866,14 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			tree.savedNodes[k] = NodeJsonToNode(v)
 		}
 
-		//orphans := make([]*Node, len(delta.OrphansDelta))
-		//for i, orphan := range delta.OrphansDelta {
-		//	orphans[i] = NodeJsonToNode(orphan)
-		//}
-		//tree.orphans = orphans
-		tree.orphans = []*Node{}
-		for k, v := range delta.OrphansDelta {
-			hash, _ := hex.DecodeString(k)
-			tree.orphans = append(tree.orphans, &Node{hash: hash, version: v})
+		// set tree.orphans
+		orphans := make([]*Node, len(delta.OrphansDelta))
+		for i, orphan := range delta.OrphansDelta {
+			orphans[i] = NodeJsonToNode(orphan)
 		}
+		tree.orphans = orphans
 
+		// set tree.commitOrphans
 		for k, v := range delta.CommitOrphansDelta {
 			hash, _ := hex.DecodeString(k)
 			tree.commitOrphans[string(hash)] = v
@@ -882,12 +886,9 @@ func (tree *MutableTree) GetDelta() {
 		tree.deltas.NodesDelta[k] = NodeToNodeJson(v)
 	}
 
-	//orphans := map[int]*NodeJson{}
-	//for i, orphan := range tree.orphans {
-	//	orphans[i] = NodeToNodeJson(orphan)
-	//}
-	//tree.deltas.OrphansDelta = orphans
-	for _, orphan := range tree.orphans {
-		tree.deltas.OrphansDelta[hex.EncodeToString(orphan.hash)] = orphan.version
+	orphans := make([]*NodeJson, len(tree.orphans))
+	for i, orphan := range tree.orphans {
+		orphans[i] = NodeToNodeJson(orphan)
 	}
+	tree.deltas.OrphansDelta = orphans
 }
