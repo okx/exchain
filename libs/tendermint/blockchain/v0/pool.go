@@ -190,14 +190,13 @@ func (pool *BlockPool) IsCaughtUp() bool {
 // We need to see the second block's Commit to validate the first block.
 // So we peek two blocks at a time.
 // The caller will verify the commit.
-func (pool *BlockPool) PeekTwoBlocks() (first *types.Block, second *types.Block, deltas *types.Deltas, wd *types.WatchData) {
+func (pool *BlockPool) PeekTwoBlocks() (first *types.Block, second *types.Block, deltas *types.Deltas) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	if r := pool.requesters[pool.height]; r != nil {
 		first = r.getBlock()
 		deltas = r.getDeltas()
-		wd = r.getWatchData()
 	}
 	if r := pool.requesters[pool.height+1]; r != nil {
 		second = r.getBlock()
@@ -243,7 +242,7 @@ func (pool *BlockPool) RedoRequest(height int64) p2p.ID {
 
 // AddBlock validates that the block comes from the peer it was expected from and calls the requester to store it.
 // TODO: ensure that blocks come in order for each peer.
-func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types.Deltas, wd *types.WatchData, blockSize int) {
+func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types.Deltas, blockSize int) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
@@ -267,7 +266,7 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types
 		return
 	}
 
-	if requester.setBlock(block, deltas, wd, peerID) {
+	if requester.setBlock(block, deltas, peerID) {
 		atomic.AddInt32(&pool.numPending, -1)
 		peer := pool.peers[peerID]
 		if peer != nil {
@@ -516,7 +515,6 @@ type bpRequester struct {
 	peerID p2p.ID
 	block  *types.Block
 	deltas *types.Deltas
-	wd     *types.WatchData
 }
 
 func newBPRequester(pool *BlockPool, height int64) *bpRequester {
@@ -540,7 +538,7 @@ func (bpr *bpRequester) OnStart() error {
 }
 
 // Returns true if the peer matches and block doesn't already exist.
-func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, wd *types.WatchData, peerID p2p.ID) bool {
+func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, peerID p2p.ID) bool {
 	bpr.mtx.Lock()
 	if bpr.block != nil || bpr.peerID != peerID {
 		bpr.mtx.Unlock()
@@ -550,9 +548,6 @@ func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, wd *t
 
 	if types.EnableApplyP2PDelta() || types.EnableDownloadDelta() {
 		bpr.deltas = deltas
-		if types.IsFastQuery() {
-			bpr.wd = wd
-		}
 	}
 
 	bpr.mtx.Unlock()
@@ -574,12 +569,6 @@ func (bpr *bpRequester) getDeltas() *types.Deltas {
 	bpr.mtx.Lock()
 	defer bpr.mtx.Unlock()
 	return bpr.deltas
-}
-
-func (bpr *bpRequester) getWatchData() *types.WatchData {
-	bpr.mtx.Lock()
-	defer bpr.mtx.Unlock()
-	return bpr.wd
 }
 
 func (bpr *bpRequester) getPeerID() p2p.ID {

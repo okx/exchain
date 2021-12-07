@@ -47,13 +47,6 @@ func (r *RedisClient) SetDelta(deltas *tmtypes.Deltas) error {
 	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), deltaBytes, TTL).Err()
 }
 
-func (r *RedisClient) SetWatch(watch *tmtypes.WatchData) error {
-	if watch.Size() <= 0 {
-		return fmt.Errorf("watch is empty")
-	}
-	return r.rdb.SetNX(context.Background(), setWatchKey(watch.Height), watch.WatchDataByte, TTL).Err()
-}
-
 func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 	blockBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
 	if err == redis.Nil {
@@ -84,28 +77,10 @@ func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
 	return deltas, nil
 }
 
-func (r *RedisClient) GetWatch(height int64) (*tmtypes.WatchData, error) {
-	watchBytes, err := r.rdb.Get(context.Background(), setWatchKey(height)).Bytes()
-	if err == redis.Nil {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &tmtypes.WatchData{
-		WatchDataByte: watchBytes,
-		Height:        height,
-	}, nil
-}
-
 func setBlockKey(height int64) string {
 	return "BH:" + strconv.Itoa(int(height))
 }
 
 func setDeltaKey(height int64) string {
 	return "DH:" + strconv.Itoa(int(height))
-}
-
-func setWatchKey(height int64) string {
-	return "WH:" + strconv.Itoa(int(height))
 }

@@ -14,12 +14,11 @@ type DataCenterMsg struct {
 	Height    int64  `json:"height"`
 	Block     []byte `json:"block"`
 	Delta     []byte `json:"delta"`
-	WatchData []byte `json:"watch_data"`
 }
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
-func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
-	var blockBytes, deltaBytes, wdBytes []byte
+func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas) {
+	var blockBytes, deltaBytes []byte
 	var err error
 	if block != nil {
 		if blockBytes, err = block.Marshal(); err != nil {
@@ -31,11 +30,8 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0{
-		wdBytes = wd.WatchDataByte
-	}
 
-	msg := DataCenterMsg{block.Height, blockBytes, deltaBytes, wdBytes}
+	msg := DataCenterMsg{block.Height, blockBytes, deltaBytes}
 	msgBody, err := types.Json.Marshal(&msg)
 	if err != nil {
 		return

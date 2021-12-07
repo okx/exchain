@@ -430,20 +430,20 @@ func (w *Watcher) SetWatchDataFunc() {
 		return true
 	}
 
-	gwd := func() *tmtypes.WatchData {
+	gwd := func() []byte {
 		value := w.watchData
 		value.DelayEraseKey = w.delayEraseKey
 		valueByte, err := itjs.Marshal(value)
 		if err != nil {
 			return nil
 		}
-		return &tmtypes.WatchData{WatchDataByte: valueByte, Height: int64(w.height)}
+		return valueByte
 	}
 
-	uwd := func(twd *tmtypes.WatchData) {
-		if twd.Size() > 0 {
+	uwd := func(wdByte []byte) {
+		if len(wdByte) > 0 {
 			wd := WatchData{}
-			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
+			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 				return
 			}
 			w.watchData = &wd
@@ -453,7 +453,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		w.CommitWatchData()
 	}
 
-	tmstate.GetCenterBatch = gcb
+	tmstate.SetCenterBatch = gcb
 	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
 }

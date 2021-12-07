@@ -587,14 +587,10 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			return
 		}
 		deltas := &types.Deltas{}
-		wd := &types.WatchData{}
 		if types.EnableBroadcastP2PDelta() {
 			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
 			if deltas == nil || deltas.Height != prs.Height {
 				deltas = &types.Deltas{}
-			}
-			if types.IsFastQuery() {
-				wd = conR.conS.watchStore.LoadWatch(prs.Height)
 			}
 		}
 		// Send the part
@@ -603,7 +599,6 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			Round:  prs.Round,  // Not our height, so it doesn't matter.
 			Part:   part,
 			Deltas: deltas,
-			WatchData: wd,
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
@@ -1565,7 +1560,6 @@ type BlockPartMessage struct {
 	Round     int
 	Part      *types.Part
 	Deltas    *types.Deltas
-	WatchData *types.WatchData
 }
 
 // ValidateBasic performs basic validation.

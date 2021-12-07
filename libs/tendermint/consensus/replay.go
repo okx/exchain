@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/viper"
 	"hash/crc32"
 	"io"
 	"reflect"
@@ -203,7 +202,6 @@ type Handshaker struct {
 	initialState sm.State
 	store        sm.BlockStore
 	dstore       sm.DeltaStore
-	wStore       sm.WatchStore
 	eventBus     types.BlockEventPublisher
 	genDoc       *types.GenesisDoc
 	logger       log.Logger
@@ -212,14 +210,13 @@ type Handshaker struct {
 }
 
 func NewHandshaker(stateDB dbm.DB, state sm.State,
-	store sm.BlockStore, dstore sm.DeltaStore, wStore sm.WatchStore, genDoc *types.GenesisDoc) *Handshaker {
+	store sm.BlockStore, dstore sm.DeltaStore, genDoc *types.GenesisDoc) *Handshaker {
 
 	return &Handshaker{
 		stateDB:      stateDB,
 		initialState: state,
 		store:        store,
 		dstore:       dstore,
-		wStore:       wStore,
 		eventBus:     types.NopEventBus{},
 		genDoc:       genDoc,
 		logger:       log.NewNopLogger(),
@@ -481,19 +478,12 @@ func (h *Handshaker) replayBlock(state sm.State, height int64, proxyApp proxy.Ap
 	if deltas == nil || deltas.Height != height {
 		deltas = &types.Deltas{}
 	}
-	var wd *types.WatchData
-	if viper.GetBool(types.FlagFastQuery) {
-		wd = h.wStore.LoadWatch(height)
-	}
-	if wd == nil {
-		wd = &types.WatchData{}
-	}
 
 	blockExec := sm.NewBlockExecutor(h.stateDB, h.logger, proxyApp, mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(h.eventBus)
 
 	var err error
-	state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, deltas, wd)
+	state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, deltas)
 	if err != nil {
 		return sm.State{}, err
 	}

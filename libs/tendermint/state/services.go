@@ -37,11 +37,6 @@ type DeltaStore interface {
 	LoadDeltas(height int64) *types.Deltas
 }
 
-type WatchStore interface {
-	SaveWatch(wd *types.WatchData, height int64)
-	LoadWatch(height int64) *types.WatchData
-}
-
 //-----------------------------------------------------------------------------
 // evidence pool
 
