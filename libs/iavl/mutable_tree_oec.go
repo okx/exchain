@@ -20,6 +20,7 @@ const (
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
 	FlagIavlEnableGid              = "iavl-enable-gid"
+	FlagIavlEnableNodePool         = "iavl-enable-node-pool"
 )
 
 var (
@@ -37,14 +38,13 @@ var (
 )
 
 type commitEvent struct {
-	version  int64
-	versions map[int64]bool
-	batch    dbm.Batch
-	tpp      map[string]*Node
-	wg       *sync.WaitGroup
+	version    int64
+	versions   map[int64]bool
+	batch      dbm.Batch
+	tpp        map[string]*Node
+	wg         *sync.WaitGroup
 	iavlHeight int
 }
-
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 	moduleName := tree.GetModuleName()
@@ -325,6 +325,6 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 
 	return node.hash
 }
-func (t *ImmutableTree) GetPersistedRoots()  map[int64][]byte {
+func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
 }

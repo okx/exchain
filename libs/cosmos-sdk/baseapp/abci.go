@@ -312,7 +312,9 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
-
+	if iavl.EnableNodePool {
+		app.logger.Info("NodePool statics", "GetNodeFromPoolCounter", iavl.GetNodeFromPoolCounter, "SetNodeFromPoolCounter", iavl.SetNodeFromPoolCounter)
+	}
 	// Reset the Check state to the latest committed.
 	//
 	// NOTE: This is safe because Tendermint holds a lock on the mempool for
@@ -341,7 +343,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data: commitID.Hash,
+		Data:   commitID.Hash,
 		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }
