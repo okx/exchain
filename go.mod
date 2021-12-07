@@ -68,6 +68,7 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.4.0
+	github.com/VictoriaMetrics/fastcache v1.8.0
 )
 
 require (
