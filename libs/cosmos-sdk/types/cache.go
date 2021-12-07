@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	maxAccInMap        = 1000000
-	deleteAccCount     = 100000
-	maxStorageInMap    = 100000
-	deleteStorageCount = 10000
+	maxAccInMap        = 100000
+	deleteAccCount     = 10000
+	maxStorageInMap    = 10000
+	deleteStorageCount = 1000
 )
 var (
 	FlagMultiCache = "multi-cache"
