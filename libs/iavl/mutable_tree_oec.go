@@ -20,6 +20,7 @@ const (
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
 	FlagIavlEnableGid              = "iavl-enable-gid"
+	FlagIgnoreVersionCheck = "ignore-version-check"
 )
 
 var (
@@ -34,6 +35,8 @@ var (
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	EnableGid                       = false
+	ignoreVersionCheck = false
+	produceDelta = false
 )
 
 type commitEvent struct {
@@ -44,6 +47,16 @@ type commitEvent struct {
 	wg       *sync.WaitGroup
 	iavlHeight int
 }
+
+
+func SetIgnoreVersionCheck(check bool) {
+	ignoreVersionCheck = check
+}
+
+func SetProduceDelta(pd bool) {
+	produceDelta = pd
+}
+
 
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {

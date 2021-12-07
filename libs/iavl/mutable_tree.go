@@ -12,19 +12,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-func SetIgnoreVersionCheck(check bool) {
-	ignoreVersionCheck = check
-}
-
-func SetProduceDelta(pd bool) {
-	produceDelta = pd
-}
-
-var (
-	ignoreVersionCheck = false
-	produceDelta = false
-)
-
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
 // use, and should be guarded by a Mutex or RWLock as appropriate. An immutable tree at a given
 // version can be returned via GetImmutable, which is safe for concurrent access.

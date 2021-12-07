@@ -99,6 +99,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Int64(config.FlagMaxGasUsedPerBlock, -1, "Maximum gas used of transactions in a block")
+	cmd.Flags().Bool(tmiavl.FlagIgnoreVersionCheck, false, "ignore version check")
 
 	return cmd
 }
@@ -131,7 +132,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 		panicError(err)
 		state = sm.LoadState(stateStoreDB)
 	}
-
+	if viper.GetBool(tmiavl.FlagIgnoreVersionCheck) {
+		tmiavl.SetIgnoreVersionCheck(true)
+	}
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 	if viper.GetBool(sm.FlagParalleledTx) {
