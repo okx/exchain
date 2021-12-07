@@ -14,6 +14,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
+const (
+	UpdateHeight = 5810701
+)
+
 // NodeJson provide json Marshal of Node.
 type NodeJson struct {
 	Key          []byte `json:"key"`
@@ -263,6 +267,10 @@ func (node *Node) _hash() []byte {
 		panic(err)
 	}
 	node.hash = h.Sum(nil)
+	if node.version >= UpdateHeight {
+		copy(node.hash, Int2Byte(int(node.version)))
+	}
+
 
 	return node.hash
 }
@@ -285,6 +293,9 @@ func (node *Node) hashWithCount() ([]byte, int64) {
 		panic(err)
 	}
 	node.hash = h.Sum(nil)
+	if node.version >= UpdateHeight {
+		copy(node.hash, Int2Byte(int(node.version)))
+	}
 
 	return node.hash, hashCount + 1
 }

@@ -26,6 +26,8 @@ var (
 	// possible with the other keys, and makes them easier to traverse. They are indexed by the node hash.
 	nodeKeyFormat = NewKeyFormat('n', hashSize) // n<hash>
 
+	newNodeKeyFormat = NewKeyFormat('n', hashSize + 8) // n<hash>
+
 	// Orphans are keyed in the database by their expected lifetime.
 	// The first number represents the *last* version at which the orphan needs
 	// to exist, while the second number represents the *earliest* version at

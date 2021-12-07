@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	dbm "github.com/tendermint/tm-db"
 )
@@ -196,4 +197,15 @@ func ParseDBName(db dbm.DB) string {
 		return string(result)
 	}
 	return strings.TrimRight(splitArray[1], "/")
+}
+
+func Int2Byte(data int)(ret []byte){
+	var len uintptr = unsafe.Sizeof(data)
+	ret = make([]byte, len)
+	var tmp int = 0xff
+	var index uint = 0
+	for index=0; index<uint(len); index++{
+		ret[uint(len) - index - 1] = byte((tmp<<(index*8) & data)>>(index*8))
+	}
+	return ret
 }
