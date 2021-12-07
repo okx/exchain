@@ -309,7 +309,6 @@ func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Del
 		"blockLen:", block.Size(),
 		"deltaLen:", deltas.Size(),
 		"watchLen:", wd.Size())
-	go blockExec.deltaBroker.SetBlock(block)
 	go blockExec.deltaBroker.SetDelta(deltas)
 	go blockExec.deltaBroker.SetWatch(wd)
 }
