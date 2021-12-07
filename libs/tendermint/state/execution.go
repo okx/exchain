@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/delta"
-	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,8 +29,6 @@ type BlockExecutor struct {
 	db dbm.DB
 
 	// download or upload data to redis
-	redisClient *redis_cgi.RedisClient
-
 	deltaBroker delta.DeltaBroker
 
 	// execute the app against this
@@ -84,8 +82,7 @@ func NewBlockExecutor(
 		option(res)
 	}
 
-	res.redisClient = redis_cgi.NewRedisClient(types.RedisUrl())
-	//res.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
+	res.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
 
 	return res
 }
@@ -312,12 +309,9 @@ func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Del
 		"blockLen:", block.Size(),
 		"deltaLen:", deltas.Size(),
 		"watchLen:", wd.Size())
-	go blockExec.redisClient.SetBlock(block)
-	go blockExec.redisClient.SetDelta(deltas)
-	go blockExec.redisClient.SetWatch(wd)
-	//go blockExec.deltaBroker.SetBlock(block)
-	//go blockExec.deltaBroker.SetDelta(deltas)
-	//go blockExec.deltaBroker.SetWatch(wd)
+	go blockExec.deltaBroker.SetBlock(block)
+	go blockExec.deltaBroker.SetDelta(deltas)
+	go blockExec.deltaBroker.SetWatch(wd)
 }
 
 func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block,
@@ -334,8 +328,7 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block,
 			if wd.Size() <= 0 {
 				if downloadDelta {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
-					wd, _ = blockExec.redisClient.GetWatch(block.Height)
-					//wd, _ = blockExec.deltaBroker.GetWatch(block.Height)
+					wd, _ = blockExec.deltaBroker.GetWatch(block.Height)
 					if wd.Size() <= 0 {
 						// can't get watchData
 						batchOK = false
@@ -355,12 +348,9 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block,
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
 			if deltas.Size() <= 0 && downloadDelta {
-				if delta, err := blockExec.redisClient.GetDeltas(block.Height); err == nil {
-					deltas = delta
+				if dd, err := blockExec.deltaBroker.GetDeltas(block.Height); err == nil {
+					deltas = dd
 				}
-				//if delta, err := blockExec.deltaBroker.GetDeltas(block.Height); err == nil {
-				//	deltas = delta
-				//}
 			}
 			// when deltas not empty, use deltas
 			// otherwise, do deliverTx
