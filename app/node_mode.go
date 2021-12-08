@@ -12,6 +12,7 @@ import (
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
@@ -94,6 +95,7 @@ func logStartingFlags(logger log.Logger) {
 		store.FlagIavlCacheSize:             viper.GetInt(store.FlagIavlCacheSize),
 		mempool.FlagEnablePendingPool:       viper.GetBool(mempool.FlagEnablePendingPool),
 		appconfig.FlagMaxGasUsedPerBlock:    viper.GetInt64(appconfig.FlagMaxGasUsedPerBlock),
+		tendermintTypes.FlagGenesisHeight:   tendermintTypes.GetStartBlockHeightStr(),
 	}
 	msg := "starting flags:"
 	for k, v := range flagMap {
