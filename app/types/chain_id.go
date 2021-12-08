@@ -17,8 +17,8 @@ var (
 	ethermintChainID = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, regexChainID, regexSeparator, regexEpoch))
 )
 
-const mainnet_chain_id = "exchain-66"
-const testnet_chain_id = "exchain-65"
+const mainnetChainId = "exchain-66"
+const testnetChainId = "exchain-65"
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
 func IsValidChainID(chainID string) bool {
@@ -28,11 +28,11 @@ func IsValidChainID(chainID string) bool {
 
 	return ethermintChainID.MatchString(chainID)
 }
-func IsMainNetChainID(chainID string) bool {
-	return chainID == mainnet_chain_id
+func isMainNetChainID(chainID string) bool {
+	return chainID == mainnetChainId
 }
-func IsTestNetChainID(chainID string) bool {
-	return chainID == testnet_chain_id
+func isTestNetChainID(chainID string) bool {
+	return chainID == testnetChainId
 }
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
@@ -58,11 +58,11 @@ func ParseChainID(chainID string) (*big.Int, error) {
 }
 
 func IsValidateChainIdWithGenesisHeight(chainID string) error {
-	if tendermintTypes.IsMainNet() && !IsMainNetChainID(chainID) {
+	if isMainNetChainID(chainID) && !tendermintTypes.IsMainNet() {
 		return fmt.Errorf("Must use <make mainnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
-	} else if tendermintTypes.IsTestNet() && !IsMainNetChainID(chainID) {
-		return fmt.Errorf("Must use <make testnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
-	} else {
-		return nil
 	}
+	if isTestNetChainID(chainID) && !tendermintTypes.IsTestNet() {
+		return fmt.Errorf("Must use <make testnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
+	}
+	return nil
 }

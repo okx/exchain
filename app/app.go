@@ -33,6 +33,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -195,6 +196,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+	logger.Info(fmt.Sprintf("GenesisHeight<%d>", tendermintTypes.GetStartBlockHeight()))
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -220,9 +222,10 @@ func NewOKExChainApp(
 	}
 	chainId := viper.GetString(flags.FlagChainID)
 	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
-		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		logger.Error(err.Error())
 		panic(err)
 	}
+
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
