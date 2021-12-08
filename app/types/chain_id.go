@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -16,6 +17,9 @@ var (
 	ethermintChainID = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, regexChainID, regexSeparator, regexEpoch))
 )
 
+const mainnetChainId = "exchain-66"
+const testnetChainId = "exchain-65"
+
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
 func IsValidChainID(chainID string) bool {
 	if len(chainID) > 48 {
@@ -23,6 +27,12 @@ func IsValidChainID(chainID string) bool {
 	}
 
 	return ethermintChainID.MatchString(chainID)
+}
+func isMainNetChainID(chainID string) bool {
+	return chainID == mainnetChainId
+}
+func isTestNetChainID(chainID string) bool {
+	return chainID == testnetChainId
 }
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
@@ -45,4 +55,14 @@ func ParseChainID(chainID string) (*big.Int, error) {
 	}
 
 	return chainIDInt, nil
+}
+
+func IsValidateChainIdWithGenesisHeight(chainID string) error {
+	if isMainNetChainID(chainID) && !tendermintTypes.IsMainNet() {
+		return fmt.Errorf("Must use <make mainnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
+	}
+	if isTestNetChainID(chainID) && !tendermintTypes.IsTestNet() {
+		return fmt.Errorf("Must use <make testnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
+	}
+	return nil
 }
