@@ -164,7 +164,7 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	deltas := &types.Deltas{}
+	var deltas *types.Deltas
 	if types.EnableBroadcastP2PDelta() {
 		deltas = bcR.dstore.LoadDeltas(msg.Height)
 	}
@@ -201,7 +201,6 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
-		bcR.Logger.Info("bcBlockResponseMessage", "len(Deltas)", msg.Deltas.Size(), "height", msg.Block.Height)
 		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
@@ -315,7 +314,6 @@ FOR_LOOP:
 				// Try again quickly next loop.
 				didProcessCh <- struct{}{}
 			}
-			bcR.Logger.Debug("Delta from requster", "len(deltas)", deltas.Size(), "height", first.Height)
 
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
@@ -351,8 +349,7 @@ FOR_LOOP:
 
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
-				var err error
-				state, _, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas)
+				state, _, deltas, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas)
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
@@ -361,10 +358,8 @@ FOR_LOOP:
 
 				if types.EnableBroadcastP2PDelta() {
 					// persists the given deltas to the underlying db.
-					if deltas.Size() > 0 {
-						deltas.Height = first.Height
-						bcR.dstore.SaveDeltas(deltas, first.Height)
-					}
+					deltas.Height = first.Height
+					bcR.dstore.SaveDeltas(deltas, first.Height)
 				}
 
 				if blocksSynced%100 == 0 {

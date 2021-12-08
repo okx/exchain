@@ -37,7 +37,7 @@ func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
 }
 
 func (r *RedisClient) SetDelta(deltas *tmtypes.Deltas) error {
-	if deltas.Size() <= 0 {
+	if deltas == nil || deltas.Size() == 0 {
 		return fmt.Errorf("delta is empty")
 	}
 	deltaBytes, err := deltas.Marshal()

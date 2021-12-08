@@ -586,12 +586,9 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 			return
 		}
-		deltas := &types.Deltas{}
+		var deltas *types.Deltas
 		if types.EnableBroadcastP2PDelta() {
 			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
-			if deltas == nil || deltas.Height != prs.Height {
-				deltas = &types.Deltas{}
-			}
 		}
 		// Send the part
 		msg := &BlockPartMessage{

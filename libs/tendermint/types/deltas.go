@@ -118,9 +118,6 @@ type Deltas struct {
 
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
-	if d == nil {
-		return -1
-	}
 	return len(d.ABCIRsp) + len(d.DeltasBytes) + len(d.WatchBytes)
 }
 

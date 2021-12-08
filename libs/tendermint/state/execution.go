@@ -155,13 +155,16 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(
-	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (State, int64, error) {
+	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (State, int64, *types.Deltas, error) {
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	var inAbciRspLen, inDeltaLen, inWatchLen int
+	if deltas == nil || deltas.Height != block.Height {
+		deltas = &types.Deltas{}
+	}
 
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
@@ -180,7 +183,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
-		return state, 0, ErrInvalidBlock(err)
+		return state, 0, deltas, ErrInvalidBlock(err)
 	}
 
 	trc.Pin("GetDelta")
@@ -223,7 +226,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		}
 	}
 	if err != nil {
-		return state, 0, ErrProxyAppConn(err)
+		return state, 0, deltas, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
@@ -242,11 +245,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
-		return state, 0, fmt.Errorf("error in validator updates: %v", err)
+		return state, 0, deltas, fmt.Errorf("error in validator updates: %v", err)
 	}
 	validatorUpdates, err := types.PB2TM.ValidatorUpdates(abciValUpdates)
 	if err != nil {
-		return state, 0, err
+		return state, 0, deltas, err
 	}
 	if len(validatorUpdates) > 0 {
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
@@ -255,7 +258,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
-		return state, 0, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, deltas, fmt.Errorf("commit failed for application: %v", err)
 	}
 
 	trc.Pin(trace.Persist)
@@ -266,7 +269,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
-		return state, 0, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, deltas, fmt.Errorf("commit failed for application: %v", err)
 	}
 
 	if !useDeltas {
@@ -306,7 +309,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		"applyDelta", applyDelta, "downloadDelta", downloadDelta, "uploadDelta", uploadDelta, "broadDelta", broadDelta,
 		"fastQuery", fastQuery, "FlagUseDelta", useDeltas)
 
-	return state, retainHeight, nil
+	return state, retainHeight, deltas, nil
 }
 
 func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Deltas) {
@@ -320,10 +323,6 @@ func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Del
 }
 
 func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
-	if deltas == nil {
-		deltas = &types.Deltas{}
-	}
-
 	fastQuery := types.IsFastQuery()
 	applyDelta := types.EnableApplyP2PDelta()
 	downloadDelta := types.EnableDownloadDelta()
@@ -357,7 +356,6 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	default:
 		// can't get delta of height, request delta of height+1 and return
 		blockExec.deltaHeightCh <- block.Height + 1
-		return false, deltas
 	}
 
 	if needDDS {
@@ -448,12 +446,6 @@ func (blockExec *BlockExecutor) Commit(
 			blockExec.mempool.Flush()
 		}
 	}()
-
-	if deltas == nil {
-		deltas = &types.Deltas{}
-	}
-
-	blockExec.logger.Info("begin exeCommit", "len(deltas)", deltas.Size())
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.

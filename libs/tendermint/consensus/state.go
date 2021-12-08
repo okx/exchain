@@ -436,11 +436,10 @@ func (cs *State) SetProposal(proposal *types.Proposal, peerID p2p.ID) error {
 
 // AddProposalBlockPart inputs a part of the proposal block.
 func (cs *State) AddProposalBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) error {
-	deltas := &types.Deltas{}
 	if peerID == "" {
-		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas}, ""}
+		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas}, peerID}
+		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, peerID}
 	}
 
 	// TODO: wait for event?!
@@ -1017,7 +1016,6 @@ func (cs *State) isProposer(address []byte) bool {
 func (cs *State) defaultDecideProposal(height int64, round int) {
 	var block *types.Block
 	var blockParts *types.PartSet
-	var deltas *types.Deltas
 
 	// Decide on block
 	if cs.ValidBlock != nil {
@@ -1029,13 +1027,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
-	}
-
-	// Decide on Deltas
-	if cs.Deltas != nil {
-		deltas = cs.Deltas
-	} else {
-		deltas = &types.Deltas{}
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -1051,7 +1042,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, deltas}, ""})
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
@@ -1523,16 +1514,12 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	deltas := &types.Deltas{}
+	var deltas *types.Deltas
 	if types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
-		if deltas == nil || deltas.Height != block.Height {
-			deltas = &types.Deltas{}
-		}
 	}
 
-
-	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
+	stateCopy, retainHeight, deltas, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block,
@@ -1548,10 +1535,8 @@ func (cs *State) finalizeCommit(height int64) {
 
 	if types.EnableBroadcastP2PDelta() {
 		// persists the given deltas to the underlying db.
-		if deltas.Size() > 0 {
-			deltas.Height = block.Height
-			cs.deltaStore.SaveDeltas(deltas, block.Height)
-		}
+		deltas.Height = block.Height
+		cs.deltaStore.SaveDeltas(deltas, block.Height)
 	}
 
 	fail.Fail() // XXX

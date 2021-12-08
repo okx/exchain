@@ -158,7 +158,7 @@ type blockVerifier interface {
 
 //nolint:deadcode
 type blockApplier interface {
-	ApplyBlock(state state.State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (state.State, int64, error)
+	ApplyBlock(state state.State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (state.State, int64, *types.Deltas, error)
 }
 
 // XXX: unify naming in this package around tmState
@@ -524,9 +524,7 @@ func (r *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case *bcBlockRequestMessage:
 		block := r.store.LoadBlock(msg.Height)
 		deltas := r.dstore.LoadDeltas(msg.Height)
-		if deltas == nil || deltas.Height != msg.Height {
-			deltas = &types.Deltas{}
-		}
+
 		if block != nil {
 			if err = r.io.sendBlockToPeer(block, deltas, src.ID()); err != nil {
 				r.logger.Error("Could not send block message to peer: ", err)

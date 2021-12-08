@@ -356,7 +356,7 @@ func NewDeltaStore(db dbm.DB) *DeltaStore {
 
 // SaveDeltas persists the given deltas to the underlying db.
 func (ds *DeltaStore) SaveDeltas(deltas *types.Deltas, height int64) {
-	if deltas == nil {
+	if deltas == nil || deltas.Size() == 0 {
 		return
 	}
 	keyHeight := deltas.Height
