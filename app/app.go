@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
@@ -619,6 +621,8 @@ func PreRun(ctx *server.Context) error {
 		return err
 	}
 	// repair state on start
-	repairStateOnStart(ctx)
+	if viper.GetBool(FlagEnableRepairState) {
+		repairStateOnStart(ctx)
+	}
 	return nil
 }

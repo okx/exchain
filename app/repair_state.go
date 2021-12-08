@@ -29,7 +29,8 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 
-	FlagStartHeight string = "start-height"
+	FlagStartHeight       string = "start-height"
+	FlagEnableRepairState string = "enable-repair-state"
 )
 
 type repairApp struct {
@@ -167,13 +168,18 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
 	stateCopy := state.Copy()
 	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
-	panicError(err)
 	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
-	panicError(err)
+	if err != nil {
+		return stateCopy
+	}
 	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+1)
-	panicError(err)
+	if err != nil {
+		return stateCopy
+	}
 	consensusParams, err := sm.LoadConsensusParams(stateStoreDB, startHeight+1)
-	panicError(err)
+	if err != nil {
+		return stateCopy
+	}
 	stateCopy.Validators = validators
 	stateCopy.LastValidators = lastValidators
 	stateCopy.NextValidators = nextValidators
