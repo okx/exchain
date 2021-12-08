@@ -1263,20 +1263,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	fmt.Printf("Precommit height==>%d , round==>%d\n" ,  height, round)
-
-	if height ==  5 && round == 0{
-		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
-		return
-	}
-
-
-	if height ==  7 && round == 0{
-		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
-		return
-	}
-
-
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
