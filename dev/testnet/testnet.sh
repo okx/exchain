@@ -93,11 +93,12 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 3s \
+    --consensus.timeout_commit 1s \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
+    --iavl-enable-async-commit=true \
     --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \

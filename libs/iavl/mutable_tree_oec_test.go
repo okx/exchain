@@ -342,7 +342,7 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {
-		tree.Set(k2, randBytes(i % 64 + 1))
+		tree.Set(k2, randBytes(i%64+1))
 		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
@@ -362,17 +362,10 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	require.Equal(t, (minHistoryStateNum-1)*3, orphansCount)
 
 	for i := 0; i < 10000; i++ {
-<<<<<<< HEAD
 		tree.Set(k1, randBytes(i%64+1))
 		tree.Set(k2, randBytes(i%64+1))
 		tree.Set(k3, randBytes(i%64+1))
-		_, _, err := tree.SaveVersion()
-=======
-		tree.Set(k1, randBytes(i % 64 + 1))
-		tree.Set(k2, randBytes(i % 64 + 1))
-		tree.Set(k3, randBytes(i % 64 + 1))
 		_, _, _, err := tree.SaveVersion(false)
->>>>>>> dev
 		require.NoError(t, err)
 	}
 
@@ -533,13 +526,8 @@ func TestCommitSchedule(t *testing.T) {
 	tree := newTestTree(t, false, 10000, "test")
 	initSetTree(tree)
 
-<<<<<<< HEAD
 	for i := 0; i < int(CommitIntervalHeight); i++ {
-		_, _, err := tree.SaveVersion()
-=======
-	for i:=0; i < int(CommitIntervalHeight); i++ {
 		_, _, _, err := tree.SaveVersion(false)
->>>>>>> dev
 		require.NoError(t, err)
 	}
 
@@ -547,13 +535,9 @@ func TestCommitSchedule(t *testing.T) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, nil, 0}
+	tree.commitCh <- commitEvent{CommitIntervalHeight, versions, batch, nil, nil, 0}
 
-	tree.commitCh <- commitEvent{CommitIntervalHeight, versions,batch, nil, &wg, 0}
+	tree.commitCh <- commitEvent{CommitIntervalHeight, versions, batch, nil, &wg, 0}
 	wg.Wait()
-<<<<<<< HEAD
 
 }
-=======
-}
->>>>>>> dev
