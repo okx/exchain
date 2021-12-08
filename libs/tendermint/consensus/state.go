@@ -1353,6 +1353,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 // Enter: any +2/3 precommits for next round.
 func (cs *State) enterPrecommitWait(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
+
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.TriggeredTimeoutPrecommit) {
 		logger.Debug(
 			fmt.Sprintf(
@@ -1806,6 +1807,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return added, err
 		}
+
 		// receive a completed block then start a runTx
 		cs.StartPreExecBlock(cs.ProposalBlock)
 		// receive Deltas from BlockMessage and put into State(cs)

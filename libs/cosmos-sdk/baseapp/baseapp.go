@@ -127,7 +127,6 @@ type BaseApp struct { // nolint: maligned
 	deliverState *state // for DeliverTx
 	deliverStateBak *state // recover for DeliverTx
 
-
 	// an inter-block write-through cache provided to the context during deliverState
 	interBlockCache sdk.MultiStorePersistentCache
 

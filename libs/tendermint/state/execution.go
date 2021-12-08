@@ -567,7 +567,7 @@ func execBlockOnProxyApp(
 	var count int
 	for _, tx := range block.Txs {
 		if consensusFailed {
-			fmt.Printf("execBlockOnProxyApp break, done:%d , all : %d\n" , count, len(block.Txs))
+			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
 			break
 		}
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
