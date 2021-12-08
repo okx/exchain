@@ -564,11 +564,17 @@ func execBlockOnProxyApp(
 	}
 
 	// Run txs of block.
+	var count int
 	for _, tx := range block.Txs {
+		if consensusFailed {
+			fmt.Printf("execBlockOnProxyApp break, done:%d , all : %d\n" , count, len(block.Txs))
+			break
+		}
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
 		}
+		count++
 	}
 
 	// End block.

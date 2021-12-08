@@ -7,20 +7,20 @@ import (
 )
 
 type PreExecBlockResult struct {
-	//*Elaped
 	*ABCIResponses
 	error
 }
 
 type InternalMsg struct {
-	cancelChan chan struct{}
-	resChan    chan *PreExecBlockResult
+	cancelFlag bool
+	resChan chan *PreExecBlockResult
 }
 
 var (
-	RepeatedErr = errors.New("block can not start over twice")
-	CancelErr   = errors.New("block has been canceled")
-	NotMatchErr = errors.New("block has no start record")
+	RepeatedErr     = errors.New("block can not start over twice")
+	CancelErr       = errors.New("block has been canceled")
+	NotMatchErr     = errors.New("block has no start record")
+	consensusFailed bool
 )
 
 //start a proactively block execution
@@ -30,8 +30,7 @@ func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 		return RepeatedErr
 	} else {
 		intMsg := &InternalMsg{
-			cancelChan: make(chan struct{}),
-			resChan:    make(chan *PreExecBlockResult),
+			resChan: make(chan *PreExecBlockResult),
 		}
 		blockExec.abciResponse.Store(block, intMsg)
 		go blockExec.DoPreExecBlock(intMsg, block)
@@ -68,14 +67,9 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 	}
 
 	select {
-	case <-channels.cancelChan:
-		// if canceled means result is no use , clean deliverState
-		// we need to reset deliverState, close all channel to avoid deadlock and remove block from sync.Map
-		blockExec.ResetDeliverState()
-		close(channels.resChan)
-		close(channels.cancelChan)
-		blockExec.abciResponse.Delete(blockExec.lastBlock)
 	case channels.resChan <- preBlockRes:
+		//only the writer close channel is safe
+		close(channels.resChan)
 	}
 }
 
@@ -86,9 +80,15 @@ func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
 		return NotMatchErr
 	} else {
 		chann := channels.(*InternalMsg)
-		go func() {
-			chann.cancelChan <- struct{}{}
-		}()
+		// set cancel flag
+		chann.cancelFlag = true
+		consensusFailed = true
+		// read useless result ensure
+		<-chann.resChan
+		// after execute done reset all
+		blockExec.ResetDeliverState()
+		blockExec.abciResponse.Delete(blockExec.lastBlock)
+		consensusFailed = false
 		return nil
 	}
 }
@@ -106,20 +106,17 @@ func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *Pr
 
 //close block channel , clean abciResponse and check abciResponse num
 func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
-	if channels, ok := blockExec.abciResponse.Load(block); !ok {
+	if _, ok := blockExec.abciResponse.Load(block); !ok {
 		// cancel block not start
 		return
 	} else {
-		chann := channels.(*InternalMsg)
-		close(chann.resChan)
-		close(chann.cancelChan)
 		blockExec.abciResponse.Delete(block)
 		if blockExec.lastBlock == block {
 			blockExec.ResetLastBlock()
 		}
 		if num := blockExec.mapCount(); num != 0 {
 			//check sync.Map num, should always be 0
-			blockExec.logger.Error("blockExec abciResponse num not 0 " , "num", num)
+			blockExec.logger.Error("blockExec abciResponse num not 0 ", "num", num)
 		}
 	}
 }

@@ -808,13 +808,18 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		cs.enterPrevote(ti.Height, ti.Round)
 	case cstypes.RoundStepPrevoteWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
+		//
+		fmt.Println("PREVOTE WAIT TIMEOUT")
+		// 收到+2/3的投票缺没有达成共识，那么进入下一轮prevoteCommit
 		cs.enterPrecommit(ti.Height, ti.Round)
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
 		if cs.LockedBlock != nil {
+			fmt.Println("CancelPreExecBlock with LockedBlock")
 			cs.CancelPreExecBlock(cs.LockedBlock)
 		} else if cs.ProposalBlock != nil {
+			fmt.Println("CancelPreExecBlock with ProposalBlock")
 			cs.CancelPreExecBlock(cs.ProposalBlock)
 		}
 		cs.enterNewRound(ti.Height, ti.Round+1)
@@ -1178,6 +1183,23 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
+	fmt.Printf("Prevote height==>%d, round==>%d\n" ,  height, round)
+
+	if height == 3 && round == 0{
+		if cs.proactivelyFlag{
+
+			fmt.Printf("YSW-->NOT \n")
+			cs.signAddVote(types.PrevoteType, cs.ProposalBlock.Hash(), cs.ProposalBlockParts.Header())
+
+		}else{
+			fmt.Printf("YSW-->NIL , :%v\n" , types.PartSetHeader{})
+			cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
+		}
+
+		return
+	}
+
+
 	// If a block is locked, prevote that.
 	if cs.LockedBlock != nil {
 		logger.Info("enterPrevote: Block was locked")
@@ -1263,6 +1285,20 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
+	fmt.Printf("Precommit height==>%d , round==>%d\n" ,  height, round)
+
+	if height ==  5 && round == 0{
+		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
+		return
+	}
+
+
+	if height ==  7 && round == 0{
+		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
+		return
+	}
+
+
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
@@ -1274,6 +1310,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	// If we don't have a polka, we must precommit nil.
 	if !ok {
+		fmt.Println("Prevotes have a polka we must precommit nil.")
 		if cs.LockedBlock != nil {
 			logger.Info("enterPrecommit: No +2/3 prevotes during enterPrecommit while we're locked. Precommitting nil")
 		} else {
@@ -1353,7 +1390,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 // Enter: any +2/3 precommits for next round.
 func (cs *State) enterPrecommitWait(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
+	fmt.Println("enterPrecommitWait!!!!")
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.TriggeredTimeoutPrecommit) {
 		logger.Debug(
 			fmt.Sprintf(
@@ -1807,7 +1844,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return added, err
 		}
-
+		// receive a completed block then start a runTx
+		cs.StartPreExecBlock(cs.ProposalBlock)
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
 
@@ -1825,7 +1863,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
-				cs.StartPreExecBlock(cs.ProposalBlock)
+				//cs.StartPreExecBlock(cs.ProposalBlock)
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1842,7 +1880,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			}
 		} else if cs.Step == cstypes.RoundStepCommit {
 			// If we're waiting on the proposal block...
-			cs.StartPreExecBlock(cs.ProposalBlock)
+			//cs.StartPreExecBlock(cs.ProposalBlock)
 			cs.tryFinalizeCommit(height)
 		}
 		return added, nil
@@ -2009,7 +2047,7 @@ func (cs *State) addVote(
 					cs.ValidRound = vote.Round
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
-					cs.StartPreExecBlock(cs.ProposalBlock)
+				//	cs.StartPreExecBlock(cs.ProposalBlock)
 
 				} else {
 					cs.Logger.Info(
@@ -2034,6 +2072,7 @@ func (cs *State) addVote(
 			// Round-skip if there is any 2/3+ of votes ahead of us
 			cs.enterNewRound(height, vote.Round)
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
+			fmt.Println("??? !!!" , vote.Height, vote.Round , vote.BlockID)
 			blockID, ok := prevotes.TwoThirdsMajority()
 			if ok && (cs.isProposalComplete() || len(blockID.Hash) == 0) {
 				cs.enterPrecommit(height, vote.Round)
@@ -2062,10 +2101,12 @@ func (cs *State) addVote(
 					cs.enterNewRound(cs.Height, 0)
 				}
 			} else {
+				// 空块,
 				cs.enterPrecommitWait(height, vote.Round)
 			}
 		} else if cs.Round <= vote.Round && precommits.HasTwoThirdsAny() {
 			cs.enterNewRound(height, vote.Round)
+			// 没有共识
 			cs.enterPrecommitWait(height, vote.Round)
 		}
 

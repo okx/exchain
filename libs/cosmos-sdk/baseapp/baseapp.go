@@ -125,6 +125,8 @@ type BaseApp struct { // nolint: maligned
 	// deliverState is set on InitChain and BeginBlock and set to nil on Commit
 	checkState   *state // for CheckTx
 	deliverState *state // for DeliverTx
+	deliverStateBak *state // recover for DeliverTx
+
 
 	// an inter-block write-through cache provided to the context during deliverState
 	interBlockCache sdk.MultiStorePersistentCache
@@ -544,6 +546,9 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
 	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+		if app.deliverState == nil{
+			fmt.Println("app.deliverState==nil  cacacacacaca")
+		}
 		return app.deliverState
 	}
 

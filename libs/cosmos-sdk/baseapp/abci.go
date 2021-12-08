@@ -93,7 +93,8 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 		// already be initialized in InitChain. Otherwise app.deliverState will be
 		// nil, since it is reset on Commit.
 		// init chain will set deliverstate without blockHeight
-		app.deliverState = nil
+		//app.deliverState = nil
+		app.deliverState = app.deliverStateBak
 	default:
 		// do nothing
 	}
@@ -131,6 +132,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
+	// set deliverStateBak to reset
+	app.deliverStateBak = app.deliverState
 	if app.deliverState == nil {
 		app.setDeliverState(req.Header)
 	} else {
@@ -140,6 +143,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
 	}
+
+
 
 	// add block gas meter
 	var gasMeter sdk.GasMeter
