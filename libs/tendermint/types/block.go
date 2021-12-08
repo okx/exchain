@@ -37,6 +37,8 @@ const (
 	MaxAminoOverheadForBlock int64 = 11
 )
 
+const FlagGenesisHeight = "GenesisHeight"
+
 // GetStartBlockHeight() is the block height from which the chain starts
 var (
 	startBlockHeightStr       = "0"
@@ -63,6 +65,10 @@ func init() {
 
 func GetStartBlockHeight() int64 {
 	return startBlockHeight
+}
+
+func GetStartBlockHeightStr() string {
+	return startBlockHeightStr
 }
 
 // Block defines the atomic unit of a Tendermint blockchain.

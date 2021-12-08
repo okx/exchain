@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -56,6 +57,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -216,7 +218,11 @@ func NewOKExChainApp(
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
 		panic(err)
 	}
-
+	chainId := viper.GetString(flags.FlagChainID)
+	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
+		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		panic(err)
+	}
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
