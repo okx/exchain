@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"testing"
 
 	"github.com/VictoriaMetrics/fastcache"
 	lru "github.com/hashicorp/golang-lru"
@@ -37,7 +38,7 @@ func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
 	return value
 }
 
-func Keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
+func keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
 	if _, ok := keccak256HashFastCache.HasGet(hash[:0], compositeKey); ok {
 		return
 	}
@@ -51,7 +52,7 @@ func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
 	if len(compositeKey) > 128-ethcmn.HashLength {
 		return keccak256HashWithLruCache(compositeKey)
 	} else {
-		return Keccak256HashWithFastCache(compositeKey)
+		return keccak256HashWithFastCache(compositeKey)
 	}
 }
 
@@ -497,4 +498,79 @@ type stateEntry struct {
 	// address key of the state object
 	address     ethcmn.Address
 	stateObject *stateObject
+}
+
+// because of state_objetc_test.go belong to types_test package, so put BenchmarkKeccak256HashCache here
+func BenchmarkKeccak256HashCache(b *testing.B) {
+	b.ResetTimer()
+	b.Run("without cache", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = ethcrypto.Keccak256Hash(hash[:])
+		}
+	})
+	b.Run("lru set", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = keccak256HashWithLruCache(hash[:])
+		}
+	})
+
+	b.Run("fastcache set", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = keccak256HashWithFastCache(hash[:])
+		}
+	})
+
+	const getCount = 1
+
+	fastcacheGet := func() {
+		for i := 0; i < getCount; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = keccak256HashWithFastCache(hash[:])
+		}
+	}
+
+	lruGet := func() {
+		for i := 0; i < getCount; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = keccak256HashWithLruCache(hash[:])
+		}
+	}
+
+	withoutCacheGet := func() {
+		for i := 0; i < getCount; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = ethcrypto.Keccak256Hash(hash[:])
+		}
+	}
+
+	b.ResetTimer()
+	b.Run("lru get", func(b *testing.B) {
+		lruGet()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			lruGet()
+		}
+	})
+	b.Run("fastcache get", func(b *testing.B) {
+		fastcacheGet()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			fastcacheGet()
+		}
+	})
+	b.Run("withoutcache get", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			withoutCacheGet()
+		}
+	})
 }

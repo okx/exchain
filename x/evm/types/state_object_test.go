@@ -2,6 +2,9 @@ package types_test
 
 import (
 	"math/big"
+	"testing"
+
+	"github.com/okex/exchain/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
@@ -132,4 +135,8 @@ func (suite *StateDBTestSuite) TestStateObject_Code() {
 		code := suite.stateObject.Code(nil)
 		suite.Require().Equal(tc.expCode, code, tc.name)
 	}
+}
+
+func BenchmarkKeccak256HashCache(b *testing.B) {
+	types.BenchmarkKeccak256HashCache(b)
 }
