@@ -28,20 +28,31 @@ var (
 	keccak256HashFastCache = fastcache.New(128 * keccak256HashSize) // 32 + 20 + 32
 )
 
-func Keccak256HashWithCache(compositeKey []byte) (hash ethcmn.Hash) {
-	//if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
-	//	return value.(ethcmn.Hash)
-	//}
-	//value := ethcrypto.Keccak256Hash(compositeKey)
-	//keccak256HashCache.Add(string(compositeKey), value)
-	//return value
+func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
+	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
+		return value.(ethcmn.Hash)
+	}
+	value := ethcrypto.Keccak256Hash(compositeKey)
+	keccak256HashCache.Add(string(compositeKey), value)
+	return value
+}
 
+func Keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
 	if _, ok := keccak256HashFastCache.HasGet(hash[:0], compositeKey); ok {
 		return
 	}
 	hash = ethcrypto.Keccak256Hash(compositeKey)
 	keccak256HashFastCache.Set(compositeKey, hash[:])
 	return
+}
+
+func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
+	// if length of compositeKey + hash size is greater than 128, use lru cache
+	if len(compositeKey) > 128-ethcmn.HashLength {
+		return keccak256HashWithLruCache(compositeKey)
+	} else {
+		return Keccak256HashWithFastCache(compositeKey)
+	}
 }
 
 // StateObject interface for interacting with state object
