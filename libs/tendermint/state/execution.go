@@ -28,8 +28,10 @@ type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
 	db dbm.DB
 
-	// download or upload data to redis
+	// download or upload data to dds
 	deltaBroker delta.DeltaBroker
+	deltaCh chan *types.Deltas
+	deltaHeightCh chan int64
 
 	// execute the app against this
 	proxyApp proxy.AppConnConsensus
@@ -76,6 +78,8 @@ func NewBlockExecutor(
 		logger:   logger,
 		metrics:  NopMetrics(),
 		isAsync:  viper.GetBool(FlagParalleledTx),
+		deltaCh: make(chan *types.Deltas, 1),
+		deltaHeightCh: make(chan int64, 1),
 	}
 
 	for _, option := range options {
@@ -83,6 +87,9 @@ func NewBlockExecutor(
 	}
 
 	res.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
+	if types.EnableDownloadDelta() {
+		go res.GetDeltaFromDDS()
+	}
 
 	return res
 }
@@ -337,8 +344,27 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 		return false, deltas
 	}
 
-	// request watchData and Delta from dds
-	directDelta, err := blockExec.deltaBroker.GetDeltas(block.Height)
+	var directDelta *types.Deltas
+	var err error
+	needDDS := true
+	select {
+	case directDelta = <- blockExec.deltaCh:
+		if directDelta.Height == block.Height {
+			needDDS = false
+		}
+		// already get delta of height, then request delta of height+1
+		blockExec.deltaHeightCh <- block.Height + 1
+	default:
+		// can't get delta of height, request delta of height+1 and return
+		blockExec.deltaHeightCh <- block.Height + 1
+		return false, deltas
+	}
+
+	if needDDS {
+		// request watchData and Delta from dds
+		directDelta, err = blockExec.deltaBroker.GetDeltas(block.Height)
+	}
+
 	// can't get data from dds
 	if directDelta == nil {
 		if err != nil {
@@ -377,6 +403,28 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	}
 
 	return false, deltas
+}
+
+func (blockExec *BlockExecutor) GetDeltaFromDDS() {
+	flag := false
+	var height int64 = 0
+	tryGetDDSTicker := time.NewTicker(50 * time.Millisecond)
+
+	for {
+		select {
+		case <- tryGetDDSTicker.C:
+			if flag {
+				directDelta, _ := blockExec.deltaBroker.GetDeltas(height)
+				if directDelta != nil {
+					flag = false
+					blockExec.deltaCh <- directDelta
+				}
+			}
+
+		case height = <- blockExec.deltaHeightCh:
+			flag = true
+		}
+	}
 }
 
 

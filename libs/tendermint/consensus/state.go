@@ -1524,12 +1524,13 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	deltas := &types.Deltas{}
-	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
+	if types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
 		if deltas == nil || deltas.Height != block.Height {
 			deltas = &types.Deltas{}
 		}
 	}
+
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
