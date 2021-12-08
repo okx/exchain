@@ -121,10 +121,13 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
-	var err error
+	// height n with multiple rounds will have shifted the priority such that state.LoadValidators(n) will return an incorrect value.
+	// so we should use stateCopy to correct the repaired state below.
+	stateCopy := state.Copy()
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
-
+	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
+	var err error
 	// repair state
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
@@ -132,6 +135,12 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock, &types.Deltas{}, &types.WatchData{})
 		panicError(err)
+		// use stateCopy to correct the repaired state
+		if state.LastBlockHeight == stateCopy.LastBlockHeight {
+			state = stateCopy
+			sm.SaveState(stateStoreDB, state)
+		}
+		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
 		repairedBlockHeight := res.LastBlockHeight
@@ -155,6 +164,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.LastValidators = lastValidators
 	stateCopy.NextValidators = nextValidators
 	stateCopy.ConsensusParams = consensusParams
+	stateCopy.LastBlockHeight = startHeight
 	return stateCopy
 }
 
