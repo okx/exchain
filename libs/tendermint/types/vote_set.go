@@ -414,8 +414,6 @@ func (voteSet *VoteSet) HasTwoThirdsAny() bool {
 	}
 	voteSet.mtx.Lock()
 	defer voteSet.mtx.Unlock()
-	//fmt.Println("voteSet.sum , TotalVotingPower  ---> " , voteSet.sum , voteSet.valSet.TotalVotingPower())
-	//fmt.Println("voteSet.valSet.TotalVotingPower()" , voteSet.valSet.TotalVotingPower())
 	return voteSet.sum > voteSet.valSet.TotalVotingPower()*2/3
 }
 

@@ -144,8 +144,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			WithBlockHeight(req.Header.Height)
 	}
 
-
-
 	// add block gas meter
 	var gasMeter sdk.GasMeter
 	if maxGas := app.getMaximumBlockGas(); maxGas > 0 {

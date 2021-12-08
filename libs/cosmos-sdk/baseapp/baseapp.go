@@ -546,9 +546,6 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
 	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
-		if app.deliverState == nil{
-			fmt.Println("app.deliverState==nil  cacacacacaca")
-		}
 		return app.deliverState
 	}
 
