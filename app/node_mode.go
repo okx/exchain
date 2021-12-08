@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
@@ -17,8 +18,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SetNodeConfig(ctx *server.Context) {
+func setNodeConfig(ctx *server.Context) {
 	nodeMode := viper.GetString(types.FlagNodeMode)
+
+	ctx.Logger.Info("starting node","Genesis Height",
+		tendermintTypes.GetStartBlockHeight(), "node mode", nodeMode)
+
 	switch types.NodeMode(nodeMode) {
 	case types.RpcNode:
 		setRpcConfig(ctx)
@@ -26,12 +31,12 @@ func SetNodeConfig(ctx *server.Context) {
 		setValidatorConfig(ctx)
 	case types.ArchiveNode:
 		setArchiveConfig(ctx)
-	case "":
-		ctx.Logger.Info("The node mode is not set for this node")
 	default:
-		ctx.Logger.Error(
-			fmt.Sprintf("Wrong value (%s) is set for %s, the correct value should be one of %s, %s, and %s",
-				nodeMode, types.FlagNodeMode, types.RpcNode, types.ValidatorNode, types.ArchiveNode))
+		if len(nodeMode) > 0 {
+			ctx.Logger.Error(
+				fmt.Sprintf("Wrong value (%s) is set for %s, the correct value should be one of %s, %s, and %s",
+					nodeMode, types.FlagNodeMode, types.RpcNode, types.ValidatorNode, types.ArchiveNode))
+		}
 	}
 }
 
@@ -97,7 +102,7 @@ func logStartingFlags(logger log.Logger) {
 	}
 	msg := "starting flags:"
 	for k, v := range flagMap {
-		msg += fmt.Sprintf("	\n%s=%v", k, v)
+		msg += fmt.Sprintf("\n	%s=%v", k, v)
 	}
 
 	logger.Info(msg)

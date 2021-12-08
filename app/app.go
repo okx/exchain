@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -56,6 +57,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -214,6 +216,11 @@ func NewOKExChainApp(
 	appConfig, err := config.ParseConfig()
 	if err != nil {
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		panic(err)
+	}
+	chainId := viper.GetString(flags.FlagChainID)
+	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
+		logger.Error(err.Error())
 		panic(err)
 	}
 
@@ -609,7 +616,7 @@ func PreRun(context *server.Context) {
 	appconfig.RegisterDynamicConfig(context.Logger.With("module", "config"))
 
 	// set config by node mode
-	SetNodeConfig(context)
+	setNodeConfig(context)
 
 	//download pprof
 	appconfig.PprofDownload(context)
