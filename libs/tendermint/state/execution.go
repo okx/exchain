@@ -154,10 +154,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
+	var inAbciRspLen, inDeltaLen, inWatchLen int
 
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
+		trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(deltas.ABCIRsp), len(deltas.DeltasBytes), len(deltas.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -171,7 +176,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	trc.Pin("getCenterDelta")
+	trc.Pin("GetDelta")
 
 	fastQuery := types.IsFastQuery()
 	applyDelta := types.EnableApplyP2PDelta()
@@ -180,8 +185,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	uploadDelta := types.EnableUploadDelta()
 
 	useDeltas, deltas := blockExec.prepareStateDelta(block , deltas)
+	inAbciRspLen = len(deltas.ABCIRsp)
+	inDeltaLen = len(deltas.DeltasBytes)
+	inWatchLen = len(deltas.WatchBytes)
 
 	trc.Pin(trace.Abci)
+
 	startTime := time.Now().UnixNano()
 	var abciResponses *ABCIResponses
 	var err error
@@ -295,11 +304,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Deltas) {
 	blockExec.logger.Info("uploadData",
-		"height:", block.Height,
-		"blockLen:", block.Size(),
-		"abciRspLen:", len(deltas.ABCIRsp),
-		"deltaLen:", len(deltas.DeltasBytes),
-		"watchLen:", len(deltas.WatchBytes))
+		"height", block.Height,
+		"blockLen", block.Size(),
+		"abciRspLen", len(deltas.ABCIRsp),
+		"deltaLen", len(deltas.DeltasBytes),
+		"watchLen", len(deltas.WatchBytes))
 	go blockExec.deltaBroker.SetDelta(deltas)
 }
 

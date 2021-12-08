@@ -20,6 +20,8 @@ const (
 	Iavl        = "Iavl"
 	DeliverTxs  = "DeliverTxs"
 
+	InDelta  = "InDelta"
+	OutDelta = "OutDelta"
 
 	Abci       = "abci"
 	InvalidTxs = "InvalidTxs"
