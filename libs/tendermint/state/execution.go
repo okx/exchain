@@ -156,6 +156,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 ) (State, int64, error) {
 	for _, tx := range block.Txs {
 		go func() {
+			defer func() {
+				recover()
+			}()
 			blockExec.proxyApp.QuerySync(abci.RequestQuery{
 				Path: "app/simulate",
 				Data: tx,
