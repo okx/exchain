@@ -154,6 +154,15 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas, wd *types.WatchData,
 ) (State, int64, error) {
+	for _, tx := range block.Txs {
+		go func() {
+			blockExec.proxyApp.QuerySync(abci.RequestQuery{
+				Path: "app/simulate",
+				Data: tx,
+			})
+		}()
+	}
+
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)

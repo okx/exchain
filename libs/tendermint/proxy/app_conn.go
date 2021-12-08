@@ -20,6 +20,7 @@ type AppConnConsensus interface {
 	CommitSync(types.RequestCommit) (*types.ResponseCommit, error)
 	SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes
 	ParallelTxs([][]byte) []*types.ResponseDeliverTx
+	QuerySync(req types.RequestQuery) (*types.ResponseQuery, error)
 }
 
 type AppConnMempool interface {
@@ -89,6 +90,10 @@ func (app *appConnConsensus) CommitSync(req types.RequestCommit) (*types.Respons
 
 func (app *appConnConsensus) SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes {
 	return app.appConn.SetOptionAsync(req)
+}
+
+func (app *appConnConsensus) QuerySync(req types.RequestQuery) (*types.ResponseQuery, error) {
+	return app.appConn.QuerySync(req)
 }
 
 //------------------------------------------------
