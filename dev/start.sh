@@ -1,7 +1,8 @@
 #!/bin/bash
 
 KEY="captain"
-CHAINID="exchain-65"
+CHAINID="exchain-99"
+mainnet="exchain-99"
 MONIKER="oec"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
@@ -61,7 +62,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install)
+#(cd .. && make install)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
@@ -79,7 +80,7 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-exchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER
+exchaind init $MONIKER --chain-id $mainnet --home $HOME_SERVER
 
 # Change parameter token denominations to okt
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json

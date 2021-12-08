@@ -97,6 +97,9 @@ run() {
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
+    --state-sync-mode producer \
+    --data-center-mode=true \
+    --data-center-url="http://127.0.0.1:8030/" \
     --rest.laddr tcp://localhost:8545 \
     --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
 
