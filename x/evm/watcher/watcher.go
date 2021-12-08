@@ -359,7 +359,7 @@ func (w *Watcher) Commit() {
 }
 
 func (w *Watcher) CommitWatchData() {
-	if w.watchData.Size() == 0 {
+	if w.watchData == nil || w.watchData.Size() == 0 {
 		return
 	}
 	if w.watchData.Batches != nil {
