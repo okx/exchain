@@ -9,6 +9,7 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
+	types3 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -46,6 +47,8 @@ type AccountKeeper struct {
 	deliverTxStore *types.CacheStore
 	checkTxStore *types.CacheStore
 	triegc *prque.Prque
+
+	gsConfig sdk.GasConfig
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
@@ -69,6 +72,7 @@ func NewAccountKeeper(
 		deliverTxStore: types.NewCacheStore(),
 		checkTxStore: types.NewCacheStore(),
 		triegc: prque.New(nil),
+		gsConfig: types3.KVGasConfig(),
 	}
 
 	ak.OpenTrie()
@@ -207,9 +211,7 @@ func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 	})
 
 	latestHeight := uint64(ctx.BlockHeight())
-
 	ak.SetRootMptHash(latestHeight, root)
-	ak.SetLatestBlockHeight(latestHeight)
 	ak.CleanCacheStore()
 
 	ak.PushData2Database(ctx, root)

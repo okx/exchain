@@ -7,8 +7,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 )
 
@@ -31,7 +33,7 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 }
 
 // GetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
+func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) (acc exported.Account) {
 	//store := ctx.KVStore(ak.key)
 	//bz := store.Get(types.AddressStoreKey(addr))
 	//if bz == nil {
@@ -39,6 +41,11 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	//}
 	//acc := ak.decodeAccount(bz)
 	//return acc
+
+	defer func(){
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostFlat, types2.GasReadCostFlatDesc)
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasReadPerByteDesc)
+	}()
 
 	if ctx.IsCheckTx() {
 		if val := ak.checkTxStore.Get(addr.String()); val != nil {
@@ -91,6 +98,11 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	//}
 	//store.Set(types.AddressStoreKey(addr), bz)
 
+	defer func(){
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.WriteCostFlat, types2.GasWriteCostFlatDesc)
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.WriteCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasWritePerByteDesc)
+	}()
+
 	if ak.observers != nil && !ctx.IsCheckTx() {
 		for _, observer := range ak.observers {
 			if observer != nil {
@@ -112,6 +124,10 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	//addr := acc.GetAddress()
 	//store := ctx.KVStore(ak.key)
 	//store.Delete(types.AddressStoreKey(addr))
+
+	defer func(){
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.DeleteCost, types2.GasDeleteDesc)
+	}()
 
 	if ctx.IsCheckTx() {
 		ak.checkTxStore.Delete(acc.GetAddress().String())
@@ -136,11 +152,14 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 
 	it := trie.NewIterator(ak.trie.NodeIterator(nil))
 	for it.Next() {
+		ctx.GasMeter().ConsumeGas(ak.gsConfig.IterNextCostFlat, types2.GasIterNextCostFlatDesc)
 		if len(it.Value) > 0 {
 			var wrapAcc wrap.WrapAccount
 			if err := rlp.DecodeBytes(it.Value, &wrapAcc); err != nil {
 				continue
 			}
+
+			ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(wrapAcc.RealAcc)), types2.GasValuePerByteDesc)
 			if cb(wrapAcc.RealAcc) {
 				break
 			}
@@ -169,11 +188,6 @@ func (ak *AccountKeeper) Update(ctx sdk.Context, err error) {
 				if err != nil {
 					panic(fmt.Errorf("can't encode object at %x: %v", key, err))
 				}
-				//var wrapAcc wrap.WrapAccount
-				//if err = rlp.DecodeBytes(data, &wrapAcc); err != nil {
-				//	panic("FUCK to decode account")
-				//}
-				//fmt.Println("After decode: ", wrapAcc.RealAcc)
 
 				if err = ak.trie.TryUpdate(accKey, data); err != nil {
 					panic(err)
@@ -196,38 +210,57 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 	triedb.Reference(root, ethcmn.Hash{}) // metadata reference to keep trie alive
 	ak.triegc.Push(root, -int64(ctx.BlockHeight()))
 
-	if ctx.BlockHeight() > core.TriesInMemory {
-		// If we exceeded our memory allowance, flush matured singleton nodes to disk
-		var (
-			nodes, imgs = triedb.Size()
-			limit       = ethcmn.StorageSize(256) * 1024 * 1024
-		)
+	if types.TrieDirtyDisabled {
+		triedb.Commit(root, false, nil)
+		ak.SetLatestBlockHeight(uint64(ctx.BlockHeight()))
+	} else {
+		if ctx.BlockHeight() > core.TriesInMemory {
+			// If we exceeded our memory allowance, flush matured singleton nodes to disk
+			var (
+				nodes, imgs = triedb.Size()
+				limit       = ethcmn.StorageSize(256) * 1024 * 1024
+			)
 
-		if nodes > limit || imgs > 4*1024*1024 {
-			triedb.Cap(limit - ethdb.IdealBatchSize)
-		}
-		// Find the next state trie we need to commit
-		chosen := ctx.BlockHeight() - core.TriesInMemory
-
-		// If the header is missing (canonical chain behind), we're reorging a low
-		// diff sidechain. Suspend committing until this operation is completed.
-		chRoot := ak.GetRootMptHash(uint64(chosen))
-		if chRoot == (ethcmn.Hash{}) {
-			ak.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
-		} else {
-			// Flush an entire trie and restart the counters, it's not a thread safe process,
-			// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-			triedb.Commit(chRoot, true, nil)
-		}
-
-		// Garbage collect anything below our required write retention
-		for !ak.triegc.Empty() {
-			root, number := ak.triegc.Pop()
-			if int64(-number) > chosen {
-				ak.triegc.Push(root, number)
-				break
+			if nodes > limit || imgs > 4*1024*1024 {
+				triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
-			triedb.Dereference(root.(ethcmn.Hash))
+			// Find the next state trie we need to commit
+			chosen := ctx.BlockHeight() - core.TriesInMemory
+
+			// If the header is missing (canonical chain behind), we're reorging a low
+			// diff sidechain. Suspend committing until this operation is completed.
+			chRoot := ak.GetRootMptHash(uint64(chosen))
+			if chRoot == (ethcmn.Hash{}) {
+				ak.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
+			} else {
+				ak.SetLatestBlockHeight(uint64(chosen))
+
+				// Flush an entire trie and restart the counters, it's not a thread safe process,
+				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+				triedb.Commit(chRoot, true, nil)
+			}
+
+			// Garbage collect anything below our required write retention
+			for !ak.triegc.Empty() {
+				root, number := ak.triegc.Pop()
+				if int64(-number) > chosen {
+					ak.triegc.Push(root, number)
+					break
+				}
+				triedb.Dereference(root.(ethcmn.Hash))
+			}
 		}
 	}
+}
+
+func estimateAccByteLenForGasConsume(acc exported.Account) int64{
+	if acc == nil {
+		return 0
+	}
+
+	if acc.IsEthAccount() {
+		return 150
+	}
+
+	return 70
 }

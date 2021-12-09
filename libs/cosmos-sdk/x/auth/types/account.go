@@ -176,6 +176,10 @@ func (acc BaseAccount) GetStorageRoot() ethcmn.Hash {
 	return ethcmn.Hash{}
 }
 
+func (acc BaseAccount) IsEthAccount() bool {
+	return false
+}
+
 func (alia BaseAccountPretty) Pretty2Acc() (BaseAccount, error) {
 	acc := BaseAccount{
 		Address:       alia.Address,

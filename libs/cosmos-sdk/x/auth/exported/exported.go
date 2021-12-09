@@ -42,6 +42,8 @@ type Account interface {
 	GetStorageRoot() ethcmn.Hash
 
 	RLPDecodeBytes(data []byte) error
+
+	IsEthAccount() bool
 }
 
 // GenesisAccounts defines a slice of GenesisAccount objects

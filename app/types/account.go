@@ -222,6 +222,10 @@ func (acc EthAccount)  GetStorageRoot() ethcmn.Hash {
 	return acc.StateRoot
 }
 
+func (acc EthAccount) IsEthAccount() bool {
+	return true
+}
+
 type EthAccountPretty struct {
 	authtypes.BaseAccountPretty `json:"base_account_pretty" yaml:"base_account_pretty"`
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`

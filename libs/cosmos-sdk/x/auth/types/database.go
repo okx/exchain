@@ -15,11 +15,17 @@ var (
 	gEvmMptDatabase ethstate.Database = nil
 
 	initOnce sync.Once
+
+	TrieDirtyDisabled = false
+	TrieCacheSize uint = 1554 // MB
 )
 
 const (
 	EvmDataDir = "data"
 	EvmSpace   = "evm"
+
+	FlagTrieDirtyDisabled = "trie-dirty-disabled"
+	FlagTrieCacheSize = "trie-cache-size"
 )
 
 func InstanceOfEvmStore() ethstate.Database {
@@ -41,7 +47,7 @@ func InstanceOfEvmStore() ethstate.Database {
 		//}
 
 		gEvmMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:     256,
+			Cache:     int(TrieCacheSize),
 			Journal:   "",
 			Preimages: true,
 		})

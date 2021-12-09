@@ -265,7 +265,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	if !st.Simulate {
-		csdb.IntermediateRoot(false)
+		csdb.IntermediateRoot(true)
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
