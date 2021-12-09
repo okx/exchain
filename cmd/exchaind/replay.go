@@ -283,6 +283,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+		simulateTxs(blockExec, block)
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
 		panicError(err)
 		if needSaveBlock {
@@ -293,9 +294,10 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 func simulateTxs(blockExec *state.BlockExecutor, block *types.Block)  {
 	var simCnt uint32
+	start := time.Now()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		fmt.Printf("simulate block %d; tx successfully count %d\n", block.Height, simCnt)
+		fmt.Printf("simulate block %d; tx successfully count %d; consume %dms\n", block.Height, simCnt, time.Now().Sub(start).Milliseconds())
 		cancel()
 	}()
 	simu := func(ctx context.Context) {
