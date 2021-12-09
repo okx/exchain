@@ -354,7 +354,9 @@ func (ndb *nodeDB) updateBranchConcur(node *Node, savedNodes map[string]*Node, c
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	// TODO：fix the fatal error: concurrent map writes
+	// fix the fatal error: concurrent map writes
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 	savedNodes[hex.EncodeToString(node.hash)] = node
 	res <- node.hash
 }
