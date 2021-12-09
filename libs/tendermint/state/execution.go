@@ -162,7 +162,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		fmt.Printf("simulate tx successfully count %d\n", simCnt)
 		cancel()
 	}()
-	go func(ctx context.Context) {
+	simu := func(ctx context.Context) {
 		txsCnt := len(block.Txs)
 		var w sync.WaitGroup
 		for i, _ := range block.Txs {
@@ -187,7 +187,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			default:
 			}
 		}
-	}(ctx)
+	}
+	simu(ctx)
 
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
