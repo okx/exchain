@@ -36,7 +36,7 @@ func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
 	return r.rdb.SetNX(context.Background(), setBlockKey(block.Height), blockBytes, TTL).Err()
 }
 
-func (r *RedisClient) SetDelta(deltas *tmtypes.Deltas) error {
+func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
 	if deltas == nil || deltas.Size() == 0 {
 		return fmt.Errorf("delta is empty")
 	}

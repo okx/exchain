@@ -319,7 +319,7 @@ func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Del
 		"abciRspLen", len(deltas.ABCIRsp),
 		"deltaLen", len(deltas.DeltasBytes),
 		"watchLen", len(deltas.WatchBytes))
-	go blockExec.deltaBroker.SetDelta(deltas)
+	go blockExec.deltaBroker.SetDeltas(deltas)
 }
 
 func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
@@ -333,9 +333,11 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	}
 
 	// get watchData and Delta from p2p
-	if len(deltas.ABCIRsp) >0 && len(deltas.DeltasBytes) > 0 {
-		if !fastQuery || len(deltas.WatchBytes) > 0 {
-			return true, deltas
+	if applyDelta {
+		if len(deltas.ABCIRsp) >0 && len(deltas.DeltasBytes) > 0 {
+			if !fastQuery || len(deltas.WatchBytes) > 0 {
+				return true, deltas
+			}
 		}
 	}
 

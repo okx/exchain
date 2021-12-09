@@ -28,27 +28,26 @@ const (
 )
 
 var (
-	fastQuery = false
+	fastQuery  = false
 	centerMode = false
-	centerUrl = "127.0.0.1:8030"
-	redisUrl = "127.0.0.1:8030"
+	centerUrl  = "127.0.0.1:8030"
+	redisUrl   = "127.0.0.1:8030"
 
-	applyP2PDelta = false
+	applyP2PDelta    = false
 	broadcatP2PDelta = false
-	downloadDelta = false
-	uploadDelta = false
+	downloadDelta    = false
+	uploadDelta      = false
 
-	onceFastQuery	sync.Once
-	onceCenterMode	sync.Once
-	onceCenterUrl	sync.Once
-	onceRedisUrl	sync.Once
+	onceFastQuery  sync.Once
+	onceCenterMode sync.Once
+	onceCenterUrl  sync.Once
+	onceRedisUrl   sync.Once
 
-	onceApplyP2P sync.Once
+	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
-	onceDownload sync.Once
-	onceUpload sync.Once
+	onceDownload     sync.Once
+	onceUpload       sync.Once
 )
-
 
 func IsFastQuery() bool {
 	onceFastQuery.Do(func() {
@@ -67,7 +66,7 @@ func EnableApplyP2PDelta() bool {
 func EnableBroadcastP2PDelta() bool {
 	onceBroadcastP2P.Do(func() {
 		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
-		iavl.SetProduceDelta(true)
+		iavl.SetProduceDelta(broadcatP2PDelta)
 	})
 	return broadcatP2PDelta
 }
@@ -82,7 +81,7 @@ func EnableDownloadDelta() bool {
 func EnableUploadDelta() bool {
 	onceUpload.Do(func() {
 		uploadDelta = viper.GetBool(FlagUploadDDS)
-		iavl.SetProduceDelta(true)
+		iavl.SetProduceDelta(uploadDelta)
 	})
 	return uploadDelta
 }
@@ -112,7 +111,7 @@ func GetCenterUrl() string {
 type Deltas struct {
 	ABCIRsp     []byte `json:"abci_rsp"`
 	DeltasBytes []byte `json:"deltas_bytes"`
-	WatchBytes	[]byte `json:"watch_bytes"`
+	WatchBytes  []byte `json:"watch_bytes"`
 	Height      int64  `json:"height"`
 }
 
