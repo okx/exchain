@@ -316,7 +316,6 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 
 	// TODO: handle magic number
 	savedNodes[hex.EncodeToString(node.hash)] = node
-
 	return node.hash
 }
 
@@ -356,8 +355,8 @@ func (ndb *nodeDB) updateBranchConcur(node *Node, savedNodes map[string]*Node, c
 	// TODO: handle magic number
 	// fix the fatal error: concurrent map writes
 	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	savedNodes[hex.EncodeToString(node.hash)] = node
+	ndb.mtx.Unlock()
 	res <- node.hash
 }
 
