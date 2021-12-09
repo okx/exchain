@@ -2,7 +2,9 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -154,17 +156,31 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas, wd *types.WatchData,
 ) (State, int64, error) {
-	for _, tx := range block.Txs {
-		go func() {
-			defer func() {
-				recover()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		txsCnt := len(block.Txs)
+		var w sync.WaitGroup
+		for i, _ := range block.Txs {
+			w.Add(1)
+			go func() {
+				defer func() {
+					w.Done()
+					recover()
+				}()
+				blockExec.proxyApp.QuerySync(abci.RequestQuery{
+					Path: "app/simulate",
+					Data: block.Txs[txsCnt-1-i],
+				})
 			}()
-			blockExec.proxyApp.QuerySync(abci.RequestQuery{
-				Path: "app/simulate",
-				Data: tx,
-			})
-		}()
-	}
+			w.Wait()
+			select {
+			case <-ctx.Done(): // if cancel() execute
+				return
+			default:
+			}
+		}
+	}(ctx)
 
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
@@ -360,7 +376,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 			return
 		}
 	}
-	if wd != nil && wd.Size() > 0{
+	if wd != nil && wd.Size() > 0 {
 		wdBytes = wd.WatchDataByte
 	}
 
@@ -369,7 +385,7 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 	if err != nil {
 		return
 	}
-	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -384,7 +400,7 @@ func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, err
 	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(types.GetCenterUrl()+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err
