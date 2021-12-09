@@ -313,13 +313,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 }
 
 func (blockExec *BlockExecutor) uploadData(block *types.Block, deltas *types.Deltas) {
+	if err := blockExec.deltaBroker.SetDeltas(deltas); err != nil {
+		blockExec.logger.Error("uploadData err:", err)
+		return
+	}
 	blockExec.logger.Info("uploadData",
 		"height", block.Height,
 		"blockLen", block.Size(),
 		"abciRspLen", len(deltas.ABCIRsp),
 		"deltaLen", len(deltas.DeltasBytes),
 		"watchLen", len(deltas.WatchBytes))
-	go blockExec.deltaBroker.SetDeltas(deltas)
 }
 
 func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
