@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"github.com/okex/exchain/app/config"
@@ -263,6 +265,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
+		simulateTxs(blockExec, block)
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
 		panicError(err)
 	}
@@ -286,6 +289,42 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+}
+
+func simulateTxs(blockExec *state.BlockExecutor, block *types.Block)  {
+	var simCnt uint32
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		fmt.Printf("simulate block %d; tx successfully count %d\n", block.Height, simCnt)
+		cancel()
+	}()
+	simu := func(ctx context.Context) {
+		txsCnt := len(block.Txs)
+		var w sync.WaitGroup
+		for i, _ := range block.Txs {
+			w.Add(1)
+			go func() {
+				defer func() {
+					w.Done()
+					recover()
+				}()
+				res, _ := blockExec.ProxyApp().QuerySync(abci.RequestQuery{
+					Path: "app/simulate",
+					Data: block.Txs[txsCnt-1-i],
+				})
+				if res.Code == abci.CodeTypeOK {
+					simCnt++
+				}
+			}()
+			w.Wait()
+			select {
+			case <-ctx.Done(): // if cancel() execute
+				return
+			default:
+			}
+		}
+	}
+	simu(ctx)
 }
 
 func startDumpPprof() {

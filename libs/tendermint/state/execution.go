@@ -2,9 +2,7 @@ package state
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -156,40 +154,6 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas, wd *types.WatchData,
 ) (State, int64, error) {
-	var simCnt uint32
-	ctx, cancel := context.WithCancel(context.Background())
-	defer func() {
-		fmt.Printf("simulate tx successfully count %d\n", simCnt)
-		cancel()
-	}()
-	simu := func(ctx context.Context) {
-		txsCnt := len(block.Txs)
-		var w sync.WaitGroup
-		for i, _ := range block.Txs {
-			w.Add(1)
-			go func() {
-				defer func() {
-					w.Done()
-					recover()
-				}()
-				res, _ := blockExec.proxyApp.QuerySync(abci.RequestQuery{
-					Path: "app/simulate",
-					Data: block.Txs[txsCnt-1-i],
-				})
-				if res.Code == abci.CodeTypeOK {
-					simCnt++
-				}
-			}()
-			w.Wait()
-			select {
-			case <-ctx.Done(): // if cancel() execute
-				return
-			default:
-			}
-		}
-	}
-	simu(ctx)
-
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
@@ -803,4 +767,8 @@ func ExecCommitBlock(
 	}
 	// ResponseCommit has no error or log, just data
 	return res.Data, nil
+}
+
+func (blockExec *BlockExecutor) ProxyApp() proxy.AppConnConsensus  {
+	return blockExec.proxyApp
 }
