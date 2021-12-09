@@ -156,8 +156,12 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas, wd *types.WatchData,
 ) (State, int64, error) {
+	var simCnt uint32
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		fmt.Printf("simulate tx successfully count %d\n", simCnt)
+		cancel()
+	}()
 	go func(ctx context.Context) {
 		txsCnt := len(block.Txs)
 		var w sync.WaitGroup
@@ -168,10 +172,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 					w.Done()
 					recover()
 				}()
-				blockExec.proxyApp.QuerySync(abci.RequestQuery{
+				res, _ := blockExec.proxyApp.QuerySync(abci.RequestQuery{
 					Path: "app/simulate",
 					Data: block.Txs[txsCnt-1-i],
 				})
+				if res.Code == abci.CodeTypeOK {
+					simCnt++
+				}
 			}()
 			w.Wait()
 			select {
