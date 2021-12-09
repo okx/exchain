@@ -189,10 +189,11 @@ func (bcR *BlockchainReactor) sendBlockToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	deltas := bcR.dstore.LoadDeltas(msg.Height)
-	if deltas == nil || deltas.Height != msg.Height {
-		deltas = &types.Deltas{}
+	var deltas *types.Deltas
+	if types.EnableBroadcastP2PDelta() {
+		deltas = bcR.dstore.LoadDeltas(msg.Height)
 	}
+
 	if block != nil {
 		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
 		return src.TrySend(BlockchainChannel, msgBytes)
@@ -444,7 +445,7 @@ func (bcR *BlockchainReactor) processBlock() error {
 
 	bcR.store.SaveBlock(first, firstParts, second.LastCommit)
 
-	bcR.state, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first, deltas, nil)
+	bcR.state, _, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first, deltas)
 	if err != nil {
 		panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 	}

@@ -130,7 +130,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
-		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock, &types.Deltas{}, &types.WatchData{})
+		state, _, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock, nil)
 		panicError(err)
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
