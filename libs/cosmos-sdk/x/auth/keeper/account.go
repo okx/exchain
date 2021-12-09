@@ -212,7 +212,7 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 
 	if types.TrieDirtyDisabled {
 		triedb.Commit(root, false, nil)
-		ak.SetLatestBlockHeight(uint64(ctx.BlockHeight()))
+		ak.SetLatestStoredBlockHeight(uint64(ctx.BlockHeight()))
 	} else {
 		if ctx.BlockHeight() > core.TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
@@ -233,7 +233,7 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 			if chRoot == (ethcmn.Hash{}) {
 				ak.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
 			} else {
-				ak.SetLatestBlockHeight(uint64(chosen))
+				ak.SetLatestStoredBlockHeight(uint64(chosen))
 
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error

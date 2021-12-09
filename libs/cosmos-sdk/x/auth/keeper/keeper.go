@@ -149,6 +149,7 @@ func (ak *AccountKeeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []a
 var (
 	KeyPrefixLatestHeight = []byte{0x01}
 	KeyPrefixRootMptHash  = []byte{0x02}
+	KeyPrefixLatestStoredHeight  = []byte{0x03}
 )
 
 // GetLatestBlockHeight get latest mpt storage height
@@ -183,6 +184,21 @@ func (ak *AccountKeeper) SetRootMptHash(height uint64, hash ethcmn.Hash) {
 	ak.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }
 
+// GetLatestBlockHeight get latest mpt storage height
+func (ak *AccountKeeper) GetLatestStoredBlockHeight() uint64 {
+	rst, err := ak.db.TrieDB().DiskDB().Get(KeyPrefixLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+// SetLatestBlockHeight sets the latest storage height
+func (ak *AccountKeeper) SetLatestStoredBlockHeight(height uint64) {
+	hhash := sdk.Uint64ToBigEndian(height)
+	ak.db.TrieDB().DiskDB().Put(KeyPrefixLatestStoredHeight, hhash)
+}
+
 func (ak *AccountKeeper) OpenTrie() {
 	latestHeight := ak.GetLatestBlockHeight()
 	lastRootHash := ak.GetRootMptHash(latestHeight)
@@ -212,6 +228,7 @@ func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 
 	latestHeight := uint64(ctx.BlockHeight())
 	ak.SetRootMptHash(latestHeight, root)
+	ak.SetLatestBlockHeight(latestHeight)
 	ak.CleanCacheStore()
 
 	ak.PushData2Database(ctx, root)
