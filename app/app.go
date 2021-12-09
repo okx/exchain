@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-
 	"io"
 	"math/big"
 	"os"
@@ -611,13 +610,24 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func PreRun(context *server.Context) {
+func PreRun(ctx *server.Context) error {
 	// set the dynamic config
-	appconfig.RegisterDynamicConfig(context.Logger.With("module", "config"))
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
 	// set config by node mode
-	setNodeConfig(context)
+	setNodeConfig(ctx)
 
 	//download pprof
-	appconfig.PprofDownload(context)
+	appconfig.PprofDownload(ctx)
+
+	// pruning options
+	_, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		return err
+	}
+	// repair state on start
+	if viper.GetBool(FlagEnableRepairState) {
+		repairStateOnStart(ctx)
+	}
+	return nil
 }

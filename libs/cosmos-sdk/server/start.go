@@ -65,7 +65,7 @@ func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context)) *cobra.Command {
+	appPreRun func(ctx *Context) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -93,14 +93,12 @@ which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// app pre run
-			appPreRun(ctx)
-
+			if err := appPreRun(ctx); err != nil {
+				return err
+			}
 			// set external package flags
 			setExternalPackageValue(cmd)
-
-			// pruning options
-			_, err := GetPruningOptionsFromFlags()
-			return err
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !viper.GetBool(flagWithTendermint) {
@@ -144,7 +142,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(FlagEvmImportMode, "default", "Select import mode for evm state (default|files|db)")
 	cmd.Flags().String(FlagEvmImportPath, "", "Evm contract & storage db or files used for InitGenesis")
 	cmd.Flags().Uint64(FlagGoroutineNum, 0, "Limit on the number of goroutines used to import evm data(ignored if evm-import-mode is 'default')")
-	
+
 	cmd.Flags().Bool(tmtypes.FlagDownloadDDS, false, "get delta from dc/redis or not")
 	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "send delta to dc/redis or not")
 	cmd.Flags().Bool(tmtypes.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
