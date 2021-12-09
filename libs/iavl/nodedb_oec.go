@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"container/list"
+	"encoding/hex"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -296,49 +297,66 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 }
 
 func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte {
-	// TODO: find the optimal concurrent depth
-	defaultConcurDepth := 4
-	var updateBranchConcur func(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte)
-	updateBranchConcur = func(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte) {
-		if node == nil {
-			res <- []byte{}
-			return
-		}
-
-		if node.persisted || node.prePersisted {
-			res <- node.hash
-			return
-		}
-
-		// We can use channels to communicate between non-concurrent code,
-		// but we have to make sure the channel doesn't block.
-		leftChan := make(chan []byte, 1)
-		rightChan := make(chan []byte, 1)
-		// We need to get the results on a channel,
-		// and can re-use the same logic without goroutines for the sequential calls.
-		if concurDepth > 0 {
-			go updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
-			go updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
-		} else {
-			updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
-			updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
-		}
-		node.leftHash = <-leftChan
-		node.rightHash = <-rightChan
-		node._hash()
-		ndb.saveNodeToPrePersistCache(node)
-
-		node.leftNode = nil
-		node.rightNode = nil
-
-		// TODO: handle magic number
-		// TODO：fix the fatal error: concurrent map writes
-		//savedNodes[hex.EncodeToString(node.hash)] = node
-		res <- node.hash
+	if node.persisted || node.prePersisted {
+		return node.hash
 	}
-	rootHash := make(chan []byte, 1) // must not block
-	updateBranchConcur(node, savedNodes, defaultConcurDepth, rootHash)
-	return <-rootHash
+
+	if node.leftNode != nil {
+		node.leftHash = ndb.updateBranch(node.leftNode, savedNodes)
+	}
+	if node.rightNode != nil {
+		node.rightHash = ndb.updateBranch(node.rightNode, savedNodes)
+	}
+
+	node._hash()
+	ndb.saveNodeToPrePersistCache(node)
+
+	node.leftNode = nil
+	node.rightNode = nil
+
+	// TODO: handle magic number
+	savedNodes[hex.EncodeToString(node.hash)] = node
+
+	return node.hash
+}
+
+func (ndb *nodeDB) updateBranchConcur(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte) {
+	if node == nil {
+		res <- []byte{}
+		return
+	}
+
+	if node.persisted || node.prePersisted {
+		res <- node.hash
+		return
+	}
+
+	// We can use channels to communicate between non-concurrent code,
+	// but we have to make sure the channel doesn't block.
+	// leftChan and rightChan respectively receive the hash of the left and right subtrees of node.
+	leftChan := make(chan []byte, 1)
+	rightChan := make(chan []byte, 1)
+	// We need to get the results on a channel,
+	// and can re-use the same logic without goroutines for the sequential calls.
+	if concurDepth > 0 {
+		go ndb.updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
+		go ndb.updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
+	} else {
+		ndb.updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
+		ndb.updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
+	}
+	node.leftHash = <-leftChan
+	node.rightHash = <-rightChan
+	node._hash()
+	ndb.saveNodeToPrePersistCache(node)
+
+	node.leftNode = nil
+	node.rightNode = nil
+
+	// TODO: handle magic number
+	// TODO：fix the fatal error: concurrent map writes
+	savedNodes[hex.EncodeToString(node.hash)] = node
+	res <- node.hash
 }
 
 func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
