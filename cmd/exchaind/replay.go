@@ -281,11 +281,11 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
-		meta := originBlockStore.LoadBlockMeta(height)
+		//meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		simulateTxs(blockExec, block)
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
-		panicError(err)
+		//state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
+		//panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
@@ -295,13 +295,13 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 func simulateTxs(blockExec *state.BlockExecutor, block *types.Block)  {
 	var simCnt uint32
 	start := time.Now()
+	txsCnt := len(block.Txs)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		fmt.Printf("simulate block %d; tx successfully count %d; consume %dms\n", block.Height, simCnt, time.Now().Sub(start).Milliseconds())
+		fmt.Printf("simulate block %d; totalTxs<%d> simulateTxs<%d>; consume %dms\n", block.Height, txsCnt, simCnt, time.Now().Sub(start).Milliseconds())
 		cancel()
 	}()
 	simu := func(ctx context.Context) {
-		txsCnt := len(block.Txs)
 		var w sync.WaitGroup
 		for i, _ := range block.Txs {
 			w.Add(1)
@@ -312,7 +312,7 @@ func simulateTxs(blockExec *state.BlockExecutor, block *types.Block)  {
 				}()
 				res, _ := blockExec.ProxyApp().QuerySync(abci.RequestQuery{
 					Path: "app/simulate",
-					Data: block.Txs[txsCnt-1-i],
+					Data: block.Txs[i],
 				})
 				if res.Code == abci.CodeTypeOK {
 					simCnt++
