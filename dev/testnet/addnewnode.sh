@@ -125,7 +125,8 @@ start() {
 
 #     echo "${BIN_NAME} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind  start --p2p.laddr tcp://${IP}:${p2pport} --p2p.seeds ${seednode} --rpc.laddr tcp://${IP}:${rpcport}"
 
-    LOG_LEVEL=main:info,*:error
+#    LOG_LEVEL=main:info,*:error
+    LOG_LEVEL=main:info,*:error,consensus:debug,state:debug
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \

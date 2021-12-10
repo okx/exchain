@@ -82,7 +82,7 @@ run() {
   p2p_seed_opt=$5
   p2p_seed_arg=$6
 
-  LOG_LEVEL=main:info,*:error
+  LOG_LEVEL=main:info,*:error,consensus:info,state:info
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \

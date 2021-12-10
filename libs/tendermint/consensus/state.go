@@ -368,16 +368,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	return nil
 }
 
-// timeoutRoutine: receive requests for timeouts on tickChan and fire timeouts on tockChan
-// receiveRoutine: serializes processing of proposoals, block parts, votes; coordinates state transitions
-func (cs *State) startRoutines(maxSteps int) {
-	err := cs.timeoutTicker.Start()
-	if err != nil {
-		cs.Logger.Error("Error starting timeout ticker", "err", err)
-		return
-	}
-	go cs.receiveRoutine(maxSteps)
-}
+
 
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
