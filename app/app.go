@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-
 	"io"
 	"math/big"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -56,6 +56,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -214,6 +215,11 @@ func NewOKExChainApp(
 	appConfig, err := config.ParseConfig()
 	if err != nil {
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		panic(err)
+	}
+	chainId := viper.GetString(flags.FlagChainID)
+	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
+		logger.Error(err.Error())
 		panic(err)
 	}
 
@@ -604,13 +610,24 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func PreRun(context *server.Context) {
+func PreRun(ctx *server.Context) error {
 	// set the dynamic config
-	appconfig.RegisterDynamicConfig(context.Logger.With("module", "config"))
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
 	// set config by node mode
-	SetNodeConfig(context)
+	setNodeConfig(ctx)
 
 	//download pprof
-	appconfig.PprofDownload(context)
+	appconfig.PprofDownload(ctx)
+
+	// pruning options
+	_, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		return err
+	}
+	// repair state on start
+	if viper.GetBool(FlagEnableRepairState) {
+		repairStateOnStart(ctx)
+	}
+	return nil
 }

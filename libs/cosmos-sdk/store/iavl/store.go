@@ -77,6 +77,14 @@ func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool,
 	}, nil
 }
 
+func GetCommitVersion(db dbm.DB) (int64, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: 0})
+	if err != nil {
+		return 0, err
+	}
+	return tree.GetCommitVersion(), nil
+}
+
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable
 // IAVL tree reference. It should only be used for testing purposes.
 //
@@ -121,7 +129,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 // version and hash.
 func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID, iavl.TreeDelta, []byte) {
 	flag := false
-	if tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta() && len(deltas) != 0 {
+	if (tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta()) && len(deltas) != 0 {
 		flag = true
 		st.tree.SetDelta(inDelta)
 	}

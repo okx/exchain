@@ -12,14 +12,15 @@ type PreExecBlockResult struct {
 }
 
 type InternalMsg struct {
-	cancelFlag bool
-	resChan chan *PreExecBlockResult
+	resChan    chan *PreExecBlockResult
 }
 
 var (
-	RepeatedErr     = errors.New("block can not start over twice")
-	CancelErr       = errors.New("block has been canceled")
-	NotMatchErr     = errors.New("block has no start record")
+	RepeatedErr = errors.New("block can not start over twice")
+	CancelErr   = errors.New("block has been canceled")
+	NotMatchErr = errors.New("block has no start record")
+	GenesisErr  = errors.New("genesis block don't proactively run")
+
 	consensusFailed bool
 )
 
@@ -29,6 +30,9 @@ func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
 		// start block twice
 		return RepeatedErr
 	} else {
+		if block.Height == 1 {
+			return GenesisErr
+		}
 		intMsg := &InternalMsg{
 			resChan: make(chan *PreExecBlockResult),
 		}
@@ -81,7 +85,6 @@ func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
 	} else {
 		chann := channels.(*InternalMsg)
 		// set cancel flag
-		chann.cancelFlag = true
 		consensusFailed = true
 		// read useless result ensure
 		<-chann.resChan

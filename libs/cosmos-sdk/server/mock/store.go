@@ -1,14 +1,13 @@
 package mock
 
 import (
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
-
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/tendermint/tm-db"
 
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 )
 
 var _ sdk.MultiStore = multiStore{}
@@ -191,5 +190,9 @@ func (ms multiStore) StopStore() {
 }
 
 func (ms multiStore) SetLogger(log log.Logger) {
+	panic("not implemented")
+}
+
+func (ms multiStore) GetCommitVersion() (int64, error) {
 	panic("not implemented")
 }
