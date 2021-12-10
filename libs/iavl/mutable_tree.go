@@ -16,13 +16,17 @@ func SetIgnoreVersionCheck(check bool) {
 	ignoreVersionCheck = check
 }
 
+func GetIgnoreVersionCheck() bool {
+	return ignoreVersionCheck
+}
+
 func SetProduceDelta(pd bool) {
 	produceDelta = pd
 }
 
 var (
 	ignoreVersionCheck = false
-	produceDelta = false
+	produceDelta       = false
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
@@ -34,7 +38,6 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-
 	*ImmutableTree                   // The current, working tree.
 	lastSaved       *ImmutableTree   // The most recently saved tree.
 	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
@@ -43,8 +46,8 @@ type MutableTree struct {
 	removedVersions sync.Map         // The removed versions of the tree.
 	ndb             *nodeDB
 
-	savedNodes      map[string]*Node
-	deltas          *TreeDelta // For using in other peer
+	savedNodes map[string]*Node
+	deltas     *TreeDelta // For using in other peer
 
 	committedHeightQueue *list.List
 	committedHeightMap   map[int64]bool
@@ -69,22 +72,27 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 	} else {
 		initVersion = 0
 	}
-	tree := &MutableTree{
-		ImmutableTree: head,
-		lastSaved:     head.clone(),
-		savedNodes:    map[string]*Node{},
-		deltas:        &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}},
-		orphans:       []*Node{},
-		commitOrphans: map[string]int64{},
-		versions:      NewSyncMap(),
-		ndb:           ndb,
+	var tree *MutableTree
+	if savedTree, ok := treeMap.getTree(ndb.name); ok {
+		tree = savedTree
+	} else {
+		tree = &MutableTree{
+			ImmutableTree: head,
+			lastSaved:     head.clone(),
+			savedNodes:    map[string]*Node{},
+			deltas:        &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}},
+			orphans:       []*Node{},
+			commitOrphans: map[string]int64{},
+			versions:      NewSyncMap(),
+			ndb:           ndb,
 
-		committedHeightMap:   map[int64]bool{},
-		committedHeightQueue: list.New(),
-		historyStateNum:      MaxCommittedHeightNum,
+			committedHeightMap:   map[int64]bool{},
+			committedHeightQueue: list.New(),
+			historyStateNum:      MaxCommittedHeightNum,
 
-		commitCh:          make(chan commitEvent),
-		lastPersistHeight: initVersion,
+			commitCh:          make(chan commitEvent),
+			lastPersistHeight: initVersion,
+		}
 	}
 
 	if tree.historyStateNum < minHistoryStateNum {
@@ -374,6 +382,11 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	tree.lastSaved = iTree.clone()
 
 	return targetVersion, nil
+}
+
+func (tree *MutableTree) GetCommitVersion() int64 {
+	latestVersion := tree.ndb.getLatestVersion()
+	return latestVersion
 }
 
 // Returns the version number of the latest version found

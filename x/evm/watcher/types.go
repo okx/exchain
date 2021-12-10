@@ -77,9 +77,6 @@ type WatchData struct {
 }
 
 func (w *WatchData) Size() int {
-	if w == nil {
-		return 0
-	}
 	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
 }
 

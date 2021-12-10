@@ -16,6 +16,9 @@ const (
 	// send delta to dc/redis
 	FlagUploadDDS = "upload-delta"
 
+	// redis
+	FlagRedisUrl = "redis-url"
+
 	// data-center
 	FlagDataCenter = "data-center-mode"
 	DataCenterUrl  = "data-center-url"
@@ -25,25 +28,28 @@ const (
 )
 
 var (
-	fastQuery = false
+	fastQuery  = false
 	centerMode = false
-	centerUrl = "127.0.0.1:8030"
+	// fmt (http://ip:port/)
+	centerUrl  = "http://127.0.0.1:8030/"
+	// fmt (ip:port)
+	redisUrl   = "127.0.0.1:6379"
 
-	applyP2PDelta = false
+	applyP2PDelta    = false
 	broadcatP2PDelta = false
-	downloadDelta = false
-	uploadDelta = false
+	downloadDelta    = false
+	uploadDelta      = false
 
-	onceFastQuery	sync.Once
-	onceCenterMode	sync.Once
-	onceCenterUrl	sync.Once
+	onceFastQuery  sync.Once
+	onceCenterMode sync.Once
+	onceCenterUrl  sync.Once
+	onceRedisUrl   sync.Once
 
-	onceApplyP2P sync.Once
+	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
-	onceDownload sync.Once
-	onceUpload sync.Once
+	onceDownload     sync.Once
+	onceUpload       sync.Once
 )
-
 
 func IsFastQuery() bool {
 	onceFastQuery.Do(func() {
@@ -62,7 +68,7 @@ func EnableApplyP2PDelta() bool {
 func EnableBroadcastP2PDelta() bool {
 	onceBroadcastP2P.Do(func() {
 		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
-		iavl.SetProduceDelta(true)
+		iavl.SetProduceDelta(broadcatP2PDelta)
 	})
 	return broadcatP2PDelta
 }
@@ -77,9 +83,16 @@ func EnableDownloadDelta() bool {
 func EnableUploadDelta() bool {
 	onceUpload.Do(func() {
 		uploadDelta = viper.GetBool(FlagUploadDDS)
-		iavl.SetProduceDelta(true)
+		iavl.SetProduceDelta(uploadDelta)
 	})
 	return uploadDelta
+}
+
+func RedisUrl() string {
+	onceRedisUrl.Do(func() {
+		redisUrl = viper.GetString(FlagRedisUrl)
+	})
+	return redisUrl
 }
 
 func IsCenterEnabled() bool {
@@ -100,15 +113,13 @@ func GetCenterUrl() string {
 type Deltas struct {
 	ABCIRsp     []byte `json:"abci_rsp"`
 	DeltasBytes []byte `json:"deltas_bytes"`
+	WatchBytes  []byte `json:"watch_bytes"`
 	Height      int64  `json:"height"`
 }
 
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
-	if d == nil {
-		return -1
-	}
-	return len(d.ABCIRsp) + len(d.DeltasBytes)
+	return len(d.ABCIRsp) + len(d.DeltasBytes) + len(d.WatchBytes)
 }
 
 // Marshal returns the amino encoding.
@@ -119,18 +130,4 @@ func (d *Deltas) Marshal() ([]byte, error) {
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
 	return cdc.UnmarshalBinaryBare(bs, d)
-}
-
-// WatchData defines the batch in watchDB and accounts for delete
-type WatchData struct {
-	WatchDataByte []byte `json:"watch_data_byte"`
-	Height        int64  `json:"height"`
-}
-
-// Size returns size of the deltas in bytes.
-func (wd *WatchData) Size() int {
-	if wd == nil {
-		return -1
-	}
-	return len(wd.WatchDataByte)
 }
