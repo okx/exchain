@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/big"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -182,6 +183,7 @@ type OKExChainApp struct {
 	sm *module.SimulationManager
 
 	blockGasPrice []*big.Int
+	ballast       []byte
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -250,6 +252,8 @@ func NewOKExChainApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 	}
+	ballastsize := viper.GetInt(flags.FlagBallastSize)
+	app.ballast = make([]byte, 1024*1024*ballastsize)
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -464,6 +468,8 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
+
+	runtime.KeepAlive(app.ballast)
 
 	return app
 }
