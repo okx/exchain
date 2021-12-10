@@ -4,8 +4,9 @@ import "sync"
 
 var onceTreeMap sync.Once
 var treeMap *TreeMap
+
 type TreeMap struct {
-	mtx sync.Mutex
+	mtx sync.RWMutex
 	// used for checking whether a tree is saved or not
 	mutableTreeList         []*MutableTree
 	totalPreCommitCacheSize int64
@@ -28,6 +29,20 @@ func (tm *TreeMap) addNewTree(tree *MutableTree) {
 		tm.mutableTreeSavedMap[tree.GetModuleName()] = false
 		go tree.commitSchedule()
 	}
+}
+
+func (tm *TreeMap) getTree(moduleName string) (*MutableTree, bool) {
+	tm.mtx.RLock()
+	defer tm.mtx.RUnlock()
+	if _, ok := tm.mutableTreeSavedMap[moduleName]; !ok {
+		return nil, false
+	}
+	for _, tree := range tm.mutableTreeList {
+		if tree.GetModuleName() == moduleName {
+			return tree, true
+		}
+	}
+	return nil, false
 }
 
 // updateMutableTreeMap marks into true when operation of save-version is done

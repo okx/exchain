@@ -358,6 +358,7 @@ func newStateWithConfigAndBlockStore(
 ) *State {
 	// Get BlockStore
 	blockStore := store.NewBlockStore(blockDB)
+	deltaStore := store.NewDeltaStore(blockDB)
 
 	// one for mempool, one for consensus
 	mtx := new(sync.Mutex)
@@ -378,7 +379,7 @@ func newStateWithConfigAndBlockStore(
 	stateDB := blockDB
 	sm.SaveState(stateDB, state) //for save height 1's validators info
 	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyAppConnCon, mempool, evpool)
-	cs := NewState(thisConfig.Consensus, state, blockExec, blockStore, mempool, evpool)
+	cs := NewState(thisConfig.Consensus, state, blockExec, blockStore, deltaStore, mempool, evpool)
 	cs.SetLogger(log.TestingLogger().With("module", "consensus"))
 	cs.SetPrivValidator(pv)
 

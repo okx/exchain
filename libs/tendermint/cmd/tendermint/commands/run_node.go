@@ -50,7 +50,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 	cmd.Flags().String("abci", config.ABCI, "Specify abci transport (socket | grpc)")
 
 	// rpc flags
-	cmd.Flags().String("rpc.laddr", config.RPC.ListenAddress, "RPC listen address. Port required")
+	cmd.Flags().String("rpc.laddr", config.RPC.ListenAddress, "Tendermint RPC listen address. If you need EVM RPC(that is, the 8545 port service of Ethereum) use --rest.laddr flag instead.")
 	cmd.Flags().String(
 		"rpc.grpc_laddr",
 		config.RPC.GRPCListenAddress,

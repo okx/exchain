@@ -5,13 +5,6 @@ type DeltasMeta struct {
 	DeltasSize int `json:"Deltas_size"`
 }
 
-// NewDeltasMeta returns a new DeltasMeta.
-func NewDeltasMeta(Deltas *Deltas, BlockParts *PartSet) *DeltasMeta {
-	return &DeltasMeta{
-		DeltasSize: Deltas.Size(),
-	}
-}
-
 //-----------------------------------------------------------
 // These methods are for Protobuf Compatibility
 

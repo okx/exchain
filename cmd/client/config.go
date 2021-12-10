@@ -54,7 +54,9 @@ func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 		if !ethermint.IsValidChainID(chainID) {
 			return fmt.Errorf("invalid chain-id format: %s", chainID)
 		}
-
+		if err := ethermint.IsValidateChainIdWithGenesisHeight(chainID); err != nil {
+			return err
+		}
 		return baseRunE(cmd, args)
 	}
 
