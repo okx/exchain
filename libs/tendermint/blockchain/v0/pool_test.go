@@ -98,7 +98,7 @@ func TestBlockPoolBasic(t *testing.T) {
 	// Introduce each peer.
 	go func() {
 		for _, peer := range peers {
-			pool.SetPeerRange(peer.id, peer.base, peer.height)
+			pool.SetPeerRange(peer.id, peer.base, peer.height, 0)
 		}
 	}()
 
@@ -153,7 +153,7 @@ func TestBlockPoolTimeout(t *testing.T) {
 	// Introduce each peer.
 	go func() {
 		for _, peer := range peers {
-			pool.SetPeerRange(peer.id, peer.base, peer.height)
+			pool.SetPeerRange(peer.id, peer.base, peer.height, 0)
 		}
 	}()
 
@@ -210,7 +210,7 @@ func TestBlockPoolRemovePeer(t *testing.T) {
 
 	// add peers
 	for peerID, peer := range peers {
-		pool.SetPeerRange(peerID, peer.base, peer.height)
+		pool.SetPeerRange(peerID, peer.base, peer.height, 0)
 	}
 	assert.EqualValues(t, 10, pool.MaxPeerHeight())
 
