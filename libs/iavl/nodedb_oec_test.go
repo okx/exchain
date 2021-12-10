@@ -172,65 +172,6 @@ func Test_updateBranch(t *testing.T) {
 	}
 }
 
-func Test_updateBranchConcur(t *testing.T) {
-	EnableAsyncCommit = true
-	defer func() { EnableAsyncCommit = false }()
-
-	cases := []struct {
-		version  int64
-		nodeNums int
-	}{
-		{100, 1},
-		{200, 10},
-		{300, 100},
-		{400, 1000},
-		{500, 1000},
-		{600, 10000},
-		{700, 100000},
-	}
-
-	ndb := mockNodeDB()
-	capacity := 0
-	for _, c := range cases {
-		capacity += c.nodeNums
-
-		root, nodelist := mockNodes(c.version, c.nodeNums)
-		ndb.updateBranchConcur(root, map[string]*Node{})
-		//fmt.Println("rootHash: ", hex.EncodeToString(<-rootHash))
-		for elem := nodelist.Front(); elem != nil; elem = elem.Next() {
-			node := elem.Value.(*Node)
-			require.True(t, node.prePersisted)
-			require.Nil(t, node.leftNode)
-			require.Nil(t, node.rightNode)
-		}
-		require.Equal(t, len(ndb.prePersistNodeCache), capacity)
-	}
-}
-
-func BenchmarkUpdateBranch(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		EnableAsyncCommit = true
-		defer func() { EnableAsyncCommit = false }()
-
-		cases := []struct {
-			version  int64
-			nodeNums int
-		}{
-			{100, 1000000},
-			{200, 10000000},
-		}
-
-		ndb := mockNodeDB()
-		capacity := 0
-		for _, c := range cases {
-			capacity += c.nodeNums
-
-			root, _ := mockNodes(c.version, c.nodeNums)
-			ndb.updateBranch(root, map[string]*Node{})
-		}
-	}
-}
-
 func Test_saveCommitOrphans(t *testing.T) {
 	EnableAsyncCommit = true
 	defer func() { EnableAsyncCommit = false }()

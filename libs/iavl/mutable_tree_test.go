@@ -252,3 +252,98 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 		t.Set(randBytes(10), []byte{})
 	}
 }
+
+func TestUpdateBranchConcurV2(t *testing.T) {
+	EnableAsyncCommit = true
+	defer func() {
+		EnableAsyncCommit = false
+	}()
+	CommitIntervalHeight = 10
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTree(memDB, 10000)
+	require.NoError(t, err)
+	_, _, _, err = tree.SaveVersion(false)
+	require.NoError(t, err)
+
+	keys := "k%d"
+	vals := "v%d"
+	nodeNums := 100000
+	for i := 0; i < nodeNums; i++ {
+		k := fmt.Sprintf(keys, i)
+		v := fmt.Sprintf(vals, i)
+		tree.Set([]byte(k), []byte(v))
+	}
+	tree.ndb.updateBranchConcurV2(tree.root, map[string]*Node{})
+	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache))
+}
+
+func BenchmarkUpdateBranch(b *testing.B) {
+	EnableAsyncCommit = true
+	defer func() {
+		EnableAsyncCommit = false
+	}()
+	for n := 0; n < b.N; n++ {
+		CommitIntervalHeight = 10
+		memDB := db.NewMemDB()
+		tree, _ := NewMutableTree(memDB, 10000)
+		_, _, _, _ = tree.SaveVersion(false)
+
+		keys := "k%d"
+		vals := "v%d"
+		nodeNums := 100000
+		for i := 0; i < nodeNums; i++ {
+			k := fmt.Sprintf(keys, i)
+			v := fmt.Sprintf(vals, i)
+			tree.Set([]byte(k), []byte(v))
+		}
+		tree.ndb.updateBranch(tree.root, map[string]*Node{})
+	}
+}
+
+func BenchmarkUpdateBranchConcurV1(b *testing.B) {
+	EnableAsyncCommit = true
+	defer func() {
+		EnableAsyncCommit = false
+	}()
+	for n := 0; n < b.N; n++ {
+		CommitIntervalHeight = 10
+		memDB := db.NewMemDB()
+		tree, _ := NewMutableTree(memDB, 10000)
+		_, _, _, _ = tree.SaveVersion(false)
+
+		keys := "k%d"
+		vals := "v%d"
+		nodeNums := 100000
+		for i := 0; i < nodeNums; i++ {
+			k := fmt.Sprintf(keys, i)
+			v := fmt.Sprintf(vals, i)
+			tree.Set([]byte(k), []byte(v))
+		}
+		res := make(chan []byte, 1)
+		optimalConcurDepth := 4
+		tree.ndb.updateBranchConcurV1(tree.root, map[string]*Node{}, optimalConcurDepth, res)
+	}
+}
+
+func BenchmarkUpdateBranchConcurV2(b *testing.B) {
+	EnableAsyncCommit = true
+	defer func() {
+		EnableAsyncCommit = false
+	}()
+	for n := 0; n < b.N; n++ {
+		CommitIntervalHeight = 10
+		memDB := db.NewMemDB()
+		tree, _ := NewMutableTree(memDB, 10000)
+		_, _, _, _ = tree.SaveVersion(false)
+
+		keys := "k%d"
+		vals := "v%d"
+		nodeNums := 100000
+		for i := 0; i < nodeNums; i++ {
+			k := fmt.Sprintf(keys, i)
+			v := fmt.Sprintf(vals, i)
+			tree.Set([]byte(k), []byte(v))
+		}
+		tree.ndb.updateBranchConcurV2(tree.root, map[string]*Node{})
+	}
+}

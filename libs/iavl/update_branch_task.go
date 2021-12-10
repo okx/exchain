@@ -1,7 +1,6 @@
 package iavl
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -24,13 +23,13 @@ type UpdateNodeTask struct {
 
 func (task *UpdateNodeTask) ExecTask() {
 	if task.isStartFunc {
-		fmt.Println("start task", task.node.height, string(task.node.key))
+		//fmt.Println("start task", task.node.height, string(task.node.key))
 		task.StartFunc()
-		fmt.Println("start task done", task.node.height, string(task.node.key))
+		//fmt.Println("start task done", task.node.height, string(task.node.key))
 	} else {
-		fmt.Println("callback task", task.node.height, string(task.node.key))
+		//fmt.Println("callback task", task.node.height, string(task.node.key))
 		task.CallBackFunc()
-		fmt.Println("callback task done", task.node.height, string(task.node.key))
+		//fmt.Println("callback task done", task.node.height, string(task.node.key))
 	}
 }
 
