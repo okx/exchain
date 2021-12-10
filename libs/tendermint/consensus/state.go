@@ -376,6 +376,25 @@ func (cs *State) OnStop() {
 	// WAL is stopped in receiveRoutine.
 }
 
+func (cs *State) OnReset() error {
+	if err := cs.timeoutTicker.Start(); err != nil {
+		return err
+	}
+
+	// start the wal
+	cs.evsw.Reset()
+	cs.wal.Reset()
+
+	// now start the receiveRoutine
+	go cs.receiveRoutine(0)
+
+	// schedule the first round!
+	// use GetRoundState so we don't race the receiveRoutine for access
+	// TODO: it is wrong to use cs.GetRoundState(). should fix it
+	cs.scheduleRound0(cs.GetRoundState())
+	return nil
+}
+
 // Wait waits for the the main routine to return.
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
@@ -1514,6 +1533,7 @@ func (cs *State) finalizeCommit(height int64) {
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block)
+	fmt.Println(fmt.Sprintf("ApplyBlock. height: %d", stateCopy.LastBlockHeight))
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1543,6 +1563,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
+	fmt.Println(fmt.Sprintf("updateToState:%d", cs.state.LastBlockHeight))
 
 	fail.Fail() // XXX
 

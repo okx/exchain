@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	amino "github.com/tendermint/go-amino"
@@ -39,6 +40,7 @@ const (
 
 	maxIntervalForFastSync = 10
 	maxPeersProportionForFastSync = 0.4
+	testFastSyncIntervalSeconds = 62
 )
 
 type consensusReactor interface {
@@ -48,6 +50,8 @@ type consensusReactor interface {
 
 	// SwitchToFastSync called when we switch from the consensus machine to blockchain reactor and fast sync
 	SwitchToFastSync() (sm.State, error)
+
+	StopForTestFastSync()
 }
 
 type peerError struct {
@@ -200,6 +204,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
+		fmt.Println(fmt.Sprintf("AddBlock %d", msg.Block.Height))
 		bcR.pool.AddBlock(src.ID(), msg.Block, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
@@ -210,6 +215,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
 		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
+		fmt.Println(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
 			go bcR.SwitchToFastSync()
@@ -225,14 +231,17 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
 	statusUpdateTicker := time.NewTicker(statusUpdateIntervalSeconds * time.Second)
+	testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
 
 	go func() {
 		for {
 			select {
 			case <-bcR.Quit():
+				fmt.Println("return 1")
 				return
-			case <-bcR.pool.Quit():
-				return
+			//case <-bcR.pool.Quit():
+			//	fmt.Println("return 2")
+			//	return
 			case request := <-bcR.requestsCh:
 				peer := bcR.Switch.Peers().Get(request.PeerID)
 				if peer == nil {
@@ -252,6 +261,16 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			case <-statusUpdateTicker.C:
 				// ask for status updates
 				go bcR.BroadcastStatusRequest() // nolint: errcheck
+
+			case <-testFastSyncTicker.C:
+				// TODO: let the consensus machine sleep for some time
+				//fmt.Println(fmt.Sprintf("port: %x  %x  %x", bcR.Switch.NetAddress().Port, bcR.Switch.NetAddress().ID, bcR.Switch.NetAddress().IP))
+				if !bcR.pool.IsRunning() && strings.Contains(bcR.Switch.ListenAddress(),"10156") {
+					conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+					if ok {
+						conR.StopForTestFastSync()
+					}
+				}
 			}
 		}
 	}()
@@ -292,7 +311,12 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 	}
 	chainID := state.ChainID
 
-	bcR.pool.Start()
+	fmt.Println(fmt.Sprintf("conState:%d storeHeight:%d", state.LastBlockHeight, bcR.store.Height()))
+	bcR.pool.SetHeight(bcR.store.Height())
+	err := bcR.pool.Start()
+	if err != nil {
+		bcR.pool.Reset()
+	}
 
 	lastHundred := time.Now()
 	lastRate := 0.0
@@ -387,8 +411,10 @@ FOR_LOOP:
 			continue FOR_LOOP
 
 		case <-bcR.Quit():
+			fmt.Println("bcR.Quit()")
 			break FOR_LOOP
 		case <-bcR.pool.Quit():
+			fmt.Println("bcR.pool.Quit()")
 			break FOR_LOOP
 		}
 	}

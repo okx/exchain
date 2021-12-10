@@ -164,6 +164,12 @@ func (g *Group) Close() {
 	g.mtx.Unlock()
 }
 
+func (g *Group) Reset() error {
+	g.ticker.Reset(g.groupCheckDuration)
+	go g.processTicks()
+	return nil
+}
+
 // HeadSizeLimit returns the current head size limit.
 func (g *Group) HeadSizeLimit() int64 {
 	g.mtx.Lock()

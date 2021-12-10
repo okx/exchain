@@ -117,13 +117,21 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	}
 	err := conR.conS.Start()
 	if err != nil {
-		panic(fmt.Sprintf(`Failed to start consensus state: %v 
+		err = conR.conS.Reset()
+		if err != nil {
+			panic(fmt.Sprintf(`Failed to start consensus state: %v 
 
 conS:
 %+v 
 
 conR:
 %+v`, err, conR.conS, conR))
+		}
+
+		go conR.peerStatsRoutine()
+
+		conR.subscribeToBroadcastEvents()
+
 		return false
 	}
 	return true
@@ -151,6 +159,30 @@ conR:
 %+v`, err, conR.conS, conR))
 	}
 	return conR.conS.GetState(), nil
+}
+
+func (conR *Reactor) StopForTestFastSync() {
+	conR.Logger.Info("StopForTestFastSync")
+	fmt.Println("StopForTestFastSync")
+
+	conR.mtx.Lock()
+	conR.fastSync = true
+	conR.mtx.Unlock()
+	conR.metrics.FastSyncing.Set(1)
+
+	if !conR.conS.IsRunning() {
+		return
+	}
+	err := conR.conS.Stop()
+	if err != nil {
+		panic(fmt.Sprintf(`Failed to stop consensus state: %v
+
+conS:
+%+v
+
+conR:
+%+v`, err, conR.conS, conR))
+	}
 }
 
 // GetChannels implements Reactor

@@ -99,6 +99,10 @@ func (sw *Switch) NetAddress() *NetAddress {
 	return &addr
 }
 
+func (sw *Switch) ListenAddress() string {
+	return sw.config.ListenAddress
+}
+
 // SwitchOption sets an optional parameter on the Switch.
 type SwitchOption func(*Switch)
 
@@ -131,6 +135,8 @@ func NewSwitch(
 	for _, option := range options {
 		option(sw)
 	}
+
+	fmt.Println(fmt.Sprintf("AddrBook:%s ListenAddress:%s ExternalAddress:%s", cfg.AddrBook, cfg.ListenAddress, cfg.ExternalAddress))
 
 	return sw
 }

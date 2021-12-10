@@ -96,9 +96,22 @@ func NewBlockPool(start int64, requestsCh chan<- BlockRequest, errorsCh chan<- p
 	return bp
 }
 
+func (pool *BlockPool) SetHeight(height int64) {
+	pool.mtx.Lock()
+	defer pool.mtx.Unlock()
+
+	pool.height = height
+}
+
 // OnStart implements service.Service by spawning requesters routine and recording
 // pool's start time.
 func (pool *BlockPool) OnStart() error {
+	go pool.makeRequestersRoutine()
+	pool.startTime = time.Now()
+	return nil
+}
+
+func (pool *BlockPool) OnReset() error {
 	go pool.makeRequestersRoutine()
 	pool.startTime = time.Now()
 	return nil
@@ -108,7 +121,6 @@ func (pool *BlockPool) OnStart() error {
 func (pool *BlockPool) makeRequestersRoutine() {
 	for {
 		if !pool.IsRunning() {
-			//fmt.Println("makeRequestersRoutine 4")
 			break
 		}
 
@@ -308,7 +320,7 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 	}
 
 	// compute how many peers' height is greater than height
-	if storeHeight + maxIntervalForFastSync <= height {
+	if !pool.IsRunning() && storeHeight + maxIntervalForFastSync <= height {
 		count := 0
 		totalNum := len(pool.peers)
 		for _, peer := range pool.peers {
@@ -400,6 +412,7 @@ func (pool *BlockPool) makeNextRequester() {
 	}
 
 	request := newBPRequester(pool, nextHeight)
+	fmt.Println(fmt.Sprintf("new bp reqeuster: %d poolHeight:%d", nextHeight, pool.height))
 
 	pool.requesters[nextHeight] = request
 	atomic.AddInt32(&pool.numPending, 1)
