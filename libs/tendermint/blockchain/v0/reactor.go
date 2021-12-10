@@ -63,7 +63,6 @@ type BlockchainReactor struct {
 	blockExec *sm.BlockExecutor
 	store     *store.BlockStore
 	dstore    *store.DeltaStore
-	wStore    *store.WatchStore
 	pool      *BlockPool
 	fastSync  bool
 
@@ -73,7 +72,7 @@ type BlockchainReactor struct {
 
 // NewBlockchainReactor returns new reactor instance.
 func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
-	wStore *store.WatchStore, fastSync bool) *BlockchainReactor {
+	fastSync bool) *BlockchainReactor {
 
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
@@ -96,7 +95,6 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		blockExec:    blockExec,
 		store:        store,
 		dstore:       dstore,
-		wStore:       wStore,
 		pool:         pool,
 		fastSync:     fastSync,
 		requestsCh:   requestsCh,
@@ -166,15 +164,13 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	deltas := &types.Deltas{}
-	wd := &types.WatchData{}
+	var deltas *types.Deltas
 	if types.EnableBroadcastP2PDelta() {
 		deltas = bcR.dstore.LoadDeltas(msg.Height)
-		wd = bcR.wStore.LoadWatch(msg.Height)
 	}
 
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas, WatchData: wd})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -205,9 +201,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
-		bcR.Logger.Info("bcBlockResponseMessage", "len(Deltas)", msg.Deltas.Size(),
-			"len(WatchData)", msg.WatchData.Size(), "height", msg.Block.Height)
-		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, msg.WatchData, len(msgBytes))
+		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
 		src.TrySend(BlockchainChannel, cdc.MustMarshalBinaryBare(&bcStatusResponseMessage{
@@ -311,7 +305,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, deltas, wd := bcR.pool.PeekTwoBlocks()
+			first, second, deltas := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -320,7 +314,6 @@ FOR_LOOP:
 				// Try again quickly next loop.
 				didProcessCh <- struct{}{}
 			}
-			bcR.Logger.Debug("Delta from requster", "len(deltas)", deltas.Size(), "height", first.Height)
 
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
@@ -356,8 +349,7 @@ FOR_LOOP:
 
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
-				var err error
-				state, _, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas, wd)
+				state, _, deltas, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas)
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
@@ -366,15 +358,8 @@ FOR_LOOP:
 
 				if types.EnableBroadcastP2PDelta() {
 					// persists the given deltas to the underlying db.
-					if deltas.Size() > 0 {
-						deltas.Height = first.Height
-						bcR.dstore.SaveDeltas(deltas, first.Height)
-					}
-					// persists the given WatchData to the underlying db.
-					if wd != nil {
-						wd.Height = first.Height
-						bcR.wStore.SaveWatch(wd, first.Height)
-					}
+					deltas.Height = first.Height
+					bcR.dstore.SaveDeltas(deltas, first.Height)
 				}
 
 				if blocksSynced%100 == 0 {
@@ -467,7 +452,6 @@ func (m *bcNoBlockResponseMessage) String() string {
 type bcBlockResponseMessage struct {
 	Block     *types.Block
 	Deltas    *types.Deltas
-	WatchData *types.WatchData
 }
 
 // ValidateBasic performs basic validation.

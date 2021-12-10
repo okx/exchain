@@ -85,4 +85,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
+	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 }
