@@ -108,6 +108,7 @@ func (pool *BlockPool) OnStart() error {
 func (pool *BlockPool) makeRequestersRoutine() {
 	for {
 		if !pool.IsRunning() {
+			//fmt.Println("makeRequestersRoutine 4")
 			break
 		}
 
@@ -118,14 +119,17 @@ func (pool *BlockPool) makeRequestersRoutine() {
 			time.Sleep(requestIntervalMS * time.Millisecond)
 			// check for timed out peers
 			pool.removeTimedoutPeers()
+			//fmt.Println("makeRequestersRoutine 1")
 		case lenRequesters >= maxTotalRequesters:
 			// sleep for a bit.
 			time.Sleep(requestIntervalMS * time.Millisecond)
 			// check for timed out peers
 			pool.removeTimedoutPeers()
+			//fmt.Println("makeRequestersRoutine 2")
 		default:
 			// request for more blocks.
 			pool.makeNextRequester()
+			//fmt.Println("makeRequestersRoutine 3")
 		}
 	}
 }
@@ -285,7 +289,7 @@ func (pool *BlockPool) MaxPeerHeight() int64 {
 }
 
 // SetPeerRange sets the peer's alleged blockchain base and height.
-func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) {
+func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) bool {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
@@ -301,7 +305,9 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) {
 
 	if height > pool.maxPeerHeight {
 		pool.maxPeerHeight = height
+		return true
 	}
+	return false
 }
 
 // RemovePeer removes the peer with peerID from the pool. If there's no peer

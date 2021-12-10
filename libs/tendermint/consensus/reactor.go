@@ -99,7 +99,7 @@ func (conR *Reactor) OnStop() {
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
-func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) {
+func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool {
 	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
@@ -117,7 +117,36 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) {
 	}
 	err := conR.conS.Start()
 	if err != nil {
-		panic(fmt.Sprintf(`Failed to start consensus state: %v
+		panic(fmt.Sprintf(`Failed to start consensus state: %v 
+
+conS:
+%+v 
+
+conR:
+%+v`, err, conR.conS, conR))
+		return false
+	}
+	return true
+}
+
+func (conR *Reactor) SwitchToFastSync(blocksSynced uint64) (sm.State, error) {
+	conR.Logger.Info("SwitchToFastSync")
+
+	conR.mtx.Lock()
+	conR.fastSync = true
+	conR.mtx.Unlock()
+	conR.metrics.FastSyncing.Set(1)
+
+	if blocksSynced > 0 {
+		// dont bother with the WAL if we fast synced
+		conR.conS.doWALCatchup = false
+	}
+	if !conR.conS.IsRunning() {
+		return conR.conS.GetState(), errors.New("state is not running")
+	}
+	err := conR.conS.Stop()
+	if err != nil {
+		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 
 conS:
 %+v
@@ -125,6 +154,7 @@ conS:
 conR:
 %+v`, err, conR.conS, conR))
 	}
+	return conR.conS.GetState(), nil
 }
 
 // GetChannels implements Reactor

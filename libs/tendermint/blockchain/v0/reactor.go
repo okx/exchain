@@ -36,12 +36,16 @@ const (
 	maxMsgSize                         = types.MaxBlockSizeBytes +
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
+
+	maxIntervalForFastSync = 10
 )
 
 type consensusReactor interface {
 	// for when we switch from blockchain reactor and fast sync to
 	// the consensus machine
-	SwitchToConsensus(sm.State, uint64)
+	SwitchToConsensus(sm.State, uint64) bool
+
+	SwitchToFastSync(uint64) (sm.State, error)
 }
 
 type peerError struct {
@@ -203,7 +207,11 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		}))
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified.
-		bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height)
+		changed := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height)
+		// TODO: should switch to fast-sync when more than XX peers' height is greater
+		if changed && bcR.store.Height() + maxIntervalForFastSync < msg.Height {
+			bcR.SwitchToFastSync()
+		}
 	case *bcNoBlockResponseMessage:
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)
 	default:
@@ -214,20 +222,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // Handle messages from the poolReactor telling the reactor what to do.
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
-
-	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
 	statusUpdateTicker := time.NewTicker(statusUpdateIntervalSeconds * time.Second)
-	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
-
-	blocksSynced := uint64(0)
-
-	chainID := bcR.initialState.ChainID
-	state := bcR.initialState
-
-	lastHundred := time.Now()
-	lastRate := 0.0
-
-	didProcessCh := make(chan struct{}, 1)
 
 	go func() {
 		for {
@@ -255,30 +250,62 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			case <-statusUpdateTicker.C:
 				// ask for status updates
 				go bcR.BroadcastStatusRequest() // nolint: errcheck
-
 			}
 		}
 	}()
+
+	bcR.SwitchToFastSync()
+}
+
+func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
+	fmt.Println("SwitchToConsensus")
+	blocksSynced := uint64(0)
+	height, numPending, lenRequesters := bcR.pool.GetStatus()
+	outbound, inbound, _ := bcR.Switch.NumPeers()
+	bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
+		"outbound", outbound, "inbound", inbound)
+	if bcR.pool.IsCaughtUp() {
+		bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
+		bcR.pool.Stop()
+		conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+		if ok {
+			conR.SwitchToConsensus(state, blocksSynced)
+		}
+		return ok
+	}
+	return false
+}
+
+func (bcR *BlockchainReactor) SwitchToFastSync() {
+	fmt.Println("SwitchToFastSync")
+	blocksSynced := uint64(0)
+	state := bcR.initialState
+
+	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+	if ok {
+		conState, err := conR.SwitchToFastSync(blocksSynced)
+		if err == nil {
+			state = conState
+		}
+	}
+	chainID := state.ChainID
+
+	bcR.pool.Start()
+
+	lastHundred := time.Now()
+	lastRate := 0.0
+
+	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
+	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
+	didProcessCh := make(chan struct{}, 1)
 
 FOR_LOOP:
 	for {
 		select {
 		case <-switchToConsensusTicker.C:
-			height, numPending, lenRequesters := bcR.pool.GetStatus()
-			outbound, inbound, _ := bcR.Switch.NumPeers()
-			bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
-				"outbound", outbound, "inbound", inbound)
-			if bcR.pool.IsCaughtUp() {
-				bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
-				bcR.pool.Stop()
-				conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-				if ok {
-					conR.SwitchToConsensus(state, blocksSynced)
-				}
-				// else {
-				// should only happen during testing
-				// }
-
+			if bcR.SwitchToConsensus(state) {
+				fmt.Println("StopConsensusTicker")
+				switchToConsensusTicker.Stop()
 				break FOR_LOOP
 			}
 
@@ -360,6 +387,8 @@ FOR_LOOP:
 			continue FOR_LOOP
 
 		case <-bcR.Quit():
+			break FOR_LOOP
+		case <-bcR.pool.Quit():
 			break FOR_LOOP
 		}
 	}
