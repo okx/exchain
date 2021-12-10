@@ -30,8 +30,10 @@ const (
 var (
 	fastQuery  = false
 	centerMode = false
-	centerUrl  = "127.0.0.1:8030"
-	redisUrl   = "127.0.0.1:8030"
+	// fmt (http://ip:port/)
+	centerUrl  = "http://127.0.0.1:8030/"
+	// fmt (ip:port)
+	redisUrl   = "127.0.0.1:6379"
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
