@@ -38,14 +38,16 @@ const (
 		bcBlockResponseMessageFieldKeySize
 
 	maxIntervalForFastSync = 10
+	maxPeersProportionForFastSync = 0.4
 )
 
 type consensusReactor interface {
-	// for when we switch from blockchain reactor and fast sync to
+	// SwitchToConsensus called when we switch from blockchain reactor and fast sync to
 	// the consensus machine
 	SwitchToConsensus(sm.State, uint64) bool
 
-	SwitchToFastSync(uint64) (sm.State, error)
+	// SwitchToFastSync called when we switch from the consensus machine to blockchain reactor and fast sync
+	SwitchToFastSync() (sm.State, error)
 }
 
 type peerError struct {
@@ -206,11 +208,11 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			Base:   bcR.store.Base(),
 		}))
 	case *bcStatusResponseMessage:
-		// Got a peer status. Unverified.
-		changed := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height)
-		// TODO: should switch to fast-sync when more than XX peers' height is greater
-		if changed && bcR.store.Height() + maxIntervalForFastSync < msg.Height {
-			bcR.SwitchToFastSync()
+		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
+		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
+		// should switch to fast-sync when more than XX peers' height is greater than store.Height
+		if shouldSync {
+			go bcR.SwitchToFastSync()
 		}
 	case *bcNoBlockResponseMessage:
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)
@@ -283,7 +285,7 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
-		conState, err := conR.SwitchToFastSync(blocksSynced)
+		conState, err := conR.SwitchToFastSync()
 		if err == nil {
 			state = conState
 		}
@@ -304,8 +306,6 @@ FOR_LOOP:
 		select {
 		case <-switchToConsensusTicker.C:
 			if bcR.SwitchToConsensus(state) {
-				fmt.Println("StopConsensusTicker")
-				switchToConsensusTicker.Stop()
 				break FOR_LOOP
 			}
 

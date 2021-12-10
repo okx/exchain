@@ -129,7 +129,7 @@ conR:
 	return true
 }
 
-func (conR *Reactor) SwitchToFastSync(blocksSynced uint64) (sm.State, error) {
+func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
 
 	conR.mtx.Lock()
@@ -137,10 +137,6 @@ func (conR *Reactor) SwitchToFastSync(blocksSynced uint64) (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
-	if blocksSynced > 0 {
-		// dont bother with the WAL if we fast synced
-		conR.conS.doWALCatchup = false
-	}
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}

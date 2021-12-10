@@ -289,7 +289,7 @@ func (pool *BlockPool) MaxPeerHeight() int64 {
 }
 
 // SetPeerRange sets the peer's alleged blockchain base and height.
-func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) bool {
+func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, storeHeight int64) bool {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
@@ -305,8 +305,22 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) boo
 
 	if height > pool.maxPeerHeight {
 		pool.maxPeerHeight = height
-		return true
 	}
+
+	// compute how many peers' height is greater than height
+	if storeHeight + maxIntervalForFastSync <= height {
+		count := 0
+		totalNum := len(pool.peers)
+		for _, peer := range pool.peers {
+			if peer.height >= height {
+				count++
+			}
+		}
+		if count > int(float32(totalNum) * maxPeersProportionForFastSync) {
+			return true
+		}
+	}
+
 	return false
 }
 
