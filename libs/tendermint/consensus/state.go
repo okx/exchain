@@ -1809,7 +1809,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		// receive a completed block then start a runTx
-		cs.StartPreExecBlock(cs.ProposalBlock)
+		cs.startPreExecBlock(cs.ProposalBlock)
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
 
@@ -1850,7 +1850,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	return added, nil
 }
 
-func (cs *State) StartPreExecBlock(block *types.Block) {
+func (cs *State) startPreExecBlock(block *types.Block) {
 	if cs.proactivelyFlag {
 		err := cs.blockExec.StartPreExecBlock(block)
 		if err != nil {
