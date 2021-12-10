@@ -813,9 +813,9 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
 		if cs.LockedBlock != nil {
-			cs.CancelPreExecBlock(cs.LockedBlock)
+			cs.cancelPreExecBlock(cs.LockedBlock)
 		} else if cs.ProposalBlock != nil {
-			cs.CancelPreExecBlock(cs.ProposalBlock)
+			cs.cancelPreExecBlock(cs.ProposalBlock)
 		}
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
@@ -1342,7 +1342,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
-		cs.CancelPreExecBlock(cs.ProposalBlock)
+		cs.cancelPreExecBlock(cs.ProposalBlock)
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1435,7 +1435,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			cs.CancelPreExecBlock(cs.ProposalBlock)
+			cs.cancelPreExecBlock(cs.ProposalBlock)
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
@@ -1859,7 +1859,7 @@ func (cs *State) StartPreExecBlock(block *types.Block) {
 	}
 }
 
-func (cs *State) CancelPreExecBlock(block *types.Block) {
+func (cs *State) cancelPreExecBlock(block *types.Block) {
 	if cs.proactivelyFlag {
 		err := cs.blockExec.CancelPreExecBlock(block)
 		if err != nil {
@@ -2015,7 +2015,7 @@ func (cs *State) addVote(
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
 					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
-					cs.CancelPreExecBlock(cs.ProposalBlock)
+					cs.cancelPreExecBlock(cs.ProposalBlock)
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
