@@ -3,7 +3,6 @@ package iavl
 import (
 	"bytes"
 	"container/list"
-	"encoding/hex"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -315,49 +314,23 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	//savedNodes[hex.EncodeToString(node.hash)] = node
 	return node.hash
 }
 
-func (ndb *nodeDB) updateBranchConcur(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte) {
-	if node == nil {
-		res <- []byte{}
-		return
+func (ndb *nodeDB) updateBranchConcur(node *Node, savedNodes map[string]*Node) []byte {
+	task := &UpdateNodeTask{
+		que:         ndb.taskQueue,
+		node:        node,
+		ndb:         ndb,
+		isStartFunc: true,
+		parent:      nil,
+		done:        make(chan struct{}),
 	}
 
-	if node.persisted || node.prePersisted {
-		res <- node.hash
-		return
-	}
-
-	// We can use channels to communicate between non-concurrent code,
-	// but we have to make sure the channel doesn't block.
-	// leftChan and rightChan respectively receive the hash of the left and right subtrees of node.
-	leftChan := make(chan []byte, 1)
-	rightChan := make(chan []byte, 1)
-	// We need to get the results on a channel,
-	// and can re-use the same logic without goroutines for the sequential calls.
-	if concurDepth > 0 {
-		go ndb.updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
-		go ndb.updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
-	} else {
-		ndb.updateBranchConcur(node.leftNode, savedNodes, concurDepth-1, leftChan)
-		ndb.updateBranchConcur(node.rightNode, savedNodes, concurDepth-1, rightChan)
-	}
-	node.leftHash = <-leftChan
-	node.rightHash = <-rightChan
-	node._hash()
-	ndb.saveNodeToPrePersistCache(node)
-
-	node.leftNode = nil
-	node.rightNode = nil
-
-	// TODO: handle magic number
-	// fix the fatal error: concurrent map writes
-	ndb.mtx.Lock()
-	savedNodes[hex.EncodeToString(node.hash)] = node
-	ndb.mtx.Unlock()
-	res <- node.hash
+	ndb.taskQueue.SendTask(task)
+	<-task.done
+	return node.hash
 }
 
 func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {

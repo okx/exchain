@@ -195,9 +195,7 @@ func Test_updateBranchConcur(t *testing.T) {
 		capacity += c.nodeNums
 
 		root, nodelist := mockNodes(c.version, c.nodeNums)
-		defaultConcurDepth := 4
-		rootHash := make(chan []byte, 1)
-		ndb.updateBranchConcur(root, map[string]*Node{}, defaultConcurDepth, rootHash)
+		ndb.updateBranchConcur(root, map[string]*Node{})
 		//fmt.Println("rootHash: ", hex.EncodeToString(<-rootHash))
 		for elem := nodelist.Front(); elem != nil; elem = elem.Next() {
 			node := elem.Value.(*Node)
@@ -209,34 +207,6 @@ func Test_updateBranchConcur(t *testing.T) {
 	}
 }
 
-func benchmarkUpdateBranchConcur(b *testing.B, currentDepth int) {
-	for n := 0; n < b.N; n++ {
-		EnableAsyncCommit = true
-		defer func() { EnableAsyncCommit = false }()
-
-		cases := []struct {
-			version  int64
-			nodeNums int
-		}{
-			//{100, 1000},
-			//{200, 10000},
-			//{300, 100000},
-			//{400, 1000000},
-			{100, 1000000},
-			{200, 10000000},
-		}
-
-		ndb := mockNodeDB()
-		capacity := 0
-		for _, c := range cases {
-			capacity += c.nodeNums
-			root, _ := mockNodes(c.version, c.nodeNums)
-			rootHash := make(chan []byte, 1)
-			ndb.updateBranchConcur(root, map[string]*Node{}, currentDepth, rootHash)
-			//fmt.Println("rootHash: ", hex.EncodeToString(<-rootHash))
-		}
-	}
-}
 func BenchmarkUpdateBranch(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		EnableAsyncCommit = true
@@ -260,11 +230,6 @@ func BenchmarkUpdateBranch(b *testing.B) {
 		}
 	}
 }
-func BenchmarkUpdateBranchConcur0(b *testing.B)  { benchmarkUpdateBranchConcur(b, 0) }
-func BenchmarkUpdateBranchConcur2(b *testing.B)  { benchmarkUpdateBranchConcur(b, 2) }
-func BenchmarkUpdateBranchConcur4(b *testing.B)  { benchmarkUpdateBranchConcur(b, 4) }
-func BenchmarkUpdateBranchConcur8(b *testing.B)  { benchmarkUpdateBranchConcur(b, 8) }
-func BenchmarkUpdateBranchConcur16(b *testing.B) { benchmarkUpdateBranchConcur(b, 16) }
 
 func Test_saveCommitOrphans(t *testing.T) {
 	EnableAsyncCommit = true

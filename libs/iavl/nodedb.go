@@ -68,7 +68,8 @@ type nodeDB struct {
 	totalDeletedCount   int64
 	totalOrphanCount    int64
 
-	name string
+	name      string
+	taskQueue *TaskQueue
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -95,6 +96,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		dbReadTime:              0,
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
+		taskQueue:               NewDefaultTaskQueue(),
 	}
 }
 
