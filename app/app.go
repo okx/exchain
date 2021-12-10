@@ -607,7 +607,10 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+		if acc := ak.GetAccount(ctx, addr); acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
 	}
 }
 
