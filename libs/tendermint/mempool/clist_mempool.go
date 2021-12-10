@@ -813,11 +813,13 @@ func (mem *CListMempool) Update(
 	toCleanAccMap := make(map[string]uint64)
 	addressNonce := make(map[string]uint64)
 	for i, tx := range txs {
-		// add gas used with every tx
-		gasUsed += uint64(deliverTxResponses[i].GasUsed)
-
 		txCode := deliverTxResponses[i].Code
+		// CodeTypeOK means tx was successfully executed.
+		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
+		// e.g., the transaction gas has been consumed.
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+			// add gas used with valid committed tx
+			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
 			_ = mem.cache.Push(tx)
 		} else {
