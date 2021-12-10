@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -180,6 +182,7 @@ func TestPruneStates(t *testing.T) {
 }
 
 func TestABCIResponsesAmino(t *testing.T) {
+	tmp := ethcmn.HexToHash("testhahs")
 	var resps = []sm.ABCIResponses{
 		{
 			nil,
@@ -193,7 +196,7 @@ func TestABCIResponsesAmino(t *testing.T) {
 		},
 		{
 			[]*abci.ResponseDeliverTx{
-				{}, nil, {12, []byte{1}, "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
 			},
 			&abci.ResponseEndBlock{
 				Events: []abci.Event{},
@@ -208,6 +211,7 @@ func TestABCIResponsesAmino(t *testing.T) {
 							{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
 							{Key: nil, Value: nil},
 							{Key: []byte{}, Value: []byte{}},
+							{Key: tmp[:], Value: tmp[:]},
 						},
 					},
 				},
@@ -224,6 +228,48 @@ func TestABCIResponsesAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}
+}
+
+func BenchmarkABCIResponsesMarshalAmino(b *testing.B) {
+	tmp := ethcmn.HexToHash("testhahs")
+	resp := sm.ABCIResponses{
+		[]*abci.ResponseDeliverTx{
+			{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+		},
+		&abci.ResponseEndBlock{
+			Events: []abci.Event{},
+		},
+		&abci.ResponseBeginBlock{
+			Events: []abci.Event{
+				{},
+				{"", nil, struct{}{}, nil, 0},
+				{
+					Type: "type", Attributes: []kv.Pair{
+						{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+						{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+						{Key: nil, Value: nil},
+						{Key: []byte{}, Value: []byte{}},
+						{Key: tmp[:], Value: tmp[:]},
+					},
+				},
+			},
+			XXX_sizecache: 10,
+		},
+	}
+
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = sm.ModuleCodec.MarshalBinaryBare(resp)
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = resp.MarshalToAmino()
+		}
+	})
 }
 
 func sliceToMap(s []int64) map[int64]bool {
