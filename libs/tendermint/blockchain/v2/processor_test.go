@@ -40,7 +40,7 @@ func makeState(p *params) *pcState {
 	state := newPcState(context)
 
 	for _, item := range p.items {
-		state.enqueue(p2p.ID(item.pid), makePcBlock(item.height), item.height)
+		state.enqueue(p2p.ID(item.pid), makePcBlock(item.height), nil, item.height)
 	}
 
 	state.blocksSynced = p.blocksSynced
