@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -12,8 +13,8 @@ import (
 var (
 	maxAccInMap        = 100000
 	deleteAccCount     = 10000
-	maxStorageInMap    = 110000
-	deleteStorageCount = 10000
+	maxStorageInMap    = 50000
+	deleteStorageCount = 5000
 )
 var (
 	FlagMultiCache = "multi-cache"
@@ -52,15 +53,13 @@ type codeWithCache struct {
 }
 
 type Cache struct {
-	useCache bool
-	parent   *Cache
+	useCache  bool
+	parent    *Cache
+	gasConfig types.GasConfig
 
 	storageMap map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache
 	accMap     map[ethcmn.Address]*accountWithCache
-
-	codeMap map[ethcmn.Hash]*codeWithCache
-
-	gasConfig types.GasConfig
+	codeMap    map[ethcmn.Hash]*codeWithCache
 }
 
 var (
@@ -92,6 +91,18 @@ func (c *Cache) skip() bool {
 	return false
 }
 
+func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
+	if c.skip() {
+		return
+	}
+	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
+	c.accMap[ethAddr] = &accountWithCache{
+		acc:     acc,
+		isDirty: isDirty,
+		gas:     types.Gas(lenBytes)*c.gasConfig.ReadCostPerByte + c.gasConfig.ReadCostFlat,
+	}
+}
+
 func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
 	if c.skip() {
 		return
@@ -117,34 +128,6 @@ func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
 	}
 }
 
-func (c *Cache) GetCode(key []byte) ([]byte, bool) {
-	if c.skip() {
-		return nil, false
-	}
-
-	hash := ethcmn.BytesToHash(key)
-	if data, ok := c.codeMap[hash]; ok {
-		return data.code, ok
-	}
-
-	if c.parent != nil {
-		return c.parent.GetCode(hash.Bytes())
-	}
-	return nil, false
-}
-
-func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
-	if c.skip() {
-		return
-	}
-	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
-	c.accMap[ethAddr] = &accountWithCache{
-		acc:     acc,
-		isDirty: isDirty,
-		gas:     types.Gas(lenBytes)*c.gasConfig.ReadCostPerByte + c.gasConfig.ReadCostFlat,
-	}
-}
-
 func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool, bool) {
 	if c.skip() {
 		return nil, 0, false, false
@@ -159,7 +142,6 @@ func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool, bool) {
 		return addr, gas, ok, true
 	}
 	return nil, 0, false, false
-
 }
 
 func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) {
@@ -175,6 +157,22 @@ func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) 
 
 	if c.parent != nil {
 		return c.parent.GetStorage(addr, key)
+	}
+	return nil, false
+}
+
+func (c *Cache) GetCode(key []byte) ([]byte, bool) {
+	if c.skip() {
+		return nil, false
+	}
+
+	hash := ethcmn.BytesToHash(key)
+	if data, ok := c.codeMap[hash]; ok {
+		return data.code, ok
+	}
+
+	if c.parent != nil {
+		return c.parent.GetCode(hash.Bytes())
 	}
 	return nil, false
 }
@@ -242,17 +240,16 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		return
 	}
 	if height%1000 == 0 {
-		logger.Info("MultiCache:info", "len(acc)", len(c.accMap), "len(storage)", len(c.storageMap))
+		c.logInfo(logger, "")
 	}
 
 	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxStorageInMap {
 		return
 	}
 
-	ts := time.Now()
-	isDelete := false
+	deleteMsg := ""
 	if len(c.accMap) >= maxAccInMap {
-		isDelete = true
+		deleteMsg += fmt.Sprintf("Acc:Deleted Before:%d", len(c.accMap))
 		cnt := 0
 		for key := range c.accMap {
 			delete(c.accMap, key)
@@ -264,7 +261,11 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 	}
 
 	if len(c.storageMap) >= maxStorageInMap {
-		isDelete = true
+		lenStorage := 0
+		for _, v := range c.storageMap {
+			lenStorage += len(v)
+		}
+		deleteMsg += fmt.Sprintf("Storage:Deleted Before:acc %d, storage %d", len(c.storageMap), lenStorage)
 		cnt := 0
 		for key := range c.storageMap {
 			delete(c.storageMap, key)
@@ -274,7 +275,15 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 			}
 		}
 	}
-	if isDelete {
-		logger.Info("MultiCache:info", "time", time.Now().Sub(ts).Seconds(), "len(acc)", len(c.accMap), "len(storage)", len(c.storageMap))
+	if deleteMsg != "" {
+		c.logInfo(logger, deleteMsg)
 	}
+}
+
+func (c *Cache) logInfo(logger log.Logger, msg string) {
+	lenStorage := 0
+	for _, v := range c.storageMap {
+		lenStorage += len(v)
+	}
+	logger.Info("MultiCache", "msg", msg, "len(acc)", len(c.accMap), "len(contracts)", len(c.storageMap), "len(storage)", lenStorage)
 }

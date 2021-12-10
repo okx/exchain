@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"io"
 	"log"
 	"path/filepath"
@@ -41,7 +40,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(FlagStartHeight, 0, "Set the start block height for repair")
-	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Multi Cache")
 	return cmd
 }
 

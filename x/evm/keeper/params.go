@@ -7,7 +7,7 @@ import (
 
 // GetParams returns the total set of evm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	if data, gas := k.ConfigCache.param, k.ConfigCache.gas; gas != 0 {
+	if data, gas := k.ConfigCache.GetParams(); gas != 0 {
 		ctx.GasMeter().ConsumeGas(gas, "evm.keeper.GetParams")
 		return data
 	}

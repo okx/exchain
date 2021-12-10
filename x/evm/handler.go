@@ -154,7 +154,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Simulate:     ctx.IsCheckTx(),
 	}
 	st.Csdb.SetCache(k.ConfigCache)
-	if k.ConfigCache.BlackListLen() == 0 {
+	if size, useCache := k.ConfigCache.BlackListLen(); useCache && size == 0 {
 		k.ConfigCache.SetBlackList(st.Csdb.GetContractBlockedList())
 	}
 

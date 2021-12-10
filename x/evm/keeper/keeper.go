@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/spf13/viper"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -237,7 +238,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	if data, gas := k.ConfigCache.chainConfig, k.ConfigCache.gasChainConfig; gas != 0 {
+	if data, gas := k.ConfigCache.GetChainConfig(); gas != 0 {
 		ctx.GasMeter().ConsumeGas(gas, "evm.keeper.GetChainConfig")
 		return data, true
 	}
@@ -282,62 +283,97 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 }
 
 type configCache struct {
-	param types.Params
-	gas   uint64
+	useCache bool
+	param    types.Params
+	paramGas uint64
 
 	chainConfig    types.ChainConfig
-	gasChainConfig uint64
+	chainConfigGas uint64
 
 	blackList map[ethcmn.Address]bool
 }
 
 func newConfigCache() *configCache {
+	useCache := viper.GetBool(sdk.FlagMultiCache)
 	return &configCache{
+		useCache:  useCache,
 		blackList: make(map[ethcmn.Address]bool),
 	}
 }
 
-func (c *configCache) SetBlackList(addrs []sdk.AccAddress) {
-	for _, v := range addrs {
+func (c *configCache) SetBlackList(blackList []sdk.AccAddress) {
+	if !c.useCache {
+		return
+	}
+	for _, v := range blackList {
 		c.blackList[ethcmn.BytesToAddress(v)] = true
 	}
 }
 
 func (c *configCache) IsBlackList(addr sdk.AccAddress) (bool, bool) {
+	if !c.useCache {
+		return false, false
+	}
 	if len(c.blackList) == 0 {
 		return false, false
 	}
 	return c.blackList[ethcmn.BytesToAddress(addr)], true
 }
 
-func (c *configCache) BlackListLen() int {
-	return len(c.blackList)
+func (c *configCache) BlackListLen() (int, bool) {
+	if !c.useCache {
+		return 0, false
+	}
+	return len(c.blackList), true
 }
+
 func (c *configCache) CleanBlackList() {
+	if !c.useCache {
+		return
+	}
 	c.blackList = make(map[ethcmn.Address]bool)
 }
 
 func (c *configCache) GetParams() (types.Params, uint64) {
-	return c.param, c.gas
+	if !c.useCache {
+		return types.Params{}, 0
+	}
+	return c.param, c.paramGas
+}
+
+func (c *configCache) GetChainConfig() (types.ChainConfig, uint64) {
+	if !c.useCache {
+		return types.ChainConfig{}, 0
+	}
+	return c.chainConfig, c.chainConfigGas
 }
 
 func (c *configCache) Clean() {
+	if !c.useCache {
+		return
+	}
 	c.param = types.Params{}
-	c.gas = 0
+	c.paramGas = 0
 	// TODO chainCnnfig?
 }
 func (c *configCache) setParams(data types.Params, gasConsumed uint64) {
-	if c.gas != 0 {
+	if !c.useCache {
+		return
+	}
+	if c.paramGas != 0 {
 		return
 	}
 	c.param = data
-	c.gas = gasConsumed
+	c.paramGas = gasConsumed
 }
 
 func (c *configCache) setChainConfig(data types.ChainConfig, gasConsumed uint64) {
-	if c.gasChainConfig != 0 {
+	if !c.useCache {
+		return
+	}
+	if c.chainConfigGas != 0 {
 		return
 	}
 	c.chainConfig = data
-	c.gasChainConfig = gasConsumed
+	c.chainConfigGas = gasConsumed
 }

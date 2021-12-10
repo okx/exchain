@@ -895,7 +895,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		runMsgCtx = ctx.WithMultiStore(msCache)
 	} else {
 		runMsgCtx, msCache = app.cacheTxContext(ctx, txBytes)
-
 	}
 
 	// Attempt to execute all messages and only update state if all messages pass
