@@ -58,7 +58,15 @@ type BlockExecutor struct {
 	lastBlock *types.Block
 
 	abciAllResponse sync.Map
+
+
+	proactivelyRunTx bool
+	prerunChan chan *executionContext
+	prerunResultChan chan *executionContext
+	prerunIndex int64
+	prerunContext *executionContext
 }
+
 
 type BlockExecutorOption func(executor *BlockExecutor)
 
@@ -90,6 +98,8 @@ func NewBlockExecutor(
 		deltaCh:        make(chan *types.Deltas, 1),
 		deltaHeightCh:  make(chan int64, 1),
 		proactiveQueue: make(chan *types.Block),
+		prerunChan:     make(chan *executionContext),
+		prerunResultChan:     make(chan *executionContext),
 		//proactiveRes:   make(chan *PreExecBlockResult),
 	}
 
@@ -223,47 +233,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
-		if !blockExec.proactivelyFlag {
+		if blockExec.proactivelyRunTx {
+			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
+			blockExec.prerunContext = nil
+			blockExec.prerunIndex = 0
+		} else {
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
-				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db, nil)
 			}
-		} else {
-			abciResult, err := blockExec.GetProactivelyRes(block)
-			if err != nil {
-				fmt.Println("ERR -->", err)
-
-			} else {
-				abciResponses = abciResult.Response
-			}
-
-			/*
-				abciChain, err := blockExec.GetPreExecBlockRes(block)
-				if err != nil {
-					blockExec.logger.Error("GetPreExecBlockRes execute failed ", "err", err)
-					if blockExec.GetLastBlock() != nil {
-						// unknown block
-						// reset deliverState, lastBlock, sync.Map to ensure consensus success
-						blockExec.ResetDeliverState()
-						blockExec.ResetLastBlock()
-					}
-					if blockExec.isAsync {
-						abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-					} else {
-						abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-					}
-				} else {
-					v, _ := <-abciChain
-					abciResponses = v.ABCIResponses
-					err = v.error
-					if err != nil {
-						blockExec.logger.Error("execBlockOnProxyApp execute failed ", "abciResponses", abciResponses, "err", err)
-					}
-					blockExec.CleanPreExecBlockRes(block)
-				}
-
-			*/
 		}
 
 		if broadDelta || uploadDelta {
@@ -576,6 +555,7 @@ func execBlockOnProxyApp(
 	proxyAppConn proxy.AppConnConsensus,
 	block *types.Block,
 	stateDB dbm.DB,
+	context *executionContext,
 ) (*ABCIResponses, error) {
 	var validTxs, invalidTxs = 0, 0
 
@@ -619,7 +599,8 @@ func execBlockOnProxyApp(
 	// Run txs of block.
 	var count int
 	for _, tx := range block.Txs {
-		if breakManager.GetBreak(block) {
+		if context != nil && context.stopped {
+			context.dump("Prerun stopped")
 			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
 			return nil, CancelErr
 		}
@@ -843,7 +824,7 @@ func ExecCommitBlock(
 	logger log.Logger,
 	stateDB dbm.DB,
 ) ([]byte, error) {
-	_, err := execBlockOnProxyApp(logger, appConnConsensus, block, stateDB)
+	_, err := execBlockOnProxyApp(logger, appConnConsensus, block, stateDB, nil)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, err

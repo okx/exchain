@@ -4,8 +4,9 @@ import (
 	"errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"sync"
 	"time"
+
+	"sync"
 )
 
 type PreExecBlockResult struct {
@@ -106,7 +107,7 @@ func (blockExec *BlockExecutor) StartProactivelyRun(block *types.Block) *PreExec
 	if blockExec.isAsync {
 		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	} else {
-		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db, nil)
 	}
 
 	if err != nil {
@@ -193,3 +194,4 @@ func (s *BreakManager) GetBreak(block *types.Block) bool {
 func (s *BreakManager) RemoveBreak(block *types.Block) {
 	s.record.Delete(block)
 }
+

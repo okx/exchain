@@ -151,6 +151,7 @@ type State struct {
 	trc *trace.Tracer
 
 	proactivelyFlag bool
+	proactivelyRunTx bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -192,6 +193,7 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
+	cs.blockExec.InitPrerun(cs.proactivelyFlag)
 	cs.blockExec.SetProactivelyFlag(cs.proactivelyFlag)
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
@@ -359,6 +361,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	}
 
 	// now start the receiveRoutine
+
 	go cs.receiveRoutine(0)
 
 	// schedule the first round!
@@ -1305,7 +1308,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
-		cs.cancelAndStartNewRun(cs.ProposalBlock, nil)
+		cs.cancelAndStartNewRun(cs.ProposalBlock, nil) // 1. enterPrecommit
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1398,7 +1401,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			cs.cancelAndStartNewRun(cs.ProposalBlock, nil)
+			cs.cancelAndStartNewRun(cs.ProposalBlock, nil) // 2. enterCommit
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
@@ -1752,9 +1755,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
-		// receive a completed block then start a runTx
-		//cancel and start a new block
-		cs.cancelAndStartNewRun(nil ,  cs.ProposalBlock)
+		if cs.proactivelyFlag {
+			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
+		}
+
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
 
@@ -1948,7 +1952,7 @@ func (cs *State) addVote(
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
 					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
-					cs.cancelAndStartNewRun(cs.ProposalBlock , nil)
+					cs.cancelAndStartNewRun(cs.ProposalBlock , nil) // 4. addVote
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
@@ -2122,3 +2126,4 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
+
