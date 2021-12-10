@@ -2,9 +2,9 @@ package state
 
 import (
 	"fmt"
-	"sync"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -30,8 +30,8 @@ type BlockExecutor struct {
 	db dbm.DB
 
 	// download or upload data to dds
-	deltaBroker delta.DeltaBroker
-	deltaCh chan *types.Deltas
+	deltaBroker   delta.DeltaBroker
+	deltaCh       chan *types.Deltas
 	deltaHeightCh chan int64
 
 	// execute the app against this
@@ -53,9 +53,11 @@ type BlockExecutor struct {
 
 	proactivelyFlag bool
 
-	abciResponse sync.Map
+	proactiveQueue chan *types.Block
 
 	lastBlock *types.Block
+
+	abciAllResponse sync.Map
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -77,16 +79,18 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:       db,
-		proxyApp: proxyApp,
-		eventBus: types.NopEventBus{},
-		mempool:  mempool,
-		evpool:   evpool,
-		logger:   logger,
-		metrics:  NopMetrics(),
-		isAsync:  viper.GetBool(FlagParalleledTx),
-		deltaCh: make(chan *types.Deltas, 1),
-		deltaHeightCh: make(chan int64, 1),
+		db:             db,
+		proxyApp:       proxyApp,
+		eventBus:       types.NopEventBus{},
+		mempool:        mempool,
+		evpool:         evpool,
+		logger:         logger,
+		metrics:        NopMetrics(),
+		isAsync:        viper.GetBool(FlagParalleledTx),
+		deltaCh:        make(chan *types.Deltas, 1),
+		deltaHeightCh:  make(chan int64, 1),
+		proactiveQueue: make(chan *types.Block),
+		//proactiveRes:   make(chan *PreExecBlockResult),
 	}
 
 	for _, option := range options {
@@ -201,7 +205,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	downloadDelta := types.EnableDownloadDelta()
 	uploadDelta := types.EnableUploadDelta()
 
-	useDeltas, deltas := blockExec.prepareStateDelta(block , deltas)
+	useDeltas, deltas := blockExec.prepareStateDelta(block, deltas)
 	inAbciRspLen = len(deltas.ABCIRsp)
 	inDeltaLen = len(deltas.DeltasBytes)
 	inWatchLen = len(deltas.WatchBytes)
@@ -226,29 +230,40 @@ func (blockExec *BlockExecutor) ApplyBlock(
 				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			}
 		} else {
-			abciChain, err := blockExec.GetPreExecBlockRes(block)
+			abciResult, err := blockExec.GetProactivelyRes(block)
 			if err != nil {
-				blockExec.logger.Error("GetPreExecBlockRes execute failed ", "err", err)
-				if blockExec.GetLastBlock() != nil {
-					// unknown block
-					// reset deliverState, lastBlock, sync.Map to ensure consensus success
-					blockExec.ResetDeliverState()
-					blockExec.ResetLastBlock()
-				}
-				if blockExec.isAsync {
-					abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-				} else {
-					abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-				}
+				fmt.Println("ERR -->", err)
+
 			} else {
-				v, _ := <-abciChain
-				abciResponses = v.ABCIResponses
-				err = v.error
-				if err != nil {
-					blockExec.logger.Error("execBlockOnProxyApp execute failed ", "abciResponses", abciResponses, "err", err)
-				}
-				blockExec.CleanPreExecBlockRes(block)
+				abciResponses = abciResult.Response
 			}
+
+			/*
+				abciChain, err := blockExec.GetPreExecBlockRes(block)
+				if err != nil {
+					blockExec.logger.Error("GetPreExecBlockRes execute failed ", "err", err)
+					if blockExec.GetLastBlock() != nil {
+						// unknown block
+						// reset deliverState, lastBlock, sync.Map to ensure consensus success
+						blockExec.ResetDeliverState()
+						blockExec.ResetLastBlock()
+					}
+					if blockExec.isAsync {
+						abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+					} else {
+						abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+					}
+				} else {
+					v, _ := <-abciChain
+					abciResponses = v.ABCIResponses
+					err = v.error
+					if err != nil {
+						blockExec.logger.Error("execBlockOnProxyApp execute failed ", "abciResponses", abciResponses, "err", err)
+					}
+					blockExec.CleanPreExecBlockRes(block)
+				}
+
+			*/
 		}
 
 		if broadDelta || uploadDelta {
@@ -371,7 +386,7 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 
 	// get watchData and Delta from p2p
 	if applyDelta {
-		if len(deltas.ABCIRsp) >0 && len(deltas.DeltasBytes) > 0 {
+		if len(deltas.ABCIRsp) > 0 && len(deltas.DeltasBytes) > 0 {
 			if !fastQuery || len(deltas.WatchBytes) > 0 {
 				return true, deltas
 			}
@@ -386,7 +401,7 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	var err error
 	needDDS := true
 	select {
-	case directDelta = <- blockExec.deltaCh:
+	case directDelta = <-blockExec.deltaCh:
 		if directDelta.Height == block.Height {
 			needDDS = false
 		}
@@ -449,7 +464,7 @@ func (blockExec *BlockExecutor) GetDeltaFromDDS() {
 
 	for {
 		select {
-		case <- tryGetDDSTicker.C:
+		case <-tryGetDDSTicker.C:
 			if flag {
 				directDelta, _ := blockExec.deltaBroker.GetDeltas(height)
 				if directDelta != nil {
@@ -458,12 +473,11 @@ func (blockExec *BlockExecutor) GetDeltaFromDDS() {
 				}
 			}
 
-		case height = <- blockExec.deltaHeightCh:
+		case height = <-blockExec.deltaHeightCh:
 			flag = true
 		}
 	}
 }
-
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
@@ -605,7 +619,7 @@ func execBlockOnProxyApp(
 	// Run txs of block.
 	var count int
 	for _, tx := range block.Txs {
-		if consensusFailed {
+		if breakManager.GetBreak(block) {
 			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
 			return nil, CancelErr
 		}

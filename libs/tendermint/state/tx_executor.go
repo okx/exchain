@@ -4,57 +4,102 @@ import (
 	"errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"sync"
+	"time"
 )
 
 type PreExecBlockResult struct {
-	*ABCIResponses
-	error
+	Response *ABCIResponses
+	State    int
+	Break    bool
+	Err      error
 }
 
 type InternalMsg struct {
-	resChan    chan *PreExecBlockResult
+	resChan chan *PreExecBlockResult
 }
 
 var (
-	RepeatedErr = errors.New("block can not start over twice")
-	CancelErr   = errors.New("block has been canceled")
-	NotMatchErr = errors.New("block has no start record")
-	GenesisErr  = errors.New("genesis block don't proactively run")
-
-	consensusFailed bool
+	RepeatedErr           = errors.New("block can not start over twice")
+	CancelErr             = errors.New("block has been canceled")
+	NotMatchErr           = errors.New("block has no start record")
+	NotProactivelyModeErr = errors.New("not proactively mode")
+	GenesisErr            = errors.New("genesis block don't proactively run")
+	breakManager *BreakManager
 )
 
-//start a proactively block execution
-func (blockExec *BlockExecutor) StartPreExecBlock(block *types.Block) error {
-	if _, ok := blockExec.abciResponse.Load(block); ok {
-		// start block twice
-		return RepeatedErr
-	} else {
-		if block.Height == 1 {
-			return GenesisErr
+func init() {
+	breakManager = &BreakManager{}
+}
+
+//single thread process
+func (blockExec *BlockExecutor) LoopProcessProactivelyRun() error {
+	for {
+		select {
+		case block := <-blockExec.proactiveQueue:
+			abicRes := blockExec.StartProactivelyRun(block)
+			if res, ok := blockExec.abciAllResponse.Load(block); ok {
+				blockRes := res.(*PreExecBlockResult)
+				if blockRes.State == 1 {
+					breakManager.RemoveBreak(block)
+				}
+				blockRes.Response = abicRes.Response
+				blockRes.Err = abicRes.Err
+			} else {
+				panic("block not exist!!!")
+			}
+
 		}
-		intMsg := &InternalMsg{
-			resChan: make(chan *PreExecBlockResult),
-		}
-		blockExec.abciResponse.Store(block, intMsg)
-		go blockExec.DoPreExecBlock(intMsg, block)
-		blockExec.lastBlock = block
-		return nil
 	}
 }
 
-//return blockExec.abciResponse num
-func (blockExec *BlockExecutor) mapCount() int {
-	var count int
-	blockExec.abciResponse.Range(func(key, value interface{}) bool {
-		count++
-		return true
-	})
-	return count
+//start a proactively block execution
+func (blockExec *BlockExecutor) CancelAndStartNewRun(cancelBlock, startBlock *types.Block) {
+	if !blockExec.proactivelyFlag {
+		return
+	}
+
+	// cancel
+	var localCancelBlock *types.Block
+	if cancelBlock != nil {
+		localCancelBlock = cancelBlock
+	} else {
+		localCancelBlock = blockExec.lastBlock
+	}
+	if res, ok := blockExec.abciAllResponse.Load(localCancelBlock); ok {
+		result := res.(*PreExecBlockResult)
+		if result.State == 1 {
+			blockExec.ResetDeliverState()
+			if result.Response == nil {
+				// block not done
+				result.Break = true
+			}
+		}
+	}
+
+	// start
+	blockExec.SetStartBlock(startBlock)
 }
 
-//gorountine execute block
-func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *types.Block) {
+func (blockExec *BlockExecutor) SetStartBlock(block *types.Block) {
+	if !blockExec.proactivelyFlag {
+		return
+	}
+
+	if block != nil {
+		blockExec.lastBlock = block
+		blockExec.abciAllResponse.Store(block, &PreExecBlockResult{})
+		blockExec.proactiveQueue <- block
+	}
+}
+
+//start a proactively block execution
+func (blockExec *BlockExecutor) StartProactivelyRun(block *types.Block) *PreExecBlockResult {
+
+	if !blockExec.proactivelyFlag {
+		return nil
+	}
+
 	var abciResponses *ABCIResponses
 	var err error
 	var preBlockRes *PreExecBlockResult
@@ -65,61 +110,34 @@ func (blockExec *BlockExecutor) DoPreExecBlock(channels *InternalMsg, block *typ
 	}
 
 	if err != nil {
-		preBlockRes = &PreExecBlockResult{abciResponses, err}
+		preBlockRes = &PreExecBlockResult{abciResponses, 0, false, err}
 	} else {
-		preBlockRes = &PreExecBlockResult{abciResponses, nil}
+		preBlockRes = &PreExecBlockResult{abciResponses, 0, false, nil}
 	}
 
-	select {
-	case channels.resChan <- preBlockRes:
-		//only the writer close channel is safe
-		close(channels.resChan)
-	}
-}
+	return preBlockRes
 
-//cancel a block already execute
-func (blockExec *BlockExecutor) CancelPreExecBlock(block *types.Block) error {
-	if channels, ok := blockExec.abciResponse.Load(block); !ok {
-		// cancel block not start
-		return NotMatchErr
-	} else {
-		chann := channels.(*InternalMsg)
-		// set cancel flag
-		consensusFailed = true
-		// read useless result ensure
-		<-chann.resChan
-		// after execute done reset all
-		blockExec.ResetDeliverState()
-		blockExec.abciResponse.Delete(blockExec.lastBlock)
-		consensusFailed = false
-		return nil
-	}
 }
 
 //return result channel for caller
-func (blockExec *BlockExecutor) GetPreExecBlockRes(block *types.Block) (chan *PreExecBlockResult, error) {
-	if channels, ok := blockExec.abciResponse.Load(block); !ok {
-		// cancel block not start
-		return nil, NotMatchErr
-	} else {
-		chann := channels.(*InternalMsg)
-		return chann.resChan, nil
+func (blockExec *BlockExecutor) GetProactivelyRes(reqBlock *types.Block) (*PreExecBlockResult, error) {
+	if !blockExec.proactivelyFlag {
+		return nil, NotProactivelyModeErr
 	}
-}
-
-//close block channel , clean abciResponse and check abciResponse num
-func (blockExec *BlockExecutor) CleanPreExecBlockRes(block *types.Block) {
-	if _, ok := blockExec.abciResponse.Load(block); !ok {
-		// cancel block not start
-		return
-	} else {
-		blockExec.abciResponse.Delete(block)
-		if blockExec.lastBlock == block {
-			blockExec.ResetLastBlock()
-		}
-		if num := blockExec.mapCount(); num != 0 {
-			//check sync.Map num, should always be 0
-			blockExec.logger.Error("blockExec abciResponse num not 0 ", "num", num)
+	// 5 ms check
+	ticker := time.NewTicker(5 * time.Millisecond)
+	for {
+		select {
+		case <-ticker.C:
+			if res, ok := blockExec.abciAllResponse.Load(reqBlock); !ok {
+				return nil, NotMatchErr
+			} else {
+				rBlock := res.(*PreExecBlockResult)
+				if rBlock.Response != nil {
+					blockExec.abciAllResponse.Delete(reqBlock)
+					return rBlock, nil
+				}
+			}
 		}
 	}
 }
@@ -132,18 +150,46 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 
 }
 
-//get lastBlock
-func (blockExec *BlockExecutor) GetLastBlock() *types.Block {
-	return blockExec.lastBlock
-}
-
-//reset lastBlock and clean abciResponse
-func (blockExec *BlockExecutor) ResetLastBlock() {
-	blockExec.abciResponse.Delete(blockExec.lastBlock)
-	blockExec.lastBlock = nil
-}
-
 //set blockExec proactivelyFlag
 func (blockExec *BlockExecutor) SetProactivelyFlag(open bool) {
 	blockExec.proactivelyFlag = open
+	if blockExec.proactivelyFlag {
+		go blockExec.LoopProcessProactivelyRun()
+	}
+}
+
+func (blockExec *BlockExecutor) SetLastBlockInvalid() error {
+	if !blockExec.proactivelyFlag {
+		return nil
+	}
+
+	if res, ok := blockExec.abciAllResponse.Load(blockExec.lastBlock); !ok {
+		return NotMatchErr
+	} else {
+		rblock := res.(*PreExecBlockResult)
+		rblock.State = 1
+		blockExec.abciAllResponse.Store(blockExec.lastBlock, rblock)
+		return nil
+	}
+
+}
+
+type BreakManager struct {
+	record sync.Map
+}
+
+func (s *BreakManager) SetBreak(block *types.Block) {
+	s.record.Store(block, struct{}{})
+}
+
+func (s *BreakManager) GetBreak(block *types.Block) bool {
+	if _, ok := s.record.Load(block); ok {
+		return true
+	}
+	return false
+
+}
+
+func (s *BreakManager) RemoveBreak(block *types.Block) {
+	s.record.Delete(block)
 }
