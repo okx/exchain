@@ -56,7 +56,7 @@ func (wrsdbb *WrapRocksDBBatch) Write() error {
 		return err
 	}
 	// Make sure batch cannot be used afterwards. Callers should still call Close(), for errors.
-	wrsdbb.Close()
+	//wrsdbb.Close()
 	return nil
 }
 
