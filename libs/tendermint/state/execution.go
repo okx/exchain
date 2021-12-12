@@ -45,9 +45,7 @@ type BlockExecutor struct {
 	evpool  EvidencePool
 
 	logger log.Logger
-
 	metrics *Metrics
-
 	isAsync bool
 
 	proactivelyRunTx bool
