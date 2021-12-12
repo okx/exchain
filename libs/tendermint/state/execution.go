@@ -49,7 +49,7 @@ type BlockExecutor struct {
 	metrics *Metrics
 
 	isAsync bool
-
+	
 	proactivelyRunTx bool
 	prerunChan chan *executionContext
 	prerunResultChan chan *executionContext
