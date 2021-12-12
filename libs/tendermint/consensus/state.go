@@ -1356,7 +1356,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Step))
 		return
 	}
-	cs.trc.Pin("%s-%d-%d", trace.RunTx, cs.Round, commitRound)
+	cs.trc.Pin("%s-%d-%d", "Commit", cs.Round, commitRound)
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
@@ -1521,6 +1521,8 @@ func (cs *State) finalizeCommit(height int64) {
 	if types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
 	}
+
+	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
 	stateCopy, retainHeight, deltas, err = cs.blockExec.ApplyBlock(
 		stateCopy,

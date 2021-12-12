@@ -2,7 +2,10 @@ package state
 
 import (
 	"bytes"
-	"github.com/okex/exchain/libs/iavl/trace"
+	"fmt"
+	itrace "github.com/okex/exchain/libs/iavl/trace"
+	"github.com/okex/exchain/libs/tendermint/trace"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -32,7 +35,7 @@ type executionContext struct {
 func (e *executionContext) dump(when string) {
 
 	e.logger.Info(when,
-		"gid", trace.GoRId,
+		"gid", itrace.GoRId,
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
@@ -111,12 +114,17 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 func prerun(context *executionContext) {
 	context.dump("Start prerun")
 
+	trc := trace.NewTracer(fmt.Sprintf("prerun-%d-%d",
+		context.block.Height, context.index))
+
 	abciResponses, err := execBlockOnProxyApp(context)
+
 
 	if !context.stopped {
 		context.result = &executionResult{
 			abciResponses, err,
 		}
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
 
 	context.dump("Prerun completed")
