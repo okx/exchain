@@ -224,10 +224,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			blockExec.prerunContext = nil
 			blockExec.prerunIndex = 0
 		} else {
+			ctx := &executionContext{
+				logger: blockExec.logger,
+				block: block,
+				db: blockExec.db,
+				proxyApp: blockExec.proxyApp,
+			}
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
-				abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db, nil)
+				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}
 
@@ -536,13 +542,12 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(
-	logger log.Logger,
-	proxyAppConn proxy.AppConnConsensus,
-	block *types.Block,
-	stateDB dbm.DB,
-	context *executionContext,
-) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+	block := context.block
+	proxyAppConn := context.proxyApp
+	stateDB := context.db
+	logger := context.logger
+
 	var validTxs, invalidTxs = 0, 0
 
 	txIndex := 0
@@ -811,7 +816,15 @@ func ExecCommitBlock(
 	logger log.Logger,
 	stateDB dbm.DB,
 ) ([]byte, error) {
-	_, err := execBlockOnProxyApp(logger, appConnConsensus, block, stateDB, nil)
+
+	ctx := &executionContext{
+		logger: logger,
+		block: block,
+		db: stateDB,
+		proxyApp: appConnConsensus,
+	}
+
+	_, err := execBlockOnProxyApp(ctx)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, err

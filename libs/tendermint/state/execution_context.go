@@ -112,8 +112,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 func prerun(context *executionContext) {
 	context.dump("Start prerun")
 
-	abciResponses, err := execBlockOnProxyApp(context.logger, context.proxyApp,
-		context.block, context.db, context)
+	abciResponses, err := execBlockOnProxyApp(context)
 
 	if !context.stopped {
 		context.result.res = abciResponses
@@ -121,7 +120,6 @@ func prerun(context *executionContext) {
 	}
 
 	context.dump("Prerun completed")
-
 	context.prerunResultChan <- context
 }
 
