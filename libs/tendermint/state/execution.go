@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -51,15 +50,6 @@ type BlockExecutor struct {
 
 	isAsync bool
 
-	proactivelyFlag bool
-
-	proactiveQueue chan *types.Block
-
-	lastBlock *types.Block
-
-	abciAllResponse sync.Map
-
-
 	proactivelyRunTx bool
 	prerunChan chan *executionContext
 	prerunResultChan chan *executionContext
@@ -97,10 +87,8 @@ func NewBlockExecutor(
 		isAsync:        viper.GetBool(FlagParalleledTx),
 		deltaCh:        make(chan *types.Deltas, 1),
 		deltaHeightCh:  make(chan int64, 1),
-		proactiveQueue: make(chan *types.Block),
-		prerunChan:     make(chan *executionContext),
+		prerunChan:           make(chan *executionContext),
 		prerunResultChan:     make(chan *executionContext),
-		//proactiveRes:   make(chan *PreExecBlockResult),
 	}
 
 	for _, option := range options {
@@ -599,14 +587,15 @@ func execBlockOnProxyApp(
 	// Run txs of block.
 	var count int
 	for _, tx := range block.Txs {
-		if context != nil && context.stopped {
-			context.dump("Prerun stopped")
-			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
-			return nil, CancelErr
-		}
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
+		}
+
+		if context != nil && context.stopped {
+			context.dump("Prerun stopped")
+			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
+			return nil, fmt.Errorf("block has been canceled")
 		}
 		count++
 	}
