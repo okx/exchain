@@ -52,13 +52,9 @@ type BlockExecutor struct {
 	isAsync bool
 
 	proactivelyFlag bool
-
 	proactiveQueue chan *types.Block
-
 	lastBlock *types.Block
-
 	abciAllResponse sync.Map
-
 
 	proactivelyRunTx bool
 	prerunChan chan *executionContext
