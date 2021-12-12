@@ -40,14 +40,12 @@ func (e *executionContext) dump(when string) {
 	)
 }
 
-//single thread process
 func (blockExec *BlockExecutor) prerunRoutine() {
 	for context := range blockExec.prerunChan {
 		prerun(context)
 	}
 }
 
-//return result channel for caller
 func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIResponses, error)  {
 
 	for context := range blockExec.prerunResultChan {
@@ -69,24 +67,25 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 		if  bytes.Equal(context.block.AppHash, ctx.block.AppHash) {
 			return context.result.res, context.result.err
 		} else {
+			// todo
 			panic("wrong app hash")
 		}
 	}
 	return nil, nil
 }
 
-//start a proactively block execution
 func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 
+	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if blockExec.prerunContext != nil {
 		if block.Height != blockExec.prerunContext.block.Height {
-			context := blockExec.prerunContext
 			context.dump("Prerun sanity check failed")
 
 			// todo
 			panic("Prerun sanity check failed")
 		}
+		context.dump("Stopping prerun")
 		blockExec.prerunContext.stopped = true
 	}
 
@@ -102,7 +101,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 		index:            blockExec.prerunIndex,
 	}
 
-	context := blockExec.prerunContext
+	context = blockExec.prerunContext
 	context.dump("Notify prerun")
 
 	// start a new one
@@ -115,8 +114,9 @@ func prerun(context *executionContext) {
 	abciResponses, err := execBlockOnProxyApp(context)
 
 	if !context.stopped {
-		context.result.res = abciResponses
-		context.result.err = err
+		context.result = &executionResult{
+			abciResponses, err,
+		}
 	}
 
 	context.dump("Prerun completed")

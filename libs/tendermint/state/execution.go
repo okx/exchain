@@ -85,8 +85,8 @@ func NewBlockExecutor(
 		isAsync:        viper.GetBool(FlagParalleledTx),
 		deltaCh:        make(chan *types.Deltas, 1),
 		deltaHeightCh:  make(chan int64, 1),
-		prerunChan:           make(chan *executionContext),
-		prerunResultChan:     make(chan *executionContext),
+		prerunChan:           make(chan *executionContext, 1),
+		prerunResultChan:     make(chan *executionContext, 1),
 	}
 
 	for _, option := range options {
@@ -588,19 +588,16 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 	}
 
 	// Run txs of block.
-	var count int
-	for _, tx := range block.Txs {
+	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
 		}
 
 		if context != nil && context.stopped {
-			context.dump("Prerun stopped")
-			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
-			return nil, fmt.Errorf("block has been canceled")
+			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+			return nil, fmt.Errorf("Prerun stopped")
 		}
-		count++
 	}
 
 	// End block.
