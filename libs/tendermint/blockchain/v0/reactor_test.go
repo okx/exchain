@@ -68,8 +68,10 @@ func newBlockchainReactor(
 	}
 
 	blockDB := dbm.NewMemDB()
+	deltaDB := dbm.NewMemDB()
 	stateDB := dbm.NewMemDB()
 	blockStore := store.NewBlockStore(blockDB)
+	deltaStore := store.NewDeltaStore(deltaDB)
 
 	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
 	if err != nil {
@@ -112,7 +114,7 @@ func newBlockchainReactor(
 		thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
 		blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
 
-		state, _, err = blockExec.ApplyBlock(state, blockID, thisBlock)
+		state, _, _, err = blockExec.ApplyBlock(state, blockID, thisBlock, nil)
 		if err != nil {
 			panic(errors.Wrap(err, "error apply block"))
 		}
@@ -120,7 +122,7 @@ func newBlockchainReactor(
 		blockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 	}
 
-	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
+	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	bcReactor.SetLogger(logger.With("module", "blockchain"))
 
 	return BlockchainReactorPair{bcReactor, proxyApp}
