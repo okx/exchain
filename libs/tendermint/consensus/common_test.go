@@ -165,10 +165,20 @@ func (vss ValidatorStubsByAddress) Swap(i, j int) {
 
 //-------------------------------------------------------------------------------
 // Functions for transitioning the consensus state
+// timeoutRoutine: receive requests for timeouts on tickChan and fire timeouts on tockChan
+// receiveRoutine: serializes processing of proposoals, block parts, votes; coordinates state transitions
+func (cs *State) startTestRoutines(maxSteps int) {
+	err := cs.timeoutTicker.Start()
+	if err != nil {
+		cs.Logger.Error("Error starting timeout ticker", "err", err)
+		return
+	}
+	go cs.receiveRoutine(maxSteps) // for test
+}
 
 func startTestRound(cs *State, height int64, round int) {
 	cs.enterNewRound(height, round)
-	cs.startRoutines(0)
+	cs.startTestRoutines(0)
 }
 
 // Create proposal block from cs1 but sign it with vs.
