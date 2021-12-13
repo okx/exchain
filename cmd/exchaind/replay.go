@@ -71,9 +71,10 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(types.FlagUploadDDS, false, "send delta to dc/redis or not")
 	cmd.Flags().Bool(types.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
 	cmd.Flags().Bool(types.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
+	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 
 	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
-	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
+	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:8030/", "data-center-url")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
@@ -264,7 +265,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
+		state, _, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, nil)
 		panicError(err)
 	}
 
@@ -281,7 +282,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, nil)
+		state, _, _, err = blockExec.ApplyBlock(state, meta.BlockID, block,nil)
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)

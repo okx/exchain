@@ -1,11 +1,8 @@
 package watcher
 
 import (
-	"bytes"
 	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
 	"math/big"
-	"net/http"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -362,7 +359,7 @@ func (w *Watcher) Commit() {
 }
 
 func (w *Watcher) CommitWatchData() {
-	if w.watchData.Size() == 0 {
+	if w.watchData == nil || w.watchData.Size() == 0 {
 		return
 	}
 	if w.watchData.Batches != nil {
@@ -420,20 +417,9 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	gcb := func(height int64) bool {
-		msg := tmstate.DataCenterMsg{Height: height}
-		msgBody, err := tmtypes.Json.Marshal(&msg)
-		if err != nil {
-			return false
-		}
-		response, err := http.Post(tmtypes.GetCenterUrl() + "loadWatch", "application/json", bytes.NewBuffer(msgBody))
-		if err != nil {
-			return false
-		}
-		defer response.Body.Close()
-		rlt, _ := ioutil.ReadAll(response.Body)
+	gcb := func(watchBytes []byte) bool {
 		data := WatchData{}
-		if err = itjs.Unmarshal(rlt, &data); err != nil {
+		if itjs.Unmarshal(watchBytes, &data) != nil {
 			return false
 		}
 		if data.Size() == 0 {
@@ -444,20 +430,20 @@ func (w *Watcher) SetWatchDataFunc() {
 		return true
 	}
 
-	gwd := func() *tmtypes.WatchData {
+	gwd := func() []byte {
 		value := w.watchData
 		value.DelayEraseKey = w.delayEraseKey
 		valueByte, err := itjs.Marshal(value)
 		if err != nil {
 			return nil
 		}
-		return &tmtypes.WatchData{WatchDataByte: valueByte, Height: int64(w.height)}
+		return valueByte
 	}
 
-	uwd := func(twd *tmtypes.WatchData) {
-		if twd.Size() > 0 {
+	uwd := func(wdByte []byte) {
+		if len(wdByte) > 0 {
 			wd := WatchData{}
-			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
+			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 				return
 			}
 			w.watchData = &wd
@@ -467,7 +453,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		w.CommitWatchData()
 	}
 
-	tmstate.GetCenterBatch = gcb
+	tmstate.SetCenterBatch = gcb
 	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
 }
