@@ -1,8 +1,8 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -15,17 +15,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
-	"io/ioutil"
-	"net/http"
 )
-
-// DataCenterMsg is the format of Data send to DataCenter
-type DataCenterMsg struct {
-	Height    int64  `json:"height"`
-	Block     []byte `json:"block"`
-	Delta     []byte `json:"delta"`
-	WatchData []byte `json:"watch_data"`
-}
 
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
@@ -36,6 +26,11 @@ type DataCenterMsg struct {
 type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
 	db dbm.DB
+
+	// download or upload data to dds
+	deltaCh       chan *types.Deltas
+	deltaHeightCh chan int64
+	deltaContext *DeltaContext
 
 	// execute the app against this
 	proxyApp proxy.AppConnConsensus
@@ -49,11 +44,16 @@ type BlockExecutor struct {
 	evpool  EvidencePool
 
 	logger log.Logger
-
 	metrics *Metrics
-
 	isAsync bool
+
+	proactivelyRunTx bool
+	prerunChan chan *executionContext
+	prerunResultChan chan *executionContext
+	prerunIndex int64
+	prerunContext *executionContext
 }
+
 
 type BlockExecutorOption func(executor *BlockExecutor)
 
@@ -74,18 +74,29 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:       db,
-		proxyApp: proxyApp,
-		eventBus: types.NopEventBus{},
-		mempool:  mempool,
-		evpool:   evpool,
-		logger:   logger,
-		metrics:  NopMetrics(),
-		isAsync:  viper.GetBool(FlagParalleledTx),
+		db:             db,
+		proxyApp:       proxyApp,
+		eventBus:       types.NopEventBus{},
+		mempool:        mempool,
+		evpool:         evpool,
+		logger:         logger,
+		metrics:        NopMetrics(),
+		isAsync:        viper.GetBool(FlagParalleledTx),
+		deltaCh:        make(chan *types.Deltas, 1),
+		deltaHeightCh:  make(chan int64, 1),
+		prerunChan:           make(chan *executionContext, 1),
+		prerunResultChan:     make(chan *executionContext, 1),
+		deltaContext:         newDeltaContext(),
 	}
 
 	for _, option := range options {
 		option(res)
+	}
+
+	res.deltaContext.logger = logger
+	res.deltaContext.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
+	if types.EnableDownloadDelta() {
+		go res.getDeltaFromDDS()
 	}
 
 	return res
@@ -152,17 +163,24 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(
-	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas, wd *types.WatchData,
-) (State, int64, error) {
+	state State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (State, int64, *types.Deltas, error) {
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
+	var inAbciRspLen, inDeltaLen, inWatchLen int
+	if deltas == nil || deltas.Height != block.Height {
+		deltas = &types.Deltas{}
+	}
 
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
+		trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(deltas.ABCIRsp), len(deltas.DeltasBytes), len(deltas.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -173,80 +191,28 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
-		return state, 0, ErrInvalidBlock(err)
+		return state, 0, deltas, ErrInvalidBlock(err)
 	}
 
-	trc.Pin("getCenterDelta")
-	if deltas == nil {
-		deltas = &types.Deltas{}
-	}
+	trc.Pin("GetDelta")
 
-	fastQuery := types.IsFastQuery()
-	applyDelta := types.EnableApplyP2PDelta()
-	broadDelta := types.EnableBroadcastP2PDelta()
-	downloadDelta := types.EnableDownloadDelta()
-	uploadDelta := types.EnableUploadDelta()
-	batchOK := true
-	useDeltas := false
 
-	if applyDelta || downloadDelta {
-		// only when it's consumer, can use deltas
-		if fastQuery {
-			if wd.Size() <= 0 {
-				if downloadDelta {
-					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
-					batchOK = GetCenterBatch(block.Height)
-				} else {
-					batchOK = false
-				}
-			}
+	blockExec.deltaContext.useDeltas, blockExec.deltaContext.deltas =
+		blockExec.prepareStateDelta(block, deltas)
 
-		}
-		// only when getting batch success, can use deltas
-		// otherwise, do deliverTx
-		if batchOK {
-			// if len(deltas) != 0, use deltas from p2p
-			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() <= 0 && downloadDelta {
-				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
-					deltas = delta
-				}
-			}
-			// when deltas not empty, use deltas
-			// otherwise, do deliverTx
-			if deltas.Size() > 0 {
-				useDeltas = true
-			}
-		}
-	}
+	inAbciRspLen = len(deltas.ABCIRsp)
+	inDeltaLen = len(deltas.DeltasBytes)
+	inWatchLen = len(deltas.WatchBytes)
 
 	trc.Pin(trace.Abci)
-	startTime := time.Now().UnixNano()
-	var abciResponses *ABCIResponses
-	var err error
-	if useDeltas {
-		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 
-		err = types.Json.Unmarshal(deltas.ABCIRsp, &abciResponses)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		if blockExec.isAsync {
-			abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-		} else {
-			abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-		}
-		if broadDelta || uploadDelta {
-			bytes, err := types.Json.Marshal(abciResponses)
-			if err != nil {
-				panic(err)
-			}
-			deltas.ABCIRsp = bytes
-		}
-	}
+	startTime := time.Now().UnixNano()
+
+	abciResponses, err := blockExec.getAbciResponse(block)
+
+
 	if err != nil {
-		return state, 0, ErrProxyAppConn(err)
+		return state, 0, deltas, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
@@ -265,11 +231,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
-		return state, 0, fmt.Errorf("error in validator updates: %v", err)
+		return state, 0, deltas, fmt.Errorf("error in validator updates: %v", err)
 	}
 	validatorUpdates, err := types.PB2TM.ValidatorUpdates(abciValUpdates)
 	if err != nil {
-		return state, 0, err
+		return state, 0, deltas, err
 	}
 	if len(validatorUpdates) > 0 {
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
@@ -278,7 +244,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
-		return state, 0, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, deltas, fmt.Errorf("commit failed for application: %v", err)
 	}
 
 	trc.Pin(trace.Persist)
@@ -289,20 +255,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
-		return state, 0, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, deltas, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	// fastQuery is the flag if the watchdb is available
-	if !fastQuery {
-		wd = nil
+	if !blockExec.deltaContext.useDeltas {
+		// get deliverTx WatchData and let wd = it
+		deltas.WatchBytes = GetWatchData()
 	} else {
-		if !useDeltas {
-			// get deliverTx WatchData and let wd = it
-			wd = GetWatchData()
-		} else {
-			// commitBatch with wd in exchain
-			UseWatchData(wd)
-		}
+		// commitBatch with wd in exchain
+		UseWatchData(deltas.WatchBytes)
 	}
 
 	trc.Pin("evpool")
@@ -323,73 +284,56 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	if types.EnableUploadDelta() {
-		go sendToDatacenter(blockExec.logger, block, deltas, wd)
-	}
+	blockExec.deltaContext.postApplyBlock(block)
 
-	blockExec.logger.Info("Begin abci", "len(deltas)", deltas.Size(),
-		"applyDelta", applyDelta, "downloadDelta", downloadDelta, "uploadDelta", uploadDelta, "broadDelta", broadDelta,
-		"fastQuery", fastQuery, "FlagUseDelta", useDeltas)
-
-	return state, retainHeight, nil
+	return state, retainHeight, deltas, nil
 }
 
-// sendToDatacenter send bcBlockResponseMessage to DataCenter
-func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
-	var blockBytes, deltaBytes, wdBytes []byte
+
+func (blockExec *BlockExecutor) getAbciResponse(block *types.Block) (*ABCIResponses, error) {
+
+	deltas := blockExec.deltaContext.deltas
+	var abciResponses *ABCIResponses
 	var err error
-	if block != nil {
-		if blockBytes, err = block.Marshal(); err != nil {
-			return
+
+	if blockExec.deltaContext.useDeltas {
+		SetCenterBatch(deltas.WatchBytes)
+		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
+		err = types.Json.Unmarshal(deltas.ABCIRsp, &abciResponses)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+
+		if blockExec.proactivelyRunTx {
+			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
+			blockExec.prerunContext = nil
+			blockExec.prerunIndex = 0
+		} else {
+			ctx := &executionContext{
+				logger:   blockExec.logger,
+				block:    block,
+				db:       blockExec.db,
+				proxyApp: blockExec.proxyApp,
+			}
+			if blockExec.isAsync {
+				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			} else {
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			}
+		}
+
+		if blockExec.deltaContext.broadDelta || blockExec.deltaContext.uploadDelta {
+			bytes, err := types.Json.Marshal(abciResponses)
+			if err != nil {
+				panic(err)
+			}
+			deltas.ABCIRsp = bytes
 		}
 	}
-	if deltas != nil {
-		if deltaBytes, err = deltas.Marshal(); err != nil {
-			return
-		}
-	}
-	if wd != nil && wd.Size() > 0{
-		wdBytes = wd.WatchDataByte
-	}
 
-	msg := DataCenterMsg{block.Height, blockBytes, deltaBytes, wdBytes}
-	msgBody, err := types.Json.Marshal(&msg)
-	if err != nil {
-		return
-	}
-	response, err := http.Post(types.GetCenterUrl() + "save", "application/json", bytes.NewBuffer(msgBody))
-	if err != nil {
-		logger.Error("sendToDatacenter err ,", err)
-		return
-	}
-	defer response.Body.Close()
+	return abciResponses, err
 }
-
-// getDataFromDatacenter send bcBlockResponseMessage to DataCenter
-func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, error) {
-	msg := DataCenterMsg{Height: height}
-	msgBody, err := types.Json.Marshal(&msg)
-	if err != nil {
-		return nil, err
-	}
-	response, err := http.Post(types.GetCenterUrl() + "loadDelta", "application/json", bytes.NewBuffer(msgBody))
-	if err != nil {
-		logger.Error("getDataFromDatacenter err ,", err)
-		return nil, err
-	}
-
-	defer response.Body.Close()
-	rlt, _ := ioutil.ReadAll(response.Body)
-	logger.Info("GetDataFromDatacenter", "height", height, "len", len(rlt))
-
-	delta := &types.Deltas{}
-	if delta.Unmarshal(rlt) != nil {
-		return nil, err
-	}
-
-	return delta, nil
-}
-
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
 // It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
@@ -410,12 +354,6 @@ func (blockExec *BlockExecutor) Commit(
 			blockExec.mempool.Flush()
 		}
 	}()
-
-	if deltas == nil {
-		deltas = &types.Deltas{}
-	}
-
-	blockExec.logger.Info("begin exeCommit", "len(deltas)", deltas.Size())
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
@@ -488,12 +426,12 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(
-	logger log.Logger,
-	proxyAppConn proxy.AppConnConsensus,
-	block *types.Block,
-	stateDB dbm.DB,
-) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+	block := context.block
+	proxyAppConn := context.proxyApp
+	stateDB := context.db
+	logger := context.logger
+
 	var validTxs, invalidTxs = 0, 0
 
 	txIndex := 0
@@ -534,10 +472,15 @@ func execBlockOnProxyApp(
 	}
 
 	// Run txs of block.
-	for _, tx := range block.Txs {
+	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
+		}
+
+		if context != nil && context.stopped {
+			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
 
@@ -754,7 +697,15 @@ func ExecCommitBlock(
 	logger log.Logger,
 	stateDB dbm.DB,
 ) ([]byte, error) {
-	_, err := execBlockOnProxyApp(logger, appConnConsensus, block, stateDB)
+
+	ctx := &executionContext{
+		logger: logger,
+		block: block,
+		db: stateDB,
+		proxyApp: appConnConsensus,
+	}
+
+	_, err := execBlockOnProxyApp(ctx)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, err
@@ -768,3 +719,4 @@ func ExecCommitBlock(
 	// ResponseCommit has no error or log, just data
 	return res.Data, nil
 }
+

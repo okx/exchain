@@ -20,6 +20,8 @@ const (
 	Iavl        = "Iavl"
 	DeliverTxs  = "DeliverTxs"
 
+	InDelta  = "InDelta"
+	OutDelta = "OutDelta"
 
 	Abci       = "abci"
 	InvalidTxs = "InvalidTxs"
@@ -32,6 +34,8 @@ const (
 
 	MempoolCheckTxCnt = "checkTxCnt"
 	MempoolTxsCnt     = "mempoolTxsCnt"
+
+	Prerun = "Prerun"
 )
 
 type IElapsedTimeInfos interface {
@@ -53,13 +57,6 @@ func GetElapsedInfo() IElapsedTimeInfos {
 	return elapsedInfo
 }
 
-func NewTracer(name string) *Tracer {
-	t := &Tracer{
-		startTime: time.Now().UnixNano(),
-		name: name,
-	}
-	return t
-}
 
 type Tracer struct {
 	name             string
@@ -69,6 +66,15 @@ type Tracer struct {
 	pins             []string
 	intervals        []int64
 	elapsedTime      int64
+}
+
+
+func NewTracer(name string) *Tracer {
+	t := &Tracer{
+		startTime: time.Now().UnixNano(),
+		name: name,
+	}
+	return t
 }
 
 func (t *Tracer) Pin(format string, args ...interface{}) {
@@ -98,7 +104,12 @@ func (t *Tracer) pinByFormat(tag string) {
 
 func (t *Tracer) Format() string {
 	if len(t.pins) == 0 {
-		return ""
+		now := time.Now().UnixNano()
+		t.elapsedTime = (now - t.startTime) / 1e6
+		return fmt.Sprintf("%s<%dms>",
+			t.name,
+			t.elapsedTime,
+		)
 	}
 
 	t.Pin("_")

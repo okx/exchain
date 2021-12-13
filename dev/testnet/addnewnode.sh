@@ -125,7 +125,8 @@ start() {
 
 #     echo "${BIN_NAME} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind  start --p2p.laddr tcp://${IP}:${p2pport} --p2p.seeds ${seednode} --rpc.laddr tcp://${IP}:${rpcport}"
 
-    LOG_LEVEL=main:info,*:error
+#    LOG_LEVEL=main:info,*:error
+    LOG_LEVEL=main:info,*:error,consensus:info,state:info
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
@@ -133,6 +134,7 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
+    --enable-proactively-runtx \
     --p2p.addr_book_strict=false \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/${BIN_NAME}.${NAME}.log 2>&1 &
 

@@ -78,10 +78,9 @@ type mockBlockApplier struct {
 
 // XXX: Add whitelist/blacklist?
 func (mba *mockBlockApplier) ApplyBlock(
-	state sm.State, blockID types.BlockID, block *types.Block,
-) (sm.State, int64, error) {
+	state sm.State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (sm.State, int64, *types.Deltas, error) {
 	state.LastBlockHeight++
-	return state, 0, nil
+	return state, 0, nil, nil
 }
 
 type mockSwitchIo struct {
@@ -103,7 +102,7 @@ func (sio *mockSwitchIo) sendStatusResponse(height int64, peerID p2p.ID) error {
 	return nil
 }
 
-func (sio *mockSwitchIo) sendBlockToPeer(block *types.Block, peerID p2p.ID) error {
+func (sio *mockSwitchIo) sendBlockToPeer(block *types.Block, delta *types.Deltas, peerID p2p.ID) error {
 	sio.mtx.Lock()
 	defer sio.mtx.Unlock()
 	sio.numBlockResponse++
@@ -155,7 +154,7 @@ func newTestReactor(p testReactorParams) *BlockchainReactor {
 		sm.SaveState(db, state)
 	}
 
-	r := newReactor(state, store, reporter, appl, p.bufferSize, true)
+	r := newReactor(state, store, nil, reporter, appl, p.bufferSize, true)
 	logger := log.TestingLogger()
 	r.SetLogger(logger.With("module", "blockchain"))
 
@@ -522,7 +521,7 @@ func newReactorStore(
 		thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
 		blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
 
-		state, _, err = blockExec.ApplyBlock(state, blockID, thisBlock)
+		state, _, _, err = blockExec.ApplyBlock(state, blockID, thisBlock, nil)
 		if err != nil {
 			panic(errors.Wrap(err, "error apply block"))
 		}

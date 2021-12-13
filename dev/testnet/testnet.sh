@@ -82,18 +82,19 @@ run() {
   p2p_seed_opt=$5
   p2p_seed_arg=$6
 
-  LOG_LEVEL=main:info,*:error
+  LOG_LEVEL=main:info,*:error,consensus:info,state:info
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
+    --enable-proactively-runtx \
     --p2p.pex=false \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 3s \
+    --consensus.timeout_commit 200ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \

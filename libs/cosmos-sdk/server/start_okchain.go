@@ -184,7 +184,7 @@ func Stop() {
 
 // registerRestServerFlags registers the flags required for rest server
 func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
+	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
 	cmd.Flags().String(FlagUlockKeyHome, os.ExpandEnv("$HOME/.exchaincli"), "The keybase home path")
 	cmd.Flags().String(FlagRestPathPrefix, "exchain", "Path prefix for registering rest api route.")

@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -42,7 +43,8 @@ var (
 //-----------------------------------------------------------------------------
 
 var (
-	msgQueueSize = 1000
+	msgQueueSize           = 1000
+	EnableProactivelyRunTx = "enable-proactively-runtx"
 )
 
 // msgs from the reactor which may update the state
@@ -89,9 +91,6 @@ type State struct {
 
 	// store deltas
 	deltaStore sm.DeltaStore
-
-	// store watchData
-	watchStore sm.WatchStore
 
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
@@ -150,6 +149,8 @@ type State struct {
 	metrics *Metrics
 
 	trc *trace.Tracer
+
+	proactivelyRunTx bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -162,7 +163,6 @@ func NewState(
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
 	deltaStore sm.DeltaStore,
-	watchStore sm.WatchStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
@@ -172,7 +172,6 @@ func NewState(
 		blockExec:        blockExec,
 		blockStore:       blockStore,
 		deltaStore:       deltaStore,
-		watchStore:       watchStore,
 		txNotifier:       txNotifier,
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
@@ -185,6 +184,7 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
+		proactivelyRunTx:  viper.GetBool(EnableProactivelyRunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -192,7 +192,9 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
-
+	if cs.proactivelyRunTx {
+		cs.blockExec.InitPrerun()
+	}
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -359,6 +361,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	}
 
 	// now start the receiveRoutine
+
 	go cs.receiveRoutine(0)
 
 	// schedule the first round!
@@ -368,16 +371,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	return nil
 }
 
-// timeoutRoutine: receive requests for timeouts on tickChan and fire timeouts on tockChan
-// receiveRoutine: serializes processing of proposoals, block parts, votes; coordinates state transitions
-func (cs *State) startRoutines(maxSteps int) {
-	err := cs.timeoutTicker.Start()
-	if err != nil {
-		cs.Logger.Error("Error starting timeout ticker", "err", err)
-		return
-	}
-	go cs.receiveRoutine(maxSteps)
-}
+
 
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
@@ -441,12 +435,10 @@ func (cs *State) SetProposal(proposal *types.Proposal, peerID p2p.ID) error {
 
 // AddProposalBlockPart inputs a part of the proposal block.
 func (cs *State) AddProposalBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) error {
-	deltas := &types.Deltas{}
-	wd := &types.WatchData{}
 	if peerID == "" {
-		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas, wd}, ""}
+		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, deltas, wd}, peerID}
+		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, peerID}
 	}
 
 	// TODO: wait for event?!
@@ -1028,8 +1020,6 @@ func (cs *State) isProposer(address []byte) bool {
 func (cs *State) defaultDecideProposal(height int64, round int) {
 	var block *types.Block
 	var blockParts *types.PartSet
-	var deltas *types.Deltas
-	var wd *types.WatchData
 
 	// Decide on block
 	if cs.ValidBlock != nil {
@@ -1041,21 +1031,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
-	}
-
-	// Decide on Deltas
-	if cs.Deltas != nil {
-		deltas = cs.Deltas
-		if types.IsFastQuery() {
-			if cs.WatchData != nil {
-				wd = cs.WatchData
-			} else {
-				wd = &types.WatchData{}
-			}
-		}
-	} else {
-		deltas = &types.Deltas{}
-		wd = &types.WatchData{}
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -1071,7 +1046,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, deltas, wd}, ""})
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
@@ -1186,7 +1161,7 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
-		logger.Error("enterPrevote: ProposalBlock is invalid", "err", err)
+		logger.Error("enterPrevote: ProposalBlock is invalid ", " cs.ProposalBlock", cs.ProposalBlock, "height", height, "round", round, "err", err)
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1331,6 +1306,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlock = nil
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
+		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1382,7 +1358,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Step))
 		return
 	}
-	cs.trc.Pin("%s-%d-%d", trace.RunTx, cs.Round, commitRound)
+	cs.trc.Pin("%s-%d-%d", "Commit", cs.Round, commitRound)
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
@@ -1543,28 +1519,18 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	deltas := &types.Deltas{}
-	wd := &types.WatchData{}
-	fastQuery := types.IsFastQuery()
-	if types.EnableDownloadDelta() || types.EnableApplyP2PDelta() {
+	var deltas *types.Deltas
+	if types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
-		if deltas == nil || deltas.Height != block.Height {
-			deltas = &types.Deltas{}
-		}
-		if fastQuery {
-			wd = cs.WatchData
-			if wd == nil {
-				wd = &types.WatchData{}
-			}
-		}
 	}
 
-	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
+	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+
+	stateCopy, retainHeight, deltas, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block,
-		deltas,
-		wd)
+		deltas)
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1576,15 +1542,8 @@ func (cs *State) finalizeCommit(height int64) {
 
 	if types.EnableBroadcastP2PDelta() {
 		// persists the given deltas to the underlying db.
-		if deltas.Size() > 0 {
-			deltas.Height = block.Height
-			cs.deltaStore.SaveDeltas(deltas, block.Height)
-		}
-		// persists the given WatchData to the underlying db.
-		if fastQuery && wd != nil {
-			wd.Height = block.Height
-			cs.watchStore.SaveWatch(wd, block.Height)
-		}
+		deltas.Height = block.Height
+		cs.deltaStore.SaveDeltas(deltas, block.Height)
 	}
 
 	fail.Fail() // XXX
@@ -1795,6 +1754,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
+		if cs.proactivelyRunTx {
+			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
+		}
+
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
 
@@ -1981,6 +1944,7 @@ func (cs *State) addVote(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
+					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
@@ -2154,3 +2118,4 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
+

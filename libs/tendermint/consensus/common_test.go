@@ -165,10 +165,20 @@ func (vss ValidatorStubsByAddress) Swap(i, j int) {
 
 //-------------------------------------------------------------------------------
 // Functions for transitioning the consensus state
+// timeoutRoutine: receive requests for timeouts on tickChan and fire timeouts on tockChan
+// receiveRoutine: serializes processing of proposoals, block parts, votes; coordinates state transitions
+func (cs *State) startTestRoutines(maxSteps int) {
+	err := cs.timeoutTicker.Start()
+	if err != nil {
+		cs.Logger.Error("Error starting timeout ticker", "err", err)
+		return
+	}
+	go cs.receiveRoutine(maxSteps) // for test
+}
 
 func startTestRound(cs *State, height int64, round int) {
 	cs.enterNewRound(height, round)
-	cs.startRoutines(0)
+	cs.startTestRoutines(0)
 }
 
 // Create proposal block from cs1 but sign it with vs.
@@ -358,6 +368,7 @@ func newStateWithConfigAndBlockStore(
 ) *State {
 	// Get BlockStore
 	blockStore := store.NewBlockStore(blockDB)
+	deltaStore := store.NewDeltaStore(blockDB)
 
 	// one for mempool, one for consensus
 	mtx := new(sync.Mutex)
@@ -378,7 +389,7 @@ func newStateWithConfigAndBlockStore(
 	stateDB := blockDB
 	sm.SaveState(stateDB, state) //for save height 1's validators info
 	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyAppConnCon, mempool, evpool)
-	cs := NewState(thisConfig.Consensus, state, blockExec, blockStore, mempool, evpool)
+	cs := NewState(thisConfig.Consensus, state, blockExec, blockStore, deltaStore, mempool, evpool)
 	cs.SetLogger(log.TestingLogger().With("module", "consensus"))
 	cs.SetPrivValidator(pv)
 
