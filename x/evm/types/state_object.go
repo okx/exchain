@@ -503,40 +503,12 @@ type stateEntry struct {
 
 // because of state_objetc_test.go belong to types_test package, so put BenchmarkKeccak256HashCache here
 func BenchmarkKeccak256HashCache(b *testing.B) {
-	p := &sync.Pool{
-		New: func() interface{} {
-			return ethcrypto.NewKeccakState()
-		},
-	}
 	b.ResetTimer()
 	b.Run("without cache", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
 			_ = ethcrypto.Keccak256Hash(hash[:])
-		}
-	})
-	b.Run("without cache reuse keccak", func(b *testing.B) {
-		b.ReportAllocs()
-		d := ethcrypto.NewKeccakState()
-		for i := 0; i < b.N; i++ {
-			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
-			d.Write(hash[:])
-			var h ethcmn.Hash
-			d.Read(h[:])
-			d.Reset()
-		}
-	})
-	b.Run("without cache use sync Pool", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			d := p.Get().(ethcrypto.KeccakState)
-			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
-			d.Write(hash[:])
-			var h ethcmn.Hash
-			d.Read(h[:])
-			d.Reset()
-			p.Put(d)
 		}
 	})
 	b.Run("lru set", func(b *testing.B) {
@@ -600,6 +572,45 @@ func BenchmarkKeccak256HashCache(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			withoutCacheGet()
+		}
+	})
+}
+
+func BenchmarkKeccak256HashNew(b *testing.B) {
+	p := &sync.Pool{
+		New: func() interface{} {
+			return ethcrypto.NewKeccakState()
+		},
+	}
+	b.ResetTimer()
+	b.Run("new", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			_ = ethcrypto.Keccak256Hash(hash[:])
+		}
+	})
+	b.Run("reuse keccak", func(b *testing.B) {
+		b.ReportAllocs()
+		d := ethcrypto.NewKeccakState()
+		for i := 0; i < b.N; i++ {
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			d.Write(hash[:])
+			var h ethcmn.Hash
+			d.Read(h[:])
+			d.Reset()
+		}
+	})
+	b.Run("use sync Pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			d := p.Get().(ethcrypto.KeccakState)
+			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+			d.Write(hash[:])
+			var h ethcmn.Hash
+			d.Read(h[:])
+			d.Reset()
+			p.Put(d)
 		}
 	})
 }

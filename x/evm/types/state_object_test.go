@@ -140,3 +140,7 @@ func (suite *StateDBTestSuite) TestStateObject_Code() {
 func BenchmarkKeccak256HashCache(b *testing.B) {
 	types.BenchmarkKeccak256HashCache(b)
 }
+
+func BenchmarkKeccak256HashNew(b *testing.B) {
+	types.BenchmarkKeccak256HashNew(b)
+}
