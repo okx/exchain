@@ -134,6 +134,10 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>",
-		d.Height, len(d.DeltasBytes), len(d.WatchBytes), len(d.ABCIRsp))
+	return fmt.Sprintf("height<%d>, point2<%p> deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>",
+		d.Height,
+		d,
+		len(d.DeltasBytes),
+		len(d.WatchBytes),
+		len(d.ABCIRsp))
 }
