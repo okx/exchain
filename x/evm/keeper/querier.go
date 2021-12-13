@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/app/utils"
-	"github.com/okex/exchain/x/evm/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // NewQuerier is the module level router for state queries
@@ -53,10 +53,22 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractDeploymentWhitelist(ctx, keeper)
 		case types.QueryContractBlockedList:
 			return queryContractBlockedList(ctx, keeper)
+		case types.QueryContractMethodBlockedList:
+			return queryContractMethodBlockedList(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
 	}
+}
+
+func queryContractMethodBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	blockedList := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractMethodBlockedList()
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, blockedList)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
 }
 
 func queryContractBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {

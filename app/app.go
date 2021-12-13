@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -32,6 +33,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -56,6 +58,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -93,6 +96,7 @@ var (
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
+			evmclient.ManageContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -193,6 +197,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+	logger.Info(fmt.Sprintf("GenesisHeight<%d>", tendermintTypes.GetStartBlockHeight()))
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -214,6 +219,11 @@ func NewOKExChainApp(
 	appConfig, err := config.ParseConfig()
 	if err != nil {
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		panic(err)
+	}
+	chainId := viper.GetString(flags.FlagChainID)
+	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
+		logger.Error(err.Error())
 		panic(err)
 	}
 
