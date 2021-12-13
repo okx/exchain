@@ -3,17 +3,20 @@ package types
 import (
 	"bytes"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
 	"io"
 	"math/big"
+	"sync"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/VictoriaMetrics/fastcache"
+	lru "github.com/hashicorp/golang-lru"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 const keccak256HashSize = 100000
@@ -21,17 +24,53 @@ const keccak256HashSize = 100000
 var (
 	_ StateObject = (*stateObject)(nil)
 
-	emptyCodeHash         = ethcrypto.Keccak256(nil)
-	keccak256HashCache, _ = lru.NewARC(keccak256HashSize)
+	emptyCodeHash          = ethcrypto.Keccak256(nil)
+	keccak256HashCache, _  = lru.NewARC(keccak256HashSize)
+	keccak256HashFastCache = fastcache.New(128 * keccak256HashSize) // 32 + 20 + 32
+
+	keccakStatePool = &sync.Pool{
+		New: func() interface{} {
+			return ethcrypto.NewKeccakState()
+		},
+	}
 )
 
-func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
+func keccak256HashWithSyncPool(data ...[]byte) (h ethcmn.Hash) {
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(d)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(h[:])
+	return h
+}
+
+func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
 	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
 		return value.(ethcmn.Hash)
 	}
-	value := ethcrypto.Keccak256Hash(compositeKey)
+	value := keccak256HashWithSyncPool(compositeKey)
 	keccak256HashCache.Add(string(compositeKey), value)
 	return value
+}
+
+func keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
+	if _, ok := keccak256HashFastCache.HasGet(hash[:0], compositeKey); ok {
+		return
+	}
+	hash = keccak256HashWithSyncPool(compositeKey)
+	keccak256HashFastCache.Set(compositeKey, hash[:])
+	return
+}
+
+func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
+	// if length of compositeKey + hash size is greater than 128, use lru cache
+	if len(compositeKey) > 128-ethcmn.HashLength {
+		return keccak256HashWithLruCache(compositeKey)
+	} else {
+		return keccak256HashWithFastCache(compositeKey)
+	}
 }
 
 // StateObject interface for interacting with state object
