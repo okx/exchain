@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 NUM_NODE=4
+HARDCODED_MNEMONIC=false
 
 set -e
 set -o errexit
@@ -11,7 +12,7 @@ set -x # activate debugging
 
 source exchain.profile
 
-while getopts "isn:b:p:S" opt; do
+while getopts "isn:b:p:Sm" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -36,6 +37,10 @@ while getopts "isn:b:p:S" opt; do
   p)
     echo "IP=$OPTARG"
     IP=$OPTARG
+    ;;
+  m)
+    echo "HARDCODED_MNEMONIC"
+    HARDCODED_MNEMONIC=true
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -70,7 +75,8 @@ init() {
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
-    --keyring-backend test
+    --keyring-backend test \
+    --mnemonic=${HARDCODED_MNEMONIC}
 }
 
 run() {
