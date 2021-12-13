@@ -91,10 +91,12 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// set external package flags
-			setExternalPackageValue(cmd)
 			// app pre run
 			appPreRun(ctx)
+
+			// set external package flags
+			setExternalPackageValue(cmd)
+
 			// pruning options
 			_, err := GetPruningOptionsFromFlags()
 			return err
@@ -150,11 +152,10 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
-	cmd.Flags().Bool(abci.FlagDisableQueryMutex, false, "Disable local client query mutex for better concurrency")
-	cmd.Flags().Bool(abci.FlagDisableCheckTxMutex, false, "Disable local client checkTx mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
-	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
+	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
 
@@ -182,6 +183,7 @@ which accepts a path for the resulting pprof file.
 	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
+	cmd.AddCommand(nodeModeCmd(ctx))
 	return cmd
 }
 
@@ -341,7 +343,6 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
 	state.HomeDir = viper.GetString(cli.HomeFlag)
 
-	abci.SetDisableQueryMutex(viper.GetBool(abci.FlagDisableQueryMutex))
-	abci.SetDisableCheckTxMutex(viper.GetBool(abci.FlagDisableCheckTxMutex))
+	abci.SetDisableABCIQueryMutex(viper.GetBool(abci.FlagDisableABCIQueryMutex))
 	abci.SetDisableCheckTx(viper.GetBool(abci.FlagDisableCheckTx))
 }

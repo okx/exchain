@@ -1,4 +1,4 @@
-# ExChain
+# OEC
 The Infrastructure of Decentralized Exchange
 
 ![banner](./docs/images/oec.jpeg)
@@ -11,7 +11,7 @@ The Infrastructure of Decentralized Exchange
 [![LoC](https://tokei.rs/b1/github/okex/exchain)](https://github.com/okex/exchain)
 [![GolangCI](https://golangci.com/badges/github.com/okex/exchain.svg)](https://golangci.com/r/github.com/okex/exchain)
 
-This repository hosts `ExChain`, the implementation of the ExChain based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
+This repository hosts `OEC`, the implementation of the OEC based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
 **Note**: Requires [Go 1.14](https://golang.org/dl/)
 
