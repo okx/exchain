@@ -50,7 +50,7 @@ func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
 	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
 		return value.(ethcmn.Hash)
 	}
-	value := ethcrypto.Keccak256Hash(compositeKey)
+	value := keccak256HashWithSyncPool(compositeKey)
 	keccak256HashCache.Add(string(compositeKey), value)
 	return value
 }
@@ -59,7 +59,7 @@ func keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
 	if _, ok := keccak256HashFastCache.HasGet(hash[:0], compositeKey); ok {
 		return
 	}
-	hash = ethcrypto.Keccak256Hash(compositeKey)
+	hash = keccak256HashWithSyncPool(compositeKey)
 	keccak256HashFastCache.Set(compositeKey, hash[:])
 	return
 }
