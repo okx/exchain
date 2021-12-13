@@ -137,6 +137,10 @@ func (suite *StateDBTestSuite) TestStateObject_Code() {
 	}
 }
 
+func TestKeccak256HashWithSyncPool(t *testing.T) {
+	types.TestKeccak256HashWithSyncPool(t)
+}
+
 func BenchmarkKeccak256HashCache(b *testing.B) {
 	types.BenchmarkKeccak256HashCache(b)
 }

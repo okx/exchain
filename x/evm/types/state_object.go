@@ -28,7 +28,24 @@ var (
 	emptyCodeHash          = ethcrypto.Keccak256(nil)
 	keccak256HashCache, _  = lru.NewARC(keccak256HashSize)
 	keccak256HashFastCache = fastcache.New(128 * keccak256HashSize) // 32 + 20 + 32
+
+	keccakStatePool = &sync.Pool{
+		New: func() interface{} {
+			return ethcrypto.NewKeccakState()
+		},
+	}
 )
+
+func keccak256HashWithSyncPool(data ...[]byte) (h ethcmn.Hash) {
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(d)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(h[:])
+	return h
+}
 
 func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
 	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
@@ -576,12 +593,19 @@ func BenchmarkKeccak256HashCache(b *testing.B) {
 	})
 }
 
-func BenchmarkKeccak256HashNew(b *testing.B) {
-	p := &sync.Pool{
-		New: func() interface{} {
-			return ethcrypto.NewKeccakState()
-		},
+func TestKeccak256HashWithSyncPool(t *testing.T) {
+	t.Parallel()
+	for i := 0; i < 100; i++ {
+		hash := ethcmn.BigToHash(big.NewInt(int64(i)))
+		actual := keccak256HashWithSyncPool(hash[:])
+		expect := ethcrypto.Keccak256Hash(hash[:])
+		if actual != expect {
+			t.Errorf("expect %v, actual %v", expect, actual)
+		}
 	}
+}
+
+func BenchmarkKeccak256HashNew(b *testing.B) {
 	b.ResetTimer()
 	b.Run("new", func(b *testing.B) {
 		b.ReportAllocs()
@@ -604,13 +628,8 @@ func BenchmarkKeccak256HashNew(b *testing.B) {
 	b.Run("use sync Pool", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			d := p.Get().(ethcrypto.KeccakState)
 			hash := ethcmn.BigToHash(big.NewInt(int64(i)))
-			d.Write(hash[:])
-			var h ethcmn.Hash
-			d.Read(h[:])
-			d.Reset()
-			p.Put(d)
+			_ = keccak256HashWithSyncPool(hash[:])
 		}
 	})
 }
