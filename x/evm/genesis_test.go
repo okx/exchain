@@ -5,11 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -18,11 +13,16 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -40,6 +40,11 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 	suite.Require().NoError(err)
 
 	address := privkey.PubKey().Address()
+
+	privkey1, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address1 := privkey1.PubKey().Address()
 
 	testCases := []struct {
 		name        string
@@ -156,6 +161,61 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				blockedList := suite.stateDB.GetContractBlockedList()
 				suite.Require().Equal(1, len(blockedList))
 				suite.Require().Equal(sdk.AccAddress(address.Bytes()), blockedList[0])
+			},
+			false,
+		},
+		{
+			"valid contract method blocked list",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+				ContractBlockedList: types.AddressList{address.Bytes()},
+				ContractMethodBlockedList: types.BlockedContractList{
+					types.BlockedContract{
+						Address: address1.Bytes(),
+						BlockMethods: types.ContractMethods{
+							types.ContractMethod{
+								Sign:  "0x11111111",
+								Extra: "TEST1",
+							},
+						},
+					},
+				},
+			},
+			func() {
+				blockedList := suite.stateDB.GetContractBlockedList()
+				suite.Require().Equal(1, len(blockedList))
+				suite.Require().Equal(sdk.AccAddress(address.Bytes()), blockedList[0])
+
+				bcl := suite.stateDB.GetContractMethodBlockedList()
+				expected := types.BlockedContractList{
+					types.BlockedContract{
+						Address: address1.Bytes(),
+						BlockMethods: types.ContractMethods{
+							types.ContractMethod{
+								Sign:  "0x11111111",
+								Extra: "TEST1",
+							},
+						},
+					},
+					types.BlockedContract{
+						Address: address.Bytes(),
+					},
+				}
+				suite.Require().Equal(2, len(bcl))
+				ok := types.BlockedContractListIsEqual(bcl, expected)
+				suite.Require().True(ok)
 			},
 			false,
 		},
@@ -309,6 +369,72 @@ func (suite *EvmTestSuite) TestExport() {
 		},
 		ContractDeploymentWhitelist: types.AddressList{address.Bytes()},
 		ContractBlockedList:         types.AddressList{address.Bytes()},
+	}
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+
+	suite.Require().NotPanics(func() {
+		evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
+	})
+}
+
+func (suite *EvmTestSuite) TestExport1() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+
+	privkey1, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address1 := privkey1.PubKey().Address()
+
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+
+	initGenesis := types.GenesisState{
+		Params: types.DefaultParams(),
+		Accounts: []types.GenesisAccount{
+			{
+				Address: address.String(),
+				Storage: types.Storage{
+					{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
+				},
+			},
+		},
+		TxsLogs: []types.TransactionLogs{
+			{
+				Hash: common.BytesToHash([]byte("tx_hash")),
+				Logs: []*ethtypes.Log{
+					{
+						Address:     address,
+						Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+						Data:        []byte("data"),
+						BlockNumber: 1,
+						TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
+						TxIndex:     1,
+						BlockHash:   ethcmn.BytesToHash([]byte("block_hash")),
+						Index:       1,
+						Removed:     false,
+					},
+				},
+			},
+		},
+		ContractDeploymentWhitelist: types.AddressList{address.Bytes()},
+		ContractBlockedList:         types.AddressList{address.Bytes()},
+		ContractMethodBlockedList: types.BlockedContractList{
+			types.BlockedContract{
+				Address: address1.Bytes(),
+				BlockMethods: types.ContractMethods{
+					types.ContractMethod{
+						Sign:  "0x11111111",
+						Extra: "TEST1",
+					},
+				},
+			},
+		},
 	}
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
@@ -475,6 +601,178 @@ func (suite *EvmTestSuite) TestExport_files() {
 		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
 		suite.Require().Equal(expectedAddrList, exportState.ContractDeploymentWhitelist)
 		suite.Require().Equal(expectedAddrList, exportState.ContractBlockedList)
+	})
+	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
+
+	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage, expectedAddrList)
+}
+
+func (suite *EvmTestSuite) TestExport_files1() {
+	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	privkey1, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+	address1 := privkey1.PubKey().Address()
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+
+	expectedAddrList := types.AddressList{address.Bytes()}
+
+	code := []byte{1, 2, 3}
+	ethAccount := ethermint.EthAccount{
+		BaseAccount: &auth.BaseAccount{
+			Address: acc.GetAddress(),
+		},
+		CodeHash: ethcrypto.Keccak256(code),
+	}
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	storage := types.Storage{
+		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
+		{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
+		{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
+	}
+	evmAcc := types.GenesisAccount{
+		Address: address.String(),
+		Code:    code,
+		Storage: storage,
+	}
+	expectedContractMethodBlockedList := types.BlockedContractList{
+		types.BlockedContract{
+			Address: address1.Bytes(),
+			BlockMethods: types.ContractMethods{
+				types.ContractMethod{
+					Sign:  "0x11111111",
+					Extra: "TEST1",
+				},
+			},
+		},
+	}
+	initGenesis := types.GenesisState{
+		Params:                      types.DefaultParams(),
+		Accounts:                    []types.GenesisAccount{evmAcc},
+		ContractDeploymentWhitelist: expectedAddrList,
+		ContractBlockedList:         expectedAddrList,
+		ContractMethodBlockedList:   expectedContractMethodBlockedList,
+	}
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+
+	tmpPath := "./test_tmp_db"
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+
+	defer func() {
+		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.RemoveAll(tmpPath)
+	}()
+
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "storage"))
+	var exportState types.GenesisState
+	suite.Require().NotPanics(func() {
+		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
+		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
+		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
+		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
+		suite.Require().Equal(expectedAddrList, exportState.ContractDeploymentWhitelist)
+		suite.Require().Equal(expectedAddrList, exportState.ContractBlockedList)
+		suite.Require().True(types.BlockedContractListIsEqual(exportState.ContractMethodBlockedList, expectedContractMethodBlockedList))
+	})
+	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
+
+	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage, expectedAddrList)
+}
+
+func (suite *EvmTestSuite) TestExport_files2() {
+	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+
+	expectedAddrList := types.AddressList{address.Bytes()}
+
+	code := []byte{1, 2, 3}
+	ethAccount := ethermint.EthAccount{
+		BaseAccount: &auth.BaseAccount{
+			Address: acc.GetAddress(),
+		},
+		CodeHash: ethcrypto.Keccak256(code),
+	}
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	storage := types.Storage{
+		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
+		{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
+		{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
+	}
+	evmAcc := types.GenesisAccount{
+		Address: address.String(),
+		Code:    code,
+		Storage: storage,
+	}
+	expectedContractMethodBlockedList := types.BlockedContractList{
+		types.BlockedContract{
+			Address: address.Bytes(),
+			BlockMethods: types.ContractMethods{
+				types.ContractMethod{
+					Sign:  "0x11111111",
+					Extra: "TEST1",
+				},
+			},
+		},
+	}
+	initGenesis := types.GenesisState{
+		Params:                      types.DefaultParams(),
+		Accounts:                    []types.GenesisAccount{evmAcc},
+		ContractDeploymentWhitelist: expectedAddrList,
+		ContractBlockedList:         expectedAddrList,
+		ContractMethodBlockedList:   expectedContractMethodBlockedList,
+	}
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+
+	tmpPath := "./test_tmp_db"
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+
+	defer func() {
+		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.RemoveAll(tmpPath)
+	}()
+
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "storage"))
+	var exportState types.GenesisState
+	suite.Require().NotPanics(func() {
+		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
+		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
+		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
+		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
+		suite.Require().Equal(expectedAddrList, exportState.ContractDeploymentWhitelist)
+		suite.Require().Equal(expectedAddrList, exportState.ContractBlockedList)
+		suite.Require().Equal(0, len(exportState.ContractMethodBlockedList))
 	})
 	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
 	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))

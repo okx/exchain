@@ -5,17 +5,17 @@ import (
 	"math/big"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/suite"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type StateDBTestSuite struct {
@@ -834,4 +834,365 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractBlockedList() {
 			suite.Require().Equal(tc.expectedLen, len(blockedList))
 		})
 	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
+	// create addresses for test
+	bcMethodOne1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+	bcMethodTwo1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+
+	bcMethodOne3 := types.BlockedContract{
+		Address: bcMethodOne1.Address,
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+		},
+	}
+	methods := types.ContractMethods{}
+	methods = append(methods, bcMethodOne1.BlockMethods...)
+	methods = append(methods, bcMethodOne3.BlockMethods...)
+	expectBcMethodOne3 := types.NewBlockContract(bcMethodOne1.Address, methods)
+
+	bcMethodOne4 := types.BlockedContract{
+		Address: bcMethodOne1.Address,
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+			types.ContractMethod{
+				Sign:  "cccc",
+				Extra: "cccc()",
+			},
+		},
+	}
+	methods = types.ContractMethods{}
+	methods = append(methods, bcMethodOne1.BlockMethods...)
+	methods = append(methods, bcMethodOne4.BlockMethods...)
+	expectBcMethodOne4 := types.NewBlockContract(bcMethodOne1.Address, methods)
+
+	bcMethodOne5 := types.BlockedContract{
+		Address: bcMethodOne1.Address,
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+			types.ContractMethod{
+				Sign:  "cccc",
+				Extra: "cccc()",
+			},
+			types.ContractMethod{
+				Sign:  "dddd",
+				Extra: "dddd()",
+			},
+		},
+	}
+
+	testCase := []struct {
+		name           string
+		targetAddrList types.BlockedContractList
+		// true -> add, false -> delete
+		isAdded              bool
+		expectedLen          int
+		expectedContractList types.BlockedContractList
+	}{
+		{
+			"add empty blocked contract list",
+			types.BlockedContractList{},
+			true,
+			0,
+			nil,
+		},
+		{
+			"add list with one member into blocked list",
+			types.BlockedContractList{bcMethodOne1},
+			true,
+			1,
+			types.BlockedContractList{bcMethodOne1},
+		},
+		{
+			"add list with two members into the blocked list that has contained one member already",
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
+			2,
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+		},
+		{
+			"add list with one members(method empty) into the blocked list that has contained one member already",
+			types.BlockedContractList{bcMethodOne1},
+			true,
+			2,
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+		},
+		{
+			"delete empty from blocked list",
+			types.BlockedContractList{},
+			false,
+			2,
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+		},
+		{
+			"delete list with one members from the blocked list that has contained one member only",
+			types.BlockedContractList{bcMethodTwo1},
+			false,
+			1,
+			types.BlockedContractList{bcMethodOne1},
+		},
+		{
+			"delete list with two members from the empty blocked list",
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			false,
+			0,
+			nil,
+		},
+		{
+			"reset contract method blocked list",
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
+			2,
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+		},
+		{
+			"add new method into contract method blocked list",
+			types.BlockedContractList{bcMethodOne3},
+			true,
+			2,
+			types.BlockedContractList{*expectBcMethodOne3, bcMethodTwo1},
+		},
+		{
+			"add new methods which is one method exist into contract method blocked list",
+			types.BlockedContractList{bcMethodOne4},
+			true,
+			2,
+			types.BlockedContractList{*expectBcMethodOne4, bcMethodTwo1},
+		},
+		{
+			"delete methods which is not exist from contract method blocked list",
+			types.BlockedContractList{bcMethodOne5},
+			false,
+			2,
+			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+		},
+		{
+			"delete all methods from contract method blocked list",
+			types.BlockedContractList{bcMethodOne1},
+			false,
+			1,
+			types.BlockedContractList{bcMethodTwo1},
+		},
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			if tc.isAdded {
+				suite.stateDB.SetContractMethodBlockedList(tc.targetAddrList)
+			} else {
+				suite.stateDB.DeleteContractMethodBlockedList(tc.targetAddrList)
+			}
+
+			blockedList := suite.stateDB.GetContractMethodBlockedList()
+			suite.Require().Equal(tc.expectedLen, len(blockedList))
+			if tc.expectedLen != 0 {
+				ok := types.BlockedContractListIsEqual(tc.expectedContractList, blockedList)
+				suite.Require().True(ok)
+			}
+		})
+	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList_BlockedList() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	bcMethodOne1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+	bcMethodTwo1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+
+	// set contract method blocked list with same blocked list
+	suite.stateDB.SetContractBlockedList(types.AddressList{addr1})
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	bcl := suite.stateDB.GetContractMethodBlockedList()
+	ok := types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1}, bcl)
+	suite.Require().True(ok)
+	// set contract method blocked list with not same blocked list
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	bcl = suite.stateDB.GetContractMethodBlockedList()
+	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1, bcMethodTwo1}, bcl)
+	suite.Require().True(ok)
+
+	// set blocked list with  same method blocked list
+	suite.stateDB.SetContractBlockedList(types.AddressList{addr1})
+	bcl = suite.stateDB.GetContractMethodBlockedList()
+	expect := types.NewBlockContract(bcMethodOne1.Address, nil)
+	ok = types.BlockedContractListIsEqual(types.BlockedContractList{*expect, bcMethodTwo1}, bcl)
+	suite.Require().True(ok)
+
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_GetContractMethodBlockedByAddress() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+	bcMethodOne1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+	bcMethodTwo1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+		},
+	}
+
+	// get blocked list is not exist
+	bc := suite.stateDB.GetContractMethodBlockedByAddress(addr1)
+	suite.Require().Nil(bc)
+
+	// get blocked list
+	suite.stateDB.SetContractBlockedList(types.AddressList{addr1, addr2})
+	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr1)
+	suite.Require().NotNil(bc)
+	suite.Require().Equal(0, len(bc.BlockMethods))
+	suite.Require().Equal(addr1, bc.Address.Bytes())
+
+	// get blocked list
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr1)
+	suite.Require().NotNil(bc)
+	ok := types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1}, types.BlockedContractList{*bc})
+	suite.Require().True(ok)
+
+	// get blocked list from cache
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr2)
+	suite.Require().NotNil(bc)
+	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodTwo1}, types.BlockedContractList{*bc})
+	suite.Require().True(ok)
+
+	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr2)
+	suite.Require().NotNil(bc)
+	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodTwo1}, types.BlockedContractList{*bc})
+	suite.Require().True(ok)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_IsContractMethodBlocked() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+	bcMethodOne1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+	bcMethodTwo1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+		},
+	}
+
+	// contract method is not exist
+	ok := suite.stateDB.IsContractMethodBlocked(addr1, "")
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "aaaa")
+	suite.Require().False(ok)
+
+	// contract all method is blocked
+	suite.stateDB.SetContractBlockedList(types.AddressList{addr1, addr2})
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "")
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "aaaa")
+	suite.Require().False(ok)
+
+	// contract aaaa method is blocked
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "")
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "aaaa")
+	suite.Require().True(ok)
+
+	// contract aaaa method is blocked
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "")
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractMethodBlocked(addr1, "bbbb")
+	suite.Require().False(ok)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_IsContractInBlockedList() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	bcMethodTwo1 := types.BlockedContract{
+		Address: ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		BlockMethods: types.ContractMethods{
+			types.ContractMethod{
+				Sign:  "bbbb",
+				Extra: "bbbb()",
+			},
+		},
+	}
+	// contract is not exist
+	ok := suite.stateDB.IsContractInBlockedList(addr1)
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractInBlockedList(addr2)
+	suite.Require().False(ok)
+	// contract is exist
+	suite.stateDB.SetContractBlockedList(types.AddressList{addr1})
+	ok = suite.stateDB.IsContractInBlockedList(addr1)
+	suite.Require().True(ok)
+	ok = suite.stateDB.IsContractInBlockedList(addr2)
+	suite.Require().False(ok)
+
+	// contract method is blocked
+	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	ok = suite.stateDB.IsContractInBlockedList(addr2)
+	suite.Require().False(ok)
+	ok = suite.stateDB.IsContractInBlockedList(addr1)
+	suite.Require().True(ok)
 }
