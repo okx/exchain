@@ -192,7 +192,9 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
-	cs.blockExec.InitPrerun(cs.proactivelyRunTx)
+	if cs.proactivelyRunTx {
+		cs.blockExec.InitPrerun()
+	}
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)

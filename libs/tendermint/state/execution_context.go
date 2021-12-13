@@ -132,9 +132,7 @@ func prerun(context *executionContext) {
 }
 
 
-func (blockExec *BlockExecutor) InitPrerun(open bool) {
-	blockExec.proactivelyRunTx = open
-	if blockExec.proactivelyRunTx {
-		go blockExec.prerunRoutine()
-	}
+func (blockExec *BlockExecutor) InitPrerun() {
+	blockExec.proactivelyRunTx = true
+	go blockExec.prerunRoutine()
 }
