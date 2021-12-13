@@ -168,7 +168,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ExtraEips:  params.ExtraEIPs,
 		Debug:      enableDebug,
 		Tracer:     tracer,
-		OKVerifier: NewContractVerifier(params),
+		ContractVerifier: NewContractVerifier(params),
 	}
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)

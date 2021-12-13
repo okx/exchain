@@ -567,12 +567,12 @@ github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OS
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
-github.com/okex/go-ethereum v1.10.9-0.20211111035526-1691f5b1c7c1 h1:8XGX8f/Rsf2oM2fmPAcUiZ6vVL6/JEgxwV2zPBCbOuc=
-github.com/okex/go-ethereum v1.10.9-0.20211111035526-1691f5b1c7c1/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
 github.com/okex/go-amino v0.15.2-0.20211120080923-5ccee577b032 h1:OjhWj3dFNno/XilNxfdh0CfoThMmX2yYfQUoVxifNlA=
 github.com/okex/go-amino v0.15.2-0.20211120080923-5ccee577b032/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
-github.com/okex/tm-db v0.5.3-0.20211118074832-0d08619b97fe h1:Gyui6RFk0KNRz1CbnEcx3Vhbii8heCh0zuVHeUbiwWc=
-github.com/okex/tm-db v0.5.3-0.20211118074832-0d08619b97fe/go.mod h1:VrPTx04QJhQ9d8TFUTc2GpPBvBf/U9vIdBIzkjBk7Lk=
+github.com/okex/go-ethereum v1.10.8-oec2 h1:FBHZgT/R/0FSP1JyNj9y/kVxwqtxSieth6lBRnMHbPQ=
+github.com/okex/go-ethereum v1.10.8-oec2/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
+github.com/okex/tm-db v0.5.2-exchain3 h1:58wxI41vGvg+VeP1waa6CpWVN+kcy2nTsewHp64/ooU=
+github.com/okex/tm-db v0.5.2-exchain3/go.mod h1:VrPTx04QJhQ9d8TFUTc2GpPBvBf/U9vIdBIzkjBk7Lk=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
