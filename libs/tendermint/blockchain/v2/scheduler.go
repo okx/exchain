@@ -30,6 +30,7 @@ type scBlockReceived struct {
 	priorityNormal
 	peerID p2p.ID
 	block  *types.Block
+	deltas *types.Deltas
 }
 
 // scheduler detected a peer error
@@ -532,7 +533,7 @@ func (sc *scheduler) handleBlockResponse(event bcBlockResponse) (Event, error) {
 		return scPeerError{peerID: event.peerID, reason: err}, nil
 	}
 
-	return scBlockReceived{peerID: event.peerID, block: event.block}, nil
+	return scBlockReceived{peerID: event.peerID, block: event.block, deltas: event.deltas}, nil
 }
 
 func (sc *scheduler) handleNoBlockResponse(event bcNoBlockResponse) (Event, error) {

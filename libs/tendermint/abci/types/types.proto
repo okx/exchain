@@ -80,6 +80,7 @@ message RequestBeginBlock {
   Header            header               = 2 [(gogoproto.nullable) = false];
   LastCommitInfo    last_commit_info     = 3 [(gogoproto.nullable) = false];
   repeated Evidence byzantine_validators = 4 [(gogoproto.nullable) = false];
+  bool              use_deltas           = 5;
 }
 
 enum CheckTxType {
@@ -100,7 +101,13 @@ message RequestEndBlock {
   int64 height = 1;
 }
 
-message RequestCommit {}
+message Deltas {
+  bytes abci_rsp = 1;
+  bytes deltas_byte = 2;
+}
+message RequestCommit {
+  Deltas deltas = 1;
+}
 
 //----------------------------------------
 // Response types
@@ -209,6 +216,7 @@ message ResponseCommit {
   // reserve 1
   bytes data          = 2;
   int64 retain_height = 3;
+  Deltas deltas = 4;
 }
 
 //----------------------------------------

@@ -39,10 +39,10 @@ func TestRepair013Orphans(t *testing.T) {
 	require.EqualValues(t, 6, version)
 
 	// We now generate two empty versions, and check all persisted versions.
-	_, version, err = tree.SaveVersion()
+	_, version, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.EqualValues(t, 7, version)
-	_, version, err = tree.SaveVersion()
+	_, version, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.EqualValues(t, 8, version)
 

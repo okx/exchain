@@ -18,9 +18,9 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.set([]byte("k1"), []byte("Fred"))
-	hash, version, err := tree.SaveVersion()
+	hash, version, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	require.NoError(t, tree.DeleteVersion(version))
@@ -74,7 +74,7 @@ func TestMutableTree_DeleteVersions(t *testing.T) {
 			_ = tree.Set(k, v)
 		}
 
-		_, v, err := tree.SaveVersion()
+		_, v, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 
 		versionEntries[v] = entries
@@ -123,7 +123,7 @@ func TestMutableTree_DeleteVersionsRange(t *testing.T) {
 		// Set kv pair and save version
 		tree.Set([]byte("aaa"), []byte("bbb"))
 		tree.Set([]byte("key"+countStr), []byte("value"+countStr))
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(err, "SaveVersion should not fail")
 	}
 
@@ -189,12 +189,12 @@ func TestMutableTree_InitialVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
-	_, version, err := tree.SaveVersion()
+	_, version, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.EqualValues(t, 10, version)
 
 	tree.Set([]byte("b"), []byte{0x02})
-	_, version, err = tree.SaveVersion()
+	_, version, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.EqualValues(t, 11, version)
 
@@ -219,7 +219,7 @@ func TestMutableTree_InitialVersion(t *testing.T) {
 	assert.EqualValues(t, 11, version)
 
 	tree.Set([]byte("c"), []byte{0x03})
-	_, version, err = tree.SaveVersion()
+	_, version, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.EqualValues(t, 12, version)
 }
@@ -231,7 +231,7 @@ func TestMutableTree_SetInitialVersion(t *testing.T) {
 	tree.SetInitialVersion(9)
 
 	tree.Set([]byte("a"), []byte{0x01})
-	_, version, err := tree.SaveVersion()
+	_, version, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.EqualValues(t, 10, version)
 }

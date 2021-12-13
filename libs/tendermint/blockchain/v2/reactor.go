@@ -52,7 +52,8 @@ func (m *bcNoBlockResponseMessage) String() string {
 //-------------------------------------
 
 type bcBlockResponseMessage struct {
-	Block *types.Block
+	Block  *types.Block
+	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.
@@ -125,6 +126,11 @@ type blockStore interface {
 	Height() int64
 }
 
+type deltaStore interface {
+	SaveDeltas(deltas *types.Deltas, height int64)
+	LoadDeltas(height int64) *types.Deltas
+}
+
 // BlockchainReactor handles fast sync protocol.
 type BlockchainReactor struct {
 	p2p.BaseReactor
@@ -142,6 +148,7 @@ type BlockchainReactor struct {
 	reporter behaviour.Reporter
 	io       iIO
 	store    blockStore
+	dstore   deltaStore
 }
 
 //nolint:unused,deadcode
@@ -151,15 +158,15 @@ type blockVerifier interface {
 
 //nolint:deadcode
 type blockApplier interface {
-	ApplyBlock(state state.State, blockID types.BlockID, block *types.Block) (state.State, int64, error)
+	ApplyBlock(state state.State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (state.State, int64, *types.Deltas, error)
 }
 
 // XXX: unify naming in this package around tmState
 // XXX: V1 stores a copy of state as initialState, which is never mutated. Is that nessesary?
-func newReactor(state state.State, store blockStore, reporter behaviour.Reporter,
+func newReactor(state state.State, store blockStore, dstore deltaStore, reporter behaviour.Reporter,
 	blockApplier blockApplier, bufferSize int, fastSync bool) *BlockchainReactor {
 	scheduler := newScheduler(state.LastBlockHeight, time.Now())
-	pContext := newProcessorContext(store, blockApplier, state)
+	pContext := newProcessorContext(store, dstore, blockApplier, state)
 	// TODO: Fix naming to just newProcesssor
 	// newPcState requires a processorContext
 	processor := newPcState(pContext)
@@ -180,9 +187,10 @@ func NewBlockchainReactor(
 	state state.State,
 	blockApplier blockApplier,
 	store blockStore,
+	dstore deltaStore,
 	fastSync bool) *BlockchainReactor {
 	reporter := behaviour.NewMockReporter()
-	return newReactor(state, store, reporter, blockApplier, 1000, fastSync)
+	return newReactor(state, store, dstore, reporter, blockApplier, 1000, fastSync)
 }
 
 // SetSwitch implements Reactor interface.
@@ -268,6 +276,7 @@ type bcBlockResponse struct {
 	peerID p2p.ID
 	size   int64
 	block  *types.Block
+	deltas *types.Deltas
 }
 
 // blockNoResponse message received from a peer
@@ -514,8 +523,10 @@ func (r *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	case *bcBlockRequestMessage:
 		block := r.store.LoadBlock(msg.Height)
+		deltas := r.dstore.LoadDeltas(msg.Height)
+
 		if block != nil {
-			if err = r.io.sendBlockToPeer(block, src.ID()); err != nil {
+			if err = r.io.sendBlockToPeer(block, deltas, src.ID()); err != nil {
 				r.logger.Error("Could not send block message to peer: ", err)
 			}
 		} else {
@@ -533,6 +544,7 @@ func (r *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		r.events <- bcBlockResponse{
 			peerID: src.ID(),
 			block:  msg.Block,
+			deltas: msg.Deltas,
 			size:   int64(len(msgBytes)),
 			time:   time.Now(),
 		}

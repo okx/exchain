@@ -118,13 +118,13 @@ func (app *localClient) QueryAsync(req types.RequestQuery) *ReqRes {
 	)
 }
 
-func (app *localClient) CommitAsync() *ReqRes {
+func (app *localClient) CommitAsync(req types.RequestCommit) *ReqRes {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	res := app.Application.Commit()
+	res := app.Application.Commit(req)
 	return app.callback(
-		types.ToRequestCommit(),
+		types.ToRequestCommit(req),
 		types.ToResponseCommit(res),
 	)
 }
@@ -222,11 +222,11 @@ func (app *localClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery,
 	return &res, nil
 }
 
-func (app *localClient) CommitSync() (*types.ResponseCommit, error) {
+func (app *localClient) CommitSync(req types.RequestCommit) (*types.ResponseCommit, error) {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	res := app.Application.Commit()
+	res := app.Application.Commit(req)
 	return &res, nil
 }
 

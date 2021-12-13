@@ -62,6 +62,24 @@ func (m MsgEthTx) GetType() uint32 {
 	return TypeOthers
 }
 
+type Batch struct {
+	Key       []byte `json:"key"`
+	Value     []byte `json:"value"`
+	TypeValue uint32 `json:"type_value"`
+}
+
+type WatchData struct {
+	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
+	Batches       []*Batch          `json:"batches"`
+	DelayEraseKey [][]byte          `json:"delay_erase_key"`
+	BloomData     []*types.KV       `json:"bloom_data"`
+	DirtyList     [][]byte          `json:"dirty_list"`
+}
+
+func (w *WatchData) Size() int {
+	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
+}
+
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
 	ethTx, e := rpctypes.NewTransaction(tx, txHash, blockHash, height, index)
 	if e != nil {

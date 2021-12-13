@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"log"
 	"sort"
@@ -24,6 +25,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
+
+var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	latestVersionKey = "s/latest"
@@ -169,6 +172,23 @@ func (rs *Store) GetLatestVersion() int64 {
 // LoadVersion implements CommitMultiStore.
 func (rs *Store) LoadVersion(ver int64) error {
 	return rs.loadVersion(ver, nil)
+}
+
+func (rs *Store) GetCommitVersion() (int64, error) {
+	var minVersion int64 = 1<<63 - 1
+	for _, storeParams := range rs.storesParams {
+		if storeParams.typ != types.StoreTypeIAVL {
+			continue
+		}
+		commitVersion, err := rs.getCommitVersionFromParams(storeParams)
+		if err != nil {
+			return 0, err
+		}
+		if commitVersion < minVersion {
+			minVersion = commitVersion
+		}
+	}
+	return minVersion, nil
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
@@ -384,10 +404,10 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) Commit() types.CommitID {
+func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo = commitStores(version, rs.stores)
+	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -428,7 +448,7 @@ func (rs *Store) Commit() types.CommitID {
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
-	}
+	}, iavltree.TreeDelta{}, deltas
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -705,6 +725,19 @@ func (rs *Store) GetDBReadTime() int {
 	return count
 }
 
+func (rs *Store) getCommitVersionFromParams(params storeParams) (int64, error) {
+	var db dbm.DB
+
+	if params.db != nil {
+		db = dbm.NewPrefixDB(params.db, []byte("s/_/"))
+	} else {
+		prefix := "s/k:" + params.key.Name() + "/"
+		db = dbm.NewPrefixDB(rs.db, []byte(prefix))
+	}
+
+	return iavl.GetCommitVersion(db)
+}
+
 func (rs *Store) GetDBWriteCount() int {
 	count := 0
 	for _, store := range rs.stores {
@@ -830,11 +863,22 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore) commitInfo {
-	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
+//	storeInfos := make([]storeInfo, 0, len(storeMap))
+	var storeInfos []storeInfo
+	appliedDeltas := map[string]*iavltree.TreeDelta{}
+	returnedDeltas := map[string]iavltree.TreeDelta{}
+
+	var err error
+	if (tmtypes.EnableApplyP2PDelta() || tmtypes.EnableDownloadDelta()) && len(deltas) != 0 {
+		err = itjs.Unmarshal(deltas, &appliedDeltas)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	for key, store := range storeMap {
-		commitID := store.Commit()
+		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], deltas)
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
@@ -844,12 +888,20 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
+		returnedDeltas[key.Name()] = reDelta
+	}
+
+	if tmtypes.EnableBroadcastP2PDelta() || tmtypes.EnableUploadDelta() {
+		deltas, err = itjs.Marshal(returnedDeltas)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
-	}
+	}, deltas
 }
 
 // Gets commitInfo from disk.

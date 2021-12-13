@@ -62,6 +62,7 @@ type BlockchainReactor struct {
 
 	blockExec *sm.BlockExecutor
 	store     *store.BlockStore
+	dstore    *store.DeltaStore
 	pool      *BlockPool
 	fastSync  bool
 
@@ -70,7 +71,7 @@ type BlockchainReactor struct {
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore,
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
 	fastSync bool) *BlockchainReactor {
 
 	if state.LastBlockHeight != store.Height() {
@@ -93,6 +94,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		initialState: state,
 		blockExec:    blockExec,
 		store:        store,
+		dstore:       dstore,
 		pool:         pool,
 		fastSync:     fastSync,
 		requestsCh:   requestsCh,
@@ -162,8 +164,13 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
+	var deltas *types.Deltas
+	if types.EnableBroadcastP2PDelta() {
+		deltas = bcR.dstore.LoadDeltas(msg.Height)
+	}
+
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -194,7 +201,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
-		bcR.pool.AddBlock(src.ID(), msg.Block, len(msgBytes))
+		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
 		src.TrySend(BlockchainChannel, cdc.MustMarshalBinaryBare(&bcStatusResponseMessage{
@@ -298,7 +305,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second := bcR.pool.PeekTwoBlocks()
+			first, second, deltas := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -342,13 +349,18 @@ FOR_LOOP:
 
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
-				var err error
-				state, _, err = bcR.blockExec.ApplyBlock(state, firstID, first) // rpc
+				state, _, deltas, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas)
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++
+
+				if types.EnableBroadcastP2PDelta() {
+					// persists the given deltas to the underlying db.
+					deltas.Height = first.Height
+					bcR.dstore.SaveDeltas(deltas, first.Height)
+				}
 
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
@@ -438,7 +450,8 @@ func (m *bcNoBlockResponseMessage) String() string {
 //-------------------------------------
 
 type bcBlockResponseMessage struct {
-	Block *types.Block
+	Block     *types.Block
+	Deltas    *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

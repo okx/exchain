@@ -2,7 +2,6 @@ package v2
 
 import (
 	"fmt"
-
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmState "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -37,6 +36,7 @@ func (p pcFinished) Error() string {
 
 type queueItem struct {
 	block  *types.Block
+	deltas *types.Deltas
 	peerID p2p.ID
 }
 
@@ -86,11 +86,11 @@ func (state *pcState) synced() bool {
 	return len(state.queue) <= 1
 }
 
-func (state *pcState) enqueue(peerID p2p.ID, block *types.Block, height int64) {
+func (state *pcState) enqueue(peerID p2p.ID, block *types.Block, deltas *types.Deltas, height int64) {
 	if _, ok := state.queue[height]; ok {
 		panic("duplicate block enqueued by processor")
 	}
-	state.queue[height] = queueItem{block: block, peerID: peerID}
+	state.queue[height] = queueItem{block: block, deltas: deltas, peerID: peerID}
 }
 
 func (state *pcState) height() int64 {
@@ -128,7 +128,7 @@ func (state *pcState) handle(event Event) (Event, error) {
 
 		// enqueue block if height is higher than state height, else ignore it
 		if event.block.Height > state.height() {
-			state.enqueue(event.peerID, event.block, event.block.Height)
+			state.enqueue(event.peerID, event.block, event.deltas, event.block.Height)
 		}
 		return noOp, nil
 
@@ -142,6 +142,8 @@ func (state *pcState) handle(event Event) (Event, error) {
 			return noOp, nil
 		}
 		first, second := firstItem.block, secondItem.block
+		deltas := firstItem.deltas
+
 
 		firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 		firstPartsHeader := firstParts.Header()
@@ -158,7 +160,7 @@ func (state *pcState) handle(event Event) (Event, error) {
 
 		state.context.saveBlock(first, firstParts, second.LastCommit)
 
-		if err := state.context.applyBlock(firstID, first); err != nil {
+		if err := state.context.applyBlock(firstID, first, deltas); err != nil {
 			panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 		}
 
