@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
 NUM_NODE=4
+
+# tackle size chronic goose deny inquiry gesture fog front sea twin raise
+# acid pulse trial pill stumble toilet annual upgrade gold zone void civil
+# antique onion adult slot sad dizzy sure among cement demise submit scare
+# lazy cause kite fence gravity regret visa fuel tone clerk motor rent
 HARDCODED_MNEMONIC=false
 
 set -e
