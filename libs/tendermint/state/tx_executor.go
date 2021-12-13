@@ -4,14 +4,10 @@ import (
 	"errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"sync"
-	"time"
 )
 
 type PreExecBlockResult struct {
 	Response *ABCIResponses
-	State    int
-	Break    bool
 	Err      error
 }
 
@@ -25,80 +21,73 @@ var (
 	NotMatchErr           = errors.New("block has no start record")
 	NotProactivelyModeErr = errors.New("not proactively mode")
 	GenesisErr            = errors.New("genesis block don't proactively run")
-	breakManager *BreakManager
+	consensusFailed       bool
 )
 
-func init() {
-	breakManager = &BreakManager{}
-}
-
 //single thread process
-func (blockExec *BlockExecutor) LoopProcessProactivelyRun() error {
+func (blockExec *BlockExecutor) LoopProcessProactivelyRun() {
 	for {
 		select {
 		case block := <-blockExec.proactiveQueue:
-			abicRes := blockExec.StartProactivelyRun(block)
-			if res, ok := blockExec.abciAllResponse.Load(block); ok {
-				blockRes := res.(*PreExecBlockResult)
-				if blockRes.State == 1 {
-					breakManager.RemoveBreak(block)
-				}
-				blockRes.Response = abicRes.Response
-				blockRes.Err = abicRes.Err
-			} else {
-				panic("block not exist!!!")
+			if res := blockExec.StartProactivelyRun(block); res != nil {
+				blockExec.proactiveRes <- res
 			}
-
 		}
 	}
 }
 
 //start a proactively block execution
-func (blockExec *BlockExecutor) CancelAndStartNewRun(cancelBlock, startBlock *types.Block) {
-	if !blockExec.proactivelyFlag {
+func (blockExec *BlockExecutor) proactivelyOpen() bool {
+	if blockExec.proactivelyFlag {
+		return true
+	}
+	return false
+}
+
+//start a proactively block execution
+func (blockExec *BlockExecutor) CancelAndStartNewRun(block *types.Block) {
+	if !blockExec.proactivelyOpen() {
 		return
 	}
 
 	// cancel
-	var localCancelBlock *types.Block
-	if cancelBlock != nil {
-		localCancelBlock = cancelBlock
-	} else {
-		localCancelBlock = blockExec.lastBlock
-	}
-	if res, ok := blockExec.abciAllResponse.Load(localCancelBlock); ok {
-		result := res.(*PreExecBlockResult)
-		if result.State == 1 {
-			blockExec.ResetDeliverState()
-			if result.Response == nil {
-				// block not done
-				result.Break = true
-			}
+	// set consensusFailed let unfinished preRun to return
+	consensusFailed = true
+	// wait preRun return
+	blockExec.wg.Wait()
+	if len(blockExec.proactiveRes) > 0 {
+		if len(blockExec.proactiveRes) != 1 {
+			blockExec.logger.Error(" proactiveRes chan length is wrong", "length", len(blockExec.proactiveRes))
+		}
+		for i := 0; i < len(blockExec.proactiveRes); i++ {
+			<-blockExec.proactiveRes
+			blockExec.logger.Info(" clean proactiveRes chan")
 		}
 	}
-
+	// reset consensusFailed and deliverState for next preRun
+	consensusFailed = false
+	blockExec.ResetDeliverState()
 	// start
-	blockExec.SetStartBlock(startBlock)
+	blockExec.SetStartBlock(block)
 }
 
 func (blockExec *BlockExecutor) SetStartBlock(block *types.Block) {
-	if !blockExec.proactivelyFlag {
+	if !blockExec.proactivelyOpen() {
 		return
 	}
 
 	if block != nil {
-		blockExec.lastBlock = block
-		blockExec.abciAllResponse.Store(block, &PreExecBlockResult{})
 		blockExec.proactiveQueue <- block
 	}
 }
 
 //start a proactively block execution
 func (blockExec *BlockExecutor) StartProactivelyRun(block *types.Block) *PreExecBlockResult {
-
-	if !blockExec.proactivelyFlag {
+	if !blockExec.proactivelyOpen() {
 		return nil
 	}
+	blockExec.wg.Add(1)
+	defer blockExec.wg.Done()
 
 	var abciResponses *ABCIResponses
 	var err error
@@ -110,36 +99,20 @@ func (blockExec *BlockExecutor) StartProactivelyRun(block *types.Block) *PreExec
 	}
 
 	if err != nil {
-		preBlockRes = &PreExecBlockResult{abciResponses, 0, false, err}
+		preBlockRes = &PreExecBlockResult{abciResponses, err}
 	} else {
-		preBlockRes = &PreExecBlockResult{abciResponses, 0, false, nil}
+		preBlockRes = &PreExecBlockResult{abciResponses, nil}
 	}
 
 	return preBlockRes
-
 }
 
 //return result channel for caller
-func (blockExec *BlockExecutor) GetProactivelyRes(reqBlock *types.Block) (*PreExecBlockResult, error) {
-	if !blockExec.proactivelyFlag {
+func (blockExec *BlockExecutor) GetProactivelyRes(reqBlock *types.Block) (chan *PreExecBlockResult, error) {
+	if !blockExec.proactivelyOpen() {
 		return nil, NotProactivelyModeErr
 	}
-	// 5 ms check
-	ticker := time.NewTicker(5 * time.Millisecond)
-	for {
-		select {
-		case <-ticker.C:
-			if res, ok := blockExec.abciAllResponse.Load(reqBlock); !ok {
-				return nil, NotMatchErr
-			} else {
-				rBlock := res.(*PreExecBlockResult)
-				if rBlock.Response != nil {
-					blockExec.abciAllResponse.Delete(reqBlock)
-					return rBlock, nil
-				}
-			}
-		}
-	}
+	return blockExec.proactiveRes, nil
 }
 
 //reset deliverState
@@ -147,7 +120,6 @@ func (blockExec *BlockExecutor) ResetDeliverState() {
 	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
 		Key: "ResetDeliverState",
 	})
-
 }
 
 //set blockExec proactivelyFlag
@@ -158,38 +130,9 @@ func (blockExec *BlockExecutor) SetProactivelyFlag(open bool) {
 	}
 }
 
-func (blockExec *BlockExecutor) SetLastBlockInvalid() error {
-	if !blockExec.proactivelyFlag {
-		return nil
-	}
-
-	if res, ok := blockExec.abciAllResponse.Load(blockExec.lastBlock); !ok {
-		return NotMatchErr
-	} else {
-		rblock := res.(*PreExecBlockResult)
-		rblock.State = 1
-		blockExec.abciAllResponse.Store(blockExec.lastBlock, rblock)
-		return nil
-	}
-
-}
-
-type BreakManager struct {
-	record sync.Map
-}
-
-func (s *BreakManager) SetBreak(block *types.Block) {
-	s.record.Store(block, struct{}{})
-}
-
-func (s *BreakManager) GetBreak(block *types.Block) bool {
-	if _, ok := s.record.Load(block); ok {
+func IsFirstHeight(block *types.Block) bool {
+	if block.Height == 1 {
 		return true
 	}
 	return false
-
-}
-
-func (s *BreakManager) RemoveBreak(block *types.Block) {
-	s.record.Delete(block)
 }

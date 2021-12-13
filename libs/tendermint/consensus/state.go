@@ -26,6 +26,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/state"
 )
 
 //-----------------------------------------------------------------------------
@@ -796,7 +797,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
-		cs.blockExec.SetLastBlockInvalid()
+		fmt.Println("vc checkout!!")
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
@@ -1305,7 +1306,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
-		cs.cancelAndStartNewRun(cs.ProposalBlock, nil) // 1. enterPrecommit
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1398,7 +1398,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 				blockID.Hash)
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
-			cs.cancelAndStartNewRun(cs.ProposalBlock, nil) // 2. enterCommit
 			cs.ProposalBlock = nil
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
@@ -1754,7 +1753,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 		// receive a completed block then start a runTx
 		//cancel and start a new block
-		cs.cancelAndStartNewRun(nil ,  cs.ProposalBlock) // 3. addProposalBlockPart
+		if !state.IsFirstHeight(cs.ProposalBlock) {
+			// block height = 1 not preRun, because deliverState is not nil can't be reset
+			cs.cancelAndStartNewRun(cs.ProposalBlock)
+		}
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
 
@@ -1795,9 +1797,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	return added, nil
 }
 
-func (cs *State) cancelAndStartNewRun(cancelBlock, startBlock *types.Block) {
+func (cs *State) cancelAndStartNewRun(block *types.Block) {
 	if cs.proactivelyFlag {
-		cs.blockExec.CancelAndStartNewRun(cancelBlock, startBlock)
+		cs.blockExec.CancelAndStartNewRun(block)
 	}
 }
 
@@ -1948,7 +1950,6 @@ func (cs *State) addVote(
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
 					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
-					cs.cancelAndStartNewRun(cs.ProposalBlock , nil) // 4. addVote
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {

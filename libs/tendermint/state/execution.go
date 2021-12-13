@@ -55,9 +55,9 @@ type BlockExecutor struct {
 
 	proactiveQueue chan *types.Block
 
-	lastBlock *types.Block
+	proactiveRes chan *PreExecBlockResult
 
-	abciAllResponse sync.Map
+	wg sync.WaitGroup
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -90,7 +90,7 @@ func NewBlockExecutor(
 		deltaCh:        make(chan *types.Deltas, 1),
 		deltaHeightCh:  make(chan int64, 1),
 		proactiveQueue: make(chan *types.Block),
-		//proactiveRes:   make(chan *PreExecBlockResult),
+		proactiveRes:   make(chan *PreExecBlockResult, 1),
 	}
 
 	for _, option := range options {
@@ -223,7 +223,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			panic(err)
 		}
 	} else {
-		if !blockExec.proactivelyFlag {
+		if !blockExec.proactivelyFlag || IsFirstHeight(block) {
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
@@ -235,7 +235,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 				fmt.Println("ERR -->", err)
 
 			} else {
-				abciResponses = abciResult.Response
+				abciResponses1 := <-abciResult
+				abciResponses = abciResponses1.Response
 			}
 
 			/*
@@ -619,7 +620,7 @@ func execBlockOnProxyApp(
 	// Run txs of block.
 	var count int
 	for _, tx := range block.Txs {
-		if breakManager.GetBreak(block) {
+		if consensusFailed {
 			logger.Info("execBlockOnProxyApp break", "already done tx", count, "all tx", len(block.Txs))
 			return nil, CancelErr
 		}
