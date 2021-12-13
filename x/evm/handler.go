@@ -7,6 +7,7 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	common2 "github.com/okex/exchain/x/common"
@@ -152,6 +153,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
 	}
+	st.Csdb.SetCache(k.ConfigCache)
+	if size, useCache := k.ConfigCache.BlackListLen(); useCache && size == 0 {
+		k.ConfigCache.SetBlackList(st.Csdb.GetContractBlockedList())
+	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
@@ -181,6 +186,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			pm := k.GenerateCSDBParams()
 			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			sendAcc = sendAcc.Copy().(auth.Account)
 			//fix sender's balance in watcher with refund fees
 			gasConsumed := ctx.GasMeter().GasConsumed()
 			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)

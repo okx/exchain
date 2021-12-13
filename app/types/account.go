@@ -37,6 +37,13 @@ type EthAccount struct {
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
 }
 
+func (acc EthAccount) Copy() interface{} {
+	return &EthAccount{
+		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
+		acc.CodeHash,
+	}
+}
+
 func (acc EthAccount) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	for pos := 1; pos < 3; pos++ {
