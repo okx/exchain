@@ -1,6 +1,7 @@
 package state
 
 import (
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
@@ -36,7 +37,7 @@ func (dc *DeltaContext) postApplyBlock(block *types.Block)  {
 		dc.deltas.Height = block.Height
 	}
 	if dc.uploadDelta {
-		go dc.uploadData(block, dc.deltas)
+		dc.uploadData(block, dc.deltas)
 	}
 
 	dc.logger.Info("Begin abci",
@@ -53,15 +54,14 @@ func (dc *DeltaContext) postApplyBlock(block *types.Block)  {
 
 func (dc *DeltaContext ) uploadData(block *types.Block, deltas *types.Deltas) {
 	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
-		dc.logger.Error("uploadData err:", err)
+		dc.logger.Error("uploadData", "height", block.Height, "error", err)
 		return
 	}
 	dc.logger.Info("uploadData",
-		"height", block.Height,
+		"deltas", deltas,
 		"blockLen", block.Size(),
-		"abciRspLen", len(deltas.ABCIRsp),
-		"deltaLen", len(deltas.DeltasBytes),
-		"watchLen", len(deltas.WatchBytes))
+		"gid", gorid.GoRId,
+	)
 }
 
 func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
@@ -158,6 +158,9 @@ func (blockExec *BlockExecutor) getDeltaFromDDS() {
 			if flag {
 				directDelta, _ := blockExec.deltaContext.deltaBroker.GetDeltas(height)
 				if directDelta != nil {
+					blockExec.logger.Info("downloadDelta:",
+						"delta", directDelta,
+						"gid", gorid.GoRId)
 					flag = false
 					blockExec.deltaCh <- directDelta
 				}

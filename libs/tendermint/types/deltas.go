@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/spf13/viper"
 	"sync"
@@ -130,4 +131,9 @@ func (d *Deltas) Marshal() ([]byte, error) {
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
 	return cdc.UnmarshalBinaryBare(bs, d)
+}
+
+func (d *Deltas) String() string {
+	return fmt.Sprintf("height<%d>, deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>",
+		d.Height, len(d.DeltasBytes), len(d.WatchBytes), len(d.ABCIRsp))
 }

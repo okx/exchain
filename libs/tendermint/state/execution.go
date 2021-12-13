@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"time"
 
@@ -297,6 +298,8 @@ func (blockExec *BlockExecutor) getAbciResponse(block *types.Block) (*ABCIRespon
 	var err error
 
 	if blockExec.deltaContext.useDeltas {
+		blockExec.logger.Info("applyDelta", "deltas", deltas, "gid", gorid.GoRId)
+
 		SetCenterBatch(deltas.WatchBytes)
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(deltas.ABCIRsp, &abciResponses)
