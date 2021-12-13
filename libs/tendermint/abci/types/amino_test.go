@@ -19,14 +19,20 @@ func TestEventAmino(t *testing.T) {
 			Type: "test",
 		},
 		{
+			Attributes: []kv.Pair{
+				{Key: []byte("key"), Value: []byte("value")},
+				{Key: []byte("key2"), Value: []byte("value2")},
+			},
+		},
+		{
 			Type: "test",
 			Attributes: []kv.Pair{
 				{Key: []byte("key"), Value: []byte("value")},
+				{Key: []byte("key2"), Value: []byte("value2")},
 				{},
 			},
 		},
 		{
-			Type:       "test",
 			Attributes: []kv.Pair{},
 		},
 	}
@@ -41,13 +47,11 @@ func TestEventAmino(t *testing.T) {
 	}
 }
 
-func TestPubkeyAmino(t *testing.T) {
+func TestPubKeyAmino(t *testing.T) {
 	var pubkeys = []PubKey{
 		{},
-		{Type: "", Data: []byte{}},
-		{
-			Type: "test",
-		},
+		{Type: "type"},
+		{Data: []byte("testdata")},
 		{
 			Type: "test",
 			Data: []byte("data"),
@@ -67,9 +71,6 @@ func TestPubkeyAmino(t *testing.T) {
 func TestValidatorUpdateAmino(t *testing.T) {
 	var validatorUpdates = []ValidatorUpdate{
 		{},
-		{
-			PubKey: PubKey{},
-		},
 		{
 			PubKey: PubKey{
 				Type: "test",
@@ -98,6 +99,77 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		actual, err := MarshalValidatorUpdateToAmino(validatorUpdate)
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+	}
+}
+
+func TestBlockParamsAmino(t *testing.T) {
+	tests := []BlockParams{
+		{
+			MaxBytes: 100,
+			MaxGas:   200,
+		},
+		{
+			MaxBytes: -100,
+			MaxGas:   -200,
+		},
+	}
+
+	for _, test := range tests {
+		expect, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+
+		actual, err := MarshalBlockParamsToAmino(test)
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+	}
+}
+
+func TestEvidenceParamsAmino(t *testing.T) {
+	tests := []EvidenceParams{
+		{
+			MaxAgeNumBlocks: 100,
+			MaxAgeDuration:  1000 * time.Second,
+		},
+		{
+			MaxAgeNumBlocks: -100,
+			MaxAgeDuration:  time.Second,
+		},
+	}
+
+	for _, test := range tests {
+		expect, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+
+		actual, err := MarshalEvidenceParamsToAmino(test)
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+	}
+}
+
+func TestValidatorParamsAmino(t *testing.T) {
+	tests := []ValidatorParams{
+		{},
+		{
+			PubKeyTypes: []string{},
+		},
+		{
+			PubKeyTypes: []string{""},
+		},
+		{
+			PubKeyTypes: []string{"ed25519"},
+		},
+		{
+			PubKeyTypes: []string{"ed25519", "ed25519"},
+		},
+	}
+
+	for _, test := range tests {
+		expect, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+
+		actual, err := MarshalValidatorParamsToAmino(test)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}
@@ -157,6 +229,7 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		{123, nil, "", "", 0, 0, nil, "", struct{}{}, nil, 0},
 		{Code: 123, Data: []byte(""), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: nil, Codespace: "sssdasf"},
 		{Code: 0, Data: []byte("data"), Info: "info"},
+		{Events: []Event{{}, {Type: "Event"}}},
 	}
 
 	for _, resp := range resps {
@@ -218,7 +291,7 @@ func TestResponseEndBlockAmino(t *testing.T) {
 		{
 			ValidatorUpdates:      []ValidatorUpdate{{}},
 			ConsensusParamUpdates: &ConsensusParams{Block: &BlockParams{}, Evidence: &EvidenceParams{}, Validator: &ValidatorParams{}},
-			Events:                []Event{{}, {}, {}},
+			Events:                []Event{{}, {Type: "Event"}, {}},
 		},
 	}
 	for _, resp := range resps {

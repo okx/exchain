@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -199,7 +200,16 @@ func TestABCIResponsesAmino(t *testing.T) {
 				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
 			},
 			&abci.ResponseEndBlock{
-				Events: []abci.Event{},
+				ValidatorUpdates: []abci.ValidatorUpdate{
+					{Power: 100},
+				},
+				ConsensusParamUpdates: &abci.ConsensusParams{
+					&abci.BlockParams{MaxBytes: 1024},
+					&abci.EvidenceParams{MaxAgeDuration: time.Minute * 100},
+					&abci.ValidatorParams{PubKeyTypes: []string{"pubkey1", "pubkey2"}},
+					struct{}{}, []byte{}, 0,
+				},
+				Events: []abci.Event{{}, {Type: "Event"}},
 			},
 			&abci.ResponseBeginBlock{
 				Events: []abci.Event{
@@ -237,7 +247,16 @@ func BenchmarkABCIResponsesMarshalAmino(b *testing.B) {
 			{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
 		},
 		&abci.ResponseEndBlock{
-			Events: []abci.Event{},
+			ValidatorUpdates: []abci.ValidatorUpdate{
+				{Power: 100},
+			},
+			ConsensusParamUpdates: &abci.ConsensusParams{
+				&abci.BlockParams{MaxBytes: 1024},
+				&abci.EvidenceParams{MaxAgeDuration: time.Minute * 100},
+				&abci.ValidatorParams{PubKeyTypes: []string{"pubkey1", "pubkey2"}},
+				struct{}{}, []byte{}, 0,
+			},
+			Events: []abci.Event{{}, {Type: "Event"}},
 		},
 		&abci.ResponseBeginBlock{
 			Events: []abci.Event{
