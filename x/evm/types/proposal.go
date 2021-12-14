@@ -14,18 +14,23 @@ const (
 	proposalTypeManageContractDeploymentWhitelist = "ManageContractDeploymentWhitelist"
 	// proposalTypeManageContractBlockedList defines the type for a ManageContractBlockedListProposal
 	proposalTypeManageContractBlockedList = "ManageContractBlockedList"
+	// proposalTypeManageContractMethodBlockedList defines the type for a ManageContractMethodBlockedList
+	proposalTypeManageContractMethodBlockedList = "ManageContractMethodBlockedList"
 )
 
 func init() {
 	govtypes.RegisterProposalType(proposalTypeManageContractDeploymentWhitelist)
 	govtypes.RegisterProposalType(proposalTypeManageContractBlockedList)
+	govtypes.RegisterProposalType(proposalTypeManageContractMethodBlockedList)
 	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
+	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
 }
 
 var (
 	_ govtypes.Content = (*ManageContractDeploymentWhitelistProposal)(nil)
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
+	_ govtypes.Content = (*ManageContractMethodBlockedListProposal)(nil)
 )
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
@@ -234,6 +239,105 @@ func (mp ManageContractBlockedListProposal) String() string {
 	for i := 0; i < len(mp.ContractAddrs); i++ {
 		builder.WriteString("\t\t\t\t\t\t")
 		builder.WriteString(mp.ContractAddrs[i].String())
+		builder.Write([]byte{'\n'})
+	}
+
+	return strings.TrimSpace(builder.String())
+}
+
+// ManageContractMethodBlockedListProposal - structure for the proposal to add or delete a contract method from blocked list
+type ManageContractMethodBlockedListProposal struct {
+	Title        string              `json:"title" yaml:"title"`
+	Description  string              `json:"description" yaml:"description"`
+	ContractList BlockedContractList `json:"contract_addresses" yaml:"contract_addresses"`
+	IsAdded      bool                `json:"is_added" yaml:"is_added"`
+}
+
+// NewManageContractMethodBlockedListProposal creates a new instance of ManageContractMethodBlockedListProposal
+func NewManageContractMethodBlockedListProposal(title, description string, contractList BlockedContractList, isAdded bool,
+) ManageContractMethodBlockedListProposal {
+	return ManageContractMethodBlockedListProposal{
+		Title:        title,
+		Description:  description,
+		ContractList: contractList,
+		IsAdded:      isAdded,
+	}
+}
+
+// GetTitle returns title of a manage contract blocked list proposal object
+func (mp ManageContractMethodBlockedListProposal) GetTitle() string {
+	return mp.Title
+}
+
+// GetDescription returns description of a manage contract blocked list proposal object
+func (mp ManageContractMethodBlockedListProposal) GetDescription() string {
+	return mp.Description
+}
+
+// ProposalRoute returns route key of a manage contract blocked list proposal object
+func (mp ManageContractMethodBlockedListProposal) ProposalRoute() string {
+	return RouterKey
+}
+
+// ProposalType returns type of a manage contract blocked list proposal object
+func (mp ManageContractMethodBlockedListProposal) ProposalType() string {
+	return proposalTypeManageContractMethodBlockedList
+}
+
+// ValidateBasic validates a manage contract blocked list proposal
+func (mp ManageContractMethodBlockedListProposal) ValidateBasic() sdk.Error {
+	if len(strings.TrimSpace(mp.Title)) == 0 {
+		return govtypes.ErrInvalidProposalContent("title is required")
+	}
+	if len(mp.Title) > govtypes.MaxTitleLength {
+		return govtypes.ErrInvalidProposalContent("title length is longer than the maximum title length")
+	}
+
+	if len(mp.Description) == 0 {
+		return govtypes.ErrInvalidProposalContent("description is required")
+	}
+
+	if len(mp.Description) > govtypes.MaxDescriptionLength {
+		return govtypes.ErrInvalidProposalContent("description length is longer than the maximum description length")
+	}
+
+	if mp.ProposalType() != proposalTypeManageContractMethodBlockedList {
+		return govtypes.ErrInvalidProposalType(mp.ProposalType())
+	}
+
+	contractAddrLen := len(mp.ContractList)
+	if contractAddrLen == 0 {
+		return ErrEmptyAddressList
+	}
+
+	if contractAddrLen > maxAddressListLength {
+		return ErrOversizeAddrList(contractAddrLen)
+	}
+
+	if err := mp.ContractList.ValidateBasic(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// String returns a human readable string representation of a ManageContractMethodBlockedListProposal
+func (mp ManageContractMethodBlockedListProposal) String() string {
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ManageContractMethodBlockedListProposal:
+ Title:					%s
+ Description:        	%s
+ Type:                	%s
+ IsAdded:				%t
+ ContractList:
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.IsAdded),
+	)
+
+	for i := 0; i < len(mp.ContractList); i++ {
+		builder.WriteString("\t\t\t\t\t\t")
+		builder.WriteString(mp.ContractList[i].String())
 		builder.Write([]byte{'\n'})
 	}
 

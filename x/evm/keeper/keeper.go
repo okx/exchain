@@ -133,6 +133,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		BankKeeper:    k.bankKeeper,
 		Watcher:       k.Watcher,
 		Ada:           k.Ada,
+		Cdc:           k.cdc,
 	}
 }
 
@@ -142,6 +143,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		StoreKey: k.storeKey,
 		Watcher:  k.Watcher,
 		Ada:      k.Ada,
+		Cdc:      k.cdc,
 	}
 }
 

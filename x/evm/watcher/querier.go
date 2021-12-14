@@ -423,6 +423,12 @@ func (q Querier) HasContractBlockedList(key []byte) bool {
 	}
 	return q.store.Has(append(prefixBlackList, key...))
 }
+func (q Querier) GetContractMethodBlockedList(key []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	return q.store.Get(append(prefixBlackList, key...))
+}
 
 func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	if !q.enabled() {

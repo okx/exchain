@@ -32,6 +32,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -94,6 +95,7 @@ var (
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
+			evmclient.ManageContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -194,6 +196,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+	logger.Info(fmt.Sprintf("GenesisHeight<%d>", tendermintTypes.GetStartBlockHeight()))
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
