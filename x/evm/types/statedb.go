@@ -31,7 +31,6 @@ var (
 
 type cacheInterface interface {
 	GetParams() (Params, uint64)
-	SetBlackList(addrs []sdk.AccAddress)
 	IsBlackList(addr sdk.AccAddress) (bool, bool)
 	CleanBlackList()
 }

@@ -3,7 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/spf13/viper"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,7 +52,7 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	ConfigCache *configCache
+	ConfigCache *evmCache
 }
 
 // NewKeeper generates new evm module keeper
@@ -277,105 +276,6 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 
 // checks whether the address is blocked
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
-	if stats, ok := k.ConfigCache.IsBlackList(addr); ok {
-		return stats
-	}
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return k.GetParams(ctx).EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
-}
-
-type configCache struct {
-	useCache bool
-	param    types.Params
-	paramGas uint64
-
-	chainConfig    types.ChainConfig
-	chainConfigGas uint64
-
-	blackList map[ethcmn.Address]bool
-}
-
-func newConfigCache() *configCache {
-	useCache := viper.GetBool(sdk.FlagMultiCache)
-	return &configCache{
-		useCache:  useCache,
-		blackList: make(map[ethcmn.Address]bool),
-	}
-}
-
-func (c *configCache) SetBlackList(blackList []sdk.AccAddress) {
-	if !c.useCache {
-		return
-	}
-	for _, v := range blackList {
-		c.blackList[ethcmn.BytesToAddress(v)] = true
-	}
-}
-
-func (c *configCache) IsBlackList(addr sdk.AccAddress) (bool, bool) {
-	if !c.useCache {
-		return false, false
-	}
-	if len(c.blackList) == 0 {
-		return false, false
-	}
-	return c.blackList[ethcmn.BytesToAddress(addr)], true
-}
-
-func (c *configCache) BlackListLen() (int, bool) {
-	if !c.useCache {
-		return 0, false
-	}
-	return len(c.blackList), true
-}
-
-func (c *configCache) CleanBlackList() {
-	if !c.useCache {
-		return
-	}
-	c.blackList = make(map[ethcmn.Address]bool)
-}
-
-func (c *configCache) GetParams() (types.Params, uint64) {
-	if !c.useCache {
-		return types.Params{}, 0
-	}
-	return c.param, c.paramGas
-}
-
-func (c *configCache) GetChainConfig() (types.ChainConfig, uint64) {
-	if !c.useCache {
-		return types.ChainConfig{}, 0
-	}
-	return c.chainConfig, c.chainConfigGas
-}
-
-func (c *configCache) Clean() {
-	if !c.useCache {
-		return
-	}
-	c.param = types.Params{}
-	c.paramGas = 0
-	// TODO chainCnnfig?
-}
-func (c *configCache) setParams(data types.Params, gasConsumed uint64) {
-	if !c.useCache {
-		return
-	}
-	if c.paramGas != 0 {
-		return
-	}
-	c.param = data
-	c.paramGas = gasConsumed
-}
-
-func (c *configCache) setChainConfig(data types.ChainConfig, gasConsumed uint64) {
-	if !c.useCache {
-		return
-	}
-	if c.chainConfigGas != 0 {
-		return
-	}
-	c.chainConfig = data
-	c.chainConfigGas = gasConsumed
 }

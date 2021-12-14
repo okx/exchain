@@ -8,8 +8,6 @@ import (
 	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
-	lru "github.com/hashicorp/golang-lru"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
