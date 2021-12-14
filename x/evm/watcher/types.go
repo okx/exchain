@@ -11,14 +11,14 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 var (
@@ -487,4 +487,28 @@ func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() []byte {
 
 func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
 	return ""
+}
+
+type MsgContractMethodBlockedListItem struct {
+	addr    sdk.AccAddress
+	methods []byte
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) *MsgContractMethodBlockedListItem {
+	return &MsgContractMethodBlockedListItem{
+		addr:    addr,
+		methods: methods,
+	}
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetKey() []byte {
+	return append(prefixBlackList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetValue() string {
+	return string(msgItem.methods)
 }

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	okexchain "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
 )
@@ -41,11 +41,54 @@ const (
     }
   ]
 }`
+	expectedManageContractMethodBlockedListProposalJSON = `{
+  "title": "default title",
+  "description": "default description",
+  "contract_addresses":[
+        {
+            "address": "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
+            "block_methods": [
+                {
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
+                },
+                {
+                    "sign": "0x579be378",
+                    "extra": "onc()"
+                }
+            ]
+        },
+		{
+            "address": "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
+            "block_methods": [
+                {
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
+                },
+                {
+                    "sign": "0x579be378",
+                    "extra": "onc()"
+                }
+            ]
+        }
+  ],
+  "is_added": true,
+  "deposit": [
+    {
+      "denom": "okt",
+      "amount": "100.000000000000000000"
+    }
+  ]
+}`
 	fileName                 = "./proposal.json"
 	expectedTitle            = "default title"
 	expectedDescription      = "default description"
 	expectedDistributorAddr1 = "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02"
 	expectedDistributorAddr2 = "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
+	expectedMethodSign1      = "0x371303c0"
+	expectedMethodExtra1     = "inc()"
+	expectedMethodSign2      = "0x579be378"
+	expectedMethodExtra2     = "onc()"
 )
 
 func init() {
@@ -99,4 +142,44 @@ func TestParseManageContractBlockedListProposalJSON(t *testing.T) {
 	require.Equal(t, 2, len(proposal.ContractAddrs))
 	require.Equal(t, expectedDistributorAddr1, proposal.ContractAddrs[0].String())
 	require.Equal(t, expectedDistributorAddr2, proposal.ContractAddrs[1].String())
+}
+func TestParseManageContractMethodBlockedListProposalJSON(t *testing.T) {
+	// create JSON file
+	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	require.NoError(t, err)
+	_, err = f.WriteString(expectedManageContractMethodBlockedListProposalJSON)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	// remove the temporary JSON file
+	defer os.Remove(fileName)
+
+	proposal, err := ParseManageContractMethodBlockedListProposalJSON(types.ModuleCdc, fileName)
+	require.NoError(t, err)
+	require.Equal(t, expectedTitle, proposal.Title)
+	require.Equal(t, expectedDescription, proposal.Description)
+	require.True(t, proposal.IsAdded)
+	require.Equal(t, 1, len(proposal.Deposit))
+	require.Equal(t, sdk.DefaultBondDenom, proposal.Deposit[0].Denom)
+	require.True(t, sdk.NewDec(100).Equal(proposal.Deposit[0].Amount))
+	require.Equal(t, 2, len(proposal.ContractList))
+
+	methods := types.ContractMethods{
+		types.ContractMethod{
+			Sign:  expectedMethodSign1,
+			Extra: expectedMethodExtra1,
+		},
+		types.ContractMethod{
+			Sign:  expectedMethodSign2,
+			Extra: expectedMethodExtra2,
+		},
+	}
+	addr1, err := sdk.AccAddressFromBech32(expectedDistributorAddr1)
+	require.NoError(t, err)
+	addr2, err := sdk.AccAddressFromBech32(expectedDistributorAddr2)
+	require.NoError(t, err)
+	expectBc1 := types.NewBlockContract(addr1, methods)
+	expectBc2 := types.NewBlockContract(addr2, methods)
+	ok := types.BlockedContractListIsEqual(proposal.ContractList, types.BlockedContractList{*expectBc1, *expectBc2})
+	require.True(t, ok)
 }

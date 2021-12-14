@@ -8,12 +8,12 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/abci/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type Watcher struct {
@@ -234,6 +234,16 @@ func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
 		return
 	}
 	wMsg := NewMsgContractBlockedListItem(addr)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractMethodBlockedListItem(addr, methods)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
