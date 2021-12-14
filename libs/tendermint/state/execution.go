@@ -188,7 +188,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("GetDelta")
 
-
 	blockExec.deltaContext.useDeltas, blockExec.deltaContext.deltas =
 		blockExec.deltaContext.prepareStateDelta(block, deltas)
 
@@ -200,8 +199,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.getAbciResponse(block)
-
+	abciResponses, err := blockExec.runAbci(block)
 
 	if err != nil {
 		return state, 0, deltas, ErrProxyAppConn(err)
@@ -282,7 +280,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 }
 
 
-func (blockExec *BlockExecutor) getAbciResponse(block *types.Block) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, error) {
 
 	deltas := blockExec.deltaContext.deltas
 	var abciResponses *ABCIResponses
