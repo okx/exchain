@@ -99,7 +99,6 @@ run() {
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
-    --enable-proactively-runtx \
     --p2p.pex=false \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \
@@ -108,11 +107,14 @@ run() {
     --consensus.timeout_commit 200ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
-    --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
+    --upload-delta \
+    --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
     --rest.laddr tcp://localhost:8545 \
     --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \
+#     --upload-delta \
+#     --enable-proactively-runtx \
 }
 
 function start() {
