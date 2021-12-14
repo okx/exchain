@@ -173,22 +173,26 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 	testCases := []struct {
 		msg     string
 		prepare func()
+		success bool
 	}{
 		{
 			"pass check",
 			func() {},
+			true,
 		},
 		{
 			"pass check when trying to add addresses already exists in blocked list",
 			func() {
 				suite.stateDB.SetContractMethodBlockedList(bcl)
 			},
+			true,
 		},
 		{
 			"pass check when trying to delete addresses from blocked list",
 			func() {
 				proposal.IsAdded = false
 			},
+			true,
 		},
 		{
 			"pass check when trying to delete addresses from blocked list which is empty",
@@ -197,6 +201,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 				suite.stateDB.DeleteContractMethodBlockedList(suite.stateDB.GetContractMethodBlockedList())
 				suite.Require().Zero(len(suite.stateDB.GetContractBlockedList()))
 			},
+			false,
 		},
 	}
 
@@ -206,7 +211,11 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 
 			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr1)
 			err := suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg)
-			suite.Require().NoError(err)
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
 		})
 	}
 }
