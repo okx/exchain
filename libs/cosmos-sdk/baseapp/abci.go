@@ -86,6 +86,14 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
+	case "ResetDeliverState":
+		// reset deliver state
+
+		// Reset the DeliverTx state. If this is the first block, it should
+		// already be initialized in InitChain. Otherwise app.deliverState will be
+		// nil, since it is reset on Commit.
+		// init chain will set deliverstate without blockHeight
+		app.deliverState = nil
 	default:
 		// do nothing
 	}

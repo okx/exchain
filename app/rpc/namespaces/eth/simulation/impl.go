@@ -5,6 +5,10 @@ import (
 	"github.com/okex/exchain/x/evm"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,10 +17,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/dex"
@@ -372,7 +372,11 @@ func (s ContractBlockedListStore) Set(key, value []byte) {
 
 func (s ContractBlockedListStore) Get(key []byte) []byte {
 	//include code and state
-	return nil
+	value, err := s.q.GetContractMethodBlockedList(key)
+	if err != nil {
+		return nil
+	}
+	return value
 }
 
 func (s ContractBlockedListStore) Delete(key []byte) {
