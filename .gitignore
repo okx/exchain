@@ -12,6 +12,7 @@
 *.txt
 *.xls
 
+dump.rdb
 # Build
 .exchaind
 .exchaincli
@@ -76,3 +77,4 @@ dev/cache/*
 result.txt
 ethermint
 _cache_evm
+dump.rdb
