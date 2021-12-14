@@ -2,7 +2,7 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -27,11 +27,6 @@ type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
 	db dbm.DB
 
-	// download or upload data to dds
-	deltaCh       chan *types.Deltas
-	deltaHeightCh chan int64
-	deltaContext *DeltaContext
-
 	// execute the app against this
 	proxyApp proxy.AppConnConsensus
 
@@ -46,6 +41,9 @@ type BlockExecutor struct {
 	logger log.Logger
 	metrics *Metrics
 	isAsync bool
+
+	// download or upload data to dds
+	deltaContext *DeltaContext
 
 	proactivelyRunTx bool
 	prerunChan chan *executionContext
@@ -82,8 +80,6 @@ func NewBlockExecutor(
 		logger:         logger,
 		metrics:        NopMetrics(),
 		isAsync:        viper.GetBool(FlagParalleledTx),
-		deltaCh:        make(chan *types.Deltas, 1),
-		deltaHeightCh:  make(chan int64, 1),
 		prerunChan:           make(chan *executionContext, 1),
 		prerunResultChan:     make(chan *executionContext, 1),
 		deltaContext:         newDeltaContext(),
@@ -93,11 +89,7 @@ func NewBlockExecutor(
 		option(res)
 	}
 
-	res.deltaContext.logger = logger
-	res.deltaContext.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
-	if types.EnableDownloadDelta() {
-		go res.getDeltaFromDDS()
-	}
+	res.deltaContext.init(logger)
 
 	return res
 }
@@ -196,9 +188,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("GetDelta")
 
-
 	blockExec.deltaContext.useDeltas, blockExec.deltaContext.deltas =
-		blockExec.prepareStateDelta(block, deltas)
+		blockExec.deltaContext.prepareStateDelta(block, deltas)
 
 	inAbciRspLen = len(deltas.ABCIRsp)
 	inDeltaLen = len(deltas.DeltasBytes)
@@ -208,8 +199,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.getAbciResponse(block)
-
+	abciResponses, err := blockExec.runAbci(block)
 
 	if err != nil {
 		return state, 0, deltas, ErrProxyAppConn(err)
@@ -290,13 +280,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 }
 
 
-func (blockExec *BlockExecutor) getAbciResponse(block *types.Block) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, error) {
 
 	deltas := blockExec.deltaContext.deltas
 	var abciResponses *ABCIResponses
 	var err error
 
 	if blockExec.deltaContext.useDeltas {
+		blockExec.logger.Info("Apply delta", "deltas", deltas, "gid", gorid.GoRId)
+
 		SetCenterBatch(deltas.WatchBytes)
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(deltas.ABCIRsp, &abciResponses)
