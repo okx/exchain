@@ -1258,7 +1258,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 			suite.stateDB.DeleteContractMethodBlockedList(suite.stateDB.GetContractMethodBlockedList())
 			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
 			if len(tc.contractMethodBlockedList) != 0 {
-				suite.stateDB.SetContractMethodBlockedList(tc.contractMethodBlockedList)
+				suite.stateDB.InsertContractMethodBlockedList(tc.contractMethodBlockedList)
 			} else {
 				suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 			}

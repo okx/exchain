@@ -1018,7 +1018,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 		suite.Run(tc.name, func() {
 			var err sdk.Error
 			if tc.isAdded {
-				err = suite.stateDB.SetContractMethodBlockedList(tc.targetAddrList)
+				err = suite.stateDB.InsertContractMethodBlockedList(tc.targetAddrList)
 			} else {
 				err = suite.stateDB.DeleteContractMethodBlockedList(tc.targetAddrList)
 			}
@@ -1062,12 +1062,12 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList_Block
 
 	// set contract method blocked list with same blocked list
 	suite.stateDB.SetContractBlockedList(types.AddressList{addr1})
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 	bcl := suite.stateDB.GetContractMethodBlockedList()
 	ok := types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1}, bcl)
 	suite.Require().True(ok)
 	// set contract method blocked list with not same blocked list
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
 	bcl = suite.stateDB.GetContractMethodBlockedList()
 	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1, bcMethodTwo1}, bcl)
 	suite.Require().True(ok)
@@ -1115,14 +1115,14 @@ func (suite *StateDBTestSuite) TestCommitStateDB_GetContractMethodBlockedByAddre
 	suite.Require().Equal(addr1, bc.Address.Bytes())
 
 	// get blocked list
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr1)
 	suite.Require().NotNil(bc)
 	ok := types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodOne1}, types.BlockedContractList{*bc})
 	suite.Require().True(ok)
 
 	// get blocked list from cache
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
 	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr2)
 	suite.Require().NotNil(bc)
 	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodTwo1}, types.BlockedContractList{*bc})
@@ -1170,14 +1170,14 @@ func (suite *StateDBTestSuite) TestCommitStateDB_IsContractMethodBlocked() {
 	suite.Require().False(ok)
 
 	// contract aaaa method is blocked
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 	ok = suite.stateDB.IsContractMethodBlocked(addr1, "")
 	suite.Require().False(ok)
 	ok = suite.stateDB.IsContractMethodBlocked(addr1, "aaaa")
 	suite.Require().True(ok)
 
 	// contract aaaa method is blocked
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
 	ok = suite.stateDB.IsContractMethodBlocked(addr1, "")
 	suite.Require().False(ok)
 	ok = suite.stateDB.IsContractMethodBlocked(addr1, "bbbb")
@@ -1210,7 +1210,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_IsContractInBlockedList() {
 	suite.Require().False(ok)
 
 	// contract method is blocked
-	suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+	suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
 	ok = suite.stateDB.IsContractInBlockedList(addr2)
 	suite.Require().False(ok)
 	ok = suite.stateDB.IsContractInBlockedList(addr1)

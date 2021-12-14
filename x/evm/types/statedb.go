@@ -1354,8 +1354,8 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 	}
 }
 
-// SetContractMethodBlockedList sets the list of contract method blocked into blocked list store
-func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+// InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
+func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {

@@ -133,7 +133,7 @@ func (suite *StateDBTestSuite) TestContractVerifier_Verify() {
 
 				params := suite.stateDB.GetParams()
 				params.EnableContractBlockedList = true
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				verifier := types.NewContractVerifier(params)
 
 				return verifier.Verify(suite.stateDB, vm.SELFDESTRUCT, ethcmn.BytesToAddress(addr1), ethcmn.BytesToAddress(addr1), nil, nil)
@@ -156,7 +156,7 @@ func (suite *StateDBTestSuite) TestContractVerifier_Verify() {
 
 				params := suite.stateDB.GetParams()
 				params.EnableContractBlockedList = true
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				verifier := types.NewContractVerifier(params)
 
 				return verifier.Verify(suite.stateDB, vm.CALL, ethcmn.BytesToAddress(addr1), ethcmn.BytesToAddress(addr1), hexutil.MustDecode(sign), nil)
@@ -179,7 +179,7 @@ func (suite *StateDBTestSuite) TestContractVerifier_Verify() {
 
 				params := suite.stateDB.GetParams()
 				params.EnableContractBlockedList = true
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				verifier := types.NewContractVerifier(params)
 
 				return verifier.Verify(suite.stateDB, vm.DELEGATECALL, ethcmn.BytesToAddress(addr1), ethcmn.BytesToAddress(addr1), hexutil.MustDecode(sign), nil)
@@ -202,7 +202,7 @@ func (suite *StateDBTestSuite) TestContractVerifier_Verify() {
 
 				params := suite.stateDB.GetParams()
 				params.EnableContractBlockedList = true
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				verifier := types.NewContractVerifier(params)
 
 				return verifier.Verify(suite.stateDB, vm.CALLCODE, ethcmn.BytesToAddress(addr1), ethcmn.BytesToAddress(addr1), hexutil.MustDecode(sign), nil)
@@ -225,7 +225,7 @@ func (suite *StateDBTestSuite) TestContractVerifier_Verify() {
 
 				params := suite.stateDB.GetParams()
 				params.EnableContractBlockedList = true
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				verifier := types.NewContractVerifier(params)
 
 				return verifier.Verify(suite.stateDB, vm.CALLCODE, ethcmn.BytesToAddress(addr1), ethcmn.BytesToAddress(addr1), hexutil.MustDecode("0x1111"), nil)
