@@ -1388,7 +1388,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedMethodContractIsNotExist
+			return ErrBlockedMethodContractIsNotExist(contractList[i].Address)
 		}
 	}
 	return nil

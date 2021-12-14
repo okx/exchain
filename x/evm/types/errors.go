@@ -56,8 +56,6 @@ var (
 	// ErrEmptyAddressBlockedContract returns an error if the contract method is empty
 	ErrEmptyAddressBlockedContract = sdkerrors.Register(ModuleName, 19, "Empty address in contract method blocked list is not allowed")
 
-	// ErrBlockedMethodContractIsNotExist returns an error if the address of contract method blocked is not exist
-	ErrBlockedMethodContractIsNotExist = sdkerrors.Register(ModuleName, 20, "Address of contract method blocked is not exist")
 
 	CodeSpaceEvmCallFailed = uint32(7)
 
@@ -91,6 +89,17 @@ func ErrCallBlockedContract(descriptor string) sdk.EnvelopedErr {
 			DefaultParamspace,
 			15,
 			descriptor,
+		),
+	}
+}
+
+// ErrBlockedMethodContractIsNotExist returns an error if the address of contract method blocked is not exist
+func ErrBlockedMethodContractIsNotExist(address sdk.Address) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			20,
+			fmt.Sprintf("Address(%s) of contract method blocked is not exist",address.String()),
 		),
 	}
 }
