@@ -1375,7 +1375,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
 			if err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods);err != nil {
-				return ErrBlockedContractMethodIsNotExist(fmt.Sprintf("Delete contract(%s) method failed: %s",contractList[i].Address,err.Error()))
+				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
 			}
 			//if block contract method delete empty then remove contract from blocklist.
 			if len(bc.BlockMethods) == 0 {
@@ -1388,7 +1388,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedMethodContractIsNotExist(contractList[i].Address)
+			return ErrBlockedContractMethodIsNotExist(contractList[i].Address,ErrorContractMethodBlockedIsNotExist)
 		}
 	}
 	return nil

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -60,7 +61,10 @@ var (
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"
+
+	ErrorContractMethodBlockedIsNotExist = errors.New("it's not exist in contract method blocked list")
 )
+
 
 // ErrOversizeAddrList returns an error when the length of address list in the proposal is larger than the max limitation
 func ErrOversizeAddrList(length int) sdk.EnvelopedErr {
@@ -93,24 +97,14 @@ func ErrCallBlockedContract(descriptor string) sdk.EnvelopedErr {
 	}
 }
 
-// ErrBlockedMethodContractIsNotExist returns an error if the address of contract method blocked is not exist
-func ErrBlockedMethodContractIsNotExist(address sdk.Address) sdk.EnvelopedErr {
+
+// ErrBlockedContractMethodIsNotExist returns an error when the blocked contract method is not exist
+func ErrBlockedContractMethodIsNotExist(address sdk.Address,err error) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			20,
-			fmt.Sprintf("Address(%s) of contract method blocked is not exist",address.String()),
-		),
-	}
-}
-
-// ErrBlockedContractMethodIsNotExist returns an error when the blocked contract method is not exist
-func ErrBlockedContractMethodIsNotExist(descriptor string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{
-		Err: sdkerrors.New(
-			DefaultParamspace,
-			21,
-			descriptor,
+			fmt.Sprintf("Delete contract(%s) method failed: %s",address,err.Error()),
 		),
 	}
 }

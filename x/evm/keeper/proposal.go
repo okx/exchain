@@ -46,9 +46,24 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (voting
 // CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	switch content := msg.Content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal, types.ManageContractMethodBlockedListProposal:
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
 		// whole target address list will be added/deleted to/from the contract deployment whitelist/contract blocked list.
 		// It's not necessary to check the existence in CheckMsgSubmitProposal
+		return nil
+	case types.ManageContractMethodBlockedListProposal:
+		csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+		// can not delete address is not exist
+		if !content.IsAdded {
+			for i,_ := range content.ContractList {
+				bc := csdb.GetContractMethodBlockedByAddress(content.ContractList[i].Address)
+				if bc == nil {
+					return types.ErrBlockedContractMethodIsNotExist(content.ContractList[i].Address,types.ErrorContractMethodBlockedIsNotExist)
+				}
+				if err := bc.BlockMethods.DeleteContractMethodMap(content.ContractList[i].BlockMethods);err != nil {
+					return types.ErrBlockedContractMethodIsNotExist(content.ContractList[i].Address,err)
+				}
+			}
+		}
 		return nil
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
