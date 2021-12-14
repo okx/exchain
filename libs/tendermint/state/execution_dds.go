@@ -3,6 +3,7 @@ package state
 import (
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/delta"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 )
 
 type DeltaContext struct {
+	deltaCh       chan *types.Deltas
+	deltaHeightCh chan int64
 	deltaBroker   delta.DeltaBroker
 	deltas *types.Deltas
 
@@ -23,7 +26,10 @@ type DeltaContext struct {
 
 func newDeltaContext()  *DeltaContext {
 
-	dp := &DeltaContext{}
+	dp := &DeltaContext{
+		deltaCh:        make(chan *types.Deltas, 1),
+		deltaHeightCh:  make(chan int64, 1),
+	}
 	dp.applyDelta = types.EnableApplyP2PDelta()
 	dp.broadDelta = types.EnableBroadcastP2PDelta()
 	dp.downloadDelta = types.EnableDownloadDelta()
@@ -32,39 +38,60 @@ func newDeltaContext()  *DeltaContext {
 	return dp
 }
 
-func (dc *DeltaContext) postApplyBlock(block *types.Block)  {
-	if dc.broadDelta || dc.uploadDelta {
-		dc.deltas.Height = block.Height
-	}
-	if dc.uploadDelta {
-		dc.uploadData(block, dc.deltas)
+func (dc *DeltaContext) init(l log.Logger) {
+	dc.logger = l
+
+	dc.logger.Info("DeltaContext init",
+		"uploadDelta", dc.uploadDelta,
+		"downloadDelta", dc.downloadDelta,
+		"applyDelta", dc.applyDelta,
+		"broadDelta", dc.broadDelta,
+	)
+
+	if dc.uploadDelta || dc.downloadDelta {
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
+		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
-	dc.logger.Info("Begin abci",
-		"len(deltas)", dc.deltas.Size(),
-		"FlagUseDelta", dc.useDeltas)
+	if dc.downloadDelta {
+		go dc.getDeltaFromDDS()
+	}
+
 }
 
-//func (dc *DeltaContext) dump(caller string) {
-//
-//	dc.logger.Info(caller, "len(deltas)", dc.deltas.Size(),
-//		"fastQuery", fastQuery,
-//		"FlagUseDelta", useDeltas)
-//}
+func (dc *DeltaContext) postApplyBlock(block *types.Block) {
+	delta := dc.deltas
 
-func (dc *DeltaContext ) uploadData(block *types.Block, deltas *types.Deltas) {
+	if dc.broadDelta || dc.uploadDelta {
+		delta.Height = block.Height
+	}
+	if dc.uploadDelta {
+		go dc.uploadData(block, delta)
+	}
+
+	dc.logger.Info("Post apply block",
+		"delta", delta,
+		"useDeltas", dc.useDeltas)
+}
+
+
+func (dc *DeltaContext) uploadData(block *types.Block, deltas *types.Deltas) {
+	//if !dc.uploadDelta {
+	//	return
+	//}
+
 	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
-		dc.logger.Error("uploadData", "height", block.Height, "error", err)
+		dc.logger.Error("Upload delta", "height", block.Height, "error", err)
 		return
 	}
-	dc.logger.Info("uploadData",
+	dc.logger.Info("Upload delta",
 		"deltas", deltas,
 		"blockLen", block.Size(),
 		"gid", gorid.GoRId,
 	)
 }
 
-func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
+func (dc *DeltaContext) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
 	fastQuery := types.IsFastQuery()
 	applyDelta := types.EnableApplyP2PDelta()
 	downloadDelta := types.EnableDownloadDelta()
@@ -91,26 +118,26 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	var err error
 	needDDS := true
 	select {
-	case directDelta = <-blockExec.deltaCh:
+	case directDelta = <-dc.deltaCh:
 		if directDelta.Height == block.Height {
 			needDDS = false
 		}
 		// already get delta of height, then request delta of height+1
-		blockExec.deltaHeightCh <- block.Height + 1
+		dc.deltaHeightCh <- block.Height + 1
 	default:
 		// can't get delta of height, request delta of height+1 and return
-		blockExec.deltaHeightCh <- block.Height + 1
+		dc.deltaHeightCh <- block.Height + 1
 	}
 
 	if needDDS {
 		// request watchData and Delta from dds
-		directDelta, err = blockExec.deltaContext.deltaBroker.GetDeltas(block.Height)
+		directDelta, err = dc.deltaBroker.GetDeltas(block.Height)
 	}
 
 	// can't get data from dds
 	if directDelta == nil {
 		if err != nil {
-			blockExec.logger.Error("Download Delta err:", err)
+			dc.logger.Error("Download Delta err:", err)
 		}
 		return false, deltas
 	}
@@ -147,7 +174,7 @@ func (blockExec *BlockExecutor) prepareStateDelta(block *types.Block, deltas *ty
 	return false, deltas
 }
 
-func (blockExec *BlockExecutor) getDeltaFromDDS() {
+func (dc *DeltaContext) getDeltaFromDDS() {
 	flag := false
 	var height int64 = 0
 	tryGetDDSTicker := time.NewTicker(50 * time.Millisecond)
@@ -156,17 +183,17 @@ func (blockExec *BlockExecutor) getDeltaFromDDS() {
 		select {
 		case <-tryGetDDSTicker.C:
 			if flag {
-				directDelta, _ := blockExec.deltaContext.deltaBroker.GetDeltas(height)
+				directDelta, _ := dc.deltaBroker.GetDeltas(height)
 				if directDelta != nil {
-					blockExec.logger.Info("downloadDelta:",
+					dc.logger.Info("Download delta:",
 						"delta", directDelta,
 						"gid", gorid.GoRId)
 					flag = false
-					blockExec.deltaCh <- directDelta
+					dc.deltaCh <- directDelta
 				}
 			}
 
-		case height = <-blockExec.deltaHeightCh:
+		case height = <-dc.deltaHeightCh:
 			flag = true
 		}
 	}
