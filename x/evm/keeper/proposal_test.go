@@ -183,7 +183,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 		{
 			"pass check when trying to add addresses already exists in blocked list",
 			func() {
-				suite.stateDB.SetContractMethodBlockedList(bcl)
+				suite.stateDB.InsertContractMethodBlockedList(bcl)
 			},
 			true,
 		},

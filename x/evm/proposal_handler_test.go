@@ -240,7 +240,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 			func() {
 				//reset data
 				suite.stateDB.DeleteContractBlockedList(types.AddressList{addr1, addr2})
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodOne1})
 				proposal.ContractList = types.BlockedContractList{bcMethodOne2, bcMethodTwo1}
 				govProposal.Content = proposal
 			},
@@ -274,7 +274,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 			func() {
 				//reset data
 				suite.stateDB.DeleteContractBlockedList(types.AddressList{addr1, addr2})
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{*expectBcMethodOne2, bcMethodTwo1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{*expectBcMethodOne2, bcMethodTwo1})
 				proposal.IsAdded = false
 				proposal.ContractList = types.BlockedContractList{bcMethodOne1, bcMethodTwo1}
 				govProposal.Content = proposal
@@ -300,7 +300,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 			func() {
 				//reset data
 				suite.stateDB.DeleteContractBlockedList(types.AddressList{addr1, addr2})
-				suite.stateDB.SetContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
+				suite.stateDB.InsertContractMethodBlockedList(types.BlockedContractList{bcMethodTwo1})
 
 				proposal.IsAdded = false
 				proposal.ContractList = types.BlockedContractList{bcMethodOne1, bcMethodTwo1}

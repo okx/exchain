@@ -78,7 +78,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	csdb.SetContractDeploymentWhitelist(data.ContractDeploymentWhitelist)
 
 	// set contract blocked list into store
-	csdb.SetContractMethodBlockedList(data.ContractMethodBlockedList)
+	csdb.InsertContractMethodBlockedList(data.ContractMethodBlockedList)
 
 	// set contract blocked list into store
 	csdb.SetContractBlockedList(data.ContractBlockedList)
