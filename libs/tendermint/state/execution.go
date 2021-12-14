@@ -162,6 +162,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin(trace.Abci)
 	if err := blockExec.ValidateBlock(state, block); err != nil {
+		fmt.Println("error 1")
 		return state, 0, ErrInvalidBlock(err)
 	}
 
@@ -170,11 +171,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	var err error
 	if blockExec.isAsync {
 		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+
 	} else {
 		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	}
 
 	if err != nil {
+		fmt.Println("error 2")
 		return state, 0, ErrProxyAppConn(err)
 	}
 
@@ -194,10 +197,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
+		fmt.Println("error 4")
 		return state, 0, fmt.Errorf("error in validator updates: %v", err)
 	}
 	validatorUpdates, err := types.PB2TM.ValidatorUpdates(abciValUpdates)
 	if err != nil {
+		fmt.Println("error 5")
 		return state, 0, err
 	}
 	if len(validatorUpdates) > 0 {
@@ -207,6 +212,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
+		fmt.Println("error 6")
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
@@ -218,6 +224,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
+		fmt.Println("error 7")
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 

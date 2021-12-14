@@ -145,18 +145,18 @@ func (wal *BaseWAL) OnStart() error {
 }
 
 func (wal *BaseWAL) OnReset() error {
-	size, err := wal.group.Head.Size()
+	//size, err := wal.group.Head.Size()
+	//if err != nil {
+	//	return err
+	//} else if size == 0 {
+	//	wal.WriteSync(EndHeightMessage{types.GetStartBlockHeight()})
+	//}
+	err := wal.group.Reset()
 	if err != nil {
 		return err
-	} else if size == 0 {
-		wal.WriteSync(EndHeightMessage{types.GetStartBlockHeight()})
 	}
-	err = wal.group.Reset()
-	if err != nil {
-		return err
-	}
-	wal.flushTicker.Reset(wal.flushInterval)
-	go wal.processFlushTicks()
+	//wal.flushTicker.Reset(wal.flushInterval)
+	//go wal.processFlushTicks()
 	return nil
 }
 

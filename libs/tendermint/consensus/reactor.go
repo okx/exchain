@@ -100,6 +100,10 @@ func (conR *Reactor) OnStop() {
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
 func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool {
+	if conR.conS.IsRunning() {
+		return false
+	}
+
 	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
@@ -115,29 +119,41 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		// dont bother with the WAL if we fast synced
 		conR.conS.doWALCatchup = false
 	}
-	err := conR.conS.Start()
+	err := conR.conS.Stop()
 	if err != nil {
-		err = conR.conS.Reset()
-		if err != nil {
-			panic(fmt.Sprintf(`Failed to start consensus state: %v 
-
-conS:
-%+v 
-
-conR:
-%+v`, err, conR.conS, conR))
-		}
-
-		go conR.peerStatsRoutine()
-
-		conR.subscribeToBroadcastEvents()
-
-		return false
+		//err = conR.conS.Reset()
+		//if err != nil {
+		fmt.Println(fmt.Sprintf("SwitchToConsensus 2. err: %s", err))
 	}
+	conR.conS.Reset()
+	err = conR.conS.Start()
+	if err != nil {
+		//err = conR.conS.Reset()
+		//if err != nil {
+			fmt.Println(fmt.Sprintf("SwitchToConsensus 6. err: %s", err))
+//			panic(fmt.Sprintf(`Failed to start consensus state: %v
+//
+//conS:
+//%+v
+//
+//conR:
+//%+v`, err, conR.conS, conR))
+		//}
+		//
+		//return false
+	}
+
+	go conR.peerStatsRoutine()
+	conR.subscribeToBroadcastEvents()
+
 	return true
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
+	// TODO:
+	//if conR.fastSync {
+	//	return conR.conS.GetState(), errors.New("already switched to fast-sync")
+	//}
 	conR.Logger.Info("SwitchToFastSync")
 
 	conR.mtx.Lock()
@@ -170,19 +186,19 @@ func (conR *Reactor) StopForTestFastSync() {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
-	if !conR.conS.IsRunning() {
-		return
-	}
-	err := conR.conS.Stop()
-	if err != nil {
-		panic(fmt.Sprintf(`Failed to stop consensus state: %v
-
-conS:
-%+v
-
-conR:
-%+v`, err, conR.conS, conR))
-	}
+//	if !conR.conS.IsRunning() {
+//		return
+//	}
+//	err := conR.conS.Stop()
+//	if err != nil {
+//		panic(fmt.Sprintf(`Failed to stop consensus state: %v
+//
+//conS:
+//%+v
+//
+//conR:
+//%+v`, err, conR.conS, conR))
+//	}
 }
 
 // GetChannels implements Reactor

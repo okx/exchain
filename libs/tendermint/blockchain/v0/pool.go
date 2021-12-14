@@ -106,21 +106,25 @@ func (pool *BlockPool) SetHeight(height int64) {
 // OnStart implements service.Service by spawning requesters routine and recording
 // pool's start time.
 func (pool *BlockPool) OnStart() error {
+	fmt.Println("pool.Start")
 	go pool.makeRequestersRoutine()
 	pool.startTime = time.Now()
 	return nil
 }
 
 func (pool *BlockPool) OnReset() error {
-	go pool.makeRequestersRoutine()
-	pool.startTime = time.Now()
+	//fmt.Println("pool.Reset")
+	//go pool.makeRequestersRoutine()
+	//pool.startTime = time.Now()
 	return nil
 }
 
 // spawns requesters as needed
 func (pool *BlockPool) makeRequestersRoutine() {
+	fmt.Println("makeRequestersRoutine")
 	for {
 		if !pool.IsRunning() {
+			fmt.Println("break makeRequestersRoutine")
 			break
 		}
 
@@ -196,6 +200,7 @@ func (pool *BlockPool) IsCaughtUp() bool {
 	// and that we're synced to the highest known height.
 	// Note we use maxPeerHeight - 1 because to sync block H requires block H+1
 	// to verify the LastCommit.
+	// TODO: should change judge conditions
 	receivedBlockOrTimedOut := pool.height > 0 || time.Since(pool.startTime) > 5*time.Second
 	ourChainIsLongestAmongPeers := pool.maxPeerHeight == 0 || pool.height >= (pool.maxPeerHeight-1)
 	isCaughtUp := receivedBlockOrTimedOut && ourChainIsLongestAmongPeers
@@ -263,6 +268,7 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, blockSize int
 
 	requester := pool.requesters[block.Height]
 	if requester == nil {
+		fmt.Println(fmt.Sprintf("addblock nil: %d", block.Height))
 		pool.Logger.Info(
 			"peer sent us a block we didn't expect",
 			"peer",
@@ -282,12 +288,14 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, blockSize int
 	}
 
 	if requester.setBlock(block, peerID) {
+		fmt.Println(fmt.Sprintf("requester.setBlock: %d peerID: %s", block.Height, peerID))
 		atomic.AddInt32(&pool.numPending, -1)
 		peer := pool.peers[peerID]
 		if peer != nil {
 			peer.decrPending(blockSize)
 		}
 	} else {
+		fmt.Println(fmt.Sprintf("invalid peer: %d peerID: %s", block.Height, peerID))
 		pool.Logger.Info("invalid peer", "peer", peerID, "blockHeight", block.Height)
 		pool.sendError(errors.New("invalid peer"), peerID)
 	}
@@ -408,11 +416,14 @@ func (pool *BlockPool) makeNextRequester() {
 
 	nextHeight := pool.height + pool.requestersLen()
 	if nextHeight > pool.maxPeerHeight {
+		//if nextHeight > 1 {
+		//	fmt.Println(fmt.Sprintf("makeNextRequester. next:%d max:%d", nextHeight, pool.maxPeerHeight))
+		//}
 		return
 	}
 
 	request := newBPRequester(pool, nextHeight)
-	fmt.Println(fmt.Sprintf("new bp reqeuster: %d poolHeight:%d", nextHeight, pool.height))
+	fmt.Println(fmt.Sprintf("new bp reqeuster: %d poolHeight:%d requestersLen:%d", request.height, pool.height, pool.requestersLen()))
 
 	pool.requesters[nextHeight] = request
 	atomic.AddInt32(&pool.numPending, 1)

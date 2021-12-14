@@ -74,9 +74,13 @@ type BlockchainReactor struct {
 	store     *store.BlockStore
 	pool      *BlockPool
 	fastSync  bool
+	isSyncing bool
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
+
+	//mtx *sync.Mutex
+	//isFastSyncing uint32 // atomic
 }
 
 // NewBlockchainReactor returns new reactor instance.
@@ -269,54 +273,77 @@ func (bcR *BlockchainReactor) poolRoutine() {
 					conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 					if ok {
 						conR.StopForTestFastSync()
+						testFastSyncTicker.Stop()
 					}
 				}
 			}
 		}
 	}()
 
+	// do fast-sync when the node starts
 	bcR.SwitchToFastSync()
 }
 
 func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
-	fmt.Println("SwitchToConsensus")
+	if !bcR.isSyncing {
+		fmt.Println("SwitchToConsensus 0")
+		return false
+	}
+
 	blocksSynced := uint64(0)
 	height, numPending, lenRequesters := bcR.pool.GetStatus()
 	outbound, inbound, _ := bcR.Switch.NumPeers()
 	bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
 		"outbound", outbound, "inbound", inbound)
-	if bcR.pool.IsCaughtUp() {
+	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+	if bcR.pool.IsCaughtUp() && ok {
 		bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
-		bcR.pool.Stop()
-		conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-		if ok {
-			conR.SwitchToConsensus(state, blocksSynced)
+
+		fmt.Println("conR.SwitchToConsensus")
+		succeed := conR.SwitchToConsensus(state, blocksSynced)
+		if succeed {
+			bcR.pool.Stop()
+			return true
 		}
-		return ok
 	}
 	return false
 }
 
 func (bcR *BlockchainReactor) SwitchToFastSync() {
-	fmt.Println("SwitchToFastSync")
+	if bcR.isSyncing {
+		fmt.Println("SwitchToFastSync 0")
+		return
+	}
+	bcR.isSyncing = true
+	defer func() {
+		bcR.isSyncing = false
+	}()
+	fmt.Println("SwitchToFastSync 1")
+
 	blocksSynced := uint64(0)
 	state := bcR.initialState
 
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
+		fmt.Println("SwitchToFastSync 2")
 		conState, err := conR.SwitchToFastSync()
 		if err == nil {
-			state = conState
+			state = conState.Copy()
+		} else {
+			fmt.Println(fmt.Sprintf("SwitchToFastSync 3. err: %s", err))
 		}
 	}
 	chainID := state.ChainID
 
 	fmt.Println(fmt.Sprintf("conState:%d storeHeight:%d", state.LastBlockHeight, bcR.store.Height()))
-	bcR.pool.SetHeight(bcR.store.Height())
-	err := bcR.pool.Start()
-	if err != nil {
-		bcR.pool.Reset()
-	}
+	bcR.pool.SetHeight(bcR.store.Height()+1)
+	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.pool.Start()
+	//err := bcR.pool.Start()
+	//if err != nil {
+	//	bcR.pool.Reset()
+	//}
 
 	lastHundred := time.Now()
 	lastRate := 0.0
@@ -358,6 +385,7 @@ FOR_LOOP:
 				// Try again quickly next loop.
 				didProcessCh <- struct{}{}
 			}
+			fmt.Println("didProcessCh 2")
 
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
@@ -386,6 +414,7 @@ FOR_LOOP:
 				}
 				continue FOR_LOOP
 			} else {
+				fmt.Println("didProcessCh 3")
 				bcR.pool.PopRequest()
 
 				// TODO: batch saves so we dont persist to disk every block

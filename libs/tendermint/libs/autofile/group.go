@@ -165,8 +165,8 @@ func (g *Group) Close() {
 }
 
 func (g *Group) Reset() error {
-	g.ticker.Reset(g.groupCheckDuration)
-	go g.processTicks()
+	//g.ticker.Reset(g.groupCheckDuration)
+	//go g.processTicks()
 	return nil
 }
 

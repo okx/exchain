@@ -297,6 +297,7 @@ func (cs *State) LoadCommit(height int64) *types.Commit {
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
 func (cs *State) OnStart() error {
 	if err := cs.evsw.Start(); err != nil {
+		fmt.Println("State OnStart 0")
 		return err
 	}
 
@@ -307,6 +308,7 @@ func (cs *State) OnStart() error {
 		wal, err := cs.OpenWAL(walFile)
 		if err != nil {
 			cs.Logger.Error("Error loading State wal", "err", err.Error())
+			fmt.Println("State OnStart 1")
 			return err
 		}
 		cs.wal = wal
@@ -318,6 +320,7 @@ func (cs *State) OnStart() error {
 	// firing on the tockChan until the receiveRoutine is started
 	// to deal with them (by that point, at most one will be valid)
 	if err := cs.timeoutTicker.Start(); err != nil {
+		fmt.Println("State OnStart 2")
 		return err
 	}
 
@@ -339,6 +342,8 @@ rm $WALFILE # remove the corrupt file
 go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without corruption
 ----`)
 
+
+				fmt.Println("State OnStart 3")
 				return err
 			}
 
@@ -372,26 +377,28 @@ func (cs *State) startRoutines(maxSteps int) {
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
+	cs.wal.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
 }
 
 func (cs *State) OnReset() error {
-	if err := cs.timeoutTicker.Start(); err != nil {
-		return err
-	}
+	//if err := cs.timeoutTicker.Start(); err != nil {
+	//	return err
+	//}
 
 	// start the wal
 	cs.evsw.Reset()
 	cs.wal.Reset()
+	cs.timeoutTicker.Reset()
 
 	// now start the receiveRoutine
-	go cs.receiveRoutine(0)
-
-	// schedule the first round!
-	// use GetRoundState so we don't race the receiveRoutine for access
-	// TODO: it is wrong to use cs.GetRoundState(). should fix it
-	cs.scheduleRound0(cs.GetRoundState())
+	//go cs.receiveRoutine(0)
+	//
+	//// schedule the first round!
+	//// use GetRoundState so we don't race the receiveRoutine for access
+	//// TODO: it is wrong to use cs.GetRoundState(). should fix it
+	//cs.scheduleRound0(cs.GetRoundState())
 	return nil
 }
 
@@ -610,6 +617,7 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
+	fmt.Println(fmt.Sprintf("update state. height: %d", cs.state.LastBlockHeight))
 
 	// Finally, broadcast RoundState
 	cs.newStep()

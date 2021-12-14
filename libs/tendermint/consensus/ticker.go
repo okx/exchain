@@ -17,6 +17,7 @@ var (
 type TimeoutTicker interface {
 	Start() error
 	Stop() error
+	Reset() error
 	Chan() <-chan timeoutInfo       // on which to receive a timeout
 	ScheduleTimeout(ti timeoutInfo) // reset the timer
 
@@ -60,6 +61,11 @@ func (t *timeoutTicker) OnStart() error {
 func (t *timeoutTicker) OnStop() {
 	t.BaseService.OnStop()
 	t.stopTimer()
+}
+
+// OnReset implements service.Service. It resets the timeout routine.
+func (t *timeoutTicker) OnReset() error {
+	return nil
 }
 
 // Chan returns a channel on which timeouts are sent.
