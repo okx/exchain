@@ -262,6 +262,16 @@ func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
 	}
 }
 
+func (w *Watcher) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractMethodBlockedListItem(addr, methods)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
 func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return

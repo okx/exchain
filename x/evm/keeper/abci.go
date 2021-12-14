@@ -83,7 +83,12 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
 		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {
-			k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
+			vaule := iteratorBlockedList.Value()
+			if len(vaule) == 0 {
+				k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
+			} else {
+				k.Watcher.SaveContractMethodBlockedListItem(iteratorBlockedList.Key()[1:], vaule)
+			}
 		}
 
 		iteratorDeploymentWhitelist := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractDeploymentWhitelist)

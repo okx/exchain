@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/x/evm/client/utils"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -32,28 +34,66 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryParams(moduleName, cdc),
 		GetCmdQueryContractDeploymentWhitelist(moduleName, cdc),
 		GetCmdQueryContractBlockedList(moduleName, cdc),
+		GetCmdQueryContractMethodeBlockedList(moduleName, cdc),
 	)...)
 	return evmQueryCmd
 }
 
-func add0xPrefix(al types.AddressList)[]string{
-    var res []string;
-    for i := 0; i < len(al); i++ {
-        // decode from bech32 when using cosmos address
-        str, err := accountToHex(al[i].String());
-        if err != nil {
-            continue
-        }
-        res = append(res, str)
-    }
-    return res
+func add0xPrefix(al types.AddressList) []string {
+	var res []string
+	for i := 0; i < len(al); i++ {
+		// decode from bech32 when using cosmos address
+		str, err := accountToHex(al[i].String())
+		if err != nil {
+			continue
+		}
+		res = append(res, str)
+	}
+	return res
+}
+
+// GetCmdQueryContractBlockedList gets the contract blocked list query command.
+func GetCmdQueryContractMethodeBlockedList(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "contract-method-blocked-list",
+		Short: "Query the contract methode blocked list",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the current blocked list of contract addresses during evm calling.
+
+Example:
+$ %s query evm contract-blocked-list
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryContractMethodBlockedList)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var blockedList types.BlockedContractList
+			cdc.MustUnmarshalJSON(bz, &blockedList)
+
+			results := make([]utils.ResponseBlockContract, 0)
+			for i, _ := range blockedList {
+				ethAddr := ethcommon.BytesToAddress(blockedList[i].Address.Bytes()).Hex()
+				result := utils.ResponseBlockContract{Address: ethAddr, BlockMethods: blockedList[i].BlockMethods}
+				results = append(results, result)
+			}
+			return cliCtx.PrintOutput(results)
+		},
+	}
 }
 
 // GetCmdQueryContractBlockedList gets the contract blocked list query command.
 func GetCmdQueryContractBlockedList(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "contract-blocked-list",
-		Short: "Query the contract blocked list",
+		Short: "Query the contract blocked list.Deprecated",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query the current blocked list of contract addresses during evm calling.
 
