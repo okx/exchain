@@ -27,7 +27,7 @@ type cValue struct {
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
-	cache         map[string]*cValue
+	cache         map[string]cValue
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
@@ -37,7 +37,7 @@ var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		cache:         make(map[string]*cValue),
+		cache:         make(map[string]cValue),
 		unsortedCache: make(map[string]struct{}),
 		sortedCache:   list.New(),
 		parent:        parent,
@@ -140,7 +140,7 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	store.cache = make(map[string]*cValue)
+	store.cache = make(map[string]cValue)
 	store.unsortedCache = make(map[string]struct{})
 	store.sortedCache.Init()
 }
@@ -265,7 +265,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
-	store.cache[string(key)] = &cValue{
+	store.cache[string(key)] = cValue{
 		value:   value,
 		deleted: deleted,
 		dirty:   dirty,
