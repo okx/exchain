@@ -309,18 +309,21 @@ func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
 
 	//success,delete one methods
 	cm := ContractMethods{cm1, cm2}
-	cm.DeleteContractMethodMap(ContractMethods{cm2})
+	err := cm.DeleteContractMethodMap(ContractMethods{cm2})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1}))
 
 	//success,delete multi methods
 	cm = ContractMethods{cm1, cm2}
-	cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
+	err = cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{}))
 
 	//success,delete uncontains methods
 	cm = ContractMethods{cm1, cm2}
 	method3 := ContractMethod{Sign: hexutil.Encode([]byte("cccc")), Extra: "test3"}
-	cm.DeleteContractMethodMap(ContractMethods{method3})
+	err = cm.DeleteContractMethodMap(ContractMethods{method3})
+	require.Error(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 }
 func TestContractMethods_GetContractMethodsMap(t *testing.T) {

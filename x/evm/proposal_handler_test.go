@@ -221,16 +221,19 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 		msg                   string
 		prepare               func()
 		targetAddrListToCheck types.BlockedContractList
+		success bool
 	}{
 		{
 			"add address into blocked list",
 			func() {},
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"add address repeatedly",
 			func() {},
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"add method into contract method blocked list",
@@ -242,6 +245,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				govProposal.Content = proposal
 			},
 			types.BlockedContractList{*expectBcMethodOne2, bcMethodTwo1},
+			true,
 		},
 		{
 			"add method into contract method which has same addr int blocked list",
@@ -253,6 +257,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				govProposal.Content = proposal
 			},
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"delete all method from blocked list",
@@ -262,6 +267,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				govProposal.Content = proposal
 			},
 			types.BlockedContractList{bcMethodTwo1},
+			true,
 		},
 		{
 			"delete a method from blocked list",
@@ -274,9 +280,10 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				govProposal.Content = proposal
 			},
 			types.BlockedContractList{bcMethodOne2},
+			true,
 		},
 		{
-			"delete a method from blocked list which is contract all method blocke",
+			"delete a method from blocked list which is contract all method blocked",
 			func() {
 				//reset data
 				suite.stateDB.DeleteContractBlockedList(types.AddressList{addr1, addr2})
@@ -285,7 +292,8 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				proposal.ContractList = types.BlockedContractList{bcMethodOne1, bcMethodTwo1}
 				govProposal.Content = proposal
 			},
-			types.BlockedContractList{},
+			types.BlockedContractList{types.BlockedContract{Address: addr1}},
+			false,
 		},
 		{
 			"delete two addresses from blocked list which contains one of them only",
@@ -298,7 +306,8 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				proposal.ContractList = types.BlockedContractList{bcMethodOne1, bcMethodTwo1}
 				govProposal.Content = proposal
 			},
-			types.BlockedContractList{},
+			types.BlockedContractList{bcMethodTwo1},
+			false,
 		},
 		{
 			"delete two addresses from blocked list which contains none of them",
@@ -310,6 +319,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				govProposal.Content = proposal
 			},
 			types.BlockedContractList{},
+			false,
 		},
 	}
 
@@ -318,7 +328,12 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 			tc.prepare()
 
 			err := suite.govHandler(suite.ctx, &govProposal)
-			suite.Require().NoError(err)
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
+
 
 			// check the blocked list with target address list
 			curBlockedList := suite.stateDB.GetContractMethodBlockedList()

@@ -914,6 +914,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 		isAdded              bool
 		expectedLen          int
 		expectedContractList types.BlockedContractList
+		success bool
 	}{
 		{
 			"add empty blocked contract list",
@@ -921,6 +922,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			0,
 			nil,
+			true,
 		},
 		{
 			"add list with one member into blocked list",
@@ -928,6 +930,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			1,
 			types.BlockedContractList{bcMethodOne1},
+			true,
 		},
 		{
 			"add list with two members into the blocked list that has contained one member already",
@@ -935,6 +938,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			2,
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"add list with one members(method empty) into the blocked list that has contained one member already",
@@ -942,6 +946,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			2,
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"delete empty from blocked list",
@@ -949,6 +954,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			false,
 			2,
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"delete list with one members from the blocked list that has contained one member only",
@@ -956,6 +962,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			false,
 			1,
 			types.BlockedContractList{bcMethodOne1},
+			true,
 		},
 		{
 			"delete list with two members from the empty blocked list",
@@ -963,6 +970,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			false,
 			0,
 			nil,
+			false,
 		},
 		{
 			"reset contract method blocked list",
@@ -970,6 +978,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			2,
 			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			true,
 		},
 		{
 			"add new method into contract method blocked list",
@@ -977,6 +986,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			2,
 			types.BlockedContractList{*expectBcMethodOne3, bcMethodTwo1},
+			true,
 		},
 		{
 			"add new methods which is one method exist into contract method blocked list",
@@ -984,30 +994,40 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractMethodBlockedList() {
 			true,
 			2,
 			types.BlockedContractList{*expectBcMethodOne4, bcMethodTwo1},
+			true,
 		},
 		{
 			"delete methods which is not exist from contract method blocked list",
 			types.BlockedContractList{bcMethodOne5},
 			false,
 			2,
-			types.BlockedContractList{bcMethodOne1, bcMethodTwo1},
+			types.BlockedContractList{*expectBcMethodOne4, bcMethodTwo1},
+			false,
 		},
 		{
 			"delete all methods from contract method blocked list",
-			types.BlockedContractList{bcMethodOne1},
+			types.BlockedContractList{*expectBcMethodOne4},
 			false,
 			1,
 			types.BlockedContractList{bcMethodTwo1},
+			true,
 		},
 	}
 
 	for _, tc := range testCase {
 		suite.Run(tc.name, func() {
+			var err sdk.Error
 			if tc.isAdded {
-				suite.stateDB.SetContractMethodBlockedList(tc.targetAddrList)
+				err = suite.stateDB.SetContractMethodBlockedList(tc.targetAddrList)
 			} else {
-				suite.stateDB.DeleteContractMethodBlockedList(tc.targetAddrList)
+				err = suite.stateDB.DeleteContractMethodBlockedList(tc.targetAddrList)
 			}
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
+
 
 			blockedList := suite.stateDB.GetContractMethodBlockedList()
 			suite.Require().Equal(tc.expectedLen, len(blockedList))
