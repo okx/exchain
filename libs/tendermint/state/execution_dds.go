@@ -35,6 +35,8 @@ func newDeltaContext()  *DeltaContext {
 	dp.downloadDelta = types.EnableDownloadDelta()
 	dp.uploadDelta = types.EnableUploadDelta()
 
+	dp.deltas = &types.Deltas{}
+
 	return dp
 }
 
@@ -56,122 +58,77 @@ func (dc *DeltaContext) init(l log.Logger) {
 	if dc.downloadDelta {
 		go dc.getDeltaFromDDS()
 	}
+}
 
+func (dc *DeltaContext) setWatchData(wd []byte) {
+	dc.deltas.WatchBytes = wd
+}
+
+func (dc *DeltaContext) setAbciRsp(ar []byte) {
+	dc.deltas.ABCIRsp = ar
+}
+
+func (dc *DeltaContext) setStateDelta(sd []byte) {
+	dc.deltas.DeltasBytes = sd
 }
 
 func (dc *DeltaContext) postApplyBlock(block *types.Block) {
-	delta := dc.deltas
-
-	if dc.broadDelta || dc.uploadDelta {
-		delta.Height = block.Height
-	}
 	if dc.uploadDelta {
-		go dc.uploadData(block, delta)
+		go dc.uploadData(block)
 	}
 
 	dc.logger.Info("Post apply block",
-		"delta", delta,
+		"delta", dc.deltas,
 		"useDeltas", dc.useDeltas)
 }
 
 
-func (dc *DeltaContext) uploadData(block *types.Block, deltas *types.Deltas) {
-	//if !dc.uploadDelta {
-	//	return
-	//}
-
-	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
+func (dc *DeltaContext) uploadData(block *types.Block) {
+	if dc.deltas == nil {
+		return
+	}
+	dc.deltas.Height = block.Height
+	if err := dc.deltaBroker.SetDeltas(dc.deltas); err != nil {
 		dc.logger.Error("Upload delta", "height", block.Height, "error", err)
 		return
 	}
 	dc.logger.Info("Upload delta",
-		"deltas", deltas,
+		"deltas", dc.deltas,
 		"blockLen", block.Size(),
 		"gid", gorid.GoRId,
 	)
 }
 
-func (dc *DeltaContext) prepareStateDelta(block *types.Block, deltas *types.Deltas) (bool, *types.Deltas) {
-	fastQuery := types.IsFastQuery()
-	applyDelta := types.EnableApplyP2PDelta()
-	downloadDelta := types.EnableDownloadDelta()
-
+func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	// not use delta, exe abci itself
-	if !applyDelta && !downloadDelta {
-		return false, deltas
+	if !dc.applyDelta && !dc.downloadDelta {
+		return
 	}
 
-	// get watchData and Delta from p2p
-	if applyDelta {
-		if len(deltas.ABCIRsp) > 0 && len(deltas.DeltasBytes) > 0 {
-			if !fastQuery || len(deltas.WatchBytes) > 0 {
-				return true, deltas
-			}
-		}
+	if !dc.downloadDelta {
+		return
 	}
 
-	if !downloadDelta {
-		return false, deltas
-	}
-
-	var directDelta *types.Deltas
-	var err error
-	needDDS := true
+	var dds *types.Deltas
 	select {
-	case directDelta = <-dc.deltaCh:
-		if directDelta.Height == block.Height {
-			needDDS = false
-		}
-		// already get delta of height, then request delta of height+1
-		dc.deltaHeightCh <- block.Height + 1
+	case dds = <-dc.deltaCh:
+		// already get delta of height
 	default:
-		// can't get delta of height, request delta of height+1 and return
-		dc.deltaHeightCh <- block.Height + 1
+		// can't get delta of height
 	}
-
-	if needDDS {
-		// request watchData and Delta from dds
-		directDelta, err = dc.deltaBroker.GetDeltas(block.Height)
-	}
+	// request delta of height+1 and return
+	dc.deltaHeightCh <- block.Height + 1
 
 	// can't get data from dds
-	if directDelta == nil {
-		if err != nil {
-			dc.logger.Error("Download Delta err:", err)
-		}
-		return false, deltas
+	if dds == nil || dds.Height != block.Height ||
+		len(dds.WatchBytes) < 0 || len(dds.ABCIRsp) < 0 || len(dds.DeltasBytes) < 0 {
+		return
 	}
 
-	//// get watchData from dds
-	if !fastQuery || len(directDelta.WatchBytes) > 0 {
-		// get Delta from dds
-		if len(directDelta.ABCIRsp) > 0 && len(directDelta.DeltasBytes) > 0 {
-			return true, directDelta
-		}
-		// get Delta from p2p
-		if len(deltas.ABCIRsp) > 0 && len(deltas.DeltasBytes) > 0 {
-			deltas.WatchBytes = directDelta.WatchBytes
-			return true, deltas
-		}
-		// can't get Delta
-		return false, deltas
-	}
-
-	//// can't get watchData from dds
-	{
-		if len(deltas.WatchBytes) <= 0 {
-			// can't get watchData
-			return false, deltas
-		}
-
-		// get Delta from dds
-		if len(directDelta.ABCIRsp) > 0 && len(directDelta.DeltasBytes) > 0 {
-			directDelta.WatchBytes = deltas.WatchBytes
-			return true, directDelta
-		}
-	}
-
-	return false, deltas
+	// get Delta from dds
+	dc.useDeltas = true
+	dc.deltas = dds
+	return
 }
 
 func (dc *DeltaContext) getDeltaFromDDS() {
