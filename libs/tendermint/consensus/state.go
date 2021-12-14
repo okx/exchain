@@ -1526,11 +1526,10 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	stateCopy, retainHeight, deltas, err = cs.blockExec.ApplyBlock(
+	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
-		block,
-		deltas)
+		block)
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()

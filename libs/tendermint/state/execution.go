@@ -155,7 +155,7 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(
-	state State, blockID types.BlockID, block *types.Block, ds *types.Deltas) (State, int64, *types.Deltas, error) {
+	state State, blockID types.BlockID, block *types.Block) (State, int64, error) {
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
@@ -181,7 +181,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
-		return state, 0, dc.deltas, ErrInvalidBlock(err)
+		return state, 0, ErrInvalidBlock(err)
 	}
 
 	trc.Pin("GetDelta")
@@ -198,7 +198,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, err := blockExec.runAbci(block)
 
 	if err != nil {
-		return state, 0, dc.deltas, ErrProxyAppConn(err)
+		return state, 0, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
@@ -217,11 +217,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
-		return state, 0, dc.deltas, fmt.Errorf("error in validator updates: %v", err)
+		return state, 0, fmt.Errorf("error in validator updates: %v", err)
 	}
 	validatorUpdates, err := types.PB2TM.ValidatorUpdates(abciValUpdates)
 	if err != nil {
-		return state, 0, dc.deltas, err
+		return state, 0, err
 	}
 	if len(validatorUpdates) > 0 {
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
@@ -230,7 +230,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
-		return state, 0, dc.deltas, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
 	trc.Pin(trace.Persist)
@@ -241,7 +241,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
-		return state, 0, dc.deltas, fmt.Errorf("commit failed for application: %v", err)
+		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
 	if !blockExec.deltaContext.useDeltas {
@@ -272,7 +272,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	dc.postApplyBlock(block)
 
-	return state, retainHeight, dc.deltas, nil
+	return state, retainHeight, nil
 }
 
 
