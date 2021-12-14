@@ -2,8 +2,10 @@ package types
 
 import (
 	"crypto/sha256"
+	"fmt"
 	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -172,15 +174,19 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) {
 
 // DeleteContractMethodMap delete the list of ContractMethod from cms.
 // if method is not exist,it can not be panic or error
-func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) {
+func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) error {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
+		if _,ok := methodMap[methods[i].Sign]; !ok {
+			return errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
+		}
 		delete(methodMap, methods[i].Sign)
 	}
 	*cms = (*cms)[0:0]
 	for k, _ := range methodMap {
 		*cms = append((*cms), methodMap[k])
 	}
+	return nil
 }
 
 //ContractMethod is the blocked contract method
