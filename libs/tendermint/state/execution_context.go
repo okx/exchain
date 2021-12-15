@@ -44,6 +44,15 @@ func (e *executionContext) dump(when string) {
 	)
 }
 
+
+func (e *executionContext) stop() {
+	e.stopped = true
+	e.proxyApp.SetOptionSync(abci.RequestSetOption{
+		Key: "ResetDeliverState",
+	})
+}
+
+
 func (blockExec *BlockExecutor) prerunRoutine() {
 	for context := range blockExec.prerunChan {
 		prerun(context)
@@ -90,8 +99,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 			panic("Prerun sanity check failed")
 		}
 		context.dump("Stopping prerun")
-		blockExec.prerunContext.stopped = true
-		blockExec.ResetDeliverState()
+		blockExec.prerunContext.stop()
 	}
 
 	blockExec.prerunIndex++
@@ -139,11 +147,6 @@ func (blockExec *BlockExecutor) InitPrerun() {
 	go blockExec.prerunRoutine()
 }
 
-func (blockExec *BlockExecutor) ResetDeliverState() {
-	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
-		Key: "ResetDeliverState",
-	})
-}
 
 func FirstBlock(block *types.Block) bool {
 	if 	block.Height == 1{
