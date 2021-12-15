@@ -157,6 +157,8 @@ func (wal *BaseWAL) OnReset() error {
 	}
 	//wal.flushTicker.Reset(wal.flushInterval)
 	//go wal.processFlushTicks()
+
+
 	return nil
 }
 

@@ -69,6 +69,7 @@ type BlockchainReactor struct {
 
 	// immutable
 	initialState sm.State
+	curState sm.State	// mutable
 
 	blockExec *sm.BlockExecutor
 	store     *store.BlockStore
@@ -105,6 +106,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 
 	bcR := &BlockchainReactor{
 		initialState: state,
+		curState: state,
 		blockExec:    blockExec,
 		store:        store,
 		pool:         pool,
@@ -299,7 +301,6 @@ func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
 	if bcR.pool.IsCaughtUp() && ok {
 		bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
 
-		fmt.Println("conR.SwitchToConsensus")
 		succeed := conR.SwitchToConsensus(state, blocksSynced)
 		if succeed {
 			bcR.pool.Stop()
@@ -321,29 +322,24 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 	fmt.Println("SwitchToFastSync 1")
 
 	blocksSynced := uint64(0)
-	state := bcR.initialState
+	//state := bcR.initialState
 
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
 		fmt.Println("SwitchToFastSync 2")
 		conState, err := conR.SwitchToFastSync()
 		if err == nil {
-			state = conState.Copy()
+			bcR.curState = conState//.Copy()
 		} else {
 			fmt.Println(fmt.Sprintf("SwitchToFastSync 3. err: %s", err))
 		}
 	}
-	chainID := state.ChainID
+	chainID := bcR.curState.ChainID
 
-	fmt.Println(fmt.Sprintf("conState:%d storeHeight:%d", state.LastBlockHeight, bcR.store.Height()))
 	bcR.pool.SetHeight(bcR.store.Height()+1)
 	bcR.pool.Stop()
 	bcR.pool.Reset()
 	bcR.pool.Start()
-	//err := bcR.pool.Start()
-	//if err != nil {
-	//	bcR.pool.Reset()
-	//}
 
 	lastHundred := time.Now()
 	lastRate := 0.0
@@ -356,7 +352,7 @@ FOR_LOOP:
 	for {
 		select {
 		case <-switchToConsensusTicker.C:
-			if bcR.SwitchToConsensus(state) {
+			if bcR.SwitchToConsensus(bcR.curState) {
 				break FOR_LOOP
 			}
 
@@ -394,7 +390,7 @@ FOR_LOOP:
 			// NOTE: we can probably make this more efficient, but note that calling
 			// first.Hash() doesn't verify the tx contents, so MakePartSet() is
 			// currently necessary.
-			err := state.Validators.VerifyCommit(
+			err := bcR.curState.Validators.VerifyCommit(
 				chainID, firstID, first.Height, second.LastCommit)
 			if err != nil {
 				bcR.Logger.Error("Error in validation", "err", err)
@@ -423,7 +419,7 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
-				state, _, err = bcR.blockExec.ApplyBlock(state, firstID, first) // rpc
+				bcR.curState, _, err = bcR.blockExec.ApplyBlock(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))

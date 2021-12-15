@@ -119,29 +119,9 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		// dont bother with the WAL if we fast synced
 		conR.conS.doWALCatchup = false
 	}
-	err := conR.conS.Stop()
-	if err != nil {
-		//err = conR.conS.Reset()
-		//if err != nil {
-		fmt.Println(fmt.Sprintf("SwitchToConsensus 2. err: %s", err))
-	}
+	conR.conS.Stop()
 	conR.conS.Reset()
-	err = conR.conS.Start()
-	if err != nil {
-		//err = conR.conS.Reset()
-		//if err != nil {
-			fmt.Println(fmt.Sprintf("SwitchToConsensus 6. err: %s", err))
-//			panic(fmt.Sprintf(`Failed to start consensus state: %v
-//
-//conS:
-//%+v
-//
-//conR:
-//%+v`, err, conR.conS, conR))
-		//}
-		//
-		//return false
-	}
+	conR.conS.Start()
 
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()

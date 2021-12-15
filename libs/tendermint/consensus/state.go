@@ -297,22 +297,24 @@ func (cs *State) LoadCommit(height int64) *types.Commit {
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
 func (cs *State) OnStart() error {
 	if err := cs.evsw.Start(); err != nil {
-		fmt.Println("State OnStart 0")
 		return err
 	}
 
 	// we may set the WAL in testing before calling Start,
 	// so only OpenWAL if its still the nilWAL
-	if _, ok := cs.wal.(nilWAL); ok {
+	//if _, ok := cs.wal.(nilWAL); ok {
 		walFile := cs.config.WalFile()
 		wal, err := cs.OpenWAL(walFile)
 		if err != nil {
 			cs.Logger.Error("Error loading State wal", "err", err.Error())
-			fmt.Println("State OnStart 1")
 			return err
 		}
 		cs.wal = wal
-	}
+	//} else if err := cs.wal.Start(); err != nil{
+	//	// TODO: err is not nil. why?
+	//	fmt.Println(fmt.Sprintf("State OnStart 2. err: %s", err))
+	//	//return err
+	//}
 
 	// we need the timeoutRoutine for replay so
 	// we don't block on the tick chan.
@@ -320,7 +322,6 @@ func (cs *State) OnStart() error {
 	// firing on the tockChan until the receiveRoutine is started
 	// to deal with them (by that point, at most one will be valid)
 	if err := cs.timeoutTicker.Start(); err != nil {
-		fmt.Println("State OnStart 2")
 		return err
 	}
 
@@ -343,7 +344,6 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 ----`)
 
 
-				fmt.Println("State OnStart 3")
 				return err
 			}
 
@@ -377,28 +377,14 @@ func (cs *State) startRoutines(maxSteps int) {
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
-	cs.wal.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
 }
 
 func (cs *State) OnReset() error {
-	//if err := cs.timeoutTicker.Start(); err != nil {
-	//	return err
-	//}
-
-	// start the wal
 	cs.evsw.Reset()
 	cs.wal.Reset()
 	cs.timeoutTicker.Reset()
-
-	// now start the receiveRoutine
-	//go cs.receiveRoutine(0)
-	//
-	//// schedule the first round!
-	//// use GetRoundState so we don't race the receiveRoutine for access
-	//// TODO: it is wrong to use cs.GetRoundState(). should fix it
-	//cs.scheduleRound0(cs.GetRoundState())
 	return nil
 }
 
