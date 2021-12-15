@@ -79,6 +79,7 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
+
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if blockExec.prerunContext != nil {
