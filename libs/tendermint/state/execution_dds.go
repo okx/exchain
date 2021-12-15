@@ -64,40 +64,28 @@ func (dc *DeltaContext) init(l log.Logger) {
 		go dc.getDeltaFromDDS()
 	}
 }
-//
-//func (dc *DeltaContext) setWatchData(wd []byte) {
-//	dc.deltas.WatchBytes = wd
-//}
-//
-//func (dc *DeltaContext) setAbciRsp(ar []byte) {
-//	dc.deltas.ABCIRsp = ar
-//}
-//
-//func (dc *DeltaContext) setStateDelta(sd []byte) {
-//	dc.deltas.DeltasBytes = sd
-//}
+
 
 func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	if dc.uploadDelta {
 		// validator
-		dc.postApplyBlockV(height, abciResponses, res)
-	} else {
+		dc.upload(height, abciResponses, res)
+	}
+
+	if dc.downloadDelta {
 		// rpc
-		dc.deltas.Height = height
-		dc.logger.Info("Post apply block",
-			"applied", dc.useDeltas,
-			"delta", dc.deltas)
+		dc.logger.Info("Post apply block", "applied", dc.useDeltas, "delta", dc.deltas)
 		if dc.useDeltas {
 			UseWatchData(dc.deltas.WatchBytes)
 		}
-
-		dc.deltas = &types.Deltas{}
-
 	}
+
+	dc.deltas = &types.Deltas{}
+	dc.useDeltas = false
 }
 
-func (dc *DeltaContext) postApplyBlockV(height int64, abciResponses *ABCIResponses, res []byte) {
+func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	var abciResponsesBytes []byte
 	var err error
@@ -134,7 +122,6 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
-	dc.useDeltas = false
 
 	if !dc.downloadDelta {
 		return
