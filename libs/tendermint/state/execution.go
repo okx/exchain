@@ -263,8 +263,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-
-	dc.postApplyBlock(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
+	dc.postApplyDelta(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
 
 	return state, retainHeight, nil
 }
@@ -379,6 +378,10 @@ func (blockExec *BlockExecutor) commit(
 		blockExec.proxyApp.SetOptionAsync(abci.RequestSetOption{
 			Key: "ResetCheckState",
 		})
+	}
+
+	if res.Deltas == nil {
+		res.Deltas = &abci.Deltas{}
 	}
 
 	return res, res.RetainHeight, err

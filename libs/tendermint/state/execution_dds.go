@@ -32,7 +32,6 @@ func newDeltaContext()  *DeltaContext {
 	}
 	//dp.applyDelta = types.EnableApplyP2PDelta()
 	//dp.broadDelta = types.EnableBroadcastP2PDelta()
-	types.EnableBroadcastP2PDelta()
 	dp.downloadDelta = types.EnableDownloadDelta()
 	dp.uploadDelta = types.EnableUploadDelta()
 
@@ -65,24 +64,26 @@ func (dc *DeltaContext) init(l log.Logger) {
 	}
 }
 
+func (dc *DeltaContext) reset() {
+	dc.useDeltas = false
+	dc.deltas = &types.Deltas{}
+}
 
-func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
 
+func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
+	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas)
+
+	// rpc
+	if dc.useDeltas {
+		UseWatchData(dc.deltas.WatchBytes)
+	}
+
+	// validator
 	if dc.uploadDelta {
-		// validator
 		dc.upload(height, abciResponses, res)
 	}
 
-	if dc.downloadDelta {
-		// rpc
-		dc.logger.Info("Post apply block", "applied", dc.useDeltas, "delta", dc.deltas)
-		if dc.useDeltas {
-			UseWatchData(dc.deltas.WatchBytes)
-		}
-	}
-
-	dc.deltas = &types.Deltas{}
-	dc.useDeltas = false
+	dc.reset()
 }
 
 func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
@@ -95,10 +96,10 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 	}
 
 	delta4Upload :=  &types.Deltas {
-		abciResponsesBytes,
-		res,
-		GetWatchData(),
-		height,
+		ABCIRsp:     abciResponsesBytes,
+		DeltasBytes: res,
+		WatchBytes:  GetWatchData(),
+		Height:      height,
 	}
 
 	go dc.uploadData(delta4Upload)
@@ -109,7 +110,6 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 	if deltas == nil {
 		return
 	}
-
 
 	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
 		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
@@ -141,7 +141,7 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 
 	// can't get data from dds
 	if dds == nil || dds.Height != block.Height ||
-		len(dds.WatchBytes) < 0 || len(dds.ABCIRsp) < 0 || len(dds.DeltasBytes) < 0 {
+		len(dds.WatchBytes) == 0 || len(dds.ABCIRsp) == 0 || len(dds.DeltasBytes) == 0 {
 		return
 	}
 
