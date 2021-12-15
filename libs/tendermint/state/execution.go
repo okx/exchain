@@ -263,6 +263,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
+
 	dc.postApplyBlock(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
 
 	return state, retainHeight, nil
