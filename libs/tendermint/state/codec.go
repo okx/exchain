@@ -7,7 +7,9 @@ import (
 )
 
 var cdc = amino.NewCodec()
+var ModuleCodec *amino.Codec
 
 func init() {
 	cryptoamino.RegisterAmino(cdc)
+	ModuleCodec = cdc
 }
