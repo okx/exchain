@@ -4,6 +4,13 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -173,6 +180,115 @@ func TestPruneStates(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestABCIResponsesAmino(t *testing.T) {
+	tmp := ethcmn.HexToHash("testhahs")
+	var resps = []sm.ABCIResponses{
+		{
+			nil,
+			nil,
+			nil,
+		},
+		{
+			[]*abci.ResponseDeliverTx{},
+			&abci.ResponseEndBlock{},
+			&abci.ResponseBeginBlock{},
+		},
+		{
+			[]*abci.ResponseDeliverTx{
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+			},
+			&abci.ResponseEndBlock{
+				ValidatorUpdates: []abci.ValidatorUpdate{
+					{Power: 100},
+				},
+				ConsensusParamUpdates: &abci.ConsensusParams{
+					&abci.BlockParams{MaxBytes: 1024},
+					&abci.EvidenceParams{MaxAgeDuration: time.Minute * 100},
+					&abci.ValidatorParams{PubKeyTypes: []string{"pubkey1", "pubkey2"}},
+					struct{}{}, []byte{}, 0,
+				},
+				Events: []abci.Event{{}, {Type: "Event"}},
+			},
+			&abci.ResponseBeginBlock{
+				Events: []abci.Event{
+					{},
+					{"", nil, struct{}{}, nil, 0},
+					{
+						Type: "type", Attributes: []kv.Pair{
+							{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+							{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+							{Key: nil, Value: nil},
+							{Key: []byte{}, Value: []byte{}},
+							{Key: tmp[:], Value: tmp[:]},
+						},
+					},
+				},
+				XXX_sizecache: 10,
+			},
+		},
+	}
+
+	for _, resp := range resps {
+		expect, err := sm.ModuleCodec.MarshalBinaryBare(resp)
+		require.NoError(t, err)
+
+		actual, err := resp.MarshalToAmino()
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+	}
+}
+
+func BenchmarkABCIResponsesMarshalAmino(b *testing.B) {
+	tmp := ethcmn.HexToHash("testhahs")
+	resp := sm.ABCIResponses{
+		[]*abci.ResponseDeliverTx{
+			{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+		},
+		&abci.ResponseEndBlock{
+			ValidatorUpdates: []abci.ValidatorUpdate{
+				{Power: 100},
+			},
+			ConsensusParamUpdates: &abci.ConsensusParams{
+				&abci.BlockParams{MaxBytes: 1024},
+				&abci.EvidenceParams{MaxAgeDuration: time.Minute * 100},
+				&abci.ValidatorParams{PubKeyTypes: []string{"pubkey1", "pubkey2"}},
+				struct{}{}, []byte{}, 0,
+			},
+			Events: []abci.Event{{}, {Type: "Event"}},
+		},
+		&abci.ResponseBeginBlock{
+			Events: []abci.Event{
+				{},
+				{"", nil, struct{}{}, nil, 0},
+				{
+					Type: "type", Attributes: []kv.Pair{
+						{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+						{Key: []byte{0x11, 0x22}, Value: []byte{0x33, 0x44}},
+						{Key: nil, Value: nil},
+						{Key: []byte{}, Value: []byte{}},
+						{Key: tmp[:], Value: tmp[:]},
+					},
+				},
+			},
+			XXX_sizecache: 10,
+		},
+	}
+
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = sm.ModuleCodec.MarshalBinaryBare(resp)
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = resp.MarshalToAmino()
+		}
+	})
 }
 
 func sliceToMap(s []int64) map[int64]bool {
