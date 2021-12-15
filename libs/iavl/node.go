@@ -246,6 +246,8 @@ func (node *Node) getByIndex(t *ImmutableTree, index int64) (key []byte, value [
 	return node.getRightNode(t).getByIndex(t, index-leftNode.size)
 }
 
+var nodeHashBufferPool = amino.NewBufferPool()
+
 // Computes the hash of the node without computing its descendants. Must be
 // called on nodes which have descendant node hashes already computed.
 func (node *Node) _hash() []byte {
@@ -254,9 +256,10 @@ func (node *Node) _hash() []byte {
 	}
 
 	h := tmhash.New()
-	buf := bytes.Buffer{}
+	buf := nodeHashBufferPool.Get()
+	defer nodeHashBufferPool.Put(buf)
 	buf.Grow(node.aminoHashSize())
-	if err := node.writeHashBytesToBuffer(&buf); err != nil {
+	if err := node.writeHashBytesToBuffer(buf); err != nil {
 		panic(err)
 	}
 	_, err := h.Write(buf.Bytes())
