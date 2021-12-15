@@ -72,34 +72,69 @@ func (dc *DeltaContext) setStateDelta(sd []byte) {
 	dc.deltas.DeltasBytes = sd
 }
 
-func (dc *DeltaContext) postApplyBlock(block *types.Block) {
-	if dc.uploadDelta {
-		go dc.uploadData(block)
+func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
+
+	dc.deltas.Height = height
+	dc.setStateDelta(res) // settt
+
+	var abciResponsesBytes []byte
+	var err error
+	if dc.broadDelta || dc.uploadDelta {
+		abciResponsesBytes, err = types.Json.Marshal(abciResponses)
+		if err != nil {
+			panic(err)
+		}
+		dc.setAbciRsp(abciResponsesBytes) // settt
 	}
 
+	if !dc.useDeltas {
+		// get deliverTx WatchData and let wd = it
+		dc.setWatchData(GetWatchData()) // settt
+	} else {
+		// commitBatch with wd in exchain
+		UseWatchData(dc.deltas.WatchBytes)
+	}
+
+	delta4Upload :=  &types.Deltas {
+		abciResponsesBytes,
+		res,
+		GetWatchData(),
+		height,
+	}
+
+
 	dc.logger.Info("Post apply block",
-		"delta", dc.deltas,
+		"delta", delta4Upload,
 		"useDeltas", dc.useDeltas)
+
+	dc.deltas = &types.Deltas{}
+
+	if dc.uploadDelta {
+		go dc.uploadData(delta4Upload)
+	}
+
 }
 
 
-func (dc *DeltaContext) uploadData(block *types.Block) {
-	if dc.deltas == nil {
+func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+	if deltas == nil {
 		return
 	}
-	dc.deltas.Height = block.Height
-	if err := dc.deltaBroker.SetDeltas(dc.deltas); err != nil {
-		dc.logger.Error("Upload delta", "height", block.Height, "error", err)
+
+
+	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
+		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
 	dc.logger.Info("Upload delta",
-		"deltas", dc.deltas,
-		"blockLen", block.Size(),
+		"deltas", deltas,
 		"gid", gorid.GoRId,
 	)
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
+	dc.useDeltas = false
+
 	// not use delta, exe abci itself
 	if !dc.applyDelta && !dc.downloadDelta {
 		return
@@ -112,8 +147,10 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	var dds *types.Deltas
 	select {
 	case dds = <-dc.deltaCh:
+		dc.logger.Info("prepareStateDelta", "delta", dds)
 		// already get delta of height
 	default:
+		dc.logger.Info("prepareStateDelta", "delta", dds)
 		// can't get delta of height
 	}
 	// request delta of height+1 and return

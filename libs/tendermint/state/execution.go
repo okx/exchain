@@ -237,20 +237,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	appHash, retainHeight, err := blockExec.Commit(state, block, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	if !blockExec.deltaContext.useDeltas {
-		// get deliverTx WatchData and let wd = it
-		dc.setWatchData(GetWatchData())
-	} else {
-		// commitBatch with wd in exchain
-		UseWatchData(dc.deltas.WatchBytes)
-	}
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
@@ -261,7 +254,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveState)
 
 	// Update the app hash and save the state.
-	state.AppHash = appHash
+	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
 	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
 	fail.Fail() // XXX
@@ -270,7 +263,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block)
+	dc.postApplyBlock(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
 
 	return state, retainHeight, nil
 }
@@ -291,6 +284,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 			panic(err)
 		}
 	} else {
+		blockExec.logger.Info("Not apply delta", "block", block, "gid", gorid.GoRId)
 
 		if blockExec.proactivelyRunTx {
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
@@ -309,14 +303,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}
-
-		if blockExec.deltaContext.broadDelta || blockExec.deltaContext.uploadDelta {
-			bytes, err := types.Json.Marshal(abciResponses)
-			if err != nil {
-				panic(err)
-			}
-			dc.setAbciRsp(bytes)
-		}
 	}
 
 	return abciResponses, err
@@ -327,11 +313,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 // The Mempool must be locked during commit and update because state is
 // typically reset on Commit and old txs must be replayed against committed
 // state before new txs are run in the mempool, lest they be invalid.
-func (blockExec *BlockExecutor) Commit(
+func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
 	deliverTxResponses []*abci.ResponseDeliverTx,
-) ([]byte, int64, error) {
+) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
 	defer func() {
 		blockExec.mempool.Unlock()
@@ -350,8 +336,13 @@ func (blockExec *BlockExecutor) Commit(
 		return nil, 0, err
 	}
 
+	blockExec.logger.Info("set abciDelta", "abciDelta", dc.deltas)
+	abciDelta := &abci.Deltas{
+		DeltasByte: dc.deltas.DeltasBytes,
+	}
+
 	// Commit block, get hash back
-	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{Deltas: &abci.Deltas{DeltasByte: dc.deltas.DeltasBytes}})
+	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{Deltas: abciDelta})
 	if err != nil {
 		blockExec.logger.Error(
 			"Client error during proxyAppConn.CommitSync",
@@ -359,23 +350,15 @@ func (blockExec *BlockExecutor) Commit(
 		)
 		return nil, 0, err
 	}
-	if res.Deltas == nil {
-		res.Deltas = &abci.Deltas{}
-	}
 
 	// ResponseCommit has no error code - just data
-
 	blockExec.logger.Info(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
 		"appHash", fmt.Sprintf("%X", res.Data),
 		"blockLen", block.Size(),
-		"inDeltasLen", len(dc.deltas.DeltasBytes),
-		"outDeltasLen", len(res.Deltas.DeltasByte),
 	)
-
-	dc.setStateDelta(res.Deltas.DeltasByte)
 
 	// Update mempool.
 	err = blockExec.mempool.Update(
@@ -397,7 +380,7 @@ func (blockExec *BlockExecutor) Commit(
 		})
 	}
 
-	return res.Data, res.RetainHeight, err
+	return res, res.RetainHeight, err
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
