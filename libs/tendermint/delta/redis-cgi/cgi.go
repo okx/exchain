@@ -3,26 +3,30 @@ package redis_cgi
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/go-redis/redis/v8"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"strconv"
 )
 
-const TTL = 1500 * time.Second
+const TTL = 0
 
 type RedisClient struct {
 	rdb *redis.Client
+	compressBroker compress.CompressBroker
+	logger log.Logger
 }
 
-func NewRedisClient(url string) *RedisClient {
+func NewRedisClient(url string, l log.Logger) *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
-	return &RedisClient{rdb}
+	return &RedisClient{rdb,
+		// todo can config different compress algorithm
+		&compress.Flate{}, l}
 }
 
 func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
@@ -33,7 +37,9 @@ func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
 	if err != nil {
 		return err
 	}
-	return r.rdb.SetNX(context.Background(), setBlockKey(block.Height), blockBytes, TTL).Err()
+	compressBytes := r.compressBroker.DefaultCompress(blockBytes)
+	r.logger.Info("compress block", "blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
+	return r.rdb.SetNX(context.Background(), setBlockKey(block.Height), compressBytes, TTL).Err()
 }
 
 func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
@@ -44,17 +50,21 @@ func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
 	if err != nil {
 		return err
 	}
-	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), deltaBytes, TTL).Err()
+	compressBytes := r.compressBroker.DefaultCompress(deltaBytes)
+	r.logger.Info("compress delta", "deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
+	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), compressBytes, TTL).Err()
 }
 
 func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
-	blockBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
+	compressBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
 	if err == redis.Nil {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	blockBytes := r.compressBroker.UnCompress(compressBytes)
+	r.logger.Info("uncompress block", "blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
 	block := &tmtypes.Block{}
 	if err = block.Unmarshal(blockBytes); err != nil {
 		return nil, err
@@ -63,13 +73,15 @@ func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 }
 
 func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
-	deltaBytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
+	compressBytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
 	if err == redis.Nil {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	deltaBytes := r.compressBroker.UnCompress(compressBytes)
+	r.logger.Info("uncompress delta", "deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
 	deltas := &tmtypes.Deltas{}
 	if err = deltas.Unmarshal(deltaBytes); err != nil {
 		return nil, err
