@@ -337,6 +337,10 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 
 // GetBalanceBatch returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (interface{}, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_getBalanceBatch", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("addresses", addresses, "block number", blockNrOrHash)
 
