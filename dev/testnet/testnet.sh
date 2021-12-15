@@ -110,7 +110,7 @@ run() {
     --upload-delta \
     --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
     --rest.laddr tcp://localhost:8545 \
-    --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
+    --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \
 #     --upload-delta \
