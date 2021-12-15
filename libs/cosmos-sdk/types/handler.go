@@ -13,6 +13,8 @@ type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type AccUpdateHandler func(ctx Context, err error)
 
+type AccCacheStoreHandler func(ctx Context) AccCacheStore
+
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
 type LogFix func(isAnteFailed [][]string) (logs [][]byte)

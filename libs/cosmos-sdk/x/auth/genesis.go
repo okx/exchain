@@ -18,7 +18,6 @@ func InitGenesis(ctx sdk.Context, ak AccountKeeper, data GenesisState) {
 		ak.SetAccount(ctx, acc)
 	}
 
-	ak.Update(ctx, nil)
 	ak.Commit(ctx)
 }
 

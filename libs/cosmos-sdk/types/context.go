@@ -36,6 +36,7 @@ type Context struct {
 	consParams    *abci.ConsensusParams
 	eventManager  *EventManager
 	accountNonce  uint64
+	accCacheStore AccCacheStore
 	sigCache      SigCache
 	isAsync       bool
 }
@@ -246,6 +247,21 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 func (c Context) WithSigCache(cache SigCache) Context {
 	c.sigCache = cache
 	return c
+}
+
+func (c Context) WithAccCacheStore(acs AccCacheStore) Context {
+	c.accCacheStore = acs
+	return c
+}
+
+func (c Context) WriteAccCacheStore() {
+	if c.accCacheStore != nil {
+		c.accCacheStore.Write()
+	}
+}
+
+func (c Context) GetAccCacheStore() AccCacheStore {
+	return c.accCacheStore
 }
 
 // An emptyCtx  has no values. It is a

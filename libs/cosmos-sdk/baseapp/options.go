@@ -120,11 +120,11 @@ func (app *BaseApp) SetAccNonceHandler(ah sdk.AccNonceHandler) {
 	app.AccNonceHandler = ah
 }
 
-func (app *BaseApp) SetAccUpdateHandler(ah sdk.AccUpdateHandler) {
+func (app *BaseApp) SetAccCacheStoreHandler(acsh sdk.AccCacheStoreHandler) {
 	if app.sealed {
-		panic("SetAccUpdateHandler() on sealed BaseApp")
+		panic("SetAccCacheStoreHandler() on sealed BaseApp")
 	}
-	app.AccUpdateHandler = ah
+	app.AccCacheStoreHandler = acsh
 }
 
 func (app *BaseApp) SetAddrPeerFilter(pf sdk.PeerFilter) {

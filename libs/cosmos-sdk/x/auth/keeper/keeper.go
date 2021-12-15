@@ -8,20 +8,16 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	lru "github.com/hashicorp/golang-lru"
-	types3 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/pkg/errors"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
@@ -42,13 +38,10 @@ type AccountKeeper struct {
 
 	trie ethstate.Trie
 	db ethstate.Database
-
-	accLRU   *lru.Cache
-	deliverTxStore *types.CacheStore
-	checkTxStore *types.CacheStore
 	triegc *prque.Prque
 
-	gsConfig sdk.GasConfig
+	checkRootStore *types.AccRootKVStore
+	deliverRootStore *types.AccRootKVStore
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
@@ -57,24 +50,21 @@ type AccountKeeper struct {
 func NewAccountKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
-	accLRU, e := lru.New(500000)
-	if e != nil {
-		panic(errors.New("Failed to init LRU Cause " + e.Error()))
-	}
+	checkRootStore := types.NewAccRootKvStore()
+	deliverRootStore := types.NewAccRootKvStore()
 
 	ak := AccountKeeper{
 		key:           key,
 		proto:         proto,
 		cdc:           cdc,
 		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
-		db: types.InstanceOfEvmStore(),
-		accLRU: accLRU,
-		deliverTxStore: types.NewCacheStore(),
-		checkTxStore: types.NewCacheStore(),
-		triegc: prque.New(nil),
-		gsConfig: types3.KVGasConfig(),
-	}
 
+		db: types.InstanceOfEvmStore(),
+		triegc: prque.New(nil),
+
+		checkRootStore: checkRootStore,
+		deliverRootStore: deliverRootStore,
+	}
 	ak.OpenTrie()
 
 	return ak
@@ -184,7 +174,7 @@ func (ak *AccountKeeper) SetRootMptHash(height uint64, hash ethcmn.Hash) {
 	ak.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }
 
-// GetLatestBlockHeight get latest mpt storage height
+// GetLatestStoredBlockHeight get latest stored mpt storage height
 func (ak *AccountKeeper) GetLatestStoredBlockHeight() uint64 {
 	rst, err := ak.db.TrieDB().DiskDB().Get(KeyPrefixLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
@@ -193,7 +183,7 @@ func (ak *AccountKeeper) GetLatestStoredBlockHeight() uint64 {
 	return binary.BigEndian.Uint64(rst)
 }
 
-// SetLatestBlockHeight sets the latest storage height
+// SetLatestStoredBlockHeight sets the latest stored storage height
 func (ak *AccountKeeper) SetLatestStoredBlockHeight(height uint64) {
 	hhash := sdk.Uint64ToBigEndian(height)
 	ak.db.TrieDB().DiskDB().Put(KeyPrefixLatestStoredHeight, hhash)
@@ -208,9 +198,15 @@ func (ak *AccountKeeper) OpenTrie() {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	ak.trie = tr
+
+	ak.checkRootStore.UpdateTrie(tr)
+	ak.deliverRootStore.UpdateTrie(tr)
 }
 
 func (ak *AccountKeeper) Commit(ctx sdk.Context) {
+	ctx.WriteAccCacheStore()
+	ak.deliverRootStore.Write()
+
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
 	var wrapAcc wrap.WrapAccount
@@ -229,7 +225,6 @@ func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 	latestHeight := uint64(ctx.BlockHeight())
 	ak.SetRootMptHash(latestHeight, root)
 	ak.SetLatestBlockHeight(latestHeight)
-	ak.CleanCacheStore()
 
 	ak.PushData2Database(ctx, root)
 }

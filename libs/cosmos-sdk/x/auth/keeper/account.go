@@ -1,12 +1,10 @@
 package keeper
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -42,40 +40,8 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) (acc ex
 	//acc := ak.decodeAccount(bz)
 	//return acc
 
-	defer func(){
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostFlat, types2.GasReadCostFlatDesc)
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasReadPerByteDesc)
-	}()
-
-	if ctx.IsCheckTx() {
-		if val := ak.checkTxStore.Get(addr.String()); val != nil {
-			return val
-		}
-	} else {
-		if val := ak.deliverTxStore.Get(addr.String()); val != nil {
-			return val
-		}
-
-		if val, ok := ak.accLRU.Get(addr.String()); ok {
-			return val.(exported.Account)
-		}
-	}
-
-	enc, err := ak.trie.TryGet(addr.Bytes())
-	if err != nil {
-		return nil
-	}
-	if len(enc) == 0 {
-		return nil
-	}
-
-	var wrapAcc wrap.WrapAccount
-	err = rlp.DecodeBytes(enc, &wrapAcc)
-	if err != nil {
-		return nil
-	}
-
-	return wrapAcc.RealAcc
+	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	return store.Get(addr)
 }
 
 // GetAllAccounts returns all accounts in the accountKeeper.
@@ -98,10 +64,8 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	//}
 	//store.Set(types.AddressStoreKey(addr), bz)
 
-	defer func(){
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.WriteCostFlat, types2.GasWriteCostFlatDesc)
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.WriteCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasWritePerByteDesc)
-	}()
+	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	store.Set(acc)
 
 	if ak.observers != nil && !ctx.IsCheckTx() {
 		for _, observer := range ak.observers {
@@ -109,12 +73,6 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 				observer.OnAccountUpdated(acc)
 			}
 		}
-	}
-
-	if ctx.IsCheckTx() {
-		ak.checkTxStore.Set(acc.GetAddress().String(), acc)
-	} else {
-		ak.deliverTxStore.Set(acc.GetAddress().String(), acc)
 	}
 }
 
@@ -125,15 +83,8 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	//store := ctx.KVStore(ak.key)
 	//store.Delete(types.AddressStoreKey(addr))
 
-	defer func(){
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.DeleteCost, types2.GasDeleteDesc)
-	}()
-
-	if ctx.IsCheckTx() {
-		ak.checkTxStore.Delete(acc.GetAddress().String())
-	} else {
-		ak.deliverTxStore.Delete(acc.GetAddress().String())
-	}
+	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	store.Delete(acc)
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
@@ -150,58 +101,27 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	//	}
 	//}
 
-	it := trie.NewIterator(ak.trie.NodeIterator(nil))
-	for it.Next() {
-		ctx.GasMeter().ConsumeGas(ak.gsConfig.IterNextCostFlat, types2.GasIterNextCostFlatDesc)
-		if len(it.Value) > 0 {
-			var wrapAcc wrap.WrapAccount
-			if err := rlp.DecodeBytes(it.Value, &wrapAcc); err != nil {
-				continue
-			}
+	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	itr := store.NewIterator(nil)
+	for itr.Next() {
+		val := itr.Value()
+		var wrapAcc wrap.WrapAccount
+		if err := rlp.DecodeBytes(val, &wrapAcc); err != nil {
+			continue
+		}
 
-			ctx.GasMeter().ConsumeGas(ak.gsConfig.ReadCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(wrapAcc.RealAcc)), types2.GasValuePerByteDesc)
-			if cb(wrapAcc.RealAcc) {
-				break
-			}
+		if cb(wrapAcc.RealAcc) {
+			break
 		}
 	}
 }
 
-func (ak *AccountKeeper) Update(ctx sdk.Context, err error) {
-	if !ctx.IsCheckTx() && err == nil {
-		ak.deliverTxStore.IteratorCache(func(key string, acc exported.Account, isDirty bool, isDelete bool) {
-			if !isDirty {
-				return
-			}
-
-			accKey,_ := sdk.AccAddressFromBech32(key)
-			if isDelete {
-				ak.accLRU.Remove(key)
-
-				// delete account
-				ak.trie.TryDelete(accKey)
-
-			} else {
-				ak.accLRU.Add(key, acc)
-
-				data, err := rlp.EncodeToBytes(acc)
-				if err != nil {
-					panic(fmt.Errorf("can't encode object at %x: %v", key, err))
-				}
-
-				if err = ak.trie.TryUpdate(accKey, data); err != nil {
-					panic(err)
-				}
-			}
-		})
+func (ak *AccountKeeper) NewCacheStore(ctx sdk.Context) sdk.AccCacheStore {
+	if ctx.IsCheckTx() {
+		return types.NewCacheStore(ak.checkRootStore)
+	} else {
+		return types.NewCacheStore(ak.deliverRootStore)
 	}
-
-	ak.CleanCacheStore()
-}
-
-func (ak *AccountKeeper) CleanCacheStore() {
-	ak.checkTxStore.Clean()
-	ak.deliverTxStore.Clean()
 }
 
 func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
@@ -211,7 +131,9 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 	ak.triegc.Push(root, -int64(ctx.BlockHeight()))
 
 	if types.TrieDirtyDisabled {
-		triedb.Commit(root, false, nil)
+		if err := triedb.Commit(root, false, nil); err != nil {
+			panic("fail to commit mpt data: " + err.Error())
+		}
 		ak.SetLatestStoredBlockHeight(uint64(ctx.BlockHeight()))
 	} else {
 		if ctx.BlockHeight() > core.TriesInMemory {
@@ -237,7 +159,9 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-				triedb.Commit(chRoot, true, nil)
+				if err := triedb.Commit(chRoot, true, nil); err != nil {
+					panic("fail to commit mpt data: " + err.Error())
+				}
 			}
 
 			// Garbage collect anything below our required write retention
@@ -251,16 +175,7 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 			}
 		}
 	}
-}
 
-func estimateAccByteLenForGasConsume(acc exported.Account) int64{
-	if acc == nil {
-		return 0
-	}
-
-	if acc.IsEthAccount() {
-		return 150
-	}
-
-	return 70
+	ak.checkRootStore.Clean()
+	ak.deliverRootStore.Clean()
 }

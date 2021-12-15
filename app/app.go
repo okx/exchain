@@ -8,6 +8,11 @@ import (
 	"os"
 	"sync"
 
+	"github.com/okex/exchain/app/ante"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/refund"
+	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -21,11 +26,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/app/ante"
-	okexchaincodec "github.com/okex/exchain/app/codec"
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/refund"
-	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -49,11 +54,6 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -435,7 +435,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.SetAccUpdateHandler(NewAccUpdateHandler(app.AccountKeeper))
+	app.SetAccCacheStoreHandler(NewAccCacheStoreHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.AddCustomizeModuleOnStopLogic(app.AccountKeeper.OnStop)
 
@@ -510,6 +510,9 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
+	if app.AccCacheStoreHandler != nil {
+		ctx  = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
+	}
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
@@ -614,10 +617,8 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func NewAccUpdateHandler(ak auth.AccountKeeper) sdk.AccUpdateHandler {
-	return func(
-		ctx sdk.Context, err error,
-	) {
-		ak.Update(ctx, err)
+func NewAccCacheStoreHandler(ak auth.AccountKeeper) sdk.AccCacheStoreHandler {
+	return func(ctx sdk.Context) sdk.AccCacheStore {
+		return ak.NewCacheStore(ctx)
 	}
 }

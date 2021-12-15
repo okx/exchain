@@ -129,6 +129,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		app.deliverState.ctx = app.deliverState.ctx.
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
+
+		if app.AccCacheStoreHandler != nil {
+			app.deliverState.ctx = app.deliverState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.deliverState.ctx))
+		}
 	}
 
 	// add block gas meter
@@ -534,6 +538,10 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
 	).WithMinGasPrices(app.minGasPrices)
+
+	if app.AccCacheStoreHandler != nil {
+		ctx = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
+	}
 
 	// Passes the rest of the path as an argument to the querier.
 	//

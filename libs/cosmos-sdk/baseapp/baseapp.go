@@ -106,7 +106,7 @@ type BaseApp struct { // nolint: maligned
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	AccNonceHandler  sdk.AccNonceHandler  // account nonce handler for cm tx nonce
-	AccUpdateHandler  sdk.AccUpdateHandler  // account handler for acc update
+	AccCacheStoreHandler sdk.AccCacheStoreHandler // handler for cache store
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -462,6 +462,10 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 		ms:  ms,
 		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices),
 	}
+
+	if app.AccCacheStoreHandler != nil {
+		app.checkState.ctx = app.checkState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.checkState.ctx))
+	}
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
@@ -473,6 +477,9 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	app.deliverState = &state{
 		ms:  ms,
 		ctx: sdk.NewContext(ms, header, false, app.logger),
+	}
+	if app.AccCacheStoreHandler != nil {
+		app.deliverState.ctx = app.deliverState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.deliverState.ctx))
 	}
 }
 
@@ -594,6 +601,9 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 	}
 
 	ctx := simState.ctx.WithTxBytes(txBytes)
+	if app.AccCacheStoreHandler != nil {
+		ctx = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
+	}
 
 	return ctx, nil
 }
@@ -829,6 +839,10 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
 		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
+		if app.AccCacheStoreHandler != nil{
+			anteCtx = anteCtx.WithAccCacheStore(app.AccCacheStoreHandler(anteCtx))
+		}
+
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
 
@@ -857,6 +871,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 		if mode != runTxModeDeliverInAsync {
 			msCacheAnte.Write()
+			newCtx.WriteAccCacheStore()
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -872,6 +887,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		runMsgCtx = ctx.WithMultiStore(msCache)
 	} else {
 		runMsgCtx, msCache = app.cacheTxContext(ctx, txBytes)
+		if app.AccCacheStoreHandler != nil{
+			runMsgCtx = runMsgCtx.WithAccCacheStore(app.AccCacheStoreHandler(runMsgCtx))
+		}
 	}
 
 	// Attempt to execute all messages and only update state if all messages pass
@@ -881,10 +899,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
-	}
-
-	if app.AccUpdateHandler != nil {
-		app.AccUpdateHandler(ctx, err)
+		runMsgCtx.WriteAccCacheStore()
 	}
 
 	runMsgFinish = true
