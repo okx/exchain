@@ -335,6 +335,79 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	return (*hexutil.Big)(val), nil
 }
 
+// GetBalanceBatch returns the provided account's balance up to the provided block number.
+func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (interface{}, error) {
+	monitor := monitor.GetMonitor("eth_getBalanceBatch", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("addresses", addresses, "block number", blockNrOrHash)
+
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+	clientCtx := api.clientCtx
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
+	}
+
+	balances := make(map[string]*hexutil.Big)
+	for _, address := range addresses {
+		if acc, err := api.wrappedBackend.MustGetAccount(address.Bytes()); err == nil {
+			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+			if balance == nil {
+				balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
+			} else {
+				balances[address.String()] = (*hexutil.Big)(balance)
+			}
+			continue
+		}
+
+		bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
+		if err != nil {
+			return nil, err
+		}
+
+		res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
+		if err != nil {
+			api.saveZeroAccount(address)
+			balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
+			continue
+		}
+
+		var account ethermint.EthAccount
+		if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
+			return nil, err
+		}
+
+		val := account.Balance(sdk.DefaultBondDenom).BigInt()
+		api.watcherBackend.CommitAccountToRpcDb(account)
+		if blockNum != rpctypes.PendingBlockNumber {
+			balances[address.String()] = (*hexutil.Big)(val)
+			continue
+		}
+
+		// update the address balance with the pending transactions value (if applicable)
+		pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tx := range pendingTxs {
+			if tx == nil {
+				continue
+			}
+
+			if tx.From == address {
+				val = new(big.Int).Sub(val, tx.Value.ToInt())
+			}
+			if *tx.To == address {
+				val = new(big.Int).Add(val, tx.Value.ToInt())
+			}
+		}
+		balances[address.String()] = (*hexutil.Big)(val)
+	}
+	return balances, nil
+}
+
 // GetAccount returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
