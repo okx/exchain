@@ -16,8 +16,8 @@ type DeltaContext struct {
 	deltaBroker   delta.DeltaBroker
 	deltas *types.Deltas
 
-	applyDelta bool
-	broadDelta bool
+	//applyDelta bool
+	//broadDelta bool
 	downloadDelta bool
 	uploadDelta bool
 	useDeltas bool
@@ -30,10 +30,14 @@ func newDeltaContext()  *DeltaContext {
 		deltaCh:        make(chan *types.Deltas, 1),
 		deltaHeightCh:  make(chan int64, 1),
 	}
-	dp.applyDelta = types.EnableApplyP2PDelta()
-	dp.broadDelta = types.EnableBroadcastP2PDelta()
+	//dp.applyDelta = types.EnableApplyP2PDelta()
+	//dp.broadDelta = types.EnableBroadcastP2PDelta()
 	dp.downloadDelta = types.EnableDownloadDelta()
 	dp.uploadDelta = types.EnableUploadDelta()
+
+	if dp.uploadDelta && dp.downloadDelta {
+		panic("")
+	}
 
 	dp.deltas = &types.Deltas{}
 
@@ -46,8 +50,8 @@ func (dc *DeltaContext) init(l log.Logger) {
 	dc.logger.Info("DeltaContext init",
 		"uploadDelta", dc.uploadDelta,
 		"downloadDelta", dc.downloadDelta,
-		"applyDelta", dc.applyDelta,
-		"broadDelta", dc.broadDelta,
+		//"applyDelta", dc.applyDelta,
+		//"broadDelta", dc.broadDelta,
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
@@ -60,50 +64,64 @@ func (dc *DeltaContext) init(l log.Logger) {
 	}
 }
 
-func (dc *DeltaContext) setWatchData(wd []byte) {
-	dc.deltas.WatchBytes = wd
+func (dc *DeltaContext) reset() {
+	dc.useDeltas = false
+	dc.deltas = &types.Deltas{}
 }
 
-func (dc *DeltaContext) setAbciRsp(ar []byte) {
-	dc.deltas.ABCIRsp = ar
-}
 
-func (dc *DeltaContext) setStateDelta(sd []byte) {
-	dc.deltas.DeltasBytes = sd
-}
+func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
+	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas)
 
-func (dc *DeltaContext) postApplyBlock(block *types.Block) {
-	if dc.uploadDelta {
-		go dc.uploadData(block)
+	// rpc
+	if dc.useDeltas {
+		UseWatchData(dc.deltas.WatchBytes)
 	}
 
-	dc.logger.Info("Post apply block",
-		"delta", dc.deltas,
-		"useDeltas", dc.useDeltas)
+	// validator
+	if dc.uploadDelta {
+		dc.upload(height, abciResponses, res)
+	}
+
+	dc.reset()
+}
+
+func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
+
+	var abciResponsesBytes []byte
+	var err error
+	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
+	if err != nil {
+		panic(err)
+	}
+
+	delta4Upload :=  &types.Deltas {
+		ABCIRsp:     abciResponsesBytes,
+		DeltasBytes: res,
+		WatchBytes:  GetWatchData(),
+		Height:      height,
+	}
+
+	go dc.uploadData(delta4Upload)
 }
 
 
-func (dc *DeltaContext) uploadData(block *types.Block) {
-	if dc.deltas == nil {
+func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+	if deltas == nil {
 		return
 	}
-	dc.deltas.Height = block.Height
-	if err := dc.deltaBroker.SetDeltas(dc.deltas); err != nil {
-		dc.logger.Error("Upload delta", "height", block.Height, "error", err)
+
+	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
+		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
 	dc.logger.Info("Upload delta",
-		"deltas", dc.deltas,
-		"blockLen", block.Size(),
+		"deltas", deltas,
 		"gid", gorid.GoRId,
 	)
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
-	// not use delta, exe abci itself
-	if !dc.applyDelta && !dc.downloadDelta {
-		return
-	}
 
 	if !dc.downloadDelta {
 		return
@@ -112,8 +130,10 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	var dds *types.Deltas
 	select {
 	case dds = <-dc.deltaCh:
+		dc.logger.Info("prepareStateDelta", "delta", dds)
 		// already get delta of height
 	default:
+		dc.logger.Info("prepareStateDelta", "delta", dds)
 		// can't get delta of height
 	}
 	// request delta of height+1 and return
@@ -121,7 +141,7 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 
 	// can't get data from dds
 	if dds == nil || dds.Height != block.Height ||
-		len(dds.WatchBytes) < 0 || len(dds.ABCIRsp) < 0 || len(dds.DeltasBytes) < 0 {
+		len(dds.WatchBytes) == 0 || len(dds.ABCIRsp) == 0 || len(dds.DeltasBytes) == 0 {
 		return
 	}
 
