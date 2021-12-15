@@ -71,7 +71,7 @@ func (dc *DeltaContext) reset() {
 
 
 func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
-	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas)
+	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
 
 	// rpc
 	if dc.useDeltas {
@@ -82,8 +82,6 @@ func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponse
 	if dc.uploadDelta {
 		dc.upload(height, abciResponses, res)
 	}
-
-	dc.reset()
 }
 
 func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
@@ -95,7 +93,15 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		panic(err)
 	}
 
-	delta4Upload :=  &types.Deltas {
+	// for outDelta log
+	dc.deltas = &types.Deltas {
+		ABCIRsp:     abciResponsesBytes,
+		DeltasBytes: res,
+		WatchBytes:  GetWatchData(),
+		Height:      height,
+	}
+
+	delta4Upload := &types.Deltas {
 		ABCIRsp:     abciResponsesBytes,
 		DeltasBytes: res,
 		WatchBytes:  GetWatchData(),
@@ -122,7 +128,6 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
-
 	if !dc.downloadDelta {
 		return
 	}
@@ -130,10 +135,10 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	var dds *types.Deltas
 	select {
 	case dds = <-dc.deltaCh:
-		dc.logger.Info("prepareStateDelta", "delta", dds)
+		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// already get delta of height
 	default:
-		dc.logger.Info("prepareStateDelta", "delta", dds)
+		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// can't get delta of height
 	}
 	// request delta of height+1 and return

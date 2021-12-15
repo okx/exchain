@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
+	"time"
 )
 
 const TTL = 0
@@ -30,6 +31,7 @@ func NewRedisClient(url string, l log.Logger) *RedisClient {
 }
 
 func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
+	t0 := time.Now()
 	if block == nil || block.Size() <= 0 {
 		return fmt.Errorf("block is empty")
 	}
@@ -37,12 +39,22 @@ func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
 	if err != nil {
 		return err
 	}
+
+	t1 := time.Now()
 	compressBytes := r.compressBroker.DefaultCompress(blockBytes)
-	r.logger.Info("compress block", "blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
-	return r.rdb.SetNX(context.Background(), setBlockKey(block.Height), compressBytes, TTL).Err()
+
+	t2 := time.Now()
+	req := r.rdb.SetNX(context.Background(), setBlockKey(block.Height), compressBytes, TTL)
+
+	t3 := time.Now()
+	r.logger.Info("SetDeltas", "marshal", t1.Sub(t0), "compress", t2.Sub(t1), "setRedis", t3.Sub(t2),
+		"blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
+
+	return req.Err()
 }
 
 func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
+	t0 := time.Now()
 	if deltas == nil || deltas.Size() == 0 {
 		return fmt.Errorf("delta is empty")
 	}
@@ -50,12 +62,22 @@ func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
 	if err != nil {
 		return err
 	}
+
+	t1 := time.Now()
 	compressBytes := r.compressBroker.DefaultCompress(deltaBytes)
-	r.logger.Info("compress delta", "deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
-	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), compressBytes, TTL).Err()
+
+	t2 := time.Now()
+	req := r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), compressBytes, TTL)
+
+	t3 := time.Now()
+	r.logger.Info("SetDeltas", "marshal", t1.Sub(t0), "compress", t2.Sub(t1), "setRedis", t3.Sub(t2),
+		"deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
+
+	return req.Err()
 }
 
 func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
+	t0 := time.Now()
 	compressBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
 	if err == redis.Nil {
 		return nil, nil
@@ -63,16 +85,24 @@ func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	t1 := time.Now()
 	blockBytes := r.compressBroker.UnCompress(compressBytes)
-	r.logger.Info("uncompress block", "blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
+
+	t2 := time.Now()
 	block := &tmtypes.Block{}
 	if err = block.Unmarshal(blockBytes); err != nil {
 		return nil, err
 	}
+
+	t3 := time.Now()
+	r.logger.Info("GetBlock", "getRedis", t1.Sub(t0), "uncompress", t2.Sub(t1), "unmarshal", t3.Sub(t2),
+		"blockBytes", len(blockBytes), "compressBytes", len(compressBytes))
 	return block, nil
 }
 
 func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
+	t0 := time.Now()
 	compressBytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
 	if err == redis.Nil {
 		return nil, nil
@@ -80,12 +110,19 @@ func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	t1 := time.Now()
 	deltaBytes := r.compressBroker.UnCompress(compressBytes)
-	r.logger.Info("uncompress delta", "deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
+
+	t2 := time.Now()
 	deltas := &tmtypes.Deltas{}
 	if err = deltas.Unmarshal(deltaBytes); err != nil {
 		return nil, err
 	}
+
+	t3 := time.Now()
+	r.logger.Info("GetDeltas", "getRedis", t1.Sub(t0), "uncompress", t2.Sub(t1), "unmarshal", t3.Sub(t2),
+		"deltaBytes", len(deltaBytes), "compressBytes", len(compressBytes))
 	return deltas, nil
 }
 
