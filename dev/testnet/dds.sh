@@ -20,4 +20,9 @@ sleep 5
 
 ./addnewnode.sh -n 4
 
+sleep 5
+
+killbyname redis-server
+
+
 

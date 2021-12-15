@@ -32,7 +32,7 @@ func newProcessorContext(st blockStore, dst deltaStore, ex blockApplier, s state
 }
 
 func (pc *pContext) applyBlock(blockID types.BlockID, block *types.Block, deltas *types.Deltas) error {
-	newState, _, _, err := pc.applier.ApplyBlock(pc.state, blockID, block, deltas)
+	newState, _, err := pc.applier.ApplyBlock(pc.state, blockID, block)
 	pc.state = newState
 	return err
 }
