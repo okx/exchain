@@ -32,6 +32,7 @@ func newDeltaContext()  *DeltaContext {
 	}
 	//dp.applyDelta = types.EnableApplyP2PDelta()
 	//dp.broadDelta = types.EnableBroadcastP2PDelta()
+	types.EnableBroadcastP2PDelta()
 	dp.downloadDelta = types.EnableDownloadDelta()
 	dp.uploadDelta = types.EnableUploadDelta()
 
