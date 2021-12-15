@@ -292,7 +292,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 		}
 	} else {
 
-		if blockExec.proactivelyRunTx && !FirstBlock(block) {
+		if blockExec.proactivelyRunTx {
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
 			blockExec.prerunContext = nil
 			blockExec.prerunIndex = 0

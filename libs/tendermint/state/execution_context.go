@@ -148,9 +148,9 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 
-func FirstBlock(block *types.Block) bool {
-	if 	block.Height == 1{
-		return true
-	}
-	return false
-}
+//func FirstBlock(block *types.Block) bool {
+//	if 	block.Height == 1{
+//		return true
+//	}
+//	return false
+//}

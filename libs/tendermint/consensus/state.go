@@ -26,7 +26,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/libs/tendermint/state"
 )
 
 //-----------------------------------------------------------------------------
@@ -1755,7 +1754,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
-		if cs.proactivelyRunTx && !state.FirstBlock(cs.ProposalBlock) {
+		if cs.proactivelyRunTx {
 			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
 		}
 
