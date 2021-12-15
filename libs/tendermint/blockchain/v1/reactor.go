@@ -420,7 +420,7 @@ func (bcR *BlockchainReactor) reportPeerErrorToSwitch(err error, peerID p2p.ID) 
 
 func (bcR *BlockchainReactor) processBlock() error {
 
-	first, second, deltas, err := bcR.fsm.FirstTwoBlocks()
+	first, second, _, err := bcR.fsm.FirstTwoBlocks()
 	if err != nil {
 		// We need both to sync the first block.
 		return err
@@ -445,7 +445,7 @@ func (bcR *BlockchainReactor) processBlock() error {
 
 	bcR.store.SaveBlock(first, firstParts, second.LastCommit)
 
-	bcR.state, _, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first, deltas)
+	bcR.state, _, err = bcR.blockExec.ApplyBlock(bcR.state, firstID, first)
 	if err != nil {
 		panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 	}

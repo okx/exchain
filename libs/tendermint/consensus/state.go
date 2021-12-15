@@ -1520,18 +1520,19 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
+	/*
 	var deltas *types.Deltas
 	if types.EnableApplyP2PDelta() {
 		deltas = cs.Deltas
 	}
+	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	stateCopy, retainHeight, deltas, err = cs.blockExec.ApplyBlock(
+	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
-		block,
-		deltas)
+		block)
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1541,11 +1542,13 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	/*
 	if types.EnableBroadcastP2PDelta() {
 		// persists the given deltas to the underlying db.
 		deltas.Height = block.Height
 		cs.deltaStore.SaveDeltas(deltas, block.Height)
 	}
+	*/
 
 	fail.Fail() // XXX
 
