@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	itrace "github.com/okex/exchain/libs/iavl/trace"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -78,7 +79,6 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
-
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if blockExec.prerunContext != nil {
@@ -90,6 +90,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 		}
 		context.dump("Stopping prerun")
 		blockExec.prerunContext.stopped = true
+		blockExec.ResetDeliverState()
 	}
 
 	blockExec.prerunIndex++
@@ -135,4 +136,17 @@ func prerun(context *executionContext) {
 func (blockExec *BlockExecutor) InitPrerun() {
 	blockExec.proactivelyRunTx = true
 	go blockExec.prerunRoutine()
+}
+
+func (blockExec *BlockExecutor) ResetDeliverState() {
+	blockExec.proxyApp.SetOptionSync(abci.RequestSetOption{
+		Key: "ResetDeliverState",
+	})
+}
+
+func FirstBlock(block *types.Block) bool {
+	if 	block.Height == 1{
+		return true
+	}
+	return false
 }
