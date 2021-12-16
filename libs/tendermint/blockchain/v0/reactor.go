@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	amino "github.com/tendermint/go-amino"
@@ -40,7 +39,7 @@ const (
 
 	maxIntervalForFastSync        = 10
 	maxPeersProportionForFastSync = 0.4
-	testFastSyncIntervalSeconds   = 62
+	//testFastSyncIntervalSeconds   = 62
 )
 
 type consensusReactor interface {
@@ -51,7 +50,7 @@ type consensusReactor interface {
 	// SwitchToFastSync called when we switch from the consensus machine to blockchain reactor and fast sync
 	SwitchToFastSync() (sm.State, error)
 
-	StopForTestFastSync()
+	//StopForTestFastSync()
 }
 
 type peerError struct {
@@ -244,7 +243,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
 	statusUpdateTicker := time.NewTicker(statusUpdateIntervalSeconds * time.Second)
-	testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
+	//testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
 
 	go func() {
 		for {
@@ -278,15 +277,15 @@ func (bcR *BlockchainReactor) poolRoutine() {
 				// ask for status updates
 				go bcR.BroadcastStatusRequest() // nolint: errcheck
 
-			case <-testFastSyncTicker.C:
-				// TODO: let the consensus machine sleep for some time
-				if !bcR.pool.IsRunning() && strings.Contains(bcR.Switch.ListenAddress(), "10156") {
-					conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-					if ok {
-						conR.StopForTestFastSync()
-						//testFastSyncTicker.Stop()
-					}
-				}
+			//case <-testFastSyncTicker.C:
+			//	// TODO: let the consensus machine sleep for some time
+			//	if !bcR.pool.IsRunning() && strings.Contains(bcR.Switch.ListenAddress(), "10156") {
+			//		conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+			//		if ok {
+			//			conR.StopForTestFastSync()
+			//			//testFastSyncTicker.Stop()
+			//		}
+			//	}
 			}
 		}
 	}()

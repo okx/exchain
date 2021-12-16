@@ -161,29 +161,15 @@ conR:
 	return conR.conS.GetState(), nil
 }
 
-func (conR *Reactor) StopForTestFastSync() {
-	conR.Logger.Info("StopForTestFastSync")
-	fmt.Println("StopForTestFastSync")
-
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
-
-//	if !conR.conS.IsRunning() {
-//		return
-//	}
-//	err := conR.conS.Stop()
-//	if err != nil {
-//		panic(fmt.Sprintf(`Failed to stop consensus state: %v
+//func (conR *Reactor) StopForTestFastSync() {
+//	conR.Logger.Info("StopForTestFastSync")
+//	fmt.Println("StopForTestFastSync")
 //
-//conS:
-//%+v
-//
-//conR:
-//%+v`, err, conR.conS, conR))
-//	}
-}
+//	conR.mtx.Lock()
+//	conR.fastSync = true
+//	conR.mtx.Unlock()
+//	conR.metrics.FastSyncing.Set(1)
+//}
 
 // GetChannels implements Reactor
 func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
