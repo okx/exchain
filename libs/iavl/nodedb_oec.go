@@ -321,7 +321,7 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	return node.hash
 }
 
-func (ndb *nodeDB) updateBranchFaster(node *Node, savedNodes map[string]*Node) []byte {
+func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*Node) []byte {
 	if node.persisted || node.prePersisted {
 		return node.hash
 	}

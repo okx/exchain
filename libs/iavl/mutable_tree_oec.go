@@ -57,7 +57,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
 		} else {
-			tree.ndb.updateBranchFaster(tree.root, tree.savedNodes)
+			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
 		}
 
 		// generate state delta
