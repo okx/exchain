@@ -2,6 +2,7 @@ package state
 
 import (
 	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -58,6 +59,9 @@ func (dc *DeltaContext) init(l log.Logger) {
 		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
+
+	// control if iavl produce delta or not
+	iavl.SetProduceDelta(dc.uploadDelta)
 
 	if dc.downloadDelta {
 		go dc.getDeltaFromDDS()
