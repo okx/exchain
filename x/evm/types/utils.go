@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"strings"
@@ -67,9 +68,100 @@ type ResultData struct {
 	TxHash          ethcmn.Hash     `json:"tx_hash"`
 }
 
+func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
+	var dataLen uint64 = 0
+	var subData []byte
+	log := &ethtypes.Log{}
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			if int(dataLen) != ethcmn.AddressLength {
+				return nil, fmt.Errorf("invalid address length: %d", dataLen)
+			}
+			copy(log.Address[:], subData)
+		case 2:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			var hash ethcmn.Hash
+			copy(hash[:], subData)
+			log.Topics = append(log.Topics, hash)
+		case 3:
+			log.Data = make([]byte, dataLen)
+			copy(log.Data, subData)
+		case 4:
+			var n int
+			log.BlockNumber, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 5:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			copy(log.TxHash[:], subData)
+		case 6:
+			var n int
+			var uv uint64
+			uv, n, err = amino.DecodeUvarint(data)
+			log.TxIndex = uint(uv)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 7:
+			if int(dataLen) != ethcmn.HashLength {
+				return nil, fmt.Errorf("invalid topic hash length: %d", dataLen)
+			}
+			copy(log.BlockHash[:], subData)
+		case 8:
+			var n int
+			var uv uint64
+			uv, n, err = amino.DecodeUvarint(data)
+			log.Index = uint(uv)
+			if err != nil {
+				return nil, err
+			}
+			dataLen = uint64(n)
+		case 9:
+			if data[0] == 0 {
+				log.Removed = false
+			} else if data[0] == 1 {
+				log.Removed = true
+			} else {
+				return nil, fmt.Errorf("invalid removed flag: %d", data[0])
+			}
+			dataLen = 1
+		}
+	}
+	return log, nil
+}
+
 func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 	if log == nil {
-		return []byte{}, nil
+		return nil, nil
 	}
 	var buf bytes.Buffer
 	fieldKeysType := [9]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5<<3 | 2, 6 << 3, 7<<3 | 2, 8 << 3, 9 << 3}
@@ -199,6 +291,67 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		if aminoType != amino.Typ3_ByteLength {
+			return fmt.Errorf("unexpect proto type %d", aminoType)
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, _ = amino.DecodeUvarint(data)
+
+		data = data[n:]
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			if int(dataLen) != ethcmn.AddressLength {
+				return fmt.Errorf("invalid contract address length: %d", dataLen)
+			}
+			copy(rd.ContractAddress[:], subData)
+		case 2:
+			if int(dataLen) != ethtypes.BloomByteLength {
+				return fmt.Errorf("invalid bloom length: %d", dataLen)
+			}
+			copy(rd.Bloom[:], subData)
+		case 3:
+			var log *ethtypes.Log
+			if dataLen == 0 {
+				log, err = nil, nil
+			} else {
+				log, err = UnmarshalEthLogFromAmino(subData)
+			}
+			if err != nil {
+				return nil
+			}
+			rd.Logs = append(rd.Logs, log)
+		case 4:
+			rd.Ret = make([]byte, dataLen)
+			copy(rd.Ret, subData)
+		case 5:
+			if dataLen != ethcmn.HashLength {
+				return fmt.Errorf("invalid tx hash length %d", dataLen)
+			}
+			copy(rd.TxHash[:], subData)
+		}
+	}
+	return nil
 }
 
 func (rd ResultData) MarshalToAmino() ([]byte, error) {
@@ -348,6 +501,17 @@ func EncodeResultData(data ResultData) ([]byte, error) {
 
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
 func DecodeResultData(in []byte) (ResultData, error) {
+	if len(in) > 0 {
+		u64, n := binary.Uvarint(in)
+		if u64 == uint64(len(in)-n) {
+			bz := in[n:]
+			var data ResultData
+			err := data.UnmarshalFromAmino(bz)
+			if err == nil {
+				return data, nil
+			}
+		}
+	}
 	var data ResultData
 	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &data)
 	if err != nil {
