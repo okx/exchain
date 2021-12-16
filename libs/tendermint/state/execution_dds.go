@@ -96,7 +96,8 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 	var err error
 	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
 	if err != nil {
-		panic(err)
+		dc.logger.Error("Failed to marshal abci Responses", "height", height, "error", err)
+		return
 	}
 
 	delta4Upload :=  &types.Deltas {
