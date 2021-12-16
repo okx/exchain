@@ -132,6 +132,59 @@ func TestTxDecoder(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEthLogAmino(t *testing.T) {
+	tests := []ethtypes.Log{
+		{},
+		{Topics: []ethcmn.Hash{}, Data: []byte{}},
+		{
+			Address: ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49"),
+			Topics: []ethcmn.Hash{
+				ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+				ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			},
+			Data:        []byte{1, 2, 3, 4},
+			BlockNumber: 17,
+			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			TxIndex:     123456,
+			BlockHash:   ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			Index:       543121,
+			Removed:     false,
+		},
+		{
+			Address: ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49"),
+			Topics: []ethcmn.Hash{
+				ethcmn.HexToHash("0x00000000FF0000000000000000000AC0000000000000EF000000000000000000"),
+				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			},
+			Data:        []byte{5, 6, 7, 8},
+			BlockNumber: 18,
+			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			TxIndex:     0,
+			BlockHash:   ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
+			Index:       0,
+			Removed:     true,
+		},
+	}
+	cdc := codec.New()
+	for _, test := range tests {
+		bz, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+
+		bz2, err := MarshalEthLogToAmino(&test)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, bz2)
+
+		var expect ethtypes.Log
+		err = cdc.UnmarshalBinaryBare(bz, &expect)
+		require.NoError(t, err)
+
+		actual, err := UnmarshalEthLogFromAmino(bz)
+		require.NoError(t, err)
+		require.EqualValues(t, expect, *actual)
+	}
+}
+
 func TestResultDataAmino(t *testing.T) {
 	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
 	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3, 0x5, 0x7})
@@ -142,6 +195,8 @@ func TestResultDataAmino(t *testing.T) {
 	RegisterCodec(cdc)
 
 	testDataSet := []ResultData{
+		{},
+		{Logs: []*ethtypes.Log{}, Ret: []byte{}},
 		{
 			ContractAddress: addr,
 			Bloom:           bloom,
@@ -154,7 +209,6 @@ func TestResultDataAmino(t *testing.T) {
 			Ret:    ret,
 			TxHash: ethcmn.HexToHash("0x00"),
 		},
-		{},
 		{
 			ContractAddress: addr,
 			Bloom:           bloom,
@@ -177,5 +231,57 @@ func TestResultDataAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 		t.Log(fmt.Sprintf("%d pass\n", i))
+
+		var expectRd ResultData
+		err = cdc.UnmarshalBinaryBare(expect, &expectRd)
+		require.NoError(t, err)
+		var actualRd ResultData
+		err = actualRd.UnmarshalFromAmino(expect)
+		require.NoError(t, err)
+		require.EqualValues(t, expectRd, actualRd)
+
+		encoded, err := EncodeResultData(data)
+		require.NoError(t, err)
+		decodedRd, err := DecodeResultData(encoded)
+		require.NoError(t, err)
+		require.EqualValues(t, expectRd, decodedRd)
 	}
+}
+
+func BenchmarkDecodeResultData(b *testing.B) {
+	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
+	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
+	ret := []byte{0x5, 0x8}
+
+	data := ResultData{
+		ContractAddress: addr,
+		Bloom:           bloom,
+		Logs: []*ethtypes.Log{{
+			Data:        []byte{1, 2, 3, 4},
+			BlockNumber: 17,
+		}},
+		Ret:    ret,
+		TxHash: ethcmn.BigToHash(big.NewInt(10)),
+	}
+
+	enc, err := EncodeResultData(data)
+	require.NoError(b, err)
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var rd ResultData
+			err = ModuleCdc.UnmarshalBinaryLengthPrefixed(enc, &rd)
+			if err != nil {
+				panic("err should be nil")
+			}
+		}
+	})
+	b.Run("unmarshaler", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, err = DecodeResultData(enc)
+			if err != nil {
+				panic("err should be nil")
+			}
+		}
+	})
 }

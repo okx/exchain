@@ -981,7 +981,7 @@ func (mp PacketMsg) String() string {
 
 func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [5]byte{1 << 3, 2 << 3, 3<<3 | 2}
+	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
 		lBeforeKey := buf.Len()
 		var noWrite bool
