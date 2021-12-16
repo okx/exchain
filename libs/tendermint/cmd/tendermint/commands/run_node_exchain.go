@@ -31,4 +31,6 @@ func addMoreFlags(cmd *cobra.Command) {
 		"Set TimeoutPrecommitDelta")
 	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit,
 		"Set TimeoutCommit")
+	cmd.Flags().Duration("consensus.timeout_consensus", config.Consensus.TimeoutConsensus,
+		"Set TimeoutConsensus")
 }

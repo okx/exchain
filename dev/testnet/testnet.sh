@@ -2,6 +2,12 @@
 
 NUM_NODE=4
 
+# tackle size chronic goose deny inquiry gesture fog front sea twin raise
+# acid pulse trial pill stumble toilet annual upgrade gold zone void civil
+# antique onion adult slot sad dizzy sure among cement demise submit scare
+# lazy cause kite fence gravity regret visa fuel tone clerk motor rent
+HARDCODED_MNEMONIC=false
+
 set -e
 set -o errexit
 set -a
@@ -11,7 +17,7 @@ set -x # activate debugging
 
 source exchain.profile
 
-while getopts "isn:b:p:S" opt; do
+while getopts "isn:b:p:Sm" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -36,6 +42,10 @@ while getopts "isn:b:p:S" opt; do
   p)
     echo "IP=$OPTARG"
     IP=$OPTARG
+    ;;
+  m)
+    echo "HARDCODED_MNEMONIC"
+    HARDCODED_MNEMONIC=true
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -70,7 +80,8 @@ init() {
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
-    --keyring-backend test
+    --keyring-backend test \
+    --mnemonic=${HARDCODED_MNEMONIC}
 }
 
 run() {
@@ -82,7 +93,7 @@ run() {
   p2p_seed_opt=$5
   p2p_seed_arg=$6
 
-  LOG_LEVEL=main:info,*:error
+  LOG_LEVEL=main:info,*:error,consensus:info,state:info
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
@@ -93,14 +104,17 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 3s \
+    --consensus.timeout_commit 200ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
-    --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
+    --upload-delta \
+    --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
     --rest.laddr tcp://localhost:8545 \
-    --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
+    --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \
+#     --upload-delta \
+#     --enable-proactively-runtx \
 }
 
 function start() {

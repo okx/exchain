@@ -366,6 +366,11 @@ func (app *BaseApp) LoadVersion(version int64, baseKey *sdk.KVStoreKey) error {
 	return app.initFromMainStore(baseKey)
 }
 
+// GetCommitVersion loads the latest committed version.
+func (app *BaseApp) GetCommitVersion() (int64, error) {
+	return app.cms.GetCommitVersion()
+}
+
 // LastCommitID returns the last CommitID of the multistore.
 func (app *BaseApp) LastCommitID() sdk.CommitID {
 	return app.cms.LastCommitID()
@@ -563,7 +568,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
-	if app.parallelTxManage.isAsyncDeliverTx {
+	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
 			ctx = ctx.WithSigCache(s.signCache)

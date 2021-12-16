@@ -8,27 +8,30 @@ import (
 )
 
 type processorContext interface {
-	applyBlock(blockID types.BlockID, block *types.Block) error
+	applyBlock(blockID types.BlockID, block *types.Block, deltas *types.Deltas) error
 	verifyCommit(chainID string, blockID types.BlockID, height int64, commit *types.Commit) error
 	saveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit)
+	saveDeltas(deltas *types.Deltas, height int64)
 	tmState() state.State
 }
 
 type pContext struct {
 	store   blockStore
+	dstore  deltaStore
 	applier blockApplier
 	state   state.State
 }
 
-func newProcessorContext(st blockStore, ex blockApplier, s state.State) *pContext {
+func newProcessorContext(st blockStore, dst deltaStore, ex blockApplier, s state.State) *pContext {
 	return &pContext{
 		store:   st,
+		dstore:  dst,
 		applier: ex,
 		state:   s,
 	}
 }
 
-func (pc *pContext) applyBlock(blockID types.BlockID, block *types.Block) error {
+func (pc *pContext) applyBlock(blockID types.BlockID, block *types.Block, deltas *types.Deltas) error {
 	newState, _, err := pc.applier.ApplyBlock(pc.state, blockID, block)
 	pc.state = newState
 	return err
@@ -44,6 +47,10 @@ func (pc pContext) verifyCommit(chainID string, blockID types.BlockID, height in
 
 func (pc *pContext) saveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit) {
 	pc.store.SaveBlock(block, blockParts, seenCommit)
+}
+
+func (pc *pContext) saveDeltas(deltas *types.Deltas, height int64) {
+	pc.dstore.SaveDeltas(deltas, height)
 }
 
 type mockPContext struct {
@@ -63,7 +70,7 @@ func newMockProcessorContext(
 	}
 }
 
-func (mpc *mockPContext) applyBlock(blockID types.BlockID, block *types.Block) error {
+func (mpc *mockPContext) applyBlock(blockID types.BlockID, block *types.Block, deltas *types.Deltas) error {
 	for _, h := range mpc.applicationBL {
 		if h == block.Height {
 			return fmt.Errorf("generic application error")
@@ -83,6 +90,10 @@ func (mpc *mockPContext) verifyCommit(chainID string, blockID types.BlockID, hei
 }
 
 func (mpc *mockPContext) saveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit) {
+
+}
+
+func (mpc *mockPContext) saveDeltas(deltas *types.Deltas, height int64) {
 
 }
 

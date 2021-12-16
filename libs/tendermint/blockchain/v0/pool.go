@@ -106,7 +106,6 @@ func (pool *BlockPool) SetHeight(height int64) {
 // OnStart implements service.Service by spawning requesters routine and recording
 // pool's start time.
 func (pool *BlockPool) OnStart() error {
-	fmt.Println("pool.Start")
 	go pool.makeRequestersRoutine()
 	pool.startTime = time.Now()
 	return nil
@@ -121,10 +120,8 @@ func (pool *BlockPool) OnReset() error {
 
 // spawns requesters as needed
 func (pool *BlockPool) makeRequestersRoutine() {
-	fmt.Println("makeRequestersRoutine")
 	for {
 		if !pool.IsRunning() {
-			fmt.Println("break makeRequestersRoutine")
 			break
 		}
 
@@ -135,17 +132,14 @@ func (pool *BlockPool) makeRequestersRoutine() {
 			time.Sleep(requestIntervalMS * time.Millisecond)
 			// check for timed out peers
 			pool.removeTimedoutPeers()
-			//fmt.Println("makeRequestersRoutine 1")
 		case lenRequesters >= maxTotalRequesters:
 			// sleep for a bit.
 			time.Sleep(requestIntervalMS * time.Millisecond)
 			// check for timed out peers
 			pool.removeTimedoutPeers()
-			//fmt.Println("makeRequestersRoutine 2")
 		default:
 			// request for more blocks.
 			pool.makeNextRequester()
-			//fmt.Println("makeRequestersRoutine 3")
 		}
 	}
 }
@@ -211,12 +205,13 @@ func (pool *BlockPool) IsCaughtUp() bool {
 // We need to see the second block's Commit to validate the first block.
 // So we peek two blocks at a time.
 // The caller will verify the commit.
-func (pool *BlockPool) PeekTwoBlocks() (first *types.Block, second *types.Block) {
+func (pool *BlockPool) PeekTwoBlocks() (first *types.Block, second *types.Block, deltas *types.Deltas) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	if r := pool.requesters[pool.height]; r != nil {
 		first = r.getBlock()
+		deltas = r.getDeltas()
 	}
 	if r := pool.requesters[pool.height+1]; r != nil {
 		second = r.getBlock()
@@ -262,13 +257,12 @@ func (pool *BlockPool) RedoRequest(height int64) p2p.ID {
 
 // AddBlock validates that the block comes from the peer it was expected from and calls the requester to store it.
 // TODO: ensure that blocks come in order for each peer.
-func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, blockSize int) {
+func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types.Deltas, blockSize int) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	requester := pool.requesters[block.Height]
 	if requester == nil {
-		fmt.Println(fmt.Sprintf("addblock nil: %d", block.Height))
 		pool.Logger.Info(
 			"peer sent us a block we didn't expect",
 			"peer",
@@ -287,15 +281,13 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, blockSize int
 		return
 	}
 
-	if requester.setBlock(block, peerID) {
-		fmt.Println(fmt.Sprintf("requester.setBlock: %d peerID: %s", block.Height, peerID))
+	if requester.setBlock(block, deltas, peerID) {
 		atomic.AddInt32(&pool.numPending, -1)
 		peer := pool.peers[peerID]
 		if peer != nil {
 			peer.decrPending(blockSize)
 		}
 	} else {
-		fmt.Println(fmt.Sprintf("invalid peer: %d peerID: %s", block.Height, peerID))
 		pool.Logger.Info("invalid peer", "peer", peerID, "blockHeight", block.Height)
 		pool.sendError(errors.New("invalid peer"), peerID)
 	}
@@ -416,14 +408,10 @@ func (pool *BlockPool) makeNextRequester() {
 
 	nextHeight := pool.height + pool.requestersLen()
 	if nextHeight > pool.maxPeerHeight {
-		//if nextHeight > 1 {
-		//	fmt.Println(fmt.Sprintf("makeNextRequester. next:%d max:%d", nextHeight, pool.maxPeerHeight))
-		//}
 		return
 	}
 
 	request := newBPRequester(pool, nextHeight)
-	fmt.Println(fmt.Sprintf("new bp reqeuster: %d poolHeight:%d requestersLen:%d", request.height, pool.height, pool.requestersLen()))
 
 	pool.requesters[nextHeight] = request
 	atomic.AddInt32(&pool.numPending, 1)
@@ -557,6 +545,7 @@ type bpRequester struct {
 	mtx    sync.Mutex
 	peerID p2p.ID
 	block  *types.Block
+	deltas *types.Deltas
 }
 
 func newBPRequester(pool *BlockPool, height int64) *bpRequester {
@@ -568,6 +557,7 @@ func newBPRequester(pool *BlockPool, height int64) *bpRequester {
 
 		peerID: "",
 		block:  nil,
+		deltas: nil,
 	}
 	bpr.BaseService = *service.NewBaseService(nil, "bpRequester", bpr)
 	return bpr
@@ -579,13 +569,18 @@ func (bpr *bpRequester) OnStart() error {
 }
 
 // Returns true if the peer matches and block doesn't already exist.
-func (bpr *bpRequester) setBlock(block *types.Block, peerID p2p.ID) bool {
+func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, peerID p2p.ID) bool {
 	bpr.mtx.Lock()
 	if bpr.block != nil || bpr.peerID != peerID {
 		bpr.mtx.Unlock()
 		return false
 	}
 	bpr.block = block
+
+	if types.EnableApplyP2PDelta() {
+		bpr.deltas = deltas
+	}
+
 	bpr.mtx.Unlock()
 
 	select {
@@ -599,6 +594,12 @@ func (bpr *bpRequester) getBlock() *types.Block {
 	bpr.mtx.Lock()
 	defer bpr.mtx.Unlock()
 	return bpr.block
+}
+
+func (bpr *bpRequester) getDeltas() *types.Deltas {
+	bpr.mtx.Lock()
+	defer bpr.mtx.Unlock()
+	return bpr.deltas
 }
 
 func (bpr *bpRequester) getPeerID() p2p.ID {
@@ -618,6 +619,7 @@ func (bpr *bpRequester) reset() {
 
 	bpr.peerID = ""
 	bpr.block = nil
+	bpr.deltas = nil
 }
 
 // Tells bpRequester to pick another peer and try again.

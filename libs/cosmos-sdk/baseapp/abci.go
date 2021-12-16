@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -85,6 +86,14 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
+	case "ResetDeliverState":
+		// reset deliver state
+
+		// Reset the DeliverTx state. If this is the first block, it should
+		// already be initialized in InitChain. Otherwise app.deliverState will be
+		// nil, since it is reset on Commit.
+		// init chain will set deliverstate without blockHeight
+		app.deliverState = nil
 	default:
 		// do nothing
 	}
@@ -142,8 +151,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
 
-	if app.beginBlocker != nil {
-		res = app.beginBlocker(app.deliverState.ctx, req)
+	if !req.UseDeltas {
+		if app.beginBlocker != nil {
+			res = app.beginBlocker(app.deliverState.ctx, req)
+		}
 	}
 
 	// set the signed validators for addition to context in deliverTx
@@ -292,14 +303,17 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 // defined in config, Commit will execute a deferred function call to check
 // against that height and gracefully halt if it matches the latest committed
 // height.
-func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+	if req.Deltas == nil {
+		req.Deltas = &abci.Deltas{}
+	}
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.deliverState.ms.Write()
-	commitID := app.cms.Commit()
+	commitID, _, deltas := app.cms.Commit(&iavl.TreeDelta{}, req.Deltas.DeltasByte)
 
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
@@ -336,6 +350,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	return abci.ResponseCommit{
 		Data: commitID.Hash,
+		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }
 

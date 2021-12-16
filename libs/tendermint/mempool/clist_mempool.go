@@ -83,14 +83,15 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	addressRecord    *AddressRecord
-	checkRepeatedMtx sync.Mutex
+	addressRecord *AddressRecord
+	addAndSortMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
+	checkCnt     int64
 }
 
 var _ Mempool = &CListMempool{}
@@ -347,7 +348,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
-
+	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
 
@@ -411,6 +412,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+	mem.addAndSortMtx.Lock()
+	defer mem.addAndSortMtx.Unlock()
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -810,11 +813,13 @@ func (mem *CListMempool) Update(
 	toCleanAccMap := make(map[string]uint64)
 	addressNonce := make(map[string]uint64)
 	for i, tx := range txs {
-		// add gas used with every tx
-		gasUsed += uint64(deliverTxResponses[i].GasUsed)
-
 		txCode := deliverTxResponses[i].Code
+		// CodeTypeOK means tx was successfully executed.
+		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
+		// e.g., the transaction gas has been consumed.
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+			// add gas used with valid committed tx
+			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
 			_ = mem.cache.Push(tx)
 		} else {
@@ -838,7 +843,6 @@ func (mem *CListMempool) Update(
 			ele := e.(*clist.CElement)
 			addr = ele.Address
 			nonce = ele.Nonce
-
 			mem.removeTx(tx, ele, false)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else if mem.txInfoparser != nil {
@@ -893,6 +897,10 @@ func (mem *CListMempool) Update(
 		mem.pendingPoolNotify <- addressNonce
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
+
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
@@ -955,8 +963,6 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 }
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
-	mem.checkRepeatedMtx.Lock()
-	defer mem.checkRepeatedMtx.Unlock()
 	repeatElement := 0
 	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
 		for _, node := range userMap {

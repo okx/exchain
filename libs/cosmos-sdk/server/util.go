@@ -102,6 +102,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		conf.P2P.SendRate = 5120000
 		conf.TxIndex.IndexAllKeys = true
 		conf.Consensus.TimeoutCommit = 3 * time.Second
+		conf.Consensus.TimeoutConsensus = 1 * time.Second
 		cfg.WriteConfigFile(configFilePath, conf)
 		// Fall through, just so that its parsed into memory.
 	}
@@ -133,7 +134,7 @@ func AddCommands(
 	appCreator AppCreator, appStop AppStop, appExport AppExporter,
 	registerRouters func(rs *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context)) {
+	appPreRun func(ctx *Context) error) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 	rootCmd.PersistentFlags().String("log_file", ctx.Config.LogFile, "Log file")

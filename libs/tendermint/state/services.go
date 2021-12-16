@@ -32,6 +32,11 @@ type BlockStore interface {
 	LoadSeenCommit(height int64) *types.Commit
 }
 
+type DeltaStore interface {
+	SaveDeltas(deltas *types.Deltas, height int64)
+	LoadDeltas(height int64) *types.Deltas
+}
+
 //-----------------------------------------------------------------------------
 // evidence pool
 

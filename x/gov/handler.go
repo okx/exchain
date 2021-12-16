@@ -119,10 +119,18 @@ func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) (*sdk.Result, 
 
 	// this vote makes the votingPeriod end
 	if status != StatusVotingPeriod {
-		handleProposalAfterTally(ctx, k, &proposal, distribute, status)
+		tagValue, logMsg := handleProposalAfterTally(ctx, k, &proposal, distribute, status)
 		k.RemoveFromActiveProposalQueue(ctx, proposal.ProposalID, proposal.VotingEndTime)
 		proposal.VotingEndTime = ctx.BlockHeader().Time
 		k.DeleteVotes(ctx, proposal.ProposalID)
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeProposalVoteTally,
+				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposal.ProposalID)),
+				sdk.NewAttribute(types.AttributeKeyProposalResult, tagValue),
+				sdk.NewAttribute(types.AttributeKeyProposalLog, logMsg),
+			),
+		)
 	}
 	k.SetProposal(ctx, proposal)
 

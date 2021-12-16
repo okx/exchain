@@ -201,6 +201,7 @@ type Handshaker struct {
 	stateDB      dbm.DB
 	initialState sm.State
 	store        sm.BlockStore
+	dstore       sm.DeltaStore
 	eventBus     types.BlockEventPublisher
 	genDoc       *types.GenesisDoc
 	logger       log.Logger
@@ -209,12 +210,13 @@ type Handshaker struct {
 }
 
 func NewHandshaker(stateDB dbm.DB, state sm.State,
-	store sm.BlockStore, genDoc *types.GenesisDoc) *Handshaker {
+	store sm.BlockStore, dstore sm.DeltaStore, genDoc *types.GenesisDoc) *Handshaker {
 
 	return &Handshaker{
 		stateDB:      stateDB,
 		initialState: state,
 		store:        store,
+		dstore:       dstore,
 		eventBus:     types.NopEventBus{},
 		genDoc:       genDoc,
 		logger:       log.NewNopLogger(),
@@ -548,6 +550,6 @@ func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlo
 	return *mock.abciResponses.EndBlock
 }
 
-func (mock *mockProxyApp) Commit() abci.ResponseCommit {
-	return abci.ResponseCommit{Data: mock.appHash}
+func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+	return abci.ResponseCommit{Data: mock.appHash, Deltas: &abci.Deltas{}}
 }

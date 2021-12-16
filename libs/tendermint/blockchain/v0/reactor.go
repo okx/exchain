@@ -73,6 +73,7 @@ type BlockchainReactor struct {
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
+	dstore    *store.DeltaStore
 	pool         *BlockPool
 	fastSync     bool
 	autoFastSync bool
@@ -80,15 +81,11 @@ type BlockchainReactor struct {
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
-
-	//mtx *sync.Mutex
-	//isFastSyncing uint32 // atomic
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore,
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
 	fastSync bool, autoFastSync bool) *BlockchainReactor {
-	fmt.Println(fmt.Sprintf("autoFastSync: %d", autoFastSync))
 
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
@@ -111,6 +108,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		curState:     state,
 		blockExec:    blockExec,
 		store:        store,
+		dstore:       dstore,
 		pool:         pool,
 		fastSync:     fastSync,
 		autoFastSync: autoFastSync,
@@ -181,8 +179,13 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
+	var deltas *types.Deltas
+	if types.EnableBroadcastP2PDelta() {
+		deltas = bcR.dstore.LoadDeltas(msg.Height)
+	}
+
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -214,7 +217,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
 		fmt.Println(fmt.Sprintf("AddBlock %d", msg.Block.Height))
-		bcR.pool.AddBlock(src.ID(), msg.Block, len(msgBytes))
+		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
 		src.TrySend(BlockchainChannel, cdc.MustMarshalBinaryBare(&bcStatusResponseMessage{
@@ -375,7 +378,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second := bcR.pool.PeekTwoBlocks()
+			first, second, _ := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -384,7 +387,6 @@ FOR_LOOP:
 				// Try again quickly next loop.
 				didProcessCh <- struct{}{}
 			}
-			fmt.Println("didProcessCh 2")
 
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
@@ -413,7 +415,6 @@ FOR_LOOP:
 				}
 				continue FOR_LOOP
 			} else {
-				fmt.Println("didProcessCh 3")
 				bcR.pool.PopRequest()
 
 				// TODO: batch saves so we dont persist to disk every block
@@ -429,6 +430,14 @@ FOR_LOOP:
 				}
 				blocksSynced++
 
+				/*
+				if types.EnableBroadcastP2PDelta() {
+					// persists the given deltas to the underlying db.
+					deltas.Height = first.Height
+					bcR.dstore.SaveDeltas(deltas, first.Height)
+				}
+				*/
+
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
 					bcR.Logger.Info("Fast Sync Rate", "height", bcR.pool.height,
@@ -439,10 +448,8 @@ FOR_LOOP:
 			continue FOR_LOOP
 
 		case <-bcR.Quit():
-			fmt.Println("bcR.Quit()")
 			break FOR_LOOP
 		case <-bcR.pool.Quit():
-			fmt.Println("bcR.pool.Quit()")
 			break FOR_LOOP
 		}
 	}
@@ -521,7 +528,8 @@ func (m *bcNoBlockResponseMessage) String() string {
 //-------------------------------------
 
 type bcBlockResponseMessage struct {
-	Block *types.Block
+	Block     *types.Block
+	Deltas    *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

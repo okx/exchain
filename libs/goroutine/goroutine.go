@@ -1,4 +1,4 @@
-package trace
+package gorid
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"sync"
 )
-
 
 type GoRoutineID int
 

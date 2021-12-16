@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -38,11 +39,19 @@ type BlockExecutor struct {
 	evpool  EvidencePool
 
 	logger log.Logger
-
 	metrics *Metrics
-
 	isAsync bool
+
+	// download or upload data to dds
+	deltaContext *DeltaContext
+
+	proactivelyRunTx bool
+	prerunChan chan *executionContext
+	prerunResultChan chan *executionContext
+	prerunIndex int64
+	prerunContext *executionContext
 }
+
 
 type BlockExecutorOption func(executor *BlockExecutor)
 
@@ -63,19 +72,24 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:       db,
-		proxyApp: proxyApp,
-		eventBus: types.NopEventBus{},
-		mempool:  mempool,
-		evpool:   evpool,
-		logger:   logger,
-		metrics:  NopMetrics(),
-		isAsync:  viper.GetBool(FlagParalleledTx),
+		db:             db,
+		proxyApp:       proxyApp,
+		eventBus:       types.NopEventBus{},
+		mempool:        mempool,
+		evpool:         evpool,
+		logger:         logger,
+		metrics:        NopMetrics(),
+		isAsync:        viper.GetBool(FlagParalleledTx),
+		prerunChan:           make(chan *executionContext, 1),
+		prerunResultChan:     make(chan *executionContext, 1),
+		deltaContext:         newDeltaContext(),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
+
+	res.deltaContext.init(logger)
 
 	return res
 }
@@ -141,17 +155,22 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(
-	state State, blockID types.BlockID, block *types.Block,
-) (State, int64, error) {
+	state State, blockID types.BlockID, block *types.Block) (State, int64, error) {
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
+	var inAbciRspLen, inDeltaLen, inWatchLen int
+	dc := blockExec.deltaContext
 
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
+		trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
+			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(dc.deltas.ABCIRsp), len(dc.deltas.DeltasBytes), len(dc.deltas.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -160,24 +179,25 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
-	trc.Pin(trace.Abci)
+	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
-		fmt.Println("error 1")
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	startTime := time.Now().UnixNano()
-	var abciResponses *ABCIResponses
-	var err error
-	if blockExec.isAsync {
-		abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+	trc.Pin("GetDelta")
 
-	} else {
-		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-	}
+	dc.prepareStateDelta(block)
+	inAbciRspLen = len(dc.deltas.ABCIRsp)
+	inDeltaLen = len(dc.deltas.DeltasBytes)
+	inWatchLen = len(dc.deltas.WatchBytes)
+
+	trc.Pin(trace.Abci)
+
+	startTime := time.Now().UnixNano()
+
+	abciResponses, err := blockExec.runAbci(block)
 
 	if err != nil {
-		fmt.Println("error 2")
 		return state, 0, ErrProxyAppConn(err)
 	}
 
@@ -197,12 +217,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
-		fmt.Println("error 4")
 		return state, 0, fmt.Errorf("error in validator updates: %v", err)
 	}
 	validatorUpdates, err := types.PB2TM.ValidatorUpdates(abciValUpdates)
 	if err != nil {
-		fmt.Println("error 5")
 		return state, 0, err
 	}
 	if len(validatorUpdates) > 0 {
@@ -212,7 +230,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
-		fmt.Println("error 6")
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
@@ -220,14 +237,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	appHash, retainHeight, err := blockExec.Commit(state, block, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
-		fmt.Println("error 7")
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
+
+	trc.Pin("evpool")
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -236,7 +254,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveState)
 
 	// Update the app hash and save the state.
-	state.AppHash = appHash
+	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
 	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
 	fail.Fail() // XXX
@@ -245,20 +263,61 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
+	dc.postApplyDelta(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
+
 	return state, retainHeight, nil
 }
 
+
+func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, error) {
+	dc := blockExec.deltaContext
+	var abciResponses *ABCIResponses
+	var err error
+
+	if blockExec.deltaContext.useDeltas {
+		blockExec.logger.Info("Apply delta", "deltas", dc.deltas, "gid", gorid.GoRId)
+
+		SetCenterBatch(dc.deltas.WatchBytes)
+		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
+		err = types.Json.Unmarshal(dc.deltas.ABCIRsp, &abciResponses)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		blockExec.logger.Info("Not apply delta", "block", block, "gid", gorid.GoRId)
+
+		if blockExec.proactivelyRunTx {
+			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
+			blockExec.prerunContext = nil
+			blockExec.prerunIndex = 0
+		} else {
+			ctx := &executionContext{
+				logger:   blockExec.logger,
+				block:    block,
+				db:       blockExec.db,
+				proxyApp: blockExec.proxyApp,
+			}
+			if blockExec.isAsync {
+				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			} else {
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			}
+		}
+	}
+
+	return abciResponses, err
+}
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
 // It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
 // The Mempool must be locked during commit and update because state is
 // typically reset on Commit and old txs must be replayed against committed
 // state before new txs are run in the mempool, lest they be invalid.
-func (blockExec *BlockExecutor) Commit(
+func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
 	deliverTxResponses []*abci.ResponseDeliverTx,
-) ([]byte, int64, error) {
+) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
 	defer func() {
 		blockExec.mempool.Unlock()
@@ -267,6 +326,7 @@ func (blockExec *BlockExecutor) Commit(
 			blockExec.mempool.Flush()
 		}
 	}()
+	dc := blockExec.deltaContext
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
@@ -276,8 +336,13 @@ func (blockExec *BlockExecutor) Commit(
 		return nil, 0, err
 	}
 
+	blockExec.logger.Info("set abciDelta", "abciDelta", dc.deltas)
+	abciDelta := &abci.Deltas{
+		DeltasByte: dc.deltas.DeltasBytes,
+	}
+
 	// Commit block, get hash back
-	res, err := blockExec.proxyApp.CommitSync()
+	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{Deltas: abciDelta})
 	if err != nil {
 		blockExec.logger.Error(
 			"Client error during proxyAppConn.CommitSync",
@@ -285,13 +350,14 @@ func (blockExec *BlockExecutor) Commit(
 		)
 		return nil, 0, err
 	}
-	// ResponseCommit has no error code - just data
 
+	// ResponseCommit has no error code - just data
 	blockExec.logger.Info(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
 		"appHash", fmt.Sprintf("%X", res.Data),
+		"blockLen", block.Size(),
 	)
 
 	// Update mempool.
@@ -304,13 +370,21 @@ func (blockExec *BlockExecutor) Commit(
 	)
 
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
+		proxyCb := func(req *abci.Request, res *abci.Response) {
+
+		}
+		blockExec.proxyApp.SetResponseCallback(proxyCb)
 		// reset checkState
 		blockExec.proxyApp.SetOptionAsync(abci.RequestSetOption{
 			Key: "ResetCheckState",
 		})
 	}
 
-	return res.Data, res.RetainHeight, err
+	if res.Deltas == nil {
+		res.Deltas = &abci.Deltas{}
+	}
+
+	return res, res.RetainHeight, err
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
@@ -326,12 +400,12 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(
-	logger log.Logger,
-	proxyAppConn proxy.AppConnConsensus,
-	block *types.Block,
-	stateDB dbm.DB,
-) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+	block := context.block
+	proxyAppConn := context.proxyApp
+	stateDB := context.db
+	logger := context.logger
+
 	var validTxs, invalidTxs = 0, 0
 
 	txIndex := 0
@@ -372,10 +446,15 @@ func execBlockOnProxyApp(
 	}
 
 	// Run txs of block.
-	for _, tx := range block.Txs {
+	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
+		}
+
+		if context != nil && context.stopped {
+			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
 
@@ -390,6 +469,25 @@ func execBlockOnProxyApp(
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
+}
+
+func execBlockOnProxyAppWithDeltas(
+	proxyAppConn proxy.AppConnConsensus,
+	block *types.Block,
+	stateDB dbm.DB,
+) {
+	proxyCb := func(req *abci.Request, res *abci.Response) {
+	}
+	proxyAppConn.SetResponseCallback(proxyCb)
+
+	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
+	_, _ = proxyAppConn.BeginBlockSync(abci.RequestBeginBlock{
+		Hash:                block.Hash(),
+		Header:              types.TM2PB.Header(&block.Header),
+		LastCommitInfo:      commitInfo,
+		ByzantineValidators: byzVals,
+		UseDeltas:           true,
+	})
 }
 
 func getBeginBlockValidatorInfo(block *types.Block, stateDB dbm.DB) (abci.LastCommitInfo, []abci.Evidence) {
@@ -573,13 +671,21 @@ func ExecCommitBlock(
 	logger log.Logger,
 	stateDB dbm.DB,
 ) ([]byte, error) {
-	_, err := execBlockOnProxyApp(logger, appConnConsensus, block, stateDB)
+
+	ctx := &executionContext{
+		logger: logger,
+		block: block,
+		db: stateDB,
+		proxyApp: appConnConsensus,
+	}
+
+	_, err := execBlockOnProxyApp(ctx)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, err
 	}
 	// Commit block, get hash back
-	res, err := appConnConsensus.CommitSync()
+	res, err := appConnConsensus.CommitSync(abci.RequestCommit{})
 	if err != nil {
 		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
 		return nil, err
@@ -587,3 +693,4 @@ func ExecCommitBlock(
 	// ResponseCommit has no error or log, just data
 	return res.Data, nil
 }
+

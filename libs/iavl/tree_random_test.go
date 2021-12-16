@@ -143,7 +143,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 				mirrorKeys = append(mirrorKeys, key)
 			}
 		}
-		_, version, err = tree.SaveVersion()
+		_, version, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 
 		t.Logf("Saved tree at version %v with %v keys and %v versions",
@@ -317,7 +317,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 		_, removed := tree.Remove(key)
 		require.True(t, removed)
 	}
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	err = tree.DeleteVersion(prevVersion)
 	require.NoError(t, err)

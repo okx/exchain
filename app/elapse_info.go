@@ -36,6 +36,7 @@ func init() {
 }
 
 type ElapsedTimeInfos struct {
+	mtx sync.Mutex
 	infoMap         map[string]string
 	schemaMap       map[string]bool
 	initialized     bool
@@ -47,10 +48,16 @@ func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
 		return
 	}
 
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
+
 	e.infoMap[key] = info
 }
 
 func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
+
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
 
 	if len(e.infoMap) == 0 {
 		return
@@ -71,12 +78,17 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s]",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
 		trace.RunTx, e.infoMap[trace.RunTx],
+		trace.Prerun, e.infoMap[trace.Prerun],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
+		trace.MempoolCheckTxCnt, e.infoMap[trace.MempoolCheckTxCnt],
+		trace.MempoolTxsCnt, e.infoMap[trace.MempoolTxsCnt],
+		trace.InDelta, e.infoMap[trace.InDelta],
+		trace.OutDelta, e.infoMap[trace.OutDelta],
 	)
 
 	if len(detailInfo) > 0 {

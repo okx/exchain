@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KEY="captain"
-CHAINID="exchain-65"
+CHAINID="exchain-67"
 MONIKER="oec"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
@@ -21,19 +21,20 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:info,iavl:info,*:error
+    LOG_LEVEL=main:info,iavl:info,*:error,state:info
 
     exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --consensus.timeout_commit 600ms \
+      --enable-proactively-runtx \
       --iavl-enable-async-commit \
       --iavl-enable-gid \
       --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=1,acc=1 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
-      --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
+      --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \
@@ -88,13 +89,17 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
 # Enable EVM
+
 if [ "$(uname -s)" == "Darwin" ]; then
     sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
+    sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
 else 
     sed -i 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
+    sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
 fi
+
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
 exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okt --home $HOME_SERVER

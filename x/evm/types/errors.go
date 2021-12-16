@@ -1,11 +1,12 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.
@@ -44,10 +45,26 @@ var (
 	// ErrDuplicatedAddr returns an error if the address is duplicated in address list
 	ErrDuplicatedAddr = sdkerrors.Register(ModuleName, 12, "Duplicated address in address list")
 
+	// ErrDuplicatedAddr returns an error if the address is duplicated in address list
+	ErrOperation = sdkerrors.Register(ModuleName, 16, "Special contract method blocked operation can not change blocked contract list")
+
+	// ErrDuplicatedMethod returns an error if the contract method is duplicated
+	ErrDuplicatedMethod = sdkerrors.Register(ModuleName, 17, "Duplicated contract method in address list")
+
+	// ErrEmptyMethod returns an error if the contract method is empty
+	ErrEmptyMethod = sdkerrors.Register(ModuleName, 18, "Empty contract method blocked is not allowed")
+
+	// ErrEmptyAddressBlockedContract returns an error if the contract method is empty
+	ErrEmptyAddressBlockedContract = sdkerrors.Register(ModuleName, 19, "Empty address in contract method blocked list is not allowed")
+
+
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"
+
+	ErrorContractMethodBlockedIsNotExist = errors.New("it's not exist in contract method blocked list")
 )
+
 
 // ErrOversizeAddrList returns an error when the length of address list in the proposal is larger than the max limitation
 func ErrOversizeAddrList(length int) sdk.EnvelopedErr {
@@ -70,12 +87,28 @@ func ErrUnauthorizedAccount(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 }
 
 // ErrCallBlockedContract returns an error when the blocked contract is invoked
-func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
+func ErrCallBlockedContract(descriptor string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			15,
-			fmt.Sprintf("failed. the contract %s is not allowed to invoke", contractAddr.Hex()),
+			descriptor,
 		),
 	}
+}
+
+
+// ErrBlockedContractMethodIsNotExist returns an error when the blocked contract method is not exist
+func ErrBlockedContractMethodIsNotExist(address sdk.Address,err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			20,
+			fmt.Sprintf("Delete contract(%s) method failed: %s",address,err.Error()),
+		),
+	}
+}
+
+type ErrContractBlockedVerify struct {
+	Descriptor string
 }

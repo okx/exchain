@@ -89,6 +89,7 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 	}
+	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
 	}
@@ -117,7 +118,9 @@ func NewSimulateKeeper(
 }
 
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
-	k.Watcher.DeleteAccount(acc.GetAddress())
+	account := acc.GetAddress()
+	k.Watcher.AddDirtyAccount(&account)
+	k.Watcher.DeleteAccount(account)
 }
 
 // Logger returns a module-specific logger.
@@ -130,6 +133,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		BankKeeper:    k.bankKeeper,
 		Watcher:       k.Watcher,
 		Ada:           k.Ada,
+		Cdc:           k.cdc,
 	}
 }
 
@@ -139,6 +143,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		StoreKey: k.storeKey,
 		Watcher:  k.Watcher,
 		Ada:      k.Ada,
+		Cdc:      k.cdc,
 	}
 }
 

@@ -52,6 +52,12 @@ const (
 type receiveCbFunc func(chID byte, msgBytes []byte)
 type errorCbFunc func(interface{})
 
+type bytesHexStringer []byte
+
+func (b bytesHexStringer) String() string {
+	return fmt.Sprintf("%X", []byte(b))
+}
+
 /*
 Each peer has one `MConnection` (multiplex connection) instance.
 
@@ -352,7 +358,9 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 		return false
 	}
 
-	c.Logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", fmt.Sprintf("%X", msgBytes))
+	msgStringer := bytesHexStringer(msgBytes)
+
+	c.Logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", msgStringer)
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -369,7 +377,7 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 		default:
 		}
 	} else {
-		c.Logger.Debug("Send failed", "channel", chID, "conn", c, "msgBytes", fmt.Sprintf("%X", msgBytes))
+		c.Logger.Debug("Send failed", "channel", chID, "conn", c, "msgBytes", msgStringer)
 	}
 	return success
 }
@@ -644,7 +652,8 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", fmt.Sprintf("%X", msgBytes))
+				msgStringer := bytesHexStringer(msgBytes)
+				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgStringer)
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
@@ -972,7 +981,7 @@ func (mp PacketMsg) String() string {
 
 func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [5]byte{1 << 3, 2 << 3, 3<<3 | 2}
+	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
 		lBeforeKey := buf.Len()
 		var noWrite bool

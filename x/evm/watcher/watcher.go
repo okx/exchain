@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	jsoniter "github.com/json-iterator/go"
 	"math/big"
 	"sync"
 
@@ -8,13 +9,17 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/abci/types"
+	tmstate "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
+
+var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
 	store         *WatchStore
@@ -29,10 +34,13 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	// for state delta transfering in network
+	watchData *WatchData
 }
 
 var (
 	watcherEnable  = false
+	centerEnable   = false
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
@@ -45,6 +53,13 @@ func IsWatcherEnabled() bool {
 	return watcherEnable
 }
 
+func IsCenterEnabled() bool {
+	onceEnable.Do(func() {
+		centerEnable = viper.GetBool(tmtypes.FlagDataCenter)
+	})
+	return centerEnable
+}
+
 func GetWatchLruSize() int {
 	onceLru.Do(func() {
 		watcherLruSize = viper.GetInt(FlagFastQueryLru)
@@ -53,7 +68,8 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	return watcher
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -83,6 +99,9 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+
+	// ResetTransferWatchData
+	w.watchData = &WatchData{}
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -170,6 +189,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.delayEraseKey = append(w.delayEraseKey, key)
 }
 
+func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
+	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
+}
+
 func (w *Watcher) ExecuteDelayEraseKey() {
 	if !w.Enabled() {
 		return
@@ -239,6 +262,16 @@ func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
 	}
 }
 
+func (w *Watcher) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractMethodBlockedListItem(addr, methods)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
 func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
@@ -255,7 +288,9 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	}
 	wMsg := NewMsgContractBlockedListItem(addr)
 	if wMsg != nil {
-		w.store.Delete(wMsg.GetKey())
+		key := wMsg.GetKey()
+		w.store.Delete(key)
+		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
 	}
 }
 
@@ -265,7 +300,9 @@ func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
 	}
 	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
 	if wMsg != nil {
-		w.store.Delete(wMsg.GetKey())
+		key := wMsg.GetKey()
+		w.store.Delete(key)
+		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
 	}
 }
 
@@ -321,12 +358,116 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go func() {
-		for _, b := range batch {
-			w.store.Set(b.GetKey(), []byte(b.GetValue()))
-			if b.GetType() == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
-			}
+	go w.commitBatch(w.batch)
+
+	// get centerBatch for sending to DataCenter
+	centerBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
+		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+	}
+	w.watchData.Batches = centerBatch
+}
+
+func (w *Watcher) CommitWatchData() {
+	if w.watchData == nil || w.watchData.Size() == 0 {
+		return
+	}
+	if w.watchData.Batches != nil {
+		go w.commitCenterBatch(w.watchData.Batches)
+	}
+	if w.watchData.DirtyAccount != nil {
+		go w.delDirtyAccount(w.watchData.DirtyAccount)
+	}
+	if w.watchData.DirtyList != nil {
+		go w.delDirtyList(w.watchData.DirtyList)
+	}
+	if w.watchData.BloomData != nil {
+		go w.commitBloomData(w.watchData.BloomData)
+	}
+}
+
+func (w *Watcher) commitBatch(batch []WatchMessage) {
+	for _, b := range batch {
+		key := b.GetKey()
+		value := []byte(b.GetValue())
+		typeValue := b.GetType()
+		w.store.Set(key, value)
+		if typeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(key), value)
 		}
-	}()
+	}
+}
+
+func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	for _, b := range batch {
+		w.store.Set(b.Key, b.Value)
+		if b.TypeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		}
+	}
+}
+
+func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
+	for _, account := range accounts {
+		w.DeleteAccount(*account)
+	}
+}
+
+func (w *Watcher) delDirtyList(list [][]byte) {
+	for _, key := range list {
+		w.store.Delete(key)
+	}
+}
+
+func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
+	db := evmtypes.GetIndexer().GetDB()
+	for _, bd := range bloomData {
+		db.Set(bd.Key, bd.Value)
+	}
+}
+
+func (w *Watcher) SetWatchDataFunc() {
+	gcb := func(watchBytes []byte) bool {
+		data := WatchData{}
+		if itjs.Unmarshal(watchBytes, &data) != nil {
+			return false
+		}
+		if data.Size() == 0 {
+			return true
+		}
+		w.watchData = &data
+		w.delayEraseKey = data.DelayEraseKey
+		return true
+	}
+
+	gwd := func() []byte {
+		value := w.watchData
+		value.DelayEraseKey = w.delayEraseKey
+		valueByte, err := itjs.Marshal(value)
+		if err != nil {
+			return nil
+		}
+		return valueByte
+	}
+
+	uwd := func(wdByte []byte) {
+		if len(wdByte) > 0 {
+			wd := WatchData{}
+			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+				return
+			}
+			w.watchData = &wd
+			w.delayEraseKey = wd.DelayEraseKey
+		}
+
+		w.CommitWatchData()
+	}
+
+	tmstate.SetCenterBatch = gcb
+	tmstate.GetWatchData = gwd
+	tmstate.UseWatchData = uwd
+}
+
+func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
+	return &w.watchData.BloomData
 }

@@ -315,7 +315,7 @@ func DefaultLogLevel() string {
 // DefaultPackageLogLevels returns a default log level setting so all packages
 // log at "error", while the `state` and `main` packages log at "info"
 func DefaultPackageLogLevels() string {
-	return fmt.Sprintf("main:info,state:info,*:%s", DefaultLogLevel())
+	return fmt.Sprintf("main:info,iavl:info,*:%s", DefaultLogLevel())
 }
 
 //-----------------------------------------------------------------------------
@@ -801,6 +801,7 @@ type ConsensusConfig struct {
 	TimeoutPrecommit      time.Duration `mapstructure:"timeout_precommit"`
 	TimeoutPrecommitDelta time.Duration `mapstructure:"timeout_precommit_delta"`
 	TimeoutCommit         time.Duration `mapstructure:"timeout_commit"`
+	TimeoutConsensus      time.Duration `mapstructure:"timeout_consensus"`
 
 	// Make progress as soon as we have all the precommits (as if TimeoutCommit = 0)
 	SkipTimeoutCommit bool `mapstructure:"skip_timeout_commit"`
@@ -825,6 +826,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
 		TimeoutCommit:               3000 * time.Millisecond,
+		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
 		CreateEmptyBlocksInterval:   0 * time.Second,
@@ -843,6 +845,7 @@ func TestConsensusConfig() *ConsensusConfig {
 	cfg.TimeoutPrecommit = 10 * time.Millisecond
 	cfg.TimeoutPrecommitDelta = 1 * time.Millisecond
 	cfg.TimeoutCommit = 10 * time.Millisecond
+	cfg.TimeoutConsensus = 60 * time.Millisecond
 	cfg.SkipTimeoutCommit = true
 	cfg.PeerGossipSleepDuration = 5 * time.Millisecond
 	cfg.PeerQueryMaj23SleepDuration = 250 * time.Millisecond
@@ -857,21 +860,21 @@ func (cfg *ConsensusConfig) WaitForTxs() bool {
 // Propose returns the amount of time to wait for a proposal
 func (cfg *ConsensusConfig) Propose(round int) time.Duration {
 	return time.Duration(
-		cfg.TimeoutPropose.Nanoseconds()+cfg.TimeoutProposeDelta.Nanoseconds()*int64(round),
+		DynamicConfig.GetCsTimeoutPropose().Nanoseconds()+DynamicConfig.GetCsTimeoutProposeDelta().Nanoseconds()*int64(round),
 	) * time.Nanosecond
 }
 
 // Prevote returns the amount of time to wait for straggler votes after receiving any +2/3 prevotes
 func (cfg *ConsensusConfig) Prevote(round int) time.Duration {
 	return time.Duration(
-		cfg.TimeoutPrevote.Nanoseconds()+cfg.TimeoutPrevoteDelta.Nanoseconds()*int64(round),
+		DynamicConfig.GetCsTimeoutPrevote().Nanoseconds()+DynamicConfig.GetCsTimeoutPrevoteDelta().Nanoseconds()*int64(round),
 	) * time.Nanosecond
 }
 
 // Precommit returns the amount of time to wait for straggler votes after receiving any +2/3 precommits
 func (cfg *ConsensusConfig) Precommit(round int) time.Duration {
 	return time.Duration(
-		cfg.TimeoutPrecommit.Nanoseconds()+cfg.TimeoutPrecommitDelta.Nanoseconds()*int64(round),
+		DynamicConfig.GetCsTimeoutPrecommit().Nanoseconds()+DynamicConfig.GetCsTimeoutPrecommitDelta().Nanoseconds()*int64(round),
 	) * time.Nanosecond
 }
 
@@ -917,6 +920,9 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	}
 	if cfg.TimeoutCommit < 0 {
 		return errors.New("timeout_commit can't be negative")
+	}
+	if cfg.TimeoutConsensus < 0 {
+		return errors.New("timeout_consensus can't be negative")
 	}
 	if cfg.CreateEmptyBlocksInterval < 0 {
 		return errors.New("create_empty_blocks_interval can't be negative")

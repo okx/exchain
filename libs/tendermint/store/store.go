@@ -334,6 +334,64 @@ func (bs *BlockStore) saveState() {
 }
 
 //-----------------------------------------------------------------------------
+/*
+DeltaStore is a simple low level store for deltas.
+Now base and height is invalid
+*/
+type DeltaStore struct {
+	db dbm.DB
+
+	mtx    sync.RWMutex
+	base   int64
+	height int64
+}
+
+// NewBlockStore returns a new BlockStore with the given DB,
+// initialized to the last height that was committed to the DB.
+func NewDeltaStore(db dbm.DB) *DeltaStore {
+	return &DeltaStore{
+		db: db,
+	}
+}
+
+// SaveDeltas persists the given deltas to the underlying db.
+func (ds *DeltaStore) SaveDeltas(deltas *types.Deltas, height int64) {
+	if deltas == nil || deltas.Size() == 0 {
+		return
+	}
+	keyHeight := deltas.Height
+	if keyHeight == 0 {
+		keyHeight = height
+		deltas.Height = height
+	}
+	ds.db.Set(calcDeltasKey(keyHeight), cdc.MustMarshalBinaryBare(deltas))
+}
+
+func (ds *DeltaStore) LoadDeltas(height int64) *types.Deltas {
+	var deltas = new(types.Deltas)
+	bz, err := ds.db.Get(calcDeltasKey(height))
+	if err != nil {
+		panic(err)
+	}
+	if len(bz) == 0 {
+		return nil
+	}
+	err = cdc.UnmarshalBinaryBare(bz, deltas)
+	if err != nil {
+		panic(errors.Wrap(err, "Error reading deltas"))
+	}
+	return deltas
+}
+
+//-----------------------------------------------------------------------------
+
+func calcWatchKey(height int64) []byte {
+	return []byte(fmt.Sprintf("WH:%v", height))
+}
+
+func calcDeltasKey(height int64) []byte {
+	return []byte(fmt.Sprintf("DH:%v", height))
+}
 
 func calcBlockMetaKey(height int64) []byte {
 	return []byte(fmt.Sprintf("H:%v", height))

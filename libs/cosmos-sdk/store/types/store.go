@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
 
+	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstrings "github.com/okex/exchain/libs/tendermint/libs/strings"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -18,7 +19,7 @@ type Store interface { //nolint
 
 // something that can persist to disk
 type Committer interface {
-	Commit() CommitID
+	Commit(*iavl.TreeDelta, []byte) (CommitID, iavl.TreeDelta, []byte)
 	LastCommitID() CommitID
 
 	// TODO: Deprecate after 0.38.5
@@ -174,6 +175,7 @@ type CommitMultiStore interface {
 	// must be idempotent (return the same commit id). Otherwise the behavior is
 	// undefined.
 	LoadVersion(ver int64) error
+	GetCommitVersion() (int64, error)
 
 	// Set an inter-block (persistent) cache that maintains a mapping from
 	// StoreKeys to CommitKVStores.
