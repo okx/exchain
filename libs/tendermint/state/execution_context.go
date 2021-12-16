@@ -3,7 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
-	itrace "github.com/okex/exchain/libs/iavl/trace"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -36,7 +36,7 @@ type executionContext struct {
 func (e *executionContext) dump(when string) {
 
 	e.logger.Info(when,
-		"gid", itrace.GoRId,
+		"gid", gorid.GoRId,
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
@@ -52,6 +52,15 @@ func (e *executionContext) stop() {
 	})
 }
 
+func (blockExec *BlockExecutor) flushPrerunResult()  {
+	for {
+		select {
+		case context := <-blockExec.prerunResultChan:
+			context.dump("Flush prerun result")
+		default:
+		}
+	}
+}
 
 func (blockExec *BlockExecutor) prerunRoutine() {
 	for context := range blockExec.prerunChan {
@@ -91,19 +100,19 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
-	if blockExec.prerunContext != nil {
-		if block.Height != blockExec.prerunContext.block.Height {
+	if context != nil {
+		if block.Height != context.block.Height {
 			context.dump("Prerun sanity check failed")
 
 			// todo
 			panic("Prerun sanity check failed")
 		}
 		context.dump("Stopping prerun")
-		blockExec.prerunContext.stop()
+		context.stop()
 	}
-
+	blockExec.flushPrerunResult()
 	blockExec.prerunIndex++
-	blockExec.prerunContext = &executionContext{
+	context = &executionContext{
 		height:           height,
 		block:            block,
 		stopped:          false,
@@ -114,8 +123,8 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 		index:            blockExec.prerunIndex,
 	}
 
-	context = blockExec.prerunContext
 	context.dump("Notify prerun")
+	blockExec.prerunContext = context
 
 	// start a new one
 	blockExec.prerunChan <- blockExec.prerunContext
