@@ -53,6 +53,7 @@ install_linux() {
   $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make shared_lib PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "ldconfig"
 }
 
 install_macos(){
