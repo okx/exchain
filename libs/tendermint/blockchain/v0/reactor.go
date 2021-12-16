@@ -86,6 +86,7 @@ type BlockchainReactor struct {
 // NewBlockchainReactor returns new reactor instance.
 func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
 	fastSync bool, autoFastSync bool) *BlockchainReactor {
+	fmt.Println(fmt.Sprintf("autoFastSync: %d", autoFastSync))
 
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
@@ -254,7 +255,7 @@ func (bcR *BlockchainReactor) poolRoutine() {
 				if bcR.autoFastSync {
 					continue
 				} else {
-					fmt.Println("return poolRoutine")
+					//fmt.Println("return poolRoutine")
 					return
 				}
 			case request := <-bcR.requestsCh:
@@ -325,14 +326,14 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 	defer func() {
 		bcR.isSyncing = false
 	}()
-	fmt.Println("SwitchToFastSync 1")
+	//fmt.Println("SwitchToFastSync 1")
 
 	blocksSynced := uint64(0)
 	//state := bcR.initialState
 
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
-		fmt.Println("SwitchToFastSync 2")
+		//fmt.Println("SwitchToFastSync 2")
 		conState, err := conR.SwitchToFastSync()
 		if err == nil {
 			bcR.curState = conState //.Copy()

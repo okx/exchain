@@ -610,7 +610,7 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
-	fmt.Println(fmt.Sprintf("update state. height: %d", cs.state.LastBlockHeight))
+	//fmt.Println(fmt.Sprintf("update state. height: %d", cs.state.LastBlockHeight))
 
 	// Finally, broadcast RoundState
 	cs.newStep()
@@ -1544,7 +1544,7 @@ func (cs *State) finalizeCommit(height int64) {
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block)
-	fmt.Println(fmt.Sprintf("ApplyBlock. height: %d", stateCopy.LastBlockHeight))
+	//fmt.Println(fmt.Sprintf("ApplyBlock. height: %d", stateCopy.LastBlockHeight))
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1582,7 +1582,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
-	fmt.Println(fmt.Sprintf("updateToState:%d", cs.state.LastBlockHeight))
+	//fmt.Println(fmt.Sprintf("updateToState:%d", cs.state.LastBlockHeight))
 
 	fail.Fail() // XXX
 

@@ -115,6 +115,16 @@ func (pool *BlockPool) OnReset() error {
 	//fmt.Println("pool.Reset")
 	//go pool.makeRequestersRoutine()
 	//pool.startTime = time.Now()
+	// clear up all requesters
+	pool.mtx.Lock()
+	defer pool.mtx.Unlock()
+
+    for height, r := range pool.requesters {
+    	r.Stop()
+    	delete(pool.requesters, height)
+	}
+	pool.numPending = 0
+
 	return nil
 }
 
