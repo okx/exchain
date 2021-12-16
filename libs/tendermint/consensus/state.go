@@ -168,7 +168,7 @@ func NewState(
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
 		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		done:             make(chan struct{}),
+		//done:             make(chan struct{}),
 		doWALCatchup:     true,
 		wal:              nilWAL{},
 		evpool:           evpool,
@@ -311,9 +311,9 @@ func (cs *State) OnStart() error {
 		}
 		cs.wal = wal
 	//} else if err := cs.wal.Start(); err != nil{
-	//	// TODO: err is not nil. why?
-	//	fmt.Println(fmt.Sprintf("State OnStart 2. err: %s", err))
-	//	//return err
+	////	// TODO: err is not nil. why?
+	////	fmt.Println(fmt.Sprintf("State OnStart 2. err: %s", err))
+	////	//return err
 	//}
 
 	// we need the timeoutRoutine for replay so
@@ -342,7 +342,6 @@ go run scripts/wal2json/main.go $WALFILE > wal.json # this will panic, but can b
 rm $WALFILE # remove the corrupt file
 go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without corruption
 ----`)
-
 
 				return err
 			}
@@ -392,7 +391,7 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	<-cs.done
+	//<-cs.done
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -638,7 +637,7 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		cs.wal.Stop()
 		cs.wal.Wait()
 
-		close(cs.done)
+		//close(cs.done)
 	}
 
 	defer func() {

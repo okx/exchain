@@ -169,6 +169,10 @@ type BaseConfig struct { //nolint: maligned
 	// and verifying their commits
 	FastSyncMode bool `mapstructure:"fast_sync"`
 
+	// AutoFastSync allows this node switches from consensus mode to fast-sync mode automatically
+	// when it is many blocks behind the tip of the chain.
+	AutoFastSync bool `mapstructure:"auto_fast_sync"`
+
 	// Database backend: goleveldb | cleveldb | boltdb | rocksdb
 	// * goleveldb (github.com/syndtr/goleveldb - most popular implementation)
 	//   - pure go
@@ -242,6 +246,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogLevel:           DefaultPackageLogLevels(),
 		LogFormat:          LogFormatPlain,
 		FastSyncMode:       true,
+		AutoFastSync:       true,
 		FilterPeers:        false,
 		DBBackend:          "goleveldb",
 		DBPath:             "data",
@@ -257,6 +262,7 @@ func TestBaseConfig() BaseConfig {
 	cfg.chainID = "tendermint_test"
 	cfg.ProxyApp = "kvstore"
 	cfg.FastSyncMode = false
+	cfg.AutoFastSync = false
 	cfg.DBBackend = "memdb"
 	return cfg
 }

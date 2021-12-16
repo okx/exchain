@@ -33,6 +33,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 
 	// node flags
 	cmd.Flags().Bool("fast_sync", config.FastSyncMode, "Fast blockchain syncing")
+	cmd.Flags().Bool("auto_fast_sync", config.AutoFastSync, "Switch to FastSync mode automatically")
 	cmd.Flags().BytesHexVar(
 		&genesisHash,
 		"genesis_hash",

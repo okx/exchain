@@ -38,9 +38,9 @@ const (
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
 
-	maxIntervalForFastSync = 10
+	maxIntervalForFastSync        = 10
 	maxPeersProportionForFastSync = 0.4
-	testFastSyncIntervalSeconds = 62
+	testFastSyncIntervalSeconds   = 62
 )
 
 type consensusReactor interface {
@@ -69,13 +69,14 @@ type BlockchainReactor struct {
 
 	// immutable
 	initialState sm.State
-	curState sm.State	// mutable
+	curState     sm.State // mutable
 
-	blockExec *sm.BlockExecutor
-	store     *store.BlockStore
-	pool      *BlockPool
-	fastSync  bool
-	isSyncing bool
+	blockExec    *sm.BlockExecutor
+	store        *store.BlockStore
+	pool         *BlockPool
+	fastSync     bool
+	autoFastSync bool
+	isSyncing    bool
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
@@ -86,7 +87,8 @@ type BlockchainReactor struct {
 
 // NewBlockchainReactor returns new reactor instance.
 func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore,
-	fastSync bool) *BlockchainReactor {
+	fastSync bool, autoFastSync bool) *BlockchainReactor {
+	fmt.Println(fmt.Sprintf("autoFastSync: %d", autoFastSync))
 
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
@@ -106,11 +108,12 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 
 	bcR := &BlockchainReactor{
 		initialState: state,
-		curState: state,
+		curState:     state,
 		blockExec:    blockExec,
 		store:        store,
 		pool:         pool,
 		fastSync:     fastSync,
+		autoFastSync: autoFastSync,
 		requestsCh:   requestsCh,
 		errorsCh:     errorsCh,
 	}
@@ -243,11 +246,14 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		for {
 			select {
 			case <-bcR.Quit():
-				fmt.Println("return 1")
 				return
-			//case <-bcR.pool.Quit():
-			//	fmt.Println("return 2")
-			//	return
+			case <-bcR.pool.Quit():
+				if bcR.autoFastSync {
+					continue
+				} else {
+					fmt.Println("return poolRoutine")
+					return
+				}
 			case request := <-bcR.requestsCh:
 				peer := bcR.Switch.Peers().Get(request.PeerID)
 				if peer == nil {
@@ -270,12 +276,11 @@ func (bcR *BlockchainReactor) poolRoutine() {
 
 			case <-testFastSyncTicker.C:
 				// TODO: let the consensus machine sleep for some time
-				//fmt.Println(fmt.Sprintf("port: %x  %x  %x", bcR.Switch.NetAddress().Port, bcR.Switch.NetAddress().ID, bcR.Switch.NetAddress().IP))
-				if !bcR.pool.IsRunning() && strings.Contains(bcR.Switch.ListenAddress(),"10156") {
+				if !bcR.pool.IsRunning() && strings.Contains(bcR.Switch.ListenAddress(), "10156") {
 					conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 					if ok {
 						conR.StopForTestFastSync()
-						testFastSyncTicker.Stop()
+						//testFastSyncTicker.Stop()
 					}
 				}
 			}
@@ -288,7 +293,6 @@ func (bcR *BlockchainReactor) poolRoutine() {
 
 func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
 	if !bcR.isSyncing {
-		fmt.Println("SwitchToConsensus 0")
 		return false
 	}
 
@@ -312,7 +316,6 @@ func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
 
 func (bcR *BlockchainReactor) SwitchToFastSync() {
 	if bcR.isSyncing {
-		fmt.Println("SwitchToFastSync 0")
 		return
 	}
 	bcR.isSyncing = true
@@ -329,14 +332,14 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 		fmt.Println("SwitchToFastSync 2")
 		conState, err := conR.SwitchToFastSync()
 		if err == nil {
-			bcR.curState = conState//.Copy()
+			bcR.curState = conState //.Copy()
 		} else {
 			fmt.Println(fmt.Sprintf("SwitchToFastSync 3. err: %s", err))
 		}
 	}
 	chainID := bcR.curState.ChainID
 
-	bcR.pool.SetHeight(bcR.store.Height()+1)
+	bcR.pool.SetHeight(bcR.store.Height() + 1)
 	bcR.pool.Stop()
 	bcR.pool.Reset()
 	bcR.pool.Start()

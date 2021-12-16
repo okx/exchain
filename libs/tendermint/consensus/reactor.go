@@ -120,6 +120,9 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		conR.conS.doWALCatchup = false
 	}
 	conR.conS.Stop()
+	//if !conR.FastSync() {
+	//	conR.conS.Wait()
+	//}
 	conR.conS.Reset()
 	conR.conS.Start()
 
