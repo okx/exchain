@@ -345,21 +345,18 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, needNilNodeNum int, savedNodes map[string]*Node, ndb *nodeDB, nodeCh <-chan *Node) {
 			getNodeNil := 0
-			for {
-				select {
-				case n := <-nodeCh:
-					if n == nil {
-						getNodeNil += 1
-						if getNodeNil == needNilNodeNum {
-							wg.Done()
-							return
-						}
-					} else {
-						ndb.saveNodeToPrePersistCache(n)
-						n.leftNode = nil
-						n.rightNode = nil
-						savedNodes[hex.EncodeToString(n.hash)] = n
+			for n := range nodeCh {
+				if n == nil {
+					getNodeNil += 1
+					if getNodeNil == needNilNodeNum {
+						wg.Done()
+						return
 					}
+				} else {
+					ndb.saveNodeToPrePersistCache(n)
+					n.leftNode = nil
+					n.rightNode = nil
+					savedNodes[hex.EncodeToString(n.hash)] = n
 				}
 			}
 		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)
