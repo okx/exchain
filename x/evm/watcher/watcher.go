@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"math/big"
 	"sync"
@@ -427,19 +428,6 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	gcb := func(watchBytes []byte) bool {
-		data := WatchData{}
-		if itjs.Unmarshal(watchBytes, &data) != nil {
-			return false
-		}
-		if data.Size() == 0 {
-			return true
-		}
-		w.watchData = &data
-		w.delayEraseKey = data.DelayEraseKey
-		return true
-	}
-
 	gwd := func() []byte {
 		value := w.watchData
 		value.DelayEraseKey = w.delayEraseKey
@@ -447,6 +435,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		if err != nil {
 			return nil
 		}
+		fmt.Println("fsc:test===========gwd:", string(valueByte))
 		return valueByte
 	}
 
@@ -456,6 +445,7 @@ func (w *Watcher) SetWatchDataFunc() {
 			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 				return
 			}
+			fmt.Println("fsc:test===========uwd:", string(wdByte))
 			w.watchData = &wd
 			w.delayEraseKey = wd.DelayEraseKey
 		}
@@ -463,7 +453,6 @@ func (w *Watcher) SetWatchDataFunc() {
 		w.CommitWatchData()
 	}
 
-	tmstate.SetCenterBatch = gcb
 	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
 }
