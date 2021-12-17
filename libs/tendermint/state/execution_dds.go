@@ -2,6 +2,7 @@ package state
 
 import (
 	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -59,6 +60,9 @@ func (dc *DeltaContext) init(l log.Logger) {
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
+	// control if iavl produce delta or not
+	iavl.SetProduceDelta(dc.uploadDelta)
+
 	if dc.downloadDelta {
 		go dc.getDeltaFromDDS()
 	}
@@ -90,7 +94,8 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 	var err error
 	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
 	if err != nil {
-		panic(err)
+		dc.logger.Error("Failed to marshal abci Responses", "height", height, "error", err)
+		return
 	}
 
 	// for outDelta log

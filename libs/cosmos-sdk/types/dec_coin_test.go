@@ -1,8 +1,12 @@
 package types
 
 import (
+	"fmt"
+	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/stretchr/testify/require"
 )
@@ -492,4 +496,57 @@ func TestDecCoins_AddDecCoinWithIsValid(t *testing.T) {
 			require.False(t, tc.coin.IsValid(), tc.msg)
 		}
 	}
+}
+
+func TestDecCoinAmino(t *testing.T) {
+	cdc := codec.New()
+	amount := Dec{big.NewInt(1234567890123456)}
+	amount = amount.Mul(Dec{big.NewInt(1234567890)})
+	tests := []DecCoin{
+		{},
+		{"test", Dec{}},
+		{"test", amount},
+		{"test", Dec{big.NewInt(100000)}},
+		{"", Dec{big.NewInt(100000)}},
+	}
+
+	for i, test := range tests {
+		expect, err := cdc.MarshalBinaryBare(test)
+		require.NoError(t, err)
+		actual, err := test.MarshalToAmino()
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+
+		t.Log(fmt.Sprintf("%d marshal pass", i))
+
+		var dc DecCoin
+		err = cdc.UnmarshalBinaryBare(expect, &dc)
+		require.NoError(t, err)
+		actualDc, err := UnmarshalCoinFromAmino(expect)
+		require.NoError(t, err)
+		require.EqualValues(t, dc, actualDc)
+
+		t.Log(fmt.Sprintf("%d unmarshal pass", i))
+	}
+}
+
+func BenchmarkDecCoinAmino(b *testing.B) {
+	cdc := codec.New()
+	coin := DecCoin{"my coin", Dec{big.NewInt(1234567890123456)}}
+	coin.Amount.Mul(Dec{big.NewInt(1234567890)})
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = cdc.MarshalBinaryBare(coin)
+		}
+	})
+
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = coin.MarshalToAmino()
+		}
+	})
 }

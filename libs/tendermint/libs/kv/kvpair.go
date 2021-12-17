@@ -3,6 +3,8 @@ package kv
 import (
 	"bytes"
 	"sort"
+
+	"github.com/tendermint/go-amino"
 )
 
 //----------------------------------------
@@ -35,3 +37,40 @@ func (kvs Pairs) Less(i, j int) bool {
 }
 func (kvs Pairs) Swap(i, j int) { kvs[i], kvs[j] = kvs[j], kvs[i] }
 func (kvs Pairs) Sort()         { sort.Sort(kvs) }
+
+func MarshalPairToAmino(pair Pair) ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
+	var err error
+	for pos := 1; pos <= 2; pos++ {
+		switch pos {
+		case 1:
+			if len(pair.Key) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSlice(&buf, pair.Key)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			if len(pair.Value) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSlice(&buf, pair.Value)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
