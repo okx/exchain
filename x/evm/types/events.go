@@ -8,4 +8,5 @@ const (
 	AttributeKeyContractAddress = "contract"
 	AttributeKeyRecipient       = "recipient"
 	AttributeValueCategory      = ModuleName
+	AttributeKeyEthereumTxHash  = "ethereumTxHash"
 )

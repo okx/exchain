@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/pkg/errors"
 	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -18,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	tmrpctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -32,6 +34,7 @@ type Backend interface {
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
 	GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error)
+	GetTxByEthHash(txHash common.Hash) (*tmrpctypes.ResultTx, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -152,6 +155,21 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (interf
 	}
 
 	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block, fullTx)
+}
+
+// GetTxByEthHash uses `/tx_query` to find transaction by ethereum tx hash
+// TODO: Don't need to convert once hashing is fixed on Tendermint
+// https://github.com/tendermint/tendermint/issues/6539
+func (b *EthermintBackend) GetTxByEthHash(hash common.Hash) (*tmrpctypes.ResultTx, error) {
+	query := fmt.Sprintf("%s.%s='%s'", evmtypes.TypeMsgEthereumTx, evmtypes.AttributeKeyEthereumTxHash, hash.Hex())
+	resTxs, err := b.clientCtx.Client.TxSearch(query, false, 0, 0, "")
+	if err != nil {
+		return nil, err
+	}
+	if len(resTxs.Txs) == 0 {
+		return nil, errors.Errorf("ethereum tx not found for hash %s", hash.Hex())
+	}
+	return resTxs.Txs[0], nil
 }
 
 // HeaderByNumber returns the block header identified by height.
@@ -309,7 +327,7 @@ func (b *EthermintBackend) PendingAddressList() ([]string, error) {
 	return res.Addresses, nil
 }
 
-// PendingTransactions returns the transaction that is in the transaction pool
+// PendingTransactionsByHash returns the transaction that is in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
 	pendingTx, err := b.clientCtx.Client.GetUnconfirmedTxByHash(target)
@@ -387,7 +405,7 @@ func (b *EthermintBackend) ServiceFilter(ctx context.Context, session *bloombits
 	}
 }
 
-// startBloomHandlers starts a batch of goroutines to accept bloom bit database
+// StartBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
 func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db dbm.DB) {
 	for i := 0; i < evmtypes.BloomServiceThreads; i++ {
@@ -434,7 +452,6 @@ func (b *EthermintBackend) GetBlockHashByHeight(height rpctypes.BlockNumber) (co
 	return hash, nil
 }
 
-// Close
 func (b *EthermintBackend) Close() {
 	close(b.closeBloomHandler)
 }
