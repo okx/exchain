@@ -11,13 +11,14 @@ import (
 )
 
 var (
-	maxAccInMap        = 100000
-	deleteAccCount     = 10000
-	maxStorageInMap    = 50000
-	deleteStorageCount = 5000
-)
-var (
-	FlagMultiCache = "multi-cache"
+	maxAccInMap         = 100000
+	deleteAccCount      = 10000
+	maxContractInMap    = 110000
+	deleteContractCount = 10000
+
+	FlagMultiCache          = "multi-cache"
+	MaxAccInMultiCache      = "multi-cache-acc"
+	MaxContractInMultiCache = "multi-cache-contract"
 )
 
 type account interface {
@@ -66,8 +67,18 @@ var (
 	UseCache bool
 )
 
-func NewChainCache() *Cache {
+func initCacheParam() {
 	UseCache = viper.GetBool(FlagMultiCache)
+
+	maxAccInMap = viper.GetInt(MaxAccInMultiCache)
+	deleteAccCount = maxAccInMap / 10
+
+	maxContractInMap = viper.GetInt(MaxContractInMultiCache)
+	deleteContractCount = maxContractInMap / 10
+}
+
+func NewChainCache() *Cache {
+	initCacheParam()
 	return NewCache(nil, UseCache)
 }
 
@@ -138,8 +149,8 @@ func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool, bool) {
 	}
 
 	if c.parent != nil {
-		addr, gas, ok, _ := c.parent.GetAccount(addr)
-		return addr, gas, ok, true
+		acc, gas, ok, _ := c.parent.GetAccount(addr)
+		return acc, gas, ok, true
 	}
 	return nil, 0, false, false
 }
@@ -234,10 +245,10 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		return
 	}
 	if height%1000 == 0 {
-		c.logInfo(logger, "")
+		c.logInfo(logger, "null")
 	}
 
-	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxStorageInMap {
+	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxContractInMap {
 		return
 	}
 
@@ -254,7 +265,7 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		}
 	}
 
-	if len(c.storageMap) >= maxStorageInMap {
+	if len(c.storageMap) >= maxContractInMap {
 		lenStorage := 0
 		for _, v := range c.storageMap {
 			lenStorage += len(v)
@@ -264,7 +275,7 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		for key := range c.storageMap {
 			delete(c.storageMap, key)
 			cnt++
-			if cnt > deleteStorageCount {
+			if cnt > deleteContractCount {
 				break
 			}
 		}

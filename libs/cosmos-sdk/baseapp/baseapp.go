@@ -706,6 +706,16 @@ func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
 	cache.Write()
 }
 
+func (app *BaseApp) NewBlockCache() {
+	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
+	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
+}
+
+func (app *BaseApp) CommitBlockCache() {
+	app.blockCache.Write(true)
+	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
+}
+
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted
@@ -784,7 +794,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			msCache = nil //TODO msCache not write
 			result = nil
 		}
-		ctx.Cache().Write(false)
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 
 	}()
