@@ -103,18 +103,19 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		return
 	}
 
+	wd := GetWatchData()
 	// for outDelta log
 	dc.deltas = &types.Deltas {
 		ABCIRsp:     abciResponsesBytes,
 		DeltasBytes: res,
-		WatchBytes:  GetWatchData(),
+		WatchBytes:  wd,
 		Height:      height,
 	}
 
 	delta4Upload := &types.Deltas {
 		ABCIRsp:     abciResponsesBytes,
 		DeltasBytes: res,
-		WatchBytes:  GetWatchData(),
+		WatchBytes:  wd,
 		Height:      height,
 		Version:     types.DeltaVersion,
 	}

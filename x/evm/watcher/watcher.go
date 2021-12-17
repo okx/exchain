@@ -90,6 +90,7 @@ func (w *Watcher) Enable(sw bool) {
 }
 
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
+	fmt.Println("fsc:test=========NewHeight", height)
 	if !w.Enabled() {
 		return
 	}
@@ -435,7 +436,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		if err != nil {
 			return nil
 		}
-		fmt.Println("fsc:test===========gwd:", string(valueByte))
+		fmt.Println("fsc:test===========gwd:", w.height, string(valueByte))
 		return valueByte
 	}
 
@@ -445,7 +446,7 @@ func (w *Watcher) SetWatchDataFunc() {
 			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 				return
 			}
-			fmt.Println("fsc:test===========uwd:", string(wdByte))
+			fmt.Println("fsc:test===========uwd:", w.height, string(wdByte))
 			w.watchData = &wd
 			w.delayEraseKey = wd.DelayEraseKey
 		}
