@@ -28,17 +28,15 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	if data, gas, ok, isParent := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper.GetAccount")
+		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
 		if data == nil {
 			return nil
 		}
 
 		if isParent {
 			// Avoid overwriting of previous data
-			// Only support
-			//		*types.EthAccount
-			//		*types.ModuleAccount
-			//TODO other better solutions ??????
+
+			//TODO other better solutions ?
 			return data.Copy().(exported.Account)
 
 		}

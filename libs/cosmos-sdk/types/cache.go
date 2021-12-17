@@ -19,6 +19,7 @@ var (
 	FlagMultiCache          = "multi-cache"
 	MaxAccInMultiCache      = "multi-cache-acc"
 	MaxContractInMultiCache = "multi-cache-contract"
+	UseCache                bool
 )
 
 type account interface {
@@ -62,10 +63,6 @@ type Cache struct {
 	accMap     map[ethcmn.Address]*accountWithCache
 	codeMap    map[ethcmn.Hash]*codeWithCache
 }
-
-var (
-	UseCache bool
-)
 
 func initCacheParam() {
 	UseCache = viper.GetBool(FlagMultiCache)
@@ -193,16 +190,17 @@ func (c *Cache) Write(updateDirty bool) {
 		return
 	}
 
-	if c.parent == nil {
-		return
-	}
-
 	if !updateDirty {
 		c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 		c.accMap = make(map[ethcmn.Address]*accountWithCache)
 		c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
 		return
 	}
+
+	if c.parent == nil {
+		return
+	}
+
 	c.writeStorage()
 	c.writeAcc()
 	c.writeCode()
@@ -231,6 +229,7 @@ func (c *Cache) writeAcc() {
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
 }
+
 func (c *Cache) writeCode() {
 	for hash, v := range c.codeMap {
 		if v.isDirty {
