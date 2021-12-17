@@ -391,6 +391,7 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 
 func updateBranchRoutine(node *Node, saveNodesCh chan<- *Node, result chan<- []byte) {
 	if node.persisted || node.prePersisted {
+		saveNodesCh <- nil
 		result <- node.hash
 		return
 	}
@@ -403,9 +404,6 @@ func updateBranchRoutine(node *Node, saveNodesCh chan<- *Node, result chan<- []b
 	}
 
 	node._hash()
-
-	node.leftNode = nil
-	node.rightNode = nil
 
 	saveNodesCh <- node
 	saveNodesCh <- nil
@@ -427,9 +425,6 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 	}
 
 	node._hash()
-
-	node.leftNode = nil
-	node.rightNode = nil
 
 	saveNodesCh <- node
 
