@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"github.com/spf13/viper"
 	"sync"
 )
@@ -26,15 +25,19 @@ const (
 
 	// fast-query
 	FlagFastQuery = "fast-query"
+
+	// delta version
+	// when this DeltaVersion not equal with dds delta-version, can't use delta
+	DeltaVersion = 1
 )
 
 var (
 	fastQuery  = false
 	centerMode = false
 	// fmt (http://ip:port/)
-	centerUrl  = "http://127.0.0.1:8030/"
+	centerUrl = "http://127.0.0.1:8030/"
 	// fmt (ip:port)
-	redisUrl   = "127.0.0.1:6379"
+	redisUrl = "127.0.0.1:6379"
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
@@ -69,7 +72,6 @@ func EnableApplyP2PDelta() bool {
 func EnableBroadcastP2PDelta() bool {
 	onceBroadcastP2P.Do(func() {
 		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
-		iavl.SetProduceDelta(broadcatP2PDelta)
 	})
 	return broadcatP2PDelta
 }
@@ -84,7 +86,6 @@ func EnableDownloadDelta() bool {
 func EnableUploadDelta() bool {
 	onceUpload.Do(func() {
 		uploadDelta = viper.GetBool(FlagUploadDDS)
-		iavl.SetProduceDelta(uploadDelta)
 	})
 	return uploadDelta
 }
@@ -116,6 +117,7 @@ type Deltas struct {
 	DeltasBytes []byte `json:"deltas_bytes"`
 	WatchBytes  []byte `json:"watch_bytes"`
 	Height      int64  `json:"height"`
+	Version     int    `json:"version"`
 }
 
 // Size returns size of the deltas in bytes.
