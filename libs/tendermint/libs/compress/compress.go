@@ -9,46 +9,46 @@ import (
 )
 
 type CompressBroker interface {
-	DefaultCompress(src []byte) []byte
-	BestCompress(src []byte) []byte
-	FastCompress(src []byte) []byte
-	UnCompress(compressSrc []byte) []byte
+	DefaultCompress(src []byte) ([]byte, error)
+	BestCompress(src []byte) ([]byte, error)
+	FastCompress(src []byte) ([]byte, error)
+	UnCompress(compressSrc []byte) ([]byte, error)
 }
 
 // Zlib
 type Zlib struct {
 }
 
-func (z *Zlib) DefaultCompress(src []byte) []byte {
+func (z *Zlib) DefaultCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := zlib.NewWriterLevel(&in, zlib.DefaultCompression)
+	w, err := zlib.NewWriterLevel(&in, zlib.DefaultCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (z *Zlib) BestCompress(src []byte) []byte {
+func (z *Zlib) BestCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := zlib.NewWriterLevel(&in, zlib.BestCompression)
+	w, err := zlib.NewWriterLevel(&in, zlib.BestCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (z *Zlib) FastCompress(src []byte) []byte {
+func (z *Zlib) FastCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := zlib.NewWriterLevel(&in, zlib.BestSpeed)
+	w, err := zlib.NewWriterLevel(&in, zlib.BestSpeed)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (z *Zlib) UnCompress(compressSrc []byte) []byte {
+func (z *Zlib) UnCompress(compressSrc []byte) ([]byte, error) {
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
-	r, _ := zlib.NewReader(b)
+	r, err := zlib.NewReader(b)
 	io.Copy(&out, r)
-	return out.Bytes()
+	return out.Bytes(), err
 }
 
 // -------------------------------------------------------------
@@ -57,36 +57,36 @@ func (z *Zlib) UnCompress(compressSrc []byte) []byte {
 type Gzip struct {
 }
 
-func (g *Gzip) DefaultCompress(src []byte) []byte {
+func (g *Gzip) DefaultCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := gzip.NewWriterLevel(&in, gzip.DefaultCompression)
+	w, err := gzip.NewWriterLevel(&in, gzip.DefaultCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (g *Gzip) BestCompress(src []byte) []byte {
+func (g *Gzip) BestCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := gzip.NewWriterLevel(&in, gzip.BestCompression)
+	w, err := gzip.NewWriterLevel(&in, gzip.BestCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (g *Gzip) FastCompress(src []byte) []byte {
+func (g *Gzip) FastCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := gzip.NewWriterLevel(&in, gzip.BestSpeed)
+	w, err := gzip.NewWriterLevel(&in, gzip.BestSpeed)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (g *Gzip) UnCompress(compressSrc []byte) []byte {
+func (g *Gzip) UnCompress(compressSrc []byte) ([]byte, error) {
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
-	r, _ := gzip.NewReader(b)
+	r, err := gzip.NewReader(b)
 	io.Copy(&out, r)
-	return out.Bytes()
+	return out.Bytes(), err
 }
 
 // -------------------------------------------------------------
@@ -95,34 +95,34 @@ func (g *Gzip) UnCompress(compressSrc []byte) []byte {
 type Flate struct {
 }
 
-func (f *Flate) DefaultCompress(src []byte) []byte {
+func (f *Flate) DefaultCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := flate.NewWriter(&in, flate.DefaultCompression)
+	w, err := flate.NewWriter(&in, flate.DefaultCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (f *Flate) BestCompress(src []byte) []byte {
+func (f *Flate) BestCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := flate.NewWriter(&in, flate.BestCompression)
+	w, err := flate.NewWriter(&in, flate.BestCompression)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (f *Flate) FastCompress(src []byte) []byte {
+func (f *Flate) FastCompress(src []byte) ([]byte, error) {
 	var in bytes.Buffer
-	w, _ := flate.NewWriter(&in, flate.BestSpeed)
+	w, err := flate.NewWriter(&in, flate.BestSpeed)
 	w.Write(src)
 	w.Close()
-	return in.Bytes()
+	return in.Bytes(), err
 }
 
-func (f *Flate) UnCompress(compressSrc []byte) []byte {
+func (f *Flate) UnCompress(compressSrc []byte) ([]byte, error) {
 	b := bytes.NewReader(compressSrc)
 	var out bytes.Buffer
 	r := flate.NewReader(b)
-	io.Copy(&out, r)
-	return out.Bytes()
+	_, err := io.Copy(&out, r)
+	return out.Bytes(), err
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 
@@ -23,6 +24,8 @@ type DeltaContext struct {
 	uploadDelta bool
 	useDeltas bool
 	logger log.Logger
+
+	compressBroker compress.CompressBroker
 }
 
 func newDeltaContext()  *DeltaContext {
@@ -41,6 +44,9 @@ func newDeltaContext()  *DeltaContext {
 	}
 
 	dp.deltas = &types.Deltas{}
+
+	// todo can config different compress algorithm
+	dp.compressBroker = &compress.Flate{}
 
 	return dp
 }
@@ -122,7 +128,22 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		return
 	}
 
-	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
+	// todo get distributed lock, otherwise return
+
+	// marshal deltas to bytes
+	deltaBytes, err := deltas.Marshal()
+	if err != nil {
+		return
+	}
+
+	// compress
+	compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
+	if err != nil {
+		return
+	}
+
+	// set into dds
+	if err = dc.deltaBroker.SetDeltas(deltas.Height, compressBytes); err != nil {
 		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
@@ -170,14 +191,27 @@ func (dc *DeltaContext) getDeltaFromDDS() {
 		select {
 		case <-tryGetDDSTicker.C:
 			if flag {
-				directDelta, _ := dc.deltaBroker.GetDeltas(height)
-				if directDelta != nil {
-					dc.logger.Info("Download delta:",
-						"delta", directDelta,
-						"gid", gorid.GoRId)
-					flag = false
-					dc.deltaCh <- directDelta
+				deltaBytes, err := dc.deltaBroker.GetDeltas(height)
+				if err != nil {
+					continue
 				}
+				flag = false
+
+				// uncompress
+				compressBytes, err := dc.compressBroker.UnCompress(deltaBytes)
+				if err != nil {
+					continue
+				}
+
+				// unmarshal
+				directDelta := &types.Deltas{}
+				err = directDelta.Unmarshal(compressBytes)
+				if err != nil {
+					continue
+				}
+				
+				dc.logger.Info("Download delta:", "delta", directDelta, "gid", gorid.GoRId)
+				dc.deltaCh <- directDelta
 			}
 
 		case height = <-dc.deltaHeightCh:
