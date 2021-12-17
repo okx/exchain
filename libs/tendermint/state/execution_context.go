@@ -13,25 +13,23 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-
 type executionResult struct {
 	res *ABCIResponses
 	err error
 }
 
 type executionContext struct {
-	height int64
-	block *types.Block
+	height  int64
+	block   *types.Block
 	stopped bool
-	result *executionResult
+	result  *executionResult
 
 	prerunResultChan chan *executionContext
-	proxyApp proxy.AppConnConsensus
-	db dbm.DB
-	logger log.Logger
-	index int64
+	proxyApp         proxy.AppConnConsensus
+	db               dbm.DB
+	logger           log.Logger
+	index            int64
 }
-
 
 func (e *executionContext) dump(when string) {
 
@@ -44,7 +42,6 @@ func (e *executionContext) dump(when string) {
 	)
 }
 
-
 func (e *executionContext) stop() {
 	e.stopped = true
 	e.proxyApp.SetOptionSync(abci.RequestSetOption{
@@ -52,14 +49,17 @@ func (e *executionContext) stop() {
 	})
 }
 
-func (blockExec *BlockExecutor) flushPrerunResult()  {
+func (blockExec *BlockExecutor) flushPrerunResult() {
 	for {
 		select {
 		case context := <-blockExec.prerunResultChan:
 			context.dump("Flush prerun result")
 		default:
+			fmt.Println("default")
+			goto BREAK
 		}
 	}
+BREAK:
 }
 
 func (blockExec *BlockExecutor) prerunRoutine() {
@@ -68,7 +68,7 @@ func (blockExec *BlockExecutor) prerunRoutine() {
 	}
 }
 
-func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIResponses, error)  {
+func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIResponses, error) {
 
 	for context := range blockExec.prerunResultChan {
 
@@ -78,7 +78,7 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 			continue
 		}
 
-		if context.height != ctx.block.Height{
+		if context.height != ctx.block.Height {
 			continue
 		}
 
@@ -86,7 +86,7 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 			continue
 		}
 
-		if  bytes.Equal(context.block.AppHash, ctx.block.AppHash) {
+		if bytes.Equal(context.block.AppHash, ctx.block.AppHash) {
 			return context.result.res, context.result.err
 		} else {
 			// todo
@@ -97,7 +97,6 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
-
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
@@ -108,7 +107,9 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 			panic("Prerun sanity check failed")
 		}
 		context.dump("Stopping prerun")
-		context.stop()
+		if height != 1 {
+			context.stop()
+		}
 	}
 	blockExec.flushPrerunResult()
 	blockExec.prerunIndex++
@@ -138,7 +139,6 @@ func prerun(context *executionContext) {
 
 	abciResponses, err := execBlockOnProxyApp(context)
 
-
 	if !context.stopped {
 		context.result = &executionResult{
 			abciResponses, err,
@@ -150,12 +150,10 @@ func prerun(context *executionContext) {
 	context.prerunResultChan <- context
 }
 
-
 func (blockExec *BlockExecutor) InitPrerun() {
 	blockExec.proactivelyRunTx = true
 	go blockExec.prerunRoutine()
 }
-
 
 //func FirstBlock(block *types.Block) bool {
 //	if 	block.Height == 1{

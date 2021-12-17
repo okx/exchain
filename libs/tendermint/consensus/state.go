@@ -195,6 +195,8 @@ func NewState(
 	if cs.proactivelyRunTx {
 		cs.blockExec.InitPrerun()
 	}
+
+	loadTestConf()
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -799,6 +801,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
+		fmt.Println("VC OCCUERD")
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
@@ -1143,6 +1146,11 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
+	if getPrevote(height, round){
+		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
+		return
+	}
+
 	// If a block is locked, prevote that.
 	if cs.LockedBlock != nil {
 		logger.Info("enterPrevote: Block was locked")
@@ -1233,6 +1241,11 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
 	}()
+
+	if getPrecommit(height, round) {
+		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
+		return
+	}
 
 	// check for a polka
 	blockID, ok := cs.Votes.Prevotes(round).TwoThirdsMajority()
@@ -1727,6 +1740,19 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
+	// try to sleep until consensus timeout
+	AddBlock(height, round)
+
+	if height == 4 && round == 0{
+		prevotes := cs.Votes.Prevotes(cs.Round)
+		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+		fmt.Println("Prevotes hasTwoThirds --->", hasTwoThirds , blockID.IsZero())
+
+		precommit := cs.Votes.Precommits(cs.Round)
+		blockID, hasTwoThirds = precommit.TwoThirdsMajority()
+		fmt.Println("Precommits hasTwoThirds --->", hasTwoThirds , blockID.IsZero())
+	}
+
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
@@ -1746,6 +1772,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	if err != nil {
 		return added, err
 	}
+
+
+
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
