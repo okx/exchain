@@ -1,10 +1,8 @@
 package delta
 
-import tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 type DeltaBroker interface {
-	SetBlock(block *tmtypes.Block) error
-	SetDeltas(deltas *tmtypes.Deltas) error
-	GetBlock(height int64) (*tmtypes.Block, error)
-	GetDeltas(height int64) (*tmtypes.Deltas, error)
+	SetBlock(height int64, bytes []byte) error
+	SetDeltas(height int64, bytes []byte) error
+	GetBlock(height int64) ([]byte, error)
+	GetDeltas(height int64) ([]byte, error)
 }

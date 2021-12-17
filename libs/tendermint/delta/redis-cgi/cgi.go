@@ -3,78 +3,63 @@ package redis_cgi
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/go-redis/redis/v8"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"strconv"
 )
 
-const TTL = 1500 * time.Second
+const TTL = 0
 
 type RedisClient struct {
 	rdb *redis.Client
+	logger log.Logger
 }
 
-func NewRedisClient(url string) *RedisClient {
+func NewRedisClient(url string, l log.Logger) *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
-	return &RedisClient{rdb}
+	return &RedisClient{rdb, l}
 }
 
-func (r *RedisClient) SetBlock(block *tmtypes.Block) error {
-	if block == nil || block.Size() <= 0 {
+func (r *RedisClient) SetBlock(height int64, bytes []byte) error {
+	if len(bytes) == 0 {
 		return fmt.Errorf("block is empty")
 	}
-	blockBytes, err := block.Marshal()
-	if err != nil {
-		return err
-	}
-	return r.rdb.SetNX(context.Background(), setBlockKey(block.Height), blockBytes, TTL).Err()
+	req := r.rdb.SetNX(context.Background(), setBlockKey(height), bytes, TTL)
+	return req.Err()
 }
 
-func (r *RedisClient) SetDeltas(deltas *tmtypes.Deltas) error {
-	if deltas == nil || deltas.Size() == 0 {
+func (r *RedisClient) SetDeltas(height int64, bytes []byte) error {
+	if len(bytes) == 0 {
 		return fmt.Errorf("delta is empty")
 	}
-	deltaBytes, err := deltas.Marshal()
-	if err != nil {
-		return err
-	}
-	return r.rdb.SetNX(context.Background(), setDeltaKey(deltas.Height), deltaBytes, TTL).Err()
+	req := r.rdb.SetNX(context.Background(), setDeltaKey(height), bytes, TTL)
+	return req.Err()
 }
 
-func (r *RedisClient) GetBlock(height int64) (*tmtypes.Block, error) {
-	blockBytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
+func (r *RedisClient) GetBlock(height int64) ([]byte, error) {
+	bytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
 	if err == redis.Nil {
-		return nil, nil
+		return nil, fmt.Errorf("get empty block")
 	}
 	if err != nil {
 		return nil, err
 	}
-	block := &tmtypes.Block{}
-	if err = block.Unmarshal(blockBytes); err != nil {
-		return nil, err
-	}
-	return block, nil
+	return bytes, nil
 }
 
-func (r *RedisClient) GetDeltas(height int64) (*tmtypes.Deltas, error) {
-	deltaBytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
+func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
+	bytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
 	if err == redis.Nil {
-		return nil, nil
+		return nil, fmt.Errorf("get empty delta")
 	}
 	if err != nil {
 		return nil, err
 	}
-	deltas := &tmtypes.Deltas{}
-	if err = deltas.Unmarshal(deltaBytes); err != nil {
-		return nil, err
-	}
-	return deltas, nil
+	return bytes, nil
 }
 
 func setBlockKey(height int64) string {

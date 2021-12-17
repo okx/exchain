@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 
@@ -23,6 +24,8 @@ type DeltaContext struct {
 	uploadDelta bool
 	useDeltas bool
 	logger log.Logger
+
+	compressBroker compress.CompressBroker
 }
 
 func newDeltaContext()  *DeltaContext {
@@ -42,6 +45,9 @@ func newDeltaContext()  *DeltaContext {
 
 	dp.deltas = &types.Deltas{}
 
+	// todo can config different compress algorithm
+	dp.compressBroker = &compress.Flate{}
+
 	return dp
 }
 
@@ -56,7 +62,7 @@ func (dc *DeltaContext) init(l log.Logger) {
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl())
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), l)
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
@@ -75,7 +81,7 @@ func (dc *DeltaContext) reset() {
 
 
 func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
-	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas)
+	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
 
 	// rpc
 	if dc.useDeltas {
@@ -86,8 +92,6 @@ func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponse
 	if dc.uploadDelta {
 		dc.upload(height, abciResponses, res)
 	}
-
-	dc.reset()
 }
 
 func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
@@ -100,7 +104,15 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		return
 	}
 
-	delta4Upload :=  &types.Deltas {
+	// for outDelta log
+	dc.deltas = &types.Deltas {
+		ABCIRsp:     abciResponsesBytes,
+		DeltasBytes: res,
+		WatchBytes:  GetWatchData(),
+		Height:      height,
+	}
+
+	delta4Upload := &types.Deltas {
 		ABCIRsp:     abciResponsesBytes,
 		DeltasBytes: res,
 		WatchBytes:  GetWatchData(),
@@ -116,7 +128,22 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		return
 	}
 
-	if err := dc.deltaBroker.SetDeltas(deltas); err != nil {
+	// todo get distributed lock, otherwise return
+
+	// marshal deltas to bytes
+	deltaBytes, err := deltas.Marshal()
+	if err != nil {
+		return
+	}
+
+	// compress
+	compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
+	if err != nil {
+		return
+	}
+
+	// set into dds
+	if err = dc.deltaBroker.SetDeltas(deltas.Height, compressBytes); err != nil {
 		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
@@ -127,7 +154,6 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
-
 	if !dc.downloadDelta {
 		return
 	}
@@ -135,10 +161,10 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	var dds *types.Deltas
 	select {
 	case dds = <-dc.deltaCh:
-		dc.logger.Info("prepareStateDelta", "delta", dds)
+		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// already get delta of height
 	default:
-		dc.logger.Info("prepareStateDelta", "delta", dds)
+		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// can't get delta of height
 	}
 	// request delta of height+1 and return
@@ -165,14 +191,27 @@ func (dc *DeltaContext) getDeltaFromDDS() {
 		select {
 		case <-tryGetDDSTicker.C:
 			if flag {
-				directDelta, _ := dc.deltaBroker.GetDeltas(height)
-				if directDelta != nil {
-					dc.logger.Info("Download delta:",
-						"delta", directDelta,
-						"gid", gorid.GoRId)
-					flag = false
-					dc.deltaCh <- directDelta
+				deltaBytes, err := dc.deltaBroker.GetDeltas(height)
+				if err != nil {
+					continue
 				}
+				flag = false
+
+				// uncompress
+				compressBytes, err := dc.compressBroker.UnCompress(deltaBytes)
+				if err != nil {
+					continue
+				}
+
+				// unmarshal
+				directDelta := &types.Deltas{}
+				err = directDelta.Unmarshal(compressBytes)
+				if err != nil {
+					continue
+				}
+				
+				dc.logger.Info("Download delta:", "delta", directDelta, "gid", gorid.GoRId)
+				dc.deltaCh <- directDelta
 			}
 
 		case height = <-dc.deltaHeightCh:
