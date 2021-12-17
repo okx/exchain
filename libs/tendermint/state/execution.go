@@ -283,7 +283,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(dc.deltas.ABCIRsp, &abciResponses)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	} else {
 		blockExec.logger.Info("Not apply delta", "block", block.Size(), "gid", gorid.GoRId)

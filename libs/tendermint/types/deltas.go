@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"github.com/spf13/viper"
 	"sync"
 )
@@ -69,7 +68,6 @@ func EnableApplyP2PDelta() bool {
 func EnableBroadcastP2PDelta() bool {
 	onceBroadcastP2P.Do(func() {
 		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
-		iavl.SetProduceDelta(broadcatP2PDelta)
 	})
 	return broadcatP2PDelta
 }
@@ -84,7 +82,6 @@ func EnableDownloadDelta() bool {
 func EnableUploadDelta() bool {
 	onceUpload.Do(func() {
 		uploadDelta = viper.GetBool(FlagUploadDDS)
-		iavl.SetProduceDelta(uploadDelta)
 	})
 	return uploadDelta
 }
