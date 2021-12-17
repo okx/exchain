@@ -26,6 +26,7 @@ const (
 	// fast-query
 	FlagFastQuery = "fast-query"
 
+	// delta version
 	DeltaVersion = 1
 )
 

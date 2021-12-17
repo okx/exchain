@@ -144,6 +144,7 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	dc.deltaHeightCh <- block.Height + 1
 
 	// can't get data from dds
+	// or get invalid data
 	if dds == nil || dds.Height != block.Height || types.DeltaVersion < dds.Version ||
 		len(dds.WatchBytes) == 0 || len(dds.ABCIRsp) == 0 || len(dds.DeltasBytes) == 0 {
 		return
