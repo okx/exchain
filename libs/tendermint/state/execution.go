@@ -177,6 +177,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		now := time.Now().UnixNano()
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
+
+		dc.reset()
 	}()
 
 	trc.Pin("ValidateBlock")
@@ -284,7 +286,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Info("Not apply delta", "block", block, "gid", gorid.GoRId)
+		blockExec.logger.Info("Not apply delta", "block", block.Size(), "gid", gorid.GoRId)
 
 		if blockExec.proactivelyRunTx {
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
@@ -336,7 +338,7 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	blockExec.logger.Info("set abciDelta", "abciDelta", dc.deltas)
+	blockExec.logger.Info("set abciDelta", "abciDelta", dc.deltas, "gid", gorid.GoRId)
 	abciDelta := &abci.Deltas{
 		DeltasByte: dc.deltas.DeltasBytes,
 	}
