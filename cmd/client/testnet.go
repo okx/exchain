@@ -6,11 +6,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/gov"
 	"net"
 	"os"
 	"path/filepath"
 
+	"github.com/okex/exchain/x/gov"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
