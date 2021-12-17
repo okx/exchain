@@ -318,33 +318,39 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	return node.hash
 }
 
-func (ndb *nodeDB) updateBranchConcurV1(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte) {
-	if node == nil {
-		res <- []byte{}
-		return
-	}
-
+func (ndb *nodeDB) updateBranchParallel(node *Node, savedNodes map[string]*Node, concurDepth int, res chan []byte) {
 	if node.persisted || node.prePersisted {
 		res <- node.hash
 		return
 	}
 
-	// We can use channels to communicate between non-concurrent code,
-	// but we have to make sure the channel doesn't block.
-	// leftChan and rightChan respectively receive the hash of the left and right subtrees of node.
 	leftChan := make(chan []byte, 1)
 	rightChan := make(chan []byte, 1)
-	// We need to get the results on a channel,
-	// and can re-use the same logic without goroutines for the sequential calls.
+
 	if concurDepth > 0 {
-		go ndb.updateBranchConcurV1(node.leftNode, savedNodes, concurDepth-1, leftChan)
-		go ndb.updateBranchConcurV1(node.rightNode, savedNodes, concurDepth-1, rightChan)
+		if node.leftNode != nil {
+			go ndb.updateBranchParallel(node.leftNode, savedNodes, concurDepth-1, leftChan)
+		}
+		if node.rightNode != nil {
+			go ndb.updateBranchParallel(node.rightNode, savedNodes, concurDepth-1, rightChan)
+		}
 	} else {
-		ndb.updateBranchConcurV1(node.leftNode, savedNodes, concurDepth-1, leftChan)
-		ndb.updateBranchConcurV1(node.rightNode, savedNodes, concurDepth-1, rightChan)
+		if node.leftNode != nil {
+			ndb.updateBranchParallel(node.leftNode, savedNodes, concurDepth-1, leftChan)
+		}
+		if node.rightNode != nil {
+			ndb.updateBranchParallel(node.rightNode, savedNodes, concurDepth-1, rightChan)
+		}
 	}
-	node.leftHash = <-leftChan
-	node.rightHash = <-rightChan
+	if node.leftNode != nil {
+		node.leftHash = <-leftChan
+		close(leftChan)
+	}
+	if node.rightNode != nil {
+		node.rightHash = <-rightChan
+		close(rightChan)
+	}
+
 	node._hash()
 	ndb.saveNodeToPrePersistCache(node)
 
@@ -357,21 +363,6 @@ func (ndb *nodeDB) updateBranchConcurV1(node *Node, savedNodes map[string]*Node,
 	//savedNodes[hex.EncodeToString(node.hash)] = node
 	//ndb.mtx.Unlock()
 	res <- node.hash
-}
-
-func (ndb *nodeDB) updateBranchConcurV2(node *Node, savedNodes map[string]*Node) []byte {
-	task := &UpdateNodeTask{
-		que:         ndb.taskQueue,
-		node:        node,
-		ndb:         ndb,
-		isStartFunc: true,
-		parent:      nil,
-		done:        make(chan struct{}),
-	}
-
-	ndb.taskQueue.SendTask(task)
-	<-task.done
-	return node.hash
 }
 
 func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {

@@ -172,6 +172,85 @@ func Test_updateBranch(t *testing.T) {
 	}
 }
 
+func Test_updateBranchParallel(t *testing.T) {
+	EnableAsyncCommit = true
+	defer func() { EnableAsyncCommit = false }()
+
+	cases := []struct {
+		version  int64
+		nodeNums int
+	}{
+		{100, 1},
+		{200, 10},
+		{300, 100},
+		{400, 1000},
+		{500, 1000},
+		{600, 10000},
+		{700, 100000},
+	}
+
+	ndb := mockNodeDB()
+	capacity := 0
+	for _, c := range cases {
+		capacity += c.nodeNums
+
+		root, nodelist := mockNodes(c.version, c.nodeNums)
+		res := make(chan []byte, 1)
+		ndb.updateBranchParallel(root, map[string]*Node{}, 1, res)
+		_ = <-res
+		for elem := nodelist.Front(); elem != nil; elem = elem.Next() {
+			node := elem.Value.(*Node)
+			require.True(t, node.prePersisted)
+			require.Nil(t, node.leftNode)
+			require.Nil(t, node.rightNode)
+		}
+		require.Equal(t, len(ndb.prePersistNodeCache), capacity)
+	}
+}
+
+func BenchmarkUpdateBranch(b *testing.B) {
+	cases := []struct {
+		version  int64
+		nodeNums int
+	}{
+		{100, 1000000},
+		{200, 10000000},
+	}
+	b.ResetTimer()
+	b.Run("updateBranch", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			ndb := mockNodeDB()
+			capacity := 0
+			for _, c := range cases {
+				capacity += c.nodeNums
+				root, _ := mockNodes(c.version, c.nodeNums)
+				ndb.updateBranch(root, map[string]*Node{})
+			}
+		}
+	})
+	b.Run("updateBranchParallel", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			ndb := mockNodeDB()
+			capacity := 0
+			for _, c := range cases {
+				capacity += c.nodeNums
+				root, _ := mockNodes(c.version, c.nodeNums)
+				res := make(chan []byte, 1)
+				ndb.updateBranchParallel(root, map[string]*Node{}, 1, res)
+				_ = <-res
+			}
+		}
+	})
+}
+
 func Test_saveCommitOrphans(t *testing.T) {
 	EnableAsyncCommit = true
 	defer func() { EnableAsyncCommit = false }()
