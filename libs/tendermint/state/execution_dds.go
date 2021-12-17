@@ -16,7 +16,7 @@ type DeltaContext struct {
 	deltaCh       chan *types.Deltas
 	deltaHeightCh chan int64
 	deltaBroker   delta.DeltaBroker
-	deltas *types.Deltas
+	deltas        *types.Deltas
 
 	//applyDelta bool
 	//broadDelta bool
@@ -28,11 +28,11 @@ type DeltaContext struct {
 	compressBroker compress.CompressBroker
 }
 
-func newDeltaContext()  *DeltaContext {
+func newDeltaContext() *DeltaContext {
 
 	dp := &DeltaContext{
-		deltaCh:        make(chan *types.Deltas, 1),
-		deltaHeightCh:  make(chan int64, 1),
+		deltaCh:       make(chan *types.Deltas, 1),
+		deltaHeightCh: make(chan int64, 1),
 	}
 	//dp.applyDelta = types.EnableApplyP2PDelta()
 	//dp.broadDelta = types.EnableBroadcastP2PDelta()
@@ -79,7 +79,6 @@ func (dc *DeltaContext) reset() {
 	dc.deltas = &types.Deltas{}
 }
 
-
 func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
 	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
 
@@ -117,11 +116,11 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		DeltasBytes: res,
 		WatchBytes:  GetWatchData(),
 		Height:      height,
+		Version:     types.DeltaVersion,
 	}
 
 	go dc.uploadData(delta4Upload)
 }
-
 
 func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 	if deltas == nil {
@@ -161,17 +160,18 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	var dds *types.Deltas
 	select {
 	case dds = <-dc.deltaCh:
-		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// already get delta of height
 	default:
-		dc.logger.Info("prepareStateDelta", "delta", dds, "gid", gorid.GoRId)
 		// can't get delta of height
 	}
+	dc.logger.Info("prepareStateDelta", "delta", dds)
+
 	// request delta of height+1 and return
 	dc.deltaHeightCh <- block.Height + 1
 
 	// can't get data from dds
-	if dds == nil || dds.Height != block.Height ||
+	// or get invalid data
+	if dds == nil || dds.Height != block.Height || types.DeltaVersion < dds.Version ||
 		len(dds.WatchBytes) == 0 || len(dds.ABCIRsp) == 0 || len(dds.DeltasBytes) == 0 {
 		return
 	}
