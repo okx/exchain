@@ -27,6 +27,7 @@ const (
 	FlagFastQuery = "fast-query"
 
 	// delta version
+	// when this DeltaVersion not equal with dds delta-version, can't use delta
 	DeltaVersion = 1
 )
 
