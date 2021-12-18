@@ -59,7 +59,7 @@ func (t *taskImp) id() int {
 }
 
 func (t *taskImp) part1() {
-	if t.abciCtx.Stopped() {
+	if t.abciCtx != nil && t.abciCtx.Stopped() {
 		return
 	}
 
@@ -77,7 +77,7 @@ func (t *taskImp) part1() {
 		result *sdk.Result
 	)
 
-	gInfo, result, _, err, t.finished = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t) // DeliverTxConcurrently
+	gInfo, result, _, err = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t)
 	if err != nil {
 		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 		t.finished = true
@@ -85,14 +85,13 @@ func (t *taskImp) part1() {
 	}
 
 	_ = result
-
 }
 
 func (t *taskImp) part2() {
 	t.logger.Info("Deliver tx part2", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
 
 	defer t.wg.Done()
-	if t.abciCtx.Stopped() {
+	if t.abciCtx != nil && t.abciCtx.Stopped() {
 		return
 	}
 

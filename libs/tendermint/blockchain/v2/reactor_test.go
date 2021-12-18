@@ -78,9 +78,9 @@ type mockBlockApplier struct {
 
 // XXX: Add whitelist/blacklist?
 func (mba *mockBlockApplier) ApplyBlock(
-	state sm.State, blockID types.BlockID, block *types.Block, deltas *types.Deltas) (sm.State, int64, *types.Deltas, error) {
+	state sm.State, blockID types.BlockID, block *types.Block) (sm.State, int64, error) {
 	state.LastBlockHeight++
-	return state, 0, nil, nil
+	return state, 0, nil
 }
 
 type mockSwitchIo struct {

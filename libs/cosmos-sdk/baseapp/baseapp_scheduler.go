@@ -1,7 +1,7 @@
 package baseapp
 
 type TaskScheduler struct {
-	expectedId int
+	nextTaskId int
 	taskChan chan task
 	sortChan chan task
 	abciChan chan task
@@ -31,14 +31,14 @@ func (ts *TaskScheduler) part1Routine()  {
 func (ts *TaskScheduler) sortRoutine()  {
 	var taskMap = make(map[int]task)
 	for t := range ts.sortChan {
-		if t.id() == ts.expectedId {
+		if t.id() == ts.nextTaskId {
 			ts.abciChan <- t
-			ts.expectedId++
+			ts.nextTaskId++
 			for {
-				if next, ok := taskMap[ts.expectedId]; ok {
+				if next, ok := taskMap[ts.nextTaskId]; ok {
 					ts.abciChan <- next
-					delete(taskMap, ts.expectedId)
-					ts.expectedId++
+					delete(taskMap, ts.nextTaskId)
+					ts.nextTaskId++
 				} else {
 					break
 				}
@@ -56,7 +56,7 @@ func (ts *TaskScheduler) abciRoutine()  {
 }
 
 func (ts *TaskScheduler) start(taskList []task)  {
-	ts.expectedId = 0
+	ts.nextTaskId = 0
 	for _, task := range taskList {
 		ts.taskChan <- task
 	}

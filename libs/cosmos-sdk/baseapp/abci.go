@@ -226,7 +226,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 }
 
 
-func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+func (app *BaseApp) DeliverTx3(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	app.pin(DeliverTx, true, runTxModeDeliver)
 	defer app.pin(DeliverTx, false, runTxModeDeliver)
 

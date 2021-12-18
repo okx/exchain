@@ -14,6 +14,16 @@ import (
 )
 
 
+func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	task := newTask(0, req.Tx, nil, &wg, app)
+	task.part1()
+	task.part2()
+	wg.Wait()
+	return *task.result()
+}
 
 func (app *BaseApp) DeliverTxConcurrently(txList [][]byte, ctx abci.DeliverTxContext) []*abci.ResponseDeliverTx {
 
@@ -90,17 +100,17 @@ func (app *BaseApp) runTx_defer_refund(ctx *sdk.Context,
 	app.pin(Refund, true, mode)
 	defer app.pin(Refund, false, mode)
 	if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
-		var GasRefundCtx sdk.Context
+		var gasRefundCtx sdk.Context
 		if mode == runTxModeDeliver {
-			GasRefundCtx, msCache = app.cacheTxContext(*ctx, txBytes)
+			gasRefundCtx, msCache = app.cacheTxContext(*ctx, txBytes)
 		} else if mode == runTxModeDeliverInAsync {
-			GasRefundCtx = *runMsgCtx
+			gasRefundCtx = *runMsgCtx
 			if msCache == nil || !runMsgFinish { // case: panic when runMsg
 				msCache = msCacheAnte.CacheMultiStore()
-				GasRefundCtx = ctx.WithMultiStore(msCache)
+				gasRefundCtx = ctx.WithMultiStore(msCache)
 			}
 		}
-		refundGas, err := app.GasRefundHandler(GasRefundCtx, tx)
+		refundGas, err := app.GasRefundHandler(gasRefundCtx, tx)
 		if err != nil {
 			panic(err)
 		}
@@ -117,7 +127,7 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	height int64, task *taskImp) (gInfo sdk.GasInfo,
 	result *sdk.Result,
 	msCacheList sdk.CacheMultiStore,
-	err error, finished bool) {
+	err error) {
 
 	app.pin(InitCtx, true, mode)
 
@@ -130,19 +140,20 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	var runMsgCtx sdk.Context
 	var msCache sdk.CacheMultiStore
 	var msCacheAnte sdk.CacheMultiStore
-	var runMsgFinish bool
 	// simulate tx
 	startHeight := tmtypes.GetStartBlockHeight()
 	if mode == runTxModeSimulate && height > startHeight && height < app.LastBlockHeight() {
 		ctx, err = app.getContextForSimTx(txBytes, height)
 		if err != nil {
-			return gInfo, result, nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error()), true
+			return gInfo, result, nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 		}
 	} else if height < startHeight && height != 0 {
-		return gInfo, result, nil,
-		sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+
+		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)",
-				height, startHeight)), true
+				height, startHeight))
+
+		return gInfo, result, nil, err
 
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
@@ -153,9 +164,8 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	// only run the tx if there is block gas remaining
 	if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && ctx.BlockGasMeter().IsOutOfGas() {
 		gInfo = sdk.GasInfo{GasUsed: ctx.BlockGasMeter().GasConsumed()}
-		return gInfo, nil, nil,
-		sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx"),
-		true
+		err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
+		return gInfo, nil, nil, err
 	}
 
 	var startingGas uint64
@@ -185,14 +195,14 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	defer app.runTx_defer_consumegas(&ctx, mode, txBytes, startingGas)
 
 	defer func() {
-		msCache = app.runTx_defer_refund(&ctx, &runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, runMsgFinish)
+		msCache = app.runTx_defer_refund(&ctx, &runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, false)
 	}()
 
 	app.pin(ValTxMsgs, true, mode)
 
 	msgs := tx.GetMsgs()
 	if err := validateBasicTxMsgs(msgs); err != nil {
-		return sdk.GasInfo{}, nil, nil, err, true
+		return sdk.GasInfo{}, nil, nil, err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
@@ -233,7 +243,7 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 		}
 
 		if err != nil {
-			return gInfo, nil, nil, err, true
+			return gInfo, nil, nil, err
 		}
 
 		if mode != runTxModeDeliverInAsync {
@@ -247,7 +257,6 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	// Create a new Context based off of the existing Context with a cache-wrapped
 	// MultiStore in case message processing fails. At this point, the MultiStore
 	// is doubly cached-wrapped.
-
 	if mode == runTxModeDeliverInAsync {
 		msCache = msCacheAnte.CacheMultiStore()
 		runMsgCtx = ctx.WithMultiStore(msCache)
@@ -266,7 +275,7 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	task.gasWanted = gasWanted
 	task.startingGas = startingGas
 
-	return gInfo, nil, nil, nil, false
+	return gInfo, nil, nil, nil
 }
 
 func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
@@ -286,7 +295,7 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 	startingGas := task.startingGas
 	txBytes := task.txBytes
 
-	var runMsgFinish bool
+	var runMsgFinished bool
 
 	defer func() {
 		app.pin(Recover, true, mode)
@@ -308,7 +317,7 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 	defer app.runTx_defer_consumegas(ctx, mode, txBytes, startingGas)
 
 	defer func() {
-		msCache = app.runTx_defer_refund(ctx, runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, runMsgFinish)
+		msCache = app.runTx_defer_refund(ctx, runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, runMsgFinished)
 	}()
 
 
@@ -321,7 +330,7 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 		msCache.Write()
 	}
 
-	runMsgFinish = true
+	runMsgFinished = true
 
 	if mode == runTxModeCheck {
 		exTxInfo := app.GetTxInfo(*ctx, tx)

@@ -461,7 +461,6 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 	//github.com/okex/exchain/libs/tendermint/state.execBlockOnProxyApp at execution.go:369
 	//github.com/okex/exchain/libs/tendermint/state.(*BlockExecutor).ApplyBlock at execution.go:174
 
-
 	run := func(txs []types.Tx, proxyApp proxy.AppConnConsensus) {
 		var txList [][]byte
 		for i := 0; i < len(txs); i++ {
@@ -471,6 +470,7 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 	}
 
 	ccur := true
+	ccur = false
 	if ccur {
 		run(block.Txs, proxyAppConn)
 	} else {
