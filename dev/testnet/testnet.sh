@@ -95,6 +95,16 @@ run() {
 
   LOG_LEVEL=main:info,*:error
 
+  if [ "$(uname -s)" == "Darwin" ]; then
+      sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
+      sed -i "" 's/"enable_create": false/"enable_create": true/' cache/node${index}/exchaind/config/genesis.json
+      sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' cache/node${index}/exchaind/config/genesis.json
+  else
+      sed -i 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
+      sed -i 's/"enable_create": false/"enable_create": true/' cache/node${index}/exchaind/config/genesis.json
+      sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' cache/node${index}/exchaind/config/genesis.json
+  fi
+
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
