@@ -2,10 +2,10 @@ package app
 
 import (
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/x/common/analyzer"
-	"github.com/okex/exchain/x/evm"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/x/evm"
 )
 
 // BeginBlock implements the Application interface

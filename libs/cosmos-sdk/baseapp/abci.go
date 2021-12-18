@@ -225,11 +225,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-// DeliverTx implements the ABCI interface and executes a tx in DeliverTx mode.
-// State only gets persisted if all messages are valid and get executed successfully.
-// Otherwise, the ResponseDeliverTx will contain releveant error information.
-// Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
-// gas execution context.
+
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	app.pin(DeliverTx, true, runTxModeDeliver)
 	defer app.pin(DeliverTx, false, runTxModeDeliver)
@@ -282,7 +278,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return abci.ResponseDeliverTx{}
 	}
 
-	gInfo, result, _, err = app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
+	gInfo, result, _, err = app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight) // DeliverTxAsync2
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}

@@ -162,6 +162,8 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+
+	scheduler *TaskScheduler
 }
 
 type recordHandle func(string)
@@ -188,6 +190,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
+		scheduler: newTaskScheduler(30),
 	}
 	for _, option := range options {
 		option(app)
@@ -686,6 +689,12 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 		}
 	}
 }
+func (app *BaseApp) runTx(mode runTxMode,  // DeliverTxAsync2
+	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
+	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
+
+	return app.runtx(mode, txBytes, tx, height)
+}
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -694,7 +703,7 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 // Note, gas execution info is always returned. A reference to a Result is
 // returned if the tx does not run out of gas and if all the messages are valid
 // and execute successfully. An error is returned otherwise.
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
+func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
 	app.pin(InitCtx, true, mode)
 

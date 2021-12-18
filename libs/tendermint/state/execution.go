@@ -397,6 +397,8 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 	return ret
 }
 
+
+
 //---------------------------------------------------------
 // Helper functions for executing blocks and updating state
 
@@ -447,16 +449,45 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	// Run txs of block.
-	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
+	//github.com/okex/exchain/x/token.handleMsgSend at handler.go:300
+	//github.com/okex/exchain/x/token.NewTokenHandler.func1.5 at handler.go:52
+	//github.com/okex/exchain/x/token.NewTokenHandler.func1 at handler.go:79
+	//github.com/okex/exchain/libs/cosmos-sdk/baseapp.(*BaseApp).runMsgs at baseapp.go:940
+	//github.com/okex/exchain/libs/cosmos-sdk/baseapp.(*BaseApp).runTx at baseapp.go:882
+	//github.com/okex/exchain/libs/cosmos-sdk/baseapp.(*BaseApp).DeliverTx at abci.go:274
+	//github.com/okex/exchain/app.(*OKExChainApp).DeliverTx at app_abci.go:27
+	//github.com/okex/exchain/libs/tendermint/abci/client.(*localClient).DeliverTxAsync at local_client.go:89
+	//github.com/okex/exchain/libs/tendermint/proxy.(*appConnConsensus).DeliverTxAsync at app_conn.go:79
+	//github.com/okex/exchain/libs/tendermint/state.execBlockOnProxyApp at execution.go:369
+	//github.com/okex/exchain/libs/tendermint/state.(*BlockExecutor).ApplyBlock at execution.go:174
+
+
+	run := func(txs []types.Tx, proxyApp proxy.AppConnConsensus) {
+
+		var txss [][]byte
+		for i := 0; i < len(txs); i++ {
+			txss = append(txss, txs[i])
 		}
 
-		if context != nil && context.stopped {
-			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
-			return nil, fmt.Errorf("Prerun stopped")
+		proxyApp.DeliverTxAsync2(txss)
+	}
+
+
+	ccur := true
+	if ccur {
+		run(block.Txs, proxyAppConn)
+	} else {
+		// Run txs of block.
+		for count, tx := range block.Txs {
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
+			if err := proxyAppConn.Error(); err != nil {
+				return nil, err
+			}
+
+			if context != nil && context.stopped {
+				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+				return nil, fmt.Errorf("Prerun stopped")
+			}
 		}
 	}
 

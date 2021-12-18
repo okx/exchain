@@ -29,6 +29,7 @@ type Client interface {
 	InfoAsync(types.RequestInfo) *ReqRes
 	SetOptionAsync(types.RequestSetOption) *ReqRes
 	DeliverTxAsync(types.RequestDeliverTx) *ReqRes
+	DeliverTxAsync2([][]byte) []*ReqRes
 	CheckTxAsync(types.RequestCheckTx) *ReqRes
 	QueryAsync(types.RequestQuery) *ReqRes
 	CommitAsync(types.RequestCommit) *ReqRes
@@ -56,10 +57,6 @@ type Client interface {
 // It returns an error if the transport is not "socket" or "grpc"
 func NewClient(addr, transport string, mustConnect bool) (client Client, err error) {
 	switch transport {
-	case "socket":
-		client = NewSocketClient(addr, mustConnect)
-	case "grpc":
-		client = NewGRPCClient(addr, mustConnect)
 	default:
 		err = fmt.Errorf("unknown abci transport %s", transport)
 	}
