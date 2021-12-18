@@ -19,6 +19,8 @@ type task interface {
 type taskImp struct {
 	block int64
 	idx int
+	abciCtx abci.DeliverTxContext
+
 	wg *sync.WaitGroup
 
 	app *BaseApp
@@ -39,14 +41,15 @@ type taskImp struct {
 	logger  log.Logger
 }
 
-func newTask(block int64, id int, txBytes []byte, wg *sync.WaitGroup, app *BaseApp) *taskImp {
+func newTask(id int, txBytes []byte, abciCtx abci.DeliverTxContext, wg *sync.WaitGroup, app *BaseApp) *taskImp {
 	t := &taskImp{
-		block: block,
+		block: app.LastBlockHeight()+1,
 		idx: id,
 		wg: wg,
 		txBytes: txBytes,
 		app: app,
 		logger: app.logger,
+		abciCtx: abciCtx,
 	}
 	return t
 }
@@ -56,6 +59,9 @@ func (t *taskImp) id() int {
 }
 
 func (t *taskImp) part1() {
+	if t.abciCtx.Stopped() {
+		return
+	}
 
 	t.logger.Info("Deliver tx part1", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
 	app := t.app
@@ -71,7 +77,7 @@ func (t *taskImp) part1() {
 		result *sdk.Result
 	)
 
-	gInfo, result, _, err, t.finished = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t) // DeliverTxAsync2
+	gInfo, result, _, err, t.finished = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t) // DeliverTxConcurrently
 	if err != nil {
 		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 		t.finished = true
@@ -86,6 +92,10 @@ func (t *taskImp) part2() {
 	t.logger.Info("Deliver tx part2", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
 
 	defer t.wg.Done()
+	if t.abciCtx.Stopped() {
+		return
+	}
+
 	if t.finished {
 		return
 	}

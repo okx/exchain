@@ -15,13 +15,13 @@ import (
 
 
 
-func (app *BaseApp) DeliverTxAsync2(txList [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) DeliverTxConcurrently(txList [][]byte, ctx abci.DeliverTxContext) []*abci.ResponseDeliverTx {
 
 	var wg sync.WaitGroup
 	wg.Add(len(txList))
 	var taskList []task
 	for i, tx := range txList {
-		taskList = append(taskList, newTask(app.LastBlockHeight()+1, i, tx, &wg, app))
+		taskList = append(taskList, newTask(i, tx, ctx, &wg, app))
 	}
 
 	app.scheduler.start(taskList)
@@ -33,33 +33,6 @@ func (app *BaseApp) DeliverTxAsync2(txList [][]byte) []*abci.ResponseDeliverTx {
 	}
 	return results
 }
-
-	//tx, err := app.txDecoder(req.Tx)
-	//if err != nil {
-	//	return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-	//}
-	//
-	//
-	//var (
-	//	gInfo  sdk.GasInfo
-	//	result *sdk.Result
-	//)
-	//
-	//gInfo, result, _, err = app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight) // DeliverTxAsync2
-	//if err != nil {
-	//	return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
-	//}
-	//
-	//return abci.ResponseDeliverTx{
-	//	GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-	//	GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-	//	Log:       result.Log,
-	//	Data:      result.Data,
-	//	Events:    result.Events.ToABCIEvents(),
-	//}
-
-
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -282,9 +255,6 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 		runMsgCtx, msCache = app.cacheTxContext(ctx, txBytes)
 	}
 
-	//=============================================================================================================
-	//=============================================================================================================
-
 	task.ctx = &ctx
 	task.runMsgCtx = &runMsgCtx
 	task.mode = mode
@@ -298,9 +268,6 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 
 	return gInfo, nil, nil, nil, false
 }
-
-//return app.runTxPart2(&ctx, &runMsgCtx, mode, msCache, msCacheAnte, tx, accountNonce, msgs, gasWanted, txBytes, startingGas)
-
 
 func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 	result *sdk.Result,

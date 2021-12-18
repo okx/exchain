@@ -94,11 +94,11 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 }
 
 
-func (app *localClient) DeliverTxAsync2(txs [][]byte) []*ReqRes { // DeliverTxAsync2
+func (app *localClient) DeliverTxConcurrently(txs [][]byte, ctx types.DeliverTxContext) []*ReqRes { // DeliverTxConcurrently
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	resList := app.Application.DeliverTxAsync2(txs) // DeliverTxAsync2
+	resList := app.Application.DeliverTxConcurrently(txs, ctx) // DeliverTxConcurrently
 	for i, res := range resList {
 		app.callback(types.ToRequestDeliverTx(types.RequestDeliverTx{Tx:txs[i]}), types.ToResponseDeliverTx(*res),)
 	}

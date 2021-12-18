@@ -29,7 +29,7 @@ type Client interface {
 	InfoAsync(types.RequestInfo) *ReqRes
 	SetOptionAsync(types.RequestSetOption) *ReqRes
 	DeliverTxAsync(types.RequestDeliverTx) *ReqRes
-	DeliverTxAsync2([][]byte) []*ReqRes
+	DeliverTxConcurrently([][]byte, types.DeliverTxContext) []*ReqRes
 	CheckTxAsync(types.RequestCheckTx) *ReqRes
 	QueryAsync(types.RequestQuery) *ReqRes
 	CommitAsync(types.RequestCommit) *ReqRes

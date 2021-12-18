@@ -44,6 +44,9 @@ func (e *executionContext) dump(when string) {
 	)
 }
 
+func (e *executionContext) Stopped() bool {
+	return e.stopped
+}
 
 func (e *executionContext) stop() {
 	e.stopped = true

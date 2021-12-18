@@ -66,7 +66,7 @@ func (app *PersistentKVStoreApplication) SetOption(req types.RequestSetOption) t
 	return app.app.SetOption(req)
 }
 
-func (app *PersistentKVStoreApplication) DeliverTxAsync2([][]byte) []*types.ResponseDeliverTx {
+func (app *PersistentKVStoreApplication) DeliverTxConcurrently([][]byte, types.DeliverTxContext) []*types.ResponseDeliverTx {
 
 	panic("")
 	// otherwise, update the key-value store

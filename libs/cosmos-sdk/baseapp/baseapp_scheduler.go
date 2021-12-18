@@ -21,14 +21,12 @@ func newTaskScheduler(part1RoutineNum int) *TaskScheduler {
 	return ts
 }
 
-
 func (ts *TaskScheduler) part1Routine()  {
 	for t := range ts.taskChan {
 		t.part1()
 		ts.sortChan <- t
 	}
 }
-
 
 func (ts *TaskScheduler) sortRoutine()  {
 	var taskMap = make(map[int]task)
@@ -57,18 +55,6 @@ func (ts *TaskScheduler) abciRoutine()  {
 	}
 }
 
-//func (ts *TaskScheduler) run(block int, taskNum int)  {
-//	ts.expectedId = 0
-//	var wg sync.WaitGroup
-//	wg.Add(taskNum)
-//	for i := 0; i < taskNum; i++ {
-//		task := newTask(block, i, &wg)
-//		ts.taskChan <- task
-//	}
-//	wg.Wait()
-//}
-
-
 func (ts *TaskScheduler) start(taskList []task)  {
 	ts.expectedId = 0
 	for _, task := range taskList {
@@ -76,12 +62,3 @@ func (ts *TaskScheduler) start(taskList []task)  {
 	}
 }
 
-//func TestTaskScheduler(t *testing.T) {
-//	ts := newTaskScheduler(30)
-//
-//	// block 1
-//	ts.run(1, 50)
-//
-//	// block 2
-//	ts.run(2, 100)
-//}

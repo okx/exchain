@@ -463,15 +463,12 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 
 
 	run := func(txs []types.Tx, proxyApp proxy.AppConnConsensus) {
-
-		var txss [][]byte
+		var txList [][]byte
 		for i := 0; i < len(txs); i++ {
-			txss = append(txss, txs[i])
+			txList = append(txList, txs[i])
 		}
-
-		proxyApp.DeliverTxAsync2(txss)
+		proxyApp.DeliverTxConcurrently(txList, context)
 	}
-
 
 	ccur := true
 	if ccur {

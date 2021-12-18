@@ -689,7 +689,7 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 		}
 	}
 }
-func (app *BaseApp) runTx(mode runTxMode,  // DeliverTxAsync2
+func (app *BaseApp) runTx(mode runTxMode,  // DeliverTxConcurrently
 	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
 	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
