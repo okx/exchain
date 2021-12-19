@@ -93,7 +93,7 @@ func (app *BaseApp) DeliverTxConcurrently(txList [][]byte, ctx abci.DeliverTxCon
 // Note, gas execution info is always returned. A reference to a Result is
 // returned if the tx does not run out of gas and if all the messages are valid
 // and execute successfully. An error is returned otherwise.
-func (app *BaseApp) runTx_defer_recover(r interface{}, ctx *sdk.Context, gasWanted uint64) error {
+func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	var err error
 	switch rType := r.(type) {
 	// TODO: Use ErrOutOfGas instead of ErrorOutOfGas which would allow us
@@ -102,7 +102,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, ctx *sdk.Context, gasWant
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrOutOfGas, fmt.Sprintf(
 				"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
-				rType.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(),
+				rType.Descriptor, info.gasWanted, info.ctx.GasMeter().GasConsumed(),
 			),
 		)
 
@@ -116,56 +116,50 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, ctx *sdk.Context, gasWant
 	return err
 }
 
-func (app *BaseApp) runTx_defer_consumegas(ctx *sdk.Context, mode runTxMode, txBytes []byte, startingGas uint64) {
+func (app *BaseApp) runTx_defer_consumegas(info *runTxInfo, mode runTxMode) {
 	app.pin(ConsumeGas, true, mode)
 	defer app.pin(ConsumeGas, false, mode)
-	if mode == runTxModeDeliver || (mode == runTxModeDeliverInAsync && app.parallelTxManage.isReRun(string(txBytes))) {
-		ctx.BlockGasMeter().ConsumeGas(ctx.GasMeter().GasConsumedToLimit(), "block gas meter",)
+	if mode == runTxModeDeliver || (mode == runTxModeDeliverInAsync && app.parallelTxManage.isReRun(string(info.txBytes))) {
+		info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter",)
 
-		if ctx.BlockGasMeter().GasConsumed() < startingGas {
+		if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 			panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
 		}
 	}
 }
 
 
-func (app *BaseApp) runTx_defer_refund(ctx *sdk.Context,
-	runMsgCtx *sdk.Context,
-	mode runTxMode,
-	tx sdk.Tx,
-	txBytes []byte,
-	msCache sdk.CacheMultiStore,
-	msCacheAnte sdk.CacheMultiStore,
-	runMsgFinish bool,
-	) (sdk.CacheMultiStore) {
+func (app *BaseApp) runTx_defer_refund(info *runTxInfo, mode runTxMode){
 
 	app.pin(Refund, true, mode)
 	defer app.pin(Refund, false, mode)
 	if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
 		var gasRefundCtx sdk.Context
 		if mode == runTxModeDeliver {
-			gasRefundCtx, msCache = app.cacheTxContext(*ctx, txBytes)
+			gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 		} else if mode == runTxModeDeliverInAsync {
-			gasRefundCtx = *runMsgCtx
-			if msCache == nil || !runMsgFinish { // case: panic when runMsg
-				msCache = msCacheAnte.CacheMultiStore()
-				gasRefundCtx = ctx.WithMultiStore(msCache)
+			gasRefundCtx = info.runMsgCtx
+			if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
+				info.msCache = info.msCacheAnte.CacheMultiStore()
+				gasRefundCtx = info.ctx.WithMultiStore(info.msCache)
 			}
 		}
-		refundGas, err := app.GasRefundHandler(gasRefundCtx, tx)
+		refundGas, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 		if err != nil {
 			panic(err)
 		}
-		msCache.Write()
+		info.msCache.Write()
 		if mode == runTxModeDeliverInAsync {
-			app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
+			app.parallelTxManage.setRefundFee(string(info.txBytes), refundGas)
 		}
 	}
-
-	return msCache
 }
 
-func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
+
+
+
+
+func (app *BaseApp) runTxParta1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	height int64, task *taskImp) (gInfo sdk.GasInfo,
 	result *sdk.Result,
 	msCacheList sdk.CacheMultiStore,
@@ -221,7 +215,7 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 		app.pin(Recover, true, mode)
 		defer app.pin(Recover, false, mode)
 		if r := recover(); r != nil {
-			err = app.runTx_defer_recover(r, &ctx, gasWanted)
+			//err = app.runTx_defer_recover(r, &ctx, gasWanted)
 			msCacheList = msCacheAnte
 			msCache = nil //TODO msCache not write
 			result = nil
@@ -234,10 +228,10 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	//
 	// NOTE: This must exist in a separate defer function for the above recovery
 	// to recover from this one.
-	defer app.runTx_defer_consumegas(&ctx, mode, txBytes, startingGas)
+	//defer app.runTx_defer_consumegas(&ctx, mode, txBytes, startingGas)
 
 	defer func() {
-		msCache = app.runTx_defer_refund(&ctx, &runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, false)
+		//msCache = app.runTx_defer_refund(&ctx, &runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, false)
 	}()
 
 	app.pin(ValTxMsgs, true, mode)
@@ -320,7 +314,7 @@ func (app *BaseApp) runTxPart1(mode runTxMode, txBytes []byte, tx sdk.Tx,
 	return gInfo, nil, nil, nil
 }
 
-func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
+func (app *BaseApp) runTxParta2(task *taskImp) (gInfo sdk.GasInfo,
 	result *sdk.Result,
 	msCacheList sdk.CacheMultiStore,
 	err error) {
@@ -334,16 +328,16 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 	accountNonce := task.accountNonce
 	msgs := task.msgs
 	gasWanted := task.gasWanted
-	startingGas := task.startingGas
-	txBytes := task.txBytes
-
-	var runMsgFinished bool
+	//startingGas := task.startingGas
+	//txBytes := task.txBytes
+	//
+	//var runMsgFinished bool
 
 	defer func() {
 		app.pin(Recover, true, mode)
 		defer app.pin(Recover, false, mode)
 		if r := recover(); r != nil {
-			err = app.runTx_defer_recover(r, ctx, gasWanted)
+			//err = app.runTx_defer_recover(r, ctx, gasWanted)
 			msCacheList = msCacheAnte
 			msCache = nil //TODO msCache not write
 			result = nil
@@ -356,10 +350,10 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 	//
 	// NOTE: This must exist in a separate defer function for the above recovery
 	// to recover from this one.
-	defer app.runTx_defer_consumegas(ctx, mode, txBytes, startingGas)
+	//defer app.runTx_defer_consumegas(ctx, mode, txBytes, startingGas)
 
 	defer func() {
-		msCache = app.runTx_defer_refund(ctx, runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, runMsgFinished)
+		//msCache = app.runTx_defer_refund(ctx, runMsgCtx, mode, tx, txBytes, msCache, msCacheAnte, runMsgFinished)
 	}()
 
 
@@ -372,7 +366,7 @@ func (app *BaseApp) runTxPart2(task *taskImp) (gInfo sdk.GasInfo,
 		msCache.Write()
 	}
 
-	runMsgFinished = true
+	//runMsgFinished = true
 
 	if mode == runTxModeCheck {
 		exTxInfo := app.GetTxInfo(*ctx, tx)

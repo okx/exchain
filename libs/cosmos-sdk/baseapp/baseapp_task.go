@@ -28,6 +28,8 @@ type taskImp struct {
 	res abci.ResponseDeliverTx
 	finished bool
 
+	info *runTxInfo
+
 	ctx *sdk.Context
 	runMsgCtx *sdk.Context
 	mode runTxMode
@@ -72,12 +74,7 @@ func (t *taskImp) part1() {
 		return
 	}
 
-	var (
-		gInfo  sdk.GasInfo
-		result *sdk.Result
-	)
-
-	gInfo, result, _, err = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t)
+	t.info, err = app.runtx6_1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight)
 	if err != nil {
 		t.logger.Info("Deliver tx part1",
 			"gid", gorid.GoRId,
@@ -85,29 +82,22 @@ func (t *taskImp) part1() {
 			"txid", t.idx,
 			"err", err,
 		)
-		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		t.res = sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
 		t.finished = true
-		return
 	}
-
-	_ = result
 }
 
 func (t *taskImp) part2() {
 	t.logger.Info("Deliver tx part2", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
-
 	defer t.wg.Done()
-	if t.abciCtx != nil && t.abciCtx.Stopped() {
-		return
-	}
+
 
 	if t.finished {
 		return
 	}
 
 	app := t.app
-
-	gInfo, result, _, err := app.runTxPart2(t)
+	err := app.runtx6_2(t.info)
 	if err != nil {
 		t.logger.Info("Deliver tx part2",
 			"gid", gorid.GoRId,
@@ -116,17 +106,17 @@ func (t *taskImp) part2() {
 			"err", err,
 			)
 
-		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		t.res = sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
 		t.finished = true
 		return
 	}
 
 	t.res = abci.ResponseDeliverTx{
-		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       result.Log,
-		Data:      result.Data,
-		Events:    result.Events.ToABCIEvents(),
+		GasWanted: int64(t.info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:   int64(t.info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:       t.info.result.Log,
+		Data:      t.info.result.Data,
+		Events:    t.info.result.Events.ToABCIEvents(),
 	}
 }
 
