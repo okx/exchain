@@ -273,7 +273,3 @@ func (acc *BaseAccount) Copy() *BaseAccount {
 		Sequence:      acc.Sequence,
 	}
 }
-
-func (acc *BaseAccount) DeepCopy() exported.Account {
-	return acc.Copy()
-}

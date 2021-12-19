@@ -173,7 +173,3 @@ func (sga *SimGenesisAccount) Copy() *SimGenesisAccount {
 		ModulePermissions: sga.ModulePermissions,
 	}
 }
-
-func (sga *SimGenesisAccount) DeepCopy() authexported.Account {
-	return sga.Copy()
-}

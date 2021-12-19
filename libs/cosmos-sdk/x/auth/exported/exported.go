@@ -44,8 +44,6 @@ type Account interface {
 	RLPDecodeBytes(data []byte) error
 
 	IsEthAccount() bool
-
-	DeepCopy() Account
 }
 
 // GenesisAccounts defines a slice of GenesisAccount objects

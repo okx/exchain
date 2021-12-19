@@ -318,7 +318,3 @@ func (acc *EthAccount) Copy() *EthAccount {
 		StateRoot:   acc.StateRoot,
 	}
 }
-
-func (acc *EthAccount) DeepCopy() exported.Account {
-	return acc.Copy()
-}

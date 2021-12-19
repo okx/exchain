@@ -270,7 +270,3 @@ func (ma *ModuleAccount) Copy() *ModuleAccount {
 		Permissions: ma.Permissions,
 	}
 }
-
-func (ma *ModuleAccount) DeepCopy() authexported.Account {
-	return ma.Copy()
-}

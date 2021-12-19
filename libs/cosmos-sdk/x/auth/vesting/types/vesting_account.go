@@ -393,10 +393,6 @@ func (bva *BaseVestingAccount) Copy() *BaseVestingAccount {
 	}
 }
 
-func (bva *BaseVestingAccount) DeepCopy() authexported.Account {
-	return bva.Copy()
-}
-
 //-----------------------------------------------------------------------------
 // Continuous Vesting Account
 
@@ -658,10 +654,6 @@ func (cva *ContinuousVestingAccount) Copy() *ContinuousVestingAccount {
 		BaseVestingAccount: cva.BaseVestingAccount.Copy(),
 		StartTime:          cva.StartTime,
 	}
-}
-
-func (cva *ContinuousVestingAccount) DeepCopy() authexported.Account {
-	return cva.Copy()
 }
 
 //-----------------------------------------------------------------------------
@@ -977,10 +969,6 @@ func (pva *PeriodicVestingAccount) Copy() *PeriodicVestingAccount {
 	}
 }
 
-func (pva *PeriodicVestingAccount) DeepCopy() authexported.Account {
-	return pva.Copy()
-}
-
 //-----------------------------------------------------------------------------
 // Delayed Vesting Account
 
@@ -1170,8 +1158,4 @@ func (dva *DelayedVestingAccount) Copy() *DelayedVestingAccount {
 	return &DelayedVestingAccount{
 		BaseVestingAccount: dva.BaseVestingAccount.Copy(),
 	}
-}
-
-func (dva *DelayedVestingAccount) DeepCopy() authexported.Account {
-	return dva.Copy()
 }
