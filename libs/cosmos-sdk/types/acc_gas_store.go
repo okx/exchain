@@ -3,17 +3,15 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/trie"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 type GasKVStore struct {
-	parent   types.AccCacheStore
-	gsConfig types.GasConfig
-	gasMeter types.GasMeter
+	parent   AccStore
+	gsConfig GasConfig
+	gasMeter GasMeter
 }
 
-func NewGasKvStore(parent types.AccCacheStore, gasConfig types.GasConfig, gasMeter types.GasMeter) *GasKVStore {
+func NewGasKvStore(parent AccStore, gasConfig GasConfig, gasMeter GasMeter) *GasKVStore {
 	return &GasKVStore{
 		parent:   parent,
 		gsConfig: gasConfig,
@@ -21,60 +19,44 @@ func NewGasKvStore(parent types.AccCacheStore, gasConfig types.GasConfig, gasMet
 	}
 }
 
-func (gs *GasKVStore) Get(addr types.AccAddress) (acc exported.Account) {
+func (gs *GasKVStore) Get(key string) (data []byte) {
 	defer func(){
 		gs.gasMeter.ConsumeGas(gs.gsConfig.ReadCostFlat, types2.GasReadCostFlatDesc)
-		gs.gasMeter.ConsumeGas(gs.gsConfig.ReadCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasReadPerByteDesc)
+		gs.gasMeter.ConsumeGas(gs.gsConfig.ReadCostPerByte*types2.Gas(len(data)), types2.GasReadPerByteDesc)
 	}()
 
-	if val := gs.parent.Get(addr); val != nil {
-		return val.(exported.Account)
+	if data = gs.parent.Get(key); data != nil {
+		return data
 	}
 
 	return nil
 }
 
-func (gs *GasKVStore) Set(acc exported.Account) {
+func (gs *GasKVStore) Set(key string, data []byte) {
 	defer func(){
 		gs.gasMeter.ConsumeGas(gs.gsConfig.WriteCostFlat, types2.GasWriteCostFlatDesc)
-		gs.gasMeter.ConsumeGas(gs.gsConfig.WriteCostPerByte*types2.Gas(estimateAccByteLenForGasConsume(acc)), types2.GasWritePerByteDesc)
+		gs.gasMeter.ConsumeGas(gs.gsConfig.WriteCostPerByte*types2.Gas(len(data)), types2.GasWritePerByteDesc)
 	}()
 
-	gs.parent.Set(acc.GetAddress(), acc)
+	gs.parent.Set(key, data)
 }
 
-func (gs *GasKVStore) Delete(acc exported.Account) {
+func (gs *GasKVStore) Delete(key string) {
 	defer func(){
 		gs.gasMeter.ConsumeGas(gs.gsConfig.DeleteCost, types2.GasDeleteDesc)
 	}()
 
-	gs.parent.Delete(acc.GetAddress())
-}
-
-func (gs *GasKVStore) Write() {
-	gs.parent.Write()
-}
-
-func estimateAccByteLenForGasConsume(acc exported.Account) int64{
-	if acc == nil {
-		return 0
-	}
-
-	if acc.IsEthAccount() {
-		return 150
-	}
-
-	return 70
+	gs.parent.Delete(key)
 }
 
 type GasIterator struct {
-	gasMeter  types.GasMeter
-	gasConfig types.GasConfig
+	gasMeter  GasMeter
+	gasConfig GasConfig
 	parent    *trie.Iterator
 }
 
 func (gs *GasKVStore) NewIterator(startKey []byte) *GasIterator {
-	itr := gs.parent.(*CacheStore).parent.NewIterator(startKey)
+	itr := gs.parent.(*AccCacheCommitStore).parent.NewIterator(startKey)
 
 	return &GasIterator{
 		gasMeter: gs.gasMeter,

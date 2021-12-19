@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	types2 "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -817,7 +818,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			if err := obj.CommitTrie(csdb.db); err != nil {
 				return ethcmn.Hash{}, err
 			}
-			csdb.updateStateObject(obj)
+			csdb.UpdateAccountInfo(obj.account)
 		}
 	}
 
@@ -922,14 +923,18 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return err
 	}
 
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	if !csdb.ctx.IsCheckTx() {
-		if csdb.Watcher.Enabled() {
-			csdb.Watcher.SaveAccount(so.account, false)
-		}
-	}
+	csdb.UpdateAccountInfo(so.account)
 
 	return nil
+}
+
+func (csdb *CommitStateDB) UpdateAccountInfo(acc *types2.EthAccount) {
+	csdb.accountKeeper.SetAccount(csdb.ctx, acc)
+	if !csdb.ctx.IsCheckTx() {
+		if csdb.Watcher.Enabled() {
+			csdb.Watcher.SaveAccount(acc, false)
+		}
+	}
 }
 
 // deleteStateObject removes the given state object from the state store.

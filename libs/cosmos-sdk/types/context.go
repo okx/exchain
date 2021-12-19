@@ -36,7 +36,7 @@ type Context struct {
 	consParams    *abci.ConsensusParams
 	eventManager  *EventManager
 	accountNonce  uint64
-	accCacheStore AccCacheStore
+	accCacheStore AccStore
 	sigCache      SigCache
 	isAsync       bool
 }
@@ -239,8 +239,13 @@ func (c Context) TransientStore(key StoreKey) KVStore {
 // is called.
 func (c Context) CacheContext() (cc Context, writeCache func()) {
 	cms := c.MultiStore().CacheMultiStore()
-	cc = c.WithMultiStore(cms).WithEventManager(NewEventManager())
-	return cc, cms.Write
+	acs := c.GetAccCacheStore().CreateCacheStore()
+
+	cc = c.WithMultiStore(cms).WithEventManager(NewEventManager()).WithAccCacheStore(acs)
+	return cc, func(){
+		cms.Write()
+		acs.Write()
+	}
 }
 
 // WithSigCache set sigCache.
@@ -249,18 +254,12 @@ func (c Context) WithSigCache(cache SigCache) Context {
 	return c
 }
 
-func (c Context) WithAccCacheStore(acs AccCacheStore) Context {
+func (c Context) WithAccCacheStore(acs AccStore) Context {
 	c.accCacheStore = acs
 	return c
 }
 
-func (c Context) WriteAccCacheStore() {
-	if c.accCacheStore != nil {
-		c.accCacheStore.Write()
-	}
-}
-
-func (c Context) GetAccCacheStore() AccCacheStore {
+func (c Context) GetAccCacheStore() AccStore {
 	return c.accCacheStore
 }
 

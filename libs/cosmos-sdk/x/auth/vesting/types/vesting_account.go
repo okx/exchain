@@ -383,6 +383,20 @@ func (bva *BaseVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
+func (bva *BaseVestingAccount) Copy() *BaseVestingAccount {
+	return &BaseVestingAccount{
+		BaseAccount:      bva.BaseAccount.Copy(),
+		OriginalVesting:  bva.OriginalVesting,
+		DelegatedFree:    bva.DelegatedFree,
+		DelegatedVesting: bva.DelegatedVesting,
+		EndTime:          bva.EndTime,
+	}
+}
+
+func (bva *BaseVestingAccount) DeepCopy() authexported.Account {
+	return bva.Copy()
+}
+
 //-----------------------------------------------------------------------------
 // Continuous Vesting Account
 
@@ -638,6 +652,18 @@ func (cva *ContinuousVestingAccount) DecodeRLP(s *rlp.Stream) error {
 
 	return err
 }
+
+func (cva *ContinuousVestingAccount) Copy() *ContinuousVestingAccount {
+	return &ContinuousVestingAccount{
+		BaseVestingAccount: cva.BaseVestingAccount.Copy(),
+		StartTime:          cva.StartTime,
+	}
+}
+
+func (cva *ContinuousVestingAccount) DeepCopy() authexported.Account {
+	return cva.Copy()
+}
+
 //-----------------------------------------------------------------------------
 // Periodic Vesting Account
 
@@ -943,6 +969,18 @@ func (pva *PeriodicVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
+func (pva *PeriodicVestingAccount) Copy() *PeriodicVestingAccount {
+	return &PeriodicVestingAccount{
+		BaseVestingAccount: pva.BaseVestingAccount.Copy(),
+		StartTime:          pva.StartTime,
+		VestingPeriods:     pva.VestingPeriods,
+	}
+}
+
+func (pva *PeriodicVestingAccount) DeepCopy() authexported.Account {
+	return pva.Copy()
+}
+
 //-----------------------------------------------------------------------------
 // Delayed Vesting Account
 
@@ -1126,4 +1164,14 @@ func (dva *DelayedVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	*dva, err = alia.Pretty2Acc()
 
 	return err
+}
+
+func (dva *DelayedVestingAccount) Copy() *DelayedVestingAccount {
+	return &DelayedVestingAccount{
+		BaseVestingAccount: dva.BaseVestingAccount.Copy(),
+	}
+}
+
+func (dva *DelayedVestingAccount) DeepCopy() authexported.Account {
+	return dva.Copy()
 }

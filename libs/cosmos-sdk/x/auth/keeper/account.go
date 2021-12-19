@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -40,8 +41,16 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) (acc ex
 	//acc := ak.decodeAccount(bz)
 	//return acc
 
-	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
-	return store.Get(addr)
+	store := sdk.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	data := store.Get(addr.String())
+
+	var wrapAcc wrap.WrapAccount
+	err := rlp.DecodeBytes(data, &wrapAcc)
+	if err != nil {
+		return nil
+	}
+
+	return wrapAcc.RealAcc
 }
 
 // GetAllAccounts returns all accounts in the accountKeeper.
@@ -64,8 +73,12 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	//}
 	//store.Set(types.AddressStoreKey(addr), bz)
 
-	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
-	store.Set(acc)
+	store := sdk.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	data, err := rlp.EncodeToBytes(acc)
+	if err != nil {
+		panic(fmt.Errorf("can't encode object at %x: %v", acc.GetAddress().String(), err))
+	}
+	store.Set(acc.GetAddress().String(), data)
 
 	if ak.observers != nil && !ctx.IsCheckTx() {
 		for _, observer := range ak.observers {
@@ -83,8 +96,8 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	//store := ctx.KVStore(ak.key)
 	//store.Delete(types.AddressStoreKey(addr))
 
-	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
-	store.Delete(acc)
+	store := sdk.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	store.Delete(acc.GetAddress().String())
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
@@ -101,7 +114,7 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	//	}
 	//}
 
-	store := types.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
+	store := sdk.NewGasKvStore(ctx.GetAccCacheStore(), types2.KVGasConfig(), ctx.GasMeter())
 	itr := store.NewIterator(nil)
 	for itr.Next() {
 		val := itr.Value()
@@ -116,12 +129,8 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	}
 }
 
-func (ak *AccountKeeper) NewCacheStore(ctx sdk.Context) sdk.AccCacheStore {
-	if ctx.IsCheckTx() {
-		return types.NewCacheStore(ak.checkRootStore)
-	} else {
-		return types.NewCacheStore(ak.deliverRootStore)
-	}
+func (ak *AccountKeeper) NewCacheCommitStore() sdk.AccStore {
+	return sdk.NewAccCacheCommitStore(ak.accCommitStore)
 }
 
 func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
@@ -175,7 +184,4 @@ func (ak *AccountKeeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 			}
 		}
 	}
-
-	ak.checkRootStore.Clean()
-	ak.deliverRootStore.Clean()
 }

@@ -250,6 +250,7 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	bApp.SetAccCommitStore(app.AccountKeeper.NewCacheCommitStore())
 
 	app.BankKeeper = bank.NewBaseKeeper(
 		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -435,7 +436,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.SetAccCacheStoreHandler(NewAccCacheStoreHandler(app.AccountKeeper))
+	app.SetAccMptCommitHandler(NewAccMptCommitHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.AddCustomizeModuleOnStopLogic(app.AccountKeeper.OnStop)
 
@@ -510,9 +511,6 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-	if app.AccCacheStoreHandler != nil {
-		ctx  = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
-	}
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
@@ -617,8 +615,8 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func NewAccCacheStoreHandler(ak auth.AccountKeeper) sdk.AccCacheStoreHandler {
-	return func(ctx sdk.Context) sdk.AccCacheStore {
-		return ak.NewCacheStore(ctx)
+func NewAccMptCommitHandler(ak auth.AccountKeeper) sdk.AccMptCommitHandler {
+	return func(ctx sdk.Context) {
+		ak.Commit(ctx)
 	}
 }

@@ -84,6 +84,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
+		app.checkState.accms = app.accCacheCMS.CreateCacheStore()
 	default:
 		// do nothing
 	}
@@ -129,10 +130,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		app.deliverState.ctx = app.deliverState.ctx.
 			WithBlockHeader(req.Header).
 			WithBlockHeight(req.Header.Height)
-
-		if app.AccCacheStoreHandler != nil {
-			app.deliverState.ctx = app.deliverState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.deliverState.ctx))
-		}
 	}
 
 	// add block gas meter
@@ -297,6 +294,13 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 // height.
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	header := app.deliverState.ctx.BlockHeader()
+
+	app.checkState.accms.Clean()
+	app.deliverState.accms.Write() //c3s.write()
+	app.accCacheCMS.Write() // c2s.write()
+	if app.AccMptCommitHandler != nil {
+		app.AccMptCommitHandler(app.deliverState.ctx) // call c1s.write()
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
@@ -537,11 +541,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	).WithMinGasPrices(app.minGasPrices).WithAccCacheStore(app.accCacheCMS.CreateCacheStore())
 
-	if app.AccCacheStoreHandler != nil {
-		ctx = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
-	}
 
 	// Passes the rest of the path as an argument to the querier.
 	//

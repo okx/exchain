@@ -7,6 +7,7 @@ import (
 type state struct {
 	ms  sdk.CacheMultiStore
 	ctx sdk.Context
+	accms sdk.AccStore
 }
 
 // CacheMultiStore calls and returns a CacheMultiStore on the state's underling

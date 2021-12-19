@@ -106,7 +106,7 @@ type BaseApp struct { // nolint: maligned
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	AccNonceHandler  sdk.AccNonceHandler  // account nonce handler for cm tx nonce
-	AccCacheStoreHandler sdk.AccCacheStoreHandler // handler for cache store
+	AccMptCommitHandler sdk.AccMptCommitHandler // handler for cache store
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -164,6 +164,8 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
+
+	accCacheCMS sdk.AccStore
 }
 
 type recordHandle func(string)
@@ -227,6 +229,11 @@ func (app *BaseApp) SetStartLogHandler(handle recordHandle) {
 // SetStopLogHandler set the endLog of the BaseApp.
 func (app *BaseApp) SetEndLogHandler(handle recordHandle) {
 	app.endLog = handle
+}
+
+// Name returns the name of the BaseApp.
+func (app *BaseApp) SetAccCommitStore(accCms sdk.AccStore) {
+	app.accCacheCMS = accCms
 }
 
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
@@ -458,13 +465,11 @@ func (app *BaseApp) IsSealed() bool { return app.sealed }
 // on Commit.
 func (app *BaseApp) setCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
+	accms := app.accCacheCMS.CreateCacheStore()
 	app.checkState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices),
-	}
-
-	if app.AccCacheStoreHandler != nil {
-		app.checkState.ctx = app.checkState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.checkState.ctx))
+		accms: accms,
+		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices).WithAccCacheStore(accms),
 	}
 }
 
@@ -474,12 +479,11 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 // Commit.
 func (app *BaseApp) setDeliverState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
+	accms := app.accCacheCMS.CreateCacheStore()
 	app.deliverState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, false, app.logger),
-	}
-	if app.AccCacheStoreHandler != nil {
-		app.deliverState.ctx = app.deliverState.ctx.WithAccCacheStore(app.AccCacheStoreHandler(app.deliverState.ctx))
+		accms: accms,
+		ctx: sdk.NewContext(ms, header, false, app.logger).WithAccCacheStore(accms),
 	}
 }
 
@@ -569,6 +573,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx = ctx.WithIsReCheckTx(true)
 	}
 	if mode == runTxModeSimulate {
+		// till now, ctx comes from checkState
 		ctx, _ = ctx.CacheContext()
 	}
 	if app.parallelTxManage.isAsyncDeliverTx {
@@ -595,15 +600,15 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 		return sdk.Context{}, err
 	}
 
+	accms := app.accCacheCMS.CreateCacheStore()
 	simState := &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, abciHeader, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		accms: accms,
+		ctx: sdk.NewContext(ms, abciHeader, true, app.logger).WithMinGasPrices(app.minGasPrices).WithAccCacheStore(accms),
 	}
 
 	ctx := simState.ctx.WithTxBytes(txBytes)
-	if app.AccCacheStoreHandler != nil {
-		ctx = ctx.WithAccCacheStore(app.AccCacheStoreHandler(ctx))
-	}
+
 
 	return ctx, nil
 }
@@ -658,7 +663,7 @@ func blockHeaderToABCIHeader(header tmtypes.Header) abci.Header {
 
 // cacheTxContext returns a new context based off of the provided context with
 // a cache wrapped multi-store.
-func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore) {
+func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore, sdk.AccStore) {
 	ms := ctx.MultiStore()
 	// TODO: https://github.com/cosmos/cosmos-sdk/issues/2824
 	msCache := ms.CacheMultiStore()
@@ -671,8 +676,8 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 			),
 		).(sdk.CacheMultiStore)
 	}
-
-	return ctx.WithMultiStore(msCache), msCache
+	accStore := ctx.GetAccCacheStore().CreateCacheStore()
+	return ctx.WithMultiStore(msCache).WithAccCacheStore(accStore), msCache, accStore
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
@@ -709,7 +714,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	var ctx sdk.Context
 	var runMsgCtx sdk.Context
 	var msCache sdk.CacheMultiStore
+	var accCache sdk.AccStore
 	var msCacheAnte sdk.CacheMultiStore
+	var accCacheAnte sdk.AccStore
 	var runMsgFinish bool
 	// simulate tx
 	startHeight := tmtypes.GetStartBlockHeight()
@@ -724,7 +731,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
 	}
-
 
 	ms := ctx.MultiStore()
 
@@ -766,6 +772,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 			msCacheList = msCacheAnte
 			msCache = nil //TODO msCache not write
+			accCache = nil
 			result = nil
 		}
 
@@ -798,12 +805,14 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
 			var GasRefundCtx sdk.Context
 			if mode == runTxModeDeliver {
-				GasRefundCtx, msCache = app.cacheTxContext(ctx, txBytes)
+				GasRefundCtx, msCache, accCache = app.cacheTxContext(ctx, txBytes)
+				GasRefundCtx.GetAccCacheStore()
 			} else if mode == runTxModeDeliverInAsync {
 				GasRefundCtx = runMsgCtx
 				if msCache == nil || !runMsgFinish { // case: panic when runMsg
 					msCache = msCacheAnte.CacheMultiStore()
-					GasRefundCtx = ctx.WithMultiStore(msCache)
+					accCache = accCacheAnte.CreateCacheStore()
+					GasRefundCtx = ctx.WithMultiStore(msCache).WithAccCacheStore(accCache)
 				}
 			}
 			refundGas, err := app.GasRefundHandler(GasRefundCtx, tx)
@@ -811,6 +820,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 				panic(err)
 			}
 			msCache.Write()
+			accCache.Write()
 			if mode == runTxModeDeliverInAsync {
 				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
@@ -838,11 +848,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// NOTE: Alternatively, we could require that AnteHandler ensures that
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
-		if app.AccCacheStoreHandler != nil{
-			anteCtx = anteCtx.WithAccCacheStore(app.AccCacheStoreHandler(anteCtx))
-		}
-
+		anteCtx, msCacheAnte, accCacheAnte = app.cacheTxContext(ctx, txBytes)
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
 
@@ -871,7 +877,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 		if mode != runTxModeDeliverInAsync {
 			msCacheAnte.Write()
-			newCtx.WriteAccCacheStore()
+			accCacheAnte.Write()
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -884,12 +890,11 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	if mode == runTxModeDeliverInAsync {
 		msCache = msCacheAnte.CacheMultiStore()
-		runMsgCtx = ctx.WithMultiStore(msCache)
+		accCache = accCacheAnte.CreateCacheStore()
+		runMsgCtx = ctx.WithMultiStore(msCache).WithAccCacheStore(accCache)
 	} else {
-		runMsgCtx, msCache = app.cacheTxContext(ctx, txBytes)
-		if app.AccCacheStoreHandler != nil{
-			runMsgCtx = runMsgCtx.WithAccCacheStore(app.AccCacheStoreHandler(runMsgCtx))
-		}
+		runMsgCtx, msCache, accCache = app.cacheTxContext(ctx, txBytes)
+		runMsgCtx.GetAccCacheStore()
 	}
 
 	// Attempt to execute all messages and only update state if all messages pass
@@ -899,7 +904,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
-		runMsgCtx.WriteAccCacheStore()
+		accCache.Write()
+		ctx.GetAccCacheStore().Write()
 	}
 
 	runMsgFinish = true
@@ -920,12 +926,17 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
 		msCache = nil
+		accCache = nil
 	}
 
 	if mode == runTxModeDeliverInAsync {
 		if msCache != nil {
 			msCache.Write()
 		}
+		if accCache != nil {
+			accCache.Write()
+		}
+
 		return gInfo, result, msCacheAnte, err
 	}
 	app.pin(RunMsgs, false, mode)

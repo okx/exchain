@@ -262,3 +262,15 @@ func (ma *ModuleAccount) DecodeRLP(s *rlp.Stream) error {
 
 	return err
 }
+
+func (ma *ModuleAccount) Copy() *ModuleAccount {
+	return &ModuleAccount{
+		BaseAccount: ma.BaseAccount.Copy(),
+		Name:        ma.Name,
+		Permissions: ma.Permissions,
+	}
+}
+
+func (ma *ModuleAccount) DeepCopy() authexported.Account {
+	return ma.Copy()
+}

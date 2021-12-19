@@ -40,8 +40,7 @@ type AccountKeeper struct {
 	db ethstate.Database
 	triegc *prque.Prque
 
-	checkRootStore *types.AccRootKVStore
-	deliverRootStore *types.AccRootKVStore
+	accCommitStore *sdk.AccCommitStore
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
@@ -50,9 +49,6 @@ type AccountKeeper struct {
 func NewAccountKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
-	checkRootStore := types.NewAccRootKvStore()
-	deliverRootStore := types.NewAccRootKvStore()
-
 	ak := AccountKeeper{
 		key:           key,
 		proto:         proto,
@@ -62,8 +58,7 @@ func NewAccountKeeper(
 		db: types.InstanceOfEvmStore(),
 		triegc: prque.New(nil),
 
-		checkRootStore: checkRootStore,
-		deliverRootStore: deliverRootStore,
+		accCommitStore: sdk.NewAccCommitStore(),
 	}
 	ak.OpenTrie()
 
@@ -127,12 +122,9 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 }
 
 func (ak *AccountKeeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	ak.OpenTrie()
 }
 
 func (ak *AccountKeeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	ak.Commit(ctx)
-
 	return []abci.ValidatorUpdate{}
 }
 
@@ -190,22 +182,21 @@ func (ak *AccountKeeper) SetLatestStoredBlockHeight(height uint64) {
 }
 
 func (ak *AccountKeeper) OpenTrie() {
+	//types3.GetStartBlockHeight() // start height of oec
 	latestHeight := ak.GetLatestBlockHeight()
-	lastRootHash := ak.GetRootMptHash(latestHeight)
+	latestRootHash := ak.GetRootMptHash(latestHeight)
 
-	tr, err := ak.db.OpenTrie(lastRootHash)
+	tr, err := ak.db.OpenTrie(latestRootHash)
 	if err != nil {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	ak.trie = tr
 
-	ak.checkRootStore.UpdateTrie(tr)
-	ak.deliverRootStore.UpdateTrie(tr)
+	ak.accCommitStore.SetMptTrie(tr)
 }
 
 func (ak *AccountKeeper) Commit(ctx sdk.Context) {
-	ctx.WriteAccCacheStore()
-	ak.deliverRootStore.Write()
+	ak.accCommitStore.Write() // cs.write()
 
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
@@ -218,7 +209,6 @@ func (ak *AccountKeeper) Commit(ctx sdk.Context) {
 		if accStorageRoot != types2.EmptyRootHash && accStorageRoot != (ethcmn.Hash{}) {
 			ak.db.TrieDB().Reference(accStorageRoot, parent)
 		}
-
 		return nil
 	})
 
