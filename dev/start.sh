@@ -6,7 +6,6 @@ MONIKER="oec"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
 
-set -e
 set -o errexit
 set -a
 set -m
@@ -55,6 +54,7 @@ run() {
 killbyname exchaind
 killbyname exchaincli
 
+set -e
 set -x # activate debugging
 
 # run

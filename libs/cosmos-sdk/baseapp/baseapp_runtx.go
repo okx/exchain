@@ -13,8 +13,29 @@ import (
 	"runtime/debug"
 )
 
-
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+	//res := app.DeliverTxCon(req)
+	res := app.DeliverTxOrg(req)
+
+	app.logger.Info("===========DeliverTx===========",
+		"block", app.LastBlockHeight()+1,
+		"Data len", len(res.Data),
+		"Info", res.Info,
+		"GasUsed", res.GasUsed,
+		"GasWanted", res.GasWanted,
+		"Code", res.Code,
+	)
+	for i, e := range res.Events {
+		app.logger.Info("	Event", "id", i, "type", e.Type)
+		for j, a := range e.Attributes {
+			app.logger.Info("		Attributes", "id", j, "k", string(a.Key), "v", string(a.Value))
+		}
+	}
+
+	return res
+}
+
+func (app *BaseApp) DeliverTxCon(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -23,6 +44,27 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	task.part2()
 	wg.Wait()
 	return *task.result()
+}
+
+func (app *BaseApp) DeliverTxOrg(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+
+	tx, err := app.txDecoder(req.Tx)
+	if err != nil {
+		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+	}
+
+	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight) // DeliverTxConcurrently
+	if err != nil {
+		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+	}
+
+	return abci.ResponseDeliverTx{
+		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:       result.Log,
+		Data:      result.Data,
+		Events:    result.Events.ToABCIEvents(),
+	}
 }
 
 func (app *BaseApp) DeliverTxConcurrently(txList [][]byte, ctx abci.DeliverTxContext) []*abci.ResponseDeliverTx {

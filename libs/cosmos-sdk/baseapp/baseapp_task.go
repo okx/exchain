@@ -79,6 +79,12 @@ func (t *taskImp) part1() {
 
 	gInfo, result, _, err = app.runTxPart1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight, t)
 	if err != nil {
+		t.logger.Info("Deliver tx part1",
+			"gid", gorid.GoRId,
+			"block", t.block,
+			"txid", t.idx,
+			"err", err,
+		)
 		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 		t.finished = true
 		return
@@ -103,6 +109,13 @@ func (t *taskImp) part2() {
 
 	gInfo, result, _, err := app.runTxPart2(t)
 	if err != nil {
+		t.logger.Info("Deliver tx part2",
+			"gid", gorid.GoRId,
+			"block", t.block,
+			"txid", t.idx,
+			"err", err,
+			)
+
 		t.res = sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 		t.finished = true
 		return
