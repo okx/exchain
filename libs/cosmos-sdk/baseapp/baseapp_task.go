@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -26,20 +25,9 @@ type taskImp struct {
 	app *BaseApp
 	txBytes []byte
 	res abci.ResponseDeliverTx
-	finished bool
 
 	info *runTxInfo
-
-	ctx *sdk.Context
-	runMsgCtx *sdk.Context
-	mode runTxMode
-	msCache sdk.CacheMultiStore
-	msCacheAnte sdk.CacheMultiStore
-	tx sdk.Tx
-	accountNonce uint64
-	msgs []sdk.Msg
-	gasWanted uint64
-	startingGas uint64
+	
 	logger  log.Logger
 }
 
@@ -56,6 +44,15 @@ func newTask(id int, txBytes []byte, abciCtx abci.DeliverTxContext, wg *sync.Wai
 	return t
 }
 
+func (t *taskImp) setResult(res abci.ResponseDeliverTx) {
+	if t.info.finished {
+		return
+	}
+
+	t.res = res
+	t.info.finished = true
+}
+
 func (t *taskImp) id() int {
 	return t.idx
 }
@@ -65,16 +62,21 @@ func (t *taskImp) part1() {
 		return
 	}
 
+	t.info = &runTxInfo{}
+	t.info.txBytes = t.txBytes
+
 	t.logger.Info("Deliver tx part1", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
 	app := t.app
 	tx, err := app.txDecoder(t.txBytes)
 	if err != nil {
 		t.res = sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-		t.finished = true
 		return
 	}
+	t.info.decoded = true
 
-	t.info, err = app.runtx6_1(runTxModeDeliver, t.txBytes, tx, LatestSimulateTxHeight)
+	t.info.tx = tx
+
+	err = app.runtx6_1(t.info, runTxModeDeliver, LatestSimulateTxHeight)
 	if err != nil {
 		t.logger.Info("Deliver tx part1",
 			"gid", gorid.GoRId,
@@ -82,22 +84,19 @@ func (t *taskImp) part1() {
 			"txid", t.idx,
 			"err", err,
 		)
-		t.res = sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
-		t.finished = true
+		res := sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
+		t.setResult(res)
 	}
 }
 
 func (t *taskImp) part2() {
 	t.logger.Info("Deliver tx part2", "gid", gorid.GoRId, "block", t.block, "txid", t.idx)
 	defer t.wg.Done()
-
-
-	if t.finished {
+	if !t.info.decoded {
 		return
 	}
 
-	app := t.app
-	err := app.runtx6_2(t.info)
+	err := t.app.runtx6_2(t.info)
 	if err != nil {
 		t.logger.Info("Deliver tx part2",
 			"gid", gorid.GoRId,
@@ -106,17 +105,22 @@ func (t *taskImp) part2() {
 			"err", err,
 			)
 
-		t.res = sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
-		t.finished = true
+		res := sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, t.app.trace)
+		t.setResult(res)
 		return
 	}
+	t.logger.Info("Deliver tx part2", "info", t.info, )
 
-	t.res = abci.ResponseDeliverTx{
-		GasWanted: int64(t.info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(t.info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       t.info.result.Log,
-		Data:      t.info.result.Data,
-		Events:    t.info.result.Events.ToABCIEvents(),
+	if !t.info.finished {
+
+		res := abci.ResponseDeliverTx{
+			GasWanted: int64(t.info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+			GasUsed:   int64(t.info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+			Log:       t.info.result1.Log,
+			Data:      t.info.result1.Data,
+			Events:    t.info.result1.Events.ToABCIEvents(),
+		}
+		t.setResult(res)
 	}
 }
 

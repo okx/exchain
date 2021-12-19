@@ -15,13 +15,14 @@ type runTxInfo struct {
 	msCacheAnte sdk.CacheMultiStore
 	accountNonce uint64
 	runMsgFinished bool
-	msgs []sdk.Msg
 	startingGas uint64
 	gInfo sdk.GasInfo
 
-	result *sdk.Result
+	result1 *sdk.Result
 	txBytes []byte
 	tx sdk.Tx
+	finished bool
+	decoded bool
 }
 
 func (app *BaseApp) runTx(mode runTxMode,  // DeliverTxConcurrently
@@ -30,41 +31,34 @@ func (app *BaseApp) runTx(mode runTxMode,  // DeliverTxConcurrently
 
 	var info *runTxInfo
 	info, err = app.runtx6(mode, txBytes, tx, height)
-	return info.gInfo, info.result, info.msCacheAnte, err
+	return info.gInfo, info.result1, info.msCacheAnte, err
 }
 
-func (app *BaseApp) runtx6_1(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runtx6_1(info *runTxInfo, mode runTxMode, height int64) (err error) {
 
-	info = &runTxInfo{}
-	info.tx = tx
-	info.txBytes = txBytes
 	mhandler := app.getModeHandler(mode)
 	info.handler = mhandler
 
-	fmt.Printf("runtx6\n")
+	fmt.Printf("runtx6-1\n")
 	err = mhandler.handleStartHeight(info, height)
 	if err != nil {
-		return info, err
+		return err
 	}
 
 	info.startingGas, info.gInfo, err = mhandler.handleGasConsumed(info)
 	if err != nil {
-		return info, err
+		return err
 	}
 
-	msgs := info.tx.GetMsgs()
-	if err := validateBasicTxMsgs(msgs); err != nil {
-		return info, err
+	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		return err
 	}
 
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
-		if err != nil {
-			return info, err
-		}
 	}
 
-	return info, err
+	return err
 }
 
 
@@ -74,24 +68,34 @@ func (app *BaseApp) runtx6_2(info *runTxInfo) (err error) {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
-			info.result = nil
+			info.result1 = nil
+			app.logger.Info("info.result = nil")
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
 
-	defer app.runTx_defer_consumegas(info, info.handler.runMode())
-	defer app.runTx_defer_refund(info, info.handler.runMode())
+	defer app.runTx_defer_consumegas(info, info.handler.getMode())
+	defer app.runTx_defer_refund(info, info.handler.getMode())
 
-	info.result, err = info.handler.handleRunMsg(info)
+	if info.finished {
+		return
+	}
+
+	info.result1, err = info.handler.handleRunMsg(info)
+	if err == nil && info.result1 == nil {
+		panic("")
+	}
 	return
 }
 
 
 func (app *BaseApp) runtx6(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
-	mhandler := app.getModeHandler(mode)
 	info = &runTxInfo{}
+
+	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
+	mhandler := info.handler
 
 	fmt.Printf("runtx6\n")
 	err = mhandler.handleStartHeight(info, height)
@@ -108,7 +112,7 @@ func (app *BaseApp) runtx6(mode runTxMode, txBytes []byte, tx sdk.Tx, height int
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
-			info.result = nil
+			info.result1 = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
@@ -116,8 +120,7 @@ func (app *BaseApp) runtx6(mode runTxMode, txBytes []byte, tx sdk.Tx, height int
 	defer app.runTx_defer_consumegas(info, mode)
 	defer app.runTx_defer_refund(info, mode)
 
-	info.msgs = info.tx.GetMsgs()
-	if err := validateBasicTxMsgs(info.msgs); err != nil {
+	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 
@@ -128,7 +131,7 @@ func (app *BaseApp) runtx6(mode runTxMode, txBytes []byte, tx sdk.Tx, height int
 		}
 	}
 
-	info.result, err = mhandler.handleRunMsg(info)
+	info.result1, err = mhandler.handleRunMsg(info)
 	return info, err
 }
 

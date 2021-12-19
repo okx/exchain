@@ -11,7 +11,7 @@ import (
 )
 
 type modeHandler interface {
-	runMode() runTxMode
+	getMode() runTxMode
 	handleStartHeight(info *runTxInfo, height int64) error
 	handleGasConsumed(info *runTxInfo)(startingGas uint64, gInfo sdk.GasInfo, err error)
 	handleRunMsg(info *runTxInfo) (result *sdk.Result, err error)
@@ -62,7 +62,7 @@ type modeHandlerSimulate struct {
 	*modeHandlerBase
 }
 
-func (m *modeHandlerBase) runMode() runTxMode {
+func (m *modeHandlerBase) getMode() runTxMode {
 	return m.mode
 }
 
@@ -128,7 +128,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (result *sdk.Result, err
 	}
 	msCache = info.msCache
 
-	result, err = app.runMsgs(info.runMsgCtx, info.msgs, mode)
+	result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
 	}
