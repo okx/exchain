@@ -123,8 +123,10 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 			txFeeInBlock = txFeeInBlock.Sub(refundFee)
 		}
 	}
-	ctx, cache, accCache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
-	ctx.GetAccCacheStore()
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
+	accCache := ctx.GetAccCacheStore().CreateCacheStore()
+	ctx.WithAccCacheStore(accCache)
+
 	if err := app.updateFeeCollectorAccHandler(ctx, txFeeInBlock); err != nil {
 		panic(err)
 	}

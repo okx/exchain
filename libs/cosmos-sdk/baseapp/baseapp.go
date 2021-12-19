@@ -663,7 +663,7 @@ func blockHeaderToABCIHeader(header tmtypes.Header) abci.Header {
 
 // cacheTxContext returns a new context based off of the provided context with
 // a cache wrapped multi-store.
-func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore, sdk.AccStore) {
+func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore) {
 	ms := ctx.MultiStore()
 	// TODO: https://github.com/cosmos/cosmos-sdk/issues/2824
 	msCache := ms.CacheMultiStore()
@@ -676,8 +676,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 			),
 		).(sdk.CacheMultiStore)
 	}
-	accStore := ctx.GetAccCacheStore().CreateCacheStore()
-	return ctx.WithMultiStore(msCache).WithAccCacheStore(accStore), msCache, accStore
+	return ctx.WithMultiStore(msCache), msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
@@ -805,8 +804,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
 			var GasRefundCtx sdk.Context
 			if mode == runTxModeDeliver {
-				GasRefundCtx, msCache, accCache = app.cacheTxContext(ctx, txBytes)
-				GasRefundCtx.GetAccCacheStore()
+				GasRefundCtx, msCache = app.cacheTxContext(ctx, txBytes)
+				accCache = GasRefundCtx.GetAccCacheStore().CreateCacheStore()
+				GasRefundCtx.WithAccCacheStore(accCache)
 			} else if mode == runTxModeDeliverInAsync {
 				GasRefundCtx = runMsgCtx
 				if msCache == nil || !runMsgFinish { // case: panic when runMsg
@@ -848,7 +848,10 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// NOTE: Alternatively, we could require that AnteHandler ensures that
 		// writes do not happen if aborted/failed.  This may have some
 		// performance benefits, but it'll be more difficult to get right.
-		anteCtx, msCacheAnte, accCacheAnte = app.cacheTxContext(ctx, txBytes)
+		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
+		accCacheAnte = anteCtx.GetAccCacheStore().CreateCacheStore()
+		anteCtx.WithAccCacheStore(accCacheAnte)
+
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
 
@@ -893,8 +896,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		accCache = accCacheAnte.CreateCacheStore()
 		runMsgCtx = ctx.WithMultiStore(msCache).WithAccCacheStore(accCache)
 	} else {
-		runMsgCtx, msCache, accCache = app.cacheTxContext(ctx, txBytes)
-		runMsgCtx.GetAccCacheStore()
+		runMsgCtx, msCache = app.cacheTxContext(ctx, txBytes)
+		accCache = runMsgCtx.GetAccCacheStore().CreateCacheStore()
+		runMsgCtx.WithAccCacheStore(accCache)
 	}
 
 	// Attempt to execute all messages and only update state if all messages pass
@@ -905,7 +909,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
 		accCache.Write()
-		ctx.GetAccCacheStore().Write()
 	}
 
 	runMsgFinish = true
