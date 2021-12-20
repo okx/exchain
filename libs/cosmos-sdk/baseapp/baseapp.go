@@ -1069,3 +1069,4 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
+
