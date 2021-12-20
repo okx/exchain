@@ -15,10 +15,9 @@ import (
 //-----------------------------------------------------------------------------
 
 var (
+	tlog           log.Logger
 	enableRoleTest bool
-	role                   string
-	roleAction             map[string]action
-	tlog log.Logger
+	roleAction     map[string]*action
 )
 
 const (
@@ -27,59 +26,59 @@ const (
 )
 
 func init() {
-	roleAction = make(map[string]action)
+	roleAction = make(map[string]*action)
 }
 
 type round struct {
 	Round        int64
-	Prevote      map[string]bool // role false => vote nil, true default vote
-	Precommit    map[string]bool // role false => vote nil, true default vote
+	Prevote      map[string]bool // role true => vote nil, true default vote
+	Precommit    map[string]bool // role true => vote nil, true default vote
 	Prerun       map[string]int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
 	Addblockpart map[string]int  // control receiver a block time
 }
 
 type action struct {
-	Prevote           bool // role false => vote nil, false default vote
-	Precommit         bool // role false => vote nil, false default vote
+	Prevote           bool // role true => vote nil, false default vote
+	Precommit         bool // role true => vote nil, false default vote
 	PrerunWait        int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
 	AddblockpartnWait int  // control receiver a block time
 }
 
 func LoadTestConf(log log.Logger) {
 
-	tlog = log
-	role = fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
 	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
 		return
 	}
 
+	tlog = log
+	role := fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
+
 	content, err := ioutil.ReadFile(confFilePath)
 
 	if err != nil {
-		panic(fmt.Sprintf("read file : %s fail err : %s\n", confFilePath, err))
+		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}
 	confTmp := make(map[string][]round)
 	err = json.Unmarshal(content, &confTmp)
 	if err != nil {
-		panic(fmt.Sprintf("json Unmarshal err : %s\n", err))
+		panic(fmt.Sprintf("json Unmarshal err : %s", err))
 	}
 
 	enableRoleTest = true
-	log.Info("Load test case", "file", confFilePath, "err", err, "confTmp", confTmp)
+	log.Info("Load consensus test case", "file", confFilePath, "err", err, "confTmp", confTmp)
 
 	for height, roundEvents := range confTmp {
 		if _, ok := roleAction[height]; !ok {
 			for _, event := range roundEvents {
-				round := event.Round
-				tmp := action{}
+				act := &action{}
 
-				tmp.Prevote = event.Prevote[role]
-				tmp.Precommit = event.Precommit[role]
-				tmp.PrerunWait = event.Prerun[role]
-				tmp.AddblockpartnWait = event.Addblockpart[role]
+				act.Prevote = event.Prevote[role]
+				act.Precommit = event.Precommit[role]
+				act.PrerunWait = event.Prerun[role]
+				act.AddblockpartnWait = event.Addblockpart[role]
 
-				roleAction[fmt.Sprintf("%s_%d", height, round)] = tmp
+				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
 			}
 		}
 	}
