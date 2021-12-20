@@ -104,9 +104,11 @@ func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error){return}
 func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
 //==========================================================================
 // 3. handleRunMsg
-//func (m *modeHandlerRecheck) (*runTxInfo) (err error){return}
-//func (m *modeHandlerCheck) (*runTxInfo) (err error){return}
-//func (m *modeHandlerSimulate) (*runTxInfo) (err error){return}
+
+// modeHandlerBase.handleRunMsg derived by:
+// (m *modeHandlerRecheck)
+// (m *modeHandlerCheck)
+// (m *modeHandlerSimulate)
 func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
 	app := m.app
 	mode := m.mode
