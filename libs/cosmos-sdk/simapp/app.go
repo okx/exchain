@@ -174,6 +174,7 @@ func NewSimApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		app.cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
 	)
+	app.SetAccCommitStore(app.AccountKeeper.NewCacheCommitStore())
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
 	)
@@ -286,6 +287,8 @@ func NewSimApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, auth.DefaultSigVerificationGasConsumer))
 	app.SetEndBlocker(app.EndBlocker)
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
+	app.SetAccCommitHandler(NewAccCommitHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -374,6 +377,23 @@ func (app *SimApp) GetSubspace(moduleName string) params.Subspace {
 // SimulationManager implements the SimulationApp interface
 func (app *SimApp) SimulationManager() *module.SimulationManager {
 	return app.sm
+}
+
+func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) uint64 {
+		if acc := ak.GetAccount(ctx, addr); acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
+	}
+}
+
+func NewAccCommitHandler(ak auth.AccountKeeper) sdk.AccCommitHandler {
+	return func(ctx sdk.Context) {
+		ak.Commit(ctx)
+	}
 }
 
 // GetMaccPerms returns a copy of the module account permissions

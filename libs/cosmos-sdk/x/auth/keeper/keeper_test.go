@@ -78,3 +78,31 @@ func TestGetSetParams(t *testing.T) {
 	actualParams := app.AccountKeeper.GetParams(ctx)
 	require.Equal(t, params, actualParams)
 }
+
+func TestAccountGet(t *testing.T) {
+	app, ctx := createTestApp(true)
+	addr1 := sdk.AccAddress([]byte("addr1"))
+	addr2 := sdk.AccAddress([]byte("addr2"))
+
+	// create accounts
+	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
+	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
+
+	accSeq1 := uint64(20)
+	accSeq2 := uint64(40)
+	err := acc1.SetSequence(accSeq1)
+	require.Nil(t, err)
+	err = acc2.SetSequence(accSeq2)
+	require.Nil(t, err)
+
+	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc2)
+
+	gacc1 := app.AccountKeeper.GetAccount(ctx, addr1)
+	require.NotNil(t, gacc1)
+	require.Equal(t, accSeq1, gacc1.GetSequence())
+
+	gacc2 := app.AccountKeeper.GetAccount(ctx, addr2)
+	require.NotNil(t, gacc2)
+	require.Equal(t, accSeq2, gacc2.GetSequence())
+}

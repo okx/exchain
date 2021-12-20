@@ -29,8 +29,8 @@ func (app *BaseApp) Deliver(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 func (app *BaseApp) NewContext(isCheckTx bool, header abci.Header) sdk.Context {
 	if isCheckTx {
 		return sdk.NewContext(app.checkState.ms, header, true, app.logger).
-			WithMinGasPrices(app.minGasPrices)
+			WithMinGasPrices(app.minGasPrices).WithAccCacheStore(app.accCacheCMS.CreateCacheStore())
 	}
 
-	return sdk.NewContext(app.deliverState.ms, header, false, app.logger)
+	return sdk.NewContext(app.deliverState.ms, header, false, app.logger).WithAccCacheStore(app.accCacheCMS.CreateCacheStore())
 }
