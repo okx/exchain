@@ -101,8 +101,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Int64(config.FlagMaxGasUsedPerBlock, -1, "Maximum gas used of transactions in a block")
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
-	cmd.Flags().Int(sdk.MaxAccInMultiCache, 100000, "max acc in multi cache")
-	cmd.Flags().Int(sdk.MaxContractInMultiCache, 110000, "max contract in multi cache")
+	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
+	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 
 	return cmd
 }

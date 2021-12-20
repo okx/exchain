@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	maxAccInMap         = 100000
-	deleteAccCount      = 10000
-	maxContractInMap    = 110000
-	deleteContractCount = 10000
+	maxAccInMap        = 100000
+	deleteAccCount     = 10000
+	maxStorageInMap    = 10000000
+	deleteStorageCount = 1000000
 
-	FlagMultiCache          = "multi-cache"
-	MaxAccInMultiCache      = "multi-cache-acc"
-	MaxContractInMultiCache = "multi-cache-contract"
-	UseCache                bool
+	FlagMultiCache         = "multi-cache"
+	MaxAccInMultiCache     = "multi-cache-acc"
+	MaxStorageInMultiCache = "multi-cache-storage"
+	UseCache               bool
 )
 
 type account interface {
@@ -67,11 +67,15 @@ type Cache struct {
 func initCacheParam() {
 	UseCache = viper.GetBool(FlagMultiCache)
 
-	maxAccInMap = viper.GetInt(MaxAccInMultiCache)
-	deleteAccCount = maxAccInMap / 10
+	if data := viper.GetInt(MaxAccInMultiCache); data != 0 {
+		maxAccInMap = data
+		deleteAccCount = maxAccInMap / 10
+	}
 
-	maxContractInMap = viper.GetInt(MaxContractInMultiCache)
-	deleteContractCount = maxContractInMap / 10
+	if data := viper.GetInt(MaxStorageInMultiCache); data != 0 {
+		maxStorageInMap = data
+		deleteStorageCount = maxStorageInMap / 10
+	}
 }
 
 func NewChainCache() *Cache {
@@ -136,20 +140,20 @@ func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
 	}
 }
 
-func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool, bool) {
+func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
 	if c.skip() {
-		return nil, 0, false, false
+		return nil, 0, false
 	}
 
 	if data, ok := c.accMap[addr]; ok {
-		return data.acc, data.gas, ok, false
+		return data.acc, data.gas, ok
 	}
 
 	if c.parent != nil {
-		acc, gas, ok, _ := c.parent.GetAccount(addr)
-		return acc, gas, ok, true
+		acc, gas, ok := c.parent.GetAccount(addr)
+		return acc, gas, ok
 	}
-	return nil, 0, false, false
+	return nil, 0, false
 }
 
 func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) {
@@ -247,7 +251,7 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		c.logInfo(logger, "null")
 	}
 
-	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxContractInMap {
+	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxStorageInMap {
 		return
 	}
 
@@ -264,17 +268,17 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		}
 	}
 
-	if len(c.storageMap) >= maxContractInMap {
+	if len(c.storageMap) >= maxStorageInMap {
 		lenStorage := 0
 		for _, v := range c.storageMap {
 			lenStorage += len(v)
 		}
 		deleteMsg += fmt.Sprintf("Storage:Deleted Before:len(contract):%d, len(storage):%d", len(c.storageMap), lenStorage)
 		cnt := 0
-		for key := range c.storageMap {
+		for key, value := range c.storageMap {
+			cnt += len(value)
 			delete(c.storageMap, key)
-			cnt++
-			if cnt > deleteContractCount {
+			if cnt > deleteStorageCount {
 				break
 			}
 		}
