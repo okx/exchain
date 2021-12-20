@@ -85,8 +85,6 @@ type BlockchainReactor struct {
 // NewBlockchainReactor returns new reactor instance.
 func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
 	fastSync bool, autoFastSync bool) *BlockchainReactor {
-	fmt.Println(fmt.Sprintf("autoFastSync: %d", autoFastSync))
-
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
 			store.Height()))
@@ -216,7 +214,6 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
-		fmt.Println(fmt.Sprintf("AddBlock %d", msg.Block.Height))
 		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
@@ -227,7 +224,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
 		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
-		fmt.Println(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
+		//fmt.Println(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
 			go bcR.SwitchToFastSync()
@@ -336,8 +333,6 @@ func (bcR *BlockchainReactor) SwitchToFastSync() {
 		conState, err := conR.SwitchToFastSync()
 		if err == nil {
 			bcR.curState = conState //.Copy()
-		} else {
-			fmt.Println(fmt.Sprintf("SwitchToFastSync 3. err: %s", err))
 		}
 	}
 	chainID := bcR.curState.ChainID

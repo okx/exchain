@@ -136,8 +136,6 @@ func NewSwitch(
 		option(sw)
 	}
 
-	fmt.Println(fmt.Sprintf("AddrBook:%s ListenAddress:%s ExternalAddress:%s", cfg.AddrBook, cfg.ListenAddress, cfg.ExternalAddress))
-
 	return sw
 }
 
