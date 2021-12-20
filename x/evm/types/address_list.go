@@ -3,10 +3,14 @@ package types
 import (
 	"crypto/sha256"
 	"fmt"
+	"sort"
+	"strings"
+	"testing"
+
 	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/pkg/errors"
-	"strings"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -114,6 +118,14 @@ func (bc BlockedContract) String() string {
 //ContractMethods is the list of blocked contract method
 type ContractMethods []ContractMethod
 
+func SortContractMethods(cms []ContractMethod)  {
+	sort.Slice(cms, func(i, j int) bool {
+		if cms[i].Sign == cms[j].Sign {
+			return cms[i].Extra < cms[j].Extra
+		}
+		return cms[i].Sign < cms[j].Sign
+	})
+}
 // String returns ContractMethods string
 func (cms ContractMethods) String() string {
 	var b strings.Builder
@@ -172,6 +184,7 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (Cont
 	for k, _ := range methodMap {
 		result = append(result, methodMap[k])
 	}
+	SortContractMethods(result)
 	return result,nil
 }
 
@@ -189,6 +202,7 @@ func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (Co
 	for k, _ := range methodMap {
 		result = append(result, methodMap[k])
 	}
+	SortContractMethods(result)
 	return result,nil
 }
 
@@ -235,7 +249,7 @@ func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc Con
 	cmbc.cache.Add(key, bc)
 }
 
-func BlockedContractListIsEqual(src, dst BlockedContractList) bool {
+func BlockedContractListIsEqual(t *testing.T,src, dst BlockedContractList) bool {
 	expectedMap := make(map[string]ContractMethods, 0)
 	actuallyMap := make(map[string]ContractMethods, 0)
 	for i := range src {
@@ -253,6 +267,9 @@ func BlockedContractListIsEqual(src, dst BlockedContractList) bool {
 		}
 		if !ContractMethodsIsEqual(expected, v) {
 			return false
+		}
+		if expected != nil && v != nil {
+			require.Equal(t, expected,v)
 		}
 	}
 	return true

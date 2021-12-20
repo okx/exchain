@@ -1437,6 +1437,7 @@ func (csdb *CommitStateDB) IsContractMethodBlocked(contractAddr sdk.AccAddress, 
 // SetContractMethodBlocked sets contract method blocked into blocked list store
 func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	key := GetContractBlockedListMemberKey(contract.Address)
+	SortContractMethods(contract.BlockMethods)
 	value := csdb.cdc.MustMarshalJSON(contract.BlockMethods)
 	value = sdk.MustSortJSON(value)
 	store := csdb.ctx.KVStore(csdb.storeKey)
