@@ -58,6 +58,7 @@ func (blockExec *BlockExecutor) flushPrerunResult()  {
 		case context := <-blockExec.prerunResultChan:
 			context.dump("Flush prerun result")
 		default:
+			return
 		}
 	}
 }
@@ -152,6 +153,9 @@ func prerun(context *executionContext) {
 
 
 func (blockExec *BlockExecutor) InitPrerun() {
+	if blockExec.deltaContext.downloadDelta {
+		panic("download delta is not allowed if prerun enabled")
+	}
 	blockExec.proactivelyRunTx = true
 	go blockExec.prerunRoutine()
 }

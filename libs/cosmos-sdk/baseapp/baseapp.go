@@ -723,7 +723,7 @@ func (app *BaseApp) commitBlockCache() {
 // Note, gas execution info is always returned. A reference to a Result is
 // returned if the tx does not run out of gas and if all the messages are valid
 // and execute successfully. An error is returned otherwise.
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
+func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
 	app.pin(InitCtx, true, mode)
 
