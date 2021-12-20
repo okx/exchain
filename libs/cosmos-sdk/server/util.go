@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	log2 "github.com/okex/exchain/libs/plugin/log"
 	"net"
 	"os"
 	"os/signal"
@@ -44,7 +45,7 @@ func NewContext(config *cfg.Config, logger log.Logger) *Context {
 	return &Context{config, logger}
 }
 
-//___________________________________________________________________________________
+// ___________________________________________________________________________________
 
 // PersistentPreRunEFn returns a PersistentPreRunE function for cobra
 // that initailizes the passed in context with a properly configured
@@ -59,15 +60,16 @@ func PersistentPreRunEFn(context *Context) func(*cobra.Command, []string) error 
 			return err
 		}
 		// okchain
-		output := os.Stdout
-		if !config.LogStdout {
-			output, err = os.OpenFile(config.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
-			if err != nil {
-				return err
-			}
-		}
+		// output := os.Stdout
+		// if !config.LogStdout {
+		// 	output, err = os.OpenFile(config.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
 
-		logger := log.NewTMLogger(log.NewSyncWriter(output))
+		// logger := log.NewTMLogger(log.NewSyncWriter(output))
+		logger := log2.NewLogAdapter("NODE")
 		logger, err = tmflags.ParseLogLevel(config.LogLevel, logger, cfg.DefaultLogLevel())
 		if err != nil {
 			return err
@@ -164,7 +166,7 @@ func AddCommands(
 	)
 }
 
-//___________________________________________________________________________________
+// ___________________________________________________________________________________
 
 // InsertKeyJSON inserts a new JSON field/key with a given value to an existing
 // JSON message. An error is returned if any serialization operation fails.
