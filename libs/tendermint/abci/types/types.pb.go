@@ -762,9 +762,11 @@ var RunTxConcorrently bool = false
 
 // re-org runTx() code only
 var RunTxByRefactor1 bool = true
-
+//var RunTxByRefactor1 bool = false
+//
 // break runTx() down by 2 part
-var RunTxByRefactor2 bool = true
+//var RunTxByRefactor2 bool = true
+var RunTxByRefactor2 bool = false
 
 var Part1RoutineNum int = 1
 

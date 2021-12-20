@@ -21,7 +21,7 @@ func init() {
 }
 
 func main() {
-	testCounter()
+	//testCounter()
 }
 
 const (
