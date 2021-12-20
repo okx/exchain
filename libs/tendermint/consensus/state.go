@@ -801,7 +801,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
-		fmt.Println("VC OCCUERD")
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
@@ -1740,22 +1739,6 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
-	// try to sleep until consensus timeout
-	//sm.AddBlock(height, round)
-
-	/*
-	if height == 4 && round == 0{
-		prevotes := cs.Votes.Prevotes(cs.Round)
-		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-		fmt.Println("Prevotes hasTwoThirds --->", hasTwoThirds , blockID.IsZero())
-
-		precommit := cs.Votes.Precommits(cs.Round)
-		blockID, hasTwoThirds = precommit.TwoThirdsMajority()
-		fmt.Println("Precommits hasTwoThirds --->", hasTwoThirds , blockID.IsZero())
-	}
-
-	 */
-
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
@@ -1775,9 +1758,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	if err != nil {
 		return added, err
 	}
-
-
-
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
