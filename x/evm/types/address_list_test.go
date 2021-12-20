@@ -275,9 +275,10 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected := ContractMethods{}
 	expected = append(expected, cm...)
 	expected = append(expected, method3)
-	cm, err:= cm.InsertContractMethods(ContractMethods{method3})
+	cm, err := cm.InsertContractMethods(ContractMethods{method3})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, expected))
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 
 	//success,insert multi methods
 	cm = ContractMethods{cm1, cm2}
@@ -288,24 +289,31 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected = append(expected, method4, method5)
 	cm, err = cm.InsertContractMethods(ContractMethods{method4, method5})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, expected))
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm,err  = cm.InsertContractMethods(ContractMethods{cm1})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
+	expected = ContractMethods{cm1, cm2}
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm,err = cm.InsertContractMethods(ContractMethods{cm1})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
+	expected = ContractMethods{cm1, cm2}
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm,err = cm.InsertContractMethods(ContractMethods{cm1, cm2})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
+	expected = ContractMethods{cm1, cm2}
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 }
 func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
 	method1 := hexutil.Encode([]byte("transfer")[:4])
@@ -317,13 +325,16 @@ func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
 	cm := ContractMethods{cm1, cm2}
 	cm,err := cm.DeleteContractMethodMap(ContractMethods{cm2})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1}))
+	expected := ContractMethods{cm1}
+	SortContractMethods(expected)
+	require.Equal(t, expected,cm)
 
 	//success,delete multi methods
 	cm = ContractMethods{cm1, cm2}
 	cm,err = cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
 	require.NoError(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{}))
+	expected = ContractMethods{}
+	require.Equal(t, expected,cm)
 
 	//success,delete uncontains methods
 	cm = ContractMethods{cm1, cm2}
