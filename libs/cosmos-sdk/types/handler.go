@@ -11,9 +11,7 @@ type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
 type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
-type AccUpdateHandler func(ctx Context, err error)
-
-type AccMptCommitHandler func(ctx Context)
+type AccCommitHandler func(ctx Context)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 

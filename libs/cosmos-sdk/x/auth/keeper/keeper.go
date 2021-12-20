@@ -15,7 +15,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/wrap"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
@@ -119,13 +118,6 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 		panic(err)
 	}
 	return
-}
-
-func (ak *AccountKeeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-}
-
-func (ak *AccountKeeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return []abci.ValidatorUpdate{}
 }
 
 var (

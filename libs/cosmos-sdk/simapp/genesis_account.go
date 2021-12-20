@@ -160,16 +160,3 @@ func (sga *SimGenesisAccount) DecodeRLP(s *rlp.Stream) error {
 
 	return err
 }
-
-func (sga *SimGenesisAccount) Copy() *SimGenesisAccount {
-	return &SimGenesisAccount{
-		BaseAccount:       sga.BaseAccount,
-		OriginalVesting:   sga.OriginalVesting,
-		DelegatedFree:     sga.DelegatedFree,
-		DelegatedVesting:  sga.DelegatedVesting,
-		StartTime:         sga.StartTime,
-		EndTime:           sga.EndTime,
-		ModuleName:        sga.ModuleName,
-		ModulePermissions: sga.ModulePermissions,
-	}
-}

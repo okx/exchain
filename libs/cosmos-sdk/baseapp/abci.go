@@ -298,8 +298,8 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkState.accms.Clean()
 	app.deliverState.accms.Write() //c3s.write()
 	app.accCacheCMS.Write() // c2s.write()
-	if app.AccMptCommitHandler != nil {
-		app.AccMptCommitHandler(app.deliverState.ctx) // call c1s.write()
+	if app.AccCommitHandler != nil {
+		app.AccCommitHandler(app.deliverState.ctx) // call c1s.write()
 	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.

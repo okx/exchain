@@ -155,32 +155,3 @@ func TestBaseAccountRLP(t *testing.T) {
 
 	require.Equal(t, baseAcc.Address, baAcc.Address)
 }
-
-func TestBaseAccountCopy(t *testing.T) {
-	pubkey := secp256k1.GenPrivKey().PubKey()
-	addr := sdk.AccAddress(pubkey.Address())
-	baseAcc := NewBaseAccount(addr, nil, pubkey, 0, 0)
-
-	someCoins := sdk.Coins{sdk.NewInt64Coin("atom", 123), sdk.NewInt64Coin("eth", 246)}
-	seq := uint64(7)
-
-	// set everything on the account
-	err := baseAcc.SetSequence(seq)
-	require.Nil(t, err)
-	err = baseAcc.SetCoins(someCoins)
-	require.Nil(t, err)
-
-	bacp := baseAcc.Copy()
-	require.Equal(t, baseAcc.PubKey, bacp.PubKey)
-
-	otherCoins := sdk.Coins{sdk.NewInt64Coin("btc", 456)}
-	err = bacp.SetCoins(otherCoins)
-	require.Nil(t, err)
-	require.NotEqual(t, len(baseAcc.Coins), len(bacp.Coins))
-
-
-	pubkey2 := secp256k1.GenPrivKey().PubKey()
-	err = bacp.SetPubKey(pubkey2)
-	require.Nil(t, err)
-	require.NotEqual(t, baseAcc.PubKey, bacp.PubKey)
-}

@@ -41,9 +41,12 @@ type Account interface {
 
 	GetStorageRoot() ethcmn.Hash
 
-	RLPDecodeBytes(data []byte) error
-
 	IsEthAccount() bool
+}
+
+type MptAccount interface {
+	Account
+	RLPDecodeBytes(data []byte) error
 }
 
 // GenesisAccounts defines a slice of GenesisAccount objects
@@ -81,14 +84,14 @@ const (
 )
 
 var (
-	ConcreteAccount map[uint]Account
+	ConcreteAccount map[uint]MptAccount
 	initOnce sync.Once
 )
 
-func RegisterConcreteAccountInfo(accType uint, acc Account) {
+func RegisterConcreteAccountInfo(accType uint, acc MptAccount) {
 	initOnce.Do(func() {
 		if ConcreteAccount == nil {
-			ConcreteAccount = make(map[uint]Account)
+			ConcreteAccount = make(map[uint]MptAccount)
 		}
 	})
 

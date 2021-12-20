@@ -251,7 +251,7 @@ func InitTestnet(
 			sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
 		)
 
-		genAccounts = append(genAccounts, &ethermint.EthAccount{
+		genAccounts = append(genAccounts, ethermint.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
 			StateRoot: ethcmn.Hash{},

@@ -101,7 +101,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	ethAddr := ethermintAccount.EthAddress()
 	return &stateObject{
 		stateDB:        db,
-		account:        ethermintAccount.Copy(),
+		account:        ethermintAccount,
 		address:        ethAddr,
 		addrHash:       ethcrypto.Keccak256Hash(ethAddr[:]),
 		originStorage:  make(ethstate.Storage),

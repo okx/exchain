@@ -106,7 +106,7 @@ type BaseApp struct { // nolint: maligned
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	AccNonceHandler  sdk.AccNonceHandler  // account nonce handler for cm tx nonce
-	AccMptCommitHandler sdk.AccMptCommitHandler // handler for cache store
+	AccCommitHandler sdk.AccCommitHandler // handler for cache store
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs

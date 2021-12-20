@@ -306,7 +306,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	}
 
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
-	api.watcherBackend.CommitAccountToRpcDb(&account)
+	api.watcherBackend.CommitAccountToRpcDb(account)
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -356,7 +356,7 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 		return nil, err
 	}
 
-	api.watcherBackend.CommitAccountToRpcDb(&account)
+	api.watcherBackend.CommitAccountToRpcDb(account)
 
 	return &account, nil
 }
@@ -1559,5 +1559,5 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount := ethermint.EthAccount{BaseAccount: &auth.BaseAccount{}}
 	zeroAccount.SetAddress(address.Bytes())
 	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
-	api.watcherBackend.CommitAccountToRpcDb(&zeroAccount)
+	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
 }

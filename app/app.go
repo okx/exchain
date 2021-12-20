@@ -436,7 +436,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.SetAccMptCommitHandler(NewAccMptCommitHandler(app.AccountKeeper))
+	app.SetAccCommitHandler(NewAccCommitHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.AddCustomizeModuleOnStopLogic(app.AccountKeeper.OnStop)
 
@@ -615,7 +615,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func NewAccMptCommitHandler(ak auth.AccountKeeper) sdk.AccMptCommitHandler {
+func NewAccCommitHandler(ak auth.AccountKeeper) sdk.AccCommitHandler {
 	return func(ctx sdk.Context) {
 		ak.Commit(ctx)
 	}

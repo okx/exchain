@@ -32,7 +32,7 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 }
 
 // GetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) (acc exported.Account) {
+func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	//store := ctx.KVStore(ak.key)
 	//bz := store.Get(types.AddressStoreKey(addr))
 	//if bz == nil {

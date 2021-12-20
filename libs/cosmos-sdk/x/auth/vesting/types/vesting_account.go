@@ -383,16 +383,6 @@ func (bva *BaseVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
-func (bva *BaseVestingAccount) Copy() *BaseVestingAccount {
-	return &BaseVestingAccount{
-		BaseAccount:      bva.BaseAccount.Copy(),
-		OriginalVesting:  bva.OriginalVesting,
-		DelegatedFree:    bva.DelegatedFree,
-		DelegatedVesting: bva.DelegatedVesting,
-		EndTime:          bva.EndTime,
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Continuous Vesting Account
 
@@ -647,13 +637,6 @@ func (cva *ContinuousVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	*cva, err = alia.Pretty2Acc()
 
 	return err
-}
-
-func (cva *ContinuousVestingAccount) Copy() *ContinuousVestingAccount {
-	return &ContinuousVestingAccount{
-		BaseVestingAccount: cva.BaseVestingAccount.Copy(),
-		StartTime:          cva.StartTime,
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -961,14 +944,6 @@ func (pva *PeriodicVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
-func (pva *PeriodicVestingAccount) Copy() *PeriodicVestingAccount {
-	return &PeriodicVestingAccount{
-		BaseVestingAccount: pva.BaseVestingAccount.Copy(),
-		StartTime:          pva.StartTime,
-		VestingPeriods:     pva.VestingPeriods,
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Delayed Vesting Account
 
@@ -1152,10 +1127,4 @@ func (dva *DelayedVestingAccount) DecodeRLP(s *rlp.Stream) error {
 	*dva, err = alia.Pretty2Acc()
 
 	return err
-}
-
-func (dva *DelayedVestingAccount) Copy() *DelayedVestingAccount {
-	return &DelayedVestingAccount{
-		BaseVestingAccount: dva.BaseVestingAccount.Copy(),
-	}
 }
