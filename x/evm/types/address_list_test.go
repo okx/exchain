@@ -109,7 +109,8 @@ func TestNewBlockContract(t *testing.T) {
 	bc = NewBlockContract(accAddr, nil)
 	require.NotNil(t, bc)
 	require.Equal(t, accAddr, bc.Address)
-	require.Nil(t, bc.BlockMethods)
+	require.Equal(t, ContractMethods{},bc.BlockMethods)
+	require.True(t, bc.IsAllMethodBlocked())
 
 	//success,Address is not nil,BlockedMethods is nil
 	bc = NewBlockContract(nil, cmm)
@@ -121,8 +122,8 @@ func TestNewBlockContract(t *testing.T) {
 	bc = NewBlockContract(nil, nil)
 	require.NotNil(t, bc)
 	require.Nil(t, bc.Address)
-	require.Nil(t, bc.BlockMethods)
-
+	require.Equal(t, ContractMethods{},bc.BlockMethods)
+	require.True(t, bc.IsAllMethodBlocked())
 }
 
 func TestBlockedContract_IsAllMethodBlocked(t *testing.T) {
@@ -274,7 +275,8 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected := ContractMethods{}
 	expected = append(expected, cm...)
 	expected = append(expected, method3)
-	cm.InsertContractMethods(ContractMethods{method3})
+	cm, err:= cm.InsertContractMethods(ContractMethods{method3})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, expected))
 
 	//success,insert multi methods
@@ -284,21 +286,25 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected = ContractMethods{}
 	expected = append(expected, cm...)
 	expected = append(expected, method4, method5)
-	cm.InsertContractMethods(ContractMethods{method4, method5})
+	cm, err = cm.InsertContractMethods(ContractMethods{method4, method5})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, expected))
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
-	cm.InsertContractMethods(ContractMethods{cm1})
+	cm,err  = cm.InsertContractMethods(ContractMethods{cm1})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
-	cm.InsertContractMethods(ContractMethods{cm1})
+	cm,err = cm.InsertContractMethods(ContractMethods{cm1})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
-	cm.InsertContractMethods(ContractMethods{cm1, cm2})
+	cm,err = cm.InsertContractMethods(ContractMethods{cm1, cm2})
+	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 }
 func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
@@ -309,22 +315,21 @@ func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
 
 	//success,delete one methods
 	cm := ContractMethods{cm1, cm2}
-	err := cm.DeleteContractMethodMap(ContractMethods{cm2})
+	cm,err := cm.DeleteContractMethodMap(ContractMethods{cm2})
 	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1}))
 
 	//success,delete multi methods
 	cm = ContractMethods{cm1, cm2}
-	err = cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
+	cm,err = cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
 	require.NoError(t, err)
 	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{}))
 
 	//success,delete uncontains methods
 	cm = ContractMethods{cm1, cm2}
 	method3 := ContractMethod{Sign: hexutil.Encode([]byte("cccc")), Extra: "test3"}
-	err = cm.DeleteContractMethodMap(ContractMethods{method3})
+	cm,err = cm.DeleteContractMethodMap(ContractMethods{method3})
 	require.Error(t, err)
-	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 }
 func TestContractMethods_GetContractMethodsMap(t *testing.T) {
 	method1 := hexutil.Encode([]byte("transfer")[:4])
