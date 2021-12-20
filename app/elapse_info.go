@@ -12,10 +12,24 @@ import (
 
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{trace.Evm, trace.Iavl, trace.DeliverTxs, trace.Round, trace.CommitRound, trace.Produce}
+	CUSTOM_PRINT = []string{trace.Evm,
+		trace.Iavl,
+		trace.DeliverTxs,
+		trace.InDelta,
+		trace.OutDelta,
+		trace.Round,
+		trace.CommitRound,
+		trace.Produce}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
-		trace.Evm, trace.Iavl, trace.DeliverTxs, trace.Round, trace.CommitRound, trace.Produce)
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=0,%s=0",
+		trace.Evm,
+		trace.Iavl,
+		trace.DeliverTxs,
+		trace.InDelta,
+		trace.OutDelta,
+		trace.Round,
+		trace.CommitRound,
+		trace.Produce)
 )
 
 const (
@@ -78,17 +92,16 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s]",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
+		trace.BlockSize, e.infoMap[trace.BlockSize],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
+		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		trace.Prerun, e.infoMap[trace.Prerun],
-		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.MempoolCheckTxCnt, e.infoMap[trace.MempoolCheckTxCnt],
 		trace.MempoolTxsCnt, e.infoMap[trace.MempoolTxsCnt],
-		trace.InDelta, e.infoMap[trace.InDelta],
-		trace.OutDelta, e.infoMap[trace.OutDelta],
 	)
 
 	if len(detailInfo) > 0 {

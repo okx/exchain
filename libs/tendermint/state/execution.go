@@ -167,6 +167,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
 		trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
 			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
 		trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
@@ -265,7 +266,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyDelta(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
+	dc.postApplyBlock(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
 
 	return state, retainHeight, nil
 }
@@ -286,7 +287,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Info("Not apply delta", "block", block.Size(), "gid", gorid.GoRId)
+		blockExec.logger.Debug("Not apply delta", "block", block.Size(), "gid", gorid.GoRId)
 
 		if blockExec.proactivelyRunTx {
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
@@ -338,7 +339,7 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	blockExec.logger.Info("set abciDelta", "abciDelta", dc.deltas, "gid", gorid.GoRId)
+	blockExec.logger.Debug("set abciDelta", "abciDelta", dc.deltas, "gid", gorid.GoRId)
 	abciDelta := &abci.Deltas{
 		DeltasByte: dc.deltas.DeltasBytes,
 	}
@@ -354,7 +355,7 @@ func (blockExec *BlockExecutor) commit(
 	}
 
 	// ResponseCommit has no error code - just data
-	blockExec.logger.Info(
+	blockExec.logger.Debug(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
@@ -467,7 +468,6 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	logger.Info("Executed block", "height", block.Height, "validTxs", validTxs, "invalidTxs", invalidTxs)
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
