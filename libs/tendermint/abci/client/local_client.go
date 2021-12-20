@@ -87,8 +87,6 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
-	fmt.Printf("localClient DeliverTxAsync: \n", )
-
 	res := app.Application.DeliverTx(params)
 	return app.callback(
 		types.ToRequestDeliverTx(params),
