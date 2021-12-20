@@ -94,7 +94,7 @@ run() {
   p2p_seed_arg=$6
   parallel_run_tx=false
 
-  if [ $index -eq 3 ];then
+  if [ $(($index % 2)) -eq 0 ];then
       parallel_run_tx=true
     else
       parallel_run_tx=false
@@ -127,7 +127,7 @@ run() {
     --upload-delta \
     --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
     --rest.laddr tcp://localhost:8545 \
-    --enable-proactively-runtx=$parallel_run_tx \
+    --enable-proactively-runtx=true \
     --prerun-testcase "./case.json" \
     --proactively-role=$index \
     --keyring-backend test >cache/val${index}.log 2>&1 &

@@ -13,7 +13,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-
 type executionResult struct {
 	res *ABCIResponses
 	err error
@@ -51,15 +50,16 @@ func (e *executionContext) stop() {
 }
 
 func (blockExec *BlockExecutor) flushPrerunResult() {
-	for {
+	run := true
+	for run {
 		select {
 		case context := <-blockExec.prerunResultChan:
 			context.dump("Flush prerun result")
 		default:
-			goto BREAK
+			run = false
+			break
 		}
 	}
-BREAK:
 }
 
 func (blockExec *BlockExecutor) prerunRoutine() {
@@ -145,7 +145,7 @@ func prerun(context *executionContext) {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	PreTimeOut(context.block.Height, int(context.index) - 1)
+	PreTimeOut(context.block.Height, int(context.index)-1)
 	context.dump("Prerun completed")
 	context.prerunResultChan <- context
 }

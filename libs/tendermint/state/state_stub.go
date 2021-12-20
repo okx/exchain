@@ -78,7 +78,6 @@ func LoadTestConf() {
 			}
 		}
 	}
-	fmt.Println("roleConf-->", roleConf)
 }
 
 func GetPrevote(height int64, round int) bool {
@@ -98,7 +97,6 @@ func GetPrecommit(height int64, round int) bool {
 func PreTimeOut(height int64, round int) {
 	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
 		time_sleep := val.PrerunWait
-		fmt.Println("PreTimeOut sleep", time_sleep)
 		time.Sleep(time.Duration(time_sleep) * time.Second)
 	}
 }
@@ -106,7 +104,6 @@ func PreTimeOut(height int64, round int) {
 func AddBlockTimeOut(height int64, round int) {
 	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
 		time_sleep := val.AddblockpartnWait
-		fmt.Println("AddBlockTimeOut sleep", time_sleep)
 		time.Sleep(time.Duration(time_sleep) * time.Second)
 	}
 }
