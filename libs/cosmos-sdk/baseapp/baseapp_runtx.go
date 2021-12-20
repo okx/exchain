@@ -8,7 +8,6 @@ import (
 	"runtime/debug"
 )
 
-
 type runTxInfo struct {
 	handler modeHandler
 	gasWanted uint64
@@ -24,34 +23,31 @@ type runTxInfo struct {
 	result *sdk.Result
 	txBytes []byte
 	tx sdk.Tx
-	finished bool
-	decoded bool
 }
 
-var RunTxByRefactor bool = true
-//var RunTxByRefactor bool = false
 
-func (app *BaseApp) runTx(mode runTxMode,
-	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
+func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
 	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
-	if RunTxByRefactor {
+	runTxByRefactor := true
+	// RunTxByRefactor = false
+
+	if runTxByRefactor {
 		var info *runTxInfo
-		info, err = app.RunTxByRefactor(mode, txBytes, tx, height)
+		info, err = app.runTxByRefactor(mode, txBytes, tx, height)
 		return info.gInfo, info.result, info.msCacheAnte, err
 	} else {
 		return app.runtx_org(mode, txBytes, tx, height)
 	}
 }
 
-func (app *BaseApp) RunTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 
-	fmt.Printf("runtx_refactor\n")
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return info, err
@@ -74,9 +70,6 @@ func (app *BaseApp) RunTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, h
 	defer handler.handleDeferGasConsumed(info)
 	defer handler.handleDeferRefund(info)
 
-	//defer app.runTx_defer_consumegas(info, mode)
-	//defer app.runTx_defer_refund(info, mode)
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
@@ -92,39 +85,64 @@ func (app *BaseApp) RunTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, h
 	return info, err
 }
 
-func (app *BaseApp) dumpResp(res *abci.ResponseDeliverTx, idx int)  {
 
-	app.logger.Info("===========DeliverTx===========",
-		"block", app.LastBlockHeight()+1,
-		"idx", idx,
-		"Data len", len(res.Data),
-		"Info", res.Info,
-		"GasUsed", res.GasUsed,
-		"GasWanted", res.GasWanted,
-		"Code", res.Code,
-	)
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 
-	for i, e := range res.Events {
-		app.logger.Info("	Event", "id", i, "type", e.Type)
+	var anteCtx sdk.Context
 
-		if len(e.Attributes) == 0 {
-			panic("")
-		}
-		for j, a := range e.Attributes {
-			app.logger.Info("		Attributes", "id", j, "k", string(a.Key), "v", string(a.Value))
-		}
+	// Cache wrap context before AnteHandler call in case it aborts.
+	// This is required for both CheckTx and DeliverTx.
+	// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
+	//
+	// NOTE: Alternatively, we could require that AnteHandler ensures that
+	// writes do not happen if aborted/failed.  This may have some
+	// performance benefits, but it'll be more difficult to get right.
+	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	ms := info.ctx.MultiStore()
+	info.accountNonce = newCtx.AccountNonce()
+	if !newCtx.IsZero() {
+		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
+		// replaced by the AnteHandler. We want the original multistore, not one
+		// which was cache-wrapped for the AnteHandler.
+		//
+		// Also, in the case of the tx aborting, we need to track gas consumed via
+		// the instantiated gas meter in the AnteHandler, so we update the context
+		// prior to returning.
+		info.ctx = newCtx.WithMultiStore(ms)
 	}
+
+	// GasMeter expected to be set in AnteHandler
+	info.gasWanted = info.ctx.GasMeter().Limit()
+
+	if mode == runTxModeDeliverInAsync {
+		app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if mode != runTxModeDeliverInAsync {
+		info.msCacheAnte.Write()
+	}
+
+	return nil
 }
 
-func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
-	return app.DeliverTxOrg(req)
-}
 
-func (app *BaseApp) DeliverTxOrg(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+	}
+
+	//just for asynchronous deliver tx
+	if app.parallelTxManage.isAsyncDeliverTx {
+		go app.asyncDeliverTx(req, tx)
+		return abci.ResponseDeliverTx{}
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
@@ -171,3 +189,55 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	}
 	return err
 }
+
+func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
+
+	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
+	if !txStatus.isEvmTx {
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
+		app.parallelTxManage.workgroup.Push(asyncExe)
+		return
+	}
+
+	var resp abci.ResponseDeliverTx
+	g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
+	if e != nil {
+		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
+	} else {
+		resp = abci.ResponseDeliverTx{
+			GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
+			GasUsed:   int64(g.GasUsed),   // TODO: Should type accept unsigned ints?
+			Log:       r.Log,
+			Data:      r.Data,
+			Events:    r.Events.ToABCIEvents(),
+		}
+	}
+
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe.err = e
+	app.parallelTxManage.workgroup.Push(asyncExe)
+}
+
+
+//func (app *BaseApp) dumpResp(res *abci.ResponseDeliverTx, idx int)  {
+//
+//	app.logger.Info("===========DeliverTx===========",
+//		"block", app.LastBlockHeight()+1,
+//		"idx", idx,
+//		"Data len", len(res.Data),
+//		"Info", res.Info,
+//		"GasUsed", res.GasUsed,
+//		"GasWanted", res.GasWanted,
+//		"Code", res.Code,
+//	)
+//	for i, e := range res.Events {
+//		app.logger.Info("	Event", "id", i, "type", e.Type)
+//
+//		if len(e.Attributes) == 0 {
+//			panic("")
+//		}
+//		for j, a := range e.Attributes {
+//			app.logger.Info("		Attributes", "id", j, "k", string(a.Key), "v", string(a.Value))
+//		}
+//	}
+//}
