@@ -145,7 +145,7 @@ func prerun(context *executionContext) {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	PreTimeOut(context.block.Height, int(context.index))
+	PreTimeOut(context.block.Height, int(context.index) - 1)
 	context.dump("Prerun completed")
 	context.prerunResultChan <- context
 }
