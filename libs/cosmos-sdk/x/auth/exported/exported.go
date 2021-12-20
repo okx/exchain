@@ -83,17 +83,19 @@ const (
 	SimGenesisAcc AccountType = 8
 )
 
+type CreateConcreteAccountVarFunc func() MptAccount
+
 var (
-	ConcreteAccount map[uint]MptAccount
+	ConcreteAccount map[uint]CreateConcreteAccountVarFunc
 	initOnce sync.Once
 )
 
-func RegisterConcreteAccountInfo(accType uint, acc MptAccount) {
+func RegisterConcreteAccountInfo(accType uint, newAccFunc CreateConcreteAccountVarFunc) {
 	initOnce.Do(func() {
 		if ConcreteAccount == nil {
-			ConcreteAccount = make(map[uint]MptAccount)
+			ConcreteAccount = make(map[uint]CreateConcreteAccountVarFunc)
 		}
 	})
 
-	ConcreteAccount[accType] = acc
+	ConcreteAccount[accType] = newAccFunc
 }

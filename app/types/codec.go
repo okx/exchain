@@ -14,5 +14,7 @@ const (
 // provided Amino codec.
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&EthAccount{}, EthAccountName, nil)
-	exported.RegisterConcreteAccountInfo(uint(exported.EthAcc), &EthAccount{})
+	exported.RegisterConcreteAccountInfo(uint(exported.EthAcc), func() exported.MptAccount {
+		return &EthAccount{}
+	})
 }

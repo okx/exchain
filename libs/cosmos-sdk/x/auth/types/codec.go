@@ -15,7 +15,9 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/Account", nil)
 	cdc.RegisterConcrete(StdTx{}, "cosmos-sdk/StdTx", nil)
 
-	exported.RegisterConcreteAccountInfo(uint(exported.BaseAcc), &BaseAccount{})
+	exported.RegisterConcreteAccountInfo(uint(exported.BaseAcc), func() exported.MptAccount {
+		return &BaseAccount{}
+	})
 }
 
 // RegisterAccountTypeCodec registers an external account type defined in

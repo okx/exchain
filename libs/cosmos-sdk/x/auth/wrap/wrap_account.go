@@ -17,13 +17,13 @@ func (acc *WrapAccount) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 
-	if realType, ok  := exported.ConcreteAccount[kind]; ok {
+	if varFunc, ok  := exported.ConcreteAccount[kind]; ok {
 		data, err := s.Raw()
 		if err != nil {
 			return err
 		}
 
-		puppet := realType
+		puppet := varFunc()
 		err = puppet.RLPDecodeBytes(data)
 		acc.RealAcc = puppet
 		return err

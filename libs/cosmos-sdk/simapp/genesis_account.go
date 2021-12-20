@@ -14,7 +14,9 @@ import (
 var _ authexported.GenesisAccount = (*SimGenesisAccount)(nil)
 
 func init() {
-	authexported.RegisterConcreteAccountInfo(uint(authexported.SimGenesisAcc), &SimGenesisAccount{})
+	authexported.RegisterConcreteAccountInfo(uint(authexported.SimGenesisAcc), func() authexported.MptAccount{
+		return &SimGenesisAccount{}
+	})
 }
 
 // SimGenesisAccount defines a type that implements the GenesisAccount interface

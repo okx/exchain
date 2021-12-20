@@ -263,13 +263,3 @@ func (acc *BaseAccount) DecodeRLP(s *rlp.Stream) error {
 
 	return err
 }
-
-func (acc *BaseAccount) Copy() *BaseAccount {
-	return &BaseAccount{
-		Address:       acc.Address,
-		Coins:         acc.Coins,
-		PubKey:        acc.PubKey,
-		AccountNumber: acc.AccountNumber,
-		Sequence:      acc.Sequence,
-	}
-}

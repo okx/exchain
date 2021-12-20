@@ -13,7 +13,9 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
 	cdc.RegisterConcrete(&Supply{}, "cosmos-sdk/Supply", nil)
 
-	exported2.RegisterConcreteAccountInfo(uint(exported2.ModuleAcc), &ModuleAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.ModuleAcc), func() exported2.MptAccount{
+		return &ModuleAccount{}
+	})
 }
 
 // ModuleCdc generic sealed codec to be used throughout module

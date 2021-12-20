@@ -310,11 +310,3 @@ func (acc *EthAccount) DecodeRLP(s *rlp.Stream) error {
 
 	return err
 }
-
-func (acc *EthAccount) Copy() *EthAccount {
-	return &EthAccount{
-		BaseAccount: acc.BaseAccount.Copy(),
-		CodeHash:    acc.CodeHash,
-		StateRoot:   acc.StateRoot,
-	}
-}

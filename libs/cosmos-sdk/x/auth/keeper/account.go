@@ -49,7 +49,6 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	if err != nil {
 		return nil
 	}
-
 	return wrapAcc.RealAcc
 }
 

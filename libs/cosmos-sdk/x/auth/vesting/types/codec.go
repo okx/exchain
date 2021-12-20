@@ -14,10 +14,18 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&DelayedVestingAccount{}, "cosmos-sdk/DelayedVestingAccount", nil)
 	cdc.RegisterConcrete(&PeriodicVestingAccount{}, "cosmos-sdk/PeriodicVestingAccount", nil)
 
-	exported2.RegisterConcreteAccountInfo(uint(exported2.BaseVestingAcc), &BaseVestingAccount{})
-	exported2.RegisterConcreteAccountInfo(uint(exported2.ContinuousVestingAcc), &ContinuousVestingAccount{})
-	exported2.RegisterConcreteAccountInfo(uint(exported2.DelayedVestingAcc), &DelayedVestingAccount{})
-	exported2.RegisterConcreteAccountInfo(uint(exported2.PeriodicVestingAcc), &PeriodicVestingAccount{})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.BaseVestingAcc), func() exported2.MptAccount{
+		return &BaseVestingAccount{}
+	})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.ContinuousVestingAcc), func() exported2.MptAccount{
+		return &ContinuousVestingAccount{}
+	})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.DelayedVestingAcc), func() exported2.MptAccount{
+		return &DelayedVestingAccount{}
+	})
+	exported2.RegisterConcreteAccountInfo(uint(exported2.PeriodicVestingAcc), func() exported2.MptAccount{
+		return &PeriodicVestingAccount{}
+	})
 }
 
 // VestingCdc module wide codec
