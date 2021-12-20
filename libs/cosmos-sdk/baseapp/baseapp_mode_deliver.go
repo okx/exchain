@@ -40,7 +40,6 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	info.msCache.Write()
 }
 
-
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {
 	m.setGasConsumed(info)
 }

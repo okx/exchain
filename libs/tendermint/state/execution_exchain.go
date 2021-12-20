@@ -26,7 +26,7 @@ func SetIgnoreSmbCheck(check bool) {
 	IgnoreSmbCheck = check
 }
 
-func PprofStart() (*os.File, time.Time) {
+	func PprofStart() (*os.File, time.Time) {
 	startTime := time.Now()
 	p := getFilePath("")
 	if _, err := os.Stat(p); os.IsNotExist(err) {

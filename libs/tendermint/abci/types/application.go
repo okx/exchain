@@ -54,6 +54,8 @@ func (BaseApplication) SetOption(req RequestSetOption) ResponseSetOption {
 }
 
 func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
+	fmt.Printf(" (BaseApplication) DeliverTx\n")
+
 	return ResponseDeliverTx{Code: CodeTypeOK}
 }
 

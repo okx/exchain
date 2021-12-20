@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
@@ -82,6 +83,8 @@ func (app *appConnConsensus) DeliverTxAsync(req types.RequestDeliverTx) *abcicli
 }
 
 func (app *appConnConsensus) DeliverTxConcurrently(req [][]byte, ctx types.DeliverTxContext) []*abcicli.ReqRes {
+	fmt.Printf(" (app *appConnConsensus) DeliverTxConcurrently\n")
+
 	return app.appConn.DeliverTxConcurrently(req, ctx)
 }
 

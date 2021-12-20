@@ -1,6 +1,7 @@
 package abcicli
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/abci/types"
@@ -86,6 +87,8 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
+	fmt.Printf("localClient DeliverTxAsync: \n", )
+
 	res := app.Application.DeliverTx(params)
 	return app.callback(
 		types.ToRequestDeliverTx(params),
@@ -98,6 +101,7 @@ func (app *localClient) DeliverTxConcurrently(txs [][]byte, ctx types.DeliverTxC
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 
+	fmt.Printf(" (app *localClient) DeliverTxConcurrently\n")
 	resList := app.Application.DeliverTxConcurrently(txs, ctx) // DeliverTxConcurrently
 	for i, res := range resList {
 		app.callback(types.ToRequestDeliverTx(types.RequestDeliverTx{Tx:txs[i]}), types.ToResponseDeliverTx(*res),)
