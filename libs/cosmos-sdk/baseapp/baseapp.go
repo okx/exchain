@@ -706,12 +706,12 @@ func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
 	cache.Write()
 }
 
-func (app *BaseApp) NewBlockCache() {
+func (app *BaseApp) newBlockCache() {
 	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
 	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
 }
 
-func (app *BaseApp) CommitBlockCache() {
+func (app *BaseApp) commitBlockCache() {
 	app.blockCache.Write(true)
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
@@ -1069,4 +1069,3 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-
