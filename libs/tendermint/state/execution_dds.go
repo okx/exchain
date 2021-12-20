@@ -83,7 +83,7 @@ func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponse
 	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
 
 	// rpc
-	if dc.useDeltas {
+	if dc.useDeltas && types.IsFastQuery() {
 		UseWatchData(dc.deltas.WatchBytes)
 	}
 
