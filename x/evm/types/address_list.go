@@ -77,7 +77,9 @@ type BlockedContract struct {
 
 // NewBlockContract return point of BlockedContract
 func NewBlockContract(addr sdk.AccAddress, methods ContractMethods) *BlockedContract {
-	return &BlockedContract{Address: addr, BlockMethods: methods}
+	bm := make([]ContractMethod,len(methods))
+	copy(bm,methods)
+	return &BlockedContract{Address: addr, BlockMethods: bm}
 }
 
 // ValidateBasic validates BlockedContract
@@ -160,33 +162,34 @@ func (cms ContractMethods) GetContractMethodsMap() map[string]ContractMethod {
 
 // InsertContractMethods insert the list of ContractMethod into cms.
 // if repeated,methods will cover cms
-func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) {
+func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (ContractMethods,error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
 		methodName := methods[i].Sign
 		methodMap[methodName] = methods[i]
 	}
-	*cms = (*cms)[0:0]
+	result := ContractMethods{}
 	for k, _ := range methodMap {
-		*cms = append((*cms), methodMap[k])
+		result = append(result, methodMap[k])
 	}
+	return result,nil
 }
 
 // DeleteContractMethodMap delete the list of ContractMethod from cms.
 // if method is not exist,it can not be panic or error
-func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) error {
+func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (ContractMethods,error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
 		if _,ok := methodMap[methods[i].Sign]; !ok {
-			return errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
+			return nil,errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
 		}
 		delete(methodMap, methods[i].Sign)
 	}
-	*cms = (*cms)[0:0]
+	result := ContractMethods{}
 	for k, _ := range methodMap {
-		*cms = append((*cms), methodMap[k])
+		result = append(result, methodMap[k])
 	}
-	return nil
+	return result,nil
 }
 
 //ContractMethod is the blocked contract method

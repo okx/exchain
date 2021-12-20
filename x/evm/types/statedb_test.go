@@ -1133,7 +1133,35 @@ func (suite *StateDBTestSuite) TestCommitStateDB_GetContractMethodBlockedByAddre
 	ok = types.BlockedContractListIsEqual(types.BlockedContractList{bcMethodTwo1}, types.BlockedContractList{*bc})
 	suite.Require().True(ok)
 }
-
+func (suite *StateDBTestSuite) TestCacheSet() {
+	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	method1 := types.ContractMethod{
+		Sign:  "aaaa",
+		Extra: "aaaa()",
+	}
+	method2 := types.ContractMethod{
+		Sign:  "bbbb",
+		Extra: "bbbb()",
+	}
+	sourceBc := types.BlockedContract{
+		Address: addr,
+		BlockMethods: types.ContractMethods{
+			method1,method2,
+		},
+	}
+	sourceBcl := types.BlockedContractList{sourceBc}
+	suite.stateDB.InsertContractMethodBlockedList(sourceBcl)
+	bc := suite.stateDB.GetContractMethodBlockedByAddress(addr)
+	methods := &bc.BlockMethods
+	*methods= (*methods)[0:0]
+	*methods = append(*methods,types.ContractMethod{
+		Sign: "dddd",
+		Extra: "dddd()",
+	})
+	bc = suite.stateDB.GetContractMethodBlockedByAddress(addr)
+	ok := types.BlockedContractListIsEqual(sourceBcl, types.BlockedContractList{*bc})
+	suite.Require().True(ok)
+}
 func (suite *StateDBTestSuite) TestCommitStateDB_IsContractMethodBlocked() {
 	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
