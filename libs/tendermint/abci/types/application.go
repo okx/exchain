@@ -1,6 +1,7 @@
 package types // nolint: goimports
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 )
 
@@ -56,8 +57,15 @@ func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
 	return ResponseDeliverTx{Code: CodeTypeOK}
 }
 
-func (BaseApplication) 	DeliverTxConcurrently([][]byte, DeliverTxContext) []*ResponseDeliverTx    {
-	return nil
+func (BaseApplication) 	DeliverTxConcurrently(txs [][]byte, _ DeliverTxContext) []*ResponseDeliverTx    {
+	fmt.Printf(" (BaseApplication) DeliverTxConcurrently\n")
+
+	var res []*ResponseDeliverTx
+	for i := 0; i < len(txs); i++ {
+		res = append(res, &ResponseDeliverTx{Code: CodeTypeOK})
+	}
+
+	return res
 }
 
 func (BaseApplication) CheckTx(req RequestCheckTx) ResponseCheckTx {

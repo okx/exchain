@@ -535,6 +535,7 @@ type mockProxyApp struct {
 	txCount       int
 	abciResponses *sm.ABCIResponses
 }
+var _ abci.Application = (*mockProxyApp)(nil)
 
 func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	r := mock.abciResponses.DeliverTxs[mock.txCount]
@@ -552,4 +553,8 @@ func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlo
 
 func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	return abci.ResponseCommit{Data: mock.appHash, Deltas: &abci.Deltas{}}
+}
+
+func (mock *mockProxyApp) DeliverTxConcurrently(txs [][]byte, _ abci.DeliverTxContext) []*abci.ResponseDeliverTx {
+	return mock.abciResponses.DeliverTxs
 }

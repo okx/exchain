@@ -757,6 +757,17 @@ func (m *RequestCheckTx) GetType() CheckTxType {
 	return CheckTxType_New
 }
 
+//var RunTxConcorrently bool = true
+var RunTxConcorrently bool = false
+
+// re-org runTx() code only
+var RunTxByRefactor1 bool = true
+
+// break runTx() down by 2 part
+var RunTxByRefactor2 bool = true
+
+var Part1RoutineNum int = 1
+
 type RequestDeliverTx struct {
 	Tx                   []byte   `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`

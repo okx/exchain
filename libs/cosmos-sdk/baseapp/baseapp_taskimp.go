@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -21,14 +22,31 @@ type taskImp struct {
 	abciCtx abci.DeliverTxContext
 
 	wg *sync.WaitGroup
-
 	app *BaseApp
 	txBytes []byte
 	res abci.ResponseDeliverTx
 
 	info *runTxInfo
-	
 	logger  log.Logger
+}
+
+type runTxInfo struct {
+	handler modeHandler
+	gasWanted uint64
+	ctx sdk.Context
+	runMsgCtx sdk.Context
+	msCache sdk.CacheMultiStore
+	msCacheAnte sdk.CacheMultiStore
+	accountNonce uint64
+	runMsgFinished bool
+	startingGas uint64
+	gInfo sdk.GasInfo
+
+	result *sdk.Result
+	txBytes []byte
+	tx sdk.Tx
+	finished bool
+	decoded bool
 }
 
 func newTask(id int, txBytes []byte, abciCtx abci.DeliverTxContext, wg *sync.WaitGroup, app *BaseApp) *taskImp {
@@ -53,6 +71,21 @@ func (t *taskImp) setResult(res abci.ResponseDeliverTx) {
 	t.info.finished = true
 }
 
+func  (t *taskImp) genResult()  {
+	if t.info.finished {
+		return
+	}
+	t.res = abci.ResponseDeliverTx{
+		GasWanted: int64(t.info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:   int64(t.info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:       t.info.result.Log,
+		Data:      t.info.result.Data,
+		Events:    t.info.result.Events.ToABCIEvents(),
+	}
+	t.info.finished = true
+}
+
+
 func (t *taskImp) id() int {
 	return t.idx
 }
@@ -73,17 +106,11 @@ func (t *taskImp) part1() {
 		return
 	}
 	t.info.decoded = true
-
 	t.info.tx = tx
 
-	err = app.runtx6_1(t.info, runTxModeDeliver, LatestSimulateTxHeight)
+	err = app.runtx_part1(t.info, runTxModeDeliver, LatestSimulateTxHeight)
 	if err != nil {
-		t.logger.Info("Deliver tx part1",
-			"gid", gorid.GoRId,
-			"block", t.block,
-			"txid", t.idx,
-			"err", err,
-		)
+		t.logger.Info("Deliver tx part1", "gid", gorid.GoRId, "block", t.block, "txid", t.idx, "err", err,)
 		res := sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, app.trace)
 		t.setResult(res)
 	}
@@ -96,32 +123,16 @@ func (t *taskImp) part2() {
 		return
 	}
 
-	err := t.app.runtx6_2(t.info)
+	err := t.app.runtx_part2(t.info)
 	if err != nil {
-		t.logger.Info("Deliver tx part2",
-			"gid", gorid.GoRId,
-			"block", t.block,
-			"txid", t.idx,
-			"err", err,
-			)
+		t.logger.Info("Deliver tx part2", "gid", gorid.GoRId, "block", t.block, "txid", t.idx, "err", err, )
 
 		res := sdkerrors.ResponseDeliverTx(err, t.info.gInfo.GasWanted, t.info.gInfo.GasUsed, t.app.trace)
 		t.setResult(res)
 		return
 	}
-	t.logger.Info("Deliver tx part2", "info", t.info, )
-
-	if !t.info.finished {
-
-		res := abci.ResponseDeliverTx{
-			GasWanted: int64(t.info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-			GasUsed:   int64(t.info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-			Log:       t.info.result1.Log,
-			Data:      t.info.result1.Data,
-			Events:    t.info.result1.Events.ToABCIEvents(),
-		}
-		t.setResult(res)
-	}
+	//t.logger.Info("Deliver tx part2", "info", t.info, )
+	t.genResult()
 }
 
 func (t *taskImp) result() *abci.ResponseDeliverTx {

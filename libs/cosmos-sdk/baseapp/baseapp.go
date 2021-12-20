@@ -190,7 +190,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		scheduler: newTaskScheduler(30),
+		scheduler: newTaskScheduler(abci.Part1RoutineNum),
 	}
 	for _, option := range options {
 		option(app)
@@ -735,16 +735,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	return nil
 }
 
-//
-//func (app *BaseApp) runTx6(mode runTxMode,  // DeliverTxConcurrently
-//	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
-//	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
-//
-//	return app.runtx6(mode, txBytes, tx, height)
-//}
-
-
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte,
+func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte,
 	tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
 	result *sdk.Result,
 	msCacheList sdk.CacheMultiStore,

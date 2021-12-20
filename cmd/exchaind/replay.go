@@ -334,6 +334,21 @@ type mockProxyApp struct {
 	abciResponses *sm.ABCIResponses
 }
 
+var _ abci.Application = (*mockProxyApp)(nil)
+
+
+func (mock *mockProxyApp) DeliverTxConcurrently(txs [][]byte, _ abci.DeliverTxContext) []*abci.ResponseDeliverTx {
+	fmt.Printf(" (mock *mockProxyApp) DeliverTxConcurrently\n")
+
+	for index, r := range mock.abciResponses.DeliverTxs {
+		if r == nil { //it could be nil because of amino unMarshall, it will cause an empty ResponseDeliverTx to become nil
+			mock.abciResponses.DeliverTxs[index] = &abci.ResponseDeliverTx{}
+		}
+	}
+	mock.txCount = len(mock.abciResponses.DeliverTxs)
+	return mock.abciResponses.DeliverTxs
+}
+
 func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	r := mock.abciResponses.DeliverTxs[mock.txCount]
 	mock.txCount++

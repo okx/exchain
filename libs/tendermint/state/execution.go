@@ -229,6 +229,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
 	}
 
+	if abciResponses.DeliverTxs == nil {
+		panic("")
+	}
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
@@ -461,18 +464,18 @@ func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
 	//github.com/okex/exchain/libs/tendermint/state.execBlockOnProxyApp at execution.go:369
 	//github.com/okex/exchain/libs/tendermint/state.(*BlockExecutor).ApplyBlock at execution.go:174
 
-	run := func(txs []types.Tx, proxyApp proxy.AppConnConsensus) {
+	run_concorrently := func(txs []types.Tx, proxyApp proxy.AppConnConsensus) {
 		var txList [][]byte
 		for i := 0; i < len(txs); i++ {
 			txList = append(txList, txs[i])
 		}
+		//fmt.Printf("abciResponses DeliverTxs: %d\n", len(txs))
 		proxyApp.DeliverTxConcurrently(txList, context)
 	}
 
-	ccur := true
-	ccur = false
-	if ccur {
-		run(block.Txs, proxyAppConn)
+
+	if abci.RunTxConcorrently {
+		run_concorrently(block.Txs, proxyAppConn)
 	} else {
 		// Run txs of block.
 		for count, tx := range block.Txs {
