@@ -225,76 +225,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-// DeliverTx implements the ABCI interface and executes a tx in DeliverTx mode.
-// State only gets persisted if all messages are valid and get executed successfully.
-// Otherwise, the ResponseDeliverTx will contain releveant error information.
-// Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
-// gas execution context.
-func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-	app.pin(DeliverTx, true, runTxModeDeliver)
-	defer app.pin(DeliverTx, false, runTxModeDeliver)
 
-	app.pin(TxDecoder, true, runTxModeDeliver)
-
-	tx, err := app.txDecoder(req.Tx)
-	if err != nil {
-		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-	}
-
-	app.pin(TxDecoder, false, runTxModeDeliver)
-
-	app.pin(RunTx, true, runTxModeDeliver)
-	defer app.pin(RunTx, false, runTxModeDeliver)
-
-	var (
-		gInfo  sdk.GasInfo
-		result *sdk.Result
-	)
-
-	//just for asynchronous deliver tx
-	if app.parallelTxManage.isAsyncDeliverTx {
-		go func() {
-			txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
-			if !txStatus.isEvmTx {
-				asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
-				app.parallelTxManage.workgroup.Push(asyncExe)
-				return
-			}
-
-			var resp abci.ResponseDeliverTx
-			g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
-			if e != nil {
-				resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
-			} else {
-				resp = abci.ResponseDeliverTx{
-					GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
-					GasUsed:   int64(g.GasUsed),   // TODO: Should type accept unsigned ints?
-					Log:       r.Log,
-					Data:      r.Data,
-					Events:    r.Events.ToABCIEvents(),
-				}
-			}
-
-			asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
-			asyncExe.err = e
-			app.parallelTxManage.workgroup.Push(asyncExe)
-		}()
-		return abci.ResponseDeliverTx{}
-	}
-
-	gInfo, result, _, err = app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
-	if err != nil {
-		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
-	}
-
-	return abci.ResponseDeliverTx{
-		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       result.Log,
-		Data:      result.Data,
-		Events:    result.Events.ToABCIEvents(),
-	}
-}
 
 // Commit implements the ABCI interface. It will commit all state that exists in
 // the deliver state's multi-store and includes the resulting commit ID in the
