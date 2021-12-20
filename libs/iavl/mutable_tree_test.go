@@ -252,3 +252,72 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 		t.Set(randBytes(10), []byte{})
 	}
 }
+
+func BenchmarkUpdateBranch(b *testing.B) {
+	nodeNums := 10000
+	b.ResetTimer()
+	b.Run("updateBranch", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			CommitIntervalHeight = 10
+			memDB := db.NewMemDB()
+			tree, _ := NewMutableTree(memDB, nodeNums)
+			_, _, _, _ = tree.SaveVersion(false)
+			ks := "k%d"
+			vs := "v%d"
+			for i := 0; i < nodeNums; i++ {
+				k := fmt.Sprintf(ks, i)
+				v := fmt.Sprintf(vs, i)
+				tree.Set([]byte(k), []byte(v))
+			}
+			tree.ndb.updateBranch(tree.root, map[string]*Node{})
+			treeMap.resetMap()
+		}
+	})
+	b.Run("updateBranchParallelV1", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			CommitIntervalHeight = 10
+			memDB := db.NewMemDB()
+			tree, _ := NewMutableTree(memDB, nodeNums)
+			_, _, _, _ = tree.SaveVersion(false)
+			ks := "k%d"
+			vs := "v%d"
+			for i := 0; i < nodeNums; i++ {
+				k := fmt.Sprintf(ks, i)
+				v := fmt.Sprintf(vs, i)
+				tree.Set([]byte(k), []byte(v))
+			}
+			tree.ndb.updateBranchParallelV1(tree.root, map[string]*Node{}, 1)
+			treeMap.resetMap()
+		}
+	})
+	b.Run("updateBranchParallelV2", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			CommitIntervalHeight = 10
+			memDB := db.NewMemDB()
+			tree, _ := NewMutableTree(memDB, nodeNums)
+			_, _, _, _ = tree.SaveVersion(false)
+			ks := "k%d"
+			vs := "v%d"
+
+			for i := 0; i < nodeNums; i++ {
+				k := fmt.Sprintf(ks, i)
+				v := fmt.Sprintf(vs, i)
+				tree.Set([]byte(k), []byte(v))
+			}
+			tree.ndb.updateBranchParallelV2(tree.root, map[string]*Node{})
+			treeMap.resetMap()
+		}
+	})
+}
