@@ -12,9 +12,12 @@ import (
 
 type modeHandler interface {
 	getMode() runTxMode
+
 	handleStartHeight(info *runTxInfo, height int64) error
 	handleGasConsumed(info *runTxInfo) error
 	handleRunMsg(info *runTxInfo) error
+	handleDeferRefund(info *runTxInfo)
+	handleDeferGasConsumed(info *runTxInfo)
 }
 
 func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
@@ -42,7 +45,6 @@ type modeHandlerBase struct {
 	app *BaseApp
 }
 
-
 type modeHandlerDeliverInAsync struct {
 	*modeHandlerBase
 }
@@ -67,24 +69,7 @@ func (m *modeHandlerBase) getMode() runTxMode {
 }
 
 // ====================================================
-// handleStartHeight
-func (m *modeHandlerSimulate) handleStartHeight(info *runTxInfo, height int64) error {
-	app := m.app
-	startHeight := tmtypes.GetStartBlockHeight()
-
-	var err error
-	if height > startHeight && height < app.LastBlockHeight() {
-		info.ctx, err = app.getContextForSimTx(info.txBytes, height)
-	} else if height < startHeight && height != 0 {
-		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
-			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
-	} else {
-		info.ctx = app.getContextForTx(m.mode, info.txBytes)
-	}
-
-	return err
-}
-
+// 1. handleStartHeight
 func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error {
 	app := m.app
 	startHeight := tmtypes.GetStartBlockHeight()
@@ -100,7 +85,7 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 }
 
 // ====================================================
-// handleGasConsumed
+// 2. handleGasConsumed
 func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 
 	if info.ctx.BlockGasMeter().IsOutOfGas() {
@@ -117,10 +102,73 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error){return}
 func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error){return}
 func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
-
 //==========================================================================
-// handleRunMsg
-func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
+// 3. handleRunMsg
+//func (m *modeHandlerRecheck) (*runTxInfo) (err error){return}
+//func (m *modeHandlerCheck) (*runTxInfo) (err error){return}
+//func (m *modeHandlerSimulate) (*runTxInfo) (err error){return}
+func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
+	app := m.app
+	mode := m.mode
+
+	info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
+	info.runMsgFinished = true
+
+	m.handleRunMsg4CheckMode(info)
+	err = m.checkHigherThanMercury(err, info)
+	return
+}
+
+//=============================
+// 4. handleDeferGasConsumed
+func (m *modeHandlerBase) handleDeferGasConsumed(*runTxInfo) {}
+
+
+//====================================================================
+// 5. handleDeferRefund
+func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
+
+
+
+
+//===========================================================================================
+// other members
+func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
+	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")
+	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
+		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
+	}
+}
+
+func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (error) {
+
+	if err != nil {
+		if sdk.HigherThanMercury(info.ctx.BlockHeight()) {
+			codeSpace, code, info := sdkerrors.ABCIInfo(err, m.app.trace)
+			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
+		}
+		info.msCache = nil
+	}
+	return err
+}
+
+
+func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
+	if m.mode != runTxModeCheck {
+		return
+	}
+
+	exTxInfo := m.app.GetTxInfo(info.ctx, info.tx)
+	exTxInfo.SenderNonce = info.accountNonce
+
+	data, err := json.Marshal(exTxInfo)
+	if err == nil {
+		info.result.Data = data
+	}
+}
+
+func (m *modeHandlerBase) handleRunMsg_org(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 	msCacheAnte := info.msCacheAnte
@@ -168,15 +216,4 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	return
 }
 
-//=============================
 
-
-
-
-//func (m *modeHandlerBase) handleGasConsumed3(height int64, txBytes []byte) error {
-//	app := m.app
-//
-//
-//	return nil
-//}
-//=============================

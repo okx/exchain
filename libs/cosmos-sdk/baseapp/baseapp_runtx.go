@@ -105,8 +105,12 @@ func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, he
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
 
-	defer app.runTx_defer_consumegas(info, mode)
-	defer app.runTx_defer_refund(info, mode)
+	defer mhandler.handleDeferGasConsumed(info)
+
+	defer mhandler.handleDeferRefund(info)
+
+	//defer app.runTx_defer_consumegas(info, mode)
+	//defer app.runTx_defer_refund(info, mode)
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
