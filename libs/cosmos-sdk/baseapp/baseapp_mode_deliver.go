@@ -1,13 +1,10 @@
 package baseapp
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
-	fmt.Printf("modeHandlerDeliver handleRunMsg\n")
-	//return m.modeHandlerBase.handleRunMsg_org(info)
 	app := m.app
 	mode := m.mode
 

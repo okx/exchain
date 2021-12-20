@@ -52,7 +52,6 @@ func (app *Application) SetOption(req types.RequestSetOption) types.ResponseSetO
 }
 
 func (app *Application) DeliverTx(req types.RequestDeliverTx) types.ResponseDeliverTx {
-	fmt.Printf("(app *Application2) DeliverTx\n")
 
 	if app.serial {
 		if len(req.Tx) > 8 {

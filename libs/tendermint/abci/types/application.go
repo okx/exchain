@@ -1,7 +1,6 @@
 package types // nolint: goimports
 
 import (
-	"fmt"
 	"golang.org/x/net/context"
 )
 
@@ -28,10 +27,6 @@ type Application interface {
 	ParallelTxs(txs [][]byte) []*ResponseDeliverTx
 }
 
-type DeliverTxContext interface {
-	Stopped() bool
-}
-
 //-------------------------------------------------------
 // BaseApplication is a base form of Application
 
@@ -53,8 +48,6 @@ func (BaseApplication) SetOption(req RequestSetOption) ResponseSetOption {
 }
 
 func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
-	fmt.Printf(" (BaseApplication) DeliverTx\n")
-
 	return ResponseDeliverTx{Code: CodeTypeOK}
 }
 
