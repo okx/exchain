@@ -196,7 +196,6 @@ func NewState(
 		cs.blockExec.InitPrerun()
 	}
 
-	sm.LoadTestConf()
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -1145,7 +1144,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if sm.GetPrevote(height, round){
+	if sm.PrevoteNil(height, round){
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1241,7 +1240,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	if sm.GetPrecommit(height, round) {
+	if sm.PrecommitNil(height, round) {
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}

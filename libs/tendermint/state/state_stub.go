@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"time"
@@ -14,96 +15,117 @@ import (
 //-----------------------------------------------------------------------------
 
 var (
+	enableRoleTest bool
 	role                 string
-	roleConf             map[string]roundRole
-	ProactivelyRunTxRole = "proactively-role"
-	PreRunCase           = "prerun-testcase"
+	roleAction             map[string]action
+	ProactivelyRunTxRole = "consensus-role"
+	PreRunCase           = "consensus-testcase"
+	tlog log.Logger
 )
 
 func init() {
-	roleConf = make(map[string]roundRole)
+	roleAction = make(map[string]action)
 }
 
 type round struct {
-	Id           int64
-	Prevote      map[string]bool // role true => vote nil, false default vote
-	Precommit    map[string]bool // role true => vote nil, false default vote
+	Round        int64
+	Prevote      map[string]bool // role false => vote nil, true default vote
+	Precommit    map[string]bool // role false => vote nil, true default vote
 	Prerun       map[string]int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
 	Addblockpart map[string]int  // control receiver a block time
 }
 
-type roundRole struct {
-	Prevote           bool // role true => vote nil, false default vote
-	Precommit         bool // role true => vote nil, false default vote
+type action struct {
+	Prevote           bool // role false => vote nil, false default vote
+	Precommit         bool // role false => vote nil, false default vote
 	PrerunWait        int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
 	AddblockpartnWait int  // control receiver a block time
 }
 
-func LoadTestConf() {
+func LoadTestConf(log log.Logger) {
+
+	tlog = log
 	role = fmt.Sprintf("v%s", viper.GetString(ProactivelyRunTxRole))
 	confFilePath := viper.GetString(PreRunCase)
-	content, err := ioutil.ReadFile(confFilePath)
-	if err != nil {
-		fmt.Printf("read file : %s fail err : %s\n", confFilePath, err)
+	if len(confFilePath) == 0 {
 		return
+	}
+
+	content, err := ioutil.ReadFile(confFilePath)
+
+	if err != nil {
+		panic(fmt.Sprintf("read file : %s fail err : %s\n", confFilePath, err))
 	}
 	confTmp := make(map[string][]round)
 	err = json.Unmarshal(content, &confTmp)
 	if err != nil {
-		fmt.Printf("json Unmarshal err : %s\n", err)
-		return
+		panic(fmt.Sprintf("json Unmarshal err : %s\n", err))
 	}
 
-	for height, v := range confTmp {
-		if _, ok := roleConf[height]; !ok {
-			for _, vInner := range v {
-				round := vInner.Id
-				tmp := roundRole{}
+	enableRoleTest = true
+	log.Info("LoadTestConf", "file", confFilePath, "err", err, "confTmp", confTmp)
 
-				if val, ok := vInner.Prevote[role]; ok {
-					tmp.Prevote = val
-				}
-				if val, ok := vInner.Precommit[role]; ok {
-					tmp.Precommit = val
-				}
 
-				if val, ok := vInner.Prerun[role]; ok {
-					tmp.PrerunWait = val
-				}
+	for height, roundEvents := range confTmp {
+		if _, ok := roleAction[height]; !ok {
+			for _, event := range roundEvents {
+				round := event.Round
+				tmp := action{}
 
-				if val, ok := vInner.Addblockpart[role]; ok {
-					tmp.AddblockpartnWait = val
-				}
-				roleConf[fmt.Sprintf("%s_%d", height, round)] = tmp
+				tmp.Prevote = event.Prevote[role]
+				tmp.Precommit = event.Precommit[role]
+				tmp.PrerunWait = event.Prerun[role]
+				tmp.AddblockpartnWait = event.Addblockpart[role]
+
+				roleAction[fmt.Sprintf("%s_%d", height, round)] = tmp
 			}
 		}
 	}
 }
 
-func GetPrevote(height int64, round int) bool {
-	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
-		return val.Prevote
+func PrevoteNil(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+	act, ok := roleAction[fmt.Sprintf("%d_%d", height, round)]
+
+	if ok {
+		tlog.Info("PrevoteNil", "height", height, "round", round, "act", act.Prevote, )
+		return act.Prevote
 	}
 	return false
 }
 
-func GetPrecommit(height int64, round int) bool {
-	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
-		return val.Precommit
+func PrecommitNil(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+
+	act, ok := roleAction[fmt.Sprintf("%d_%d", height, round)]
+
+	if ok {
+		tlog.Info("PrecommitNil", "height", height, "round", round, "act", act.Precommit, )
+		return act.Precommit
 	}
 	return false
 }
 
 func preTimeOut(height int64, round int) {
-	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
-		time_sleep := val.PrerunWait
+	if !enableRoleTest {
+		return
+	}
+	if act, ok := roleAction[fmt.Sprintf("%d_%d", height, round)]; ok {
+		time_sleep := act.PrerunWait
 		time.Sleep(time.Duration(time_sleep) * time.Second)
 	}
 }
 
 func AddBlockTimeOut(height int64, round int) {
-	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
-		time_sleep := val.AddblockpartnWait
+	if !enableRoleTest {
+		return
+	}
+	if act, ok := roleAction[fmt.Sprintf("%d_%d", height, round)]; ok {
+		time_sleep := act.AddblockpartnWait
 		time.Sleep(time.Duration(time_sleep) * time.Second)
 	}
 }

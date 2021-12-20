@@ -100,7 +100,7 @@ run() {
       parallel_run_tx=false
     fi
 
-  LOG_LEVEL=main:info,*:error,consensus:info,state:info
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info
 
   if [ "$(uname -s)" == "Darwin" ]; then
       sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
@@ -124,15 +124,15 @@ run() {
     --consensus.timeout_commit 200ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
-    --upload-delta \
-    --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
+    --upload-delta=false \
+    --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
-    --enable-proactively-runtx=true \
-    --prerun-testcase "./case.json" \
-    --proactively-role=$index \
+    --enable-proactively-runtx \
+    --consensus-role=$index \
+    --consensus-testcase case12.json \
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
-#     --iavl-enable-async-commit \
+#     --iavl-enable-async-commit \    --consensus-testcase case12.json \
 #     --upload-delta \
 #     --enable-proactively-runtx \
 }

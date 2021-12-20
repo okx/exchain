@@ -43,6 +43,9 @@ func (e *executionContext) dump(when string) {
 }
 
 func (e *executionContext) stop() {
+	if e.stopped {
+		return
+	}
 	e.stopped = true
 	e.proxyApp.SetOptionSync(abci.RequestSetOption{
 		Key: "ResetDeliverState",
