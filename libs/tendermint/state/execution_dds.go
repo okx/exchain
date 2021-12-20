@@ -62,7 +62,7 @@ func (dc *DeltaContext) init(l log.Logger) {
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), l)
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), l)
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
