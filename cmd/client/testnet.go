@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/okex/exchain/x/gov"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -25,7 +26,6 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
@@ -333,11 +333,11 @@ func initGenFiles(
 	authGenState.Accounts = genAccounts
 	appGenState[authtypes.ModuleName] = cdc.MustMarshalJSON(authGenState)
 
-	var govGenState govtypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[govtypes.ModuleName], &govGenState)
+	var govGenState gov.GenesisState
+	cdc.MustUnmarshalJSON(appGenState[gov.ModuleName], &govGenState)
 
 	govGenState.DepositParams.MinDeposit[0].Denom = coinDenom
-	appGenState[govtypes.ModuleName] = cdc.MustMarshalJSON(govGenState)
+	appGenState[gov.ModuleName] = cdc.MustMarshalJSON(govGenState)
 
 	var mintGenState mint.GenesisState
 	cdc.MustUnmarshalJSON(appGenState[mint.ModuleName], &mintGenState)
