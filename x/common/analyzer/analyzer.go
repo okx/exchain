@@ -221,23 +221,23 @@ func (s *analyer) format() {
 		//bam.TxDecoder,
 		//bam.RunTx,
 		//----- run_tx
-		bam.InitCtx,
+		//bam.InitCtx,
 		bam.ValTxMsgs,
 		bam.AnteHandler,
 		bam.RunMsgs,
 		bam.Refund,
-		bam.ConsumeGas,
-		bam.Recover,
+		//bam.ConsumeGas,
+		//bam.Recover,
 		//----- handler
 		bam.EvmHandler,
-		bam.ParseChainID,
-		bam.VerifySig,
+		//bam.ParseChainID,
+		//bam.VerifySig,
 		bam.Txhash,
 		bam.SaveTx,
 		bam.TransitionDb,
-		bam.Bloomfilter,
-		bam.EmitEvents,
-		bam.HandlerDefer,
+		//bam.Bloomfilter,
+		//bam.EmitEvents,
+		//bam.HandlerDefer,
 		//-----
 	}
 

@@ -44,8 +44,8 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
+	app.pin(ValTxMsgs, true, mode)
 
-	app.pin(InitCtx, true, mode)
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return info, err
@@ -55,7 +55,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if err != nil {
 		return info, err
 	}
-	app.pin(InitCtx, false, mode)
 
 
 	defer func() {
@@ -71,12 +70,11 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	defer func() {
 		app.pin(Refund, true, mode)
-		handler.handleDeferRefund(info)
 		defer app.pin(Refund, false, mode)
+		handler.handleDeferRefund(info)
 	}()
 
 
-	app.pin(ValTxMsgs, true, mode)
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
