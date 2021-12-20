@@ -89,8 +89,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnableProactivelyRunTx, false, "enable proactively runtx mode, default close")
-	cmd.Flags().String(state.ProactivelyRunTxRole, "", "proactively runtx role, default none")
-	cmd.Flags().String(state.PreRunCase, "", "prerun case file, default none")
+	cmd.Flags().String(state.ConsensusRole, "", "consensus role")
+	cmd.Flags().String(state.ConsensusTestcase, "", "consensus test case file")
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 }

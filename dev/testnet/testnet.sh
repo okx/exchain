@@ -92,13 +92,13 @@ run() {
   rpcport=$4
   p2p_seed_opt=$5
   p2p_seed_arg=$6
-  parallel_run_tx=false
-
-  if [ $(($index % 2)) -eq 0 ];then
-      parallel_run_tx=true
-    else
-      parallel_run_tx=false
-    fi
+#  parallel_run_tx=false
+#
+#  if [ $(($index % 2)) -eq 0 ];then
+#      parallel_run_tx=true
+#    else
+#      parallel_run_tx=false
+#    fi
 
   LOG_LEVEL=main:info,*:error,consensus:error,state:info
 

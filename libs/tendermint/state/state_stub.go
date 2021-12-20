@@ -16,11 +16,14 @@ import (
 
 var (
 	enableRoleTest bool
-	role                 string
+	role                   string
 	roleAction             map[string]action
-	ProactivelyRunTxRole = "consensus-role"
-	PreRunCase           = "consensus-testcase"
 	tlog log.Logger
+)
+
+const (
+	ConsensusRole          = "consensus-role"
+	ConsensusTestcase      = "consensus-testcase"
 )
 
 func init() {
@@ -45,8 +48,8 @@ type action struct {
 func LoadTestConf(log log.Logger) {
 
 	tlog = log
-	role = fmt.Sprintf("v%s", viper.GetString(ProactivelyRunTxRole))
-	confFilePath := viper.GetString(PreRunCase)
+	role = fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
+	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
 		return
 	}
@@ -63,8 +66,7 @@ func LoadTestConf(log log.Logger) {
 	}
 
 	enableRoleTest = true
-	log.Info("LoadTestConf", "file", confFilePath, "err", err, "confTmp", confTmp)
-
+	log.Info("Load test case", "file", confFilePath, "err", err, "confTmp", confTmp)
 
 	for height, roundEvents := range confTmp {
 		if _, ok := roleAction[height]; !ok {
