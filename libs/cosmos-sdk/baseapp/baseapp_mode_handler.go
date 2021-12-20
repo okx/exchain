@@ -13,8 +13,8 @@ import (
 type modeHandler interface {
 	getMode() runTxMode
 	handleStartHeight(info *runTxInfo, height int64) error
-	handleGasConsumed(info *runTxInfo)(startingGas uint64, gInfo sdk.GasInfo, err error)
-	handleRunMsg(info *runTxInfo) (result *sdk.Result, err error)
+	handleGasConsumed(info *runTxInfo) error
+	handleRunMsg(info *runTxInfo) error
 }
 
 func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
@@ -101,25 +101,26 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 
 // ====================================================
 // handleGasConsumed
-func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (startingGas uint64, gInfo sdk.GasInfo, err error) {
+func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 
 	if info.ctx.BlockGasMeter().IsOutOfGas() {
-		gInfo = sdk.GasInfo{GasUsed: info.ctx.BlockGasMeter().GasConsumed()}
-		return startingGas, gInfo, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
+		info.gInfo = sdk.GasInfo{GasUsed: info.ctx.BlockGasMeter().GasConsumed()}
+		err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
+	} else {
+		info.startingGas = info.ctx.BlockGasMeter().GasConsumed()
 	}
-	startingGas = info.ctx.BlockGasMeter().GasConsumed()
 
-	return startingGas, gInfo, nil
+	return err
 }
 
 // noop
-func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (startingGas uint64, gInfo sdk.GasInfo, err error){return}
-func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (startingGas uint64, gInfo sdk.GasInfo, err error){return}
-func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (startingGas uint64, gInfo sdk.GasInfo, err error){return}
+func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error){return}
+func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error){return}
+func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
 
 //==========================================================================
 // handleRunMsg
-func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (result *sdk.Result, err error) {
+func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 	msCacheAnte := info.msCacheAnte
@@ -133,7 +134,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (result *sdk.Result, err
 	}
 	msCache = info.msCache
 
-	result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
+	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
 	}
@@ -146,7 +147,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (result *sdk.Result, err
 
 		data, err := json.Marshal(exTxInfo)
 		if err == nil {
-			result.Data = data
+			info.result.Data = data
 		}
 	}
 

@@ -34,7 +34,7 @@ func (app *BaseApp) runtx_part1(info *runTxInfo, mode runTxMode, height int64) (
 		return err
 	}
 
-	info.startingGas, info.gInfo, err = mhandler.handleGasConsumed(info)
+	err = mhandler.handleGasConsumed(info)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (app *BaseApp) runtx_part2(info *runTxInfo) (err error) {
 		return
 	}
 
-	info.result, err = info.handler.handleRunMsg(info)
+	err = info.handler.handleRunMsg(info)
 	if err == nil && info.result == nil {
 		panic("")
 	}
@@ -91,7 +91,7 @@ func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, he
 		return info, err
 	}
 
-	info.startingGas, info.gInfo, err = mhandler.handleGasConsumed(info)
+	err = mhandler.handleGasConsumed(info)
 	if err != nil {
 		return info, err
 	}
@@ -119,7 +119,7 @@ func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, he
 		}
 	}
 
-	info.result, err = mhandler.handleRunMsg(info)
+	err = mhandler.handleRunMsg(info)
 	return info, err
 }
 
