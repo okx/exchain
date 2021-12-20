@@ -2,8 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	"sync"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -11,87 +9,55 @@ import (
 )
 
 
+type runTxInfo struct {
+	handler modeHandler
+	gasWanted uint64
+	ctx sdk.Context
+	runMsgCtx sdk.Context
+	msCache sdk.CacheMultiStore
+	msCacheAnte sdk.CacheMultiStore
+	accountNonce uint64
+	runMsgFinished bool
+	startingGas uint64
+	gInfo sdk.GasInfo
+
+	result *sdk.Result
+	txBytes []byte
+	tx sdk.Tx
+	finished bool
+	decoded bool
+}
+
+var RunTxByRefactor bool = true
+//var RunTxByRefactor bool = false
+
 func (app *BaseApp) runTx(mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
 	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
-	if abci.RunTxByRefactor1 {
+	if RunTxByRefactor {
 		var info *runTxInfo
-		info, err = app.runtx_refactor(mode, txBytes, tx, height)
+		info, err = app.RunTxByRefactor(mode, txBytes, tx, height)
 		return info.gInfo, info.result, info.msCacheAnte, err
 	} else {
 		return app.runtx_org(mode, txBytes, tx, height)
 	}
 }
 
-func (app *BaseApp) runtx_part1(info *runTxInfo, mode runTxMode, height int64) (err error) {
-
-	mhandler := app.getModeHandler(mode)
-	info.handler = mhandler
-
-	err = mhandler.handleStartHeight(info, height)
-	if err != nil {
-		return err
-	}
-
-	err = mhandler.handleGasConsumed(info)
-	if err != nil {
-		return err
-	}
-
-	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		return err
-	}
-
-	if app.anteHandler != nil {
-		err = app.runAnte(info, mode)
-	}
-
-	return err
-}
-
-
-func (app *BaseApp) runtx_part2(info *runTxInfo) (err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = app.runTx_defer_recover(r, info)
-			info.msCache = nil //TODO msCache not write
-			info.result = nil
-			//app.logger.Info("info.result = nil")
-		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-	}()
-
-	defer app.runTx_defer_consumegas(info, info.handler.getMode())
-	defer app.runTx_defer_refund(info, info.handler.getMode())
-
-	if info.finished {
-		return
-	}
-
-	err = info.handler.handleRunMsg(info)
-	if err == nil && info.result == nil {
-		panic("")
-	}
-	return
-}
-
-
-func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) RunTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
-	mhandler := info.handler
+	handler := info.handler
 
 	fmt.Printf("runtx_refactor\n")
-	err = mhandler.handleStartHeight(info, height)
+	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return info, err
 	}
 
-	err = mhandler.handleGasConsumed(info)
+	err = handler.handleGasConsumed(info)
 	if err != nil {
 		return info, err
 	}
@@ -105,9 +71,8 @@ func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, he
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
 
-	defer mhandler.handleDeferGasConsumed(info)
-
-	defer mhandler.handleDeferRefund(info)
+	defer handler.handleDeferGasConsumed(info)
+	defer handler.handleDeferRefund(info)
 
 	//defer app.runTx_defer_consumegas(info, mode)
 	//defer app.runTx_defer_refund(info, mode)
@@ -123,7 +88,7 @@ func (app *BaseApp) runtx_refactor(mode runTxMode, txBytes []byte, tx sdk.Tx, he
 		}
 	}
 
-	err = mhandler.handleRunMsg(info)
+	err = handler.handleRunMsg(info)
 	return info, err
 }
 
@@ -150,29 +115,9 @@ func (app *BaseApp) dumpResp(res *abci.ResponseDeliverTx, idx int)  {
 		}
 	}
 }
+
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
-	fmt.Printf("(app *BaseApp) DeliverTx\n")
-
-	if abci.RunTxByRefactor2 {
-		res = app.DeliverTx2Part(req)
-	} else {
-		res = app.DeliverTxOrg(req)
-	}
-
-	app.dumpResp(&res, 0)
-
-	return res
-}
-
-func (app *BaseApp) DeliverTx2Part(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	task := newTask(0, req.Tx, nil, &wg, app)
-	task.part1()
-	task.part2()
-	wg.Wait()
-	return *task.result()
+	return app.DeliverTxOrg(req)
 }
 
 func (app *BaseApp) DeliverTxOrg(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
@@ -182,7 +127,7 @@ func (app *BaseApp) DeliverTxOrg(req abci.RequestDeliverTx) abci.ResponseDeliver
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
-	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight) // DeliverTxConcurrently
+	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
@@ -196,31 +141,6 @@ func (app *BaseApp) DeliverTxOrg(req abci.RequestDeliverTx) abci.ResponseDeliver
 	}
 }
 
-func (app *BaseApp) DeliverTxConcurrently(txList [][]byte, ctx abci.DeliverTxContext) []*abci.ResponseDeliverTx {
-	fmt.Printf("DeliverTxConcurrently\n")
-	var wg sync.WaitGroup
-	wg.Add(len(txList))
-	var taskList []task
-	for i, tx := range txList {
-		taskList = append(taskList, newTask(i, tx, ctx, &wg, app))
-	}
-
-	app.scheduler.start(taskList)
-	wg.Wait()
-
-	var results []*abci.ResponseDeliverTx
-	for idx, task := range taskList {
-		res := task.result()
-		app.dumpResp(res, idx)
-
-		if res.Code == 111222 {
-			panic("111222")
-		}
-		results = append(results, res)
-	}
-
-	return results
-}
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -250,41 +170,4 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 		)
 	}
 	return err
-}
-
-func (app *BaseApp) runTx_defer_consumegas(info *runTxInfo, mode runTxMode) {
-	app.pin(ConsumeGas, true, mode)
-	defer app.pin(ConsumeGas, false, mode)
-	if mode == runTxModeDeliver || (mode == runTxModeDeliverInAsync && app.parallelTxManage.isReRun(string(info.txBytes))) {
-		info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter",)
-
-		if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
-			panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
-		}
-	}
-}
-
-
-func (app *BaseApp) runTx_defer_refund(info *runTxInfo, mode runTxMode){
-
-	if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
-		var gasRefundCtx sdk.Context
-		if mode == runTxModeDeliver {
-			gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
-		} else if mode == runTxModeDeliverInAsync {
-			gasRefundCtx = info.runMsgCtx
-			if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
-				info.msCache = info.msCacheAnte.CacheMultiStore()
-				gasRefundCtx = info.ctx.WithMultiStore(info.msCache)
-			}
-		}
-		refundGas, err := app.GasRefundHandler(gasRefundCtx, info.tx)
-		if err != nil {
-			panic(err)
-		}
-		info.msCache.Write()
-		if mode == runTxModeDeliverInAsync {
-			app.parallelTxManage.setRefundFee(string(info.txBytes), refundGas)
-		}
-	}
 }

@@ -97,18 +97,6 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 }
 
 
-func (app *localClient) DeliverTxConcurrently(txs [][]byte, ctx types.DeliverTxContext) []*ReqRes { // DeliverTxConcurrently
-	app.mtx.Lock()
-	defer app.mtx.Unlock()
-
-	fmt.Printf(" (app *localClient) DeliverTxConcurrently\n")
-	resList := app.Application.DeliverTxConcurrently(txs, ctx) // DeliverTxConcurrently
-	for i, res := range resList {
-		app.callback(types.ToRequestDeliverTx(types.RequestDeliverTx{Tx:txs[i]}), types.ToResponseDeliverTx(*res),)
-	}
-	return nil
-}
-
 func (app *localClient) CheckTxAsync(req types.RequestCheckTx) *ReqRes {
 	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()

@@ -66,13 +66,6 @@ func (app *PersistentKVStoreApplication) SetOption(req types.RequestSetOption) t
 	return app.app.SetOption(req)
 }
 
-func (app *PersistentKVStoreApplication) DeliverTxConcurrently([][]byte, types.DeliverTxContext) []*types.ResponseDeliverTx {
-
-	panic("")
-	// otherwise, update the key-value store
-	return nil
-}
-
 // tx is either "val:pubkey!power" or "key=value" or just arbitrary bytes
 func (app *PersistentKVStoreApplication) DeliverTx(req types.RequestDeliverTx) types.ResponseDeliverTx {
 	// if it starts with "val:", update the validator set

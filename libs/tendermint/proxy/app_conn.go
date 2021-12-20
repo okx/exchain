@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
@@ -17,7 +16,6 @@ type AppConnConsensus interface {
 
 	BeginBlockSync(types.RequestBeginBlock) (*types.ResponseBeginBlock, error)
 	DeliverTxAsync(types.RequestDeliverTx) *abcicli.ReqRes
-	DeliverTxConcurrently([][]byte, types.DeliverTxContext) []*abcicli.ReqRes
 	EndBlockSync(types.RequestEndBlock) (*types.ResponseEndBlock, error)
 	CommitSync(types.RequestCommit) (*types.ResponseCommit, error)
 	SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes
@@ -80,12 +78,6 @@ func (app *appConnConsensus) BeginBlockSync(req types.RequestBeginBlock) (*types
 
 func (app *appConnConsensus) DeliverTxAsync(req types.RequestDeliverTx) *abcicli.ReqRes {
 	return app.appConn.DeliverTxAsync(req)
-}
-
-func (app *appConnConsensus) DeliverTxConcurrently(req [][]byte, ctx types.DeliverTxContext) []*abcicli.ReqRes {
-	fmt.Printf(" (app *appConnConsensus) DeliverTxConcurrently\n")
-
-	return app.appConn.DeliverTxConcurrently(req, ctx)
 }
 
 func (app *appConnConsensus) EndBlockSync(req types.RequestEndBlock) (*types.ResponseEndBlock, error) {

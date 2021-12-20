@@ -162,8 +162,6 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-
-	scheduler *TaskScheduler
 }
 
 type recordHandle func(string)
@@ -190,7 +188,6 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		scheduler: newTaskScheduler(abci.Part1RoutineNum),
 	}
 	for _, option := range options {
 		option(app)

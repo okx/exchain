@@ -555,12 +555,3 @@ func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	return abci.ResponseCommit{Data: mock.appHash, Deltas: &abci.Deltas{}}
 }
 
-func (mock *mockProxyApp) DeliverTxConcurrently(txs [][]byte, _ abci.DeliverTxContext) []*abci.ResponseDeliverTx {
-	fmt.Printf(" (cccccccc  mockProxyApp) DeliverTxConcurrently\n")
-
-	//var res []*abci.ResponseDeliverTx
-	//for i := 0; i < len(txs); i++ {
-	//	res = append(res, &abci.ResponseDeliverTx{Code: abci.CodeTypeOK})
-	//}
-	return mock.abciResponses.DeliverTxs
-}
