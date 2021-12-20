@@ -92,6 +92,13 @@ run() {
   rpcport=$4
   p2p_seed_opt=$5
   p2p_seed_arg=$6
+  parallel_run_tx=false
+
+  if [ $index -eq 3 ];then
+      parallel_run_tx=true
+    else
+      parallel_run_tx=false
+    fi
 
   LOG_LEVEL=main:info,*:error,consensus:info,state:info
 
@@ -110,6 +117,9 @@ run() {
     --upload-delta \
     --elapsed DeliverTxs=0,Round=0,CommitRound=0,Produce=0 \
     --rest.laddr tcp://localhost:8545 \
+    --enable-proactively-runtx=$parallel_run_tx \
+    --prerun-testcase "./case.json" \
+    --proactively-role=$index \
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \

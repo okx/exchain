@@ -196,7 +196,7 @@ func NewState(
 		cs.blockExec.InitPrerun()
 	}
 
-	loadTestConf()
+	sm.LoadTestConf()
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -1146,7 +1146,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if getPrevote(height, round){
+	if sm.GetPrevote(height, round){
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1242,7 +1242,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	if getPrecommit(height, round) {
+	if sm.GetPrecommit(height, round) {
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1741,8 +1741,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	height, round, part := msg.Height, msg.Round, msg.Part
 
 	// try to sleep until consensus timeout
-	AddBlock(height, round)
+	//sm.AddBlock(height, round)
 
+	/*
 	if height == 4 && round == 0{
 		prevotes := cs.Votes.Prevotes(cs.Round)
 		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
@@ -1752,6 +1753,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		blockID, hasTwoThirds = precommit.TwoThirdsMajority()
 		fmt.Println("Precommits hasTwoThirds --->", hasTwoThirds , blockID.IsZero())
 	}
+
+	 */
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {

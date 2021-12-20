@@ -55,7 +55,6 @@ func (blockExec *BlockExecutor) flushPrerunResult() {
 		case context := <-blockExec.prerunResultChan:
 			context.dump("Flush prerun result")
 		default:
-			fmt.Println("default")
 			goto BREAK
 		}
 	}
@@ -145,7 +144,7 @@ func prerun(context *executionContext) {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-
+	PreTimeOut(context.block.Height, int(context.index))
 	context.dump("Prerun completed")
 	context.prerunResultChan <- context
 }

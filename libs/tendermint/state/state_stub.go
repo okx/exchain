@@ -1,4 +1,4 @@
-package consensus
+package state
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ type Round struct {
 	Id           int64
 	Prevote      map[string]bool // role true => vote nil, false default vote
 	Precommit    map[string]bool // role true => vote nil, false default vote
-	PreRun       map[string]bool // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
+	Prerun       map[string]bool // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
 	Addblockpart map[string]bool // control receiver a block time
 }
 
@@ -38,19 +38,16 @@ type ConfTest struct {
 	proactivelyRunTx bool
 }
 
-func loadTestConf() {
+func LoadTestConf() {
 	role = fmt.Sprintf("v%s", viper.GetString(ProactivelyRunTxRole))
 	confFilePath := viper.GetString(PreRunCase)
-	//fmt.Println("confFilePath --->", confFilePath)
 	content, err := ioutil.ReadFile(confFilePath)
 	if err != nil {
 		fmt.Println("read fail", err)
 		return
 	}
 	confTmp := make(map[string][]Round)
-
 	json.Unmarshal(content, &confTmp)
-
 	for k, v := range confTmp {
 		if _, ok := roleConf[k]; !ok {
 			for _, vInner := range v {
@@ -62,7 +59,7 @@ func loadTestConf() {
 				if val, ok := vInner.Precommit[role]; ok {
 					precommit = val
 				}
-				if val, ok := vInner.PreRun[role]; ok {
+				if val, ok := vInner.Prerun[role]; ok {
 					preRun = val
 				}
 				if val, ok := vInner.Addblockpart[role]; ok {
@@ -72,18 +69,17 @@ func loadTestConf() {
 			}
 		}
 	}
-	fmt.Println("roleConf===> ", roleConf)
 }
 
-func getPrevote(height int64, round int) bool {
+func GetPrevote(height int64, round int) bool {
 	return getConfDetail(height, round, 0)
 }
 
-func getPrecommit(height int64, round int) bool {
+func GetPrecommit(height int64, round int) bool {
 	return getConfDetail(height, round, 1)
 }
 
-func preTimeOut(height int64, round int) {
+func PreTimeOut(height int64, round int) {
 	if getConfDetail(height, round, 2) {
 		time.Sleep(2 * time.Second)
 	}
@@ -91,7 +87,6 @@ func preTimeOut(height int64, round int) {
 
 func AddBlock(height int64, round int) {
 	if getConfDetail(height, round, 3) {
-		fmt.Println("AddBlock sleep" , height, round)
 		time.Sleep(3 * time.Second)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
+	"github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/stream"
@@ -88,8 +89,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnableProactivelyRunTx, false, "enable proactively runtx mode, default close")
-	cmd.Flags().String(consensus.ProactivelyRunTxRole, "", "proactively runtx role, default none")
-	cmd.Flags().String(consensus.PreRunCase, "", "prerun case file, default none")
+	cmd.Flags().String(state.ProactivelyRunTxRole, "", "proactively runtx role, default none")
+	cmd.Flags().String(state.PreRunCase, "", "prerun case file, default none")
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 }
