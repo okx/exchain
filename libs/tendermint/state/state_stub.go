@@ -16,22 +16,22 @@ import (
 var (
 	role                 string
 	conf                 map[string][]Round
-	roleConf             map[string][]bool
+	roleConf             map[string][]interface{}
 	ProactivelyRunTxRole = "proactively-role"
 	PreRunCase           = "prerun-testcase"
 )
 
 func init() {
 	conf = make(map[string][]Round)
-	roleConf = make(map[string][]bool)
+	roleConf = make(map[string][]interface{})
 }
 
 type Round struct {
 	Id           int64
 	Prevote      map[string]bool // role true => vote nil, false default vote
 	Precommit    map[string]bool // role true => vote nil, false default vote
-	Prerun       map[string]bool // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
-	Addblockpart map[string]bool // control receiver a block time
+	Prerun       map[string]int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
+	Addblockpart map[string]int  // control receiver a block time
 }
 
 type ConfTest struct {
@@ -52,46 +52,54 @@ func LoadTestConf() {
 		if _, ok := roleConf[k]; !ok {
 			for _, vInner := range v {
 				var key = fmt.Sprintf("%s_%d", k, vInner.Id)
-				var prevote, precommit, preRun, addBlock bool
 				if val, ok := vInner.Prevote[role]; ok {
-					prevote = val
+					roleConf[key] = append(roleConf[key], val)
+				} else {
+					roleConf[key] = append(roleConf[key], false)
 				}
 				if val, ok := vInner.Precommit[role]; ok {
-					precommit = val
+					roleConf[key] = append(roleConf[key], val)
+				} else {
+					roleConf[key] = append(roleConf[key], false)
 				}
 				if val, ok := vInner.Prerun[role]; ok {
-					preRun = val
+					roleConf[key] = append(roleConf[key], val)
+				} else {
+					roleConf[key] = append(roleConf[key], 0)
 				}
 				if val, ok := vInner.Addblockpart[role]; ok {
-					addBlock = val
+					roleConf[key] = append(roleConf[key], val)
+				} else {
+					roleConf[key] = append(roleConf[key], 0)
 				}
-				roleConf[key] = []bool{prevote, precommit, preRun, addBlock}
+
 			}
 		}
 	}
 }
 
 func GetPrevote(height int64, round int) bool {
-	return getConfDetail(height, round, 0)
+	prevote_nil := getConfDetail(height, round, 0).(bool)
+	return prevote_nil
 }
 
 func GetPrecommit(height int64, round int) bool {
-	return getConfDetail(height, round, 1)
+	precommit_nil :=  getConfDetail(height, round, 1).(bool)
+	return precommit_nil
 }
 
 func PreTimeOut(height int64, round int) {
-	if getConfDetail(height, round, 2) {
-		time.Sleep(2 * time.Second)
-	}
+	time_sleep :=  getConfDetail(height, round, 2).(int)
+	time.Sleep(time.Duration(time_sleep) * time.Second)
+
 }
 
-func AddBlock(height int64, round int) {
-	if getConfDetail(height, round, 3) {
-		time.Sleep(3 * time.Second)
-	}
+func AddBlockTimeOut(height int64, round int) {
+	time_sleep :=  getConfDetail(height, round, 3).(int)
+	time.Sleep(time.Duration(time_sleep) * time.Second)
 }
 
-func getConfDetail(height int64, round, kind int) bool {
+func getConfDetail(height int64, round, kind int) interface{} {
 	if v, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; !ok {
 		return false
 	} else {
@@ -99,7 +107,6 @@ func getConfDetail(height int64, round, kind int) bool {
 			return false
 		}
 		return v[kind]
-
 	}
 	return false
 }
