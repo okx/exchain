@@ -26,22 +26,19 @@ type runTxInfo struct {
 }
 
 
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo,
-	result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
+func (app *BaseApp) runTx(mode runTxMode,
+	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result,
+	msCacheList sdk.CacheMultiStore, err error) {
 
-	runTxByRefactor := true
-	// RunTxByRefactor = false
+	var info *runTxInfo
+	info, err = app.runtx(mode, txBytes, tx, height)
+	return info.gInfo, info.result, info.msCacheAnte, err
 
-	if runTxByRefactor {
-		var info *runTxInfo
-		info, err = app.runTxByRefactor(mode, txBytes, tx, height)
-		return info.gInfo, info.result, info.msCacheAnte, err
-	} else {
-		return app.runtx_org(mode, txBytes, tx, height)
-	}
+	//return app.runtx_org(mode, txBytes, tx, height)
+
 }
 
-func (app *BaseApp) runTxByRefactor(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
@@ -217,27 +214,3 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
 }
-
-
-//func (app *BaseApp) dumpResp(res *abci.ResponseDeliverTx, idx int)  {
-//
-//	app.logger.Info("===========DeliverTx===========",
-//		"block", app.LastBlockHeight()+1,
-//		"idx", idx,
-//		"Data len", len(res.Data),
-//		"Info", res.Info,
-//		"GasUsed", res.GasUsed,
-//		"GasWanted", res.GasWanted,
-//		"Code", res.Code,
-//	)
-//	for i, e := range res.Events {
-//		app.logger.Info("	Event", "id", i, "type", e.Type)
-//
-//		if len(e.Attributes) == 0 {
-//			panic("")
-//		}
-//		for j, a := range e.Attributes {
-//			app.logger.Info("		Attributes", "id", j, "k", string(a.Key), "v", string(a.Value))
-//		}
-//	}
-//}
