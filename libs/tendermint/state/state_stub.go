@@ -15,16 +15,16 @@ import (
 
 var (
 	role                 string
-	roleConf             map[string]RoundRole
+	roleConf             map[string]roundRole
 	ProactivelyRunTxRole = "proactively-role"
 	PreRunCase           = "prerun-testcase"
 )
 
 func init() {
-	roleConf = make(map[string]RoundRole)
+	roleConf = make(map[string]roundRole)
 }
 
-type Round struct {
+type round struct {
 	Id           int64
 	Prevote      map[string]bool // role true => vote nil, false default vote
 	Precommit    map[string]bool // role true => vote nil, false default vote
@@ -32,7 +32,7 @@ type Round struct {
 	Addblockpart map[string]int  // control receiver a block time
 }
 
-type RoundRole struct {
+type roundRole struct {
 	Prevote           bool // role true => vote nil, false default vote
 	Precommit         bool // role true => vote nil, false default vote
 	PrerunWait        int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
@@ -47,7 +47,7 @@ func LoadTestConf() {
 		fmt.Printf("read file : %s fail err : %s\n", confFilePath, err)
 		return
 	}
-	confTmp := make(map[string][]Round)
+	confTmp := make(map[string][]round)
 	err = json.Unmarshal(content, &confTmp)
 	if err != nil {
 		fmt.Printf("json Unmarshal err : %s\n", err)
@@ -58,7 +58,7 @@ func LoadTestConf() {
 		if _, ok := roleConf[height]; !ok {
 			for _, vInner := range v {
 				round := vInner.Id
-				tmp := RoundRole{}
+				tmp := roundRole{}
 
 				if val, ok := vInner.Prevote[role]; ok {
 					tmp.Prevote = val
@@ -94,7 +94,7 @@ func GetPrecommit(height int64, round int) bool {
 	return false
 }
 
-func PreTimeOut(height int64, round int) {
+func preTimeOut(height int64, round int) {
 	if val, ok := roleConf[fmt.Sprintf("%d_%d", height, round)]; ok {
 		time_sleep := val.PrerunWait
 		time.Sleep(time.Duration(time_sleep) * time.Second)
