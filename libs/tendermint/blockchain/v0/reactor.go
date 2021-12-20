@@ -305,7 +305,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, deltas := bcR.pool.PeekTwoBlocks()
+			first, second, _ := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -349,18 +349,20 @@ FOR_LOOP:
 
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
-				state, _, deltas, err = bcR.blockExec.ApplyBlock(state, firstID, first, deltas)
+				state, _, err = bcR.blockExec.ApplyBlock(state, firstID, first)
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++
 
+				/*
 				if types.EnableBroadcastP2PDelta() {
 					// persists the given deltas to the underlying db.
 					deltas.Height = first.Height
 					bcR.dstore.SaveDeltas(deltas, first.Height)
 				}
+				*/
 
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())

@@ -1,6 +1,8 @@
 package types
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -58,6 +60,46 @@ type (
 	// Events defines a slice of Event objects
 	Events []Event
 )
+
+func (a Attribute) MarshalJsonToBuffer(buf *bytes.Buffer) error {
+	var err error
+
+	err = buf.WriteByte('{')
+	if err != nil {
+		return err
+	}
+
+	_, err = buf.WriteString(`"key":`)
+	if err != nil {
+		return err
+	}
+	blob, err := json.Marshal(a.Key)
+	if err != nil {
+		return err
+	}
+	_, err = buf.Write(blob)
+	if err != nil {
+		return err
+	}
+
+	if a.Value != "" {
+		err = buf.WriteByte(',')
+		if err != nil {
+			return err
+		}
+		buf.WriteString(`"value":`)
+		blob, err = json.Marshal(a.Value)
+		if err != nil {
+			return err
+		}
+		_, err = buf.Write(blob)
+		if err != nil {
+			return err
+		}
+	}
+
+	return buf.WriteByte('}')
+}
 
 // NewEvent creates a new Event object with a given type and slice of one or more
 // attributes.
@@ -152,6 +194,90 @@ type (
 	// StringAttributes defines a slice of StringEvents objects.
 	StringEvents []StringEvent
 )
+
+func (e StringEvent) MarshalJsonToBuffer(buf *bytes.Buffer) error {
+	var err error
+
+	err = buf.WriteByte('{')
+	if err != nil {
+		return err
+	}
+
+	var writeComma = false
+
+	if e.Type != "" {
+		_, err = buf.WriteString(`"type":`)
+		if err != nil {
+			return err
+		}
+		blob, err := json.Marshal(e.Type)
+		if err != nil {
+			return err
+		}
+		_, err = buf.Write(blob)
+		if err != nil {
+			return err
+		}
+		writeComma = true
+	}
+
+	if len(e.Attributes) != 0 {
+		if writeComma {
+			_, err = buf.WriteString(`,`)
+			if err != nil {
+				return err
+			}
+		}
+		_, err = buf.WriteString(`"attributes":[`)
+		if err != nil {
+			return err
+		}
+		for i, attr := range e.Attributes {
+			if i != 0 {
+				err = buf.WriteByte(',')
+				if err != nil {
+					return err
+				}
+			}
+			err = attr.MarshalJsonToBuffer(buf)
+			if err != nil {
+				return err
+			}
+		}
+		err = buf.WriteByte(']')
+		if err != nil {
+			return err
+		}
+	}
+
+	return buf.WriteByte('}')
+}
+
+func (se StringEvents) MarshalJsonToBuffer(buf *bytes.Buffer) error {
+	var err error
+	if se == nil {
+		_, err = buf.WriteString("null")
+		return err
+	}
+
+	err = buf.WriteByte('[')
+	if err != nil {
+		return err
+	}
+	for i, event := range se {
+		if i != 0 {
+			err = buf.WriteByte(',')
+			if err != nil {
+				return err
+			}
+		}
+		err = event.MarshalJsonToBuffer(buf)
+		if err != nil {
+			return err
+		}
+	}
+	return buf.WriteByte(']')
+}
 
 func (se StringEvents) String() string {
 	var sb strings.Builder

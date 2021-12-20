@@ -506,3 +506,27 @@ func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() []byte {
 func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
 	return ""
 }
+
+type MsgContractMethodBlockedListItem struct {
+	addr    sdk.AccAddress
+	methods []byte
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) *MsgContractMethodBlockedListItem {
+	return &MsgContractMethodBlockedListItem{
+		addr:    addr,
+		methods: methods,
+	}
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetKey() []byte {
+	return append(prefixBlackList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgContractMethodBlockedListItem) GetValue() string {
+	return string(msgItem.methods)
+}

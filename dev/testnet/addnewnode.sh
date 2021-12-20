@@ -137,7 +137,7 @@ start() {
     --log_level ${LOG_LEVEL} \
     --download-delta \
     --p2p.addr_book_strict=false \
-    --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc-${NAME}.log 2>&1 &
+    --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
 #     --download-delta \
