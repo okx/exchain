@@ -45,6 +45,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info.txBytes = txBytes
 	handler := info.handler
 
+	app.pin(InitCtx, true, mode)
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return info, err
@@ -54,6 +55,8 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if err != nil {
 		return info, err
 	}
+	app.pin(InitCtx, false, mode)
+
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -65,20 +68,34 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}()
 
 	defer handler.handleDeferGasConsumed(info)
-	defer handler.handleDeferRefund(info)
 
+	defer func() {
+		app.pin(Refund, true, mode)
+		handler.handleDeferRefund(info)
+		defer app.pin(Refund, false, mode)
+	}()
+
+
+	app.pin(ValTxMsgs, true, mode)
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
+	app.pin(ValTxMsgs, false, mode)
 
+
+	app.pin(AnteHandler, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return info, err
 		}
 	}
+	app.pin(AnteHandler, false, mode)
 
+	app.pin(RunMsgs, true, mode)
 	err = handler.handleRunMsg(info)
+	app.pin(RunMsgs, false, mode)
+
 	return info, err
 }
 

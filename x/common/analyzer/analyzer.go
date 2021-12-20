@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/viper"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/trace"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 var singleAnalys *analyer
@@ -217,9 +217,9 @@ func (s *analyer) format() {
 
 	var keys = []string{
 		//----- DeliverTx
-		bam.DeliverTx,
-		bam.TxDecoder,
-		bam.RunTx,
+		//bam.DeliverTx,
+		//bam.TxDecoder,
+		//bam.RunTx,
 		//----- run_tx
 		bam.InitCtx,
 		bam.ValTxMsgs,

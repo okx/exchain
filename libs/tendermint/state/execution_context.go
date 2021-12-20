@@ -58,6 +58,7 @@ func (blockExec *BlockExecutor) flushPrerunResult()  {
 		case context := <-blockExec.prerunResultChan:
 			context.dump("Flush prerun result")
 		default:
+			return
 		}
 	}
 }
