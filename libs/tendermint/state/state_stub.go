@@ -41,7 +41,7 @@ type action struct {
 	preVote           bool // true vote nil, false default vote
 	preCommit         bool // true vote nil, false default vote
 	preRunWait        int  // control prerun sleep time
-	addBlockPartnWait int  // control sleep time before receiver a block
+	addBlockPartWait int  // control sleep time before receiver a block
 }
 
 func loadTestCase(log log.Logger) {
@@ -76,7 +76,7 @@ func loadTestCase(log log.Logger) {
 				act.preVote = event.PreVote[role]
 				act.preCommit = event.PreCommit[role]
 				act.preRunWait = event.PreRun[role]
-				act.addBlockPartnWait = event.AddBlockPart[role]
+				act.addBlockPartWait = event.AddBlockPart[role]
 
 				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
 			}
@@ -126,7 +126,7 @@ func AddBlockTimeOut(height int64, round int) {
 		return
 	}
 	if act, ok := roleAction[actionKey(height, round)]; ok {
-		timeSleep := act.addBlockPartnWait
+		timeSleep := act.addBlockPartWait
 		time.Sleep(time.Duration(timeSleep) * time.Second)
 	}
 }
