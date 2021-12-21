@@ -268,11 +268,12 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		}
 	}
 
-	if len(c.storageMap) >= maxStorageInMap {
-		lenStorage := 0
-		for _, v := range c.storageMap {
-			lenStorage += len(v)
-		}
+	lenStorage := 0
+	for _, v := range c.storageMap {
+		lenStorage += len(v)
+	}
+
+	if lenStorage >= maxStorageInMap {
 		deleteMsg += fmt.Sprintf("Storage:Deleted Before:len(contract):%d, len(storage):%d", len(c.storageMap), lenStorage)
 		cnt := 0
 		for key, value := range c.storageMap {
