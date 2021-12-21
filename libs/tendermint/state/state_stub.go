@@ -116,8 +116,8 @@ func preTimeOut(height int64, round int) {
 		return
 	}
 	if act, ok := roleAction[actionKey(height, round)]; ok {
-		time_sleep := act.prerunWait
-		time.Sleep(time.Duration(time_sleep) * time.Second)
+		timeSleep := act.prerunWait
+		time.Sleep(time.Duration(timeSleep) * time.Second)
 	}
 }
 
@@ -126,8 +126,8 @@ func AddBlockTimeOut(height int64, round int) {
 		return
 	}
 	if act, ok := roleAction[actionKey(height, round)]; ok {
-		time_sleep := act.addblockpartnWait
-		time.Sleep(time.Duration(time_sleep) * time.Second)
+		timeSleep := act.addblockpartnWait
+		time.Sleep(time.Duration(timeSleep) * time.Second)
 	}
 }
 
