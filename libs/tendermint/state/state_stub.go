@@ -31,17 +31,17 @@ func init() {
 
 type round struct {
 	Round        int64
-	PreVote      map[string]bool // role true => vote nil, true default vote
-	PreCommit    map[string]bool // role true => vote nil, true default vote
-	PreRun       map[string]int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
-	AddBlockPart map[string]int  // control receiver a block time
+	PreVote      map[string]bool // true vote nil, false default vote
+	PreCommit    map[string]bool // true vote nil, false default vote
+	PreRun       map[string]int  // int => control prerun sleep time
+	AddBlockPart map[string]int  // int => control sleep time before receiver a block
 }
 
 type action struct {
-	preVote           bool // role true => vote nil, false default vote
-	preCommit         bool // role true => vote nil, false default vote
-	preRunWait        int  // true => preRun time less than consensus vote time , false => preRun time greater than consensus vote time
-	addBlockPartnWait int  // control receiver a block time
+	preVote           bool // true vote nil, false default vote
+	preCommit         bool // true vote nil, false default vote
+	preRunWait        int  // control prerun sleep time
+	addBlockPartnWait int  // control sleep time before receiver a block
 }
 
 func loadTestCase(log log.Logger) {
