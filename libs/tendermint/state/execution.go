@@ -89,6 +89,8 @@ func NewBlockExecutor(
 		option(res)
 	}
 
+	loadTestCase(logger)
+
 	res.deltaContext.init(logger)
 
 	return res
