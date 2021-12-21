@@ -133,24 +133,33 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 
 	// todo get distributed lock, otherwise return
 
+	t0 := time.Now()
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
 		return
 	}
 
+	t1 := time.Now()
 	// compress
 	compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
 	if err != nil {
 		return
 	}
 
+	t2 := time.Now()
 	// set into dds
 	if err = dc.deltaBroker.SetDeltas(deltas.Height, compressBytes); err != nil {
 		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
-	dc.logger.Info("Upload delta", "deltas", deltas, "gid", gorid.GoRId)
+	t3 := time.Now()
+	dc.logger.Info("Upload delta",
+		"deltas", deltas,
+		"marshal", t1.Sub(t0),
+		"compress", t2.Sub(t1),
+		"setRedis", t3.Sub(t2),
+		"gid", gorid.GoRId)
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
@@ -192,26 +201,35 @@ func (dc *DeltaContext) getDeltaFromDDS() {
 		select {
 		case <-tryGetDDSTicker.C:
 			if flag {
+				t0 := time.Now()
 				deltaBytes, err := dc.deltaBroker.GetDeltas(height)
 				if err != nil {
 					continue
 				}
 				flag = false
 
+				t1 := time.Now()
 				// uncompress
 				compressBytes, err := dc.compressBroker.UnCompress(deltaBytes)
 				if err != nil {
 					continue
 				}
 
+				t2 := time.Now()
 				// unmarshal
 				directDelta := &types.Deltas{}
 				err = directDelta.Unmarshal(compressBytes)
 				if err != nil {
 					continue
 				}
-				
-				dc.logger.Info("Download delta:", "delta", directDelta, "gid", gorid.GoRId)
+
+				t3 := time.Now()
+				dc.logger.Info("Download delta:",
+					"delta", directDelta,
+					"getRedis", t1.Sub(t0),
+					"uncompress", t2.Sub(t1),
+					"unmarshal", t3.Sub(t2),
+					"gid", gorid.GoRId)
 				dc.deltaCh <- directDelta
 			}
 
