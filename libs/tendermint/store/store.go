@@ -81,12 +81,19 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		return nil
 	}
 
+	var bufLen int
 	var block = new(types.Block)
-	buf := []byte{}
+	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
 	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
 		part := bs.LoadBlockPart(height, i)
+		bufLen += len(part.Bytes)
+		parts = append(parts, part)
+	}
+	buf := make([]byte, 0, bufLen)
+	for _, part := range parts {
 		buf = append(buf, part.Bytes...)
 	}
+
 	err := cdc.UnmarshalBinaryLengthPrefixed(buf, block)
 	if err != nil {
 		// NOTE: The existence of meta should imply the existence of the
