@@ -152,7 +152,11 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		panicError(err)
 		// use stateCopy to correct the repaired state
 		if state.LastBlockHeight == stateCopy.LastBlockHeight {
-			state = stateCopy
+			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
+			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
+			state.LastValidators = stateCopy.LastValidators.Copy()
+			state.Validators = stateCopy.Validators.Copy()
+			state.NextValidators = state.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))

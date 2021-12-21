@@ -195,6 +195,7 @@ func NewState(
 	if cs.proactivelyRunTx {
 		cs.blockExec.InitPrerun()
 	}
+
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -1143,6 +1144,11 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
+	if sm.PrevoteNil(height, round){
+		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
+		return
+	}
+
 	// If a block is locked, prevote that.
 	if cs.LockedBlock != nil {
 		logger.Info("enterPrevote: Block was locked")
@@ -1233,6 +1239,11 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
 	}()
+
+	if sm.PrecommitNil(height, round) {
+		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
+		return
+	}
 
 	// check for a polka
 	blockID, ok := cs.Votes.Prevotes(round).TwoThirdsMajority()
@@ -1726,6 +1737,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 // once we have the full block.
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
+
+	sm.AddBlockTimeOut(height, round)
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {

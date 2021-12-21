@@ -39,8 +39,9 @@ func newDeltaContext() *DeltaContext {
 	dp.downloadDelta = types.EnableDownloadDelta()
 	dp.uploadDelta = types.EnableUploadDelta()
 
+
 	if dp.uploadDelta && dp.downloadDelta {
-		panic("")
+		panic("download delta is not allowed if upload delta enabled")
 	}
 
 	dp.deltas = &types.Deltas{}
@@ -79,8 +80,10 @@ func (dc *DeltaContext) reset() {
 	dc.deltas = &types.Deltas{}
 }
 
-func (dc *DeltaContext) postApplyDelta(height int64, abciResponses *ABCIResponses, res []byte) {
-	dc.logger.Info("Post apply delta", "applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
+func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
+	if dc.useDeltas {
+		dc.logger.Info("Applied delta", "delta", dc.deltas, "gid", gorid.GoRId)
+	}
 
 	// rpc
 	if dc.useDeltas && types.IsFastQuery() {
@@ -147,10 +150,7 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
 		return
 	}
-	dc.logger.Info("Upload delta",
-		"deltas", deltas,
-		"gid", gorid.GoRId,
-	)
+	dc.logger.Info("Upload delta", "deltas", deltas, "gid", gorid.GoRId)
 }
 
 func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
