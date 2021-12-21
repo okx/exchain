@@ -691,31 +691,6 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 	}
 }
 
-func useCache(mode runTxMode) bool {
-	if !sdk.UseCache {
-		return false
-	}
-	if mode == runTxModeDeliver {
-		return true
-	}
-	return false
-}
-
-func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
-	ctx.Cache().Write(true)
-	cache.Write()
-}
-
-func (app *BaseApp) newBlockCache() {
-	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
-	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
-}
-
-func (app *BaseApp) commitBlockCache() {
-	app.blockCache.Write(true)
-	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
-}
-
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted
@@ -750,7 +725,6 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
 	}
-	ctx = ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
 
 	ms := ctx.MultiStore()
 
@@ -822,7 +796,6 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 		app.pin(Refund, true, mode)
 		defer app.pin(Refund, false, mode)
 		if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
-			ctx.Cache().Write(false)
 			var GasRefundCtx sdk.Context
 			if mode == runTxModeDeliver {
 				GasRefundCtx, msCache = app.cacheTxContext(ctx, txBytes)
@@ -837,7 +810,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 			if err != nil {
 				panic(err)
 			}
-			writeCache(msCache, ctx)
+			msCache.Write()
 			if mode == runTxModeDeliverInAsync {
 				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
@@ -889,12 +862,11 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 		}
 
 		if err != nil {
-			ctx.Cache().Write(false)
 			return gInfo, nil, nil, err
 		}
 
 		if mode != runTxModeDeliverInAsync {
-			writeCache(msCacheAnte, ctx)
+			msCacheAnte.Write()
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -918,7 +890,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
-		writeCache(msCache, ctx)
+		msCache.Write()
 	}
 
 	runMsgFinish = true
@@ -1064,8 +1036,9 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
 }
+

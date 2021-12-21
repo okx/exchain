@@ -282,7 +282,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data:   commitID.Hash,
+		Data: commitID.Hash,
 		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }
