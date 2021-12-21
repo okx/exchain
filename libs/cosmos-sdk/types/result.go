@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/tendermint/go-amino"
 
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
@@ -124,13 +125,16 @@ func (logs ABCIMessageLogs) String() (str string) {
 	return str
 }
 
+var abciMessageLogsBufferPool = amino.NewBufferPool()
+
 func (logs ABCIMessageLogs) MarshalToJson() ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
+	buf := abciMessageLogsBufferPool.Get()
+	defer abciMessageLogsBufferPool.Put(buf)
 	err := logs.MarshalJsonToBuffer(buf)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 func (logs ABCIMessageLogs) MarshalJsonToBuffer(buf *bytes.Buffer) error {

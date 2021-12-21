@@ -979,8 +979,11 @@ func (mp PacketMsg) String() string {
 	return fmt.Sprintf("PacketMsg{%X:%X T:%X}", mp.ChannelID, mp.Bytes, mp.EOF)
 }
 
+var packetMsgBufferPool = amino.NewBufferPool()
+
 func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf = packetMsgBufferPool.Get()
+	defer packetMsgBufferPool.Put(buf)
 	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
 		lBeforeKey := buf.Len()
@@ -1036,7 +1039,7 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeByteSlice(&buf, mp.Bytes)
+			err = amino.EncodeByteSliceToBuffer(buf, mp.Bytes)
 			if err != nil {
 				return nil, err
 			}
@@ -1048,7 +1051,7 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
