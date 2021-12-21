@@ -5,12 +5,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmlite "github.com/okex/exchain/libs/tendermint/lite"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
 	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -261,37 +260,38 @@ func (ctx CLIContext) PrintOutput(toPrint interface{}) error {
 // an address or key name. If genOnly is true, only a valid Bech32 cosmos
 // address is returned.
 func GetFromFields(input io.Reader, from string, genOnly bool) (sdk.AccAddress, string, error) {
-	if from == "" {
-		return nil, "", nil
-	}
-
-	if genOnly {
-		addr, err := sdk.AccAddressFromBech32(from)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "must provide a valid Bech32 address for generate-only")
-		}
-
-		return addr, "", nil
-	}
-
-	keybase, err := keys.NewKeyring(sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), input)
-	if err != nil {
-		return nil, "", err
-	}
-
-	var info keys.Info
-	if addr, err := sdk.AccAddressFromBech32(from); err == nil {
-		info, err = keybase.GetByAddress(addr)
-		if err != nil {
-			return nil, "", err
-		}
-	} else {
-		info, err = keybase.Get(from)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	return info.GetAddress(), info.GetName(), nil
+	return sdk.AccAddress(from), from, nil
+	// if from == "" {
+	// 	return nil, "", nil
+	// }
+	//
+	// if genOnly {
+	// 	addr, err := sdk.AccAddressFromBech32(from)
+	// 	if err != nil {
+	// 		return nil, "", errors.Wrap(err, "must provide a valid Bech32 address for generate-only")
+	// 	}
+	//
+	// 	return addr, "", nil
+	// }
+	// // 获取keyRing的db地址
+	// keybase, err := keys.NewKeyring(sdk.KeyringServiceName(),
+	// 	viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), input)
+	// if err != nil {
+	// 	return nil, "", err
+	// }
+	//
+	// var info keys.Info
+	// if addr, err := sdk.AccAddressFromBech32(from); err == nil {
+	// 	info, err = keybase.GetByAddress(addr)
+	// 	if err != nil {
+	// 		return nil, "", err
+	// 	}
+	// } else {
+	// 	info, err = keybase.Get(from)
+	// 	if err != nil {
+	// 		return nil, "", err
+	// 	}
+	// }
+	//
+	// return info.GetAddress(), info.GetName(), nil
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/nameservice"
 	"io"
 	"math/big"
 	"os"
@@ -112,6 +113,8 @@ var (
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+
+		nameservice.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -177,6 +180,8 @@ type OKExChainApp struct {
 	BackendKeeper  backend.Keeper
 	StreamKeeper   stream.Keeper
 
+	NameserviceKeeper nameservice.Keeper
+
 	// the module manager
 	mm *module.Manager
 
@@ -240,7 +245,7 @@ func NewOKExChainApp(
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,nameservice.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -271,6 +276,7 @@ func NewOKExChainApp(
 	app.subspaces[order.ModuleName] = app.ParamsKeeper.Subspace(order.DefaultParamspace)
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
+	app.subspaces[nameservice.ModuleName]=app.ParamsKeeper.Subspace(nameservice.DefaultParamspace)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -335,6 +341,8 @@ func NewOKExChainApp(
 	evidenceRouter := evidence.NewRouter()
 	evidenceKeeper.SetRouter(evidenceRouter)
 	app.EvidenceKeeper = *evidenceKeeper
+	
+	app.NameserviceKeeper=nameservice.NewKeeper(app.BankKeeper,app.cdc,keys[nameservice.StoreKey])
 
 	// register the proposal types
 	// 3.register the proposal types
@@ -389,6 +397,7 @@ func NewOKExChainApp(
 		backend.NewAppModule(app.BackendKeeper),
 		stream.NewAppModule(app.StreamKeeper),
 		params.NewAppModule(app.ParamsKeeper),
+		nameservice.NewAppModule(app.NameserviceKeeper,app.BankKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -406,6 +415,7 @@ func NewOKExChainApp(
 		farm.ModuleName,
 		evidence.ModuleName,
 		evm.ModuleName,
+		nameservice.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
@@ -416,6 +426,7 @@ func NewOKExChainApp(
 		backend.ModuleName,
 		stream.ModuleName,
 		evm.ModuleName,
+		nameservice.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -425,6 +436,7 @@ func NewOKExChainApp(
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
+		nameservice.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

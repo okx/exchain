@@ -5,13 +5,13 @@ import (
 
 	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/x/dex"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/spf13/cobra"
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
 	sdkclient "github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -22,12 +22,14 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authcmd "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/cli"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	nameservicecmd "github.com/okex/exchain/x/nameservice/client/cli"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
 )
 
@@ -99,6 +101,7 @@ func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 		authcmd.QueryTxsByEventsCmd(cdc),
 		authcmd.QueryTxCmd(cdc),
 		flags.LineBreak,
+		nameservicecmd.GetQueryCmd(cdc),
 	)
 
 	// add modules' query commands
@@ -123,6 +126,7 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 		authcmd.GetEncodeCommand(cdc),
 		authcmd.GetDecodeCommand(cdc),
 		flags.LineBreak,
+		nameservicecmd.GetTxCmd(cdc),
 	)
 
 	// add modules' tx commands
