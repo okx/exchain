@@ -122,6 +122,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
+	stateCopy := state.Copy()
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 
@@ -132,6 +133,16 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
+		// use stateCopy to correct the repaired state
+		if state.LastBlockHeight == stateCopy.LastBlockHeight {
+			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
+			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
+			state.LastValidators = stateCopy.LastValidators.Copy()
+			state.Validators = stateCopy.Validators.Copy()
+			state.NextValidators = state.NextValidators.Copy()
+			sm.SaveState(stateStoreDB, state)
+		}
+		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
 		repairedBlockHeight := res.LastBlockHeight
