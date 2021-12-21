@@ -38,6 +38,7 @@ type Context struct {
 	accountNonce  uint64
 	sigCache      SigCache
 	isAsync       bool
+	cache         *Cache
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -61,6 +62,9 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) Cache() *Cache {
+	return c.cache
+}
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -192,6 +196,11 @@ func (c Context) WithEventManager(em *EventManager) Context {
 
 func (c Context) WithAccountNonce(nonce uint64) Context {
 	c.accountNonce = nonce
+	return c
+}
+
+func (c Context) WithCache(cache *Cache) Context {
+	c.cache = cache
 	return c
 }
 
