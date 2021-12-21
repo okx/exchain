@@ -289,9 +289,12 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Debug("Not apply delta", "block", block.Size(), "gid", gorid.GoRId)
+		blockExec.logger.Debug("Not apply delta", "block", block.Size(),
+			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
 
-		if blockExec.proactivelyRunTx {
+		// blockExec.prerunIndex==0 means the block comes from BlockPool.AddBlock not State.addProposalBlockPart
+		// so no prerun result expected
+		if blockExec.proactivelyRunTx && blockExec.prerunIndex > 0 {
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
 			blockExec.prerunContext = nil
 			blockExec.prerunIndex = 0

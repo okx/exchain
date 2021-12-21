@@ -37,8 +37,11 @@ func (acc BaseAccount) Copy() interface{} {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
+var baseAccountBufferPool = amino.NewBufferPool()
+
 func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf = baseAccountBufferPool.Get()
+	defer baseAccountBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5 << 3}
 	for pos := 1; pos < 6; pos++ {
 		lBeforeKey := buf.Len()
@@ -55,7 +58,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(addressLen))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(addressLen))
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +77,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 				if err != nil {
 					return nil, err
 				}
@@ -93,7 +96,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 					if err != nil {
 						return nil, err
 					}
-					err = amino.EncodeUvarint(&buf, uint64(len(data)))
+					err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 					if err != nil {
 						return nil, err
 					}
@@ -112,7 +115,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -125,7 +128,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, acc.AccountNumber)
+			err := amino.EncodeUvarintToBuffer(buf, acc.AccountNumber)
 			if err != nil {
 				return nil, err
 			}
@@ -134,7 +137,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, acc.Sequence)
+			err := amino.EncodeUvarintToBuffer(buf, acc.Sequence)
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +149,7 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 // NewBaseAccount creates a new BaseAccount object

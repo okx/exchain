@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -42,8 +41,12 @@ type ModuleAccount struct {
 func (acc ModuleAccount) Copy() interface{} {
 	return NewModuleAccount(authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence), acc.Name, acc.Permissions...)
 }
+
+var moduleAccountBufferPool = amino.NewBufferPool()
+
 func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf = moduleAccountBufferPool.Get()
+	defer moduleAccountBufferPool.Put(buf)
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
 	for pos := 1; pos < 4; pos++ {
 		lBeforeKey := buf.Len()
@@ -63,7 +66,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -76,7 +79,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(len(acc.Name)))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(len(acc.Name)))
 			if err != nil {
 				return nil, err
 			}
@@ -90,7 +93,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(acc.Permissions[0])))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(len(acc.Permissions[0])))
 			if err != nil {
 				return nil, err
 			}
@@ -105,7 +108,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 					return nil, err
 				}
 				perm := acc.Permissions[i]
-				err = amino.EncodeUvarint(&buf, uint64(len(perm)))
+				err = amino.EncodeUvarintToBuffer(buf, uint64(len(perm)))
 				if err != nil {
 					return nil, err
 				}
@@ -121,7 +124,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 // NewModuleAddress creates an AccAddress from the hash of the module's name
