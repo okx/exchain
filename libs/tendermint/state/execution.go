@@ -89,7 +89,7 @@ func NewBlockExecutor(
 		option(res)
 	}
 
-	LoadTestConf(logger)
+	loadTestCase(logger)
 
 	res.deltaContext.init(logger)
 

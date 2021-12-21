@@ -44,7 +44,7 @@ type action struct {
 	addblockpartnWait int  // control receiver a block time
 }
 
-func LoadTestConf(log log.Logger) {
+func loadTestCase(log log.Logger) {
 
 	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
