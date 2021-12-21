@@ -112,9 +112,10 @@ type State struct {
 
 	// state changes may be triggered by: msgs from peers,
 	// msgs from ourself, or by timeouts
-	peerMsgQueue     chan msgInfo
-	internalMsgQueue chan msgInfo
-	timeoutTicker    TimeoutTicker
+	peerMsgQueue          chan msgInfo
+	internalMsgQueue      chan msgInfo
+	timeoutTicker         TimeoutTicker
+	switchToFastSyncTimer *time.Timer
 
 	// information about about added votes and block parts are written on this channel
 	// so statistics can be computed by reactor
@@ -177,19 +178,22 @@ func NewState(
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
 		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		//done:             make(chan struct{}),
+		done:             make(chan struct{}),
 		doWALCatchup:     true,
 		wal:              nilWAL{},
 		evpool:           evpool,
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		proactivelyRunTx:  viper.GetBool(EnableProactivelyRunTx),
+		proactivelyRunTx: viper.GetBool(EnableProactivelyRunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
+
+	cs.switchToFastSyncTimer = time.NewTimer(cs.config.TimeoutToFastSync)
+	cs.switchToFastSyncTimer.Stop()
 
 	cs.updateToState(state)
 	if cs.proactivelyRunTx {
@@ -315,13 +319,13 @@ func (cs *State) OnStart() error {
 	// we may set the WAL in testing before calling Start,
 	// so only OpenWAL if its still the nilWAL
 	//if _, ok := cs.wal.(nilWAL); ok {
-		walFile := cs.config.WalFile()
-		wal, err := cs.OpenWAL(walFile)
-		if err != nil {
-			cs.Logger.Error("Error loading State wal", "err", err.Error())
-			return err
-		}
-		cs.wal = wal
+	walFile := cs.config.WalFile()
+	wal, err := cs.OpenWAL(walFile)
+	if err != nil {
+		cs.Logger.Error("Error loading State wal", "err", err.Error())
+		return err
+	}
+	cs.wal = wal
 	//} else if err := cs.wal.Start(); err != nil{
 	////	// TODO: err is not nil. why?
 	////	fmt.Println(fmt.Sprintf("State OnStart 2. err: %s", err))
@@ -375,8 +379,6 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	return nil
 }
 
-
-
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
@@ -395,7 +397,7 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	//<-cs.done
+	<-cs.done
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -497,12 +499,38 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
+	cs.resetSwitchToFastSyncTimeout()
 }
 
 // Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
 func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int, step cstypes.RoundStepType) {
 	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{duration, height, round, step})
 }
+
+// Attempt to schedule a timeout for 
+func (cs *State) resetSwitchToFastSyncTimeout() {
+	// Stop() returns false if it was already fired or was stopped
+	if !cs.switchToFastSyncTimer.Stop() {
+		select {
+		case <-cs.switchToFastSyncTimer.C:
+		default:
+			cs.Logger.Debug("Timer already stopped")
+		}
+	}
+	cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
+}
+
+//// Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
+//func (cs *State) stopSwitchToFastSyncTimeout() {
+//	// Stop() returns false if it was already fired or was stopped
+//	if !cs.switchToFastSyncTimer.Stop() {
+//		select {
+//		case <-cs.switchToFastSyncTimer.C:
+//		default:
+//			cs.Logger.Debug("Timer already stopped")
+//		}
+//	}
+//}
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote
 func (cs *State) sendInternalMessage(mi msgInfo) {
@@ -703,6 +731,13 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			// if the timeout is relevant to the rs
 			// go to the next step
 			cs.handleTimeout(ti, rs)
+		case <-cs.switchToFastSyncTimer.C:
+			// should switch to fast-sync mode
+			if cs.Step != cstypes.RoundStepCommit {
+				cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
+					Height: rs.Height,
+				})
+			}
 		case <-cs.Quit():
 			onExit(cs)
 			return
@@ -1532,10 +1567,10 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	/*
-	var deltas *types.Deltas
-	if types.EnableApplyP2PDelta() {
-		deltas = cs.Deltas
-	}
+		var deltas *types.Deltas
+		if types.EnableApplyP2PDelta() {
+			deltas = cs.Deltas
+		}
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
@@ -1554,11 +1589,11 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	/*
-	if types.EnableBroadcastP2PDelta() {
-		// persists the given deltas to the underlying db.
-		deltas.Height = block.Height
-		cs.deltaStore.SaveDeltas(deltas, block.Height)
-	}
+		if types.EnableBroadcastP2PDelta() {
+			// persists the given deltas to the underlying db.
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
 	*/
 
 	fail.Fail() // XXX
@@ -2134,4 +2169,3 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
-

@@ -34,6 +34,10 @@ const (
 )
 
 //-----------------------------------------------------------------------------
+type blockchainReactor interface {
+	// CheckFastSyncCondition called when we're hanging in a height for some time during consensus
+	CheckFastSyncCondition()
+}
 
 // Reactor defines a reactor for the consensus service.
 type Reactor struct {
@@ -77,6 +81,7 @@ func (conR *Reactor) OnStart() error {
 	go conR.peerStatsRoutine()
 
 	conR.subscribeToBroadcastEvents()
+	conR.subscribeToBlockchainEvents()
 
 	if !conR.FastSync() {
 		err := conR.conS.Start()
@@ -92,6 +97,7 @@ func (conR *Reactor) OnStart() error {
 // state.
 func (conR *Reactor) OnStop() {
 	conR.unsubscribeFromBroadcastEvents()
+	conR.unsubscribeFromBlockchainEvents()
 	conR.conS.Stop()
 	if !conR.FastSync() {
 		conR.conS.Wait()
@@ -121,14 +127,10 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		conR.conS.doWALCatchup = false
 	}
 	conR.conS.Stop()
-	//if !conR.FastSync() {
-	//	conR.conS.Wait()
-	//}
-	conR.conS.Reset()
-	conR.conS.Start()
 
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
+	conR.subscribeToBlockchainEvents()
 
 	return true
 }
@@ -158,6 +160,12 @@ conS:
 conR:
 %+v`, err, conR.conS, conR))
 	}
+
+	conR.conS.Wait()
+
+	conR.unsubscribeFromBroadcastEvents()
+	conR.unsubscribeFromBlockchainEvents()
+
 	return conR.conS.GetState(), nil
 }
 
@@ -438,10 +446,24 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
-
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
+	const subscriber = "consensus-reactor"
+	conR.conS.evsw.RemoveListener(subscriber)
+}
+
+func (conR *Reactor) subscribeToBlockchainEvents() {
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSwitchToFastSync,
+		func(data tmevents.EventData) {
+			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
+			if ok {
+				bcR.CheckFastSyncCondition()
+			}
+		})
+}
+
+func (conR *Reactor) unsubscribeFromBlockchainEvents() {
 	const subscriber = "consensus-reactor"
 	conR.conS.evsw.RemoveListener(subscriber)
 }

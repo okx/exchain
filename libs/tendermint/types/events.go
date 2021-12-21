@@ -37,6 +37,7 @@ const (
 	EventUnlock           = "Unlock"
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
+	EventSwitchToFastSync = "SwitchToFastSync"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,6 +58,7 @@ func RegisterEventDatas(cdc *amino.Codec) {
 	cdc.RegisterConcrete(EventDataNewRound{}, "tendermint/event/NewRound", nil)
 	cdc.RegisterConcrete(EventDataCompleteProposal{}, "tendermint/event/CompleteProposal", nil)
 	cdc.RegisterConcrete(EventDataVote{}, "tendermint/event/Vote", nil)
+	cdc.RegisterConcrete(EventDataSwitchToFastSync{}, "tendermint/event/SwitchToFastSync", nil)
 	cdc.RegisterConcrete(EventDataValidatorSetUpdates{}, "tendermint/event/ValidatorSetUpdates", nil)
 	cdc.RegisterConcrete(EventDataString(""), "tendermint/event/ProposalString", nil)
 }
@@ -120,6 +122,10 @@ type EventDataString string
 
 type EventDataValidatorSetUpdates struct {
 	ValidatorUpdates []*Validator `json:"validator_updates"`
+}
+
+type EventDataSwitchToFastSync struct {
+	Height int64
 }
 
 ///////////////////////////////////////////////////////////////////////////////

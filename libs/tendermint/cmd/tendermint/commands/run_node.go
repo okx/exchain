@@ -81,6 +81,10 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"consensus.create_empty_blocks_interval",
 		config.Consensus.CreateEmptyBlocksInterval.String(),
 		"The possible interval between empty blocks")
+	cmd.Flags().String(
+		"consensus.switch_to_fast_sync_interval",
+		config.Consensus.TimeoutToFastSync.String(),
+		"The interval for switching from consensus mode to fast-sync mode")
 	// mempool flags
 	cmd.Flags().Bool(
 		"mempool.sealed",
