@@ -15,6 +15,7 @@ import (
 //
 // Many complex conditions can be used in the concrete struct which implements Account.
 type Account interface {
+	Copy() interface{}
 	GetAddress() sdk.AccAddress
 	SetAddress(sdk.AccAddress) error // errors if already set.
 

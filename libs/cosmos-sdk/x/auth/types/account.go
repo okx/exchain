@@ -8,7 +8,7 @@ import (
 	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -31,6 +31,10 @@ type BaseAccount struct {
 	PubKey        crypto.PubKey  `json:"public_key" yaml:"public_key"`
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
+}
+
+func (acc BaseAccount) Copy() interface{} {
+	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
 var baseAccountBufferPool = amino.NewBufferPool()
