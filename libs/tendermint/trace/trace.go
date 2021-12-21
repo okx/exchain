@@ -13,6 +13,7 @@ const (
 	RunTx       = "RunTx"
 	Height      = "Height"
 	Tx          = "Tx"
+	BlockSize   = "BlockSize"
 	Elapsed     = "Elapsed"
 	CommitRound = "CommitRound"
 	Round       = "Round"
