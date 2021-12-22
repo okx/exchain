@@ -51,6 +51,8 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	ConfigCache *evmCache
 }
 
 // NewKeeper generates new evm module keeper
@@ -88,6 +90,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
+		ConfigCache:    newConfigCache(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -236,6 +239,11 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	if data, gas := k.ConfigCache.GetChainConfig(); gas != 0 {
+		ctx.GasMeter().ConsumeGas(gas, "evm.keeper.GetChainConfig")
+		return data, true
+	}
+	startGas := ctx.GasMeter().GasConsumed()
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -249,6 +257,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
+	k.ConfigCache.setChainConfig(config, ctx.GasMeter().GasConsumed()-startGas)
 	return config, true
 }
 
@@ -268,5 +277,6 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 // checks whether the address is blocked
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	csdb.SetCache(k.ConfigCache.SetSkipFlag(ctx.Cache().Skip()))
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }

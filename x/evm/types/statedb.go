@@ -29,6 +29,12 @@ var (
 	zeroBalance = sdk.ZeroInt().BigInt()
 )
 
+type cacheInterface interface {
+	GetParams() (Params, uint64)
+	IsBlackList(addr sdk.AccAddress) (bool, bool)
+	CleanBlackList()
+}
+
 type revision struct {
 	id           int
 	journalIndex int
@@ -124,6 +130,7 @@ type CommitStateDB struct {
 	codeCache map[ethcmn.Address]CacheCode
 
 	dbAdapter DbAdapter
+	cache     cacheInterface
 
 	// Amino codec
 	cdc *codec.Codec
@@ -506,6 +513,10 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 	return csdb.accessList.Contains(addr, slot)
 }
 
+func (csdb *CommitStateDB) SetCache(cache cacheInterface) {
+	csdb.cache = cache
+}
+
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
@@ -524,6 +535,11 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() Params {
+	if csdb.cache != nil {
+		if par, gas := csdb.cache.GetParams(); gas != 0 {
+			return par
+		}
+	}
 	if csdb.params == nil {
 		var params Params
 		csdb.paramSpace.GetParamSet(csdb.ctx, &params)
@@ -1279,6 +1295,9 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 	}
+	if csdb.cache != nil {
+		csdb.cache.CleanBlackList()
+	}
 }
 
 // DeleteContractBlockedList deletes the target address list from blocked list store
@@ -1291,6 +1310,9 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
+	}
+	if csdb.cache != nil {
+		csdb.cache.CleanBlackList()
 	}
 }
 
@@ -1311,6 +1333,12 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
+	if csdb.cache != nil {
+		if stats, ok := csdb.cache.IsBlackList(contractAddr); ok {
+			return stats
+		}
+	}
+
 	bc := csdb.GetContractMethodBlockedByAddress(contractAddr)
 	if bc == nil {
 		//contractAddr is not blocked
@@ -1359,7 +1387,7 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
 			if err != nil {
 				return err
 			}
@@ -1378,9 +1406,11 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+
+			result, err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
 			if err != nil {
-				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
+				return ErrBlockedContractMethodIsNotExist(contractList[i].Address, err)
+
 			}
 			bc.BlockMethods = result
 			//if block contract method delete empty then remove contract from blocklist.
@@ -1394,7 +1424,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedContractMethodIsNotExist(contractList[i].Address,ErrorContractMethodBlockedIsNotExist)
+			return ErrBlockedContractMethodIsNotExist(contractList[i].Address, ErrorContractMethodBlockedIsNotExist)
 		}
 	}
 	return nil

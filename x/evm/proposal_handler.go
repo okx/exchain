@@ -50,6 +50,7 @@ func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, propos
 	}
 
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	csdb.SetCache(k.ConfigCache.SetSkipFlag(ctx.Cache().Skip()))
 	if manageContractBlockedListProposal.IsAdded {
 		// add contract addresses into blocked list
 		csdb.SetContractBlockedList(manageContractBlockedListProposal.ContractAddrs)
