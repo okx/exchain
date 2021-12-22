@@ -6,18 +6,16 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"sync"
 	"time"
 )
 
-//-----------------------------------------------------------------------------
-// Errors
-
-//-----------------------------------------------------------------------------
 
 var (
 	tlog           log.Logger
 	enableRoleTest bool
 	roleAction     map[string]*action
+    once           sync.Once
 )
 
 const (
@@ -26,7 +24,9 @@ const (
 )
 
 func init() {
-	roleAction = make(map[string]*action)
+	once.Do(func() {
+		roleAction = make(map[string]*action)
+	})
 }
 
 type round struct {
@@ -41,7 +41,7 @@ type action struct {
 	preVote           bool // true vote nil, false default vote
 	preCommit         bool // true vote nil, false default vote
 	preRunWait        int  // control prerun sleep time
-	addBlockPartWait int  // control sleep time before receiver a block
+	addBlockPartWait  int  // control sleep time before receiver a block
 }
 
 func LoadTestCase(log log.Logger) {
