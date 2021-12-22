@@ -52,10 +52,8 @@ func loadTestCase(log log.Logger) {
 	}
 
 	tlog = log
-	role := fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
 
 	content, err := ioutil.ReadFile(confFilePath)
-
 	if err != nil {
 		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}
@@ -68,6 +66,7 @@ func loadTestCase(log log.Logger) {
 	enableRoleTest = true
 	log.Info("Load consensus test case", "file", confFilePath, "err", err, "confTmp", confTmp)
 
+	role := viper.GetString(ConsensusRole)
 	for height, roundEvents := range confTmp {
 		if _, ok := roleAction[height]; !ok {
 			for _, event := range roundEvents {
