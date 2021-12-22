@@ -5,6 +5,7 @@ import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -145,7 +146,7 @@ func prerun(context *executionContext) {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	preTimeOut(context.block.Height, int(context.index)-1)
+	automation.PrerunTimeOut(context.block.Height, int(context.index)-1)
 	context.dump("Prerun completed")
 	context.prerunResultChan <- context
 }
