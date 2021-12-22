@@ -282,7 +282,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 	if blockExec.deltaContext.useDeltas {
 		blockExec.logger.Info("Apply delta", "deltas", dc.deltas, "gid", gorid.GoRId)
 
-		SetCenterBatch(dc.deltas.WatchBytes)
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(dc.deltas.ABCIRsp, &abciResponses)
 		if err != nil {
@@ -292,9 +291,13 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 		blockExec.logger.Debug("Not apply delta", "block", block.Size(),
 			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
 
-		// blockExec.prerunIndex==0 means the block comes from BlockPool.AddBlock not State.addProposalBlockPart
-		// so no prerun result expected
-		if blockExec.proactivelyRunTx && blockExec.prerunIndex > 0 {
+		// blockExec.prerunIndex==0 means:
+		// 1. proactivelyRunTx disabled
+		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
+		if blockExec.prerunIndex > 0 {
+			if !blockExec.proactivelyRunTx {
+				panic("never gonna happen")
+			}
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
 			blockExec.prerunContext = nil
 			blockExec.prerunIndex = 0

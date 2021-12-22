@@ -15,10 +15,10 @@ type RedisClient struct {
 	logger log.Logger
 }
 
-func NewRedisClient(url string, l log.Logger) *RedisClient {
+func NewRedisClient(url, auth string, l log.Logger) *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
-		Password: "", // no password set
+		Password: auth, // no password set
 		DB:       0,  // use default DB
 	})
 	return &RedisClient{rdb, l}
