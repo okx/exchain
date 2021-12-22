@@ -1,4 +1,4 @@
-package state
+package automation
 
 import (
 	"encoding/json"
@@ -44,7 +44,7 @@ type action struct {
 	addBlockPartWait int  // control sleep time before receiver a block
 }
 
-func loadTestCase(log log.Logger) {
+func LoadTestCase(log log.Logger) {
 
 	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
@@ -52,10 +52,8 @@ func loadTestCase(log log.Logger) {
 	}
 
 	tlog = log
-	role := fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
 
 	content, err := ioutil.ReadFile(confFilePath)
-
 	if err != nil {
 		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}
@@ -68,6 +66,7 @@ func loadTestCase(log log.Logger) {
 	enableRoleTest = true
 	log.Info("Load consensus test case", "file", confFilePath, "err", err, "confTmp", confTmp)
 
+	role := viper.GetString(ConsensusRole)
 	for height, roundEvents := range confTmp {
 		if _, ok := roleAction[height]; !ok {
 			for _, event := range roundEvents {
@@ -111,7 +110,7 @@ func PrecommitNil(height int64, round int) bool {
 	return false
 }
 
-func preTimeOut(height int64, round int) {
+func PrerunTimeOut(height int64, round int) {
 	if !enableRoleTest {
 		return
 	}

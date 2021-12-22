@@ -135,8 +135,9 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
-    --download-delta \
+    --download-delta=false \
     --p2p.addr_book_strict=false \
+    --enable-proactively-runtx \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
