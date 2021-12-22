@@ -52,7 +52,7 @@ func MarshalPairToAmino(pair Pair) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, pair.Key)
+			err = amino.EncodeByteSliceToBuffer(&buf, pair.Key)
 			if err != nil {
 				return nil, err
 			}
@@ -64,7 +64,7 @@ func MarshalPairToAmino(pair Pair) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, pair.Value)
+			err = amino.EncodeByteSliceToBuffer(&buf, pair.Value)
 			if err != nil {
 				return nil, err
 			}

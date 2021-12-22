@@ -162,6 +162,9 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+
+	chainCache *sdk.Cache
+	blockCache *sdk.Cache
 }
 
 type recordHandle func(string)
@@ -188,6 +191,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
+		chainCache:       sdk.NewChainCache(),
 	}
 	for _, option := range options {
 		option(app)

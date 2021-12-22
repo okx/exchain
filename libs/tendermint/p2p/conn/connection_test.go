@@ -3,9 +3,12 @@ package conn
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"net"
 	"testing"
 	"time"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
@@ -576,7 +579,18 @@ func TestPacketAmino(t *testing.T) {
 }
 
 func BenchmarkPacketAmino(b *testing.B) {
+	hash := ethcmn.BigToHash(big.NewInt(0x12345678))
+	buf := bytes.Buffer{}
+	for i := 0; i < 10; i++ {
+		buf.Write(hash.Bytes())
+	}
+	msg := PacketMsg{0x7f, 45, buf.Bytes()}
+	bz, err := cdc.MarshalBinaryLengthPrefixed(msg)
+	require.NoError(b, err)
+	b.ResetTimer()
+
 	b.Run("ping-amino-marshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			packet = PacketPing{}
@@ -584,6 +598,7 @@ func BenchmarkPacketAmino(b *testing.B) {
 		}
 	})
 	b.Run("ping-amino-marshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			packet = PacketPing{}
@@ -591,6 +606,7 @@ func BenchmarkPacketAmino(b *testing.B) {
 		}
 	})
 	b.Run("msg-amino-marshal", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			packet = PacketMsg{32, 45, []byte{0x12, 0x34, 0x56, 0x78}}
@@ -598,10 +614,34 @@ func BenchmarkPacketAmino(b *testing.B) {
 		}
 	})
 	b.Run("msg-amino-marshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			packet = PacketMsg{32, 45, []byte{0x12, 0x34, 0x56, 0x78}}
 			_, _ = cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(packet)
+		}
+	})
+	b.Run("msg-amino-unmarshal", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			var buf = bytes.NewBuffer(bz)
+			_, err = cdc.UnmarshalBinaryLengthPrefixedReader(buf, &packet, int64(buf.Len()))
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("msg-amino-unmarshaler", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var packet Packet
+			var buf = bytes.NewBuffer(bz)
+			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()))
+			if err != nil {
+				b.Fatal(err)
+			}
+			_ = packet
 		}
 	})
 }
