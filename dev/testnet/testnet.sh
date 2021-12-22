@@ -93,7 +93,7 @@ run() {
   p2p_seed_opt=$5
   p2p_seed_arg=$6
 
-  LOG_LEVEL=main:info,*:error,consensus:info,state:info
+  LOG_LEVEL=main:info,*:error,consensus:info,state:info,blockchain:info
 
   if [ "$(uname -s)" == "Darwin" ]; then
       sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json

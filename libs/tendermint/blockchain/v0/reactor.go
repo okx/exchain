@@ -112,6 +112,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		pool:         pool,
 		fastSync:     fastSync,
 		autoFastSync: autoFastSync,
+		isSyncing:    false,
 		mtx:          sync.RWMutex{},
 		requestsCh:   requestsCh,
 		errorsCh:     errorsCh,
@@ -227,10 +228,10 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
 		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
-		//fmt.Println(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
+		bcR.Logger.Info(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
-			go bcR.poolRoutine()
+			go bcR.SwitchToFastSync()
 		}
 	case *bcNoBlockResponseMessage:
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)
@@ -242,39 +243,8 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // Handle messages from the poolReactor telling the reactor what to do.
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
-	if bcR.getIsSyncing() {
-		return
-	}
-	bcR.setIsSyncing(true)
-	defer func() {
-		bcR.setIsSyncing(false)
-	}()
-
-	blocksSynced := uint64(0)
-
-	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-	if ok {
-		conState, err := conR.SwitchToFastSync()
-		if err == nil {
-			bcR.curState = conState
-		}
-	}
-	chainID := bcR.curState.ChainID
-
-	bcR.pool.SetHeight(bcR.store.Height() + 1)
-	bcR.pool.Stop()
-	bcR.pool.Reset()
-	bcR.pool.Start()
-
-	lastHundred := time.Now()
-	lastRate := 0.0
-
-	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
-	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
 	statusUpdateTicker := time.NewTicker(statusUpdateIntervalSeconds * time.Second)
 	//testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
-
-	didProcessCh := make(chan struct{}, 1)
 
 	go func() {
 		for {
@@ -315,6 +285,68 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			}
 		}
 	}()
+
+	// do fast-sync when the node starts
+	bcR.SwitchToFastSync()
+}
+
+func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
+	if !bcR.getIsSyncing() {
+		return false
+	}
+
+	blocksSynced := uint64(0)
+	height, numPending, lenRequesters := bcR.pool.GetStatus()
+	outbound, inbound, _ := bcR.Switch.NumPeers()
+	bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
+		"outbound", outbound, "inbound", inbound)
+	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+	if bcR.pool.IsCaughtUp() && ok {
+		bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
+
+		succeed := conR.SwitchToConsensus(state, blocksSynced)
+		if succeed {
+			bcR.pool.Stop()
+			return true
+		}
+	}
+	return false
+}
+
+func (bcR *BlockchainReactor) SwitchToFastSync() {
+	if bcR.isSyncing {
+		return
+	}
+	bcR.isSyncing = true
+	defer func() {
+		bcR.isSyncing = false
+	}()
+	//fmt.Println("SwitchToFastSync 1")
+
+	blocksSynced := uint64(0)
+	//state := bcR.initialState
+
+	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
+	if ok {
+		//fmt.Println("SwitchToFastSync 2")
+		conState, err := conR.SwitchToFastSync()
+		if err == nil {
+			bcR.curState = conState //.Copy()
+		}
+	}
+	chainID := bcR.curState.ChainID
+
+	bcR.pool.SetHeight(bcR.store.Height() + 1)
+	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.pool.Start()
+
+	lastHundred := time.Now()
+	lastRate := 0.0
+
+	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
+	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
+	didProcessCh := make(chan struct{}, 1)
 
 FOR_LOOP:
 	for {
@@ -419,32 +451,10 @@ FOR_LOOP:
 
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
 	// ask for status updates
+	bcR.Logger.Info("BroadcastStatusRequest. autoFastSync: ", bcR.autoFastSync)
 	if bcR.autoFastSync {
 		go bcR.BroadcastStatusRequest()
 	}
-}
-
-func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
-	if !bcR.getIsSyncing() {
-		return false
-	}
-
-	blocksSynced := uint64(0)
-	height, numPending, lenRequesters := bcR.pool.GetStatus()
-	outbound, inbound, _ := bcR.Switch.NumPeers()
-	bcR.Logger.Debug("Consensus ticker", "numPending", numPending, "total", lenRequesters,
-		"outbound", outbound, "inbound", inbound)
-	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
-	if bcR.pool.IsCaughtUp() && ok {
-		bcR.Logger.Info("Time to switch to consensus reactor!", "height", height)
-
-		succeed := conR.SwitchToConsensus(state, blocksSynced)
-		if succeed {
-			bcR.pool.Stop()
-			return true
-		}
-	}
-	return false
 }
 
 // BroadcastStatusRequest broadcasts `BlockStore` base and height.

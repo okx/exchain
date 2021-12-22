@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
@@ -192,9 +193,6 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
-	cs.switchToFastSyncTimer = time.NewTimer(cs.config.TimeoutToFastSync)
-	cs.switchToFastSyncTimer.Stop()
-
 	cs.updateToState(state)
 	if cs.proactivelyRunTx {
 		cs.blockExec.InitPrerun()
@@ -312,7 +310,9 @@ func (cs *State) LoadCommit(height int64) *types.Commit {
 // OnStart implements service.Service.
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
 func (cs *State) OnStart() error {
+	cs.Logger.Info("Start consensus.")
 	if err := cs.evsw.Start(); err != nil {
+		cs.Logger.Error("evsw start failed. err: ", err)
 		return err
 	}
 
@@ -327,8 +327,6 @@ func (cs *State) OnStart() error {
 	}
 	cs.wal = wal
 	//} else if err := cs.wal.Start(); err != nil{
-	////	// TODO: err is not nil. why?
-	////	fmt.Println(fmt.Sprintf("State OnStart 2. err: %s", err))
 	////	//return err
 	//}
 
@@ -492,7 +490,7 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
+	cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
 	sleepDuration := rs.StartTime.Sub(tmtime.Now())
 	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
@@ -507,30 +505,22 @@ func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int
 	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{duration, height, round, step})
 }
 
-// Attempt to schedule a timeout for 
+// Attempt to schedule a timeout for
 func (cs *State) resetSwitchToFastSyncTimeout() {
-	// Stop() returns false if it was already fired or was stopped
-	if !cs.switchToFastSyncTimer.Stop() {
-		select {
-		case <-cs.switchToFastSyncTimer.C:
-		default:
-			cs.Logger.Debug("Timer already stopped")
+	cs.Logger.Info("Reset SwitchToFastSyncTimeout.")
+	if cs.switchToFastSyncTimer == nil {
+		cs.switchToFastSyncTimer = time.NewTimer(cs.config.TimeoutToFastSync)
+	} else {
+		if !cs.switchToFastSyncTimer.Stop() { // Stop() returns false if it was already fired or was stopped
+			select {
+			case <-cs.switchToFastSyncTimer.C:
+			default:
+				cs.Logger.Debug("Timer already stopped")
+			}
 		}
+		cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
 	}
-	cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
 }
-
-//// Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
-//func (cs *State) stopSwitchToFastSyncTimeout() {
-//	// Stop() returns false if it was already fired or was stopped
-//	if !cs.switchToFastSyncTimer.Stop() {
-//		select {
-//		case <-cs.switchToFastSyncTimer.C:
-//		default:
-//			cs.Logger.Debug("Timer already stopped")
-//		}
-//	}
-//}
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote
 func (cs *State) sendInternalMessage(mi msgInfo) {
@@ -691,6 +681,8 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		}
 	}()
 
+
+
 	for {
 		if maxSteps > 0 {
 			if cs.nSteps >= maxSteps {
@@ -733,7 +725,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			cs.handleTimeout(ti, rs)
 		case <-cs.switchToFastSyncTimer.C:
 			// should switch to fast-sync mode
+			logger.Info("switchToFastSyncTimer. step:", cs.Step)
 			if cs.Step != cstypes.RoundStepCommit {
+				logger.Info("PublishEventSwitchToFastSync. Height:", rs.Height)
 				cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
 					Height: rs.Height,
 				})
