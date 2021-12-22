@@ -81,9 +81,8 @@ func (dc *DeltaContext) reset() {
 }
 
 func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
-	if dc.useDeltas {
-		dc.logger.Info("Applied delta", "delta", dc.deltas, "gid", gorid.GoRId)
-	}
+
+	dc.logger.Info("Post applied block", "delta-applied", dc.useDeltas, "delta", dc.deltas, "gid", gorid.GoRId)
 
 	// rpc
 	if dc.useDeltas && types.IsFastQuery() {
@@ -168,13 +167,18 @@ func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
 	}
 
 	var dds *types.Deltas
+	var succeed bool
 	select {
 	case dds = <-dc.deltaCh:
 		// already get delta of height
 	default:
 		// can't get delta of height
 	}
-	dc.logger.Info("prepareStateDelta", "delta", dds)
+	if dds != nil {
+		succeed = true
+	}
+
+	dc.logger.Info("prepareStateDelta", "height", block.Height, "succeed", succeed, "delta", dds)
 
 	// request delta of height+1 and return
 	dc.deltaHeightCh <- block.Height + 1
