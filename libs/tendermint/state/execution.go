@@ -291,7 +291,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 		}
 	} else {
 		blockExec.logger.Debug("Not apply delta", "height", block.Height,
-			"block", block.Size(),
+			"block-size", block.Size(),
 			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
 
 		// blockExec.prerunIndex==0 means:
