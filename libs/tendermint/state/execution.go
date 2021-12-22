@@ -280,8 +280,9 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 	var abciResponses *ABCIResponses
 	var err error
 
-	if blockExec.deltaContext.useDeltas {
-		blockExec.logger.Info("Apply delta", "deltas", dc.deltas, "gid", gorid.GoRId)
+	if dc.useDeltas {
+		blockExec.logger.Info("Apply delta", "height", block.Height,
+			"deltas", dc.deltas, "gid", gorid.GoRId)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(dc.deltas.ABCIRsp, &abciResponses)
@@ -289,7 +290,8 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Debug("Not apply delta", "block", block.Size(),
+		blockExec.logger.Info("Not apply delta", "height", block.Height,
+			"block-size", block.Size(),
 			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
 
 		// blockExec.prerunIndex==0 means:
