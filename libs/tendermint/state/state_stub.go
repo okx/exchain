@@ -52,7 +52,7 @@ func loadTestCase(log log.Logger) {
 	}
 
 	tlog = log
-	role := fmt.Sprintf("v%s", viper.GetString(ConsensusRole))
+	role := viper.GetString(ConsensusRole)
 
 	content, err := ioutil.ReadFile(confFilePath)
 
