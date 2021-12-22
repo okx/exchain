@@ -147,7 +147,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeByteSlice(&buf, data)
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
 				}
@@ -164,7 +164,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -180,7 +180,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}

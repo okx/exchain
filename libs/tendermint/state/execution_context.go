@@ -135,8 +135,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 func prerun(context *executionContext) {
 	context.dump("Start prerun")
 
-	trc := trace.NewTracer(fmt.Sprintf("prerun-%d-%d",
-		context.block.Height, context.index))
+	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
 
 	abciResponses, err := execBlockOnProxyApp(context)
 

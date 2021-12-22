@@ -9,22 +9,21 @@ import (
 )
 
 type runTxInfo struct {
-	handler modeHandler
-	gasWanted uint64
-	ctx sdk.Context
-	runMsgCtx sdk.Context
-	msCache sdk.CacheMultiStore
-	msCacheAnte sdk.CacheMultiStore
-	accountNonce uint64
+	handler        modeHandler
+	gasWanted      uint64
+	ctx            sdk.Context
+	runMsgCtx      sdk.Context
+	msCache        sdk.CacheMultiStore
+	msCacheAnte    sdk.CacheMultiStore
+	accountNonce   uint64
 	runMsgFinished bool
-	startingGas uint64
-	gInfo sdk.GasInfo
+	startingGas    uint64
+	gInfo          sdk.GasInfo
 
-	result *sdk.Result
+	result  *sdk.Result
 	txBytes []byte
-	tx sdk.Tx
+	tx      sdk.Tx
 }
-
 
 func (app *BaseApp) runTx(mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result,
@@ -50,6 +49,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if err != nil {
 		return info, err
 	}
+	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
@@ -138,6 +138,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 
 	if mode != runTxModeDeliverInAsync {
 		info.msCacheAnte.Write()
+		info.ctx.Cache().Write(true)
 	}
 
 	return nil
@@ -228,4 +229,29 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
 	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
+}
+
+func useCache(mode runTxMode) bool {
+	if !sdk.UseCache {
+		return false
+	}
+	if mode == runTxModeDeliver {
+		return true
+	}
+	return false
+}
+
+func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
+	ctx.Cache().Write(true)
+	cache.Write()
+}
+
+func (app *BaseApp) newBlockCache() {
+	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
+	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
+}
+
+func (app *BaseApp) commitBlockCache() {
+	app.blockCache.Write(true)
+	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
