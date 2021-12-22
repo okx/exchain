@@ -280,7 +280,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 	var abciResponses *ABCIResponses
 	var err error
 
-	if blockExec.deltaContext.useDeltas {
+	if dc.useDeltas {
 		blockExec.logger.Info("Apply delta", "height", block.Height,
 			"deltas", dc.deltas, "gid", gorid.GoRId)
 
