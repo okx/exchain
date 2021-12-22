@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
@@ -1144,7 +1145,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if sm.PrevoteNil(height, round){
+	if automation.PrevoteNil(height, round){
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1240,7 +1241,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	if sm.PrecommitNil(height, round) {
+	if automation.PrecommitNil(height, round) {
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1737,7 +1738,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
-	sm.AddBlockTimeOut(height, round)
+	automation.AddBlockTimeOut(height, round)
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {

@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -89,7 +90,7 @@ func NewBlockExecutor(
 		option(res)
 	}
 
-	loadTestCase(logger)
+	automation.LoadTestCase(logger)
 
 	res.deltaContext.init(logger)
 
