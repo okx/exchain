@@ -116,23 +116,20 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StartTxLog(bam.EvmHandler)
 	defer StopTxLog(bam.EvmHandler)
 
-	StartTxLog(bam.ParseChainID)
+
+	StartTxLog(bam.Txhash)
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
-	StopTxLog(bam.ParseChainID)
 
 	// Verify signature and retrieve sender address
 
-	StartTxLog(bam.VerifySig)
 	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return nil, err
 	}
-	StopTxLog(bam.VerifySig)
 
-	StartTxLog(bam.Txhash)
 	sender := senderSigCache.GetFrom()
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
@@ -173,8 +170,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog(bam.SaveTx)
 
 	defer func() {
-		StartTxLog(bam.HandlerDefer)
-		defer StopTxLog(bam.HandlerDefer)
 
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
@@ -220,7 +215,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		return nil, err
 	}
-	StopTxLog(bam.TransitionDb)
 
 	if !st.Simulate {
 		if innerTxs != nil {
@@ -231,7 +225,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 	}
 
-	StartTxLog(bam.Bloomfilter)
 	if !st.Simulate {
 		// update block bloom filter
 		if !ctx.IsAsync() {
@@ -247,9 +240,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			})
 		}
 	}
-	StopTxLog(bam.Bloomfilter)
-
-	StartTxLog(bam.EmitEvents)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -274,7 +264,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
-	StopTxLog(bam.EmitEvents)
+	StopTxLog(bam.TransitionDb)
 	return executionResult.Result, nil
 }
 

@@ -1359,7 +1359,11 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			result,err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			if err != nil {
+				return err
+			}
+			bc.BlockMethods = result
 		} else {
 			bc = &contractList[i]
 		}
@@ -1374,9 +1378,11 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			if err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods);err != nil {
+			result,err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+			if err != nil {
 				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
 			}
+			bc.BlockMethods = result
 			//if block contract method delete empty then remove contract from blocklist.
 			if len(bc.BlockMethods) == 0 {
 				addressList := AddressList{}
@@ -1431,6 +1437,7 @@ func (csdb *CommitStateDB) IsContractMethodBlocked(contractAddr sdk.AccAddress, 
 // SetContractMethodBlocked sets contract method blocked into blocked list store
 func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	key := GetContractBlockedListMemberKey(contract.Address)
+	SortContractMethods(contract.BlockMethods)
 	value := csdb.cdc.MustMarshalJSON(contract.BlockMethods)
 	value = sdk.MustSortJSON(value)
 	store := csdb.ctx.KVStore(csdb.storeKey)

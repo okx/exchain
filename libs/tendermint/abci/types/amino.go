@@ -33,7 +33,7 @@ func MarshalPubKeyToAmino(pubkey PubKey) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, pubkey.Data)
+			err = amino.EncodeByteSliceToBuffer(&buf, pubkey.Data)
 			if err != nil {
 				return nil, err
 			}
@@ -67,7 +67,7 @@ func MarshalValidatorUpdateToAmino(valUpdate ValidatorUpdate) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -79,7 +79,7 @@ func MarshalValidatorUpdateToAmino(valUpdate ValidatorUpdate) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(valUpdate.Power))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(valUpdate.Power))
 			if err != nil {
 				return nil, err
 			}
@@ -110,7 +110,7 @@ func MarshalBlockParamsToAmino(params BlockParams) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(params.MaxBytes))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(params.MaxBytes))
 			if err != nil {
 				return nil, err
 			}
@@ -119,7 +119,7 @@ func MarshalBlockParamsToAmino(params BlockParams) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(params.MaxGas))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(params.MaxGas))
 			if err != nil {
 				return nil, err
 			}
@@ -150,7 +150,7 @@ func MarshalEvidenceParamsToAmino(params EvidenceParams) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(params.MaxAgeNumBlocks))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(params.MaxAgeNumBlocks))
 			if err != nil {
 				return nil, err
 			}
@@ -159,7 +159,7 @@ func MarshalEvidenceParamsToAmino(params EvidenceParams) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(params.MaxAgeDuration))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(params.MaxAgeDuration))
 			if err != nil {
 				return nil, err
 			}
@@ -215,7 +215,7 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(event.Type)))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(len(event.Type)))
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +233,7 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeByteSlice(&buf, data)
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
 				}
@@ -264,7 +264,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(tx.Code))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.Code))
 			if err != nil {
 				return nil, err
 			}
@@ -273,7 +273,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeByteSlice(&buf, tx.Data)
+			err = amino.EncodeByteSliceToBuffer(&buf, tx.Data)
 			if err != nil {
 				return nil, err
 			}
@@ -300,7 +300,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(tx.GasWanted))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.GasWanted))
 			if err != nil {
 				return nil, err
 			}
@@ -309,7 +309,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(tx.GasUsed))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.GasUsed))
 			if err != nil {
 				return nil, err
 			}
@@ -323,7 +323,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -336,7 +336,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeByteSlice(&buf, data)
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
 				}
@@ -376,7 +376,7 @@ func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, e
 		if err != nil {
 			return nil, err
 		}
-		err = amino.EncodeByteSlice(&buf, data)
+		err = amino.EncodeByteSliceToBuffer(&buf, data)
 		if err != nil {
 			return nil, err
 		}
@@ -405,7 +405,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -418,7 +418,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -431,7 +431,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeByteSlice(&buf, data)
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
 			}
@@ -468,7 +468,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeByteSlice(&buf, data)
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
 				}

@@ -17,7 +17,8 @@ const (
 	FlagUploadDDS = "upload-delta"
 
 	// redis
-	FlagRedisUrl = "redis-url"
+	FlagRedisUrl  = "redis-url"
+	FlagRedisAuth = "redis-auth"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
@@ -37,7 +38,8 @@ var (
 	// fmt (http://ip:port/)
 	centerUrl = "http://127.0.0.1:8030/"
 	// fmt (ip:port)
-	redisUrl = "127.0.0.1:6379"
+	redisUrl  = "127.0.0.1:6379"
+	redisAuth = "auth"
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
@@ -48,6 +50,7 @@ var (
 	onceCenterMode sync.Once
 	onceCenterUrl  sync.Once
 	onceRedisUrl   sync.Once
+	onceRedisAuth  sync.Once
 
 	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
@@ -95,6 +98,13 @@ func RedisUrl() string {
 		redisUrl = viper.GetString(FlagRedisUrl)
 	})
 	return redisUrl
+}
+
+func RedisAuth() string {
+	onceRedisAuth.Do(func() {
+		redisAuth = viper.GetString(FlagRedisAuth)
+	})
+	return redisAuth
 }
 
 func IsCenterEnabled() bool {

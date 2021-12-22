@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
+	"github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/stream"
@@ -78,7 +79,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 
-	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "Evm=x,Iavl=x,DeliverTxs=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 
 	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "The cool down time after every type of pprof dump")
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
@@ -88,5 +89,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnableProactivelyRunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().String(state.ConsensusRole, "", "consensus role")
+	cmd.Flags().String(state.ConsensusTestcase, "", "consensus test case file")
+
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 }

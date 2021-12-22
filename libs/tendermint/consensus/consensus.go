@@ -199,6 +199,7 @@ func NewState(
 	if cs.proactivelyRunTx {
 		cs.blockExec.InitPrerun()
 	}
+
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
@@ -1190,6 +1191,11 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
+	if sm.PrevoteNil(height, round){
+		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
+		return
+	}
+
 	// If a block is locked, prevote that.
 	if cs.LockedBlock != nil {
 		logger.Info("enterPrevote: Block was locked")
@@ -1208,7 +1214,7 @@ func (cs *State) defaultDoPrevote(height int64, round int) {
 	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
-		logger.Error("enterPrevote: ProposalBlock is invalid ", " cs.ProposalBlock", cs.ProposalBlock, "height", height, "round", round, "err", err)
+		logger.Error("enterPrevote: ProposalBlock is invalid", "err", err)
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1280,6 +1286,11 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
 	}()
+
+	if sm.PrecommitNil(height, round) {
+		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
+		return
+	}
 
 	// check for a polka
 	blockID, ok := cs.Votes.Prevotes(round).TwoThirdsMajority()
@@ -1353,7 +1364,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlock = nil
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
-		cs.Logger.Error("EnterPrecommit ProposalBlockParts is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.PartsHeader", blockID.PartsHeader.String())
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}
@@ -1775,6 +1785,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
+	sm.AddBlockTimeOut(height, round)
+
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
@@ -1995,7 +2007,6 @@ func (cs *State) addVote(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
-					cs.Logger.Error("AddVote ProposalBlock is wrong, call CancelPreExecBlock", "ProposalBlock", cs.ProposalBlock.String(), "blockID.Hash", blockID.Hash.String())
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {

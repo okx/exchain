@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -156,8 +155,11 @@ func (coin DecCoin) IsValid() bool {
 	return !coin.IsNegative()
 }
 
+var decCoinBufferPool = amino.NewBufferPool()
+
 func (coin DecCoin) MarshalToAmino() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf = decCoinBufferPool.Get()
+	defer decCoinBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
 		lBeforeKey := buf.Len()
 		var noWrite bool
@@ -176,7 +178,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(len(coin.Denom)))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(len(coin.Denom)))
 			if err != nil {
 				return nil, err
 			}
@@ -189,7 +191,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -204,7 +206,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 // ----------------------------------------------------------------------------
