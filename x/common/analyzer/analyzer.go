@@ -17,7 +17,6 @@ var (
 
 type analyer struct {
 	status          bool
-	open            bool
 	currentTxIndex  int64
 	blockHeight     int64
 	startBeginBlock int64
