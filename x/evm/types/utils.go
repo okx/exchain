@@ -159,11 +159,14 @@ func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
 	return log, nil
 }
 
+var ethLogBufferPool = amino.NewBufferPool()
+
 func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 	if log == nil {
 		return nil, nil
 	}
-	var buf bytes.Buffer
+	var buf = ethLogBufferPool.Get()
+	defer ethLogBufferPool.Put(buf)
 	fieldKeysType := [9]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5<<3 | 2, 6 << 3, 7<<3 | 2, 8 << 3, 9 << 3}
 	for pos := 1; pos < 10; pos++ {
 		lBeforeKey := buf.Len()
@@ -219,7 +222,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, uint64(dataLen))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(dataLen))
 			if err != nil {
 				return nil, err
 			}
@@ -232,7 +235,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err = amino.EncodeUvarint(&buf, log.BlockNumber)
+			err = amino.EncodeUvarintToBuffer(buf, log.BlockNumber)
 			if err != nil {
 				return nil, err
 			}
@@ -250,7 +253,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(log.TxIndex))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(log.TxIndex))
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +271,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(log.Index))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(log.Index))
 			if err != nil {
 				return nil, err
 			}
@@ -290,7 +293,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
@@ -354,8 +357,11 @@ func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
+var resultDataBufferPool = amino.NewBufferPool()
+
 func (rd ResultData) MarshalToAmino() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf = resultDataBufferPool.Get()
+	defer resultDataBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
 	for pos := 1; pos < 6; pos++ {
 		lBeforeKey := buf.Len()
@@ -394,7 +400,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarint(&buf, uint64(len(data)))
+			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 			if err != nil {
 				return nil, err
 			}
@@ -411,7 +417,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeUvarint(&buf, uint64(len(data)))
+				err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 				if err != nil {
 					return nil, err
 				}
@@ -426,7 +432,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarint(&buf, uint64(retLen))
+			err := amino.EncodeUvarintToBuffer(buf, uint64(retLen))
 			if err != nil {
 				return nil, err
 			}
@@ -451,7 +457,7 @@ func (rd ResultData) MarshalToAmino() ([]byte, error) {
 			buf.Truncate(lBeforeKey)
 		}
 	}
-	return buf.Bytes(), nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 // String implements fmt.Stringer interface.
@@ -485,7 +491,7 @@ func EncodeResultData(data ResultData) ([]byte, error) {
 	}
 
 	// Write uvarint(len(bz)).
-	err = amino.EncodeUvarint(buf, uint64(len(bz)))
+	err = amino.EncodeUvarintToBuffer(buf, uint64(len(bz)))
 	if err != nil {
 		return nil, err
 	}
