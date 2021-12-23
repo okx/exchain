@@ -70,8 +70,8 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	}
 	store.Set(types.AddressStoreKey(addr), bz)
 
+	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 	if ak.observers != nil && !ctx.IsCheckTx() {
-		ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 		for _, observer := range ak.observers {
 			if observer != nil {
 				observer.OnAccountUpdated(acc)

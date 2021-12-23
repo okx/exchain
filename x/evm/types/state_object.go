@@ -176,6 +176,11 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 	if prev == value {
 		return
 	}
+
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+		key = so.GetStorageByAddressKey(key.Bytes())
+	}
+
 	// New value is different, update and journal the change
 	so.stateDB.journal.append(storageChange{
 		account:   &so.address,
@@ -281,55 +286,46 @@ func (so *stateObject) markSuicided() {
 	so.suicided = true
 }
 
-//// commitState commits all dirty storage to a KVStore and resets
-//// the dirty storage slice to the empty state.
-//func (so *stateObject) commitState() {
-//	ctx := so.stateDB.ctx
-//	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-//
-//	for _, state := range so.dirtyStorage {
-//		// NOTE: key is already prefixed from GetStorageByAddressKey
-//
-//		// delete empty values from the store
-//		if (state.Value == ethcmn.Hash{}) {
-//			store.Delete(state.Key.Bytes())
-//			if !so.stateDB.ctx.IsCheckTx() {
-//				if so.stateDB.Watcher.Enabled() {
-//					so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), ethcmn.Hash{}.Bytes())
-//				}
-//			}
-//		}
-//
-//		delete(so.keyToDirtyStorageIndex, state.Key)
-//
-//		// skip no-op changes, persist actual changes
-//		idx, ok := so.keyToOriginStorageIndex[state.Key]
-//		if !ok {
-//			continue
-//		}
-//
-//		if (state.Value == ethcmn.Hash{}) {
-//			delete(so.keyToOriginStorageIndex, state.Key)
-//			continue
-//		}
-//
-//		if state.Value == so.originStorage[idx].Value {
-//			continue
-//		}
-//
-//		so.originStorage[idx].Value = state.Value
-//		store.Set(state.Key.Bytes(), state.Value.Bytes())
-//		if !so.stateDB.ctx.IsCheckTx() {
-//			if so.stateDB.Watcher.Enabled() {
-//				so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
-//
-//			}
-//		}
-//
-//	}
-//	// clean storage as all entries are dirty
-//	so.dirtyStorage = Storage{}
-//}
+// commitState commits all dirty storage to a KVStore and resets
+// the dirty storage slice to the empty state.
+func (so *stateObject) commitState() {
+	ctx := so.stateDB.ctx
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+
+	for key, state := range so.dirtyStorage {
+		// NOTE: key is already prefixed from GetStorageByAddressKey
+
+		// delete empty values from the store
+		if (state == ethcmn.Hash{}) {
+			store.Delete(key.Bytes())
+
+			so.stateDB.ctx.Cache().UpdateStorage(so.address, key, state.Bytes(), true)
+			if !so.stateDB.ctx.IsCheckTx() {
+				if so.stateDB.Watcher.Enabled() {
+					so.stateDB.Watcher.SaveState(so.Address(), key.Bytes(), ethcmn.Hash{}.Bytes())
+				}
+			}
+		}
+
+		// skip no-op changes, persist actual changes
+		if state == so.originStorage[key] {
+			continue
+		}
+
+		so.originStorage[key] = state
+		store.Set(key.Bytes(), state.Bytes())
+
+		so.stateDB.ctx.Cache().UpdateStorage(so.address, key, state.Bytes(), true)
+		if !so.stateDB.ctx.IsCheckTx() {
+			if so.stateDB.Watcher.Enabled() {
+				so.stateDB.Watcher.SaveState(so.Address(), key.Bytes(), state.Bytes())
+
+			}
+		}
+	}
+	// clean storage as all entries are dirty
+	so.dirtyStorage = make(ethstate.Storage)
+}
 
 // commitCode persists the state object's code to the KVStore.
 func (so *stateObject) commitCode() {
@@ -375,71 +371,99 @@ func (so *stateObject) Nonce() uint64 {
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(db ethstate.Database) []byte {
-	//if len(so.code) > 0 {
-	//	return so.code
-	//}
-	//
-	//if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-	//	return nil
-	//}
-	//
-	//ctx := so.stateDB.ctx
-	//store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	//code := store.Get(so.CodeHash())
-	//
-	//if len(code) == 0 {
-	//	so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
-	//}
-	//
-	//return code
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+		if len(so.code) > 0 {
+			return so.code
+		}
 
-	return so.CodeMpt(db)
+		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+			return nil
+		}
+
+		code := make([]byte, 0)
+		ctx := so.stateDB.ctx
+		if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
+			code = data
+		} else {
+			store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+			code = store.Get(so.CodeHash())
+			ctx.Cache().UpdateCode(so.CodeHash(), code, false)
+		}
+
+		if len(code) == 0 {
+			so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
+		}
+
+		return code
+	} else {
+		return so.CodeMpt(db)
+	}
 }
 
 // GetState retrieves a value from the account storage trie. Note, the key will
 // be prefixed with the address of the state object.
 func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
-	// If the fake storage is set, only lookup the state here(in the debugging mode)
-	if so.fakeStorage != nil {
-		return so.fakeStorage[key]
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+		prefixKey := so.GetStorageByAddressKey(key.Bytes())
+
+		// if we have a dirty value for this state entry, return it
+		value, dirty := so.dirtyStorage[prefixKey]
+		if dirty {
+			return value
+		}
+
+		// otherwise return the entry's original value
+		return so.GetCommittedState(db, key)
+	} else {
+		// If the fake storage is set, only lookup the state here(in the debugging mode)
+		if so.fakeStorage != nil {
+			return so.fakeStorage[key]
+		}
+		// If we have a dirty value for this state entry, return it
+		value, dirty := so.dirtyStorage[key]
+		if dirty {
+			return value
+		}
+		// Otherwise return the entry's original value
+		return so.GetCommittedState(db, key)
 	}
-	// If we have a dirty value for this state entry, return it
-	value, dirty := so.dirtyStorage[key]
-	if dirty {
-		return value
-	}
-	// Otherwise return the entry's original value
-	return so.GetCommittedState(db, key)
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 //
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
-	//prefixKey := so.GetStorageByAddressKey(key.Bytes())
-	//
-	//// if we have the original value cached, return that
-	//idx, cached := so.keyToOriginStorageIndex[prefixKey]
-	//if cached {
-	//	return so.originStorage[idx].Value
-	//}
-	//
-	//// otherwise load the value from the KVStore
-	//state := NewState(prefixKey, ethcmn.Hash{})
-	//
-	//ctx := so.stateDB.ctx
-	//store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	//rawValue := store.Get(prefixKey.Bytes())
-	//
-	//if len(rawValue) > 0 {
-	//	state.Value.SetBytes(rawValue)
-	//}
-	//
-	//so.originStorage = append(so.originStorage, state)
-	//so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	//return state.Value
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+		prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
-	return so.GetCommittedStateMpt(db, key)
+		// if we have the original value cached, return that
+		if value, cached := so.originStorage[prefixKey]; cached {
+			return value
+		}
+
+		// otherwise load the value from the KVStore
+		state := NewState(prefixKey, ethcmn.Hash{})
+
+		ctx := so.stateDB.ctx
+		rawValue := make([]byte, 0)
+		var ok bool
+
+		rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
+		if !ok {
+			store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+			rawValue = store.Get(prefixKey.Bytes())
+			ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
+		}
+
+		if len(rawValue) > 0 {
+			state.Value.SetBytes(rawValue)
+		}
+
+		so.originStorage[prefixKey] = state.Value
+		return state.Value
+	} else {
+		return so.GetCommittedStateMpt(db, key)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -451,42 +475,30 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	//newAccount := types.ProtoAccount().(*types.EthAccount)
-	//jsonAccount, err := so.account.MarshalJSON()
-	//if err != nil {
-	//	return nil
-	//}
-	//err = newAccount.UnmarshalJSON(jsonAccount)
-	//if err != nil {
-	//	return nil
-	//}
-	//newStateObj := newStateObject(db, newAccount)
-	//
-	//newStateObj.code = make(types.Code, len(so.code))
-	//copy(newStateObj.code, so.code)
-	//newStateObj.dirtyStorage = so.dirtyStorage.Copy()
-	//newStateObj.originStorage = so.originStorage.Copy()
-	//newStateObj.suicided = so.suicided
-	//newStateObj.dirtyCode = so.dirtyCode
-	//newStateObj.deleted = so.deleted
-	//
-	//return newStateObj
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+		newAccount := types.ProtoAccount().(*types.EthAccount)
+		jsonAccount, err := so.account.MarshalJSON()
+		if err != nil {
+			return nil
+		}
+		err = newAccount.UnmarshalJSON(jsonAccount)
+		if err != nil {
+			return nil
+		}
+		newStateObj := newStateObject(db, newAccount, so.stateRoot)
 
-	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
-	newStateObj := newStateObject(db, acc, so.stateRoot)
-	if so.trie != nil {
-		newStateObj.trie = db.db.CopyTrie(so.trie)
+		newStateObj.code = make(types.Code, len(so.code))
+		copy(newStateObj.code, so.code)
+		newStateObj.dirtyStorage = so.dirtyStorage.Copy()
+		newStateObj.originStorage = so.originStorage.Copy()
+		newStateObj.suicided = so.suicided
+		newStateObj.dirtyCode = so.dirtyCode
+		newStateObj.deleted = so.deleted
+
+		return newStateObj
+	} else {
+		return so.deepCopyMpt(db)
 	}
-
-	newStateObj.code = so.code
-	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
-	newStateObj.originStorage = so.originStorage.Copy()
-	newStateObj.pendingStorage = so.pendingStorage.Copy()
-	newStateObj.suicided = so.suicided
-	newStateObj.dirtyCode = so.dirtyCode
-	newStateObj.deleted = so.deleted
-
-	return newStateObj
 }
 
 // empty returns whether the account is considered empty.

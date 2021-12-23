@@ -4,11 +4,99 @@ import (
 	"errors"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
+
+func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, error) {
+	// Finalize any pending changes and merge everything into the tries
+	csdb.IntermediateRoot(deleteEmptyObjects)
+
+	// Commit objects to the trie, measuring the elapsed time
+	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
+	for addr := range csdb.stateObjectsDirty {
+		if obj := csdb.stateObjects[addr]; !obj.deleted {
+			// Write any contract code associated with the state object
+			if obj.code != nil && obj.dirtyCode {
+				rawdb.WriteCode(codeWriter, ethcmn.BytesToHash(obj.CodeHash()), obj.code)
+				obj.dirtyCode = false
+			}
+
+			// Write any storage changes in the state object to its storage trie
+			if err := obj.CommitTrie(csdb.db); err != nil {
+				return ethcmn.Hash{}, err
+			}
+			csdb.UpdateAccountStorageInfo(obj)
+		}
+	}
+
+	if len(csdb.stateObjectsDirty) > 0 {
+		csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
+	}
+
+	if codeWriter.ValueSize() > 0 {
+		if err := codeWriter.Write(); err != nil {
+			log.Crit("Failed to commit dirty codes", "error", err)
+		}
+	}
+
+	return ethcmn.Hash{}, nil
+}
+
+func (csdb *CommitStateDB) FinaliseMpt(deleteEmptyObjects bool) {
+	for addr := range csdb.journal.dirties {
+		obj, exist := csdb.stateObjects[addr]
+		if !exist {
+			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
+			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
+			// touch-event will still be recorded in the journal. Since ripeMD is a special snowflake,
+			// it will persist in the journal even though the journal is reverted. In this special circumstance,
+			// it may exist in `s.journal.dirties` but not in `s.stateObjects`.
+			// Thus, we can safely ignore it here
+			continue
+		}
+		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
+			obj.deleted = true
+		} else {
+			obj.finalise(true) // Prefetch slots in the background
+		}
+		csdb.stateObjectsPending[addr] = struct{}{}
+		csdb.stateObjectsDirty[addr] = struct{}{}
+	}
+
+	// Invalidate journal because reverting across transactions is not allowed.
+	csdb.clearJournalAndRefund()
+}
+
+func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value ethcmn.Hash) (stop bool)) error {
+	it := trie.NewIterator(so.getTrie(csdb.db).NodeIterator(nil))
+	for it.Next() {
+		key := ethcmn.BytesToHash(so.trie.GetKey(it.Key))
+		if value, dirty := so.dirtyStorage[key]; dirty {
+			if !cb(key, value) {
+				return nil
+			}
+			continue
+		}
+
+		if len(it.Value) > 0 {
+			_, content, _, err := rlp.Split(it.Value)
+			if err != nil {
+				return err
+			}
+			if !cb(key, ethcmn.BytesToHash(content)) {
+				return nil
+			}
+		}
+	}
+
+	return nil
+}
 
 func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
 	// Encode the account and update the account trie

@@ -2,10 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
@@ -587,12 +583,14 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 
 // GetCode returns the code for a given code hash.
 func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
-	//ctx := csdb.ctx
-	//store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
-	//code := store.Get(hash.Bytes())
-	//return code
-
-	return csdb.GetCodeByHashMpt(hash)
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		ctx := csdb.ctx
+		store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
+		code := store.Get(hash.Bytes())
+		return code
+	} else {
+		return csdb.GetCodeByHashMpt(hash)
+	}
 }
 
 // GetCodeSize returns the code size for a given account.
@@ -644,13 +642,15 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 
 // GetStateByKey retrieves a value from the given account's storage store.
 func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	//ctx := csdb.ctx
-	//store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
-	//data := store.Get(hash.Bytes())
-	//
-	//return ethcmn.BytesToHash(data)
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		ctx := csdb.ctx
+		store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
+		data := store.Get(key.Bytes())
 
-	return csdb.GetStateByKeyMpt(addr, key)
+		return ethcmn.BytesToHash(data)
+	} else {
+		return csdb.GetStateByKeyMpt(addr, key)
+	}
 }
 
 // GetCommittedState retrieves a value from the given account's committed
@@ -729,142 +729,96 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	//defer csdb.clearJournalAndRefund()
-	//
-	//// remove dirty state object entries based on the journal
-	//for _, dirty := range csdb.journal.dirties {
-	//	csdb.stateObjectsDirty[dirty.address] = struct{}{}
-	//}
-	//
-	//// set the state objects
-	//for _, stateEntry := range csdb.stateObjects {
-	//	_, isDirty := csdb.stateObjectsDirty[stateEntry.address]
-	//
-	//	switch {
-	//	case stateEntry.stateObject.suicided || (isDirty && deleteEmptyObjects && stateEntry.stateObject.empty()):
-	//		// If the state object has been removed, don't bother syncing it and just
-	//		// remove it from the store.
-	//		csdb.deleteStateObject(stateEntry.stateObject)
-	//
-	//	case isDirty:
-	//		// write any contract code associated with the state object
-	//		if stateEntry.stateObject.code != nil && stateEntry.stateObject.dirtyCode {
-	//			stateEntry.stateObject.commitCode()
-	//			stateEntry.stateObject.dirtyCode = false
-	//		}
-	//
-	//		// update the object in the KVStore
-	//		if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
-	//			return ethcmn.Hash{}, err
-	//		}
-	//	}
-	//
-	//	delete(csdb.stateObjectsDirty, stateEntry.address)
-	//}
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		defer csdb.clearJournalAndRefund()
 
-	//if csdb.dbErr != nil {
-	//	return ethcmn.Hash{}, fmt.Errorf("commit aborted due to earlier error: %v", csdb.dbErr)
-	//}
+		csdb.IntermediateRoot(deleteEmptyObjects)
 
-	//// NOTE: Ethereum returns the trie merkle root here, but as commitment
-	//// actually happens in the BaseApp at EndBlocker, we do not know the root at
-	//// this time.
-	//return ethcmn.Hash{}, nil
+		// remove dirty state object entries based on the journal
+		for addr, _ := range csdb.journal.dirties {
+			csdb.stateObjectsDirty[addr] = struct{}{}
+		}
 
-	// Finalize any pending changes and merge everything into the tries
-	csdb.IntermediateRoot(deleteEmptyObjects)
+		// set the state objects
+		for _, so := range csdb.stateObjects {
+			_, isDirty := csdb.stateObjectsDirty[so.address]
 
-	// Commit objects to the trie, measuring the elapsed time
-	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
-	for addr := range csdb.stateObjectsDirty {
-		if obj := csdb.stateObjects[addr]; !obj.deleted {
-			// Write any contract code associated with the state object
-			if obj.code != nil && obj.dirtyCode {
-				rawdb.WriteCode(codeWriter, ethcmn.BytesToHash(obj.CodeHash()), obj.code)
-				obj.dirtyCode = false
+			switch {
+			case so.suicided || (isDirty && deleteEmptyObjects && so.empty()):
+				// If the state object has been removed, don't bother syncing it and just
+				// remove it from the store.
+				csdb.deleteStateObject(so)
+
+			case isDirty:
+				// write any contract code associated with the state object
+				if so.code != nil && so.dirtyCode {
+					so.commitCode()
+					so.dirtyCode = false
+				}
+
+				// update the object in the KVStore
+				if err := csdb.updateStateObject(so); err != nil {
+					return ethcmn.Hash{}, err
+				}
 			}
 
-			// Write any storage changes in the state object to its storage trie
-			if err := obj.CommitTrie(csdb.db); err != nil {
-				return ethcmn.Hash{}, err
-			}
-			csdb.UpdateAccountStorageInfo(obj)
+			delete(csdb.stateObjectsDirty, so.address)
 		}
-	}
 
-	if len(csdb.stateObjectsDirty) > 0 {
-		csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
-	}
-
-	if codeWriter.ValueSize() > 0 {
-		if err := codeWriter.Write(); err != nil {
-			log.Crit("Failed to commit dirty codes", "error", err)
+		if csdb.dbErr != nil {
+			return ethcmn.Hash{}, fmt.Errorf("commit aborted due to earlier error: %v", csdb.dbErr)
 		}
-	}
 
-	return ethcmn.Hash{}, nil
+		// NOTE: Ethereum returns the trie merkle root here, but as commitment
+		// actually happens in the BaseApp at EndBlocker, we do not know the root at
+		// this time.
+		return ethcmn.Hash{}, nil
+	} else {
+		return csdb.CommitMpt(deleteEmptyObjects)
+	}
 }
 
 // Finalise finalizes the state objects (accounts) state by setting their state,
 // removing the csdb destructed objects and clearing the journal as well as the
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
-	//for _, dirty := range csdb.journal.dirties {
-	//	stateEntry, exist := csdb.stateObjects[dirty.address]
-	//	if !exist {
-	//		// ripeMD is 'touched' at block 1714175, in tx:
-	//		// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
-	//		//
-	//		// That tx goes out of gas, and although the notion of 'touched' does not
-	//		// exist there, the touch-event will still be recorded in the journal.
-	//		// Since ripeMD is a special snowflake, it will persist in the journal even
-	//		// though the journal is reverted. In this special circumstance, it may
-	//		// exist in journal.dirties but not in stateObjects. Thus, we can safely
-	//		// ignore it here.
-	//		continue
-	//	}
-	//
-	//	if stateEntry.stateObject.suicided || (deleteEmptyObjects && stateEntry.stateObject.empty()) {
-	//		csdb.deleteStateObject(stateEntry.stateObject)
-	//	} else {
-	//		// Set all the dirty state storage items for the state object in the
-	//		// KVStore and finally set the account in the account mapper.
-	//		stateEntry.stateObject.commitState()
-	//		if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
-	//			return err
-	//		}
-	//	}
-	//
-	//	csdb.stateObjectsDirty[dirty.address] = struct{}{}
-	//}
-	//
-	//// invalidate journal because reverting across transactions is not allowed
-	//csdb.clearJournalAndRefund()
-	//csdb.DeleteLogs(csdb.thash)
-	//return nil
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		for addr, _ := range csdb.journal.dirties {
+			so, exist := csdb.stateObjects[addr]
+			if !exist {
+				// ripeMD is 'touched' at block 1714175, in tx:
+				// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
+				//
+				// That tx goes out of gas, and although the notion of 'touched' does not
+				// exist there, the touch-event will still be recorded in the journal.
+				// Since ripeMD is a special snowflake, it will persist in the journal even
+				// though the journal is reverted. In this special circumstance, it may
+				// exist in journal.dirties but not in stateObjects. Thus, we can safely
+				// ignore it here.
+				continue
+			}
 
-	for addr := range csdb.journal.dirties {
-		obj, exist := csdb.stateObjects[addr]
-		if !exist {
-			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
-			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
-			// touch-event will still be recorded in the journal. Since ripeMD is a special snowflake,
-			// it will persist in the journal even though the journal is reverted. In this special circumstance,
-			// it may exist in `s.journal.dirties` but not in `s.stateObjects`.
-			// Thus, we can safely ignore it here
-			continue
+			if so.suicided || (deleteEmptyObjects && so.empty()) {
+				csdb.deleteStateObject(so)
+			} else {
+				// Set all the dirty state storage items for the state object in the
+				// KVStore and finally set the account in the account mapper.
+				so.commitState()
+				if err := csdb.updateStateObject(so); err != nil {
+					csdb.SetError(err)
+					return
+				}
+			}
+
+			csdb.stateObjectsDirty[addr] = struct{}{}
 		}
-		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
-			obj.deleted = true
-		} else {
-			obj.finalise(true) // Prefetch slots in the background
-		}
-		csdb.stateObjectsPending[addr] = struct{}{}
-		csdb.stateObjectsDirty[addr] = struct{}{}
+
+		// invalidate journal because reverting across transactions is not allowed
+		csdb.clearJournalAndRefund()
+		csdb.DeleteLogs(csdb.thash)
+	} else {
+		csdb.FinaliseMpt(deleteEmptyObjects)
 	}
-
-	// Invalidate journal because reverting across transactions is not allowed.
-	csdb.clearJournalAndRefund()
 }
 
 // IntermediateRoot returns the current root hash of the state. It is called in
@@ -875,12 +829,6 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 // root as commitment of the merkle-ized tree doesn't happen until the
 // BaseApps' EndBlocker.
 func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash {
-	//if err := csdb.Finalise(deleteEmptyObjects); err != nil {
-	//	return ethcmn.Hash{}, err
-	//}
-	//
-	//return ethcmn.Hash{}, nil
-
 	// Finalise all the dirty storage states and write them into the tries
 	csdb.Finalise(deleteEmptyObjects)
 
@@ -1147,52 +1095,33 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		return nil
 	}
 
-	//store := csdb.ctx.KVStore(csdb.storeKey)
-	//prefix := AddressStoragePrefix(so.Address())
-	//iterator := sdk.KVStorePrefixIterator(store, prefix)
-	//defer iterator.Close()
-	//
-	//for ; iterator.Valid(); iterator.Next() {
-	//	key := ethcmn.BytesToHash(iterator.Key())
-	//	value := ethcmn.BytesToHash(iterator.Value())
-	//
-	//	if idx, dirty := so.keyToDirtyStorageIndex[key]; dirty {
-	//		// check if iteration stops
-	//		if cb(key, so.dirtyStorage[idx].Value) {
-	//			break
-	//		}
-	//
-	//		continue
-	//	}
-	//
-	//	// check if iteration stops
-	//	if cb(key, value) {
-	//		return nil
-	//	}
-	//}
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		store := csdb.ctx.KVStore(csdb.storeKey)
+		prefix := AddressStoragePrefix(so.Address())
+		iterator := sdk.KVStorePrefixIterator(store, prefix)
+		defer iterator.Close()
 
-	it := trie.NewIterator(so.getTrie(csdb.db).NodeIterator(nil))
-	for it.Next() {
-		key := ethcmn.BytesToHash(so.trie.GetKey(it.Key))
-		if value, dirty := so.dirtyStorage[key]; dirty {
-			if !cb(key, value) {
-				return nil
-			}
-			continue
-		}
+		for ; iterator.Valid(); iterator.Next() {
+			key := ethcmn.BytesToHash(iterator.Key())
+			value := ethcmn.BytesToHash(iterator.Value())
 
-		if len(it.Value) > 0 {
-			_, content, _, err := rlp.Split(it.Value)
-			if err != nil {
-				return err
+			if value, dirty := so.dirtyStorage[key]; dirty {
+				if cb(key, value) {
+					break
+				}
+				continue
 			}
-			if !cb(key, ethcmn.BytesToHash(content)) {
+
+			// check if iteration stops
+			if cb(key, value) {
 				return nil
 			}
 		}
+
+		return nil
+	} else {
+		return csdb.ForEachStorageMpt(so, cb)
 	}
-
-	return nil
 }
 
 // GetOrNewStateObject retrieves a state object or create a new state object if

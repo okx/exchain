@@ -9,6 +9,24 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
+func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
+	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
+	newStateObj := newStateObject(db, acc, so.stateRoot)
+	if so.trie != nil {
+		newStateObj.trie = db.db.CopyTrie(so.trie)
+	}
+
+	newStateObj.code = so.code
+	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
+	newStateObj.originStorage = so.originStorage.Copy()
+	newStateObj.pendingStorage = so.pendingStorage.Copy()
+	newStateObj.suicided = so.suicided
+	newStateObj.dirtyCode = so.dirtyCode
+	newStateObj.deleted = so.deleted
+
+	return newStateObj
+}
+
 func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Hash) ethcmn.Hash {
 	// If the fake storage is set, only lookup the state here(in the debugging mode)
 	if so.fakeStorage != nil {

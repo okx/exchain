@@ -93,9 +93,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	//// set storage to store
 	//// NOTE: don't delete empty object to prevent import-export simulation failure
-	//err = csdb.Finalise(false)
-	//if err != nil {
-	//	panic(err)
+	//if !sdk.HigherThanVenus(ctx.BlockHeight()) {
+	//	csdb.Finalise(false)
 	//}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
