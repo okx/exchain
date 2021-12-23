@@ -10,9 +10,12 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
+const FlagEnableAnalyzer string = "enable-analyzer"
+
 var (
 	singleAnalys *analyer
 	openAnalyzer bool
+	initState    bool
 )
 
 type analyer struct {
@@ -48,11 +51,10 @@ func init() {
 
 }
 
-func SetOpen(value bool) {
-	openAnalyzer = value
-}
-
 func getOpen() bool {
+	if !initState {
+		openAnalyzer = viper.GetBool(FlagEnableAnalyzer)
+	}
 	return openAnalyzer
 }
 

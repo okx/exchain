@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/spf13/viper"
 	"strings"
 	"sync"
@@ -118,17 +117,8 @@ func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
 	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
-		if len(setVal) == 2 {
-			if setVal[1] == "1" {
-				e.schemaMap[setVal[0]] = true
-				if setVal[0] == trace.DeliverTxs {
-					analyzer.SetOpen(true)
-				}
-			} else {
-				if setVal[0] == trace.DeliverTxs {
-					analyzer.SetOpen(false)
-				}
-			}
+		if len(setVal) == 2 && setVal[1] == "1" {
+			e.schemaMap[setVal[0]] = true
 		}
 
 	}
