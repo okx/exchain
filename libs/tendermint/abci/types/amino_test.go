@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -296,23 +298,96 @@ func TestConsensusParamsAmino(t *testing.T) {
 	}
 }
 
-func TestResponseDeliverTxAmino(t *testing.T) {
-	var resps = []*ResponseDeliverTx{
-		//{},
-		{123, nil, "", "", 0, 0, nil, "", struct{}{}, nil, 0},
-		{Code: 123, Data: []byte(""), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: nil, Codespace: "sssdasf"},
-		{Code: 0, Data: []byte("data"), Info: "info"},
-		{Events: []Event{{}, {Type: "Event"}}},
-	}
+var responseDeliverTxTestCases = []*ResponseDeliverTx{
+	{},
+	{123, nil, "", "", 0, 0, nil, "", struct{}{}, nil, 0},
+	{Code: 123, Data: []byte("this is data"), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: []Event{}, Codespace: "sssdasf"},
+	{Code: math.MaxUint32, GasWanted: math.MaxInt64, GasUsed: math.MaxInt64},
+	{Code: 0, GasWanted: -1, GasUsed: -1},
+	{Code: 0, GasWanted: math.MinInt64, GasUsed: math.MinInt64},
+	{Events: []Event{{}, {Type: "Event"}}, Data: []byte{}},
+}
 
-	for _, resp := range resps {
+func TestResponseDeliverTxAmino(t *testing.T) {
+	for i, resp := range responseDeliverTxTestCases {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
 		actual, err := MarshalResponseDeliverTxToAmino(resp)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var resp1 ResponseDeliverTx
+		err = cdc.UnmarshalBinaryBare(expect, &resp1)
+		require.NoError(t, err)
+
+		var resp2 ResponseDeliverTx
+		err = resp2.UnmarshalFromAmino(expect)
+		require.NoError(t, err, fmt.Sprintf("error case index %d", i))
+
+		require.EqualValues(t, resp1, resp2)
 	}
+}
+
+func BenchmarkResponseDeliverTxAminoMarshal(b *testing.B) {
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, resp := range responseDeliverTxTestCases {
+				_, err := cdc.MarshalBinaryBare(resp)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, resp := range responseDeliverTxTestCases {
+				_, err := MarshalResponseDeliverTxToAmino(resp)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkResponseDeliverTxAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(responseDeliverTxTestCases))
+	for i, resp := range responseDeliverTxTestCases {
+		data, err := cdc.MarshalBinaryBare(resp)
+		if err != nil {
+			b.Fatal(err)
+		}
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var resp ResponseDeliverTx
+				err := cdc.UnmarshalBinaryBare(data, &resp)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var resp ResponseDeliverTx
+				err := resp.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
 
 func TestResponseBeginBlockAmino(t *testing.T) {
