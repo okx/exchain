@@ -56,7 +56,11 @@ func (m *deltaMap) remove(target int64) (int, int) {
 	defer m.mtx.Unlock()
 
 	num := 0
-	for e := m.cacheList.Back(); e != nil; e = e.Prev() {
+	for {
+		e := m.cacheList.Front()
+		if e == nil {
+			break
+		}
 		h := e.Value.(*payload).h
 		if h > target {
 			break
@@ -65,5 +69,14 @@ func (m *deltaMap) remove(target int64) (int, int) {
 		delete(m.cacheMap, h)
 		num++
 	}
+
 	return num, len(m.cacheMap)
 }
+
+func (m *deltaMap) info() (int, int) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return len(m.cacheMap), m.cacheList.Len()
+}
+
+
