@@ -129,7 +129,7 @@ run() {
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --upload-delta=true \
-    --elapsed DeliverTxs=1,Round=1,CommitRound=1,Produce=1 \
+    --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
     --enable-proactively-runtx=false \
     --consensus-role=v$index \
