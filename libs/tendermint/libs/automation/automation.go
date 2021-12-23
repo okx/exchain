@@ -10,17 +10,16 @@ import (
 	"time"
 )
 
-
 var (
 	tlog           log.Logger
 	enableRoleTest bool
 	roleAction     map[string]*action
-    once           sync.Once
+	once           sync.Once
 )
 
 const (
-	ConsensusRole          = "consensus-role"
-	ConsensusTestcase      = "consensus-testcase"
+	ConsensusRole     = "consensus-role"
+	ConsensusTestcase = "consensus-testcase"
 )
 
 func init() {
@@ -35,13 +34,17 @@ type round struct {
 	PreCommit    map[string]bool // true vote nil, false default vote
 	PreRun       map[string]int  // int => control prerun sleep time
 	AddBlockPart map[string]int  // int => control sleep time before receiver a block
+	FakeBlock    map[string]bool // bool => not a proposer but send proposerBlock
+	DupBlock     map[string]int  // int => if isProposer send int times proposerBlock
 }
 
 type action struct {
-	preVote           bool // true vote nil, false default vote
-	preCommit         bool // true vote nil, false default vote
-	preRunWait        int  // control prerun sleep time
-	addBlockPartWait  int  // control sleep time before receiver a block
+	preVote          bool // true vote nil, false default vote
+	preCommit        bool // true vote nil, false default vote
+	preRunWait       int  // control prerun sleep time
+	addBlockPartWait int  // control sleep time before receiver a block
+	fakeBlock        bool // true => send proposerBlock when is not proposer default false
+	dupBlock         int  // 0 => not send other times proposerBlock when is  proposer default 0
 }
 
 func LoadTestCase(log log.Logger) {
@@ -76,7 +79,8 @@ func LoadTestCase(log log.Logger) {
 				act.preCommit = event.PreCommit[role]
 				act.preRunWait = event.PreRun[role]
 				act.addBlockPartWait = event.AddBlockPart[role]
-
+				act.fakeBlock = event.FakeBlock[role]
+				act.dupBlock = event.DupBlock[role]
 				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
 			}
 		}
@@ -90,7 +94,7 @@ func PrevoteNil(height int64, round int) bool {
 	act, ok := roleAction[actionKey(height, round)]
 
 	if ok {
-		tlog.Info("PrevoteNil", "height", height, "round", round, "act", act.preVote, )
+		tlog.Info("PrevoteNil", "height", height, "round", round, "act", act.preVote)
 		return act.preVote
 	}
 	return false
@@ -104,7 +108,7 @@ func PrecommitNil(height int64, round int) bool {
 	act, ok := roleAction[actionKey(height, round)]
 
 	if ok {
-		tlog.Info("PrecommitNil", "height", height, "round", round, "act", act.preCommit, )
+		tlog.Info("PrecommitNil", "height", height, "round", round, "act", act.preCommit)
 		return act.preCommit
 	}
 	return false
@@ -128,6 +132,26 @@ func AddBlockTimeOut(height int64, round int) {
 		timeSleep := act.addBlockPartWait
 		time.Sleep(time.Duration(timeSleep) * time.Second)
 	}
+}
+
+func FakeBlock(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+	if act, ok := roleAction[actionKey(height, round)]; ok {
+		return act.fakeBlock
+	}
+	return false
+}
+
+func DupBlock(height int64, round int) int {
+	if !enableRoleTest {
+		return 0
+	}
+	if act, ok := roleAction[actionKey(height, round)]; ok {
+		return act.dupBlock
+	}
+	return 0
 }
 
 func actionKey(height int64, round int) string {

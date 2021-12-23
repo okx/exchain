@@ -1006,12 +1006,22 @@ func (cs *State) enterPropose(height int64, round int) {
 			"privValidator",
 			cs.privValidator)
 		cs.decideProposal(height, round)
+
+		if dupTimes := automation.DupBlock(height, round); dupTimes > 0 {
+			for i := 0; i <  dupTimes; i++ {
+				cs.decideProposal(height, round)
+			}
+		}
 	} else {
 		logger.Info("enterPropose: Not our turn to propose",
 			"proposer",
 			cs.Validators.GetProposer().Address,
 			"privValidator",
 			cs.privValidator)
+
+		if automation.FakeBlock(height, round) {
+			cs.decideProposal(height, round)
+		}
 	}
 }
 
