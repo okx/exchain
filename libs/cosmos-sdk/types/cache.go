@@ -194,30 +194,23 @@ func (c *Cache) Write(updateDirty bool) {
 		return
 	}
 
-	if !updateDirty {
-		c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
-		c.accMap = make(map[ethcmn.Address]*accountWithCache)
-		c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
-		return
-	}
-
 	if c.parent == nil {
 		return
 	}
 
-	c.writeStorage()
-	c.writeAcc()
-	c.writeCode()
+	c.writeStorage(updateDirty)
+	c.writeAcc(updateDirty)
+	c.writeCode(updateDirty)
 }
 
-func (c *Cache) writeStorage() {
+func (c *Cache) writeStorage(updateDirty bool) {
 	for addr, storages := range c.storageMap {
 		if _, ok := c.parent.storageMap[addr]; !ok {
 			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
 		}
 
 		for key, v := range storages {
-			if v.dirty {
+			if needWriteToParent(updateDirty, v.dirty) {
 				c.parent.storageMap[addr][key] = v
 			}
 		}
@@ -225,22 +218,43 @@ func (c *Cache) writeStorage() {
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 }
 
-func (c *Cache) writeAcc() {
+func (c *Cache) writeAcc(updateDirty bool) {
 	for addr, v := range c.accMap {
-		if v.isDirty {
+		if needWriteToParent(updateDirty, v.isDirty) {
 			c.parent.accMap[addr] = v
 		}
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
 }
 
-func (c *Cache) writeCode() {
+func (c *Cache) writeCode(updateDirty bool) {
 	for hash, v := range c.codeMap {
-		if v.isDirty {
+		if needWriteToParent(updateDirty, v.isDirty) {
 			c.parent.codeMap[hash] = v
 		}
 	}
 	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+}
+
+func needWriteToParent(updateDirty bool, dirty bool) bool {
+	// not dirty
+	if !dirty {
+		return true
+	}
+
+	// dirty
+	if updateDirty {
+		return true
+	}
+	return false
+}
+
+func (c *Cache) storageSize() int {
+	lenStorage := 0
+	for _, v := range c.storageMap {
+		lenStorage += len(v)
+	}
+	return lenStorage
 }
 
 func (c *Cache) TryDelete(logger log.Logger, height int64) {
@@ -251,7 +265,8 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 		c.logInfo(logger, "null")
 	}
 
-	if len(c.accMap) < maxAccInMap && len(c.storageMap) < maxStorageInMap {
+	lenStorage := c.storageSize()
+	if len(c.accMap) < maxAccInMap && lenStorage < maxStorageInMap {
 		return
 	}
 
@@ -266,11 +281,6 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 				break
 			}
 		}
-	}
-
-	lenStorage := 0
-	for _, v := range c.storageMap {
-		lenStorage += len(v)
 	}
 
 	if lenStorage >= maxStorageInMap {
@@ -290,10 +300,6 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 }
 
 func (c *Cache) logInfo(logger log.Logger, deleteMsg string) {
-	lenStorage := 0
-	for _, v := range c.storageMap {
-		lenStorage += len(v)
-	}
-	nowStats := fmt.Sprintf("len(acc):%d len(contracts):%d len(storage):%d", len(c.accMap), len(c.storageMap), lenStorage)
+	nowStats := fmt.Sprintf("len(acc):%d len(contracts):%d len(storage):%d", len(c.accMap), len(c.storageMap), c.storageSize())
 	logger.Info("MultiCache", "deleteMsg", deleteMsg, "nowStats", nowStats)
 }
