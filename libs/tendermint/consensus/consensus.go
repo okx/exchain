@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
@@ -177,7 +178,7 @@ func NewState(
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
 		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		//done:             make(chan struct{}),
+		done:             make(chan struct{}),
 		doWALCatchup:     true,
 		wal:              nilWAL{},
 		evpool:           evpool,
@@ -309,7 +310,6 @@ func (cs *State) LoadCommit(height int64) *types.Commit {
 // OnStart implements service.Service.
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
 func (cs *State) OnStart() error {
-	cs.Logger.Info("Start consensus.")
 	if err := cs.evsw.Start(); err != nil {
 		cs.Logger.Error("evsw start failed. err: ", err)
 		return err
@@ -380,7 +380,6 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
-
 	// WAL is stopped in receiveRoutine.
 }
 
@@ -395,7 +394,7 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	//<-cs.done
+	<-cs.done
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -490,7 +489,7 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
+	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
 	sleepDuration := rs.StartTime.Sub(tmtime.Now())
 	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
@@ -610,7 +609,6 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
-	//fmt.Println(fmt.Sprintf("update state. height: %d", cs.state.LastBlockHeight))
 
 	// Finally, broadcast RoundState
 	cs.newStep()
@@ -1155,7 +1153,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if sm.PrevoteNil(height, round) {
+	if automation.PrevoteNil(height, round){
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1251,7 +1249,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		cs.newStep()
 	}()
 
-	if sm.PrecommitNil(height, round) {
+	if automation.PrecommitNil(height, round) {
 		cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1541,10 +1539,10 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	/*
-		var deltas *types.Deltas
-		if types.EnableApplyP2PDelta() {
-			deltas = cs.Deltas
-		}
+	var deltas *types.Deltas
+	if types.EnableApplyP2PDelta() {
+		deltas = cs.Deltas
+	}
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
@@ -1563,11 +1561,11 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	/*
-		if types.EnableBroadcastP2PDelta() {
-			// persists the given deltas to the underlying db.
-			deltas.Height = block.Height
-			cs.deltaStore.SaveDeltas(deltas, block.Height)
-		}
+	if types.EnableBroadcastP2PDelta() {
+		// persists the given deltas to the underlying db.
+		deltas.Height = block.Height
+		cs.deltaStore.SaveDeltas(deltas, block.Height)
+	}
 	*/
 
 	fail.Fail() // XXX
@@ -1590,7 +1588,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
-	//fmt.Println(fmt.Sprintf("updateToState:%d", cs.state.LastBlockHeight))
 
 	fail.Fail() // XXX
 
@@ -1749,7 +1746,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
-	sm.AddBlockTimeOut(height, round)
+	automation.AddBlockTimeOut(height, round)
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
@@ -2144,3 +2141,4 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
+
