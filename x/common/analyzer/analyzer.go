@@ -12,7 +12,7 @@ import (
 
 var (
 	singleAnalys *analyer
-	open         bool
+	openAnalyzer bool
 )
 
 type analyer struct {
@@ -49,11 +49,11 @@ func init() {
 }
 
 func SetOpen(value bool) {
-	open = value
+	openAnalyzer = value
 }
 
 func getOpen() bool {
-	return open
+	return openAnalyzer
 }
 
 func newAnalys(height int64) {
@@ -66,7 +66,7 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	if !getOpen(){
+	if !getOpen() {
 		return
 	}
 	newAnalys(height)
