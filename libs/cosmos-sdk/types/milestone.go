@@ -11,10 +11,13 @@ import (
 // 3. BankTransferBlock
 
 var (
-	MILESTONE_MERCURY_HEIGHT     string
-	milestoneMercuryHeight       int64
+	MILESTONE_MERCURY_HEIGHT string
+	milestoneMercuryHeight   int64
 
-	once                         sync.Once
+	MILESTONE_VENUS_HEIGHT string
+	milestoneVenusHeight   int64
+
+	once sync.Once
 )
 
 func string2number(input string) int64 {
@@ -31,6 +34,7 @@ func string2number(input string) int64 {
 func initVersionBlockHeight() {
 	once.Do(func() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
+		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 	})
 }
 
@@ -45,6 +49,15 @@ func HigherThanMercury(height int64) bool {
 		return false
 	}
 	return height > milestoneMercuryHeight
+}
+
+//use MPT storage model to replace IAVL storage model
+func HigherThanVenus(height int64) bool {
+	if milestoneVenusHeight == 0 {
+		// milestoneVenusHeight not enabled
+		return false
+	}
+	return height > milestoneVenusHeight
 }
 
 ////disable transfer tokens to contract address by cli
