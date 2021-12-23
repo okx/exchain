@@ -40,7 +40,6 @@ const (
 
 	maxIntervalForFastSync        = 1
 	maxPeersProportionForFastSync = 0.4
-	//testFastSyncIntervalSeconds   = 62
 )
 
 type consensusReactor interface {

@@ -112,10 +112,9 @@ type State struct {
 
 	// state changes may be triggered by: msgs from peers,
 	// msgs from ourself, or by timeouts
-	peerMsgQueue          chan msgInfo
-	internalMsgQueue      chan msgInfo
-	timeoutTicker         TimeoutTicker
-	switchToFastSyncTimer *time.Timer
+	peerMsgQueue     chan msgInfo
+	internalMsgQueue chan msgInfo
+	timeoutTicker    TimeoutTicker
 
 	// information about about added votes and block parts are written on this channel
 	// so statistics can be computed by reactor
@@ -177,7 +176,6 @@ func NewState(
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
-		switchToFastSyncTimer:    time.NewTimer(0),
 		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
 		//done:             make(chan struct{}),
 		doWALCatchup:     true,
@@ -192,8 +190,6 @@ func NewState(
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
-
-	cs.stopSwitchToFastSyncTimeout()
 
 	cs.updateToState(state)
 	if cs.proactivelyRunTx {
@@ -385,9 +381,6 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 
-	if cs.switchToFastSyncTimer != nil {
-		cs.switchToFastSyncTimer.Stop()
-	}
 	// WAL is stopped in receiveRoutine.
 }
 
@@ -504,29 +497,11 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
-	cs.resetSwitchToFastSyncTimeout()
 }
 
 // Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
 func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int, step cstypes.RoundStepType) {
 	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{duration, height, round, step})
-}
-
-// Attempt to schedule a timeout for
-func (cs *State) resetSwitchToFastSyncTimeout() {
-	cs.Logger.Info("Reset SwitchToFastSyncTimeout.")
-	cs.stopSwitchToFastSyncTimeout()
-	cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
-}
-
-func (cs *State) stopSwitchToFastSyncTimeout() {
-	if !cs.switchToFastSyncTimer.Stop() { // Stop() returns false if it was already fired or was stopped
-		select {
-		case <-cs.switchToFastSyncTimer.C:
-		default:
-			cs.Logger.Debug("Timer already stopped")
-		}
-	}
 }
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote
@@ -688,8 +663,6 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		}
 	}()
 
-
-
 	for {
 		if maxSteps > 0 {
 			if cs.nSteps >= maxSteps {
@@ -730,18 +703,6 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			// if the timeout is relevant to the rs
 			// go to the next step
 			cs.handleTimeout(ti, rs)
-		case <-cs.switchToFastSyncTimer.C:
-			// should switch to fast-sync mode
-			cs.Logger.Info("switchToFastSyncTimer.", "step", cs.Step)
-			if cs.Step != cstypes.RoundStepCommit {
-				cs.Logger.Info("PublishEventSwitchToFastSync.", "Height", rs.Height)
-				//cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
-				//	Height: rs.Height,
-				//})
-				cs.evsw.FireEvent(types.EventSwitchToFastSync, types.EventDataSwitchToFastSync{
-					Height: rs.Height,
-				})
-			}
 		case <-cs.Quit():
 			onExit(cs)
 			return
@@ -1194,7 +1155,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if sm.PrevoteNil(height, round){
+	if sm.PrevoteNil(height, round) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
