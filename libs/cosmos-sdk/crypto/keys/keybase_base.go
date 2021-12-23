@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/cosmos/go-bip39"
-	"github.com/pkg/errors"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"
@@ -33,6 +33,7 @@ type (
 	keyWriter interface {
 		writeLocalKeyer
 		infoWriter
+		keystoreWriter
 	}
 
 	writeLocalKeyer interface {
@@ -41,6 +42,10 @@ type (
 
 	infoWriter interface {
 		writeInfo(name string, info Info)
+	}
+
+	keystoreWriter interface {
+		writeKeystore(name string, priv tmcrypto.PrivKey,passphrase string)
 	}
 )
 
@@ -176,8 +181,10 @@ func (kb baseKeybase) CreateAccount(
 
 	var info Info
 
+	fmt.Println("debug createAccout")
 	if encryptPasswd != "" {
 		info = keyWriter.writeLocalKey(name, privKey, encryptPasswd, algo)
+		keyWriter.writeKeystore(name,privKey,encryptPasswd)
 	} else {
 		info = kb.writeOfflineKey(keyWriter, name, privKey.PubKey(), algo)
 	}

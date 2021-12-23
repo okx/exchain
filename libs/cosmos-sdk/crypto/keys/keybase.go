@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
@@ -41,8 +41,6 @@ const (
 	French
 	// Italian is currently not supported.
 	Italian
-	addressSuffix = "address"
-	infoSuffix    = "info"
 )
 
 const (
@@ -51,6 +49,11 @@ const (
 
 	// bits of entropy to draw when creating a mnemonic
 	defaultEntropySize = 128 //mnemonicEntropySize
+)
+const (
+	addressSuffix = "address"
+	infoSuffix    = "info"
+	keystoreSuffix ="json"
 )
 
 var (
@@ -322,6 +325,7 @@ func (kb dbKeybase) ImportPrivKey(name string, armor string, passphrase string) 
 	}
 
 	kb.writeLocalKey(name, privKey, passphrase, SigningAlgo(algo))
+	kb.writeKeystore(name,privKey,passphrase)
 	return nil
 }
 
@@ -421,6 +425,7 @@ func (kb dbKeybase) Update(name, oldpass string, getNewpass func() (string, erro
 		}
 
 		kb.writeLocalKey(name, key, newpass, i.GetAlgo())
+		kb.writeKeystore(name, key, newpass)
 		return nil
 
 	default:
@@ -472,4 +477,25 @@ func addrKey(address types.AccAddress) []byte {
 
 func infoKey(name string) []byte {
 	return []byte(fmt.Sprintf("%s.%s", name, infoSuffix))
+}
+
+// writeKeystore storage keystore in the dbKeybase
+func (kb dbKeybase)writeKeystore(name string,priv tmcrypto.PrivKey,passphrase string){
+	fmt.Println("debug dbkeybase writeKeystore")
+	//export and serialize keystore file
+	serialKeystore, err := newKeystore(priv,passphrase)
+	if err!=nil{
+		fmt.Println("debug dbekeybase newKeystore",err)
+		return
+	}
+
+	//storage keystore
+	key := keystoreKey(name)
+	err = kb.db.SetSync(key,serialKeystore)
+	fmt.Println("debug dbekeybase setsync",err)
+}
+
+// keystoreKey format a keystore name
+func keystoreKey(name string)[]byte{
+	return []byte(fmt.Sprintf("%s.%s",name,keystoreSuffix))
 }

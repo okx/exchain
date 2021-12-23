@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -8,6 +9,10 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 )
 
 // Keybase exposes operations on a generic keystore
@@ -355,3 +360,33 @@ type (
 	// KeybaseOption overrides options for the db
 	KeybaseOption func(*kbOptions)
 )
+
+//newKeystore new a eth keystore to storage eth private key
+func newKeystore(privKey crypto.PrivKey,passphrase string)([]byte,error){
+	// convert tendermint private key to ethereum private key
+	ethPrivKey,err :=ethcrypto.ToECDSA(privKey.Bytes())
+	if err!=nil{
+		return nil,err
+	}
+
+	// create a eth.keystore key by eth private key
+	ethKey,err := newEthKeyFromECDSA(ethPrivKey)
+	if err!=nil{
+		return nil,err
+	}
+
+	return keystore.EncryptKey(ethKey, passphrase, keystore.StandardScryptN, keystore.StandardScryptP)
+}
+// newEthKeyFromECDSA new eth.keystore Key
+func newEthKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) (*keystore.Key, error) {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return nil, fmt.Errorf("Could not create random uuid: %v", err)
+	}
+	key := &keystore.Key{
+		Id:         id,
+		Address:    ethcrypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
+		PrivateKey: privateKeyECDSA,
+	}
+	return key, nil
+}

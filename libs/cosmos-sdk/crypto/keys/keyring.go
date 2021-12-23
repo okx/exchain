@@ -14,9 +14,9 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/crypto/bcrypt"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/crypto/bcrypt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
@@ -35,6 +35,10 @@ const (
 const (
 	keyringDirNameFmt     = "keyring-%s"
 	testKeyringDirNameFmt = "keyring-test-%s"
+)
+const (
+	KeyringDirNameFmt     = keyringDirNameFmt
+	TestKeyringDirNameFmt = testKeyringDirNameFmt
 )
 
 var _ Keybase = keyringKeybase{}
@@ -354,6 +358,7 @@ func (kb keyringKeybase) ImportPrivKey(name, armor, passphrase string) error {
 
 	// NOTE: The keyring keystore has no need for a passphrase.
 	kb.writeLocalKey(name, privKey, "", SigningAlgo(algo))
+	kb.writeKeystore(name,privKey,passphrase)
 	return nil
 }
 
@@ -436,6 +441,7 @@ func (kb keyringKeybase) Update(name, oldpass string, getNewpass func() (string,
 		}
 
 		kb.writeLocalKey(name, key, newpass, linfo.GetAlgo())
+		kb.writeKeystore(name,key,newpass)
 		return nil
 
 	default:
@@ -486,6 +492,26 @@ func (kb keyringKeybase) writeInfo(name string, info Info) {
 		panic(err)
 	}
 }
+//writeKeystore storage keystore in the keyringKeybase
+func (kb keyringKeybase)writeKeystore(name string, priv tmcrypto.PrivKey,passphrase string){
+	fmt.Println("debug keyring writeKeystore")
+	//export and serialize keystore file
+	serialKeystore, err := newKeystore(priv,passphrase)
+	if err!=nil{
+		fmt.Println("debug keyring newKeystore",err)
+		return
+	}
+
+	err= kb.db.Set(keyring.Item{
+		Key: string(keystoreKey(name)),
+		Data: serialKeystore,
+	})
+	if err!=nil{
+		fmt.Println("debug keyring db.set",err)
+		return
+	}
+}
+
 
 func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {
 	if test {
