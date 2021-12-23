@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 
 	db "github.com/tendermint/tm-db"
@@ -73,6 +75,8 @@ func (bs *BlockStore) Size() int64 {
 	return bs.height - bs.base + 1
 }
 
+var blockBufferPool = amino.NewBufferPool()
+
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
@@ -89,12 +93,14 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		bufLen += len(part.Bytes)
 		parts = append(parts, part)
 	}
-	buf := make([]byte, 0, bufLen)
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	buf.Grow(bufLen)
 	for _, part := range parts {
-		buf = append(buf, part.Bytes...)
+		buf.Write(part.Bytes)
 	}
 
-	err := cdc.UnmarshalBinaryLengthPrefixed(buf, block)
+	err := cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
 	if err != nil {
 		// NOTE: The existence of meta should imply the existence of the
 		// block. So, make sure meta is only saved after blocks are saved.
