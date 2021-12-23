@@ -112,9 +112,6 @@ func (pool *BlockPool) OnStart() error {
 }
 
 func (pool *BlockPool) OnReset() error {
-	//fmt.Println("pool.Reset")
-	//go pool.makeRequestersRoutine()
-	//pool.startTime = time.Now()
 	// clear up all requesters
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()

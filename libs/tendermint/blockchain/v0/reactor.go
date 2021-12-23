@@ -49,8 +49,6 @@ type consensusReactor interface {
 
 	// SwitchToFastSync called when we switch from the consensus machine to blockchain reactor and fast sync
 	SwitchToFastSync() (sm.State, error)
-
-	//StopForTestFastSync()
 }
 
 type peerError struct {
@@ -66,9 +64,8 @@ func (e peerError) Error() string {
 type BlockchainReactor struct {
 	p2p.BaseReactor
 
-	// immutable
-	initialState sm.State
-	curState     sm.State // mutable
+	// mutable
+	curState     sm.State
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
@@ -103,7 +100,6 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 	)
 
 	bcR := &BlockchainReactor{
-		initialState: state,
 		curState:     state,
 		blockExec:    blockExec,
 		store:        store,
@@ -401,8 +397,6 @@ FOR_LOOP:
 			continue FOR_LOOP
 
 		case <-bcR.Quit():
-			break FOR_LOOP
-		case <-bcR.pool.Quit():
 			break FOR_LOOP
 		}
 	}
