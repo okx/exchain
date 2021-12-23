@@ -151,13 +151,13 @@ func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			var n int
 			var uvint uint64
-			uvint, n, err = amino.DecodeUvarint(subData)
+			uvint, n, err = amino.DecodeUvarint(data)
 			txResult.Height = int64(uvint)
 			dataLen = uint64(n)
 		case 2:
 			var n int
 			var uvint uint64
-			uvint, n, err = amino.DecodeUvarint(subData)
+			uvint, n, err = amino.DecodeUvarint(data)
 			txResult.Index = uint32(uvint)
 			dataLen = uint64(n)
 		case 3:
