@@ -35,6 +35,11 @@ const (
 
 //-----------------------------------------------------------------------------
 
+type blockchainReactor interface {
+	// CheckFastSyncCondition called when we're hanging in a height for some time during consensus
+	CheckFastSyncCondition()
+}
+
 // Reactor defines a reactor for the consensus service.
 type Reactor struct {
 	p2p.BaseReactor // BaseService + p2p.Switch
@@ -455,10 +460,10 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSwitchToFastSync,
 		func(data tmevents.EventData) {
 			conR.Logger.Info("Received EventSwitchToFastSync.")
-			//bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
-			//if ok {
-			//	bcR.CheckFastSyncCondition()
-			//}
+			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
+			if ok {
+				bcR.CheckFastSyncCondition()
+			}
 		})
 }
 

@@ -731,9 +731,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			cs.handleTimeout(ti, rs)
 		case <-cs.switchToFastSyncTimer.C:
 			// should switch to fast-sync mode
-			cs.Logger.Info("switchToFastSyncTimer. step:%s", cs.Step)
+			cs.Logger.Info("switchToFastSyncTimer.", "step:", cs.Step)
 			if cs.Step != cstypes.RoundStepCommit {
-				cs.Logger.Info("PublishEventSwitchToFastSync. Height:%d", rs.Height)
+				cs.Logger.Info("PublishEventSwitchToFastSync.", "Height:", rs.Height)
 				//cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
 				//	Height: rs.Height,
 				//})

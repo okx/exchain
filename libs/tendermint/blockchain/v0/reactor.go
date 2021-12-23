@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	amino "github.com/tendermint/go-amino"
@@ -37,7 +38,7 @@ const (
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
 
-	maxIntervalForFastSync        = 10
+	maxIntervalForFastSync        = 1
 	maxPeersProportionForFastSync = 0.4
 	//testFastSyncIntervalSeconds   = 62
 )
@@ -77,6 +78,7 @@ type BlockchainReactor struct {
 	fastSync     bool
 	autoFastSync bool
 	isSyncing    bool
+	mtx          sync.RWMutex
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
@@ -110,6 +112,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		pool:         pool,
 		fastSync:     fastSync,
 		autoFastSync: autoFastSync,
+		mtx:          sync.RWMutex{},
 		requestsCh:   requestsCh,
 		errorsCh:     errorsCh,
 	}
@@ -214,6 +217,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcBlockRequestMessage:
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
+		bcR.Logger.Info("AddBlock. Height:%d Peer:%s", msg.Block.Height, src.ID())
 		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
@@ -224,9 +228,12 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
 		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
-		//fmt.Println(fmt.Sprintf("Status peer:%d now:%d", msg.Height, bcR.store.Height()))
+		if bcR.store.Height() > 1 {
+			bcR.Logger.Info("StatusResponseMessage", "Status peer:", msg.Height, "now:", bcR.store.Height())
+		}
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
+			bcR.Logger.Info("ShouldSync.", "Status peer:", msg.Height, "now:", bcR.store.Height())
 			go bcR.SwitchToFastSync()
 		}
 	case *bcNoBlockResponseMessage:
@@ -248,12 +255,7 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			case <-bcR.Quit():
 				return
 			case <-bcR.pool.Quit():
-				if bcR.autoFastSync {
-					continue
-				} else {
-					//fmt.Println("return poolRoutine")
-					return
-				}
+				return
 			case request := <-bcR.requestsCh:
 				peer := bcR.Switch.Peers().Get(request.PeerID)
 				if peer == nil {
@@ -291,8 +293,16 @@ func (bcR *BlockchainReactor) poolRoutine() {
 	bcR.SwitchToFastSync()
 }
 
+func (bcR *BlockchainReactor) CheckFastSyncCondition() {
+	// ask for status updates
+	if bcR.autoFastSync {
+		bcR.Logger.Info("CheckFastSyncCondition.")
+		go bcR.BroadcastStatusRequest()
+	}
+}
+
 func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
-	if !bcR.isSyncing {
+	if !bcR.getIsSyncing() {
 		return false
 	}
 
@@ -315,14 +325,13 @@ func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {
 }
 
 func (bcR *BlockchainReactor) SwitchToFastSync() {
-	if bcR.isSyncing {
+	if bcR.getIsSyncing() {
 		return
 	}
-	bcR.isSyncing = true
+	bcR.setIsSyncing(true)
 	defer func() {
-		bcR.isSyncing = false
+		bcR.setIsSyncing(false)
 	}()
-	//fmt.Println("SwitchToFastSync 1")
 
 	blocksSynced := uint64(0)
 	//state := bcR.initialState
@@ -382,6 +391,7 @@ FOR_LOOP:
 				// Try again quickly next loop.
 				didProcessCh <- struct{}{}
 			}
+			bcR.Logger.Info("PeekTwoBlocks.", "First:", first.Height, "Second:", second.Height)
 
 			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
 			firstPartsHeader := firstParts.Header()
@@ -458,6 +468,18 @@ func (bcR *BlockchainReactor) BroadcastStatusRequest() error {
 	})
 	bcR.Switch.Broadcast(BlockchainChannel, msgBytes)
 	return nil
+}
+
+func (bcR *BlockchainReactor) setIsSyncing(value bool) {
+	bcR.mtx.Lock()
+	bcR.isSyncing = value
+	bcR.mtx.Unlock()
+}
+
+func (bcR *BlockchainReactor) getIsSyncing() bool {
+	bcR.mtx.Lock()
+	defer bcR.mtx.Unlock()
+	return bcR.isSyncing
 }
 
 //-----------------------------------------------------------------------------
