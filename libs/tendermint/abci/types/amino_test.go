@@ -12,39 +12,112 @@ import (
 
 var cdc = amino.NewCodec()
 
-func TestEventAmino(t *testing.T) {
-	var events = []Event{
-		{},
-		{
-			Type: "test",
+var eventTestcases = []Event{
+	{},
+	{
+		Type: "test",
+	},
+	{
+		Attributes: []kv.Pair{
+			{Key: []byte("key"), Value: []byte("value")},
+			{Key: []byte("key2"), Value: []byte("value2")},
 		},
-		{
-			Attributes: []kv.Pair{
-				{Key: []byte("key"), Value: []byte("value")},
-				{Key: []byte("key2"), Value: []byte("value2")},
-			},
+	},
+	{
+		Type: "test",
+		Attributes: []kv.Pair{
+			{Key: []byte("key"), Value: []byte("value")},
+			{Key: []byte("key2"), Value: []byte("value2")},
+			{},
 		},
-		{
-			Type: "test",
-			Attributes: []kv.Pair{
-				{Key: []byte("key"), Value: []byte("value")},
-				{Key: []byte("key2"), Value: []byte("value2")},
-				{},
-			},
-		},
-		{
-			Attributes: []kv.Pair{},
-		},
-	}
+	},
+	{
+		Attributes: []kv.Pair{},
+	},
+}
 
-	for _, event := range events {
+func TestEventAmino(t *testing.T) {
+	for _, event := range eventTestcases {
 		expect, err := cdc.MarshalBinaryBare(event)
 		require.NoError(t, err)
 
 		actual, err := MarshalEventToAmino(event)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value Event
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 Event
+		err = value2.UnmarshalFromAmino(expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
+}
+
+func BenchmarkEventAminoMarshal(b *testing.B) {
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, event := range eventTestcases {
+				_, err := cdc.MarshalBinaryBare(event)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, event := range eventTestcases {
+				_, err := MarshalEventToAmino(event)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkEventAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(eventTestcases))
+	for i, event := range eventTestcases {
+		data, err := cdc.MarshalBinaryBare(event)
+		if err != nil {
+			b.Fatal(err)
+		}
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var event Event
+				err := cdc.UnmarshalBinaryBare(data, &event)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var event Event
+				err := event.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
 
 func TestPubKeyAmino(t *testing.T) {
