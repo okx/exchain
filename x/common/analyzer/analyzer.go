@@ -10,10 +10,14 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
-var singleAnalys *analyer
+var (
+	singleAnalys *analyer
+	open         bool
+)
 
 type analyer struct {
 	status          bool
+	open            bool
 	currentTxIndex  int64
 	blockHeight     int64
 	startBeginBlock int64
@@ -45,6 +49,14 @@ func init() {
 
 }
 
+func SetOpen(value bool) {
+	open = value
+}
+
+func getOpen() bool {
+	return open
+}
+
 func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
@@ -55,6 +67,9 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
+	if !getOpen(){
+		return
+	}
 	newAnalys(height)
 	singleAnalys.onAppBeginBlockEnter()
 	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()

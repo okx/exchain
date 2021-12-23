@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/spf13/viper"
 	"strings"
 	"sync"
@@ -39,7 +40,7 @@ const (
 func init() {
 	once.Do(func() {
 		elapsedInfo := &ElapsedTimeInfos{
-			infoMap:     make(map[string]string),
+			infoMap:   make(map[string]string),
 			schemaMap: make(map[string]bool),
 		}
 
@@ -50,11 +51,11 @@ func init() {
 }
 
 type ElapsedTimeInfos struct {
-	mtx sync.Mutex
-	infoMap         map[string]string
-	schemaMap       map[string]bool
-	initialized     bool
-	elapsedTime     int64
+	mtx         sync.Mutex
+	infoMap     map[string]string
+	schemaMap   map[string]bool
+	initialized bool
+	elapsedTime int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
@@ -81,7 +82,6 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		e.decodeElapseParam(viper.GetString(Elapsed))
 		e.initialized = true
 	}
-
 
 	var detailInfo string
 	for _, k := range CUSTOM_PRINT {
@@ -114,14 +114,23 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 }
 
 func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
-
 	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
 	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
-		if len(setVal) == 2 && setVal[1] == "1" {
-			e.schemaMap[setVal[0]] = true
+		if len(setVal) == 2 {
+			if setVal[1] == "1" {
+				e.schemaMap[setVal[0]] = true
+				if setVal[0] == trace.DeliverTxs {
+					analyzer.SetOpen(true)
+				}
+			} else {
+				if setVal[0] == trace.DeliverTxs {
+					analyzer.SetOpen(false)
+				}
+			}
 		}
+
 	}
 }
 
