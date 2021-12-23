@@ -3,6 +3,10 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/prque"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -51,6 +55,13 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	db     ethstate.Database
+	rootTrie   ethstate.Trie
+	triegc *prque.Prque
+
+	EvmStateDb     *types.CommitStateDB
+	UpdatedAccount []ethcmn.Address
 }
 
 // NewKeeper generates new evm module keeper
@@ -88,11 +99,16 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
+
+		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
+		triegc:         prque.New(nil),
+		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
 	k.Watcher.SetWatchDataFunc()
-	if k.Watcher.Enabled() {
-		ak.SetObserverKeeper(k)
-	}
+	ak.SetObserverKeeper(k)
+
+	k.OpenTrie()
+	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 
 	return k
 }
@@ -102,7 +118,7 @@ func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 ) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
-	return &Keeper{
+	k := &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
@@ -114,13 +130,25 @@ func NewSimulateKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
 		Ada:           ada,
+
+		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
+		triegc:         prque.New(nil),
+		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
+
+	k.OpenTrie()
+	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
+
+	return k
 }
 
-func (k Keeper) OnAccountUpdated(acc auth.Account) {
+// Warning, you need to use pointer object here, for you need to update UpdatedAccount var
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 	account := acc.GetAddress()
 	k.Watcher.AddDirtyAccount(&account)
 	k.Watcher.DeleteAccount(account)
+
+	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))
 }
 
 // Logger returns a module-specific logger.
@@ -134,6 +162,9 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Watcher:       k.Watcher,
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
+
+		DB:   k.db,
+		Trie: k.rootTrie,
 	}
 }
 
@@ -144,6 +175,9 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Watcher:  k.Watcher,
 		Ada:      k.Ada,
 		Cdc:      k.cdc,
+
+		DB:   k.db,
+		Trie: k.rootTrie,
 	}
 }
 

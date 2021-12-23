@@ -119,6 +119,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		}
 	}()
 
+	preSSId := st.Csdb.Snapshot()
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
@@ -193,12 +194,20 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	switch contractCreation {
 	case true:
 		if !params.EnableCreate {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrCreateDisabled, innerTxs, erc20Contracts
 		}
 
 		// check whether the deployer address is in the whitelist if the whitelist is enabled
 		senderAccAddr := st.Sender.Bytes()
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr), innerTxs, erc20Contracts
 		}
 
@@ -210,6 +219,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		updateDefaultInnerTxTo(callTx, contractAddress.String())
 	default:
 		if !params.EnableCall {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
 		}
 
@@ -246,6 +259,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 
 	if err != nil {
+		if !st.Simulate {
+			st.Csdb.RevertToSnapshot(preSSId)
+		}
+
 		// Consume gas before returning
 		return exeRes, resData, newRevertError(ret, err), innerTxs, erc20Contracts
 	}
@@ -264,6 +281,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	if st.TxHash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.TxHash)
 		if err != nil {
+			st.Csdb.RevertToSnapshot(preSSId)
 			return
 		}
 
@@ -272,15 +290,17 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	if !st.Simulate {
-		// Finalise state if not a simulated transaction
-		// TODO: change to depend on config
-		if err = csdb.Finalise(true); err != nil {
-			return
-		}
+		//// Finalise state if not a simulated transaction
+		//// TODO: change to depend on config
+		//if err = csdb.Finalise(true); err != nil {
+		//	return
+		//}
+		//
+		//if _, err = csdb.Commit(true); err != nil {
+		//	return
+		//}
 
-		if _, err = csdb.Commit(true); err != nil {
-			return
-		}
+		csdb.IntermediateRoot(true)
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

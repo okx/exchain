@@ -458,8 +458,10 @@ func NewOKExChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
+	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -605,11 +607,14 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	}
 }
 
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+		if acc := ak.GetAccount(ctx, addr); acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
 	}
 }
 
@@ -633,4 +638,16 @@ func PreRun(ctx *server.Context) error {
 		repairStateOnStart(ctx)
 	}
 	return nil
+}
+
+func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
+	return func() error {
+		return ak.OnStop()
+	}
+}
+
+func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
+	return func(ctx sdk.Context) {
+		ak.Commit(ctx)
+	}
 }

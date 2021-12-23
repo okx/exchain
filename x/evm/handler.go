@@ -21,45 +21,16 @@ func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
+		if !ctx.IsCheckTx() {
+			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
+			k.UpdatedAccount = k.UpdatedAccount[:0]
+		}
+
 		defer func() {
-			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
-				return
-			}
-
 			if err != nil {
 				return
 			}
-
-			db := bam.InstanceOfHistoryGasUsedRecordDB()
-			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
-
-			if msgFnSignature == nil {
-				return
-			}
-
-			hisGu, err := db.Get(msgFnSignature)
-			if err != nil {
-				return
-			}
-
-			gc := int64(ctx.GasMeter().GasConsumed())
-			if toDeployContractSize > 0 {
-				// calculate average gas consume for deploy contract case
-				gc = gc / int64(toDeployContractSize)
-			}
-
-			var avgGas int64
-			if hisGu != nil {
-				hgu := common2.BytesToInt64(hisGu)
-				avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
-			} else {
-				avgGas = gc
-			}
-
-			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
-			if err != nil {
-				return
-			}
+			recordHGU(ctx, msg)
 		}()
 
 		var handlerFun func() (*sdk.Result, error)
@@ -89,6 +60,44 @@ func NewHandler(k *Keeper) sdk.Handler {
 		return result, err
 	}
 }
+
+func recordHGU(ctx sdk.Context, msg sdk.Msg) {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
+		return
+	}
+
+	db := bam.InstanceOfHistoryGasUsedRecordDB()
+	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
+
+	if msgFnSignature == nil {
+		return
+	}
+
+	hisGu, err := db.Get(msgFnSignature)
+	if err != nil {
+		return
+	}
+
+	gc := int64(ctx.GasMeter().GasConsumed())
+	if toDeployContractSize > 0 {
+		// calculate average gas consume for deploy contract case
+		gc = gc / int64(toDeployContractSize)
+	}
+
+	var avgGas int64
+	if hisGu != nil {
+		hgu := common2.BytesToInt64(hisGu)
+		avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
+	} else {
+		avgGas = gc
+	}
+
+	err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
+	if err != nil {
+		return
+	}
+}
+
 
 func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	switch msg := msg.(type) {
@@ -143,11 +152,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+	}
+	if ctx.IsCheckTx() {
+		st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	} else {
+		st.Csdb = k.EvmStateDb.WithContext(ctx)
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -170,7 +183,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog(bam.SaveTx)
 
 	defer func() {
-
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
 			pm := k.GenerateCSDBParams()
@@ -290,11 +302,15 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+	}
+	if ctx.IsCheckTx() {
+		st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	} else {
+		st.Csdb = k.EvmStateDb.WithContext(ctx)
 	}
 
 	if msg.Recipient != nil {

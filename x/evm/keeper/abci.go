@@ -46,6 +46,9 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	//that can make sure latest block has been committed
 	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
 	k.Watcher.ExecuteDelayEraseKey()
+
+	k.UpdatedAccount = k.UpdatedAccount[:0]
+	k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -109,6 +112,8 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	}
 
 	k.UpdateInnerBlockData()
+
+	k.EvmStateDb.WithContext(ctx).Commit(true)
 
 	return []abci.ValidatorUpdate{}
 }

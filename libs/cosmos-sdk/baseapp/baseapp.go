@@ -106,7 +106,7 @@ type BaseApp struct { // nolint: maligned
 
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
-	AccHandler       sdk.AccHandler       // account handler for cm tx nonce
+	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -162,6 +162,10 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+
+	customizeModuleOnStop []sdk.CustomizeOnStop
+
+	mptCommitHandler sdk.MptCommitHandler // handler for mpt trie commit
 }
 
 type recordHandle func(string)
@@ -986,15 +990,19 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 	return fromCms.Export(toCms, version)
 }
 
-func (app *BaseApp) StopStore() {
+func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
+
+	for _, fn := range app.customizeModuleOnStop {
+		fn()
+	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 	exTxInfo := tx.GetTxInfo(ctx)
-	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.AccHandler != nil {
+	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.accNonceHandler != nil {
 		addr, _ := sdk.AccAddressFromBech32(exTxInfo.Sender)
-		exTxInfo.Nonce = app.AccHandler(ctx, addr)
+		exTxInfo.Nonce = app.accNonceHandler(ctx, addr)
 
 		if app.anteHandler != nil && exTxInfo.Nonce > 0 {
 			exTxInfo.Nonce -= 1 // in ante handler logical, the nonce will incress one

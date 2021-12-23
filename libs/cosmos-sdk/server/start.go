@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"os"
 	"runtime/pprof"
 
@@ -170,6 +171,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
+	cmd.Flags().BoolVar(&types2.TrieDirtyDisabled, types2.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
+	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
