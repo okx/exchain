@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
@@ -178,8 +177,9 @@ func NewState(
 		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
 		internalMsgQueue: make(chan msgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
+		switchToFastSyncTimer:    time.NewTimer(0),
 		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		done:             make(chan struct{}),
+		//done:             make(chan struct{}),
 		doWALCatchup:     true,
 		wal:              nilWAL{},
 		evpool:           evpool,
@@ -192,6 +192,8 @@ func NewState(
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
+
+	cs.stopSwitchToFastSyncTimeout()
 
 	cs.updateToState(state)
 	if cs.proactivelyRunTx {
@@ -381,6 +383,10 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
+
+	if cs.switchToFastSyncTimer != nil {
+		cs.switchToFastSyncTimer.Stop()
+	}
 	// WAL is stopped in receiveRoutine.
 }
 
@@ -395,7 +401,7 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	<-cs.done
+	//<-cs.done
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -508,17 +514,17 @@ func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int
 // Attempt to schedule a timeout for
 func (cs *State) resetSwitchToFastSyncTimeout() {
 	cs.Logger.Info("Reset SwitchToFastSyncTimeout.")
-	if cs.switchToFastSyncTimer == nil {
-		cs.switchToFastSyncTimer = time.NewTimer(cs.config.TimeoutToFastSync)
-	} else {
-		if !cs.switchToFastSyncTimer.Stop() { // Stop() returns false if it was already fired or was stopped
-			select {
-			case <-cs.switchToFastSyncTimer.C:
-			default:
-				cs.Logger.Debug("Timer already stopped")
-			}
+	cs.stopSwitchToFastSyncTimeout()
+	cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
+}
+
+func (cs *State) stopSwitchToFastSyncTimeout() {
+	if !cs.switchToFastSyncTimer.Stop() { // Stop() returns false if it was already fired or was stopped
+		select {
+		case <-cs.switchToFastSyncTimer.C:
+		default:
+			cs.Logger.Debug("Timer already stopped")
 		}
-		cs.switchToFastSyncTimer.Reset(cs.config.TimeoutToFastSync)
 	}
 }
 
@@ -725,10 +731,13 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			cs.handleTimeout(ti, rs)
 		case <-cs.switchToFastSyncTimer.C:
 			// should switch to fast-sync mode
-			logger.Info("switchToFastSyncTimer. step:", cs.Step)
+			cs.Logger.Info("switchToFastSyncTimer. step:%s", cs.Step)
 			if cs.Step != cstypes.RoundStepCommit {
-				logger.Info("PublishEventSwitchToFastSync. Height:", rs.Height)
-				cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
+				cs.Logger.Info("PublishEventSwitchToFastSync. Height:%d", rs.Height)
+				//cs.eventBus.PublishEventSwitchToFastSync(types.EventDataSwitchToFastSync{
+				//	Height: rs.Height,
+				//})
+				cs.evsw.FireEvent(types.EventSwitchToFastSync, types.EventDataSwitchToFastSync{
 					Height: rs.Height,
 				})
 			}

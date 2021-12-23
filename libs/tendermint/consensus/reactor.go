@@ -2,9 +2,7 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -33,15 +31,9 @@ const (
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
-
-	testFastSyncIntervalSeconds   = 162
 )
 
 //-----------------------------------------------------------------------------
-type blockchainReactor interface {
-	// CheckFastSyncCondition called when we're hanging in a height for some time during consensus
-	CheckFastSyncCondition()
-}
 
 // Reactor defines a reactor for the consensus service.
 type Reactor struct {
@@ -85,7 +77,7 @@ func (conR *Reactor) OnStart() error {
 	go conR.peerStatsRoutine()
 
 	conR.subscribeToBroadcastEvents()
-	conR.subscribeToBlockchainEvents()
+	//conR.subscribeToBlockchainEvents()
 
 	if !conR.FastSync() {
 		err := conR.conS.Start()
@@ -101,7 +93,6 @@ func (conR *Reactor) OnStart() error {
 // state.
 func (conR *Reactor) OnStop() {
 	conR.unsubscribeFromBroadcastEvents()
-	conR.unsubscribeFromBlockchainEvents()
 	conR.conS.Stop()
 	if !conR.FastSync() {
 		conR.conS.Wait()
@@ -131,15 +122,23 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		conR.conS.doWALCatchup = false
 	}
 	conR.conS.Stop()
+	//if !conR.FastSync() {
+	//	conR.conS.Wait()
+	//}
+	conR.conS.Reset()
+	conR.conS.Start()
 
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
-	conR.subscribeToBlockchainEvents()
 
 	return true
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
+	// TODO:
+	//if conR.fastSync {
+	//	return conR.conS.GetState(), errors.New("already switched to fast-sync")
+	//}
 	conR.Logger.Info("SwitchToFastSync")
 
 	conR.mtx.Lock()
@@ -160,23 +159,18 @@ conS:
 conR:
 %+v`, err, conR.conS, conR))
 	}
-
-	conR.conS.Wait()
-
-	conR.unsubscribeFromBroadcastEvents()
-	conR.unsubscribeFromBlockchainEvents()
-
 	return conR.conS.GetState(), nil
 }
 
-func (conR *Reactor) StopForTestFastSync() {
-	conR.Logger.Info("StopForTestFastSync")
-
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
-}
+//func (conR *Reactor) StopForTestFastSync() {
+//	conR.Logger.Info("StopForTestFastSync")
+//	fmt.Println("StopForTestFastSync")
+//
+//	conR.mtx.Lock()
+//	conR.fastSync = true
+//	conR.mtx.Unlock()
+//	conR.metrics.FastSyncing.Set(1)
+//}
 
 // GetChannels implements Reactor
 func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
@@ -426,6 +420,18 @@ func (conR *Reactor) FastSync() bool {
 
 //--------------------------------------
 
+//// subscribeToBlockchainEvents subscribes for consensus machine hanged for some time.
+//func (conR *Reactor) subscribeToBlockchainEvents() {
+//	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSwitchToFastSync,
+//		func(data tmevents.EventData) {
+//			conR.Logger.Info("Received EventSwitchToFastSync.")
+//			//bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
+//			//if ok {
+//			//	bcR.CheckFastSyncCondition()
+//			//}
+//		})
+//}
+
 // subscribeToBroadcastEvents subscribes for new round steps and votes
 // using internal pubsub defined on state to broadcast
 // them to peers upon receiving.
@@ -445,25 +451,18 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
-}
 
-func (conR *Reactor) unsubscribeFromBroadcastEvents() {
-	const subscriber = "consensus-reactor"
-	conR.conS.evsw.RemoveListener(subscriber)
-}
-
-func (conR *Reactor) subscribeToBlockchainEvents() {
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSwitchToFastSync,
 		func(data tmevents.EventData) {
-			logger.Info("Received SwitchToFastSync event.")
-			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
-			if ok {
-				bcR.CheckFastSyncCondition()
-			}
+			conR.Logger.Info("Received EventSwitchToFastSync.")
+			//bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
+			//if ok {
+			//	bcR.CheckFastSyncCondition()
+			//}
 		})
 }
 
-func (conR *Reactor) unsubscribeFromBlockchainEvents() {
+func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	const subscriber = "consensus-reactor"
 	conR.conS.evsw.RemoveListener(subscriber)
 }
@@ -901,7 +900,7 @@ func (conR *Reactor) peerStatsRoutine() {
 			return
 		}
 
-		testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
+		//testFastSyncTicker := time.NewTicker(testFastSyncIntervalSeconds * time.Second)
 
 		select {
 		case msg := <-conR.conS.statsMsgQueue:
@@ -927,10 +926,10 @@ func (conR *Reactor) peerStatsRoutine() {
 					conR.Switch.MarkPeerAsGood(peer)
 				}
 			}
-		case <-testFastSyncTicker.C:
-			if !conR.FastSync() && strings.Contains(conR.Switch.ListenAddress(), "10156") {
-				conR.StopForTestFastSync()
-			}
+		//case <-testFastSyncTicker.C:
+		//	if !conR.FastSync() && strings.Contains(conR.Switch.ListenAddress(), "10156") {
+		//		conR.StopForTestFastSync()
+		//	}
 
 		case <-conR.conS.Quit():
 			return
