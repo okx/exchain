@@ -30,22 +30,25 @@ func init() {
 }
 
 type round struct {
-	Round        int64
-	PreVote      map[string]bool // true vote nil, false default vote
-	PreCommit    map[string]bool // true vote nil, false default vote
-	PreRun       map[string]int  // int => control prerun sleep time
-	AddBlockPart map[string]int  // int => control sleep time before receiver a block
+	Round          int64
+	PreVote        map[string]bool // true vote nil, false default vote
+	PreCommit      map[string]bool // true vote nil, false default vote
+	Prevotesover   map[string]bool // true not received +2/3 prevotes, false actual received
+	Precommitsover map[string]bool // true not received +2/3 precommits, false actual received
+	PreRun         map[string]int  // int => control prerun sleep time
+	AddBlockPart   map[string]int  // int => control sleep time before receiver a block
 }
 
 type action struct {
-	preVote           bool // true vote nil, false default vote
-	preCommit         bool // true vote nil, false default vote
-	preRunWait        int  // control prerun sleep time
-	addBlockPartWait  int  // control sleep time before receiver a block
+	preVote          bool // true vote nil, false default vote
+	preCommit        bool // true vote nil, false default vote
+	prevotesover     bool // true not received +2/3 prevotes, false actual received
+	precommitsover   bool // true not received +2/3 precommits, false actual received
+	preRunWait       int  // control prerun sleep time
+	addBlockPartWait int  // control sleep time before receiver a block
 }
 
 func LoadTestCase(log log.Logger) {
-
 	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
 		return
@@ -57,6 +60,7 @@ func LoadTestCase(log log.Logger) {
 	if err != nil {
 		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}
+	log.Info("Load consensus test case", "file", confFilePath, "err", err, "content", content)
 	confTmp := make(map[string][]round)
 	err = json.Unmarshal(content, &confTmp)
 	if err != nil {
@@ -74,10 +78,14 @@ func LoadTestCase(log log.Logger) {
 
 				act.preVote = event.PreVote[role]
 				act.preCommit = event.PreCommit[role]
+				act.prevotesover = event.Prevotesover[role]
+				act.precommitsover = event.Precommitsover[role]
 				act.preRunWait = event.PreRun[role]
 				act.addBlockPartWait = event.AddBlockPart[role]
 
 				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
+
+				log.Info("Load consensus test case", "action", act)
 			}
 		}
 	}

@@ -135,5 +135,13 @@
   "15": [{"round":0, "precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}}],
   "16": [{"round":0,"precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}, "addblockpart" : {"v0":3, "v1":3,"v2":3, "v3":3}}],
   "17": [{"round":0, "prevote" : {"v0":true, "v1":true,"v2":true, "v3":true},  "precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}}],
-  "18": [{"round":0,"prevote" : {"v0":true, "v1":true,"v2":true, "v3":true}, "precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}, "addblockpart" : {"v0":3, "v1":3,"v2":3, "v3":3}}]
+  "18": [{"round":0,"prevote" : {"v0":true, "v1":true,"v2":true, "v3":true}, "precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}, "addblockpart" : {"v0":3, "v1":3,"v2":3, "v3":3}}],
+  "60":[
+    {"round":0, "prevotesover" : {"v0":true, "v1":true,"v2":true, "v3":true},  "precommitsover" : {"v0":true, "v1":true,"v2":true, "v3":true}},
+    {"round":1, "prevotesover" : {"v0":true},  "precommitsover" : {"v0":true}},
+    {"round":2, "prevotesover" : {"v0":true},  "precommitsover" : {"v0":true}},
+    {"round":3, "prevotesover" : {"v0":true},  "precommitsover" : {"v0":true}},
+    {"round":4, "prevotesover" : {"v0":true},  "precommitsover" : {"v0":true}},
+    {"round":5, "prevotesover" : {"v0":true},  "precommitsover" : {"v0":true}}
+  ]
 }
