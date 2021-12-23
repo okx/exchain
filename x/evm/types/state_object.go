@@ -9,12 +9,11 @@ import (
 	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
-	lru "github.com/hashicorp/golang-lru"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -337,6 +336,7 @@ func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	store.Set(so.CodeHash(), so.code)
+	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
 }
 
 // ----------------------------------------------------------------------------

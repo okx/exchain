@@ -22,7 +22,7 @@ sleep 5
 
 sleep 5
 
-killbyname redis-server
+#killbyname redis-server
 
 
 

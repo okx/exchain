@@ -278,7 +278,7 @@ func (app *testApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	return abci.ResponseCheckTx{}
 }
 
-func (app *testApp) Commit() abci.ResponseCommit {
+func (app *testApp) Commit(abci.RequestCommit) abci.ResponseCommit {
 	return abci.ResponseCommit{}
 }
 

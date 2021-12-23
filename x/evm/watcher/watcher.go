@@ -427,19 +427,6 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	gcb := func(watchBytes []byte) bool {
-		data := WatchData{}
-		if itjs.Unmarshal(watchBytes, &data) != nil {
-			return false
-		}
-		if data.Size() == 0 {
-			return true
-		}
-		w.watchData = &data
-		w.delayEraseKey = data.DelayEraseKey
-		return true
-	}
-
 	gwd := func() []byte {
 		value := w.watchData
 		value.DelayEraseKey = w.delayEraseKey
@@ -463,7 +450,6 @@ func (w *Watcher) SetWatchDataFunc() {
 		w.CommitWatchData()
 	}
 
-	tmstate.SetCenterBatch = gcb
 	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
 }

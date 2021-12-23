@@ -164,8 +164,10 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
-
 	mptCommitHandler sdk.MptCommitHandler // handler for mpt trie commit
+
+	chainCache *sdk.Cache
+	blockCache *sdk.Cache
 }
 
 type recordHandle func(string)
@@ -192,6 +194,7 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
+		chainCache:       sdk.NewChainCache(),
 	}
 	for _, option := range options {
 		option(app)
