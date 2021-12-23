@@ -6,20 +6,20 @@ import (
 	"sync"
 )
 
+// tlv is a simple lib used to generate TLV formate codec for any structure
+// you have to defined your own logic handling your own structure
+// NOTE: you have to keep your write buffer order and read order from buffer
+
 // objects pool to optimize the GC
 var pool sync.Pool
 
-// FIXME: maybe this is no use for init function
-var once sync.Once
-
 func init() {
-	once.Do(func() {
-		pool = sync.Pool{
-			New: func() interface{} {
-				return new(bytes.Buffer)
-			},
-		}
-	})
+	pool = sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Buffer)
+		},
+	}
+
 }
 
 // Type represents the underlying data description
@@ -64,6 +64,8 @@ func NewBuffer() *Buffer {
 }
 
 // Bytes serialize curretn Buffer to []byte
+// after this method the underlying buffer will be reset
+// you should use this method as final method you call
 func (buf *Buffer) Bytes() []byte {
 	defer func() {
 		// to keep the underlying buffer empty semantic correctly
@@ -194,7 +196,7 @@ func (buf *Buffer) Read() (interface{}, Type) {
 			e := binary.Read(buf.inner, binary.BigEndian, &f)
 			if e != nil {
 				f = 0.0
-				return f, ParseError
+				return f, EmptyError
 			}
 			return f, Float32
 		}
@@ -204,7 +206,7 @@ func (buf *Buffer) Read() (interface{}, Type) {
 			e := binary.Read(buf.inner, binary.BigEndian, &f)
 			if e != nil {
 				f = 0.0
-				return f, ParseError
+				return f, EmptyError
 			}
 			return f, Float64
 		}
