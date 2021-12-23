@@ -55,6 +55,7 @@ func getOpen() bool {
 	if !initState {
 		openAnalyzer = viper.GetBool(FlagEnableAnalyzer)
 	}
+	initState = true
 	return openAnalyzer
 }
 
