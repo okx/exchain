@@ -277,8 +277,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	var err error
 
 	if delta != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height,
-			"deltas", delta, "gid", gorid.GoRId)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
@@ -288,8 +287,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	} else {
 		blockExec.logger.Info("Not apply delta", "height", block.Height,
 			"block-size", block.Size(),
-			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
-
+			"prerunIndex", blockExec.prerunIndex)
 		// blockExec.prerunIndex==0 means:
 		// 1. proactivelyRunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected

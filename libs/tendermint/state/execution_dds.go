@@ -20,6 +20,8 @@ type DeltaContext struct {
 
 	downloadDelta bool
 	uploadDelta bool
+	applied float64
+	missed float64
 	logger log.Logger
 	compressBroker compress.CompressBroker
 }
@@ -63,20 +65,31 @@ func (dc *DeltaContext) init(l log.Logger) {
 	}
 }
 
+func (dc *DeltaContext) appliedRate() float64 {
+	return dc.applied / (dc.applied + dc.missed)
+}
 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	abciResponses *ABCIResponses, res []byte) {
 
 	// rpc
 	if dc.downloadDelta {
-		useDeltas := false
+		applied := false
 		if delta != nil {
-			useDeltas = true
+			applied = true
+			dc.applied++
+		} else {
+			dc.missed++
 		}
-		dc.logger.Info("Post apply block", "delta-applied", useDeltas, "delta", delta, "gid", gorid.GoRId)
+
+		dc.logger.Info("Post apply block",
+			"height", height,
+			"delta-applied", applied,
+			"applied-rate", dc.appliedRate(),
+			"delta", delta)
 		atomic.StoreInt64(&dc.lastCommitHeight, height)
 
-		if useDeltas && types.IsFastQuery() {
+		if applied && types.IsFastQuery() {
 			UseWatchData(delta.WatchBytes)
 		}
 	}
@@ -171,6 +184,7 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 
 func (dc *DeltaContext) downloadRoutine() {
 	var height int64
+	var lastRemoved int64
 	var buffer int64 = 5
 	ticker := time.NewTicker(50 * time.Millisecond)
 
@@ -183,12 +197,22 @@ func (dc *DeltaContext) downloadRoutine() {
 			// git rid of all deltas before <height>
 			removed, left := dc.dataMap.remove(lastCommitHeight)
 			dc.logger.Info("Updated target delta height",
-				"gid", gorid.GoRId,
 				"target-height", height,
 				"lastCommitHeight", lastCommitHeight,
 				"removed", removed,
 				"left", left,
 			)
+		} else {
+			if height % 10 == 0 && lastRemoved != lastCommitHeight {
+				removed, left := dc.dataMap.remove(lastCommitHeight)
+				dc.logger.Info("Remove stale delta",
+					"target-height", height,
+					"lastCommitHeight", lastCommitHeight,
+					"removed", removed,
+					"left", left,
+				)
+				lastRemoved = lastCommitHeight
+			}
 		}
 
 		lastCommitHeight = atomic.LoadInt64(&dc.lastCommitHeight)
@@ -205,7 +229,6 @@ func (dc *DeltaContext) downloadRoutine() {
 }
 
 func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
-
 	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
 
 	t0 := time.Now()
@@ -213,6 +236,8 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	if err != nil {
 		return err, nil
 	}
+
+	//time.Sleep(5*time.Second)
 
 	t1 := time.Now()
 	// uncompress
