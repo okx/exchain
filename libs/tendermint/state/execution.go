@@ -89,9 +89,7 @@ func NewBlockExecutor(
 	for _, option := range options {
 		option(res)
 	}
-
 	automation.LoadTestCase(logger)
-
 	res.deltaContext.init(logger)
 
 	return res
@@ -164,25 +162,24 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
-	var inAbciRspLen, inDeltaLen, inWatchLen int
+	//var inAbciRspLen, inDeltaLen, inWatchLen int
 	dc := blockExec.deltaContext
 
+	var delta *types.Deltas
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
-		trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
-			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
-		trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
-			"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(dc.deltas.ABCIRsp), len(dc.deltas.DeltasBytes), len(dc.deltas.WatchBytes)))
+		//trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
+		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
+		//trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
+		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(delta.ABCIRsp), len(delta.DeltasBytes), len(delta.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
 		now := time.Now().UnixNano()
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
-
-		dc.reset()
 	}()
 
 	trc.Pin("ValidateBlock")
@@ -192,16 +189,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	trc.Pin("GetDelta")
 
-	dc.prepareStateDelta(block)
-	inAbciRspLen = len(dc.deltas.ABCIRsp)
-	inDeltaLen = len(dc.deltas.DeltasBytes)
-	inWatchLen = len(dc.deltas.WatchBytes)
+	delta = dc.prepareStateDelta(block.Height)
+	//inAbciRspLen = len(delta.ABCIRsp)
+	//inDeltaLen = len(delta.DeltasBytes)
+	//inWatchLen = len(delta.WatchBytes)
 
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block)
+	abciResponses, err := blockExec.runAbci(block, delta)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -243,7 +240,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, delta, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
@@ -269,23 +266,22 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, abciResponses, commitResp.Deltas.DeltasByte)
+	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte)
 
 	return state, retainHeight, nil
 }
 
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, error) {
-	dc := blockExec.deltaContext
+func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if dc.useDeltas {
+	if delta != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height,
-			"deltas", dc.deltas, "gid", gorid.GoRId)
+			"deltas", delta, "gid", gorid.GoRId)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(dc.deltas.ABCIRsp, &abciResponses)
+		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
 		if err != nil {
 			return nil, err
 		}
@@ -330,6 +326,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block) (*ABCIResponses, err
 func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
+	delta *types.Deltas,
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
@@ -340,7 +337,6 @@ func (blockExec *BlockExecutor) commit(
 			blockExec.mempool.Flush()
 		}
 	}()
-	dc := blockExec.deltaContext
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
@@ -350,9 +346,10 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	blockExec.logger.Debug("set abciDelta", "abciDelta", dc.deltas, "gid", gorid.GoRId)
-	abciDelta := &abci.Deltas{
-		DeltasByte: dc.deltas.DeltasBytes,
+	abciDelta := &abci.Deltas{}
+	if delta != nil {
+		abciDelta.DeltasByte = delta.DeltasBytes
+		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
 	}
 
 	// Commit block, get hash back

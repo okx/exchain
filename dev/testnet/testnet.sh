@@ -128,10 +128,10 @@ run() {
     --consensus.timeout_commit 200ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
-    --upload-delta=false \
+    --upload-delta=true \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
-    --enable-proactively-runtx \
+    --enable-proactively-runtx=false \
     --consensus-role=v$index \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &

@@ -107,13 +107,6 @@ func RedisAuth() string {
 	return redisAuth
 }
 
-func IsCenterEnabled() bool {
-	onceCenterMode.Do(func() {
-		centerMode = viper.GetBool(FlagDataCenter)
-	})
-	return centerMode
-}
-
 func GetCenterUrl() string {
 	onceCenterUrl.Do(func() {
 		centerUrl = viper.GetString(DataCenterUrl)
@@ -146,10 +139,22 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, point2<%p> deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>",
+	return fmt.Sprintf("height<%d>, version<%d>, deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>, point2<%p>",
 		d.Height,
-		d,
+		d.Version,
 		len(d.DeltasBytes),
 		len(d.WatchBytes),
-		len(d.ABCIRsp))
+		len(d.ABCIRsp),
+		d)
+}
+
+func (dds *Deltas) Validate(height int64) bool {
+	if  DeltaVersion < dds.Version ||
+		dds.Height != height ||
+		len(dds.WatchBytes) == 0 ||
+		len(dds.ABCIRsp) == 0 ||
+		len(dds.DeltasBytes) == 0 {
+		return false
+	}
+	return true
 }
