@@ -174,7 +174,7 @@ func (dc *DeltaContext) downloadRoutine() {
 	var buffer int64 = 5
 	ticker := time.NewTicker(50 * time.Millisecond)
 
-	for _ = range ticker.C {
+	for range ticker.C {
 		lastCommitHeight := atomic.LoadInt64(&dc.lastCommitHeight)
 		if height <= lastCommitHeight {
 			// move to lastCommitHeight + 1
@@ -230,9 +230,12 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 		return err, nil
 	}
 
+	cacheMap, cacheList := dc.dataMap.info()
 	t3 := time.Now()
 	dc.logger.Info("Download delta finished:",
 		"target-height", height,
+		"cacheMap", cacheMap,
+		"cacheList", cacheList,
 		"download", t1.Sub(t0),
 		"uncompress", t2.Sub(t1),
 		"unmarshal", t3.Sub(t2),
