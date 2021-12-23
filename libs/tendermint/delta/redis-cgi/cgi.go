@@ -6,29 +6,49 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"strconv"
+	"time"
 )
 
-const TTL = 0
+const LatestHeightKey = "LatestHeight"
 
 type RedisClient struct {
 	rdb *redis.Client
+	ttl time.Duration
 	logger log.Logger
 }
 
-func NewRedisClient(url, auth string, l log.Logger) *RedisClient {
+func NewRedisClient(url, auth string, ttl time.Duration, l log.Logger) *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: auth, // no password set
 		DB:       0,  // use default DB
 	})
-	return &RedisClient{rdb, l}
+	return &RedisClient{rdb, ttl, l}
+}
+
+// return bool: if change the value of latest_height, need to upload
+func (r *RedisClient) SetLatestHeight(height int64) bool {
+	h, err := r.rdb.Get(context.Background(), LatestHeightKey).Int64()
+	if err != nil && err != redis.Nil {
+		return false
+	}
+	// h is not exist(h==0) or h < height
+	// set h and need to upload
+	if h < height{
+		if r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err() != nil {
+			return false
+		}
+		return true
+	}
+	// h is exist and h > height, no need to upload
+	return false
 }
 
 func (r *RedisClient) SetBlock(height int64, bytes []byte) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("block is empty")
 	}
-	req := r.rdb.SetNX(context.Background(), setBlockKey(height), bytes, TTL)
+	req := r.rdb.SetNX(context.Background(), setBlockKey(height), bytes, r.ttl)
 	return req.Err()
 }
 
@@ -36,7 +56,7 @@ func (r *RedisClient) SetDeltas(height int64, bytes []byte) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("delta is empty")
 	}
-	req := r.rdb.SetNX(context.Background(), setDeltaKey(height), bytes, TTL)
+	req := r.rdb.SetNX(context.Background(), setDeltaKey(height), bytes, r.ttl)
 	return req.Err()
 }
 

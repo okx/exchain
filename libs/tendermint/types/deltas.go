@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"sync"
+	"time"
 )
 
 const (
@@ -17,8 +18,9 @@ const (
 	FlagUploadDDS = "upload-delta"
 
 	// redis
-	FlagRedisUrl  = "redis-url"
-	FlagRedisAuth = "redis-auth"
+	FlagRedisUrl    = "redis-url"
+	FlagRedisAuth   = "redis-auth"
+	FlagRedisExpire = "redis-expire"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
@@ -33,24 +35,25 @@ const (
 )
 
 var (
-	fastQuery  = false
-	centerMode = false
+	fastQuery = false
 	// fmt (http://ip:port/)
 	centerUrl = "http://127.0.0.1:8030/"
 	// fmt (ip:port)
 	redisUrl  = "127.0.0.1:6379"
 	redisAuth = "auth"
+	// unit: second
+	redisExpire = 300
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
 	downloadDelta    = false
 	uploadDelta      = false
 
-	onceFastQuery  sync.Once
-	onceCenterMode sync.Once
-	onceCenterUrl  sync.Once
-	onceRedisUrl   sync.Once
-	onceRedisAuth  sync.Once
+	onceFastQuery   sync.Once
+	onceCenterUrl   sync.Once
+	onceRedisUrl    sync.Once
+	onceRedisAuth   sync.Once
+	onceRedisExpire sync.Once
 
 	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
@@ -107,6 +110,13 @@ func RedisAuth() string {
 	return redisAuth
 }
 
+func RedisExpire() time.Duration {
+	onceRedisExpire.Do(func() {
+		redisExpire = viper.GetInt(FlagRedisExpire)
+	})
+	return time.Duration(redisExpire) * time.Second
+}
+
 func GetCenterUrl() string {
 	onceCenterUrl.Do(func() {
 		centerUrl = viper.GetString(DataCenterUrl)
@@ -149,7 +159,7 @@ func (d *Deltas) String() string {
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if  DeltaVersion < dds.Version ||
+	if DeltaVersion < dds.Version ||
 		dds.Height != height ||
 		len(dds.WatchBytes) == 0 ||
 		len(dds.ABCIRsp) == 0 ||

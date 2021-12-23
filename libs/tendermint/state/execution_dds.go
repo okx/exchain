@@ -51,7 +51,7 @@ func (dc *DeltaContext) init(l log.Logger) {
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), l)
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), types.RedisExpire(), l)
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
@@ -111,14 +111,15 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 }
 
 func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
-
 	if deltas == nil {
 		return
 	}
 
-	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
-
-	// todo get distributed lock, otherwise return
+	needUpload := dc.deltaBroker.SetLatestHeight(deltas.Height)
+	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "needUpload", needUpload, "gid", gorid.GoRId)
+	if !needUpload {
+		return
+	}
 	t0 := time.Now()
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -151,7 +152,7 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		"gid", gorid.GoRId)
 }
 
-
+// get delta from dds
 func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	if !dc.downloadDelta {
 		return
@@ -196,9 +197,9 @@ func (dc *DeltaContext) downloadRoutine() {
 			continue
 		}
 
-		err, delta := dc.download(height)
+		err, deltas := dc.download(height)
 		if err == nil {
-			dc.dataMap.insert(height, delta)
+			dc.dataMap.insert(height, deltas)
 			height++
 		}
 	}
@@ -223,8 +224,8 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 
 	t2 := time.Now()
 	// unmarshal
-	delta := &types.Deltas{}
-	err = delta.Unmarshal(deltaBytes)
+	deltas := &types.Deltas{}
+	err = deltas.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
 		return err, nil
@@ -236,8 +237,8 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 		"download", t1.Sub(t0),
 		"uncompress", t2.Sub(t1),
 		"unmarshal", t3.Sub(t2),
-		"delta", delta,
+		"delta", deltas,
 		"gid", gorid.GoRId)
 
-	return nil, delta
+	return nil, deltas
 }
