@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
@@ -245,6 +247,49 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (event *Event) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		if aminoType != amino.Typ3_ByteLength {
+			return errors.New("invalid amino type")
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, _ = amino.DecodeUvarint(data)
+
+		data = data[n:]
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			event.Type = string(subData)
+		case 2:
+			var kvpair kv.Pair
+			err = kvpair.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			event.Attributes = append(event.Attributes, kvpair)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 	if tx == nil {
 		return nil, nil
@@ -359,6 +404,73 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(subData)
+			tx.Code = uint32(uvint)
+			dataLen = uint64(n)
+		case 2:
+			tx.Data = make([]byte, dataLen)
+			copy(tx.Data, subData)
+		case 3:
+			tx.Log = string(subData)
+		case 4:
+			tx.Info = string(subData)
+		case 5:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(subData)
+			tx.GasWanted = int64(uvint)
+			dataLen = uint64(n)
+		case 6:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(subData)
+			tx.GasUsed = int64(uvint)
+			dataLen = uint64(n)
+		case 7:
+			var event Event
+			err = event.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			tx.Events = append(tx.Events, event)
+		case 8:
+			tx.Codespace = string(subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, error) {
