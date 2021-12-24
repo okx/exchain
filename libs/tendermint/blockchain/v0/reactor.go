@@ -238,10 +238,13 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // Handle messages from the poolReactor telling the reactor what to do.
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
-	if bcR.getIsSyncing() {
+	bcR.mtx.Lock()
+	if bcR.isSyncing {
+		bcR.mtx.Unlock()
 		return
 	}
-	bcR.setIsSyncing(true)
+	bcR.isSyncing = true
+	bcR.mtx.Unlock()
 
 	defer func() {
 		bcR.setIsSyncing(false)
