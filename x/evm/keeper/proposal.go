@@ -59,7 +59,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 				if bc == nil {
 					return types.ErrBlockedContractMethodIsNotExist(content.ContractList[i].Address,types.ErrorContractMethodBlockedIsNotExist)
 				}
-				if err := bc.BlockMethods.DeleteContractMethodMap(content.ContractList[i].BlockMethods);err != nil {
+				if _,err := bc.BlockMethods.DeleteContractMethodMap(content.ContractList[i].BlockMethods);err != nil {
 					return types.ErrBlockedContractMethodIsNotExist(content.ContractList[i].Address,err)
 				}
 			}

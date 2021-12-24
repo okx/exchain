@@ -49,14 +49,13 @@ func Test_saveNodeToPrePersistCache(t *testing.T) {
 	defer func() { EnableAsyncCommit = false }()
 
 	cases := []struct {
-		version      int64
-		nodeNums     int
+		version  int64
+		nodeNums int
 	}{
 		{100, 1},
 		{200, 1000},
 		{300, 100000},
 	}
-
 
 	ndb := mockNodeDB()
 	for _, c := range cases {
@@ -67,7 +66,6 @@ func Test_saveNodeToPrePersistCache(t *testing.T) {
 			nodes[i] = node
 			ndb.saveNodeToPrePersistCache(node)
 		}
-
 
 		for i := 0; i < c.nodeNums; i++ {
 			require.True(t, nodes[i].prePersisted)
@@ -81,25 +79,25 @@ func Test_batchSet(t *testing.T) {
 	defer func() { EnableAsyncCommit = false }()
 
 	cases := []struct {
-		version      int64
-		nodeNums     int
+		version  int64
+		nodeNums int
 	}{
 		{100, 1},
 		{200, 1000},
 		{300, 100000},
 	}
 	judges := []struct {
-		hashExisted   bool
+		hashExisted  bool
 		persisted    bool
 		prePersisted bool
 		panic        bool
 	}{
 		{true, true, true, false},
 		{true, false, true, true},
-		{false, false,true, true},
+		{false, false, true, true},
 		{true, true, false, true},
-		{false, true,false, true},
-		{false, false,false, true},
+		{false, true, false, true},
+		{false, false, false, true},
 	}
 
 	ndb := mockNodeDB()
@@ -120,9 +118,9 @@ func Test_batchSet(t *testing.T) {
 					nodes[i].prePersisted = true
 				}
 				if g.panic {
-					require.Panics(t, func() {ndb.batchSet(nodes[i], batch)})
+					require.Panics(t, func() { ndb.batchSet(nodes[i], batch) })
 				} else {
-					require.NotPanics(t, func() {ndb.batchSet(nodes[i], batch)})
+					require.NotPanics(t, func() { ndb.batchSet(nodes[i], batch) })
 				}
 			}
 
@@ -172,6 +170,81 @@ func Test_updateBranch(t *testing.T) {
 		}
 		require.Equal(t, len(ndb.prePersistNodeCache), capacity)
 	}
+}
+
+func Test_updateBranchConcurrency(t *testing.T) {
+	EnableAsyncCommit = true
+	defer func() { EnableAsyncCommit = false }()
+
+	cases := []struct {
+		version  int64
+		nodeNums int
+	}{
+		{100, 1},
+		{200, 10},
+		{300, 100},
+		{400, 1000},
+		{500, 1000},
+		{600, 10000},
+		{700, 100000},
+	}
+
+	ndb := mockNodeDB()
+	capacity := 0
+	for _, c := range cases {
+		capacity += c.nodeNums
+
+		root, nodelist := mockNodes(c.version, c.nodeNums)
+		ndb.updateBranchConcurrency(root, map[string]*Node{})
+		for elem := nodelist.Front(); elem != nil; elem = elem.Next() {
+			node := elem.Value.(*Node)
+			require.True(t, node.prePersisted)
+			require.Nil(t, node.leftNode)
+			require.Nil(t, node.rightNode)
+		}
+		require.Equal(t, len(ndb.prePersistNodeCache), capacity)
+	}
+}
+
+func BenchmarkUpdateBranch(b *testing.B) {
+	cases := []struct {
+		version  int64
+		nodeNums int
+	}{
+		{100, 1000000},
+		{200, 10000000},
+	}
+	b.ResetTimer()
+	b.Run("updateBranch", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			ndb := mockNodeDB()
+			capacity := 0
+			for _, c := range cases {
+				capacity += c.nodeNums
+				root, _ := mockNodes(c.version, c.nodeNums)
+				ndb.updateBranch(root, map[string]*Node{})
+			}
+		}
+	})
+	b.Run("updateBranchConcurrency", func(b *testing.B) {
+		EnableAsyncCommit = true
+		defer func() { EnableAsyncCommit = false }()
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			ndb := mockNodeDB()
+			capacity := 0
+			for _, c := range cases {
+				capacity += c.nodeNums
+				root, _ := mockNodes(c.version, c.nodeNums)
+				ndb.updateBranchConcurrency(root, map[string]*Node{})
+			}
+		}
+	})
 }
 
 func Test_saveCommitOrphans(t *testing.T) {

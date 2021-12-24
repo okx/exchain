@@ -3,10 +3,14 @@ package types
 import (
 	"crypto/sha256"
 	"fmt"
+	"sort"
+	"strings"
+	"testing"
+
 	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/pkg/errors"
-	"strings"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -77,7 +81,9 @@ type BlockedContract struct {
 
 // NewBlockContract return point of BlockedContract
 func NewBlockContract(addr sdk.AccAddress, methods ContractMethods) *BlockedContract {
-	return &BlockedContract{Address: addr, BlockMethods: methods}
+	bm := make([]ContractMethod,len(methods))
+	copy(bm,methods)
+	return &BlockedContract{Address: addr, BlockMethods: bm}
 }
 
 // ValidateBasic validates BlockedContract
@@ -112,6 +118,14 @@ func (bc BlockedContract) String() string {
 //ContractMethods is the list of blocked contract method
 type ContractMethods []ContractMethod
 
+func SortContractMethods(cms []ContractMethod)  {
+	sort.Slice(cms, func(i, j int) bool {
+		if cms[i].Sign == cms[j].Sign {
+			return cms[i].Extra < cms[j].Extra
+		}
+		return cms[i].Sign < cms[j].Sign
+	})
+}
 // String returns ContractMethods string
 func (cms ContractMethods) String() string {
 	var b strings.Builder
@@ -160,33 +174,36 @@ func (cms ContractMethods) GetContractMethodsMap() map[string]ContractMethod {
 
 // InsertContractMethods insert the list of ContractMethod into cms.
 // if repeated,methods will cover cms
-func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) {
+func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (ContractMethods,error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
 		methodName := methods[i].Sign
 		methodMap[methodName] = methods[i]
 	}
-	*cms = (*cms)[0:0]
+	result := ContractMethods{}
 	for k, _ := range methodMap {
-		*cms = append((*cms), methodMap[k])
+		result = append(result, methodMap[k])
 	}
+	SortContractMethods(result)
+	return result,nil
 }
 
 // DeleteContractMethodMap delete the list of ContractMethod from cms.
 // if method is not exist,it can not be panic or error
-func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) error {
+func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (ContractMethods,error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
 		if _,ok := methodMap[methods[i].Sign]; !ok {
-			return errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
+			return nil,errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
 		}
 		delete(methodMap, methods[i].Sign)
 	}
-	*cms = (*cms)[0:0]
+	result := ContractMethods{}
 	for k, _ := range methodMap {
-		*cms = append((*cms), methodMap[k])
+		result = append(result, methodMap[k])
 	}
-	return nil
+	SortContractMethods(result)
+	return result,nil
 }
 
 //ContractMethod is the blocked contract method
@@ -232,7 +249,7 @@ func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc Con
 	cmbc.cache.Add(key, bc)
 }
 
-func BlockedContractListIsEqual(src, dst BlockedContractList) bool {
+func BlockedContractListIsEqual(t *testing.T,src, dst BlockedContractList) bool {
 	expectedMap := make(map[string]ContractMethods, 0)
 	actuallyMap := make(map[string]ContractMethods, 0)
 	for i := range src {
@@ -250,6 +267,9 @@ func BlockedContractListIsEqual(src, dst BlockedContractList) bool {
 		}
 		if !ContractMethodsIsEqual(expected, v) {
 			return false
+		}
+		if expected != nil && v != nil {
+			require.Equal(t, expected,v)
 		}
 	}
 	return true

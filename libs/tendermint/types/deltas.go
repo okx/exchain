@@ -17,7 +17,8 @@ const (
 	FlagUploadDDS = "upload-delta"
 
 	// redis
-	FlagRedisUrl = "redis-url"
+	FlagRedisUrl  = "redis-url"
+	FlagRedisAuth = "redis-auth"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
@@ -37,7 +38,8 @@ var (
 	// fmt (http://ip:port/)
 	centerUrl = "http://127.0.0.1:8030/"
 	// fmt (ip:port)
-	redisUrl = "127.0.0.1:6379"
+	redisUrl  = "127.0.0.1:6379"
+	redisAuth = "auth"
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
@@ -48,6 +50,7 @@ var (
 	onceCenterMode sync.Once
 	onceCenterUrl  sync.Once
 	onceRedisUrl   sync.Once
+	onceRedisAuth  sync.Once
 
 	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
@@ -97,11 +100,11 @@ func RedisUrl() string {
 	return redisUrl
 }
 
-func IsCenterEnabled() bool {
-	onceCenterMode.Do(func() {
-		centerMode = viper.GetBool(FlagDataCenter)
+func RedisAuth() string {
+	onceRedisAuth.Do(func() {
+		redisAuth = viper.GetString(FlagRedisAuth)
 	})
-	return centerMode
+	return redisAuth
 }
 
 func GetCenterUrl() string {
@@ -136,10 +139,22 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, point2<%p> deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>",
+	return fmt.Sprintf("height<%d>, version<%d>, deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>, point2<%p>",
 		d.Height,
-		d,
+		d.Version,
 		len(d.DeltasBytes),
 		len(d.WatchBytes),
-		len(d.ABCIRsp))
+		len(d.ABCIRsp),
+		d)
+}
+
+func (dds *Deltas) Validate(height int64) bool {
+	if  DeltaVersion < dds.Version ||
+		dds.Height != height ||
+		len(dds.WatchBytes) == 0 ||
+		len(dds.ABCIRsp) == 0 ||
+		len(dds.DeltasBytes) == 0 {
+		return false
+	}
+	return true
 }
