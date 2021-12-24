@@ -48,9 +48,6 @@ func (e *executionContext) stop() {
 		return
 	}
 	e.stopped = true
-	e.proxyApp.SetOptionSync(abci.RequestSetOption{
-		Key: "ResetDeliverState",
-	})
 }
 
 func (blockExec *BlockExecutor) flushPrerunResult() {
@@ -102,16 +99,15 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
-		if block.Height != context.block.Height {
-			context.dump("Prerun sanity check failed")
-
-			// todo
-			panic("Prerun sanity check failed")
-		}
+		// Got wrong when swithed from fast-sync to consensus. Just remove it!
+		//if block.Height != context.block.Height {
+		//	context.dump("Prerun sanity check failed")
+		//
+		//	// todo
+		//	panic("Prerun sanity check failed")
+		//}
 		context.dump("Stopping prerun")
-		if height != 1 {
-			context.stop()
-		}
+		context.stop()
 	}
 	blockExec.flushPrerunResult()
 	blockExec.prerunIndex++
@@ -138,6 +134,12 @@ func prerun(context *executionContext) {
 
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
 
+	if context.height != 1 {
+		context.proxyApp.SetOptionSync(abci.RequestSetOption{
+			Key: "ResetDeliverState",
+		})
+	}
+
 	abciResponses, err := execBlockOnProxyApp(context)
 
 	if !context.stopped {
@@ -157,6 +159,21 @@ func (blockExec *BlockExecutor) InitPrerun() {
 	}
 	blockExec.prerunTx = true
 	go blockExec.prerunRoutine()
+}
+
+func (blockExec *BlockExecutor) StopPreRun() {
+	context := blockExec.prerunContext
+	// stop the existing prerun if any
+	if context != nil {
+		context.dump("Stopping prerun from StopPreRun")
+		context.stop()
+		//reset deliverState
+		if context.height != 1 {
+			context.proxyApp.SetOptionSync(abci.RequestSetOption{
+				Key: "ResetDeliverState",
+			})
+		}
+	}
 }
 
 //func FirstBlock(block *types.Block) bool {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"strconv"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"time"
 )
 
@@ -103,9 +103,9 @@ func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
 }
 
 func setBlockKey(height int64) string {
-	return "BH:" + strconv.Itoa(int(height))
+	return fmt.Sprintf("BH:%d", height)
 }
 
 func setDeltaKey(height int64) string {
-	return "DH:" + strconv.Itoa(int(height))
+	return fmt.Sprintf("DH-%d:%d", types.DeltaVersion, height)
 }
