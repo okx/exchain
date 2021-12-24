@@ -45,7 +45,7 @@ var (
 
 var (
 	msgQueueSize           = 1000
-	EnableProactivelyRunTx = "enable-proactively-runtx"
+	EnablePrerunTx = "enable-preruntx"
 )
 
 // msgs from the reactor which may update the state
@@ -151,7 +151,7 @@ type State struct {
 
 	trc *trace.Tracer
 
-	proactivelyRunTx bool
+	prerunTx bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -185,7 +185,7 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		proactivelyRunTx:  viper.GetBool(EnableProactivelyRunTx),
+		prerunTx:  viper.GetBool(EnablePrerunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -193,7 +193,7 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
-	if cs.proactivelyRunTx {
+	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
 	}
 
@@ -1770,7 +1770,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
-		if cs.proactivelyRunTx {
+		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
 		}
 

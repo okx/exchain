@@ -18,7 +18,8 @@ nohup redis-server > redis.log &
 #
 sleep 5
 
-./addnewnode.sh -n 4
+./addnewnode.sh -n 4 -d
+./addnewnode.sh -n 5 -u
 
 sleep 5
 
