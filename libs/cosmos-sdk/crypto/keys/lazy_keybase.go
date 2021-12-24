@@ -2,6 +2,7 @@ package keys
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -221,3 +222,8 @@ func (lkb lazyKeybase) SupportedAlgosLedger() []SigningAlgo {
 }
 
 func (lkb lazyKeybase) CloseDB() {}
+
+// FileDir show lazyKeybase position
+func (lkb lazyKeybase) FileDir()string{
+	return filepath.Join(lkb.dir,lkb.name)
+}

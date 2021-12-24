@@ -51,9 +51,9 @@ const (
 	defaultEntropySize = 128 //mnemonicEntropySize
 )
 const (
-	addressSuffix = "address"
-	infoSuffix    = "info"
-	keystoreSuffix ="json"
+	addressSuffix  = "address"
+	infoSuffix     = "info"
+	keystoreSuffix = "json"
 )
 
 var (
@@ -325,7 +325,6 @@ func (kb dbKeybase) ImportPrivKey(name string, armor string, passphrase string) 
 	}
 
 	kb.writeLocalKey(name, privKey, passphrase, SigningAlgo(algo))
-	kb.writeKeystore(name,privKey,passphrase)
 	return nil
 }
 
@@ -425,7 +424,6 @@ func (kb dbKeybase) Update(name, oldpass string, getNewpass func() (string, erro
 		}
 
 		kb.writeLocalKey(name, key, newpass, i.GetAlgo())
-		kb.writeKeystore(name, key, newpass)
 		return nil
 
 	default:
@@ -479,23 +477,7 @@ func infoKey(name string) []byte {
 	return []byte(fmt.Sprintf("%s.%s", name, infoSuffix))
 }
 
-// writeKeystore storage keystore in the dbKeybase
-func (kb dbKeybase)writeKeystore(name string,priv tmcrypto.PrivKey,passphrase string){
-	fmt.Println("debug dbkeybase writeKeystore")
-	//export and serialize keystore file
-	serialKeystore, err := newKeystore(priv,passphrase)
-	if err!=nil{
-		fmt.Println("debug dbekeybase newKeystore",err)
-		return
-	}
-
-	//storage keystore
-	key := keystoreKey(name)
-	err = kb.db.SetSync(key,serialKeystore)
-	fmt.Println("debug dbekeybase setsync",err)
-}
-
-// keystoreKey format a keystore name
-func keystoreKey(name string)[]byte{
-	return []byte(fmt.Sprintf("%s.%s",name,keystoreSuffix))
+// FileDir show dbKeybase position
+func (kb dbKeybase) FileDir() string {
+	return ""
 }

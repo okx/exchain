@@ -3,8 +3,11 @@ package personal
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -22,6 +26,10 @@ import (
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+)
+
+const (
+	keystoreSuffix = ".json"
 )
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -140,7 +148,7 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	}
 
 	//create a keystore file to storage private key
-	//createKeystore(api.ethAPI.ClientCtx().Keybase, name, password)
+	createKeystore(api.ethAPI.ClientCtx().Keybase, name, password)
 
 	api.keyInfos = append(api.keyInfos, info)
 
@@ -150,84 +158,69 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	api.logger.Info("Please remember your password!")
 	return addr, nil
 }
-//
-//// createKeystore create a keystore file to storage private key.
-//func createKeystore(kb keys.Keybase, accountName, password string) error {
-//	// Get eth keystore key by Name
-//	ethKey, err := getEthKeyByName(kb, accountName, password)
-//	if err != nil {
-//		return err
-//	}
-//	return exportKeyStoreFile(ethKey, password, accountName)
-//}
-//
-//// getEthKeyByName Get eth keystore key by Name
-//func getEthKeyByName(kb keys.Keybase, accountName, decryptPassword string) (*keystore.Key, error) {
-//	// Exports private key from keybase using password
-//	privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// Converts key to Ethermint secp256 implementation
-//	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
-//	if !ok {
-//		return nil, fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
-//	}
-//
-//	//  Converts Ethermint secp256 implementation key to keystore key
-//	ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
-//	if err != nil {
-//		return nil, fmt.Errorf("failed convert to ethKey: %s", err.Error())
-//	}
-//	return ethKey, nil
-//}
-//
-//// newEthKeyFromECDSA new eth.keystore Key
-//func newEthKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) (*keystore.Key, error) {
-//	id, err := uuid.NewRandom()
-//	if err != nil {
-//		return nil, fmt.Errorf("Could not create random uuid: %v", err)
-//	}
-//	key := &keystore.Key{
-//		Id:         id,
-//		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
-//		PrivateKey: privateKeyECDSA,
-//	}
-//	return key, nil
-//}
-//
-//// exportKeyStoreFile Export Key to  keystore file
-//func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) error {
-//	// Encrypt Key to get keystore file
-//	content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
-//	if err != nil {
-//		return fmt.Errorf("failed to encrypt key: %s", err.Error())
-//	}
-//
-//	// Write to keystore file
-//	err = ioutil.WriteFile(filepath.Join(keybaseDir(), fileName), content, os.ModePerm)
-//	if err != nil {
-//		return fmt.Errorf("failed to write keystore: %s", err.Error())
-//	}
-//	return nil
-//}
-//
-//// keybaseDir find the directory storaged keybase
-//func keybaseDir() string {
-//	appName := sdk.KeyringServiceName()
-//	backend := viper.GetString(flags.FlagKeyringBackend)
-//	homeDir := viper.GetString(flags.FlagHome)
-//
-//	switch backend {
-//	case keys.BackendTest, keys.BackendOS:
-//		return filepath.Join(homeDir, fmt.Sprintf(keys.TestKeyringDirNameFmt, appName))
-//	case keys.BackendFile:
-//		return filepath.Join(homeDir, fmt.Sprintf(keys.KeyringDirNameFmt, appName))
-//	default:
-//	}
-//	return ""
-//}
+
+// createKeystore create a keystore file to storage private key.
+func createKeystore(kb keys.Keybase, accountName, password string) error {
+	// Get eth keystore key by Name
+	ethKey, err := getEthKeyByName(kb, accountName, password)
+	if err != nil {
+		return err
+	}
+	return exportKeyStoreFile(ethKey, password, filepath.Join(kb.FileDir(), accountName))
+}
+
+// getEthKeyByName Get eth keystore key by Name
+func getEthKeyByName(kb keys.Keybase, accountName, decryptPassword string) (*keystore.Key, error) {
+	// Exports private key from keybase using password
+	privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
+	if err != nil {
+		fmt.Println("AA")
+		return nil, err
+	}
+
+	// Converts key to Ethermint secp256 implementation
+	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
+	if !ok {
+		return nil, fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
+	}
+
+	//  Converts Ethermint secp256 implementation key to keystore key
+	ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
+	if err != nil {
+		return nil, fmt.Errorf("failed convert to ethKey: %s", err.Error())
+	}
+	return ethKey, nil
+}
+
+// newEthKeyFromECDSA new eth.keystore Key
+func newEthKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) (*keystore.Key, error) {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return nil, fmt.Errorf("Could not create random uuid: %v", err)
+	}
+	key := &keystore.Key{
+		Id:         id,
+		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
+		PrivateKey: privateKeyECDSA,
+	}
+	return key, nil
+}
+
+// exportKeyStoreFile Export Key to  keystore file
+func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) error {
+	// Encrypt Key to get keystore file
+	content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt key: %s", err.Error())
+	}
+
+	// Write to keystore file
+	err = ioutil.WriteFile(filepath.Join(fileName, keystoreSuffix), content, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to write keystore: %s", err.Error())
+	}
+	return nil
+}
 
 // UnlockAccount will unlock the account associated with the given address with
 // the given password for duration seconds. If duration is nil it will use a

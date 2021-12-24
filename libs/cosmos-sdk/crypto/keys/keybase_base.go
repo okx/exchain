@@ -33,7 +33,6 @@ type (
 	keyWriter interface {
 		writeLocalKeyer
 		infoWriter
-		keystoreWriter
 	}
 
 	writeLocalKeyer interface {
@@ -42,10 +41,6 @@ type (
 
 	infoWriter interface {
 		writeInfo(name string, info Info)
-	}
-
-	keystoreWriter interface {
-		writeKeystore(name string, priv tmcrypto.PrivKey,passphrase string)
 	}
 )
 
@@ -181,10 +176,8 @@ func (kb baseKeybase) CreateAccount(
 
 	var info Info
 
-	fmt.Println("debug createAccout")
 	if encryptPasswd != "" {
 		info = keyWriter.writeLocalKey(name, privKey, encryptPasswd, algo)
-		keyWriter.writeKeystore(name,privKey,encryptPasswd)
 	} else {
 		info = kb.writeOfflineKey(keyWriter, name, privKey.PubKey(), algo)
 	}

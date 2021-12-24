@@ -36,26 +36,24 @@ const (
 	keyringDirNameFmt     = "keyring-%s"
 	testKeyringDirNameFmt = "keyring-test-%s"
 )
-const (
-	KeyringDirNameFmt     = keyringDirNameFmt
-	TestKeyringDirNameFmt = testKeyringDirNameFmt
-)
 
 var _ Keybase = keyringKeybase{}
 
 // keyringKeybase implements the Keybase interface by using the Keyring library
 // for account key persistence.
 type keyringKeybase struct {
-	base baseKeybase
-	db   keyring.Keyring
+	base    baseKeybase
+	db      keyring.Keyring
+	fileDir string
 }
 
 var maxPassphraseEntryAttempts = 3
 
-func newKeyringKeybase(db keyring.Keyring, opts ...KeybaseOption) Keybase {
+func newKeyringKeybase(db keyring.Keyring, path string, opts ...KeybaseOption) Keybase {
 	return keyringKeybase{
-		db:   db,
-		base: newBaseKeybase(opts...),
+		db:      db,
+		fileDir: path,
+		base:    newBaseKeybase(opts...),
 	}
 }
 
@@ -68,17 +66,22 @@ func NewKeyring(
 
 	var db keyring.Keyring
 	var err error
+	var path string
 
 	switch backend {
 	case BackendTest:
+		path = lkbToKeyringConfig(appName, rootDir, nil, true).FileDir
 		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, nil, true))
 	case BackendFile:
+		path = newFileBackendKeyringConfig(appName, rootDir, userInput).FileDir
 		db, err = keyring.Open(newFileBackendKeyringConfig(appName, rootDir, userInput))
 	case BackendOS:
 		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, userInput, false))
 	case BackendKWallet:
+		path = newKWalletBackendKeyringConfig(appName, rootDir, userInput).FileDir
 		db, err = keyring.Open(newKWalletBackendKeyringConfig(appName, rootDir, userInput))
 	case BackendPass:
+		path = newPassBackendKeyringConfig(appName, rootDir, userInput).FileDir
 		db, err = keyring.Open(newPassBackendKeyringConfig(appName, rootDir, userInput))
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
@@ -87,7 +90,7 @@ func NewKeyring(
 		return nil, err
 	}
 
-	return newKeyringKeybase(db, opts...), nil
+	return newKeyringKeybase(db, path, opts...), nil
 }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
@@ -358,7 +361,6 @@ func (kb keyringKeybase) ImportPrivKey(name, armor, passphrase string) error {
 
 	// NOTE: The keyring keystore has no need for a passphrase.
 	kb.writeLocalKey(name, privKey, "", SigningAlgo(algo))
-	kb.writeKeystore(name,privKey,passphrase)
 	return nil
 }
 
@@ -441,7 +443,6 @@ func (kb keyringKeybase) Update(name, oldpass string, getNewpass func() (string,
 		}
 
 		kb.writeLocalKey(name, key, newpass, linfo.GetAlgo())
-		kb.writeKeystore(name,key,newpass)
 		return nil
 
 	default:
@@ -492,26 +493,11 @@ func (kb keyringKeybase) writeInfo(name string, info Info) {
 		panic(err)
 	}
 }
-//writeKeystore storage keystore in the keyringKeybase
-func (kb keyringKeybase)writeKeystore(name string, priv tmcrypto.PrivKey,passphrase string){
-	fmt.Println("debug keyring writeKeystore")
-	//export and serialize keystore file
-	serialKeystore, err := newKeystore(priv,passphrase)
-	if err!=nil{
-		fmt.Println("debug keyring newKeystore",err)
-		return
-	}
 
-	err= kb.db.Set(keyring.Item{
-		Key: string(keystoreKey(name)),
-		Data: serialKeystore,
-	})
-	if err!=nil{
-		fmt.Println("debug keyring db.set",err)
-		return
-	}
+//FileDir show keyringKeybase position
+func (kb keyringKeybase) FileDir() string {
+	return kb.fileDir
 }
-
 
 func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {
 	if test {
