@@ -4,6 +4,7 @@ import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -46,7 +47,7 @@ type BlockExecutor struct {
 	// download or upload data to dds
 	deltaContext *DeltaContext
 
-	proactivelyRunTx bool
+	prerunTx bool
 	prerunChan chan *executionContext
 	prerunResultChan chan *executionContext
 	prerunIndex int64
@@ -179,10 +180,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
-		//trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
-		//trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(delta.ABCIRsp), len(delta.DeltasBytes), len(delta.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -199,9 +196,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin("GetDelta")
 
 	delta = dc.prepareStateDelta(block.Height)
-	//inAbciRspLen = len(delta.ABCIRsp)
-	//inDeltaLen = len(delta.DeltasBytes)
-	//inWatchLen = len(delta.WatchBytes)
 
 	trc.Pin(trace.Abci)
 
@@ -256,6 +250,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
+	if blockExec.deltaContext.downloadDelta {
+		atomic.StoreInt64(&dc.lastCommitHeight, block.Height)
+	}
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
@@ -286,8 +283,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	var err error
 
 	if delta != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height,
-			"deltas", delta, "gid", gorid.GoRId)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
@@ -297,13 +293,12 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	} else {
 		blockExec.logger.Info("Not apply delta", "height", block.Height,
 			"block-size", block.Size(),
-			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
-
+			"prerunIndex", blockExec.prerunIndex)
 		// blockExec.prerunIndex==0 means:
-		// 1. proactivelyRunTx disabled
+		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 		if blockExec.prerunIndex > 0 && !blockExec.GetIsFastSyncing() {
-			if !blockExec.proactivelyRunTx {
+			if !blockExec.prerunTx {
 				panic("never gonna happen")
 			}
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)

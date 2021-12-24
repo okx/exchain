@@ -10,11 +10,19 @@ set -m
 set -x # activate debugging
 
 
-while getopts "i:n:p:r:s:b:" opt; do
+while getopts "i:n:p:r:s:b:du" opt; do
   case $opt in
     i)
       echo "IP=$OPTARG"
       IP=$OPTARG
+      ;;
+    d)
+      echo "DOWNLOAD_DELTA=$OPTARG"
+      DOWNLOAD_DELTA="--download-delta=true"
+      ;;
+    u)
+      echo "DOWNLOAD_DELTA=$OPTARG"
+      UPLOAD_DELTA="--upload-delta=true"
       ;;
     n)
       echo "INPUT_INDEX=$OPTARG"
@@ -135,14 +143,15 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
-    --download-delta=true \
+    ${UPLOAD_DELTA} \
+    ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
-    --enable-proactively-runtx=false \
+    --enable-preruntx=false \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
 #     --download-delta \
-#     --enable-proactively-runtx \
+#     --enable-preruntx \
 
 }
 

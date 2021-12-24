@@ -15,18 +15,16 @@ var (
 	CUSTOM_PRINT = []string{trace.Evm,
 		trace.Iavl,
 		trace.DeliverTxs,
-		trace.InDelta,
-		trace.OutDelta,
+		trace.Delta,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=0,%s=0",
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=0",
 		trace.Evm,
 		trace.Iavl,
 		trace.DeliverTxs,
-		trace.InDelta,
-		trace.OutDelta,
+		trace.Delta,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce)
