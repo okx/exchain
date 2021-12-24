@@ -2,11 +2,17 @@ package rootmulti
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"log"
+	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/spf13/viper"
+
+	jsoniter "github.com/json-iterator/go"
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,12 +35,16 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
-	latestVersionKey = "s/latest"
-	pruneHeightsKey  = "s/pruneheights"
-	versionsKey      = "s/versions"
-	commitInfoKeyFmt = "s/%d" // s/<version>
+	latestVersionKey      = "s/latest"
+	pruneHeightsKey       = "s/pruneheights"
+	versionsKey           = "s/versions"
+	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
+	flatKVDBName          = "app_flat_kv"
 )
+
+var flatKVDB dbm.DB
+var onceFlatKVDB sync.Once
 
 // Store is composed of many CommitStores. Name contrasts with
 // cacheMultiStore which is for cache-wrapping other MultiStores. It implements
@@ -68,6 +78,16 @@ var (
 // a store is created, KVStores must be mounted and finally LoadLatestVersion or
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
+	onceFlatKVDB.Do(func() {
+		rootDir := viper.GetString("home")
+		dataDir := filepath.Join(rootDir, "data")
+		var err error
+		flatKVDB, err = sdk.NewLevelDB(flatKVDBName, dataDir)
+		if err != nil {
+			panic(err)
+		}
+	})
+
 	return &Store{
 		db:           db,
 		pruningOpts:  types.PruneNothing,
@@ -279,8 +299,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, " +
-			"need to prune them with command " +
+		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
+			"need to prune them with command "+
 			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
@@ -300,7 +320,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 	needReset := false
 	var newPh []int64
 	for _, h := range ph {
-		if _, ok := roots[h] ;ok {
+		if _, ok := roots[h]; ok {
 			newPh = append(newPh, h)
 		} else {
 			needReset = true
@@ -682,11 +702,12 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 	case types.StoreTypeIAVL:
 		var store types.CommitKVStore
 		var err error
-
+		prefix := "s/k:" + params.key.Name() + "/"
+		prefixDB := dbm.NewPrefixDB(flatKVDB, []byte(prefix))
 		if params.initialVersion == 0 {
-			store, err = iavl.LoadStore(db, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
+			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {
-			store, err = iavl.LoadStoreWithInitialVersion(db, id, rs.lazyLoading, params.initialVersion)
+			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, params.initialVersion)
 		}
 
 		if err != nil {
@@ -864,7 +885,7 @@ func getLatestVersion(db dbm.DB) int64 {
 
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-//	storeInfos := make([]storeInfo, 0, len(storeMap))
+	//	storeInfos := make([]storeInfo, 0, len(storeMap))
 	var storeInfos []storeInfo
 	appliedDeltas := map[string]*iavltree.TreeDelta{}
 	returnedDeltas := map[string]iavltree.TreeDelta{}

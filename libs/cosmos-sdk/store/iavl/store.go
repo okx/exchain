@@ -34,7 +34,22 @@ var (
 
 // Store Implements types.KVStore and CommitKVStore.
 type Store struct {
-	tree Tree
+	tree     Tree
+	flatKVDB dbm.DB
+	cache    map[string][]byte
+}
+
+func (st *Store) getCache(key string) (value []byte, ok bool) {
+	value, ok = st.cache[key]
+	return
+}
+
+func (st *Store) addCache(key string, value []byte) {
+	st.cache[key] = value
+}
+
+func (st *Store) deleteCache(key string) {
+	delete(st.cache, key)
 }
 
 func (st *Store) StopStore() {
@@ -49,14 +64,14 @@ func (st *Store) GetHeights() map[int64][]byte {
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
 // store's version (id) from the provided DB. An error is returned if the version
 // fails to load.
-func LoadStore(db dbm.DB, id types.CommitID, lazyLoading bool, startVersion int64) (types.CommitKVStore, error) {
-	return LoadStoreWithInitialVersion(db, id, lazyLoading, uint64(startVersion))
+func LoadStore(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, startVersion int64) (types.CommitKVStore, error) {
+	return LoadStoreWithInitialVersion(db, flatKVDB, id, lazyLoading, uint64(startVersion))
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
 // to the one given. Internally, it will load the store's version (id) from the
 // provided DB. An error is returned if the version fails to load.
-func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
+func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: initialVersion})
 	if err != nil {
 		return nil, err
@@ -73,7 +88,9 @@ func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool,
 	}
 
 	return &Store{
-		tree: tree,
+		tree:     tree,
+		flatKVDB: flatKVDB,
+		cache:    make(map[string][]byte),
 	}, nil
 }
 
@@ -138,6 +155,16 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 		panic(err)
 	}
 
+	// commit to flat kv db
+	batch := st.flatKVDB.NewBatch()
+	defer batch.Close()
+	for key, value := range st.cache {
+		batch.Set([]byte(key), value)
+	}
+	batch.Write()
+	// clear cache
+	st.cache = make(map[string][]byte, 100000)
+
 	return types.CommitID{
 		Version: version,
 		Hash:    hash,
@@ -182,22 +209,51 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
+	strKey := string(key)
+	st.addCache(strKey, value)
 }
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	_, value := st.tree.Get(key)
+	strKey := string(key)
+	if cacheVal, ok := st.getCache(strKey); ok {
+		return cacheVal
+	}
+	value, err := st.flatKVDB.Get(key)
+	if err != nil {
+		return nil
+	}
+	if len(value) == 0 {
+		return nil
+	}
+
+	_, value = st.tree.Get(key)
+	if value != nil {
+		st.addCache(strKey, value)
+	}
+
 	return value
 }
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
+	strKey := string(key)
+	if _, ok := st.getCache(strKey); ok {
+		return true
+	}
+
+	if ok, err := st.flatKVDB.Has(key); err == nil && ok {
+		return true
+	}
+
 	return st.tree.Has(key)
 }
 
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
+	st.flatKVDB.Delete(key)
+	st.deleteCache(string(key))
 }
 
 // DeleteVersions deletes a series of versions from the MutableTree. An error
