@@ -74,6 +74,10 @@ func (evsw *eventSwitch) OnStart() error {
 
 func (evsw *eventSwitch) OnStop() {}
 
+func (evsw *eventSwitch) OnReset() error {
+	return nil
+}
+
 func (evsw *eventSwitch) AddListenerForEvent(listenerID, event string, cb EventCallback) error {
 	// Get/Create eventCell and listener.
 	evsw.mtx.Lock()

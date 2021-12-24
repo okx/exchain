@@ -21,8 +21,7 @@ const (
 	Iavl        = "Iavl"
 	DeliverTxs  = "DeliverTxs"
 
-	InDelta  = "InDelta"
-	OutDelta = "OutDelta"
+	Delta  = "Delta"
 
 	Abci       = "abci"
 	InvalidTxs = "InvalidTxs"
