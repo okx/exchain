@@ -210,9 +210,9 @@ func (dc *DeltaContext) downloadRoutine() {
 			continue
 		}
 
-		err, deltas := dc.download(height)
+		err, delta := dc.download(height)
 		if err == nil {
-			dc.dataMap.insert(height, deltas)
+			dc.dataMap.insert(height, delta)
 			height++
 		}
 	}
@@ -237,8 +237,8 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 
 	t2 := time.Now()
 	// unmarshal
-	deltas := &types.Deltas{}
-	err = deltas.Unmarshal(deltaBytes)
+	delta := &types.Deltas{}
+	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
 		return err, nil
@@ -253,8 +253,8 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 		"download", t1.Sub(t0),
 		"uncompress", t2.Sub(t1),
 		"unmarshal", t3.Sub(t2),
-		"delta", deltas,
+		"delta", delta,
 		"gid", gorid.GoRId)
 
-	return nil, deltas
+	return nil, delta
 }
