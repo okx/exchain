@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-const LatestHeightKey = "LatestHeight"
+const (
+	LatestHeightKey = "LatestHeight"
+	DeltaLockerKey = "DeltaLocker"
+	LockerExpire = 2 * time.Second
+)
 
 type RedisClient struct {
 	rdb *redis.Client
@@ -24,6 +28,22 @@ func NewRedisClient(url, auth string, ttl time.Duration, l log.Logger) *RedisCli
 		DB:       0,  // use default DB
 	})
 	return &RedisClient{rdb, ttl, l}
+}
+
+func (r *RedisClient) GetLocker() bool {
+	res, err := r.rdb.SetNX(context.Background(), DeltaLockerKey, true, LockerExpire).Result()
+	if err != nil {
+		r.logger.Error("GetLocker err", err)
+		return false
+	}
+	return res
+}
+
+func (r *RedisClient) ReleaseLocker() {
+	_, err := r.rdb.Del(context.Background(), DeltaLockerKey).Result()
+	if err != nil {
+		r.logger.Error("ReleaseLocker err", err)
+	}
 }
 
 // return bool: if change the value of latest_height, need to upload

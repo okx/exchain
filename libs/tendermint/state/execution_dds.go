@@ -115,8 +115,18 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		return
 	}
 
+	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
+
+	// get redisLock
+	locked := dc.deltaBroker.GetLocker()
+	dc.logger.Info("Upload delta started:", "locked", locked, "gid", gorid.GoRId)
+	if !locked {
+		return
+	}
+
+	// get LatestHeight and judge if need to upload deltas
 	needUpload := dc.deltaBroker.SetLatestHeight(deltas.Height)
-	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "needUpload", needUpload, "gid", gorid.GoRId)
+	dc.logger.Info("Upload delta started:", "upload", needUpload, "gid", gorid.GoRId)
 	if !needUpload {
 		return
 	}
@@ -141,6 +151,9 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
 		return
 	}
+
+	// release locker
+	dc.deltaBroker.ReleaseLocker()
 
 	t3 := time.Now()
 	dc.logger.Info("Upload delta finished",
