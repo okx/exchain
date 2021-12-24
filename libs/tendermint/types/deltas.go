@@ -18,9 +18,9 @@ const (
 	FlagUploadDDS = "upload-delta"
 
 	// redis
-	FlagRedisUrl    = "redis-url"
-	FlagRedisAuth   = "redis-auth"
-	FlagRedisExpire = "redis-expire"
+	FlagRedisUrl    = "delta-redis-url"
+	FlagRedisAuth   = "delta-redis-auth"
+	FlagRedisExpire = "delta-redis-expire"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
