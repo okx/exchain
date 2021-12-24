@@ -2,6 +2,7 @@ package types
 
 import (
 	"io/ioutil"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -158,4 +159,65 @@ func TestParSetHeaderProtoBuf(t *testing.T) {
 			require.Error(t, err, tc.msg)
 		}
 	}
+}
+
+var partSetHeaderTestCases = []PartSetHeader{
+	{},
+	{12345, []byte("hash")},
+	{math.MaxInt, []byte("hashhashhashhashhashhashhashhashhashhashhashhash")},
+	{Total: math.MinInt, Hash: []byte{}},
+}
+
+func TestPartSetHeaderAmino(t *testing.T) {
+	for _, tc := range partSetHeaderTestCases {
+		bz, err := cdc.MarshalBinaryBare(&tc)
+		require.NoError(t, err)
+
+		var psh PartSetHeader
+		err = cdc.UnmarshalBinaryBare(bz, &psh)
+		require.NoError(t, err)
+
+		var psh2 PartSetHeader
+		err = psh2.UnmarshalFromAmino(bz)
+		require.NoError(t, err)
+
+		require.EqualValues(t, psh, psh2)
+
+		require.EqualValues(t, len(bz), psh.AminoSize())
+	}
+}
+
+func BenchmarkPartSetHeaderAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(partSetHeaderTestCases))
+	for i, tc := range partSetHeaderTestCases {
+		bz, err := cdc.MarshalBinaryBare(&tc)
+		require.NoError(b, err)
+		testData[i] = bz
+	}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var psh PartSetHeader
+				err := cdc.UnmarshalBinaryBare(data, &psh)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var psh PartSetHeader
+				err := psh.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
