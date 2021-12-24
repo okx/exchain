@@ -77,9 +77,9 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		applied := false
 		if delta != nil {
 			applied = true
-			dc.applied++
+			dc.applied += float64(len(abciResponses.DeliverTxs))
 		} else {
-			dc.missed++
+			dc.missed += float64(len(abciResponses.DeliverTxs))
 		}
 
 		dc.logger.Info("Post apply block",
@@ -236,8 +236,6 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	if err != nil {
 		return err, nil
 	}
-
-	//time.Sleep(5*time.Second)
 
 	t1 := time.Now()
 	// uncompress
