@@ -38,7 +38,7 @@ const (
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
 
-	maxIntervalForFastSync        = 1
+	maxIntervalForFastSync        = 3
 	maxPeersProportionForFastSync = 0.4
 )
 
@@ -65,7 +65,7 @@ type BlockchainReactor struct {
 	p2p.BaseReactor
 
 	// mutable
-	curState     sm.State
+	curState sm.State
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
@@ -82,7 +82,7 @@ type BlockchainReactor struct {
 
 // NewBlockchainReactor returns new reactor instance.
 func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
-	fastSync bool, autoFastSync bool) *BlockchainReactor {
+	fastSync bool) *BlockchainReactor {
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
 			store.Height()))
@@ -100,16 +100,15 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 	)
 
 	bcR := &BlockchainReactor{
-		curState:     state,
-		blockExec:    blockExec,
-		store:        store,
-		dstore:       dstore,
-		pool:         pool,
-		fastSync:     fastSync,
-		autoFastSync: autoFastSync,
-		mtx:          sync.RWMutex{},
-		requestsCh:   requestsCh,
-		errorsCh:     errorsCh,
+		curState:   state,
+		blockExec:  blockExec,
+		store:      store,
+		dstore:     dstore,
+		pool:       pool,
+		fastSync:   fastSync,
+		mtx:        sync.RWMutex{},
+		requestsCh: requestsCh,
+		errorsCh:   errorsCh,
 	}
 	bcR.BaseReactor = *p2p.NewBaseReactor("BlockchainReactor", bcR)
 	return bcR
@@ -407,10 +406,8 @@ FOR_LOOP:
 
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
 	// ask for status updates
-	if bcR.autoFastSync {
-		bcR.Logger.Info("CheckFastSyncCondition.")
-		go bcR.BroadcastStatusRequest()
-	}
+	bcR.Logger.Info("CheckFastSyncCondition.")
+	go bcR.BroadcastStatusRequest()
 }
 
 func (bcR *BlockchainReactor) SwitchToConsensus(state sm.State) bool {

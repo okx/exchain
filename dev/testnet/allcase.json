@@ -138,17 +138,17 @@
   "18": [{"round":0,"prevote" : {"v0":true, "v1":true,"v2":true, "v3":true}, "precommit" : {"v0":true, "v1":true,"v2":true, "v3":true}, "addblockpart" : {"v0":3, "v1":3,"v2":3, "v3":3}}],
   "25":[
     {"round":0, "prevotesmaj23" : {"v0":true, "v1":true,"v2":true, "v3":true},  "precommitsmaj23" : {"v0":true, "v1":true,"v2":true, "v3":true}},
-    {"round":1, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}},
+    {"round":1, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}, "_comment_" : "switch to fast-sync mode from consensus mode when consensus failed"},
     {"round":2, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}},
     {"round":3, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}}
   ],
   "45":[
-    {"round":0, "recvblock" : {"v0":true}},
+    {"round":0, "recvblock" : {"v0":true}, "_comment_" : "switch to fast-sync mode from consensus mode when proposed block is not received"},
     {"round":1, "recvblock" : {"v0":true}},
     {"round":2, "recvblock" : {"v0":true}},
     {"round":3, "recvblock" : {"v0":true}}
   ],
   "65":[
-    {"round":0, "disconnect" : {"v0":10}}
+    {"round":0, "disconnect" : {"v0":10}, "_comment_" : "switch to fast-sync mode from consensus mode when network disconnected for some time"}
   ]
 }

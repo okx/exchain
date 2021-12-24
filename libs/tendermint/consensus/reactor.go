@@ -49,6 +49,7 @@ type Reactor struct {
 
 	mtx                   sync.RWMutex
 	fastSync              bool
+	autoFastSync          bool
 	eventBus              *types.EventBus
 	switchToFastSyncTimer *time.Timer
 	conHeight             int64
@@ -60,10 +61,11 @@ type ReactorOption func(*Reactor)
 
 // NewReactor returns a new Reactor with the given
 // consensusState.
-func NewReactor(consensusState *State, fastSync bool, options ...ReactorOption) *Reactor {
+func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options ...ReactorOption) *Reactor {
 	conR := &Reactor{
 		conS:                  consensusState,
 		fastSync:              fastSync,
+		autoFastSync:          autoFastSync,
 		switchToFastSyncTimer: time.NewTimer(0),
 		conHeight:             consensusState.Height,
 		metrics:               NopMetrics(),
@@ -175,9 +177,11 @@ conR:
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
 func (conR *Reactor) resetSwitchToFastSyncTimer() {
-	conR.Logger.Info("Reset SwitchToFastSyncTimeout.")
-	conR.stopSwitchToFastSyncTimer()
-	conR.switchToFastSyncTimer.Reset(conR.conS.config.TimeoutToFastSync)
+	if conR.autoFastSync {
+		conR.Logger.Info("Reset SwitchToFastSyncTimeout.")
+		conR.stopSwitchToFastSyncTimer()
+		conR.switchToFastSyncTimer.Reset(conR.conS.config.TimeoutToFastSync)
+	}
 }
 
 func (conR *Reactor) stopSwitchToFastSyncTimer() {

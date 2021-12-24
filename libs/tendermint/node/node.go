@@ -351,12 +351,11 @@ func createBlockchainReactor(config *cfg.Config,
 	blockStore *store.BlockStore,
 	deltaStore *store.DeltaStore,
 	fastSync bool,
-	autoFastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
 	switch config.FastSync.Version {
 	case "v0":
-		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync, autoFastSync)
+		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	case "v1":
 		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	case "v2":
@@ -379,6 +378,7 @@ func createConsensusReactor(config *cfg.Config,
 	privValidator types.PrivValidator,
 	csMetrics *cs.Metrics,
 	fastSync bool,
+	autoFastSync bool,
 	eventBus *types.EventBus,
 	consensusLogger log.Logger) (*consensus.Reactor, *consensus.State) {
 
@@ -396,7 +396,7 @@ func createConsensusReactor(config *cfg.Config,
 	if privValidator != nil {
 		consensusState.SetPrivValidator(privValidator)
 	}
-	consensusReactor := cs.NewReactor(consensusState, fastSync, cs.ReactorMetrics(csMetrics))
+	consensusReactor := cs.NewReactor(consensusState, fastSync, autoFastSync, cs.ReactorMetrics(csMetrics))
 	consensusReactor.SetLogger(consensusLogger)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
@@ -650,7 +650,7 @@ func NewNode(config *cfg.Config,
 	)
 
 	// Make BlockchainReactor
-	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, autoFastSync, logger)
+	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
@@ -658,7 +658,7 @@ func NewNode(config *cfg.Config,
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
 		config, state, blockExec, blockStore, deltasStore, mempool, evidencePool,
-		privValidator, csMetrics, fastSync, eventBus, consensusLogger,
+		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
 
 	nodeInfo, err := makeNodeInfo(config, nodeKey, txIndexer, genDoc, state)
