@@ -365,8 +365,11 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 		}
 	}
 
-	// now start the receiveRoutine
+	if cs.done == nil {
+		cs.done = make(chan struct{})
+	}
 
+	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
 	// schedule the first round!
@@ -381,6 +384,9 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
+	if cs.proactivelyRunTx {
+		cs.blockExec.StopPreRun()
+	}
 }
 
 func (cs *State) OnReset() error {
@@ -394,7 +400,7 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	//<-cs.done
+	<-cs.done
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -645,7 +651,8 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		cs.wal.Stop()
 		cs.wal.Wait()
 
-		//close(cs.done)
+		close(cs.done)
+		cs.done = nil
 	}
 
 	defer func() {
