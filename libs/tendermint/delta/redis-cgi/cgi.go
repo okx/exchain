@@ -11,13 +11,13 @@ import (
 
 const (
 	LatestHeightKey = "LatestHeight"
-	DeltaLockerKey = "DeltaLocker"
-	LockerExpire = 2 * time.Second
+	DeltaLockerKey  = "DeltaLocker"
+	LockerExpire    = 4 * time.Second
 )
 
 type RedisClient struct {
-	rdb *redis.Client
-	ttl time.Duration
+	rdb    *redis.Client
+	ttl    time.Duration
 	logger log.Logger
 }
 
@@ -25,7 +25,7 @@ func NewRedisClient(url, auth string, ttl time.Duration, l log.Logger) *RedisCli
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: auth, // no password set
-		DB:       0,  // use default DB
+		DB:       0,    // use default DB
 	})
 	return &RedisClient{rdb, ttl, l}
 }
@@ -54,7 +54,7 @@ func (r *RedisClient) SetLatestHeight(height int64) bool {
 	}
 	// h is not exist(h==0) or h < height
 	// set h and need to upload
-	if h < height{
+	if h < height {
 		if r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err() != nil {
 			return false
 		}
