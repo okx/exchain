@@ -1,12 +1,14 @@
 package state
 
 import (
+	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"sync/atomic"
 	"time"
 
@@ -40,6 +42,7 @@ func newDeltaContext() *DeltaContext {
 
 	// todo can config different compress algorithm
 	dp.compressBroker = &compress.Flate{}
+	dp.missed = 0.000001
 
 	return dp
 }
@@ -81,6 +84,9 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		} else {
 			dc.missed += float64(len(abciResponses.DeliverTxs))
 		}
+
+		trace.GetElapsedInfo().AddInfo(trace.Delta,
+			fmt.Sprintf("applied<%t>, rate<%.2f>", applied, dc.appliedRate()))
 
 		dc.logger.Info("Post apply block",
 			"height", height,

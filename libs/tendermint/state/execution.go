@@ -170,10 +170,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
-		//trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
-		//trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(delta.ABCIRsp), len(delta.DeltasBytes), len(delta.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -190,9 +186,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin("GetDelta")
 
 	delta = dc.prepareStateDelta(block.Height)
-	//inAbciRspLen = len(delta.ABCIRsp)
-	//inDeltaLen = len(delta.DeltasBytes)
-	//inWatchLen = len(delta.WatchBytes)
 
 	trc.Pin(trace.Abci)
 
