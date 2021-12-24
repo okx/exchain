@@ -63,7 +63,6 @@ func LoadTestCase(log log.Logger) {
 	if err != nil {
 		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}
-	log.Info("Load consensus test case", "file", confFilePath, "err", err, "content", content)
 	confTmp := make(map[string][]round)
 	err = json.Unmarshal(content, &confTmp)
 	if err != nil {
@@ -89,8 +88,6 @@ func LoadTestCase(log log.Logger) {
 				act.disconnect = event.Disconnect[role]
 
 				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
-
-				log.Info("Load consensus test case", "action", act)
 			}
 		}
 	}
