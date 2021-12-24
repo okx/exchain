@@ -10,17 +10,16 @@ import (
 	"time"
 )
 
-
 var (
 	tlog           log.Logger
 	enableRoleTest bool
 	roleAction     map[string]*action
-    once           sync.Once
+	once           sync.Once
 )
 
 const (
-	ConsensusRole          = "consensus-role"
-	ConsensusTestcase      = "consensus-testcase"
+	ConsensusRole     = "consensus-role"
+	ConsensusTestcase = "consensus-testcase"
 )
 
 func init() {
@@ -30,22 +29,29 @@ func init() {
 }
 
 type round struct {
-	Round        int64
-	PreVote      map[string]bool // true vote nil, false default vote
-	PreCommit    map[string]bool // true vote nil, false default vote
-	PreRun       map[string]int  // int => control prerun sleep time
-	AddBlockPart map[string]int  // int => control sleep time before receiver a block
+	Round           int64
+	PreVote         map[string]bool // true vote nil, false default vote
+	PreCommit       map[string]bool // true vote nil, false default vote
+	PrevotesMaj23   map[string]bool // true not received +2/3 prevotes, false actual received
+	PrecommitsMaj23 map[string]bool // true not received +2/3 precommits, false actual received
+	PreRun          map[string]int  // int => control prerun sleep time
+	AddBlockPart    map[string]int  // int => control sleep time before receiver a block
+	RecvBlock       map[string]bool // true not received proposed block, false actual received
+	Disconnect      map[string]int  // int => control consensus reactor sleep time
 }
 
 type action struct {
-	preVote           bool // true vote nil, false default vote
-	preCommit         bool // true vote nil, false default vote
-	preRunWait        int  // control prerun sleep time
-	addBlockPartWait  int  // control sleep time before receiver a block
+	preVote          bool // true vote nil, false default vote
+	preCommit        bool // true vote nil, false default vote
+	prevotesMaj23    bool // true not received +2/3 prevotes, false actual received
+	precommitsMaj23  bool // true not received +2/3 precommits, false actual received
+	preRunWait       int  // control prerun sleep time
+	addBlockPartWait int  // control sleep time before receiver a block
+	recvBlock        bool // true not received proposed block, false actual received
+	disconnect       int  // int => control consensus reactor sleep time
 }
 
 func LoadTestCase(log log.Logger) {
-
 	confFilePath := viper.GetString(ConsensusTestcase)
 	if len(confFilePath) == 0 {
 		return
@@ -74,8 +80,12 @@ func LoadTestCase(log log.Logger) {
 
 				act.preVote = event.PreVote[role]
 				act.preCommit = event.PreCommit[role]
+				act.prevotesMaj23 = event.PrevotesMaj23[role]
+				act.precommitsMaj23 = event.PrecommitsMaj23[role]
 				act.preRunWait = event.PreRun[role]
 				act.addBlockPartWait = event.AddBlockPart[role]
+				act.recvBlock = event.RecvBlock[role]
+				act.disconnect = event.Disconnect[role]
 
 				roleAction[fmt.Sprintf("%s-%d", height, event.Round)] = act
 			}
@@ -90,7 +100,7 @@ func PrevoteNil(height int64, round int) bool {
 	act, ok := roleAction[actionKey(height, round)]
 
 	if ok {
-		tlog.Info("PrevoteNil", "height", height, "round", round, "act", act.preVote, )
+		tlog.Info("PrevoteNil", "height", height, "round", round, "act", act.preVote)
 		return act.preVote
 	}
 	return false
@@ -104,8 +114,34 @@ func PrecommitNil(height int64, round int) bool {
 	act, ok := roleAction[actionKey(height, round)]
 
 	if ok {
-		tlog.Info("PrecommitNil", "height", height, "round", round, "act", act.preCommit, )
+		tlog.Info("PrecommitNil", "height", height, "round", round, "act", act.preCommit)
 		return act.preCommit
+	}
+	return false
+}
+
+func PrevotesNotMaj23(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+
+	act, ok := roleAction[actionKey(height, round)]
+	if ok && act.prevotesMaj23 {
+		tlog.Info("PrecommitsNotMaj23.", "height", height, "round", round)
+		return true
+	}
+	return false
+}
+
+func PrecommitsNotMaj23(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+
+	act, ok := roleAction[actionKey(height, round)]
+	if ok && act.precommitsMaj23 {
+		tlog.Info("PrecommitsNotMaj23.", "height", height, "round", round)
+		return true
 	}
 	return false
 }
@@ -130,6 +166,102 @@ func AddBlockTimeOut(height int64, round int) {
 	}
 }
 
+func BlockIsNotCompleted(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+
+	act, ok := roleAction[actionKey(height, round)]
+	if ok && act.recvBlock {
+		tlog.Info("BlockIsNotCompleted.", "height", height, "round", round)
+		return true
+	}
+	return false
+}
+
+func NetworkDisconnect(height int64, round int) bool {
+	if !enableRoleTest {
+		return false
+	}
+
+	if act, ok := roleAction[actionKey(height, round)]; ok {
+		timeSleep := act.disconnect
+		if timeSleep > 0 {
+			sleepTimer := SleepTimerInstance()
+
+			return sleepTimer.shouldSleep(timeSleep, height, round)
+		}
+	}
+	return false
+}
+
 func actionKey(height int64, round int) string {
 	return fmt.Sprintf("%d-%d", height, round)
+}
+
+//----------------------------------------------------
+
+type SleepTimer struct {
+	timer      *time.Timer
+	duration   int
+	isSleeping bool
+	mtx        sync.RWMutex
+	height     int64
+	round      int
+}
+
+var (
+	_sleepTimerInstance *SleepTimer = nil
+	SleepTimerOnce      sync.Once
+)
+
+func SleepTimerInstance() *SleepTimer {
+	SleepTimerOnce.Do(func() {
+		if _sleepTimerInstance == nil {
+			_sleepTimerInstance = &SleepTimer{}
+			_sleepTimerInstance.timer = time.NewTimer(0)
+			_sleepTimerInstance.timer.Stop()
+			_sleepTimerInstance.mtx = sync.RWMutex{}
+		}
+	})
+
+	return _sleepTimerInstance
+}
+
+func (st *SleepTimer) shouldSleep(d int, height int64, round int) bool {
+	if d <= 0 {
+		return false
+	}
+	if st.height != height || st.round != round {
+		tlog.Info("NetworkDisconnect.", "sleep", d, "height", height, "round", round)
+
+		st.height = height
+		st.round = round
+		st.doSleep(d)
+	}
+	return st.isSleeping
+}
+
+func (st *SleepTimer) doSleep(d int) {
+	st.isSleeping = true
+	defer func() {
+		st.isSleeping = false
+	}()
+
+	if !st.timer.Stop() { // Stop() returns false if it was already fired or was stopped
+		select {
+		case <-st.timer.C:
+		default:
+		}
+	}
+	st.timer.Reset(time.Duration(d) * time.Second)
+
+	for {
+		select {
+		case <-st.timer.C:
+			tlog.Info("NetworkDisconnect finished.", "sleep", d, "height", st.height, "round", st.round)
+			st.timer.Stop()
+			break
+		}
+	}
 }

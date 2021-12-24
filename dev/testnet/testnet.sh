@@ -104,7 +104,7 @@ run() {
 #      parallel_run_tx=false
 #    fi
 
-  LOG_LEVEL=main:info,*:error,consensus:error,state:info
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info,blockchain:info
 
   if [ "$(uname -s)" == "Darwin" ]; then
       sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json

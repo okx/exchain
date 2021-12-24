@@ -52,6 +52,8 @@ type BlockExecutor struct {
 	prerunResultChan chan *executionContext
 	prerunIndex int64
 	prerunContext *executionContext
+
+	isFastSync bool
 }
 
 
@@ -102,6 +104,13 @@ func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
 }
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
+}
+
+func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
+	blockExec.isFastSync = isSyncing
+}
+func (blockExec *BlockExecutor) GetIsFastSyncing() bool {
+	return blockExec.isFastSync
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -288,7 +297,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		// blockExec.prerunIndex==0 means:
 		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
-		if blockExec.prerunIndex > 0 {
+		if blockExec.prerunIndex > 0 && !blockExec.GetIsFastSyncing() {
 			if !blockExec.prerunTx {
 				panic("never gonna happen")
 			}
