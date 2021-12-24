@@ -29,6 +29,7 @@ var (
 	_ sdk.Msg    = MsgEthereumTx{}
 	_ sdk.Tx     = MsgEthereumTx{}
 	_ ante.FeeTx = MsgEthereumTx{}
+	//TODO: add a new message type for mempool to carry a checked logic
 )
 
 var big8 = big.NewInt(8)
@@ -640,4 +641,9 @@ func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	recipient := msg.Data.Recipient.Bytes()
 	methodId := msg.Data.Payload[0:4]
 	return append(recipient, methodId...), 0
+}
+
+// GetTxCarriedData implement the sdk.Tx interface
+func (msg MsgEthereumTx) GetTxCarriedData() []byte {
+	return nil
 }

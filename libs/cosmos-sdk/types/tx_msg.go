@@ -2,8 +2,9 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"math/big"
+
+	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // Transactions messages must fulfill the Msg
@@ -49,6 +50,11 @@ type Tx interface {
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
+
+	// Return the data carried by multi type Tx
+	// StdTx, EthereumTx
+	// the return value is format with tlv, see more details in the libs/tendermint/libs/tlv
+	GetTxCarriedData() []byte
 }
 
 //__________________________________________________________

@@ -66,6 +66,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
+			// TODO: add new Tx message to support the lgoic with carried logic
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
