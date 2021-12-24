@@ -77,6 +77,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 	// rpc
 	if dc.downloadDelta {
+
 		applied := false
 		if delta != nil {
 			applied = true
@@ -88,12 +89,8 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
 			fmt.Sprintf("applied<%t>, rate<%.2f>", applied, dc.appliedRate()))
 
-		dc.logger.Info("Post apply block",
-			"height", height,
-			"delta-applied", applied,
-			"applied-rate", dc.appliedRate(),
-			"delta", delta)
-		atomic.StoreInt64(&dc.lastCommitHeight, height)
+		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
+			"applied-rate", dc.appliedRate(), "delta", delta)
 
 		if applied && types.IsFastQuery() {
 			UseWatchData(delta.WatchBytes)
