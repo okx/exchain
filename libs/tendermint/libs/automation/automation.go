@@ -265,15 +265,3 @@ func (st *SleepTimer) doSleep(d int) {
 		}
 	}
 }
-
-func (st *SleepTimer) getIsSleeping() bool {
-	st.mtx.Lock()
-	defer st.mtx.Unlock()
-	return st.isSleeping
-}
-
-func (st *SleepTimer) setIsSleeping(value bool) {
-	st.mtx.Lock()
-	defer st.mtx.Unlock()
-	st.isSleeping = value
-}
