@@ -99,12 +99,13 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
-		if block.Height != context.block.Height {
-			context.dump("Prerun sanity check failed")
-
-			// todo
-			panic("Prerun sanity check failed")
-		}
+		// Got wrong when swithed from fast-sync to consensus. Just remove it!
+		//if block.Height != context.block.Height {
+		//	context.dump("Prerun sanity check failed")
+		//
+		//	// todo
+		//	panic("Prerun sanity check failed")
+		//}
 		context.dump("Stopping prerun")
 		context.stop()
 	}

@@ -142,6 +142,8 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	conR.conS.Reset()
 	conR.conS.Start()
 
+	conR.conS.blockExec.SetIsFastSyncing(false)
+
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
 
@@ -171,6 +173,8 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
+
+	conR.conS.blockExec.SetIsFastSyncing(true)
 
 	return conR.conS.GetState(), nil
 }

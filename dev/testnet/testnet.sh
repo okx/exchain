@@ -131,7 +131,7 @@ run() {
     --upload-delta=true \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
-    --enable-proactively-runtx=false \
+    --enable-proactively-runtx=true \
     --consensus-role=v$index \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &
