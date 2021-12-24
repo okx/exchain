@@ -1125,6 +1125,59 @@ type BlockID struct {
 	PartsHeader PartSetHeader    `json:"parts"`
 }
 
+func (blockID BlockID) AminoSize() int {
+	var size int
+	if len(blockID.Hash) > 0 {
+		size += 1 + amino.UvarintSize(uint64(len(blockID.Hash))) + len(blockID.Hash)
+	}
+	headerSize := blockID.PartsHeader.AminoSize()
+	if headerSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(headerSize)) + headerSize
+	}
+	return size
+}
+
+func (blockID *BlockID) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			blockID.Hash = make([]byte, len(subData))
+			copy(blockID.Hash, subData)
+		case 2:
+			err = blockID.PartsHeader.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // Equals returns true if the BlockID matches the given BlockID
 func (blockID BlockID) Equals(other BlockID) bool {
 	return bytes.Equal(blockID.Hash, other.Hash) &&

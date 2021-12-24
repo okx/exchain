@@ -734,3 +734,28 @@ func TestCommitProtoBuf(t *testing.T) {
 		}
 	}
 }
+
+var blockIDTestCases = []BlockID{
+	{},
+	{Hash: []byte{}},
+	{[]byte("hashhashhashhashhashhash"), PartSetHeader{}},
+	{[]byte("hashhashhashhashhashhash"), PartSetHeader{Total: 1, Hash: []byte("part_set_hash")}},
+}
+
+func TestBlockIDAmino(t *testing.T) {
+	for _, tc := range blockIDTestCases {
+		bz, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+
+		var tc2 BlockID
+		err = cdc.UnmarshalBinaryBare(bz, &tc2)
+		require.NoError(t, err)
+
+		var tc3 BlockID
+		err = tc3.UnmarshalFromAmino(bz)
+		require.NoError(t, err)
+
+		require.EqualValues(t, tc2, tc3)
+		require.EqualValues(t, len(bz), tc.AminoSize())
+	}
+}
