@@ -131,14 +131,14 @@ run() {
     --upload-delta=false \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:8545 \
-    --enable-proactively-runtx=false \
+    --enable-preruntx=false \
     --consensus-role=v$index \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \    --consensus-testcase case12.json \
 #     --upload-delta \
-#     --enable-proactively-runtx \
+#     --enable-preruntx \
 }
 
 function start() {

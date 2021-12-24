@@ -146,12 +146,12 @@ start() {
     ${UPLOAD_DELTA} \
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
-    --enable-proactively-runtx=false \
+    --enable-preruntx=false \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
 #     --download-delta \
-#     --enable-proactively-runtx \
+#     --enable-preruntx \
 
 }
 

@@ -46,7 +46,7 @@ type BlockExecutor struct {
 	// download or upload data to dds
 	deltaContext *DeltaContext
 
-	proactivelyRunTx bool
+	prerunTx bool
 	prerunChan chan *executionContext
 	prerunResultChan chan *executionContext
 	prerunIndex int64
@@ -289,10 +289,10 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 			"block-size", block.Size(),
 			"prerunIndex", blockExec.prerunIndex)
 		// blockExec.prerunIndex==0 means:
-		// 1. proactivelyRunTx disabled
+		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 		if blockExec.prerunIndex > 0 {
-			if !blockExec.proactivelyRunTx {
+			if !blockExec.prerunTx {
 				panic("never gonna happen")
 			}
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
