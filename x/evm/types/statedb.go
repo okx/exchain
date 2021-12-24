@@ -577,7 +577,6 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	if so != nil {
 		return so.Code(csdb.db)
 	}
-
 	return nil
 }
 
@@ -730,48 +729,23 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
 	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
-		defer csdb.clearJournalAndRefund()
-
 		csdb.IntermediateRoot(deleteEmptyObjects)
 
-		// remove dirty state object entries based on the journal
-		for addr, _ := range csdb.journal.dirties {
-			csdb.stateObjectsDirty[addr] = struct{}{}
-		}
-
-		// set the state objects
-		for _, so := range csdb.stateObjects {
-			_, isDirty := csdb.stateObjectsDirty[so.address]
-
-			switch {
-			case so.suicided || (isDirty && deleteEmptyObjects && so.empty()):
-				// If the state object has been removed, don't bother syncing it and just
-				// remove it from the store.
-				csdb.deleteStateObject(so)
-
-			case isDirty:
-				// write any contract code associated with the state object
+		// Commit objects to the trie, measuring the elapsed time
+		for addr := range csdb.stateObjectsDirty {
+			if so := csdb.stateObjects[addr]; !so.deleted {
+				// Write any contract code associated with the state object
 				if so.code != nil && so.dirtyCode {
 					so.commitCode()
 					so.dirtyCode = false
 				}
-
-				// update the object in the KVStore
-				if err := csdb.updateStateObject(so); err != nil {
-					return ethcmn.Hash{}, err
-				}
 			}
-
-			delete(csdb.stateObjectsDirty, so.address)
 		}
 
-		if csdb.dbErr != nil {
-			return ethcmn.Hash{}, fmt.Errorf("commit aborted due to earlier error: %v", csdb.dbErr)
+		if len(csdb.stateObjectsDirty) > 0 {
+			csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 		}
 
-		// NOTE: Ethereum returns the trie merkle root here, but as commitment
-		// actually happens in the BaseApp at EndBlocker, we do not know the root at
-		// this time.
 		return ethcmn.Hash{}, nil
 	} else {
 		return csdb.CommitMpt(deleteEmptyObjects)
@@ -782,43 +756,28 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // removing the csdb destructed objects and clearing the journal as well as the
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
-		for addr, _ := range csdb.journal.dirties {
-			so, exist := csdb.stateObjects[addr]
-			if !exist {
-				// ripeMD is 'touched' at block 1714175, in tx:
-				// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
-				//
-				// That tx goes out of gas, and although the notion of 'touched' does not
-				// exist there, the touch-event will still be recorded in the journal.
-				// Since ripeMD is a special snowflake, it will persist in the journal even
-				// though the journal is reverted. In this special circumstance, it may
-				// exist in journal.dirties but not in stateObjects. Thus, we can safely
-				// ignore it here.
-				continue
-			}
-
-			if so.suicided || (deleteEmptyObjects && so.empty()) {
-				csdb.deleteStateObject(so)
-			} else {
-				// Set all the dirty state storage items for the state object in the
-				// KVStore and finally set the account in the account mapper.
-				so.commitState()
-				if err := csdb.updateStateObject(so); err != nil {
-					csdb.SetError(err)
-					return
-				}
-			}
-
-			csdb.stateObjectsDirty[addr] = struct{}{}
+	for addr := range csdb.journal.dirties {
+		obj, exist := csdb.stateObjects[addr]
+		if !exist {
+			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
+			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
+			// touch-event will still be recorded in the journal. Since ripeMD is a special snowflake,
+			// it will persist in the journal even though the journal is reverted. In this special circumstance,
+			// it may exist in `s.journal.dirties` but not in `s.stateObjects`.
+			// Thus, we can safely ignore it here
+			continue
 		}
-
-		// invalidate journal because reverting across transactions is not allowed
-		csdb.clearJournalAndRefund()
-		csdb.DeleteLogs(csdb.thash)
-	} else {
-		csdb.FinaliseMpt(deleteEmptyObjects)
+		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
+			obj.deleted = true
+		} else {
+			obj.finalise(true) // Prefetch slots in the background
+		}
+		csdb.stateObjectsPending[addr] = struct{}{}
+		csdb.stateObjectsDirty[addr] = struct{}{}
 	}
+
+	// Invalidate journal because reverting across transactions is not allowed.
+	csdb.clearJournalAndRefund()
 }
 
 // IntermediateRoot returns the current root hash of the state. It is called in
@@ -832,14 +791,22 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 	// Finalise all the dirty storage states and write them into the tries
 	csdb.Finalise(deleteEmptyObjects)
 
-	// Although naively it makes sense to retrieve the account trie and then do
-	// the contract storage and account updates sequentially, that short circuits
-	// the account prefetcher. Instead, let's process all the storage updates
-	// first, giving the account prefeches just a few more milliseconds of time
-	// to pull useful data from disk.
-	for addr := range csdb.stateObjectsPending {
-		if obj := csdb.stateObjects[addr]; !obj.deleted {
-			obj.updateRoot(csdb.db)
+	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		for addr := range csdb.stateObjectsPending {
+			if obj := csdb.stateObjects[addr]; !obj.deleted {
+				obj.commitState()
+			}
+		}
+	} else {
+		// Although naively it makes sense to retrieve the account trie and then do
+		// the contract storage and account updates sequentially, that short circuits
+		// the account prefetcher. Instead, let's process all the storage updates
+		// first, giving the account prefeches just a few more milliseconds of time
+		// to pull useful data from disk.
+		for addr := range csdb.stateObjectsPending {
+			if obj := csdb.stateObjects[addr]; !obj.deleted {
+				obj.updateRoot(csdb.db)
+			}
 		}
 	}
 
@@ -895,7 +862,9 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	csdb.DeleteAccountStorageInfo(so)
+	if sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		csdb.DeleteAccountStorageInfo(so)
+	}
 }
 
 // ----------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
@@ -170,14 +171,18 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-		return 0
+	if !sdk.HigherThanMercury(so.stateDB.ctx.BlockHeight()) {
+		return len(so.Code(db))
+	} else {
+		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+			return 0
+		}
+		size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
+		if err != nil {
+			so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
+		}
+		return size
 	}
-	size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
-	if err != nil {
-		so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
-	}
-	return size
 }
 
 // SetStorage replaces the entire state storage with the given one.

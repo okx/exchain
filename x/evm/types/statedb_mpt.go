@@ -48,31 +48,6 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 	return ethcmn.Hash{}, nil
 }
 
-func (csdb *CommitStateDB) FinaliseMpt(deleteEmptyObjects bool) {
-	for addr := range csdb.journal.dirties {
-		obj, exist := csdb.stateObjects[addr]
-		if !exist {
-			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
-			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
-			// touch-event will still be recorded in the journal. Since ripeMD is a special snowflake,
-			// it will persist in the journal even though the journal is reverted. In this special circumstance,
-			// it may exist in `s.journal.dirties` but not in `s.stateObjects`.
-			// Thus, we can safely ignore it here
-			continue
-		}
-		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
-			obj.deleted = true
-		} else {
-			obj.finalise(true) // Prefetch slots in the background
-		}
-		csdb.stateObjectsPending[addr] = struct{}{}
-		csdb.stateObjectsDirty[addr] = struct{}{}
-	}
-
-	// Invalidate journal because reverting across transactions is not allowed.
-	csdb.clearJournalAndRefund()
-}
-
 func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value ethcmn.Hash) (stop bool)) error {
 	it := trie.NewIterator(so.getTrie(csdb.db).NodeIterator(nil))
 	for it.Next() {
@@ -167,10 +142,14 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		return nil
 	}
 
-	storageRoot, err := csdb.loadContractStorageRoot(addr)
-	if err != nil {
-		csdb.SetError(err)
-		return nil
+	storageRoot := types.EmptyRootHash
+	if sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+		root, err := csdb.loadContractStorageRoot(addr)
+		if err != nil {
+			csdb.SetError(err)
+			return nil
+		}
+		storageRoot = root
 	}
 
 	// insert the state object into the live set

@@ -648,6 +648,8 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		ak.Commit(ctx)
+		if sdk.HigherThanVenus(ctx.BlockHeight()) {
+			ak.Commit(ctx)
+		}
 	}
 }

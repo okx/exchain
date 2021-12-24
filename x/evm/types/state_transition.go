@@ -290,18 +290,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	if !st.Simulate {
-		//if !sdk.HigherThanVenus(ctx.BlockHeight()) {
-		//	// Finalise state if not a simulated transaction
-		//	// TODO: change to depend on config
-		//	csdb.Finalise(true)
-		//
-		//	if _, err = csdb.Commit(true); err != nil {
-		//		return
-		//	}
-		//} else {
-		//	csdb.IntermediateRoot(true)
-		//}
-
 		csdb.IntermediateRoot(true)
 	}
 

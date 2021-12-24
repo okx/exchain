@@ -25,14 +25,6 @@ type journal struct {
 	dirties map[ethcmn.Address]int // Dirty accounts and the number of changes
 }
 
-// dirty represents a single key value pair of the journal dirties, where the
-// key correspons to the account address and the value to the number of
-// changes for that account.
-type dirty struct {
-	address ethcmn.Address
-	changes int
-}
-
 // newJournal create a new initialized journal.
 func newJournal() *journal {
 	return &journal{
