@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
 	"sync"
 	"time"
@@ -189,15 +190,6 @@ func (conR *Reactor) stopSwitchToFastSyncTimer() {
 	}
 }
 
-func (conR *Reactor) StopForTestFastSync() {
-	conR.Logger.Info("StopForTestFastSync")
-
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
-}
-
 // GetChannels implements Reactor
 func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 	// TODO optimize
@@ -283,6 +275,10 @@ func (conR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 // proposals, block parts, and votes are ordered by the receiveRoutine
 // NOTE: blocks on consensus state for proposals, block parts, and votes
 func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
+	if automation.NetworkDisconnect(conR.conS.Height, conR.conS.Round) {
+		return
+	}
+
 	if !conR.IsRunning() {
 		conR.Logger.Debug("Receive", "src", src, "chId", chID, "bytes", msgBytes)
 		return
@@ -906,7 +902,6 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
-	//testFastSyncTicker := time.NewTicker(32 * time.Second)
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
@@ -937,11 +932,6 @@ func (conR *Reactor) peerStatsRoutine() {
 					conR.Switch.MarkPeerAsGood(peer)
 				}
 			}
-		//case <-testFastSyncTicker.C:
-		//	conR.Logger.Info("ListenAddress.", "addr", conR.Switch.ListenAddress())
-		//	if !conR.FastSync() && strings.Contains(conR.Switch.ListenAddress(), "10356") {
-		//		conR.StopForTestFastSync()
-		//	}
 		case <-conR.switchToFastSyncTimer.C:
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
 			if ok {

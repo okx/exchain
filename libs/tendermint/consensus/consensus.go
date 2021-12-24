@@ -538,16 +538,18 @@ func (cs *State) reconstructLastCommit(state sm.State) {
 // Updates State and increments height to match that of state.
 // The round becomes 0 and cs.Step becomes cstypes.RoundStepNewHeight.
 func (cs *State) updateToState(state sm.State) {
-	if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
-		panic(fmt.Sprintf("updateToState() expected state height of %v but found %v",
-			cs.Height, state.LastBlockHeight))
-	}
-	if !cs.state.IsEmpty() && cs.state.LastBlockHeight+1 != cs.Height {
-		// This might happen when someone else is mutating cs.state.
-		// Someone forgot to pass in state.Copy() somewhere?!
-		panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
-			cs.state.LastBlockHeight+1, cs.Height))
-	}
+	// Do not consider this situation that the consensus machine was stopped
+	// when the fast-sync mode opens. So remove it!
+	//if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
+	//	panic(fmt.Sprintf("updateToState() expected state height of %v but found %v",
+	//		cs.Height, state.LastBlockHeight))
+	//}
+	//if !cs.state.IsEmpty() && cs.state.LastBlockHeight+1 != cs.Height {
+	//	// This might happen when someone else is mutating cs.state.
+	//	// Someone forgot to pass in state.Copy() somewhere?!
+	//	panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
+	//		cs.state.LastBlockHeight+1, cs.Height))
+	//}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
@@ -1745,6 +1747,10 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 // once we have the full block.
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
+
+	if automation.BlockIsNotCompleted(height, round) {
+		return false, nil
+	}
 
 	automation.AddBlockTimeOut(height, round)
 
