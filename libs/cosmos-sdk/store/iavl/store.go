@@ -220,13 +220,9 @@ func (st *Store) Get(key []byte) []byte {
 		return cacheVal
 	}
 	value, err := st.flatKVDB.Get(key)
-	if err != nil {
-		return nil
+	if err == nil && len(value) != 0 {
+		return value
 	}
-	if len(value) == 0 {
-		return nil
-	}
-
 	_, value = st.tree.Get(key)
 	if value != nil {
 		st.addCache(strKey, value)
