@@ -27,7 +27,7 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --consensus.timeout_commit 600ms \
-      --enable-proactively-runtx \
+      --enable-preruntx \
       --iavl-enable-async-commit \
       --iavl-enable-gid \
       --iavl-commit-interval-height 10 \
