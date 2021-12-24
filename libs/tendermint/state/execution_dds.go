@@ -56,7 +56,7 @@ func (dc *DeltaContext) init(l log.Logger) {
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), l)
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), types.RedisExpire(), l)
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
@@ -127,14 +127,25 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 }
 
 func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
-
 	if deltas == nil {
 		return
 	}
 
 	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
 
-	// todo get distributed lock, otherwise return
+	// get redisLock
+	locked := dc.deltaBroker.GetLocker()
+	dc.logger.Info("Upload delta started:", "locked", locked, "gid", gorid.GoRId)
+	if !locked {
+		return
+	}
+
+	// get LatestHeight and judge if need to upload deltas
+	needUpload := dc.deltaBroker.SetLatestHeight(deltas.Height)
+	dc.logger.Info("Upload delta started:", "upload", needUpload, "gid", gorid.GoRId)
+	if !needUpload {
+		return
+	}
 	t0 := time.Now()
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -157,6 +168,9 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		return
 	}
 
+	// release locker
+	dc.deltaBroker.ReleaseLocker()
+
 	t3 := time.Now()
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
@@ -167,7 +181,7 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		"gid", gorid.GoRId)
 }
 
-
+// get delta from dds
 func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	if !dc.downloadDelta {
 		return

@@ -73,6 +73,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(types.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
+	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 
 	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
 	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:8030/", "data-center-url")
