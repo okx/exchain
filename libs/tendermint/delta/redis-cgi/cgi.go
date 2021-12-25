@@ -42,7 +42,7 @@ func (r *RedisClient) GetLocker() bool {
 func (r *RedisClient) ReleaseLocker() {
 	_, err := r.rdb.Del(context.Background(), DeltaLockerKey).Result()
 	if err != nil {
-		r.logger.Error("ReleaseLocker err", err)
+		r.logger.Error("Failed to Release Locker", "err", err)
 	}
 }
 
@@ -57,9 +57,10 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, upload func() b
 	if h < height && upload() {
 		err = r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err()
 		if err == nil {
+			r.logger.Info("Reset LatestHeightKey", "height", height)
 			res = true
 		} else {
-			r.logger.Error("Failed to reset LatestHeightKey: ", err)
+			r.logger.Error("Failed to reset LatestHeightKey","err", err)
 		}
 	}
 	return res

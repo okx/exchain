@@ -294,6 +294,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		blockExec.logger.Info("Not apply delta", "height", block.Height,
 			"block-size", block.Size(),
 			"prerunIndex", blockExec.prerunIndex)
+
+		//if blockExec.deltaContext.downloadDelta {
+		//	time.Sleep(time.Second*1)
+		//}
+
 		// blockExec.prerunIndex==0 means:
 		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected

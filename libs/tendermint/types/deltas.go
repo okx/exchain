@@ -149,13 +149,11 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, version<%d>, deltas_bytes<%d>, watch_bytes<%d>, abci_rsp<%d>, point2<%p>",
+	return fmt.Sprintf("height<%d>, version<%d>, size<%d>",
 		d.Height,
 		d.Version,
-		len(d.DeltasBytes),
-		len(d.WatchBytes),
-		len(d.ABCIRsp),
-		d)
+		d.Size(),
+		)
 }
 
 func (dds *Deltas) Validate(height int64) bool {
