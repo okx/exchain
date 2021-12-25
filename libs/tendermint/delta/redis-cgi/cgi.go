@@ -66,7 +66,7 @@ func NewRedisClient(url, auth, lockerID string, ttl time.Duration, l log.Logger)
 }
 
 func (r *RedisClient) GetLocker() bool {
-	res, err := r.rdb.SetNX(context.Background(), deltaLockerKey, true, lockerExpire).Result()
+	res, err := r.rdb.SetNX(context.Background(), deltaLockerKey, r.lockerID, lockerExpire).Result()
 	if err != nil {
 		r.logger.Error("GetLocker err", err)
 		return false
