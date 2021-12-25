@@ -47,21 +47,22 @@ func (r *RedisClient) ReleaseLocker() {
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) SetLatestHeight(height int64) bool {
+func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, upload func() bool) bool {
+	var res bool
 	h, err := r.rdb.Get(context.Background(), LatestHeightKey).Int64()
 	if err != nil && err != redis.Nil {
-		return false
+		return res
 	}
-	// h is not exist(h==0) or h < height
-	// set h and need to upload
-	if h < height {
-		if r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err() != nil {
-			return false
+
+	if h < height && upload() {
+		err = r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err()
+		if err == nil {
+			res = true
+		} else {
+			r.logger.Error("Failed to reset LatestHeightKey: ", err)
 		}
-		return true
 	}
-	// h is exist and h > height, no need to upload
-	return false
+	return res
 }
 
 func (r *RedisClient) SetBlock(height int64, bytes []byte) error {

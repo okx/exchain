@@ -132,53 +132,47 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 	}
 
 	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
-
-	// get redisLock
 	locked := dc.deltaBroker.GetLocker()
 	dc.logger.Info("Upload delta started:", "locked", locked, "gid", gorid.GoRId)
 	if !locked {
 		return
 	}
 
-	// get LatestHeight and judge if need to upload deltas
-	needUpload := dc.deltaBroker.SetLatestHeight(deltas.Height)
-	dc.logger.Info("Upload delta started:", "upload", needUpload, "gid", gorid.GoRId)
-	if !needUpload {
-		return
+	defer dc.deltaBroker.ReleaseLocker()
+
+	upload := func() bool {
+		t0 := time.Now()
+		// marshal deltas to bytes
+		deltaBytes, err := deltas.Marshal()
+		if err != nil {
+			dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+			return false
+		}
+
+		t1 := time.Now()
+		// compress
+		//compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
+		//if err != nil {
+		//	return
+		//}
+		t2 := time.Now()
+		// set into dds
+		if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
+			dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+			return false
+
+		}
+		t3 := time.Now()
+		dc.logger.Info("Upload delta finished",
+			"target-height", deltas.Height,
+			"marshal", t1.Sub(t0),
+			"compress", t2.Sub(t1),
+			"setRedis", t3.Sub(t2),
+			"deltas", deltas,
+			"gid", gorid.GoRId)
+		return true
 	}
-	t0 := time.Now()
-	// marshal deltas to bytes
-	deltaBytes, err := deltas.Marshal()
-	if err != nil {
-		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-		return
-	}
-
-	t1 := time.Now()
-	// compress
-	//compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
-	//if err != nil {
-	//	return
-	//}
-
-	t2 := time.Now()
-	// set into dds
-	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
-		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-		return
-	}
-
-	// release locker
-	dc.deltaBroker.ReleaseLocker()
-
-	t3 := time.Now()
-	dc.logger.Info("Upload delta finished",
-		"target-height", deltas.Height,
-		"marshal", t1.Sub(t0),
-		"compress", t2.Sub(t1),
-		"setRedis", t3.Sub(t2),
-		"deltas", deltas,
-		"gid", gorid.GoRId)
+	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
 }
 
 // get delta from dds
