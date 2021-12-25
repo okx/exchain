@@ -99,11 +99,11 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 	// validator
 	if dc.uploadDelta {
-		dc.upload(height, abciResponses, res)
+		dc.uploadData(height, abciResponses, res)
 	}
 }
 
-func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	var abciResponsesBytes []byte
 	var err error
@@ -123,10 +123,10 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		Version:     types.DeltaVersion,
 	}
 
-	go dc.uploadData(delta4Upload)
+	go dc.uploadRoutine(delta4Upload)
 }
 
-func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	if deltas == nil {
 		return
 	}
@@ -141,38 +141,42 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 	defer dc.deltaBroker.ReleaseLocker()
 
 	upload := func() bool {
-		t0 := time.Now()
-		// marshal deltas to bytes
-		deltaBytes, err := deltas.Marshal()
-		if err != nil {
-			dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-			return false
-		}
-
-		t1 := time.Now()
-		// compress
-		//compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
-		//if err != nil {
-		//	return
-		//}
-		t2 := time.Now()
-		// set into dds
-		if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
-			dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-			return false
-
-		}
-		t3 := time.Now()
-		dc.logger.Info("Upload delta finished",
-			"target-height", deltas.Height,
-			"marshal", t1.Sub(t0),
-			"compress", t2.Sub(t1),
-			"setRedis", t3.Sub(t2),
-			"deltas", deltas,
-			"gid", gorid.GoRId)
-		return true
+		return dc.upload(deltas)
 	}
 	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
+}
+
+func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
+	t0 := time.Now()
+	// marshal deltas to bytes
+	deltaBytes, err := deltas.Marshal()
+	if err != nil {
+		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		return false
+	}
+
+	t1 := time.Now()
+	// compress
+	//compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
+	//if err != nil {
+	//	return
+	//}
+	t2 := time.Now()
+	// set into dds
+	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
+		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		return false
+
+	}
+	t3 := time.Now()
+	dc.logger.Info("Upload delta finished",
+		"target-height", deltas.Height,
+		"marshal", t1.Sub(t0),
+		"compress", t2.Sub(t1),
+		"setRedis", t3.Sub(t2),
+		"deltas", deltas,
+		"gid", gorid.GoRId)
+	return true
 }
 
 // get delta from dds
