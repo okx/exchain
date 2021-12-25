@@ -163,7 +163,7 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 	}
 	batch.Write()
 	// clear cache
-	st.cache = make(map[string][]byte, 100000)
+	st.cache = make(map[string][]byte)
 
 	return types.CommitID{
 		Version: version,
