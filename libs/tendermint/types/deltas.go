@@ -21,6 +21,7 @@ const (
 	FlagRedisUrl    = "delta-redis-url"
 	FlagRedisAuth   = "delta-redis-auth"
 	FlagRedisExpire = "delta-redis-expire"
+	FlagRedisLocker = "delta-redis-locker"
 
 	// data-center
 	FlagDataCenter = "data-center-mode"
@@ -41,6 +42,7 @@ var (
 	// fmt (ip:port)
 	redisUrl  = "127.0.0.1:6379"
 	redisAuth = "auth"
+	redisLockerID = "locker"
 	// unit: second
 	redisExpire = 300
 
@@ -54,6 +56,7 @@ var (
 	onceRedisUrl    sync.Once
 	onceRedisAuth   sync.Once
 	onceRedisExpire sync.Once
+	onceRedisLocker sync.Once
 
 	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
@@ -115,6 +118,13 @@ func RedisExpire() time.Duration {
 		redisExpire = viper.GetInt(FlagRedisExpire)
 	})
 	return time.Duration(redisExpire) * time.Second
+}
+
+func RedisLocker() string {
+	onceRedisLocker.Do(func() {
+		redisLockerID = viper.GetString(FlagRedisLocker)
+	})
+	return redisLockerID
 }
 
 func GetCenterUrl() string {

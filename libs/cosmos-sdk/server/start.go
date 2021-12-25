@@ -150,9 +150,10 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(tmtypes.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().Bool(tmtypes.FlagDataCenter, false, "Use data-center-mode or not")
 	cmd.Flags().String(tmtypes.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
-	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
+	cmd.Flags().String(tmtypes.FlagRedisUrl, "127.0.0.1:6379", "redis url")
 	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().String(tmtypes.FlagRedisLocker, "locker", "delta redis lockerID")
 
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")

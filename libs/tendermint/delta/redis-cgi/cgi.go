@@ -3,6 +3,7 @@ package redis_cgi
 import (
 	"context"
 	"fmt"
+	redisgo "github.com/garyburd/redigo/redis"
 	"github.com/go-redis/redis/v8"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -19,8 +20,18 @@ var (
 	deltaLockerKey  string
 )
 
+var uploadAndResetHeight = redisgo.NewScript(1, `
+	if redis.call("set", KEYS[1], ARGV[1])
+	then
+		return redis.call("set", ARGV[2], ARGV[3])
+	else
+		return -1
+	end
+`)
+
 var once sync.Once
-func init()  {
+
+func init() {
 	const (
 		latestHeight = "LatestHeight"
 		deltaLocker  = "DeltaLocker"
@@ -32,18 +43,26 @@ func init()  {
 }
 
 type RedisClient struct {
-	rdb    *redis.Client
-	ttl    time.Duration
-	logger log.Logger
+	rdb      *redis.Client
+	pool     *redisgo.Pool
+	ttl      time.Duration
+	logger   log.Logger
+	lockerID string // unique identifier of locker
 }
 
-func NewRedisClient(url, auth string, ttl time.Duration, l log.Logger) *RedisClient {
+func NewRedisClient(url, auth, lockerID string, ttl time.Duration, l log.Logger) (*RedisClient, error) {
+	pool, err := NewPool("redis://" + url, auth, l)
+	if err != nil {
+		return nil, err
+	}
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: auth, // no password set
 		DB:       0,    // use default DB
 	})
-	return &RedisClient{rdb, ttl, l}
+
+	return &RedisClient{rdb, pool, ttl, l, lockerID}, nil
 }
 
 func (r *RedisClient) GetLocker() bool {
@@ -56,28 +75,34 @@ func (r *RedisClient) GetLocker() bool {
 }
 
 func (r *RedisClient) ReleaseLocker() {
-	_, err := r.rdb.Del(context.Background(), deltaLockerKey).Result()
-	if err != nil {
-		r.logger.Error("Failed to Release Locker", "err", err)
-	}
+	r.ReleaseDistLock(deltaLockerKey, r.lockerID)
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, upload func() bool) bool {
+func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, uploadBytes []byte) bool {
 	var res bool
 	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
 	if err != nil && err != redis.Nil {
 		return res
 	}
 
-	if h < height && upload() {
-		err = r.rdb.Set(context.Background(), latestHeightKey, height, 0).Err()
-		if err == nil {
-			r.logger.Info("Reset LatestHeightKey", "height", height)
+	conn := r.pool.Get()
+	defer conn.Close()
+
+	if h < height {
+		deltaKey := setDeltaKey(height)
+		reply, err := uploadAndResetHeight.Do(conn, deltaKey, uploadBytes, latestHeightKey, height)
+		r.logger.Debug(fmt.Sprintf("uploadAndResetHeight: trying to set key(%s) with value(%s), and resetLasteHeight %d to %d. reply(%T, %+v)",
+			deltaKey, uploadBytes, h, height, reply, reply))
+		if err == nil && reply == "OK" {
+			r.logger.Info(fmt.Sprintf("uploadAndResetHeight: set key(%s) with valueLen(%d), and resetLasteHeight %d to %d",
+				deltaKey, len(uploadBytes), h, height))
 			res = true
 		} else {
-			r.logger.Error("Failed to reset LatestHeightKey","err", err)
+			r.logger.Error("Failed to reset LatestHeightKey", "err", err, "reply", reply)
 		}
+	} else {
+		r.logger.Info("uploadAndResetHeight: latestHeight is bigger, no need to upload")
 	}
 	return res
 }
