@@ -172,7 +172,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
-	//var inAbciRspLen, inDeltaLen, inWatchLen int
 	dc := blockExec.deltaContext
 
 	var delta *types.Deltas
@@ -188,12 +187,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
-	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
-
-	trc.Pin("GetDelta")
 
 	delta = dc.prepareStateDelta(block.Height)
 
@@ -276,7 +272,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	return state, retainHeight, nil
 }
-
 
 func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses

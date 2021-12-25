@@ -133,7 +133,7 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 
 	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
 	locked := dc.deltaBroker.GetLocker()
-	dc.logger.Info("Upload delta started:", "locked", locked, "gid", gorid.GoRId)
+	dc.logger.Info("Upload delta:", "locked", locked, "gid", gorid.GoRId)
 	if !locked {
 		return
 	}
