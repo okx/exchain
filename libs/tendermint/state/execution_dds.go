@@ -40,21 +40,21 @@ type DeltaContext struct {
 }
 
 func newDeltaContext() *DeltaContext {
-
 	dp := &DeltaContext{
 		dataMap: newDataMap(),
+		missed: 0.000001,
+		downloadDelta: types.EnableDownloadDelta(),
+		uploadDelta: types.EnableUploadDelta(),
 	}
-	dp.downloadDelta = types.EnableDownloadDelta()
-	dp.uploadDelta = types.EnableUploadDelta()
 
 	if dp.uploadDelta && dp.downloadDelta {
 		panic("download delta is not allowed if upload delta enabled")
 	}
 
-	dp.compressType = viper.GetInt(types.FlagDDSCompressType)
-	dp.compressFlag = viper.GetInt(types.FlagDDSCompressFlag)
-	dp.missed = 0.000001
-
+	if dp.uploadDelta {
+		dp.compressType = viper.GetInt(types.FlagDDSCompressType)
+		dp.compressFlag = viper.GetInt(types.FlagDDSCompressFlag)
+	}
 	return dp
 }
 
