@@ -93,7 +93,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 			"applied-rate", dc.appliedRate(), "delta", delta)
 
 		if applied && types.IsFastQuery() {
-			UseWatchData(delta.WatchBytes)
+			UseWatchData(delta.WatchBytes())
 		}
 	}
 
@@ -116,9 +116,11 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 	wd := GetWatchData()
 
 	delta4Upload := &types.Deltas {
-		ABCIRsp:     abciResponsesBytes,
-		DeltasBytes: res,
-		WatchBytes:  wd,
+		Payload: types.DeltaPayload{
+			ABCIRsp:     abciResponsesBytes,
+			DeltasBytes: res,
+			WatchBytes:  wd,
+		},
 		Height:      height,
 		Version:     types.DeltaVersion,
 	}

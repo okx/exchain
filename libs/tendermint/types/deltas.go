@@ -22,16 +22,12 @@ const (
 	FlagRedisAuth   = "delta-redis-auth"
 	FlagRedisExpire = "delta-redis-expire"
 
-	// data-center
-	FlagDataCenter = "data-center-mode"
-	DataCenterUrl  = "data-center-url"
-
 	// fast-query
 	FlagFastQuery = "fast-query"
 
 	// delta version
 	// when this DeltaVersion not equal with dds delta-version, can't use delta
-	DeltaVersion = 1
+	DeltaVersion = 2
 )
 
 var (
@@ -117,35 +113,86 @@ func RedisExpire() time.Duration {
 	return time.Duration(redisExpire) * time.Second
 }
 
-func GetCenterUrl() string {
-	onceCenterUrl.Do(func() {
-		centerUrl = viper.GetString(DataCenterUrl)
-	})
-	return centerUrl
+type DeltasMessage struct {
+	Metadata         []byte `json:"metadata"`
+	Height           int64  `json:"height"`
+	Version          int    `json:"version"`
+	CompressType     int    `json:"compress_type"`
+}
+
+type DeltaPayload struct {
+	ABCIRsp     []byte
+	DeltasBytes []byte
+	WatchBytes  []byte
 }
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
-	ABCIRsp     []byte `json:"abci_rsp"`
-	DeltasBytes []byte `json:"deltas_bytes"`
-	WatchBytes  []byte `json:"watch_bytes"`
-	Height      int64  `json:"height"`
-	Version     int    `json:"version"`
+	Payload          DeltaPayload
+	Height           int64
+	Version          int
+	CompressType     int
 }
+
 
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
-	return len(d.ABCIRsp) + len(d.DeltasBytes) + len(d.WatchBytes)
+	return len(d.ABCIRsp()) + len(d.DeltasBytes()) + len(d.WatchBytes())
 }
+func (d *Deltas) ABCIRsp() []byte {
+	return d.Payload.ABCIRsp
+}
+
+func (d *Deltas) DeltasBytes() []byte {
+	return d.Payload.DeltasBytes
+}
+
+func (d *Deltas) WatchBytes() []byte {
+	return d.Payload.WatchBytes
+}
+
 
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
-	return cdc.MarshalBinaryBare(d)
+
+	payloadbytes, err := cdc.MarshalBinaryBare(&d.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	if d.CompressType == 100 {
+		// todo: compress dt.Payloadbytes
+	}
+
+	dt := &DeltasMessage{
+		Metadata: payloadbytes,
+		Height: d.Height,
+		Version: d.Version,
+		CompressType: d.CompressType,
+	}
+
+	return cdc.MarshalBinaryBare(dt)
 }
 
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
-	return cdc.UnmarshalBinaryBare(bs, d)
+
+	dt := &DeltasMessage{}
+	err := cdc.UnmarshalBinaryBare(bs, dt)
+	if err != nil {
+		return err
+	}
+	d.CompressType = dt.CompressType
+
+	if d.CompressType == 100 {
+		// todo: decompress dt.Payloadbytes
+	}
+
+	err = cdc.UnmarshalBinaryBare(dt.Metadata, &d.Payload)
+	d.Version = dt.Version
+	d.Height = dt.Height
+
+	return err
 }
 
 func (d *Deltas) String() string {
@@ -159,9 +206,9 @@ func (d *Deltas) String() string {
 func (dds *Deltas) Validate(height int64) bool {
 	if DeltaVersion < dds.Version ||
 		dds.Height != height ||
-		len(dds.WatchBytes) == 0 ||
-		len(dds.ABCIRsp) == 0 ||
-		len(dds.DeltasBytes) == 0 {
+		len(dds.WatchBytes()) == 0 ||
+		len(dds.ABCIRsp()) == 0 ||
+		len(dds.DeltasBytes()) == 0 {
 		return false
 	}
 	return true
