@@ -6,7 +6,7 @@ NUM_NODE=4
 # acid pulse trial pill stumble toilet annual upgrade gold zone void civil
 # antique onion adult slot sad dizzy sure among cement demise submit scare
 # lazy cause kite fence gravity regret visa fuel tone clerk motor rent
-HARDCODED_MNEMONIC=false
+HARDCODED_MNEMONIC=true
 
 set -e
 set -o errexit
@@ -96,6 +96,7 @@ run() {
   rpcport=$4
   p2p_seed_opt=$5
   p2p_seed_arg=$6
+  restport=$7
 #  parallel_run_tx=false
 #
 #  if [ $(($index % 2)) -eq 0 ];then
@@ -130,7 +131,7 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
-    --rest.laddr tcp://localhost:8545 \
+    --rest.laddr tcp://localhost:$restport \
     --enable-preruntx=false \
     --consensus-role=v$index \
     ${Test_CASE} \
@@ -152,11 +153,12 @@ function start() {
 
   echo "============================================"
   echo "======== Startup validator nodes...========="
-  for ((index = 1; index < ${1}; index++)); do
+  for ((index = 0; index < ${1}; index++)); do
 
     ((p2pport = BASE_PORT_PREFIX + index * 100 + P2P_PORT_SUFFIX))
-    ((rpcport = BASE_PORT_PREFIX + index * 100 + RPC_PORT_SUFFIX))
-    run $index false ${p2pport} ${rpcport} --p2p.seeds ${seed}@${IP}:${seedp2pport}
+    ((rpcport = BASE_PORT_PREFIX + index * 100 + RPC_PORT_SUFFIX))  # for exchaincli
+    ((restport = index * 100 + REST_PORT)) # for evm tx
+    run $index false ${p2pport} ${rpcport} --p2p.seeds ${seed}@${IP}:${seedp2pport} $restport
   done
   echo "start node done"
 }
