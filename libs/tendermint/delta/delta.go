@@ -3,9 +3,7 @@ package delta
 type DeltaBroker interface {
 	GetLocker() bool
 	ReleaseLocker()
-	SetLatestHeight(height int64) bool
-	SetBlock(height int64, bytes []byte) error
+	ResetLatestHeightAfterUpload(height int64, upload func() bool) bool
 	SetDeltas(height int64, bytes []byte) error
-	GetBlock(height int64) ([]byte, error)
 	GetDeltas(height int64) ([]byte, error)
 }

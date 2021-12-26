@@ -9,12 +9,16 @@ set -m
 
 set -x # activate debugging
 
-
-while getopts "i:n:p:r:s:b:du" opt; do
+PRERUN=false
+while getopts "i:n:p:r:s:b:dux" opt; do
   case $opt in
     i)
       echo "IP=$OPTARG"
       IP=$OPTARG
+      ;;
+    x)
+      echo "PRERUN=$OPTARG"
+      PRERUN=true
       ;;
     d)
       echo "DOWNLOAD_DELTA=$OPTARG"
@@ -146,7 +150,7 @@ start() {
     ${UPLOAD_DELTA} \
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
-    --enable-preruntx=false \
+    --enable-preruntx=${PRERUN} \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"

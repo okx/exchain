@@ -6,14 +6,30 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"sync"
 	"time"
 )
 
 const (
-	LatestHeightKey = "LatestHeight"
-	DeltaLockerKey  = "DeltaLocker"
-	LockerExpire    = 4 * time.Second
+	lockerExpire = 4 * time.Second
 )
+
+var (
+	latestHeightKey string
+	deltaLockerKey  string
+)
+
+var once sync.Once
+func init()  {
+	const (
+		latestHeight = "LatestHeight"
+		deltaLocker  = "DeltaLocker"
+	)
+	once.Do(func() {
+		latestHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, latestHeight)
+		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, deltaLocker)
+	})
+}
 
 type RedisClient struct {
 	rdb    *redis.Client
@@ -31,7 +47,7 @@ func NewRedisClient(url, auth string, ttl time.Duration, l log.Logger) *RedisCli
 }
 
 func (r *RedisClient) GetLocker() bool {
-	res, err := r.rdb.SetNX(context.Background(), DeltaLockerKey, true, LockerExpire).Result()
+	res, err := r.rdb.SetNX(context.Background(), deltaLockerKey, true, lockerExpire).Result()
 	if err != nil {
 		r.logger.Error("GetLocker err", err)
 		return false
@@ -40,28 +56,30 @@ func (r *RedisClient) GetLocker() bool {
 }
 
 func (r *RedisClient) ReleaseLocker() {
-	_, err := r.rdb.Del(context.Background(), DeltaLockerKey).Result()
+	_, err := r.rdb.Del(context.Background(), deltaLockerKey).Result()
 	if err != nil {
-		r.logger.Error("ReleaseLocker err", err)
+		r.logger.Error("Failed to Release Locker", "err", err)
 	}
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) SetLatestHeight(height int64) bool {
-	h, err := r.rdb.Get(context.Background(), LatestHeightKey).Int64()
+func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, upload func() bool) bool {
+	var res bool
+	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
 	if err != nil && err != redis.Nil {
-		return false
+		return res
 	}
-	// h is not exist(h==0) or h < height
-	// set h and need to upload
-	if h < height {
-		if r.rdb.Set(context.Background(), LatestHeightKey, height, 0).Err() != nil {
-			return false
+
+	if h < height && upload() {
+		err = r.rdb.Set(context.Background(), latestHeightKey, height, 0).Err()
+		if err == nil {
+			r.logger.Info("Reset LatestHeightKey", "height", height)
+			res = true
+		} else {
+			r.logger.Error("Failed to reset LatestHeightKey","err", err)
 		}
-		return true
 	}
-	// h is exist and h > height, no need to upload
-	return false
+	return res
 }
 
 func (r *RedisClient) SetBlock(height int64, bytes []byte) error {

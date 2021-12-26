@@ -99,11 +99,11 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 	// validator
 	if dc.uploadDelta {
-		dc.upload(height, abciResponses, res)
+		dc.uploadData(height, abciResponses, res)
 	}
 }
 
-func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	var abciResponsesBytes []byte
 	var err error
@@ -123,35 +123,36 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		Version:     types.DeltaVersion,
 	}
 
-	go dc.uploadData(delta4Upload)
+	go dc.uploadRoutine(delta4Upload)
 }
 
-func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	if deltas == nil {
 		return
 	}
 
 	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
-
-	// get redisLock
 	locked := dc.deltaBroker.GetLocker()
-	dc.logger.Info("Upload delta started:", "locked", locked, "gid", gorid.GoRId)
+	dc.logger.Info("Upload delta:", "locked", locked, "gid", gorid.GoRId)
 	if !locked {
 		return
 	}
 
-	// get LatestHeight and judge if need to upload deltas
-	needUpload := dc.deltaBroker.SetLatestHeight(deltas.Height)
-	dc.logger.Info("Upload delta started:", "upload", needUpload, "gid", gorid.GoRId)
-	if !needUpload {
-		return
+	defer dc.deltaBroker.ReleaseLocker()
+
+	upload := func() bool {
+		return dc.upload(deltas)
 	}
+	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
+}
+
+func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
 	t0 := time.Now()
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
 		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-		return
+		return false
 	}
 
 	t1 := time.Now()
@@ -160,17 +161,13 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 	//if err != nil {
 	//	return
 	//}
-
 	t2 := time.Now()
 	// set into dds
 	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
 		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-		return
+		return false
+
 	}
-
-	// release locker
-	dc.deltaBroker.ReleaseLocker()
-
 	t3 := time.Now()
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
@@ -179,6 +176,7 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 		"setRedis", t3.Sub(t2),
 		"deltas", deltas,
 		"gid", gorid.GoRId)
+	return true
 }
 
 // get delta from dds
