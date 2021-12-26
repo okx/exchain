@@ -127,12 +127,15 @@ type DeltaPayload struct {
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
-	Payload          DeltaPayload
 	Height           int64
 	Version          int
+	Payload          DeltaPayload
 	CompressType     int
 	CompressFunc	 func(compressType int, data []byte) ([]byte, error)
 	DecompressFunc	 func(compressType int, data []byte) ([]byte, error)
+
+	marshalElapsed    time.Duration
+	compressElapsed   time.Duration
 }
 
 
@@ -152,18 +155,28 @@ func (d *Deltas) WatchBytes() []byte {
 	return d.Payload.WatchBytes
 }
 
+func (d *Deltas) MarshalOrUnmarshalElapsed() time.Duration {
+	return d.marshalElapsed
+}
+func (d *Deltas) CompressOrUncompressElapsed() time.Duration {
+	return d.compressElapsed
+}
+
 
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
+	t0 := time.Now()
 
 	payload, err := cdc.MarshalBinaryBare(&d.Payload)
 	if err != nil {
 		return nil, err
 	}
+	t1 := time.Now()
 
 	if d.CompressFunc != nil {
 		payload, err = d.CompressFunc(d.CompressType, payload)
 	}
+	t2 := time.Now()
 
 	dt := &DeltasMessage{
 		Metadata: payload,
@@ -172,11 +185,18 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		CompressType: d.CompressType,
 	}
 
-	return cdc.MarshalBinaryBare(dt)
+	res, err := cdc.MarshalBinaryBare(dt)
+	t3 := time.Now()
+
+	d.compressElapsed = t2.Sub(t1)
+	d.marshalElapsed = t3.Sub(t0) - d.compressElapsed
+
+	return res, err
 }
 
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
+	t0 := time.Now()
 
 	msg := &DeltasMessage{}
 	err := cdc.UnmarshalBinaryBare(bs, msg)
@@ -185,14 +205,22 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	}
 	d.CompressType = msg.CompressType
 
+	t1 := time.Now()
 	if d.DecompressFunc != nil {
 		msg.Metadata, err = d.DecompressFunc(d.CompressType, msg.Metadata)
 	}
+	t2 := time.Now()
+
 
 	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
+	t3 := time.Now()
+
 	d.Version = msg.Version
 	d.Height = msg.Height
 
+
+	d.compressElapsed = t2.Sub(t1)
+	d.marshalElapsed = t3.Sub(t0) - d.compressElapsed
 	return err
 }
 

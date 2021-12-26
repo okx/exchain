@@ -149,7 +149,6 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
-	t0 := time.Now()
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
@@ -157,12 +156,6 @@ func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
 		return false
 	}
 
-	t1 := time.Now()
-	// compress
-	//compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
-	//if err != nil {
-	//	return
-	//}
 	t2 := time.Now()
 	// set into dds
 	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
@@ -173,9 +166,9 @@ func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
 	t3 := time.Now()
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
-		"marshal", t1.Sub(t0),
-		"compress", t2.Sub(t1),
-		"setRedis", t3.Sub(t2),
+		"marshal", deltas.MarshalOrUnmarshalElapsed(),
+		"compress", deltas.CompressOrUncompressElapsed(),
+		"upload", t3.Sub(t2),
 		"deltas", deltas,
 		"gid", gorid.GoRId)
 	return true
@@ -253,15 +246,9 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	if err != nil {
 		return err, nil
 	}
-
 	t1 := time.Now()
-	// uncompress
-	//compressBytes, err := dc.compressBroker.UnCompress(deltaBytes)
-	//if err != nil {
-	//	continue
-	//}
 
-	t2 := time.Now()
+
 	// unmarshal
 	delta := &types.Deltas{}
 	err = delta.Unmarshal(deltaBytes)
@@ -271,14 +258,13 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	}
 
 	cacheMap, cacheList := dc.dataMap.info()
-	t3 := time.Now()
 	dc.logger.Info("Download delta finished:",
 		"target-height", height,
 		"cacheMap", cacheMap,
 		"cacheList", cacheList,
 		"download", t1.Sub(t0),
-		"uncompress", t2.Sub(t1),
-		"unmarshal", t3.Sub(t2),
+		"uncompress", delta.CompressOrUncompressElapsed(),
+		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
 		"delta", delta,
 		"gid", gorid.GoRId)
 

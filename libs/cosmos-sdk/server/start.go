@@ -5,6 +5,7 @@ package server
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"os"
 	"runtime/pprof"
 
@@ -167,7 +168,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
-	cmd.Flags().Bool(tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
+	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
@@ -350,7 +351,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	tmiavl.EnableGid = viper.GetBool(tmiavl.FlagIavlEnableGid)
+	gorid.EnableGid = viper.GetBool(gorid.FlagEnableGid)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 

@@ -19,7 +19,6 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableGid              = "iavl-enable-gid"
 )
 
 var (
@@ -33,7 +32,6 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	EnableGid                       = false
 )
 
 type commitEvent struct {
