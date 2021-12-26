@@ -3,7 +3,6 @@ package redis_cgi
 import (
 	"fmt"
 	redisgo "github.com/garyburd/redigo/redis"
-	"github.com/go-redis/redis/v8"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"sync"
@@ -104,7 +103,7 @@ func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
 	conn := r.pool.Get()
 	defer conn.Close()
 	bytes, err := redisgo.Bytes(conn.Do("GET", calcDeltaKey(height)))
-	if err == redis.Nil {
+	if err == redisgo.ErrNil {
 		return nil, fmt.Errorf("get empty delta")
 	}
 	if err != nil {
