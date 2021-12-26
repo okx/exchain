@@ -1,7 +1,6 @@
 package redis_cgi
 
 import (
-	"context"
 	"fmt"
 	redisgo "github.com/garyburd/redigo/redis"
 	"github.com/go-redis/redis/v8"
@@ -12,6 +11,7 @@ import (
 )
 
 const (
+	// unit: Millisecond
 	lockerExpire = 4000
 )
 
@@ -42,7 +42,6 @@ func init() {
 }
 
 type RedisClient struct {
-	rdb      *redis.Client
 	pool     *redisgo.Pool
 	ttl      time.Duration
 	logger   log.Logger
@@ -55,13 +54,7 @@ func NewRedisClient(url, auth, lockerID string, ttl time.Duration, l log.Logger)
 		return nil, err
 	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     url,
-		Password: auth, // no password set
-		DB:       0,    // use default DB
-	})
-
-	return &RedisClient{rdb, pool, ttl, l, lockerID}, nil
+	return &RedisClient{pool, ttl, l, lockerID}, nil
 }
 
 func (r *RedisClient) GetLocker() bool {
@@ -80,9 +73,11 @@ func (r *RedisClient) ReleaseLocker() {
 // return bool: if change the value of latest_height, need to upload
 func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func() ([]byte, error)) bool {
 	var res bool
+	conn := r.pool.Get()
+	defer conn.Close()
 	// get latestHeight
-	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
-	if err != nil && err != redis.Nil {
+	h, err := redisgo.Int64(conn.Do("GET", latestHeightKey))
+	if err != nil && err != redisgo.ErrNil {
 		return res
 	}
 
@@ -90,12 +85,9 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 	bytes, err := getBytes()
 	if h < height && err == nil {
 		// upload and set latestHeight
-		conn := r.pool.Get()
-		defer conn.Close()
+
 		deltaKey := calcDeltaKey(height)
 		reply, err := uploadAndResetHeight.Do(conn, deltaKey, bytes, latestHeightKey, height)
-		r.logger.Debug(fmt.Sprintf("uploadAndResetHeight: trying to set key(%s) with value(%s), and resetLasteHeight %d to %d. reply(%T, %+v)",
-			deltaKey, bytes, h, height, reply, reply))
 		if err == nil && reply == "OK" {
 			r.logger.Info(fmt.Sprintf("uploadAndResetHeight: set key(%s) with valueLen(%d), and resetLasteHeight %d to %d",
 				deltaKey, len(bytes), h, height))
@@ -108,35 +100,10 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 	return res
 }
 
-func (r *RedisClient) SetBlock(height int64, bytes []byte) error {
-	if len(bytes) == 0 {
-		return fmt.Errorf("block is empty")
-	}
-	req := r.rdb.SetNX(context.Background(), calcBlockKey(height), bytes, r.ttl)
-	return req.Err()
-}
-
-func (r *RedisClient) SetDeltas(height int64, bytes []byte) error {
-	if len(bytes) == 0 {
-		return fmt.Errorf("delta is empty")
-	}
-	req := r.rdb.SetNX(context.Background(), calcDeltaKey(height), bytes, r.ttl)
-	return req.Err()
-}
-
-func (r *RedisClient) GetBlock(height int64) ([]byte, error) {
-	bytes, err := r.rdb.Get(context.Background(), calcBlockKey(height)).Bytes()
-	if err == redis.Nil {
-		return nil, fmt.Errorf("get empty block")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
 func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
-	bytes, err := r.rdb.Get(context.Background(), calcDeltaKey(height)).Bytes()
+	conn := r.pool.Get()
+	defer conn.Close()
+	bytes, err := redisgo.Bytes(conn.Do("GET", calcDeltaKey(height)))
 	if err == redis.Nil {
 		return nil, fmt.Errorf("get empty delta")
 	}
@@ -144,10 +111,6 @@ func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
 		return nil, err
 	}
 	return bytes, nil
-}
-
-func calcBlockKey(height int64) string {
-	return fmt.Sprintf("BH:%d", height)
 }
 
 func calcDeltaKey(height int64) string {

@@ -16,15 +16,15 @@ import (
 )
 
 type DeltaContext struct {
-	deltaBroker   delta.DeltaBroker
+	deltaBroker      delta.DeltaBroker
 	lastCommitHeight int64
-	dataMap *deltaMap
+	dataMap          *deltaMap
 
-	downloadDelta bool
-	uploadDelta bool
-	applied float64
-	missed float64
-	logger log.Logger
+	downloadDelta  bool
+	uploadDelta    bool
+	applied        float64
+	missed         float64
+	logger         log.Logger
 	compressBroker compress.CompressBroker
 }
 
@@ -120,7 +120,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 
 	wd := GetWatchData()
 
-	delta4Upload := &types.Deltas {
+	delta4Upload := &types.Deltas{
 		ABCIRsp:     abciResponsesBytes,
 		DeltasBytes: res,
 		WatchBytes:  wd,
@@ -226,7 +226,7 @@ func (dc *DeltaContext) downloadRoutine() {
 				"left", left,
 			)
 		} else {
-			if height % 10 == 0 && lastRemoved != lastCommitHeight {
+			if height%10 == 0 && lastRemoved != lastCommitHeight {
 				removed, left := dc.dataMap.remove(lastCommitHeight)
 				dc.logger.Info("Remove stale delta",
 					"target-height", height,
@@ -251,7 +251,7 @@ func (dc *DeltaContext) downloadRoutine() {
 	}
 }
 
-func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
+func (dc *DeltaContext) download(height int64) (error, *types.Deltas) {
 	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
 
 	t0 := time.Now()
@@ -272,7 +272,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	delta := &types.Deltas{}
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
-		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
+		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err)
 		return err, nil
 	}
 
