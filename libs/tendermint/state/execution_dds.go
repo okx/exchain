@@ -149,6 +149,14 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
+
+	deltas.CompressFunc = func(compressType int, data []byte) ([]byte, error) {
+		if compressType == 0 {
+			return data, nil
+		}
+		return dc.compressBroker.DefaultCompress(data)
+	}
+
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
@@ -248,9 +256,15 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	}
 	t1 := time.Now()
 
-
 	// unmarshal
 	delta := &types.Deltas{}
+
+	delta.DecompressFunc = func(compressType int, data []byte) ([]byte, error) {
+		if compressType == 0 {
+			return data, nil
+		}
+		return dc.compressBroker.UnCompress(data)
+	}
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)

@@ -175,6 +175,9 @@ func (d *Deltas) Marshal() ([]byte, error) {
 
 	if d.CompressFunc != nil {
 		payload, err = d.CompressFunc(d.CompressType, payload)
+		if err != nil {
+			return nil, err
+		}
 	}
 	t2 := time.Now()
 
@@ -208,6 +211,9 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	t1 := time.Now()
 	if d.DecompressFunc != nil {
 		msg.Metadata, err = d.DecompressFunc(d.CompressType, msg.Metadata)
+		if err != nil {
+			return err
+		}
 	}
 	t2 := time.Now()
 
