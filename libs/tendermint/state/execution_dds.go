@@ -144,7 +144,6 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	}
 	defer dc.deltaBroker.ReleaseLocker()
 
-	t0 := time.Now()
 	// handle Deltas to bytes
 	getBytes := func() ([]byte, bool) {
 		bytes, err := dc.getUploadBytes(deltas)
@@ -154,8 +153,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 		}
 		return bytes, true
 	}
-
-
+	
 	t1 := time.Now()
 	// set delta into redis and reset latestHeight
 	succeed := dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, getBytes)
@@ -163,7 +161,6 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	t2 := time.Now()
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
-		"getUploadBytes", t1.Sub(t0),
 		"upload and resetLHeight", t2.Sub(t1),
 		"succeed", succeed,
 		"deltas", deltas,

@@ -67,6 +67,7 @@ func NewRedisClient(url, auth, lockerID string, ttl time.Duration, l log.Logger)
 func (r *RedisClient) GetLocker() bool {
 	res, err := r.FetchDistLock(deltaLockerKey, r.lockerID, lockerExpire)
 	if err != nil {
+		r.logger.Error("GetLocker err", err)
 		return false
 	}
 	return res
@@ -92,6 +93,7 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 	// get upload bytes
 	bytes, ok := getBytes()
 	if !ok {
+		r.logger.Info("uploadAndResetHeight: get upload bytes failed")
 		return res
 	}
 
