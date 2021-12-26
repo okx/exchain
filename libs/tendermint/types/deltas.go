@@ -46,7 +46,6 @@ var (
 	uploadDelta      = false
 
 	onceFastQuery   sync.Once
-	onceCenterUrl   sync.Once
 	onceRedisUrl    sync.Once
 	onceRedisAuth   sync.Once
 	onceRedisExpire sync.Once
@@ -132,6 +131,8 @@ type Deltas struct {
 	Height           int64
 	Version          int
 	CompressType     int
+	CompressFunc	 func(compressType int, data []byte) ([]byte, error)
+	DecompressFunc	 func(compressType int, data []byte) ([]byte, error)
 }
 
 
@@ -155,17 +156,17 @@ func (d *Deltas) WatchBytes() []byte {
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
 
-	payloadbytes, err := cdc.MarshalBinaryBare(&d.Payload)
+	payload, err := cdc.MarshalBinaryBare(&d.Payload)
 	if err != nil {
 		return nil, err
 	}
 
-	if d.CompressType == 100 {
-		// todo: compress dt.Payloadbytes
+	if d.CompressFunc != nil {
+		payload, err = d.CompressFunc(d.CompressType, payload)
 	}
 
 	dt := &DeltasMessage{
-		Metadata: payloadbytes,
+		Metadata: payload,
 		Height: d.Height,
 		Version: d.Version,
 		CompressType: d.CompressType,
@@ -177,20 +178,20 @@ func (d *Deltas) Marshal() ([]byte, error) {
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
 
-	dt := &DeltasMessage{}
-	err := cdc.UnmarshalBinaryBare(bs, dt)
+	msg := &DeltasMessage{}
+	err := cdc.UnmarshalBinaryBare(bs, msg)
 	if err != nil {
 		return err
 	}
-	d.CompressType = dt.CompressType
+	d.CompressType = msg.CompressType
 
-	if d.CompressType == 100 {
-		// todo: decompress dt.Payloadbytes
+	if d.DecompressFunc != nil {
+		msg.Metadata, err = d.DecompressFunc(d.CompressType, msg.Metadata)
 	}
 
-	err = cdc.UnmarshalBinaryBare(dt.Metadata, &d.Payload)
-	d.Version = dt.Version
-	d.Height = dt.Height
+	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
+	d.Version = msg.Version
+	d.Height = msg.Height
 
 	return err
 }
