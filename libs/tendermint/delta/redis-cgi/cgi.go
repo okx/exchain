@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	lockerExpire = 4 * time.Second
+	lockerExpire = 4000
 )
 
 var (
@@ -30,7 +30,6 @@ var uploadAndResetHeight = redisgo.NewScript(1, `
 `)
 
 var once sync.Once
-
 func init() {
 	const (
 		latestHeight = "LatestHeight"
@@ -66,9 +65,8 @@ func NewRedisClient(url, auth, lockerID string, ttl time.Duration, l log.Logger)
 }
 
 func (r *RedisClient) GetLocker() bool {
-	res, err := r.rdb.SetNX(context.Background(), deltaLockerKey, r.lockerID, lockerExpire).Result()
+	res, err := r.FetchDistLock(deltaLockerKey, r.lockerID, lockerExpire)
 	if err != nil {
-		r.logger.Error("GetLocker err", err)
 		return false
 	}
 	return res
@@ -79,31 +77,39 @@ func (r *RedisClient) ReleaseLocker() {
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, uploadBytes []byte) bool {
+func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func() ([]byte, bool)) bool {
 	var res bool
+	// get latestHeight
 	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
 	if err != nil && err != redis.Nil {
 		return res
 	}
+	if h >= height {
+		r.logger.Info("uploadAndResetHeight: latestHeight is bigger, no need to upload")
+		return res
+	}
 
+	// get upload bytes
+	bytes, ok := getBytes()
+	if !ok {
+		return res
+	}
+
+	// upload and set latestHeight
 	conn := r.pool.Get()
 	defer conn.Close()
-
-	if h < height {
-		deltaKey := setDeltaKey(height)
-		reply, err := uploadAndResetHeight.Do(conn, deltaKey, uploadBytes, latestHeightKey, height)
-		r.logger.Debug(fmt.Sprintf("uploadAndResetHeight: trying to set key(%s) with value(%s), and resetLasteHeight %d to %d. reply(%T, %+v)",
-			deltaKey, uploadBytes, h, height, reply, reply))
-		if err == nil && reply == "OK" {
-			r.logger.Info(fmt.Sprintf("uploadAndResetHeight: set key(%s) with valueLen(%d), and resetLasteHeight %d to %d",
-				deltaKey, len(uploadBytes), h, height))
-			res = true
-		} else {
-			r.logger.Error("Failed to reset LatestHeightKey", "err", err, "reply", reply)
-		}
+	deltaKey := setDeltaKey(height)
+	reply, err := uploadAndResetHeight.Do(conn, deltaKey, bytes, latestHeightKey, height)
+	r.logger.Debug(fmt.Sprintf("uploadAndResetHeight: trying to set key(%s) with value(%s), and resetLasteHeight %d to %d. reply(%T, %+v)",
+		deltaKey, bytes, h, height, reply, reply))
+	if err == nil && reply == "OK" {
+		r.logger.Info(fmt.Sprintf("uploadAndResetHeight: set key(%s) with valueLen(%d), and resetLasteHeight %d to %d",
+			deltaKey, len(bytes), h, height))
+		res = true
 	} else {
-		r.logger.Info("uploadAndResetHeight: latestHeight is bigger, no need to upload")
+		r.logger.Error("Failed to reset LatestHeightKey", "err", err, "reply", reply)
 	}
+
 	return res
 }
 

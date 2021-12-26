@@ -146,15 +146,19 @@ func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
 
 	t0 := time.Now()
 	// handle Deltas to bytes
-	bytes, err := dc.getUploadBytes(deltas)
-	if err != nil {
-		dc.logger.Error("Upload delta err", err)
-		return
+	getBytes := func() ([]byte, bool) {
+		bytes, err := dc.getUploadBytes(deltas)
+		if err != nil {
+			dc.logger.Error("Upload delta err", err)
+			return nil, false
+		}
+		return bytes, true
 	}
+
 
 	t1 := time.Now()
 	// set delta into redis and reset latestHeight
-	succeed := dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, bytes)
+	succeed := dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, getBytes)
 
 	t2 := time.Now()
 	dc.logger.Info("Upload delta finished",
