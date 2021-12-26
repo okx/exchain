@@ -12,19 +12,20 @@ import (
 
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{trace.Evm,
+	CUSTOM_PRINT = []string{
+		trace.Evm,
+		trace.Delta,
 		trace.Iavl,
 		trace.DeliverTxs,
-		trace.Delta,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
 
 	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=0",
 		trace.Evm,
+		trace.Delta,
 		trace.Iavl,
 		trace.DeliverTxs,
-		trace.Delta,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce)

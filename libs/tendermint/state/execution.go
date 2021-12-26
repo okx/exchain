@@ -286,13 +286,14 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Info("Not apply delta", "height", block.Height,
-			"block-size", block.Size(),
-			"prerunIndex", blockExec.prerunIndex)
-
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
 		//}
+		if blockExec.prerunTx {
+			blockExec.logger.Info("Not apply delta", "height", block.Height,
+				"block-size", block.Size(),
+				"prerunIndex", blockExec.prerunIndex)
+		}
 
 		// blockExec.prerunIndex==0 means:
 		// 1. prerunTx disabled

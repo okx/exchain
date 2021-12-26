@@ -104,11 +104,11 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 	// validator
 	if dc.uploadDelta {
-		dc.upload(height, abciResponses, res)
+		dc.uploadData(height, abciResponses, res)
 	}
 }
 
-func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	var abciResponsesBytes []byte
 	var err error
@@ -128,10 +128,10 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		Version:     types.DeltaVersion,
 	}
 
-	go dc.uploadData(delta4Upload)
+	go dc.uploadRoutine(delta4Upload)
 }
 
-func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	if deltas == nil {
 		return
 	}
@@ -185,7 +185,6 @@ func (dc *DeltaContext) getUploadBytes(deltas *types.Deltas) ([]byte, error) {
 	//if err != nil {
 	//	return
 	//}
-
 	t2 := time.Now()
 	dc.logger.Info("get upload bytes",
 		"target-height", deltas.Height,
@@ -193,7 +192,6 @@ func (dc *DeltaContext) getUploadBytes(deltas *types.Deltas) ([]byte, error) {
 		"compress", t2.Sub(t1),
 		"deltas", deltas,
 		"gid", gorid.GoRId)
-
 	return deltaBytes, nil
 }
 

@@ -109,7 +109,6 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 	} else {
 		r.logger.Error("Failed to reset LatestHeightKey", "err", err, "reply", reply)
 	}
-
 	return res
 }
 
