@@ -6,14 +6,24 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/spf13/viper"
 	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+var (
+	getWatchDataFunc func() ([]byte, error)
+	applyWatchDataFunc func(data []byte)
+)
+
+func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
+	getWatchDataFunc = g
+	applyWatchDataFunc = u
+}
 
 type DeltaContext struct {
 	deltaBroker   delta.DeltaBroker
@@ -25,7 +35,8 @@ type DeltaContext struct {
 	applied float64
 	missed float64
 	logger log.Logger
-	compressBroker compress.CompressBroker
+	compressType int
+	compressFlag int
 }
 
 func newDeltaContext() *DeltaContext {
@@ -40,8 +51,8 @@ func newDeltaContext() *DeltaContext {
 		panic("download delta is not allowed if upload delta enabled")
 	}
 
-	// todo can config different compress algorithm
-	dp.compressBroker = &compress.Flate{}
+	dp.compressType = viper.GetInt(types.FlagDDSCompressType)
+	dp.compressFlag = viper.GetInt(types.FlagDDSCompressFlag)
 	dp.missed = 0.000001
 
 	return dp
@@ -93,7 +104,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 			"applied-rate", dc.appliedRate(), "delta", delta)
 
 		if applied && types.IsFastQuery() {
-			UseWatchData(delta.WatchBytes())
+			applyWatchDataFunc(delta.WatchBytes())
 		}
 	}
 
@@ -113,7 +124,11 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		return
 	}
 
-	wd := GetWatchData()
+	wd, err := getWatchDataFunc()
+	if err != nil {
+		dc.logger.Error("Failed to get watch data", "height", height, "error", err)
+		return
+	}
 
 	delta4Upload := &types.Deltas {
 		Payload: types.DeltaPayload{
@@ -123,6 +138,8 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		},
 		Height:      height,
 		Version:     types.DeltaVersion,
+		CompressType: dc.compressType,
+		CompressFlag: dc.compressFlag,
 	}
 
 	go dc.uploadRoutine(delta4Upload)
@@ -149,13 +166,6 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 }
 
 func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
-
-	deltas.CompressFunc = func(compressType int, data []byte) ([]byte, error) {
-		if compressType == 0 {
-			return data, nil
-		}
-		return dc.compressBroker.DefaultCompress(data)
-	}
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -246,6 +256,7 @@ func (dc *DeltaContext) downloadRoutine() {
 	}
 }
 
+
 func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
 
@@ -259,12 +270,6 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	// unmarshal
 	delta := &types.Deltas{}
 
-	delta.DecompressFunc = func(compressType int, data []byte) ([]byte, error) {
-		if compressType == 0 {
-			return data, nil
-		}
-		return dc.compressBroker.UnCompress(data)
-	}
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)

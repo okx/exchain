@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/spf13/viper"
 	"sync"
 	"time"
@@ -16,6 +17,8 @@ const (
 	FlagDownloadDDS = "download-delta"
 	// send delta to dc/redis
 	FlagUploadDDS = "upload-delta"
+	FlagDDSCompressType = "compress-type"
+	FlagDDSCompressFlag = "compress-flag"
 
 	// redis
 	FlagRedisUrl    = "delta-redis-url"
@@ -131,8 +134,7 @@ type Deltas struct {
 	Version          int
 	Payload          DeltaPayload
 	CompressType     int
-	CompressFunc	 func(compressType int, data []byte) ([]byte, error)
-	DecompressFunc	 func(compressType int, data []byte) ([]byte, error)
+	CompressFlag     int
 
 	marshalElapsed    time.Duration
 	compressElapsed   time.Duration
@@ -171,13 +173,11 @@ func (d *Deltas) Marshal() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	t1 := time.Now()
 
-	if d.CompressFunc != nil {
-		payload, err = d.CompressFunc(d.CompressType, payload)
-		if err != nil {
-			return nil, err
-		}
+	t1 := time.Now()
+	payload, err = compress.Compress(d.CompressType, d.CompressFlag, payload)
+	if err != nil {
+		return nil, err
 	}
 	t2 := time.Now()
 
@@ -209,11 +209,9 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	d.CompressType = msg.CompressType
 
 	t1 := time.Now()
-	if d.DecompressFunc != nil {
-		msg.Metadata, err = d.DecompressFunc(d.CompressType, msg.Metadata)
-		if err != nil {
-			return err
-		}
+	msg.Metadata, err = compress.UnCompress(d.CompressType, msg.Metadata)
+	if err != nil {
+		return err
 	}
 	t2 := time.Now()
 

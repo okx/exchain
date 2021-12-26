@@ -9,30 +9,18 @@ import (
 
 func TestCompress(t *testing.T) {
 
-	var tools = []CompressBroker{
-		&Zlib{},
-		&Gzip{},
-		&Flate{},
-	}
+	compressType := 3
+	compressFlag := 2
 
 	data := []byte("oec 2021")
 
-	for _, tool := range tools {
-		res, err := tool.DefaultCompress(data)
-		assert.Nil(t, err)
-		verify := func(compressed []byte) {
-			unCompressresed, err := tool.UnCompress(compressed)
+	for ctype := 0; ctype <= compressType; ctype++ {
+		for flag := 0; flag <= compressFlag; flag++ {
+			res, err := Compress(ctype, flag, data)
+			assert.Nil(t, err)
+			unCompressresed, err := UnCompress(ctype, res)
 			assert.Nil(t, err)
 			assert.Equal(t, 0, bytes.Compare(data, unCompressresed))
 		}
-		verify(res)
-
-		res, err = tool.BestCompress(data)
-		assert.Nil(t, err)
-		verify(res)
-
-		res, err = tool.FastCompress(data)
-		assert.Nil(t, err)
-		verify(res)
 	}
 }
