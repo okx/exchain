@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -36,7 +35,8 @@ func TestDelta(t *testing.T) {
 	assert.True(t, 	unmarshaled.CompressType == d.CompressType)
 }
 
-func TestDeltas_Marshal(t *testing.T) {
+func TestDeltas_MarshalUnMarshal(t *testing.T) {
+	payload := DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}
 	type fields struct {
 		Height          int64
 		Version         int
@@ -50,10 +50,10 @@ func TestDeltas_Marshal(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"no compress", fields{Height: 1, Version: 1, Payload: payload}, false},
+		{"compress", fields{Height: 1, Version: 1, Payload: payload, CompressType: 1},false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,8 +72,60 @@ func TestDeltas_Marshal(t *testing.T) {
 				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Marshal() got = %v, want %v", got, tt.want)
+
+			err = d.Unmarshal(got)
+			assert.Nil(t, err)
+		})
+	}
+}
+
+func TestDeltas_Validate(t *testing.T) {
+	payload := DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}
+	noABCIRsp := DeltaPayload{ABCIRsp: nil, DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}
+	noDeltaBytes := DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: nil, WatchBytes: []byte("WatchBytes")}
+	noWD := DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: nil}
+
+	type fields struct {
+		Height          int64
+		Version         int
+		Payload         DeltaPayload
+		CompressType    int
+		CompressFlag    int
+		marshalElapsed  time.Duration
+		compressElapsed time.Duration
+		hashElapsed     time.Duration
+	}
+	type args struct {
+		height int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{"normal case", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{1}, true},
+		{"no ABCIRsp", fields{Height: 1, Version: DeltaVersion, Payload: noABCIRsp}, args{1}, false},
+		{"no deltaBytes", fields{Height: 1, Version: DeltaVersion, Payload: noDeltaBytes}, args{1}, false},
+		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, false},
+		{"wrong height", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{2}, false},
+		{"low version", fields{Height: 1, Version: DeltaVersion - 1, Payload: payload}, args{1}, false},
+		{"high version", fields{Height: 1, Version: DeltaVersion + 1, Payload: payload}, args{1}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dds := &Deltas{
+				Height:          tt.fields.Height,
+				Version:         tt.fields.Version,
+				Payload:         tt.fields.Payload,
+				CompressType:    tt.fields.CompressType,
+				CompressFlag:    tt.fields.CompressFlag,
+				marshalElapsed:  tt.fields.marshalElapsed,
+				compressElapsed: tt.fields.compressElapsed,
+				hashElapsed:     tt.fields.hashElapsed,
+			}
+			if got := dds.Validate(tt.args.height); got != tt.want {
+				t.Errorf("Validate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

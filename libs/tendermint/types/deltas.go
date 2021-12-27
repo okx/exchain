@@ -32,7 +32,7 @@ const (
 
 	// delta version
 	// when this DeltaVersion not equal with dds delta-version, can't use delta
-	DeltaVersion = 2
+	DeltaVersion = 3
 )
 
 var (
@@ -214,7 +214,6 @@ func (d *Deltas) Marshal() ([]byte, error) {
 // Unmarshal deserializes from amino encoded form.
 func (d *Deltas) Unmarshal(bs []byte) error {
 	t0 := time.Now()
-
 	// unmarshal to DeltasMessage
 	msg := &DeltasMessage{}
 	err := cdc.UnmarshalBinaryBare(bs, msg)
@@ -223,18 +222,18 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	}
 
 	t1 := time.Now()
+	// uncompress
+	d.CompressType = msg.CompressType
+	msg.Metadata, err = compress.UnCompress(d.CompressType, msg.Metadata)
+	if err != nil {
+		return err
+	}
+
+	t2 := time.Now()
 	// calc payload hash
 	payloadHash := tmhash.Sum(msg.Metadata)
 	if hex.EncodeToString(payloadHash) != hex.EncodeToString(msg.PayloadHash) {
 		return fmt.Errorf("metadata hash is different")
-	}
-
-	// uncompress
-	d.CompressType = msg.CompressType
-	t2 := time.Now()
-	msg.Metadata, err = compress.UnCompress(d.CompressType, msg.Metadata)
-	if err != nil {
-		return err
 	}
 	t3 := time.Now()
 
@@ -244,8 +243,8 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	d.Version = msg.Version
 	d.Height = msg.Height
 
-	d.hashElapsed = t2.Sub(t1)
-	d.compressElapsed = t3.Sub(t2)
+	d.compressElapsed = t2.Sub(t1)
+	d.hashElapsed = t3.Sub(t2)
 	d.marshalElapsed = t4.Sub(t0) - d.compressElapsed - d.hashElapsed
 	return err
 }
@@ -259,7 +258,7 @@ func (d *Deltas) String() string {
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if DeltaVersion < dds.Version ||
+	if DeltaVersion != dds.Version ||
 		dds.Height != height ||
 		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
