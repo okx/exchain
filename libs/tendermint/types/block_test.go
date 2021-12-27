@@ -880,3 +880,39 @@ func TestCommitSigAmino(t *testing.T) {
 		require.EqualValues(t, expectValue, actualValue)
 	}
 }
+
+var commitAminoTestCases = []Commit{
+	{},
+	{
+		Height:     123456,
+		Round:      10,
+		BlockID:    BlockID{Hash: []byte("hash"), PartsHeader: PartSetHeader{Total: 123, Hash: []byte("hash")}},
+		Signatures: commitSigAminoTestCases,
+	},
+	{
+		Height:     math.MaxInt64,
+		Round:      math.MaxInt,
+		Signatures: []CommitSig{},
+	},
+	{
+		Height: math.MinInt64,
+		Round:  math.MinInt,
+	},
+}
+
+func TestCommitAmino(t *testing.T) {
+	for _, commit := range commitAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(commit)
+		require.NoError(t, err)
+
+		var expectValue Commit
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Commit
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}

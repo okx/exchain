@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -846,6 +848,69 @@ type Commit struct {
 	// unmarshaling.
 	hash     tmbytes.HexBytes
 	bitArray *bits.BitArray
+}
+
+func (commit *Commit) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			commit.Height = int64(u64)
+			dataLen = uint64(n)
+		case 2:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			commit.Round = int(u64)
+			dataLen = uint64(n)
+		case 3:
+			err = commit.BlockID.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 4:
+			var cs CommitSig
+			err = cs.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			commit.Signatures = append(commit.Signatures, cs)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // NewCommit returns a new Commit.
