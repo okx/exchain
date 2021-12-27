@@ -95,11 +95,11 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 	return nil, nil
 }
 
-func (blockExec *BlockExecutor) stopPrerun(height int64) int64 {
+func (blockExec *BlockExecutor) stopPrerun(height int64) (index int64) {
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
-		if height != context.block.Height {
+		if height > 0 && height != context.block.Height {
 			context.dump(fmt.Sprintf(
 				"Prerun sanity check failed. block.Height=%d, context.block.Height=%d",
 				height,
@@ -110,10 +110,9 @@ func (blockExec *BlockExecutor) stopPrerun(height int64) int64 {
 		}
 		context.dump("Stopping prerun")
 		context.stop()
+		index = context.index
 	}
 	blockExec.flushPrerunResult()
-	index := blockExec.prerunIndex
-	blockExec.prerunIndex = 0
 	blockExec.prerunContext = nil
 	return index
 }
@@ -174,18 +173,8 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) StopPreRun() {
-	context := blockExec.prerunContext
-	// stop the existing prerun if any
-	if context != nil {
-		context.dump("Stopping prerun from StopPreRun")
-		context.stop()
-		//reset deliverState
-		if context.height != 1 {
-			context.proxyApp.SetOptionSync(abci.RequestSetOption{
-				Key: "ResetDeliverState",
-			})
-		}
-	}
+
+	blockExec.stopPrerun(0)
 }
 
 //func FirstBlock(block *types.Block) bool {

@@ -50,7 +50,7 @@ type BlockExecutor struct {
 	prerunTx bool
 	prerunChan chan *executionContext
 	prerunResultChan chan *executionContext
-	prerunIndex int64
+	//prerunIndex int64
 	prerunContext *executionContext
 
 	isFastSync bool
@@ -292,19 +292,21 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		if blockExec.prerunTx {
 			blockExec.logger.Info("Not apply delta", "height", block.Height,
 				"block-size", block.Size(),
-				"prerunIndex", blockExec.prerunIndex)
+				//"prerunIndex", blockExec.prerunIndex
+			)
 		}
 
+		//&& !blockExec.GetIsFastSyncing()
 		// blockExec.prerunIndex==0 means:
 		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
-		if blockExec.prerunIndex > 0 && !blockExec.GetIsFastSyncing() {
+		if blockExec.prerunContext != nil {
 			if !blockExec.prerunTx {
 				panic("never gonna happen")
 			}
 			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
 			blockExec.prerunContext = nil
-			blockExec.prerunIndex = 0
+			//blockExec.prerunIndex = 0
 		} else {
 			ctx := &executionContext{
 				logger:   blockExec.logger,
