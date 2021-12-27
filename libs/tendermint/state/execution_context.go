@@ -39,7 +39,7 @@ func (e *executionContext) dump(when string) {
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
-		"AppHash", e.block.AppHash,
+		//"AppHash", e.block.AppHash,
 	)
 }
 

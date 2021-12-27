@@ -62,7 +62,6 @@ func NewPool(redisURL string, redisPass string, logger log.Logger) (*redis.Pool,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", address)
 			if err != nil {
-				logger.Error(fmt.Sprintf("connect to redis failed: %v", err))
 				return nil, err
 			}
 
