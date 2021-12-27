@@ -11,5 +11,7 @@ import (
 // on every begin block
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, ik innertx.InnerTxKeeper) {
 	currentHash := req.Hash
-	ik.InitInnerBlock(common.BytesToHash(currentHash).Hex())
+	if ik != nil {
+		ik.InitInnerBlock(common.BytesToHash(currentHash).Hex())
+	}
 }
