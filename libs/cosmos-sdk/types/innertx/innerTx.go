@@ -2,8 +2,6 @@ package innertx
 
 import (
 	"math/big"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 const (
@@ -21,8 +19,8 @@ const (
 var BIG0 = big.NewInt(0)
 
 type InnerTxKeeper interface {
-	InitInnerBlock(hash string)
-	UpdateInnerTx(txBytes []byte, dept int64, from, to sdk.AccAddress, callType, name string, valueWei sdk.Coins, err error)
+	InitInnerBlock(...interface{})
+	UpdateInnerTx(...interface{})
 }
 
 func AddDefaultInnerTx(...interface{}) interface{} {
