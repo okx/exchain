@@ -29,7 +29,7 @@ run() {
       --consensus.timeout_commit 600ms \
       --enable-preruntx \
       --iavl-enable-async-commit \
-      --iavl-enable-gid \
+      --enable-gid \
       --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=1,acc=1 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
@@ -74,6 +74,7 @@ exchaincli config keyring-backend test
 # if $KEY exists it should be deleted
 #
 #    "eth_address": "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+#     prikey: 8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17
 exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
 
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",

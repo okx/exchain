@@ -4,7 +4,8 @@ package server
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"os"
 	"runtime/pprof"
 
@@ -148,10 +149,12 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "send delta to dc/redis or not")
 	cmd.Flags().Bool(tmtypes.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
 	cmd.Flags().Bool(tmtypes.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
-	cmd.Flags().Bool(tmtypes.FlagDataCenter, false, "Use data-center-mode or not")
-	cmd.Flags().String(tmtypes.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
 	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
+	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
+	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
+
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
@@ -167,17 +170,17 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
-	cmd.Flags().Bool(tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
+	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
-	cmd.Flags().BoolVar(&types2.TrieDirtyDisabled, types2.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().BoolVar(&sdk.TrieDirtyDisabled, sdk.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
+	cmd.Flags().UintVar(&sdk.TrieCacheSize, sdk.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 
-	cmd.Flags().Bool(types2.FlagMultiCache, false, "Enable multi cache")
-	cmd.Flags().Int(types2.MaxAccInMultiCache, 0, "max acc in multi cache")
-	cmd.Flags().Int(types2.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
+	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
+	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -352,7 +355,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	tmiavl.EnableGid = viper.GetBool(tmiavl.FlagIavlEnableGid)
+	gorid.EnableGid = viper.GetBool(gorid.FlagEnableGid)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 

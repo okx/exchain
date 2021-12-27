@@ -1,0 +1,4 @@
+# transfer okt
+```
+./run.sh
+```

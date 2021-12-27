@@ -172,7 +172,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
-	//var inAbciRspLen, inDeltaLen, inWatchLen int
 	dc := blockExec.deltaContext
 
 	var delta *types.Deltas
@@ -188,12 +187,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
-	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
-
-	trc.Pin("GetDelta")
 
 	delta = dc.prepareStateDelta(block.Height)
 
@@ -277,7 +273,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-
 func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
@@ -286,14 +281,20 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
+		err = types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Info("Not apply delta", "height", block.Height,
-			"block-size", block.Size(),
-			"prerunIndex", blockExec.prerunIndex)
+		//if blockExec.deltaContext.downloadDelta {
+		//	time.Sleep(time.Second*1)
+		//}
+		if blockExec.prerunTx {
+			blockExec.logger.Info("Not apply delta", "height", block.Height,
+				"block-size", block.Size(),
+				"prerunIndex", blockExec.prerunIndex)
+		}
+
 		// blockExec.prerunIndex==0 means:
 		// 1. prerunTx disabled
 		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
@@ -352,7 +353,7 @@ func (blockExec *BlockExecutor) commit(
 
 	abciDelta := &abci.Deltas{}
 	if delta != nil {
-		abciDelta.DeltasByte = delta.DeltasBytes
+		abciDelta.DeltasByte = delta.DeltasBytes()
 		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
 	}
 
