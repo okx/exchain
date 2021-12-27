@@ -166,7 +166,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 
 	// handle Deltas to bytes
 	getBytes := func() ([]byte, error) {
-		return dc.getUploadBytes(deltas)
+		return deltas.Marshal()
 	}
 
 	t1 := time.Now()
@@ -176,27 +176,12 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	t2 := time.Now()
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
+		"marshal", deltas.MarshalOrUnmarshalElapsed(),
+		"compress", deltas.CompressOrUncompressElapsed(),
 		"upload and resetLHeight", t2.Sub(t1),
 		"succeed", succeed,
 		"deltas", deltas,
 		"gid", gorid.GoRId)
-}
-
-func (dc *DeltaContext) getUploadBytes(deltas *types.Deltas) ([]byte, error) {
-	// marshal deltas to bytes
-	deltaBytes, err := deltas.Marshal()
-	if err != nil {
-		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
-		return nil, err
-	}
-
-	dc.logger.Info("get upload bytes",
-		"target-height", deltas.Height,
-		"marshal", deltas.MarshalOrUnmarshalElapsed(),
-		"compress", deltas.CompressOrUncompressElapsed(),
-		"deltas", deltas,
-		"gid", gorid.GoRId)
-	return deltaBytes, nil
 }
 
 // get delta from dds

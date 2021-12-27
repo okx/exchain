@@ -84,7 +84,6 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 	bytes, err := getBytes()
 	if h < height && err == nil {
 		// upload and set latestHeight
-
 		deltaKey := calcDeltaKey(height)
 		reply, err := uploadAndResetHeight.Do(conn, deltaKey, bytes, latestHeightKey, height)
 		if err == nil && reply == "OK" {
@@ -94,6 +93,8 @@ func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, getBytes func()
 		} else {
 			r.logger.Error("Failed to reset LatestHeightKey", "err", err, "reply", reply)
 		}
+	} else if err != nil {
+		r.logger.Error("Failed to get delta bytes,", "err", err)
 	}
 
 	return res
