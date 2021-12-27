@@ -1381,16 +1381,20 @@ func (d *EvidenceData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		switch pos {
 		case 1:
 			var evi Evidence
-			eviTmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(subData, &evi)
-			if err != nil {
-				err = cdc.UnmarshalBinaryBare(subData, &evi)
-				if err != nil {
-					return err
-				} else {
-					d.Evidence = append(d.Evidence, evi)
-				}
+			if dataLen == 0 {
+				d.Evidence = append(d.Evidence, nil)
 			} else {
-				d.Evidence = append(d.Evidence, eviTmp.(Evidence))
+				eviTmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(subData, &evi)
+				if err != nil {
+					err = cdc.UnmarshalBinaryBare(subData, &evi)
+					if err != nil {
+						return err
+					} else {
+						d.Evidence = append(d.Evidence, evi)
+					}
+				} else {
+					d.Evidence = append(d.Evidence, eviTmp.(Evidence))
+				}
 			}
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
