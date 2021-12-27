@@ -99,6 +99,10 @@ func (sw *Switch) NetAddress() *NetAddress {
 	return &addr
 }
 
+func (sw *Switch) ListenAddress() string {
+	return sw.config.ListenAddress
+}
+
 // SwitchOption sets an optional parameter on the Switch.
 type SwitchOption func(*Switch)
 

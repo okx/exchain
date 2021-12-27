@@ -39,6 +39,10 @@ moniker = "anonymous"
 # and verifying their commits
 fast_sync = true
 
+# AutoFastSync allows this node switches from consensus mode to fast-sync mode automatically
+# when it is many blocks behind the tip of the chain.
+auto_fast_sync = true
+
 # Database backend: goleveldb | cleveldb | boltdb | rocksdb
 # * goleveldb (github.com/syndtr/goleveldb - most popular implementation)
 #   - pure go

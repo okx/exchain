@@ -33,6 +33,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 
 	// node flags
 	cmd.Flags().Bool("fast_sync", config.FastSyncMode, "Fast blockchain syncing")
+	cmd.Flags().Bool("auto_fast_sync", config.AutoFastSync, "Switch to FastSync mode automatically")
 	cmd.Flags().BytesHexVar(
 		&genesisHash,
 		"genesis_hash",
@@ -80,6 +81,10 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"consensus.create_empty_blocks_interval",
 		config.Consensus.CreateEmptyBlocksInterval.String(),
 		"The possible interval between empty blocks")
+	cmd.Flags().String(
+		"consensus.switch_to_fast_sync_interval",
+		config.Consensus.TimeoutToFastSync.String(),
+		"The interval for switching from consensus mode to fast-sync mode")
 	// mempool flags
 	cmd.Flags().Bool(
 		"mempool.sealed",

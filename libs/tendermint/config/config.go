@@ -169,6 +169,10 @@ type BaseConfig struct { //nolint: maligned
 	// and verifying their commits
 	FastSyncMode bool `mapstructure:"fast_sync"`
 
+	// AutoFastSync allows this node switches from consensus mode to fast-sync mode automatically
+	// when it is many blocks behind the tip of the chain.
+	AutoFastSync bool `mapstructure:"auto_fast_sync"`
+
 	// Database backend: goleveldb | cleveldb | boltdb | rocksdb
 	// * goleveldb (github.com/syndtr/goleveldb - most popular implementation)
 	//   - pure go
@@ -242,6 +246,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogLevel:           DefaultPackageLogLevels(),
 		LogFormat:          LogFormatPlain,
 		FastSyncMode:       true,
+		AutoFastSync:       true,
 		FilterPeers:        false,
 		DBBackend:          "goleveldb",
 		DBPath:             "data",
@@ -257,6 +262,7 @@ func TestBaseConfig() BaseConfig {
 	cfg.chainID = "tendermint_test"
 	cfg.ProxyApp = "kvstore"
 	cfg.FastSyncMode = false
+	cfg.AutoFastSync = false
 	cfg.DBBackend = "memdb"
 	return cfg
 }
@@ -803,6 +809,7 @@ type ConsensusConfig struct {
 	// EmptyBlocks mode and possible interval between empty blocks
 	CreateEmptyBlocks         bool          `mapstructure:"create_empty_blocks"`
 	CreateEmptyBlocksInterval time.Duration `mapstructure:"create_empty_blocks_interval"`
+	TimeoutToFastSync         time.Duration `mapstructure:"switch_to_fast_sync_interval"`
 
 	// Reactor sleep duration parameters
 	PeerGossipSleepDuration     time.Duration `mapstructure:"peer_gossip_sleep_duration"`
@@ -824,6 +831,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
 		CreateEmptyBlocksInterval:   0 * time.Second,
+		TimeoutToFastSync:           30 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
 	}
@@ -841,6 +849,7 @@ func TestConsensusConfig() *ConsensusConfig {
 	cfg.TimeoutCommit = 10 * time.Millisecond
 	cfg.TimeoutConsensus = 60 * time.Millisecond
 	cfg.SkipTimeoutCommit = true
+	cfg.TimeoutToFastSync = 30 * time.Second
 	cfg.PeerGossipSleepDuration = 5 * time.Millisecond
 	cfg.PeerQueryMaj23SleepDuration = 250 * time.Millisecond
 	return cfg
@@ -920,6 +929,9 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	}
 	if cfg.CreateEmptyBlocksInterval < 0 {
 		return errors.New("create_empty_blocks_interval can't be negative")
+	}
+	if cfg.TimeoutToFastSync < 0 {
+		return errors.New("timeout_to_fast_sync can't be negative")
 	}
 	if cfg.PeerGossipSleepDuration < 0 {
 		return errors.New("peer_gossip_sleep_duration can't be negative")
