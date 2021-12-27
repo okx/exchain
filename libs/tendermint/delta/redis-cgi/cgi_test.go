@@ -11,7 +11,7 @@ import (
 const (
 	ConstRedisURL   = "127.0.0.1:6379"
 	ConstDeltaBytes = "delta-bytes"
-	ConstTestHeight = 1000000
+	ConstTestHeight = 1
 )
 
 func getRedisClient() *RedisClient {
@@ -47,7 +47,7 @@ func TestRedisClient_SetGetDeltas(t *testing.T) {
 	require.True(t, err != nil, err)
 }
 
-func TestRedisClient_ResetLatestHeightAfterUpload1(t *testing.T) {
+func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
 	r := getRedisClient()
 	require.True(t, r != nil, r)
 	uploadSuccess := func() bool {return true}
@@ -64,9 +64,9 @@ func TestRedisClient_ResetLatestHeightAfterUpload1(t *testing.T) {
 	}{
 		{"upload failed", args{h, uploadFailed}, false},
 		{"first time set", args{h, uploadSuccess}, true},
-		{"height < latestHeight", args{h-1, uploadSuccess}, false},
-		{"height == latestHeight", args{h, uploadSuccess}, false},
-		{"height > latestHeight", args{h+1, uploadSuccess}, true},
+		{"height<latestHeight", args{h-1, uploadSuccess}, false},
+		{"height==latestHeight", args{h, uploadSuccess}, false},
+		{"height>latestHeight", args{h+1, uploadSuccess}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
