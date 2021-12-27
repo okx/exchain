@@ -284,7 +284,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block, blockExec.isFastSync)
+			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
 		}
 
 		if abciResponses == nil {

@@ -10,27 +10,26 @@ import (
 
 type prerunContext struct {
 	prerunTx bool
-	prerunChan chan *executionTask
-	prerunResultChan chan *executionTask
+	taskChan chan *executionTask
+	taskResultChan chan *executionTask
 	prerunTask *executionTask
 	logger log.Logger
 }
 
 func newPrerunContex(logger log.Logger) *prerunContext {
 	return &prerunContext{
-		prerunChan:           make(chan *executionTask, 1),
-		prerunResultChan:     make(chan *executionTask, 1),
+		taskChan:           make(chan *executionTask, 1),
+		taskResultChan:     make(chan *executionTask, 1),
 		logger:         logger,
 	}
 }
 
-func (pc *prerunContext) checkIndex(block *types.Block) {
+func (pc *prerunContext) checkIndex(height int64) {
 	var index int64
 	if pc.prerunTask != nil {
 		index = pc.prerunTask.index
 	}
-	pc.logger.Info("Not apply delta", "height", block.Height,
-		"block-size", block.Size(), "prerunIndex", index)
+	pc.logger.Info("Not apply delta", "height", height, "prerunIndex", index)
 
 }
 
@@ -38,7 +37,7 @@ func (pc *prerunContext) checkIndex(block *types.Block) {
 func (pc *prerunContext) flushPrerunResult() {
 	for {
 		select {
-		case task := <-pc.prerunResultChan:
+		case task := <-pc.taskResultChan:
 			task.dump("Flush prerun result")
 		default:
 			return
@@ -48,14 +47,14 @@ func (pc *prerunContext) flushPrerunResult() {
 
 func (pc *prerunContext) prerunRoutine() {
 	pc.prerunTx = true
-	for task := range pc.prerunChan {
+	for task := range pc.taskChan {
 		task.run()
 	}
 }
 
 func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 	expected := pc.prerunTask
-	for context := range pc.prerunResultChan {
+	for context := range pc.taskResultChan {
 
 		context.dump("Got prerun result")
 
@@ -115,15 +114,16 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.prerunTask.dump("Notify prerun")
 
 	// start a new one
-	pc.prerunChan <- pc.prerunTask
+	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCIResponses, err error) {
 
-	pc.checkIndex(block)
+	pc.checkIndex(height)
 
 	if fastSync {
-		pc.stopPrerun(block.Height)
+		pc.stopPrerun(height)
+		return
 	}
 	// blockExec.prerunContext == nil means:
 	// 1. prerunTx disabled

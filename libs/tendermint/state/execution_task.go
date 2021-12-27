@@ -21,15 +21,14 @@ type executionResult struct {
 
 type executionTask struct {
 	height  int64
+	index   int64
 	block   *types.Block
 	stopped bool
-	result  *executionResult
-
-	prerunResultChan chan *executionTask
+	taskResultChan   chan *executionTask
+	result           *executionResult
 	proxyApp         proxy.AppConnConsensus
 	db               dbm.DB
 	logger           log.Logger
-	index            int64
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -40,7 +39,7 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		db:               blockExec.db,
 		proxyApp:         blockExec.proxyApp,
 		logger:           blockExec.logger,
-		prerunResultChan: blockExec.prerunCtx.prerunResultChan,
+		taskResultChan:   blockExec.prerunCtx.taskResultChan,
 		index:            index,
 	}
 }
@@ -87,7 +86,7 @@ func (t *executionTask) run() {
 	}
 	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")
-	t.prerunResultChan <- t
+	t.taskResultChan <- t
 }
 
 //========================================================
