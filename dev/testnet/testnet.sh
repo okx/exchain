@@ -16,12 +16,16 @@ set -m
 set -x # activate debugging
 
 source exchain.profile
-
-while getopts "isn:b:p:c:Sm" opt; do
+PRERUN=false
+while getopts "isn:b:p:c:Smx" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
     OKCHAIN_INIT=1
+    ;;
+  x)
+    echo "PRERUN=$OPTARG"
+    PRERUN=true
     ;;
   s)
     echo "OKCHAIN_START"
@@ -130,9 +134,10 @@ run() {
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
+    --enable-gid \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
-    --enable-preruntx=false \
+    --enable-preruntx=$PRERUN \
     --consensus-role=v$index \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &

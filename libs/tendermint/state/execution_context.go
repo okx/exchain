@@ -95,23 +95,36 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 	return nil, nil
 }
 
-func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
+func (blockExec *BlockExecutor) stopPrerun(height int64) int64 {
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
-		// Got wrong when swithed from fast-sync to consensus. Just remove it!
-		//if block.Height != context.block.Height {
-		//	context.dump("Prerun sanity check failed")
-		//
-		//	// todo
-		//	panic("Prerun sanity check failed")
-		//}
+		if height != context.block.Height {
+			context.dump(fmt.Sprintf(
+				"Prerun sanity check failed. block.Height=%d, context.block.Height=%d",
+				height,
+				context.block.Height))
+
+			// todo
+			panic("Prerun sanity check failed")
+		}
 		context.dump("Stopping prerun")
 		context.stop()
 	}
 	blockExec.flushPrerunResult()
-	blockExec.prerunIndex++
-	context = &executionContext{
+	index := blockExec.prerunIndex
+	blockExec.prerunIndex = 0
+	blockExec.prerunContext = nil
+	return index
+}
+
+
+func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
+
+	stoppedIndex := blockExec.stopPrerun(block.Height)
+	stoppedIndex++
+
+	blockExec.prerunContext = &executionContext{
 		height:           height,
 		block:            block,
 		stopped:          false,
@@ -119,11 +132,10 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 		proxyApp:         blockExec.proxyApp,
 		logger:           blockExec.logger,
 		prerunResultChan: blockExec.prerunResultChan,
-		index:            blockExec.prerunIndex,
+		index:            stoppedIndex,
 	}
 
-	context.dump("Notify prerun")
-	blockExec.prerunContext = context
+	blockExec.prerunContext.dump("Notify prerun")
 
 	// start a new one
 	blockExec.prerunChan <- blockExec.prerunContext

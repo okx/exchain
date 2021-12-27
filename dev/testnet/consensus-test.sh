@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./testnet.sh -s -i -n 4 -c allcase.json
+./testnet.sh -s -i -n 4 -c preruncase.json -x
 
 sleep 5
 
