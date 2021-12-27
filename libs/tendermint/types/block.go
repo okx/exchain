@@ -1137,6 +1137,50 @@ type Data struct {
 	hash tmbytes.HexBytes
 }
 
+func (d *Data) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var tx []byte
+			if dataLen > 0 {
+				tx = make([]byte, len(subData))
+				copy(tx, subData)
+			}
+			d.Txs = append(d.Txs, tx)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // Hash returns the hash of the data
 func (data *Data) Hash() tmbytes.HexBytes {
 	if data == nil {
