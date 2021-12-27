@@ -331,7 +331,7 @@ func TestSerialReap(t *testing.T) {
 					res.Code, res.Data, res.Log)
 			}
 		}
-		res, err := appConnCon.CommitSync()
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
 		if err != nil {
 			t.Errorf("client error committing: %v", err)
 		}
@@ -536,7 +536,7 @@ func TestMempoolTxsBytes(t *testing.T) {
 	res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
 	require.NoError(t, err)
 	require.EqualValues(t, 0, res.Code)
-	res2, err := appConnCon.CommitSync()
+	res2, err := appConnCon.CommitSync(abci.RequestCommit{})
 	require.NoError(t, err)
 	require.NotEmpty(t, res2.Data)
 
