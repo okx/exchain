@@ -918,7 +918,7 @@ func TestCommitAmino(t *testing.T) {
 }
 
 func TestEvidenceDataAmino(t *testing.T) {
-	evidenceDataTestCases := []EvidenceData{
+	evidenceDataAminoTestCases := []EvidenceData{
 		{},
 		{[]Evidence{}, []byte("hash")},
 		{Evidence: []Evidence{nil, nil}},
@@ -931,7 +931,7 @@ func TestEvidenceDataAmino(t *testing.T) {
 			},
 		},
 	}
-	for _, evi := range evidenceDataTestCases {
+	for _, evi := range evidenceDataAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(evi)
 		require.NoError(t, err)
 
@@ -945,4 +945,84 @@ func TestEvidenceDataAmino(t *testing.T) {
 
 		require.EqualValues(t, expectValue, actualValue)
 	}
+}
+
+var blockAminoTestCases = []Block{
+	{},
+	{
+		Header: Header{LastBlockID: BlockID{[]byte("Hash"), PartSetHeader{1, []byte("Hash")}}},
+		Data:   Data{Txs: []Tx{{}, []byte("tx1"), []byte("tx2"), nil}},
+		Evidence: EvidenceData{
+			Evidence: []Evidence{
+				&DuplicateVoteEvidence{VoteA: &Vote{
+					0, 12345, 123,
+					BlockID{[]byte("hash"), PartSetHeader{8, []byte("hash")}},
+					time.Now(),
+					[]byte("ValidatorAddress"),
+					23,
+					[]byte("Signature"),
+				}},
+			},
+		},
+		LastCommit: &Commit{
+			Height:     123456,
+			Round:      10,
+			BlockID:    BlockID{Hash: []byte("hash"), PartsHeader: PartSetHeader{Total: 123, Hash: []byte("hash")}},
+			Signatures: commitSigAminoTestCases,
+		},
+	},
+	{
+		LastCommit: &Commit{},
+	},
+}
+
+func TestBlockAmino(t *testing.T) {
+	for _, block := range blockAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(block)
+		require.NoError(t, err)
+
+		var expectValue Block
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Block
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkBlockAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(blockAminoTestCases))
+	for i, block := range blockAminoTestCases {
+		data, err := cdc.MarshalBinaryBare(block)
+		require.NoError(b, err)
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var block Block
+				err := cdc.UnmarshalBinaryBare(d, &block)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var block Block
+				err := block.UnmarshalFromAmino(cdc, d)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
