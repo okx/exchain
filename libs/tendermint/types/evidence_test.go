@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -215,5 +218,64 @@ func TestEvidenceProto(t *testing.T) {
 			}
 			require.Equal(t, tt.evidence, evi, tt.testName)
 		})
+	}
+}
+
+type emptyPubKey struct{}
+
+func (emptyPubKey) Address() crypto.Address {
+	return []byte("empty")
+}
+
+func (emptyPubKey) Bytes() []byte {
+	return []byte("empty")
+}
+
+func (emptyPubKey) VerifyBytes(msg []byte, sig []byte) bool {
+	return false
+}
+
+func (emptyPubKey) Equals(crypto.PubKey) bool {
+	return false
+}
+
+var _ crypto.PubKey = emptyPubKey{}
+
+func TestDuplicateVoteEvidenceAmino(t *testing.T) {
+	var duplicateVoteEvidenceTestCases = []DuplicateVoteEvidence{
+		{},
+		{
+			PubKey: secp256k1.GenPrivKey().PubKey(),
+			VoteA:  makeVote(t, NewMockPV(), "mychain", 0, 10, 2, 1, makeBlockID([]byte("blockhash"), 1000, []byte("partshash"))),
+			VoteB:  makeVote(t, NewMockPV(), "mychain", 0, 10, 2, 1, makeBlockID([]byte("blockhash"), 1000, []byte("partshash"))),
+		},
+		{
+			PubKey: ed25519.GenPrivKey().PubKey(),
+		},
+		{
+			PubKey: emptyPubKey{},
+			VoteA:  &Vote{},
+		},
+	}
+	cdc.RegisterConcrete(emptyPubKey{}, "emptyPubKey", nil)
+
+	for _, tc := range duplicateVoteEvidenceTestCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+
+		var expectValue DuplicateVoteEvidence
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue DuplicateVoteEvidence
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		require.NoError(t, err)
+		_, ok := tmp.(DuplicateVoteEvidence)
+		require.False(t, ok)
+		_, ok = tmp.(*DuplicateVoteEvidence)
+		require.True(t, ok)
+		actualValue = *(tmp.(*DuplicateVoteEvidence))
+
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }
