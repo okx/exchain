@@ -47,6 +47,13 @@ func (e *executionContext) stop() {
 	if e.stopped {
 		return
 	}
+
+	//reset deliverState
+	if e.height != 1 {
+		e.proxyApp.SetOptionSync(abci.RequestSetOption{
+			Key: "ResetDeliverState",
+		})
+	}
 	e.stopped = true
 }
 
@@ -110,6 +117,7 @@ func (blockExec *BlockExecutor) stopPrerun(height int64) (index int64) {
 		}
 		context.dump("Stopping prerun")
 		context.stop()
+
 		index = context.index
 	}
 	blockExec.flushPrerunResult()
@@ -142,15 +150,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 
 func prerun(context *executionContext) {
 	context.dump("Start prerun")
-
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
-
-	if context.height != 1 {
-		context.proxyApp.SetOptionSync(abci.RequestSetOption{
-			Key: "ResetDeliverState",
-		})
-	}
-
 	abciResponses, err := execBlockOnProxyApp(context)
 
 	if !context.stopped {
