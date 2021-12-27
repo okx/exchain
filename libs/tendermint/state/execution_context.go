@@ -3,78 +3,59 @@ package state
 import (
 	"bytes"
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/okex/exchain/libs/tendermint/trace"
-
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
 )
 
-type executionResult struct {
-	res *ABCIResponses
-	err error
+
+type prerunContext struct {
+	prerunTx bool
+	prerunChan chan *executionTask
+	prerunResultChan chan *executionTask
+	prerunTask *executionTask
+	logger log.Logger
 }
 
-type executionContext struct {
-	height  int64
-	block   *types.Block
-	stopped bool
-	result  *executionResult
-
-	prerunResultChan chan *executionContext
-	proxyApp         proxy.AppConnConsensus
-	db               dbm.DB
-	logger           log.Logger
-	index            int64
-}
-
-func (e *executionContext) dump(when string) {
-
-	e.logger.Info(when,
-		"gid", gorid.GoRId,
-		"stopped", e.stopped,
-		"Height", e.block.Height,
-		"index", e.index,
-		//"AppHash", e.block.AppHash,
-	)
-}
-
-func (e *executionContext) stop() {
-	if e.stopped {
-		return
+func newPrerunContex(logger log.Logger) *prerunContext {
+	return &prerunContext{
+		prerunChan:           make(chan *executionTask, 1),
+		prerunResultChan:     make(chan *executionTask, 1),
+		logger:         logger,
 	}
-
-	//reset deliverState
-	if e.height != 1 {
-		e.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
-	}
-	e.stopped = true
 }
 
-func (blockExec *BlockExecutor) flushPrerunResult() {
+func (pc *prerunContext) checkIndex(block *types.Block) {
+	var index int64
+	if pc.prerunTask != nil {
+		index = pc.prerunTask.index
+	}
+	pc.logger.Info("Not apply delta", "height", block.Height,
+		"block-size", block.Size(), "prerunIndex", index)
+
+}
+
+
+func (pc *prerunContext) flushPrerunResult() {
 	for {
 		select {
-		case context := <-blockExec.prerunResultChan:
-			context.dump("Flush prerun result")
+		case task := <-pc.prerunResultChan:
+			task.dump("Flush prerun result")
 		default:
 			return
 		}
 	}
 }
 
-func (blockExec *BlockExecutor) prerunRoutine() {
-	for context := range blockExec.prerunChan {
-		prerun(context)
+func (pc *prerunContext) prerunRoutine() {
+	pc.prerunTx = true
+	for task := range pc.prerunChan {
+		task.run()
 	}
 }
 
-func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIResponses, error) {
-
-	for context := range blockExec.prerunResultChan {
+func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
+	expected := pc.prerunTask
+	for context := range pc.prerunResultChan {
 
 		context.dump("Got prerun result")
 
@@ -82,15 +63,15 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 			continue
 		}
 
-		if context.height != ctx.block.Height {
+		if context.height != expected.block.Height {
 			continue
 		}
 
-		if context.index != ctx.index {
+		if context.index != expected.index {
 			continue
 		}
 
-		if bytes.Equal(context.block.AppHash, ctx.block.AppHash) {
+		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
 			return context.result.res, context.result.err
 		} else {
 			// todo
@@ -100,77 +81,56 @@ func (blockExec *BlockExecutor) getPrerunResult(ctx *executionContext) (*ABCIRes
 	return nil, nil
 }
 
-func (blockExec *BlockExecutor) stopPrerun(height int64) (index int64) {
-	context := blockExec.prerunContext
+func (pc *prerunContext) stopPrerun(height int64) (index int64) {
+	task := pc.prerunTask
 	// stop the existing prerun if any
-	if context != nil {
-		if height > 0 && height != context.block.Height {
-			context.dump(fmt.Sprintf(
+	if task != nil {
+		if height > 0 && height != task.block.Height {
+			task.dump(fmt.Sprintf(
 				"Prerun sanity check failed. block.Height=%d, context.block.Height=%d",
 				height,
-				context.block.Height))
+				task.block.Height))
 
 			// todo
 			panic("Prerun sanity check failed")
 		}
-		context.dump("Stopping prerun")
-		context.stop()
+		task.dump("Stopping prerun")
+		task.stop()
 
-		index = context.index
+		index = task.index
 	}
-	blockExec.flushPrerunResult()
-	blockExec.prerunContext = nil
+	pc.flushPrerunResult()
+	pc.prerunTask = nil
 	return index
 }
 
 
-func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
+func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Block) {
 
-	stoppedIndex := blockExec.stopPrerun(block.Height)
+	stoppedIndex := pc.stopPrerun(block.Height)
 	stoppedIndex++
 
-	blockExec.prerunContext = &executionContext{
-		height:           block.Height,
-		block:            block,
-		stopped:          false,
-		db:               blockExec.db,
-		proxyApp:         blockExec.proxyApp,
-		logger:           blockExec.logger,
-		prerunResultChan: blockExec.prerunResultChan,
-		index:            stoppedIndex,
-	}
+	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex)
 
-	blockExec.prerunContext.dump("Notify prerun")
+	pc.prerunTask.dump("Notify prerun")
 
 	// start a new one
-	blockExec.prerunChan <- blockExec.prerunContext
+	pc.prerunChan <- pc.prerunTask
 }
 
-func prerun(context *executionContext) {
-	context.dump("Start prerun")
-	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
+func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res *ABCIResponses, err error) {
 
-	if context.height != 1 {
-		context.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
+	pc.checkIndex(block)
+
+	if fastSync {
+		pc.stopPrerun(block.Height)
 	}
-
-	abciResponses, err := execBlockOnProxyApp(context)
-
-	if !context.stopped {
-		context.result = &executionResult{
-			abciResponses, err,
-		}
-		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
+	// blockExec.prerunContext == nil means:
+	// 1. prerunTx disabled
+	// 2. we are in fasy-sync: the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
+	if pc.prerunTask != nil {
+		res, err = pc.dequeueResult()
+		pc.prerunTask = nil
 	}
-	automation.PrerunTimeOut(context.block.Height, int(context.index)-1)
-	context.dump("Prerun completed")
-	context.prerunResultChan <- context
-}
-
-func (blockExec *BlockExecutor) InitPrerun() {
-	if blockExec.deltaContext.downloadDelta {
-		panic("download delta is not allowed if prerun enabled")
-	}
-	blockExec.prerunTx = true
-	go blockExec.prerunRoutine()
+	return
 }
