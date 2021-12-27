@@ -1,7 +1,9 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/spf13/viper"
 	"sync"
@@ -16,7 +18,7 @@ const (
 	// get delta from dc/redis
 	FlagDownloadDDS = "download-delta"
 	// send delta to dc/redis
-	FlagUploadDDS = "upload-delta"
+	FlagUploadDDS       = "upload-delta"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
 
@@ -116,10 +118,11 @@ func RedisExpire() time.Duration {
 }
 
 type DeltasMessage struct {
-	Metadata         []byte `json:"metadata"`
-	Height           int64  `json:"height"`
-	Version          int    `json:"version"`
-	CompressType     int    `json:"compress_type"`
+	Metadata     []byte `json:"metadata"`
+	Height       int64  `json:"height"`
+	Version      int    `json:"version"`
+	CompressType int    `json:"compress_type"`
+	PayloadHash  []byte `json:"payload_hash"`
 }
 
 type DeltaPayload struct {
@@ -130,16 +133,16 @@ type DeltaPayload struct {
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
-	Height           int64
-	Version          int
-	Payload          DeltaPayload
-	CompressType     int
-	CompressFlag     int
+	Height       int64
+	Version      int
+	Payload      DeltaPayload
+	CompressType int
+	CompressFlag int
 
-	marshalElapsed    time.Duration
-	compressElapsed   time.Duration
+	marshalElapsed  time.Duration
+	compressElapsed time.Duration
+	hashElapsed     time.Duration
 }
-
 
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
@@ -163,36 +166,47 @@ func (d *Deltas) MarshalOrUnmarshalElapsed() time.Duration {
 func (d *Deltas) CompressOrUncompressElapsed() time.Duration {
 	return d.compressElapsed
 }
-
+func (d *Deltas) HashElapsed() time.Duration {
+	return d.hashElapsed
+}
 
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
 	t0 := time.Now()
 
+	// marshal to payload bytes
 	payload, err := cdc.MarshalBinaryBare(&d.Payload)
 	if err != nil {
 		return nil, err
 	}
 
 	t1 := time.Now()
+	// calc payload hash
+	payloadHash := tmhash.Sum(payload)
+
+	// compress
+	t2 := time.Now()
 	payload, err = compress.Compress(d.CompressType, d.CompressFlag, payload)
 	if err != nil {
 		return nil, err
 	}
-	t2 := time.Now()
-
-	dt := &DeltasMessage{
-		Metadata: payload,
-		Height: d.Height,
-		Version: d.Version,
-		CompressType: d.CompressType,
-	}
-
-	res, err := cdc.MarshalBinaryBare(dt)
 	t3 := time.Now()
 
-	d.compressElapsed = t2.Sub(t1)
-	d.marshalElapsed = t3.Sub(t0) - d.compressElapsed
+	dt := &DeltasMessage{
+		Metadata:     payload,
+		Height:       d.Height,
+		Version:      d.Version,
+		CompressType: d.CompressType,
+		PayloadHash:  payloadHash,
+	}
+
+	// marshal to upload bytes
+	res, err := cdc.MarshalBinaryBare(dt)
+	t4 := time.Now()
+
+	d.hashElapsed = t2.Sub(t1)
+	d.compressElapsed = t3.Sub(t2)
+	d.marshalElapsed = t4.Sub(t0) - d.compressElapsed - d.hashElapsed
 
 	return res, err
 }
@@ -201,30 +215,38 @@ func (d *Deltas) Marshal() ([]byte, error) {
 func (d *Deltas) Unmarshal(bs []byte) error {
 	t0 := time.Now()
 
+	// unmarshal to DeltasMessage
 	msg := &DeltasMessage{}
 	err := cdc.UnmarshalBinaryBare(bs, msg)
 	if err != nil {
 		return err
 	}
-	d.CompressType = msg.CompressType
 
 	t1 := time.Now()
+	// calc payload hash
+	payloadHash := tmhash.Sum(msg.Metadata)
+	if hex.EncodeToString(payloadHash) != hex.EncodeToString(msg.PayloadHash) {
+		return fmt.Errorf("metadata hash is different")
+	}
+
+	// uncompress
+	d.CompressType = msg.CompressType
+	t2 := time.Now()
 	msg.Metadata, err = compress.UnCompress(d.CompressType, msg.Metadata)
 	if err != nil {
 		return err
 	}
-	t2 := time.Now()
-
+	t3 := time.Now()
 
 	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
-	t3 := time.Now()
+	t4 := time.Now()
 
 	d.Version = msg.Version
 	d.Height = msg.Height
 
-
-	d.compressElapsed = t2.Sub(t1)
-	d.marshalElapsed = t3.Sub(t0) - d.compressElapsed
+	d.hashElapsed = t2.Sub(t1)
+	d.compressElapsed = t3.Sub(t2)
+	d.marshalElapsed = t4.Sub(t0) - d.compressElapsed - d.hashElapsed
 	return err
 }
 
@@ -233,7 +255,7 @@ func (d *Deltas) String() string {
 		d.Height,
 		d.Version,
 		d.Size(),
-		)
+	)
 }
 
 func (dds *Deltas) Validate(height int64) bool {
