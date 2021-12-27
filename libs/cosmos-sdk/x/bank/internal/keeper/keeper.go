@@ -57,7 +57,9 @@ func NewBaseKeeper(
 func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() || !ctx.IsReCheckTx() {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, delegatorAddr, moduleAccAddr, innertx.COSMOS_CALL_TYPE, innertx.DELEGATE_CALL_NAME, amt, err)
+			if keeper.ik != nil {
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, delegatorAddr, moduleAccAddr, innertx.COSMOS_CALL_TYPE, innertx.DELEGATE_CALL_NAME, amt, err)
+			}
 		}
 	}()
 	delegatorAcc := keeper.ak.GetAccount(ctx, delegatorAddr)
@@ -105,7 +107,9 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() || !ctx.IsReCheckTx() {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, moduleAccAddr, delegatorAddr, innertx.COSMOS_CALL_TYPE, innertx.UNDELEGATE_CALL_NAME, amt, err)
+			if keeper.ik != nil {
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, moduleAccAddr, delegatorAddr, innertx.COSMOS_CALL_TYPE, innertx.UNDELEGATE_CALL_NAME, amt, err)
+			}
 		}
 	}()
 
@@ -195,12 +199,14 @@ func NewBaseSendKeeper(
 func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.Input, outputs []types.Output) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() || !ctx.IsReCheckTx() {
-			for _, in := range inputs {
-				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, in.Address, sdk.AccAddress{}, innertx.COSMOS_CALL_TYPE, innertx.MULTI_CALL_NAME, in.Coins, err)
-			}
+			if keeper.ik != nil {
+				for _, in := range inputs {
+					keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, in.Address, sdk.AccAddress{}, innertx.COSMOS_CALL_TYPE, innertx.MULTI_CALL_NAME, in.Coins, err)
+				}
 
-			for _, out := range outputs {
-				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, sdk.AccAddress{}, out.Address, innertx.COSMOS_CALL_TYPE, innertx.MULTI_CALL_NAME, out.Coins, err)
+				for _, out := range outputs {
+					keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, sdk.AccAddress{}, out.Address, innertx.COSMOS_CALL_TYPE, innertx.MULTI_CALL_NAME, out.Coins, err)
+				}
 			}
 		}
 	}()
@@ -255,7 +261,9 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() || !ctx.IsReCheckTx() {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, fromAddr, toAddr, innertx.COSMOS_CALL_TYPE, innertx.SEND_CALL_NAME, amt, err)
+			if keeper.ik != nil {
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.COSMOS_DEPTH, fromAddr, toAddr, innertx.COSMOS_CALL_TYPE, innertx.SEND_CALL_NAME, amt, err)
+			}
 		}
 	}()
 	ctx.EventManager().EmitEvents(sdk.Events{
