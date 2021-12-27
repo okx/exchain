@@ -648,6 +648,66 @@ type CommitSig struct {
 	Signature        []byte      `json:"signature"`
 }
 
+func (cs *CommitSig) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+	var timestampUpdated bool
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			cs.BlockIDFlag = BlockIDFlag(u64)
+			dataLen = uint64(n)
+		case 2:
+			cs.ValidatorAddress = make([]byte, len(subData))
+			copy(cs.ValidatorAddress, subData)
+		case 3:
+			cs.Timestamp, _, err = amino.DecodeTime(subData)
+			if err != nil {
+				return err
+			}
+			timestampUpdated = true
+		case 4:
+			cs.Signature = make([]byte, len(subData))
+			copy(cs.Signature, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	if !timestampUpdated {
+		cs.Timestamp = amino.ZeroTime
+	}
+	return nil
+}
+
 // NewCommitSigForBlock returns new CommitSig with BlockIDFlagCommit.
 func NewCommitSigForBlock(signature []byte, valAddr Address, ts time.Time) CommitSig {
 	return CommitSig{

@@ -856,3 +856,27 @@ func TestDataAmino(t *testing.T) {
 		require.EqualValues(t, expectValue, actualValue)
 	}
 }
+
+var commitSigAminoTestCases = []CommitSig{
+	{},
+	{125, []byte("ValidatorAddress"), time.Now(), []byte("Signature")},
+	{math.MaxUint8, []byte(""), time.Now(), []byte("")},
+}
+
+func TestCommitSigAmino(t *testing.T) {
+	for _, cs := range commitSigAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(cs)
+		require.NoError(t, err)
+
+		var expectValue CommitSig
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue CommitSig
+		err = actualValue.UnmarshalFromAmino(expectData)
+
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
