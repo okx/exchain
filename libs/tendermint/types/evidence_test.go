@@ -279,3 +279,46 @@ func TestDuplicateVoteEvidenceAmino(t *testing.T) {
 		require.EqualValues(t, expectValue, actualValue)
 	}
 }
+
+func TestEvidenceAmino(t *testing.T) {
+	var evidenceTestCases = []Evidence{
+		// nil,
+		&DuplicateVoteEvidence{},
+	}
+
+	for _, evi := range evidenceTestCases {
+		expectData, err := cdc.MarshalBinaryBare(evi)
+		require.NoError(t, err)
+
+		var expectValue Evidence
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Evidence
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		require.NoError(t, err)
+		_, ok := tmp.(Evidence)
+		require.True(t, ok)
+		actualValue = (tmp.(Evidence))
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+
+	evidenceTestCases = []Evidence{
+		&MockEvidence{},
+		&MockRandomEvidence{},
+	}
+
+	for _, evi := range evidenceTestCases {
+		expectData, err := cdc.MarshalBinaryBare(evi)
+		require.NoError(t, err)
+
+		var expectValue Evidence
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Evidence
+		_, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		require.Error(t, err)
+	}
+}
