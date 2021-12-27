@@ -128,8 +128,11 @@ func (blockExec *BlockExecutor) stopPrerun(height int64) (index int64) {
 
 func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 
-	stoppedIndex := blockExec.stopPrerun(block.Height)
-	stoppedIndex++
+	stoppedIndex := int64(0)
+	if blockExec.prerunContext != nil {
+		stoppedIndex = blockExec.stopPrerun(blockExec.prerunContext.block.Height)
+		stoppedIndex++
+	}
 
 	blockExec.prerunContext = &executionContext{
 		height:           height,
@@ -173,7 +176,6 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) StopPreRun() {
-
 	blockExec.stopPrerun(0)
 }
 

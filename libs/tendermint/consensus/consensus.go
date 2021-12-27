@@ -384,9 +384,6 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
-	if cs.prerunTx {
-		cs.blockExec.StopPreRun()
-	}
 }
 
 func (cs *State) OnReset() error {

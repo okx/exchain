@@ -109,9 +109,6 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
 }
-func (blockExec *BlockExecutor) GetIsFastSyncing() bool {
-	return blockExec.isFastSync
-}
 
 // SetEventBus - sets the event bus for publishing block related events.
 // If not called, it defaults to types.NopEventBus.
@@ -289,6 +286,9 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
 		//}
+		if blockExec.isFastSync && blockExec.prerunContext != nil {
+			blockExec.stopPrerun(block.Height)
+		}
 
 		if blockExec.prerunTx {
 			var index int64
