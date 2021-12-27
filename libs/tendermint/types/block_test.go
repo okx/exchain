@@ -916,3 +916,33 @@ func TestCommitAmino(t *testing.T) {
 		require.EqualValues(t, expectValue, actualValue)
 	}
 }
+
+func TestEvidenceDataAmino(t *testing.T) {
+	evidenceDataTestCases := []EvidenceData{
+		{},
+		{[]Evidence{}, []byte("hash")},
+		{Evidence: []Evidence{nil, nil}},
+		{
+			Evidence: []Evidence{
+				nil,
+				&DuplicateVoteEvidence{VoteA: nil},
+				MockRandomEvidence{},
+				MockEvidence{},
+			},
+		},
+	}
+	for _, evi := range evidenceDataTestCases {
+		expectData, err := cdc.MarshalBinaryBare(evi)
+		require.NoError(t, err)
+
+		var expectValue EvidenceData
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue EvidenceData
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
