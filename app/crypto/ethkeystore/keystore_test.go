@@ -1,4 +1,4 @@
-package personal
+package ethkeystore
 
 import (
 	"testing"
@@ -47,8 +47,13 @@ func testGetEthKey(t *testing.T) {
 		_, _, err := kb.CreateMnemonic(tt.name, keys.English, tt.passwd, tt.keyType, "")
 		require.NoError(t, err)
 
-		_, err = getEthKeyByName(kb, tt.name, tt.passwd)
+		// Exports private key from keybase using password
+		privKey, err := kb.ExportPrivateKeyObject(tt.name, tt.passwd)
 		require.NoError(t, err)
-	}
 
+		// Converts tendermint  key to ethereum key
+		_, err = EncodeTmKeyToEthKey(privKey)
+		require.NoError(t, err)
+
+	}
 }

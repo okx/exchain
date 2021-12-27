@@ -3,12 +3,8 @@ package personal
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,19 +14,15 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/okex/exchain/app/crypto/ethkeystore"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-)
-
-const (
-	keystoreSuffix = ".json"
 )
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -153,94 +145,16 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 
 	//create a keystore file to storage private key
-	createKeystore(api.ethAPI.ClientCtx().Keybase, addr, name, password)
+	privKey, err := api.ethAPI.ClientCtx().Keybase.ExportPrivateKeyObject(name, password)
+	if err != nil {
+		return common.Address{}, err
+	}
+	ethkeystore.CreateKeystoreByTmKey(privKey, api.ethAPI.ClientCtx().Keybase.FileDir(), password)
 
 	api.logger.Info("Your new key was generated", "address", addr.String())
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
-}
-
-// createKeystore create a keystore file to storage private key.
-func createKeystore(kb keys.Keybase, accAddr common.Address, accountName, password string) error {
-	// Get eth keystore key by Name
-	ethKey, err := getEthKeyByName(kb, accountName, password)
-	if err != nil {
-		return err
-	}
-	return exportKeyStoreFile(ethKey, password, filepath.Join(kb.FileDir(), keyFileName(accAddr)))
-}
-
-// getEthKeyByName Get eth keystore key by Name
-func getEthKeyByName(kb keys.Keybase, accountName, decryptPassword string) (*keystore.Key, error) {
-	// Exports private key from keybase using password
-	privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
-	if err != nil {
-		fmt.Println("AA")
-		return nil, err
-	}
-
-	// Converts key to Ethermint secp256 implementation
-	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
-	if !ok {
-		return nil, fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
-	}
-
-	//  Converts Ethermint secp256 implementation key to keystore key
-	ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
-	if err != nil {
-		return nil, fmt.Errorf("failed convert to ethKey: %s", err.Error())
-	}
-	return ethKey, nil
-}
-
-// newEthKeyFromECDSA new eth.keystore Key
-func newEthKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) (*keystore.Key, error) {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return nil, fmt.Errorf("Could not create random uuid: %v", err)
-	}
-	key := &keystore.Key{
-		Id:         id,
-		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
-		PrivateKey: privateKeyECDSA,
-	}
-	return key, nil
-}
-
-// exportKeyStoreFile Export Key to  keystore file
-func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) error {
-	// Encrypt Key to get keystore file
-	content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt key: %s", err.Error())
-	}
-
-	// Write to keystore file
-	err = ioutil.WriteFile(filepath.Join(fileName, keystoreSuffix), content, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to write keystore: %s", err.Error())
-	}
-	return nil
-}
-
-// keyFileName implements the naming convention for keyfiles:
-// UTC--<created_at UTC ISO8601>-<address hex>
-func keyFileName(keyAddr common.Address) string {
-	ts := time.Now().UTC()
-	return fmt.Sprintf("UTC--%s--%s", toISO8601(ts), hex.EncodeToString(keyAddr[:]))
-}
-
-func toISO8601(t time.Time) string {
-	var tz string
-	name, offset := t.Zone()
-	if name == "UTC" {
-		tz = "Z"
-	} else {
-		tz = fmt.Sprintf("%03d00", offset/3600)
-	}
-	return fmt.Sprintf("%04d-%02d-%02dT%02d-%02d-%02d.%09d%s",
-		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), tz)
 }
 
 // UnlockAccount will unlock the account associated with the given address with
