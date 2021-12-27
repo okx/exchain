@@ -155,8 +155,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	var tracer vm.Tracer
-	tracer = vm.NewStructLogger(evmLogConfig)
+	//var tracer vm.Tracer
+	//tracer = vm.NewStructLogger(evmLogConfig)
 
 	to := ""
 	if st.Recipient != nil {
@@ -165,10 +165,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
 	vmConfig := vm.Config{
-		ExtraEips:  params.ExtraEIPs,
-		Debug:      enableDebug,
-		Tracer:     tracer,
-		ContractVerifier: NewContractVerifier(params),
+		ExtraEips: params.ExtraEIPs,
+		Debug:     enableDebug,
+		//Tracer:     tracer,
+		//ContractVerifier: NewContractVerifier(params),
 	}
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
@@ -236,12 +236,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	defer func() {
 		if !st.Simulate && enableDebug {
-			result := &core.ExecutionResult{
-				UsedGas:    gasConsumed,
-				Err:        err,
-				ReturnData: ret,
-			}
-			saveTraceResult(ctx, tracer, result)
+			//result := &core.ExecutionResult{
+			//	UsedGas:    gasConsumed,
+			//	Err:        err,
+			//	ReturnData: ret,
+			//}
+			//saveTraceResult(ctx, tracer, result)
 		}
 	}()
 

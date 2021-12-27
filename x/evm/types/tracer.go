@@ -7,12 +7,8 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
 	json "github.com/json-iterator/go"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -41,7 +37,7 @@ var (
 	// trace segment
 	step, total, num int64
 
-	evmLogConfig *vm.LogConfig
+	//evmLogConfig *vm.LogConfig
 )
 
 func CloseTracer() {
@@ -91,13 +87,13 @@ func InitTxTraces() {
 		}
 	}
 
-	evmLogConfig = &vm.LogConfig{
-		DisableMemory:     viper.GetBool(FlagTraceDisableMemory),
-		DisableStack:      viper.GetBool(FlagTraceDisableStack),
-		DisableStorage:    viper.GetBool(FlagTraceDisableStorage),
-		DisableReturnData: viper.GetBool(FlagTraceDisableReturnData),
-		Debug:             viper.GetBool(FlagTraceDebug),
-	}
+	//evmLogConfig = &vm.LogConfig{
+	//	DisableMemory:     viper.GetBool(FlagTraceDisableMemory),
+	//	DisableStack:      viper.GetBool(FlagTraceDisableStack),
+	//	DisableStorage:    viper.GetBool(FlagTraceDisableStorage),
+	//	DisableReturnData: viper.GetBool(FlagTraceDisableReturnData),
+	//	Debug:             viper.GetBool(FlagTraceDebug),
+	//}
 
 	dataDir := filepath.Join(viper.GetString("home"), "data")
 	tracesDB, err = sdk.NewLevelDB(tracesDir, dataDir)
@@ -116,38 +112,38 @@ func checkTracesSegment(height int64, from, to string) bool {
 		(len(traceToAddrs) == 0 || to == "" || (len(traceToAddrs) > 0 && toOk))
 }
 
-func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
-	var (
-		res []byte
-		err error
-	)
-	// Depending on the tracer type, format and return the output
-	switch tracer := tracer.(type) {
-	case *vm.StructLogger:
-		// If the result contains a revert reason, return it.
-		returnVal := fmt.Sprintf("%x", result.Return())
-		if len(result.Revert()) > 0 {
-			returnVal = fmt.Sprintf("%x", result.Revert())
-		}
-
-		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
-		})
-	case *tracers.Tracer:
-		res, err = tracer.GetResult()
-	default:
-		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
-	}
-
-	if err != nil {
-		res = []byte(err.Error())
-	}
-
-	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(), res)
-}
+//func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
+//	var (
+//		res []byte
+//		err error
+//	)
+//	// Depending on the tracer type, format and return the output
+//	switch tracer := tracer.(type) {
+//	case *vm.StructLogger:
+//		// If the result contains a revert reason, return it.
+//		returnVal := fmt.Sprintf("%x", result.Return())
+//		if len(result.Revert()) > 0 {
+//			returnVal = fmt.Sprintf("%x", result.Revert())
+//		}
+//
+//		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
+//			Gas:         result.UsedGas,
+//			Failed:      result.Failed(),
+//			ReturnValue: returnVal,
+//			StructLogs:  FormatLogs(tracer.StructLogs()),
+//		})
+//	case *tracers.Tracer:
+//		res, err = tracer.GetResult()
+//	default:
+//		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
+//	}
+//
+//	if err != nil {
+//		res = []byte(err.Error())
+//	}
+//
+//	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(), res)
+//}
 
 func saveToDB(txHash []byte, value json.RawMessage) {
 	if tracesDB == nil {
