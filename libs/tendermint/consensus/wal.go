@@ -70,6 +70,7 @@ type WAL interface {
 
 	// service methods
 	Start() error
+	Reset() error
 	Stop() error
 	Wait()
 }
@@ -140,6 +141,24 @@ func (wal *BaseWAL) OnStart() error {
 	}
 	wal.flushTicker = time.NewTicker(wal.flushInterval)
 	go wal.processFlushTicks()
+	return nil
+}
+
+func (wal *BaseWAL) OnReset() error {
+	//size, err := wal.group.Head.Size()
+	//if err != nil {
+	//	return err
+	//} else if size == 0 {
+	//	wal.WriteSync(EndHeightMessage{types.GetStartBlockHeight()})
+	//}
+	err := wal.group.Reset()
+	if err != nil {
+		return err
+	}
+	//wal.flushTicker.Reset(wal.flushInterval)
+	//go wal.processFlushTicks()
+
+
 	return nil
 }
 
@@ -412,5 +431,6 @@ func (nilWAL) SearchForEndHeight(height int64, options *WALSearchOptions) (rd io
 	return nil, false, nil
 }
 func (nilWAL) Start() error { return nil }
+func (nilWAL) Reset() error { return nil }
 func (nilWAL) Stop() error  { return nil }
 func (nilWAL) Wait()        {}

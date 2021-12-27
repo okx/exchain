@@ -1,54 +1,60 @@
 package state
 
 import (
+	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/spf13/viper"
+	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-type DeltaContext struct {
-	deltaCh       chan *types.Deltas
-	deltaHeightCh chan int64
-	deltaBroker   delta.DeltaBroker
-	deltas        *types.Deltas
+var (
+	getWatchDataFunc func() ([]byte, error)
+	applyWatchDataFunc func(data []byte)
+)
 
-	//applyDelta bool
-	//broadDelta bool
+func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
+	getWatchDataFunc = g
+	applyWatchDataFunc = u
+}
+
+type DeltaContext struct {
+	deltaBroker   delta.DeltaBroker
+	lastCommitHeight int64
+	dataMap *deltaMap
+
 	downloadDelta bool
 	uploadDelta bool
-	useDeltas bool
+	applied float64
+	missed float64
 	logger log.Logger
-
-	compressBroker compress.CompressBroker
+	compressType int
+	compressFlag int
 }
 
 func newDeltaContext() *DeltaContext {
-
 	dp := &DeltaContext{
-		deltaCh:       make(chan *types.Deltas, 1),
-		deltaHeightCh: make(chan int64, 1),
+		dataMap: newDataMap(),
+		missed: 0.000001,
+		downloadDelta: types.EnableDownloadDelta(),
+		uploadDelta: types.EnableUploadDelta(),
 	}
-	//dp.applyDelta = types.EnableApplyP2PDelta()
-	//dp.broadDelta = types.EnableBroadcastP2PDelta()
-	dp.downloadDelta = types.EnableDownloadDelta()
-	dp.uploadDelta = types.EnableUploadDelta()
-
 
 	if dp.uploadDelta && dp.downloadDelta {
 		panic("download delta is not allowed if upload delta enabled")
 	}
 
-	dp.deltas = &types.Deltas{}
-
-	// todo can config different compress algorithm
-	dp.compressBroker = &compress.Flate{}
-
+	if dp.uploadDelta {
+		dp.compressType = viper.GetInt(types.FlagDDSCompressType)
+		dp.compressFlag = viper.GetInt(types.FlagDDSCompressFlag)
+	}
 	return dp
 }
 
@@ -58,12 +64,10 @@ func (dc *DeltaContext) init(l log.Logger) {
 	dc.logger.Info("DeltaContext init",
 		"uploadDelta", dc.uploadDelta,
 		"downloadDelta", dc.downloadDelta,
-		//"applyDelta", dc.applyDelta,
-		//"broadDelta", dc.broadDelta,
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), l)
+		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), types.RedisExpire(), l)
 		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
 	}
 
@@ -71,32 +75,46 @@ func (dc *DeltaContext) init(l log.Logger) {
 	iavl.SetProduceDelta(dc.uploadDelta)
 
 	if dc.downloadDelta {
-		go dc.getDeltaFromDDS()
+		go dc.downloadRoutine()
 	}
 }
 
-func (dc *DeltaContext) reset() {
-	dc.useDeltas = false
-	dc.deltas = &types.Deltas{}
+func (dc *DeltaContext) appliedRate() float64 {
+	return dc.applied / (dc.applied + dc.missed)
 }
 
-func (dc *DeltaContext) postApplyBlock(height int64, abciResponses *ABCIResponses, res []byte) {
-	if dc.useDeltas {
-		dc.logger.Info("Applied delta", "delta", dc.deltas, "gid", gorid.GoRId)
-	}
+func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
+	abciResponses *ABCIResponses, res []byte) {
 
 	// rpc
-	if dc.useDeltas {
-		UseWatchData(dc.deltas.WatchBytes)
+	if dc.downloadDelta {
+
+		applied := false
+		if delta != nil {
+			applied = true
+			dc.applied += float64(len(abciResponses.DeliverTxs))
+		} else {
+			dc.missed += float64(len(abciResponses.DeliverTxs))
+		}
+
+		trace.GetElapsedInfo().AddInfo(trace.Delta,
+			fmt.Sprintf("applied<%t>, rate<%.2f>", applied, dc.appliedRate()))
+
+		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
+			"applied-rate", dc.appliedRate(), "delta", delta)
+
+		if applied && types.IsFastQuery() {
+			applyWatchDataFunc(delta.WatchBytes())
+		}
 	}
 
 	// validator
 	if dc.uploadDelta {
-		dc.upload(height, abciResponses, res)
+		dc.uploadData(height, abciResponses, res)
 	}
 }
 
-func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res []byte) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte) {
 
 	var abciResponsesBytes []byte
 	var err error
@@ -106,116 +124,168 @@ func (dc *DeltaContext) upload(height int64, abciResponses *ABCIResponses, res [
 		return
 	}
 
-	// for outDelta log
-	dc.deltas = &types.Deltas {
-		ABCIRsp:     abciResponsesBytes,
-		DeltasBytes: res,
-		WatchBytes:  GetWatchData(),
-		Height:      height,
+	wd, err := getWatchDataFunc()
+	if err != nil {
+		dc.logger.Error("Failed to get watch data", "height", height, "error", err)
+		return
 	}
 
 	delta4Upload := &types.Deltas {
-		ABCIRsp:     abciResponsesBytes,
-		DeltasBytes: res,
-		WatchBytes:  GetWatchData(),
+		Payload: types.DeltaPayload{
+			ABCIRsp:     abciResponsesBytes,
+			DeltasBytes: res,
+			WatchBytes:  wd,
+		},
 		Height:      height,
 		Version:     types.DeltaVersion,
+		CompressType: dc.compressType,
+		CompressFlag: dc.compressFlag,
 	}
 
-	go dc.uploadData(delta4Upload)
+	go dc.uploadRoutine(delta4Upload)
 }
 
-func (dc *DeltaContext) uploadData(deltas *types.Deltas) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	if deltas == nil {
 		return
 	}
 
-	// todo get distributed lock, otherwise return
+	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
+	locked := dc.deltaBroker.GetLocker()
+	dc.logger.Info("Upload delta:", "locked", locked, "gid", gorid.GoRId)
+	if !locked {
+		return
+	}
+
+	defer dc.deltaBroker.ReleaseLocker()
+
+	upload := func() bool {
+		return dc.upload(deltas)
+	}
+	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
+}
+
+func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
-		return
+		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		return false
 	}
 
-	// compress
-	compressBytes, err := dc.compressBroker.DefaultCompress(deltaBytes)
-	if err != nil {
-		return
-	}
-
+	t2 := time.Now()
 	// set into dds
-	if err = dc.deltaBroker.SetDeltas(deltas.Height, compressBytes); err != nil {
-		dc.logger.Error("Upload delta", "height", deltas.Height, "error", err)
-		return
+	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
+		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		return false
+
 	}
-	dc.logger.Info("Upload delta", "deltas", deltas, "gid", gorid.GoRId)
+	t3 := time.Now()
+	dc.logger.Info("Upload delta finished",
+		"target-height", deltas.Height,
+		"marshal", deltas.MarshalOrUnmarshalElapsed(),
+		"compress", deltas.CompressOrUncompressElapsed(),
+		"upload", t3.Sub(t2),
+		"deltas", deltas,
+		"gid", gorid.GoRId)
+	return true
 }
 
-func (dc *DeltaContext) prepareStateDelta(block *types.Block) {
+// get delta from dds
+func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	if !dc.downloadDelta {
 		return
 	}
-
-	var dds *types.Deltas
-	select {
-	case dds = <-dc.deltaCh:
-		// already get delta of height
-	default:
-		// can't get delta of height
+	dds = dc.dataMap.fetch(height)
+	var succeed bool
+	if dds != nil {
+		if !dds.Validate(height) {
+			dc.logger.Error("Prepared an invalid delta!!!", "expected-height", height, "delta", dds)
+			return nil
+		}
+		succeed = true
 	}
-	dc.logger.Info("prepareStateDelta", "delta", dds)
-
-	// request delta of height+1 and return
-	dc.deltaHeightCh <- block.Height + 1
-
-	// can't get data from dds
-	// or get invalid data
-	if dds == nil || dds.Height != block.Height || types.DeltaVersion < dds.Version ||
-		len(dds.WatchBytes) == 0 || len(dds.ABCIRsp) == 0 || len(dds.DeltasBytes) == 0 {
-		return
-	}
-
-	// get Delta from dds
-	dc.useDeltas = true
-	dc.deltas = dds
+	dc.logger.Info("Prepare delta", "expected-height", height, "succeed", succeed, "delta", dds)
 	return
 }
 
-func (dc *DeltaContext) getDeltaFromDDS() {
-	flag := false
-	var height int64 = 0
-	tryGetDDSTicker := time.NewTicker(50 * time.Millisecond)
+func (dc *DeltaContext) downloadRoutine() {
+	var height int64
+	var lastRemoved int64
+	var buffer int64 = 5
+	ticker := time.NewTicker(50 * time.Millisecond)
 
-	for {
-		select {
-		case <-tryGetDDSTicker.C:
-			if flag {
-				deltaBytes, err := dc.deltaBroker.GetDeltas(height)
-				if err != nil {
-					continue
-				}
-				flag = false
+	for range ticker.C {
+		lastCommitHeight := atomic.LoadInt64(&dc.lastCommitHeight)
+		if height <= lastCommitHeight {
+			// move to lastCommitHeight + 1
+			height = lastCommitHeight + 1
 
-				// uncompress
-				compressBytes, err := dc.compressBroker.UnCompress(deltaBytes)
-				if err != nil {
-					continue
-				}
-
-				// unmarshal
-				directDelta := &types.Deltas{}
-				err = directDelta.Unmarshal(compressBytes)
-				if err != nil {
-					continue
-				}
-				
-				dc.logger.Info("Download delta:", "delta", directDelta, "gid", gorid.GoRId)
-				dc.deltaCh <- directDelta
+			// git rid of all deltas before <height>
+			removed, left := dc.dataMap.remove(lastCommitHeight)
+			dc.logger.Info("Updated target delta height",
+				"target-height", height,
+				"lastCommitHeight", lastCommitHeight,
+				"removed", removed,
+				"left", left,
+			)
+		} else {
+			if height % 10 == 0 && lastRemoved != lastCommitHeight {
+				removed, left := dc.dataMap.remove(lastCommitHeight)
+				dc.logger.Info("Remove stale delta",
+					"target-height", height,
+					"lastCommitHeight", lastCommitHeight,
+					"removed", removed,
+					"left", left,
+				)
+				lastRemoved = lastCommitHeight
 			}
+		}
 
-		case height = <-dc.deltaHeightCh:
-			flag = true
+		lastCommitHeight = atomic.LoadInt64(&dc.lastCommitHeight)
+		if height > lastCommitHeight+buffer {
+			continue
+		}
+
+		err, delta := dc.download(height)
+		if err == nil {
+			dc.dataMap.insert(height, delta)
+			height++
 		}
 	}
+}
+
+
+func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
+	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
+
+	t0 := time.Now()
+	deltaBytes, err := dc.deltaBroker.GetDeltas(height)
+	if err != nil {
+		return err, nil
+	}
+	t1 := time.Now()
+
+	// unmarshal
+	delta := &types.Deltas{}
+
+	err = delta.Unmarshal(deltaBytes)
+	if err != nil {
+		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
+		return err, nil
+	}
+
+	cacheMap, cacheList := dc.dataMap.info()
+	dc.logger.Info("Download delta finished:",
+		"target-height", height,
+		"cacheMap", cacheMap,
+		"cacheList", cacheList,
+		"download", t1.Sub(t0),
+		"uncompress", delta.CompressOrUncompressElapsed(),
+		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
+		"delta", delta,
+		"gid", gorid.GoRId)
+
+	return nil, delta
 }

@@ -96,11 +96,32 @@ func NewBlockPool(start int64, requestsCh chan<- BlockRequest, errorsCh chan<- p
 	return bp
 }
 
+func (pool *BlockPool) SetHeight(height int64) {
+	pool.mtx.Lock()
+	defer pool.mtx.Unlock()
+
+	pool.height = height
+}
+
 // OnStart implements service.Service by spawning requesters routine and recording
 // pool's start time.
 func (pool *BlockPool) OnStart() error {
 	go pool.makeRequestersRoutine()
 	pool.startTime = time.Now()
+	return nil
+}
+
+func (pool *BlockPool) OnReset() error {
+	// clear up all requesters
+	pool.mtx.Lock()
+	defer pool.mtx.Unlock()
+
+    for height, r := range pool.requesters {
+    	r.Stop()
+    	delete(pool.requesters, height)
+	}
+	pool.numPending = 0
+
 	return nil
 }
 
@@ -180,6 +201,7 @@ func (pool *BlockPool) IsCaughtUp() bool {
 	// and that we're synced to the highest known height.
 	// Note we use maxPeerHeight - 1 because to sync block H requires block H+1
 	// to verify the LastCommit.
+	// TODO: should change judge conditions
 	receivedBlockOrTimedOut := pool.height > 0 || time.Since(pool.startTime) > 5*time.Second
 	ourChainIsLongestAmongPeers := pool.maxPeerHeight == 0 || pool.height >= (pool.maxPeerHeight-1)
 	isCaughtUp := receivedBlockOrTimedOut && ourChainIsLongestAmongPeers
@@ -286,7 +308,7 @@ func (pool *BlockPool) MaxPeerHeight() int64 {
 }
 
 // SetPeerRange sets the peer's alleged blockchain base and height.
-func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) {
+func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, storeHeight int64) bool {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
@@ -303,6 +325,22 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64) {
 	if height > pool.maxPeerHeight {
 		pool.maxPeerHeight = height
 	}
+
+	// compute how many peers' height is greater than height
+	if !pool.IsRunning() && storeHeight + maxIntervalForFastSync <= height {
+		count := 0
+		totalNum := len(pool.peers)
+		for _, peer := range pool.peers {
+			if peer.height >= height {
+				count++
+			}
+		}
+		if count > int(float32(totalNum) * maxPeersProportionForFastSync) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // RemovePeer removes the peer with peerID from the pool. If there's no peer

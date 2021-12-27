@@ -5,6 +5,7 @@ import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -38,7 +39,7 @@ func (e *executionContext) dump(when string) {
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
-		"AppHash", e.block.AppHash,
+		//"AppHash", e.block.AppHash,
 	)
 }
 
@@ -47,9 +48,6 @@ func (e *executionContext) stop() {
 		return
 	}
 	e.stopped = true
-	e.proxyApp.SetOptionSync(abci.RequestSetOption{
-		Key: "ResetDeliverState",
-	})
 }
 
 func (blockExec *BlockExecutor) flushPrerunResult() {
@@ -101,16 +99,15 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 	context := blockExec.prerunContext
 	// stop the existing prerun if any
 	if context != nil {
-		if block.Height != context.block.Height {
-			context.dump("Prerun sanity check failed")
-
-			// todo
-			panic("Prerun sanity check failed")
-		}
+		// Got wrong when swithed from fast-sync to consensus. Just remove it!
+		//if block.Height != context.block.Height {
+		//	context.dump("Prerun sanity check failed")
+		//
+		//	// todo
+		//	panic("Prerun sanity check failed")
+		//}
 		context.dump("Stopping prerun")
-		if height != 1 {
-			context.stop()
-		}
+		context.stop()
 	}
 	blockExec.flushPrerunResult()
 	blockExec.prerunIndex++
@@ -135,8 +132,13 @@ func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
 func prerun(context *executionContext) {
 	context.dump("Start prerun")
 
-	trc := trace.NewTracer(fmt.Sprintf("prerun-%d-%d",
-		context.block.Height, context.index))
+	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
+
+	if context.height != 1 {
+		context.proxyApp.SetOptionSync(abci.RequestSetOption{
+			Key: "ResetDeliverState",
+		})
+	}
 
 	abciResponses, err := execBlockOnProxyApp(context)
 
@@ -146,7 +148,7 @@ func prerun(context *executionContext) {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	preTimeOut(context.block.Height, int(context.index)-1)
+	automation.PrerunTimeOut(context.block.Height, int(context.index)-1)
 	context.dump("Prerun completed")
 	context.prerunResultChan <- context
 }
@@ -155,8 +157,23 @@ func (blockExec *BlockExecutor) InitPrerun() {
 	if blockExec.deltaContext.downloadDelta {
 		panic("download delta is not allowed if prerun enabled")
 	}
-	blockExec.proactivelyRunTx = true
+	blockExec.prerunTx = true
 	go blockExec.prerunRoutine()
+}
+
+func (blockExec *BlockExecutor) StopPreRun() {
+	context := blockExec.prerunContext
+	// stop the existing prerun if any
+	if context != nil {
+		context.dump("Stopping prerun from StopPreRun")
+		context.stop()
+		//reset deliverState
+		if context.height != 1 {
+			context.proxyApp.SetOptionSync(abci.RequestSetOption{
+				Key: "ResetDeliverState",
+			})
+		}
+	}
 }
 
 //func FirstBlock(block *types.Block) bool {

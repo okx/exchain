@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
@@ -40,7 +39,6 @@ type Watcher struct {
 
 var (
 	watcherEnable  = false
-	centerEnable   = false
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
@@ -51,13 +49,6 @@ func IsWatcherEnabled() bool {
 		watcherEnable = viper.GetBool(FlagFastQuery)
 	})
 	return watcherEnable
-}
-
-func IsCenterEnabled() bool {
-	onceEnable.Do(func() {
-		centerEnable = viper.GetBool(tmtypes.FlagDataCenter)
-	})
-	return centerEnable
 }
 
 func GetWatchLruSize() int {
@@ -427,27 +418,14 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	gcb := func(watchBytes []byte) bool {
-		data := WatchData{}
-		if itjs.Unmarshal(watchBytes, &data) != nil {
-			return false
-		}
-		if data.Size() == 0 {
-			return true
-		}
-		w.watchData = &data
-		w.delayEraseKey = data.DelayEraseKey
-		return true
-	}
-
-	gwd := func() []byte {
+	gwd := func() ([]byte, error) {
 		value := w.watchData
 		value.DelayEraseKey = w.delayEraseKey
 		valueByte, err := itjs.Marshal(value)
 		if err != nil {
-			return nil
+			return nil, err
 		}
-		return valueByte
+		return valueByte, nil
 	}
 
 	uwd := func(wdByte []byte) {
@@ -463,9 +441,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		w.CommitWatchData()
 	}
 
-	tmstate.SetCenterBatch = gcb
-	tmstate.GetWatchData = gwd
-	tmstate.UseWatchData = uwd
+	tmstate.SetWatchDataFunc(gwd, uwd)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {

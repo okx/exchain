@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"strings"
 	"sync"
 
@@ -429,6 +430,18 @@ func (voteSet *VoteSet) TwoThirdsMajority() (blockID BlockID, ok bool) {
 	if voteSet == nil {
 		return BlockID{}, false
 	}
+
+	switch voteSet.signedMsgType {
+	case PrevoteType:
+		if automation.PrevotesNotMaj23(voteSet.height, voteSet.round) {
+			return BlockID{}, false
+		}
+	case PrecommitType:
+		if automation.PrecommitsNotMaj23(voteSet.height, voteSet.round) {
+			return BlockID{}, false
+		}
+	}
+
 	voteSet.mtx.Lock()
 	defer voteSet.mtx.Unlock()
 	if voteSet.maj23 != nil {
