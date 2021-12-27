@@ -1347,6 +1347,58 @@ type EvidenceData struct {
 	hash tmbytes.HexBytes
 }
 
+func (d *EvidenceData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		} else {
+			return fmt.Errorf("unexpect pb type %d", pbType)
+		}
+
+		switch pos {
+		case 1:
+			var evi Evidence
+			eviTmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(subData, &evi)
+			if err != nil {
+				err = cdc.UnmarshalBinaryBare(subData, &evi)
+				if err != nil {
+					return err
+				} else {
+					d.Evidence = append(d.Evidence, evi)
+				}
+			} else {
+				d.Evidence = append(d.Evidence, eviTmp.(Evidence))
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // Hash returns the hash of the data.
 func (data *EvidenceData) Hash() tmbytes.HexBytes {
 	if data.hash == nil {
