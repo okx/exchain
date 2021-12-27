@@ -289,10 +289,15 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
 		//}
+
 		if blockExec.prerunTx {
+			var index int64
+			if blockExec.prerunContext != nil {
+				index = blockExec.prerunContext.index
+			}
 			blockExec.logger.Info("Not apply delta", "height", block.Height,
 				"block-size", block.Size(),
-				//"prerunIndex", blockExec.prerunIndex
+				"prerunIndex", index,
 			)
 		}
 
