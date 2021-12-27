@@ -124,13 +124,13 @@ func (blockExec *BlockExecutor) stopPrerun(height int64) (index int64) {
 }
 
 
-func (blockExec *BlockExecutor) NotifyPrerun(height int64, block *types.Block) {
+func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
 
-	stoppedIndex := blockExec.stopPrerun(blockExec.prerunContext.block.Height)
+	stoppedIndex := blockExec.stopPrerun(block.Height)
 	stoppedIndex++
 
 	blockExec.prerunContext = &executionContext{
-		height:           height,
+		height:           block.Height,
 		block:            block,
 		stopped:          false,
 		db:               blockExec.db,
