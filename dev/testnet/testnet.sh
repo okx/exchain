@@ -130,7 +130,7 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 200ms \
+    --consensus.timeout_commit 20ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
