@@ -66,31 +66,28 @@ func NewKeyring(
 
 	var db keyring.Keyring
 	var err error
-	var path string
+	var config keyring.Config
 
 	switch backend {
 	case BackendTest:
-		path = lkbToKeyringConfig(appName, rootDir, nil, true).FileDir
-		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, nil, true))
+		config = lkbToKeyringConfig(appName, rootDir, nil, true)
 	case BackendFile:
-		path = newFileBackendKeyringConfig(appName, rootDir, userInput).FileDir
-		db, err = keyring.Open(newFileBackendKeyringConfig(appName, rootDir, userInput))
+		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendOS:
-		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, userInput, false))
+		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
 	case BackendKWallet:
-		path = newKWalletBackendKeyringConfig(appName, rootDir, userInput).FileDir
-		db, err = keyring.Open(newKWalletBackendKeyringConfig(appName, rootDir, userInput))
+		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
-		path = newPassBackendKeyringConfig(appName, rootDir, userInput).FileDir
-		db, err = keyring.Open(newPassBackendKeyringConfig(appName, rootDir, userInput))
+		config = newPassBackendKeyringConfig(appName, rootDir, userInput)
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
 	}
+	db, err = keyring.Open(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return newKeyringKeybase(db, path, opts...), nil
+	return newKeyringKeybase(db, config.FileDir, opts...), nil
 }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted

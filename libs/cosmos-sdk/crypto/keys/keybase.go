@@ -51,9 +51,8 @@ const (
 	defaultEntropySize = 128 //mnemonicEntropySize
 )
 const (
-	addressSuffix  = "address"
-	infoSuffix     = "info"
-	keystoreSuffix = "json"
+	addressSuffix = "address"
+	infoSuffix    = "info"
 )
 
 var (
