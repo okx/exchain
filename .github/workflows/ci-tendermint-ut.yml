@@ -40,7 +40,7 @@ jobs:
           go-version: 1.14
 
       - name: test_tm_core
-        continue-on-error: true
+        #continue-on-error: true
         run: |
           go test -count=1 ./libs/tendermint/libs/async/...
           go test -count=1 ./libs/tendermint/lite/...
