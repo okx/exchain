@@ -21,8 +21,10 @@ const (
 	FlagDDSCompressFlag = "compress-flag"
 
 	// redis
+	// url fmt (ip:port)
 	FlagRedisUrl    = "delta-redis-url"
 	FlagRedisAuth   = "delta-redis-auth"
+	// expire unit: second
 	FlagRedisExpire = "delta-redis-expire"
 
 	// fast-query
@@ -35,13 +37,6 @@ const (
 
 var (
 	fastQuery = false
-	// fmt (http://ip:port/)
-	centerUrl = "http://127.0.0.1:8030/"
-	// fmt (ip:port)
-	redisUrl  = "127.0.0.1:6379"
-	redisAuth = "auth"
-	// unit: second
-	redisExpire = 300
 
 	applyP2PDelta    = false
 	broadcatP2PDelta = false
@@ -49,9 +44,6 @@ var (
 	uploadDelta      = false
 
 	onceFastQuery   sync.Once
-	onceRedisUrl    sync.Once
-	onceRedisAuth   sync.Once
-	onceRedisExpire sync.Once
 
 	onceApplyP2P     sync.Once
 	onceBroadcastP2P sync.Once
@@ -92,27 +84,6 @@ func EnableUploadDelta() bool {
 		uploadDelta = viper.GetBool(FlagUploadDDS)
 	})
 	return uploadDelta
-}
-
-func RedisUrl() string {
-	onceRedisUrl.Do(func() {
-		redisUrl = viper.GetString(FlagRedisUrl)
-	})
-	return redisUrl
-}
-
-func RedisAuth() string {
-	onceRedisAuth.Do(func() {
-		redisAuth = viper.GetString(FlagRedisAuth)
-	})
-	return redisAuth
-}
-
-func RedisExpire() time.Duration {
-	onceRedisExpire.Do(func() {
-		redisExpire = viper.GetInt(FlagRedisExpire)
-	})
-	return time.Duration(redisExpire) * time.Second
 }
 
 type DeltasMessage struct {

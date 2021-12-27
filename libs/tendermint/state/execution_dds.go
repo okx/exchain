@@ -67,8 +67,11 @@ func (dc *DeltaContext) init(l log.Logger) {
 	)
 
 	if dc.uploadDelta || dc.downloadDelta {
-		dc.deltaBroker = redis_cgi.NewRedisClient(types.RedisUrl(), types.RedisAuth(), types.RedisExpire(), l)
-		dc.logger.Info("Init delta broker", "url", types.RedisUrl())
+		url := viper.GetString(types.FlagRedisUrl)
+		auth := viper.GetString(types.FlagRedisAuth)
+		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
+		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, l)
+		dc.logger.Info("Init delta broker", "url", url)
 	}
 
 	// control if iavl produce delta or not
