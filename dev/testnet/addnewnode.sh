@@ -139,7 +139,7 @@ start() {
 
 #    LOG_LEVEL=main:info,*:error
 #    LOG_LEVEL=main:info,*:error,consensus:info,state:info
-    LOG_LEVEL=main:info,*:error,state:info
+    LOG_LEVEL=main:info,*:error,state:debug,consensus:debug
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
