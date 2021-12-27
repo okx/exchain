@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -147,12 +148,13 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 		return common.Address{}, err
 	}
 
-	//create a keystore file to storage private key
-	createKeystore(api.ethAPI.ClientCtx().Keybase, name, password)
-
 	api.keyInfos = append(api.keyInfos, info)
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
+
+	//create a keystore file to storage private key
+	createKeystore(api.ethAPI.ClientCtx().Keybase, addr, name, password)
+
 	api.logger.Info("Your new key was generated", "address", addr.String())
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
@@ -160,13 +162,13 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 }
 
 // createKeystore create a keystore file to storage private key.
-func createKeystore(kb keys.Keybase, accountName, password string) error {
+func createKeystore(kb keys.Keybase, accAddr common.Address, accountName, password string) error {
 	// Get eth keystore key by Name
 	ethKey, err := getEthKeyByName(kb, accountName, password)
 	if err != nil {
 		return err
 	}
-	return exportKeyStoreFile(ethKey, password, filepath.Join(kb.FileDir(), accountName))
+	return exportKeyStoreFile(ethKey, password, filepath.Join(kb.FileDir(), keyFileName(accAddr)))
 }
 
 // getEthKeyByName Get eth keystore key by Name
@@ -220,6 +222,25 @@ func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) 
 		return fmt.Errorf("failed to write keystore: %s", err.Error())
 	}
 	return nil
+}
+
+// keyFileName implements the naming convention for keyfiles:
+// UTC--<created_at UTC ISO8601>-<address hex>
+func keyFileName(keyAddr common.Address) string {
+	ts := time.Now().UTC()
+	return fmt.Sprintf("UTC--%s--%s", toISO8601(ts), hex.EncodeToString(keyAddr[:]))
+}
+
+func toISO8601(t time.Time) string {
+	var tz string
+	name, offset := t.Zone()
+	if name == "UTC" {
+		tz = "Z"
+	} else {
+		tz = fmt.Sprintf("%03d00", offset/3600)
+	}
+	return fmt.Sprintf("%04d-%02d-%02dT%02d-%02d-%02d.%09d%s",
+		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), tz)
 }
 
 // UnlockAccount will unlock the account associated with the given address with

@@ -1,34 +1,27 @@
 package personal
 
 import (
-	"bufio"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"os"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/tests"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetEthKey(t *testing.T) { testGetEthKey(t) }
 func testGetEthKey(t *testing.T) {
-	inBuf := bufio.NewReader(os.Stdin)
-	kb, err := keys.NewKeyring(
-		sdk.KeyringServiceName(),
-		keys.BackendTest,
-		"../../../../dev/testnet/cache/",
-		inBuf,
-		hd.EthSecp256k1Options()...,
-	)
-	if err != nil {
-		t.Fatalf("new keyring failed")
-	}
-	cdc :=keys.CryptoCdc
-	//cryptocodec.RegisterCodec(cdc)
-	codec.RegisterCrypto(cdc)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
+	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+
+	dir, cleanup := tests.NewTestCaseDir(t)
+	defer cleanup()
+	kb, err := keys.NewKeyring("keybasename", "test", dir, nil, hd.EthSecp256k1Options()...)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name    string
@@ -37,34 +30,25 @@ func testGetEthKey(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String(),
+			name:    "test-numbers-passwd",
 			passwd:  "12345678",
 			keyType: hd.EthSecp256k1,
 			wantErr: false,
 		},
 		{
-			name:    "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String(),
+			name:    "test-characters-passwd",
 			passwd:  "abcdefgh",
 			keyType: hd.EthSecp256k1,
 			wantErr: false,
 		},
-		{
-			name:    "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String(),
-			passwd:  "abcdefgh",
-			keyType: keys.Ed25519,
-			wantErr: true,
-		},
 	}
 	//generate test key
-	for i, tt := range tests {
+	for _, tt := range tests {
 		_, _, err := kb.CreateMnemonic(tt.name, keys.English, tt.passwd, tt.keyType, "")
-		if err != nil {
-			t.Fatalf("time:%v, CreateMnemonic failed, err:%v", i, err)
-		}
+		require.NoError(t, err)
+
 		_, err = getEthKeyByName(kb, tt.name, tt.passwd)
-		if err != nil && !tt.wantErr {
-			t.Fatalf("time:%v, getEthKeyByName failed, err:%v", i, err)
-		}
+		require.NoError(t, err)
 	}
 
 }
