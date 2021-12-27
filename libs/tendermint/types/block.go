@@ -337,6 +337,95 @@ type Header struct {
 	ProposerAddress Address          `json:"proposer_address"` // original proposer of the block
 }
 
+func (h *Header) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+	var timeUpdated = false
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			err = h.Version.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 2:
+			h.ChainID = string(subData)
+		case 3:
+			uvint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			h.Height = int64(uvint)
+			dataLen = uint64(n)
+		case 4:
+			h.Time, _, err = amino.DecodeTime(subData)
+			if err != nil {
+				return err
+			}
+			timeUpdated = true
+		case 5:
+			err = h.LastBlockID.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 6:
+			h.LastCommitHash = make([]byte, len(subData))
+			copy(h.LastCommitHash, subData)
+		case 7:
+			h.DataHash = make([]byte, len(subData))
+			copy(h.DataHash, subData)
+		case 8:
+			h.ValidatorsHash = make([]byte, len(subData))
+			copy(h.ValidatorsHash, subData)
+		case 9:
+			h.NextValidatorsHash = make([]byte, len(subData))
+			copy(h.NextValidatorsHash, subData)
+		case 10:
+			h.ConsensusHash = make([]byte, len(subData))
+			copy(h.ConsensusHash, subData)
+		case 11:
+			h.AppHash = make([]byte, len(subData))
+			copy(h.AppHash, subData)
+		case 12:
+			h.LastResultsHash = make([]byte, len(subData))
+			copy(h.LastResultsHash, subData)
+		case 13:
+			h.EvidenceHash = make([]byte, len(subData))
+			copy(h.EvidenceHash, subData)
+		case 14:
+			h.ProposerAddress = make([]byte, len(subData))
+			copy(h.ProposerAddress, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	if !timeUpdated {
+		h.Time = amino.ZeroTime
+	}
+	return nil
+}
+
 // Populate the Header with state-derived data.
 // Call this after MakeBlock to complete the Header.
 func (h *Header) Populate(

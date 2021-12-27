@@ -759,3 +759,74 @@ func TestBlockIDAmino(t *testing.T) {
 		require.EqualValues(t, len(bz), tc.AminoSize())
 	}
 }
+
+var headerAminoTestCases = []Header{
+	{},
+	{Version: version.Consensus{Block: 1, App: 1}},
+	{ChainID: "ChainID"},
+	{Height: 1},
+	{Height: math.MaxInt64},
+	{Height: math.MinInt64},
+	{Time: time.Now()},
+	{LastBlockID: BlockID{[]byte("Hash"), PartSetHeader{1, []byte("Hash")}}},
+	{LastCommitHash: []byte("LastCommitHash")},
+	{DataHash: []byte("DataHash")},
+	{ValidatorsHash: []byte("ValidatorsHash")},
+	{NextValidatorsHash: []byte("NextValidatorsHash")},
+	{ConsensusHash: []byte("ConsensusHash")},
+	{AppHash: []byte("AppHash")},
+	{LastResultsHash: []byte("LastResultsHash")},
+	{EvidenceHash: []byte("EvidenceHash")},
+	{ProposerAddress: []byte("ProposerAddress")},
+}
+
+func TestHeaderAmino(t *testing.T) {
+	for _, header := range headerAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(header)
+		require.NoError(t, err)
+
+		var expectValue Header
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Header
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkHeaderAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(headerAminoTestCases))
+	for i, header := range headerAminoTestCases {
+		data, err := cdc.MarshalBinaryBare(header)
+		require.NoError(b, err)
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var header Header
+				err := cdc.UnmarshalBinaryBare(data, &header)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var header Header
+				err := header.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
