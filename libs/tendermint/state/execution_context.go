@@ -150,7 +150,9 @@ func prerun(context *executionContext) {
 	context.dump("Start prerun")
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", context.index))
 
-	context.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
+	if context.height != 1 {
+		context.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
+	}
 
 	abciResponses, err := execBlockOnProxyApp(context)
 
@@ -172,14 +174,3 @@ func (blockExec *BlockExecutor) InitPrerun() {
 	blockExec.prerunTx = true
 	go blockExec.prerunRoutine()
 }
-
-func (blockExec *BlockExecutor) StopPreRun() {
-	blockExec.stopPrerun(0)
-}
-
-//func FirstBlock(block *types.Block) bool {
-//	if 	block.Height == 1{
-//		return true
-//	}
-//	return false
-//}
