@@ -281,7 +281,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
+		err = types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
 		if err != nil {
 			return nil, err
 		}
@@ -353,7 +353,7 @@ func (blockExec *BlockExecutor) commit(
 
 	abciDelta := &abci.Deltas{}
 	if delta != nil {
-		abciDelta.DeltasByte = delta.DeltasBytes
+		abciDelta.DeltasByte = delta.DeltasBytes()
 		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
 	}
 

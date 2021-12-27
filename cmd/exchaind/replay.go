@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -75,8 +76,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 
-	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
-	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:8030/", "data-center-url")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
@@ -97,7 +96,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
-	cmd.Flags().BoolVar(&tmiavl.EnableGid, tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
+	cmd.Flags().BoolVar(&gorid.EnableGid, gorid.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
