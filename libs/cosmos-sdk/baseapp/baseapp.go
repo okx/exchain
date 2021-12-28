@@ -1036,7 +1036,7 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
