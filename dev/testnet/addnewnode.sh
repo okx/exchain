@@ -139,7 +139,7 @@ start() {
 
 #    LOG_LEVEL=main:info,*:error
 #    LOG_LEVEL=main:info,*:error,consensus:info,state:info
-    LOG_LEVEL=main:info,*:error,state:info
+    LOG_LEVEL=main:info,*:error,state:debug,consensus:debug
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
@@ -147,6 +147,7 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
+    --enable-gid \
     ${UPLOAD_DELTA} \
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \

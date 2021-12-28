@@ -47,11 +47,7 @@ type BlockExecutor struct {
 	// download or upload data to dds
 	deltaContext *DeltaContext
 
-	prerunTx bool
-	prerunChan chan *executionContext
-	prerunResultChan chan *executionContext
-	prerunIndex int64
-	prerunContext *executionContext
+	prerunCtx *prerunContext
 
 	isFastSync bool
 }
@@ -84,9 +80,8 @@ func NewBlockExecutor(
 		logger:         logger,
 		metrics:        NopMetrics(),
 		isAsync:        viper.GetBool(FlagParalleledTx),
-		prerunChan:           make(chan *executionContext, 1),
-		prerunResultChan:     make(chan *executionContext, 1),
-		deltaContext:         newDeltaContext(),
+		prerunCtx:      newPrerunContex(logger),
+		deltaContext:   newDeltaContext(),
 	}
 
 	for _, option := range options {
@@ -108,9 +103,6 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
-}
-func (blockExec *BlockExecutor) GetIsFastSyncing() bool {
-	return blockExec.isFastSync
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -289,24 +281,14 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
 		//}
-		if blockExec.prerunTx {
-			blockExec.logger.Info("Not apply delta", "height", block.Height,
-				"block-size", block.Size(),
-				"prerunIndex", blockExec.prerunIndex)
+
+		pc := blockExec.prerunCtx
+		if pc.prerunTx {
+			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
 		}
 
-		// blockExec.prerunIndex==0 means:
-		// 1. prerunTx disabled
-		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
-		if blockExec.prerunIndex > 0 && !blockExec.GetIsFastSyncing() {
-			if !blockExec.prerunTx {
-				panic("never gonna happen")
-			}
-			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
-			blockExec.prerunContext = nil
-			blockExec.prerunIndex = 0
-		} else {
-			ctx := &executionContext{
+		if abciResponses == nil {
+			ctx := &executionTask{
 				logger:   blockExec.logger,
 				block:    block,
 				db:       blockExec.db,
@@ -416,7 +398,7 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	block := context.block
 	proxyAppConn := context.proxyApp
 	stateDB := context.db
@@ -687,7 +669,7 @@ func ExecCommitBlock(
 	stateDB dbm.DB,
 ) ([]byte, error) {
 
-	ctx := &executionContext{
+	ctx := &executionTask{
 		logger: logger,
 		block: block,
 		db: stateDB,

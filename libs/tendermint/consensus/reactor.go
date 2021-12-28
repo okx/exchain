@@ -158,6 +158,8 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
+	conR.conS.blockExec.SetIsFastSyncing(true)
+
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
@@ -173,8 +175,6 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
-
-	conR.conS.blockExec.SetIsFastSyncing(true)
 
 	return conR.conS.GetState(), nil
 }
