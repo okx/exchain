@@ -12,6 +12,7 @@
 *.txt
 *.xls
 
+rocksdb
 dump.rdb
 # Build
 .exchaind
