@@ -6,31 +6,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/x/farm"
-
-	"github.com/okex/exchain/x/ammswap"
-
-	types2 "github.com/okex/exchain/x/dex/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	"github.com/okex/exchain/x/backend/client/cli"
-	"github.com/okex/exchain/x/backend/config"
-	"github.com/okex/exchain/x/backend/orm"
-	"github.com/okex/exchain/x/backend/types"
-	"github.com/okex/exchain/x/common/monitor"
-	"github.com/okex/exchain/x/common/version"
-	"github.com/okex/exchain/x/order/keeper"
-	ordertypes "github.com/okex/exchain/x/order/types"
-	tokentypes "github.com/okex/exchain/x/token/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	types3 "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/backend/client/cli"
+	"github.com/okex/exchain/x/backend/config"
+	"github.com/okex/exchain/x/backend/orm"
+	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/common/monitor"
+	"github.com/okex/exchain/x/common/version"
+	types2 "github.com/okex/exchain/x/dex/types"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/order/keeper"
+	ordertypes "github.com/okex/exchain/x/order/types"
+	tokentypes "github.com/okex/exchain/x/token/types"
 
 	//"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/dex"
@@ -39,9 +38,6 @@ import (
 	//"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
 type MockApp struct {
@@ -263,7 +259,7 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 		_, _, err := app.Deliver(tx)
 		if err == nil {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
-			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
+			txHash := fmt.Sprintf("%X", types3.Tx(txBytes).Hash())
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix()) // do not use tx
 		} else {
