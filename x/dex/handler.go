@@ -6,11 +6,11 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/dex/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // NewHandler handles all "dex" type messages.
@@ -281,7 +281,7 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 		HandlingFeeAddress: msg.HandlingFeeAddress,
 		Website:            msg.Website,
 		InitHeight:         ctx.BlockHeight(),
-		TxHash:             fmt.Sprintf("%X", tmhash.Sum(ctx.TxBytes())),
+		TxHash:             fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash()),
 	}
 	keeper.SetOperator(ctx, operator)
 

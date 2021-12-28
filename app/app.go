@@ -28,7 +28,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
@@ -501,7 +500,7 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
-			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
+			txHash := fmt.Sprintf("%X", tendermintTypes.Tx(txBytes).Hash())
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetDeliverStateCtx()
 			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,

@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // BroadcastTx broadcasts a transactions either synchronously or asynchronously
@@ -48,7 +47,7 @@ func CheckTendermintError(err error, txBytes []byte) *sdk.TxResponse {
 	}
 
 	errStr := strings.ToLower(err.Error())
-	txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
+	txHash := fmt.Sprintf("%X", types.Tx(txBytes).Hash())
 
 	switch {
 	case strings.Contains(errStr, strings.ToLower(mempool.ErrTxInCache.Error())):

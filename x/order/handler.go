@@ -8,12 +8,12 @@ import (
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/willf/bitset"
 )
 
@@ -116,7 +116,7 @@ func getOrderFromMsg(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrder, ra
 	feePerBlockAmount := feeParams.FeePerBlock.Amount.Mul(sdk.MustNewDecFromStr(ratio))
 	feePerBlock := sdk.NewDecCoinFromDec(feeParams.FeePerBlock.Denom, feePerBlockAmount)
 	return types.NewOrder(
-		fmt.Sprintf("%X", tmhash.Sum(ctx.TxBytes())),
+		fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash()),
 		msg.Sender,
 		msg.Product,
 		msg.Side,

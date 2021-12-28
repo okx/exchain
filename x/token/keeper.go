@@ -7,14 +7,13 @@ import (
 	"strings"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
+	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	app "github.com/okex/exchain/app/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
@@ -404,7 +403,7 @@ func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 
 // addTokenSuffix add token suffix
 func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
-	hash := fmt.Sprintf("%x", tmhash.Sum(ctx.TxBytes()))
+	hash := fmt.Sprintf("%x", types2.Tx(ctx.TxBytes()).Hash())
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {
 		name = originalSymbol + "-" + strings.ToLower(hash[3*i:3*i+3])
