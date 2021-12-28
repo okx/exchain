@@ -2,7 +2,12 @@ package types
 
 import (
 	"bytes"
+	"math"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/stretchr/testify/assert"
 
@@ -187,4 +192,65 @@ func assertBadProof(t *testing.T, root []byte, bad []byte, good TxProof) {
 			assert.NotEqual(t, proof.Proof.Total, good.Proof.Total, "bad: %#v\ngood: %#v", proof, good)
 		}
 	}
+}
+
+var txResultTestCases = []TxResult{
+	{},
+	{Tx: []byte{}},
+	{123, 123, []byte("tx bytes"), types.ResponseDeliverTx{Code: 123, Data: []byte("this is data"), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: []types.Event{}, Codespace: "sssdasf"}},
+	{Height: math.MaxInt64, Index: math.MaxUint32},
+	{Height: math.MinInt64, Index: 0},
+	{Height: -1, Index: 0},
+}
+
+func TestTxResultAmino(t *testing.T) {
+	for _, txResult := range txResultTestCases {
+		expectData, err := cdc.MarshalBinaryBare(txResult)
+		require.NoError(t, err)
+
+		var expectValue TxResult
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue TxResult
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkTxResultAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(txResultTestCases))
+	for i, res := range txResultTestCases {
+		expectData, err := cdc.MarshalBinaryBare(res)
+		require.NoError(b, err)
+		testData[i] = expectData
+	}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var res TxResult
+				err := cdc.UnmarshalBinaryBare(data, &res)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var res TxResult
+				err := res.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }

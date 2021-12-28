@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
@@ -245,24 +247,65 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (event *Event) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		if aminoType != amino.Typ3_ByteLength {
+			return errors.New("invalid amino type")
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, _ = amino.DecodeUvarint(data)
+
+		data = data[n:]
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			event.Type = string(subData)
+		case 2:
+			var kvpair kv.Pair
+			err = kvpair.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			event.Attributes = append(event.Attributes, kvpair)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 	if tx == nil {
 		return nil, nil
 	}
 	var buf bytes.Buffer
+	var err error
 	fieldKeysType := [8]byte{1 << 3, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5 << 3, 6 << 3, 7<<3 | 2, 8<<3 | 2}
 	for pos := 1; pos <= 8; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err := buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
 		switch pos {
 		case 1:
 			if tx.Code == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.Code))
 			if err != nil {
@@ -270,8 +313,11 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 2:
 			if len(tx.Data) == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeByteSliceToBuffer(&buf, tx.Data)
 			if err != nil {
@@ -279,8 +325,11 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 3:
 			if tx.Log == "" {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeStringToBuffer(&buf, tx.Log)
 			if err != nil {
@@ -288,8 +337,11 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 4:
 			if tx.Info == "" {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeStringToBuffer(&buf, tx.Info)
 			if err != nil {
@@ -297,8 +349,11 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 5:
 			if tx.GasWanted == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.GasWanted))
 			if err != nil {
@@ -306,33 +361,23 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 6:
 			if tx.GasUsed == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeUvarintToBuffer(&buf, uint64(tx.GasUsed))
 			if err != nil {
 				return nil, err
 			}
 		case 7:
-			eventsLen := len(tx.Events)
-			if eventsLen == 0 {
-				noWrite = true
-				break
-			}
-			data, err := MarshalEventToAmino(tx.Events[0])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
-			if err != nil {
-				return nil, err
-			}
-			for i := 1; i < eventsLen; i++ {
+			for i := 0; i < len(tx.Events); i++ {
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				data, err = MarshalEventToAmino(tx.Events[i])
+				data, err := MarshalEventToAmino(tx.Events[i])
 				if err != nil {
 					return nil, err
 				}
@@ -343,8 +388,11 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 			}
 		case 8:
 			if tx.Codespace == "" {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeStringToBuffer(&buf, tx.Codespace)
 			if err != nil {
@@ -353,12 +401,75 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 		default:
 			panic("unreachable")
 		}
-
-		if noWrite {
-			buf.Truncate(lBeforeKey)
-		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			tx.Code = uint32(uvint)
+			dataLen = uint64(n)
+		case 2:
+			tx.Data = make([]byte, dataLen)
+			copy(tx.Data, subData)
+		case 3:
+			tx.Log = string(subData)
+		case 4:
+			tx.Info = string(subData)
+		case 5:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			tx.GasWanted = int64(uvint)
+			dataLen = uint64(n)
+		case 6:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			tx.GasUsed = int64(uvint)
+			dataLen = uint64(n)
+		case 7:
+			var event Event
+			err = event.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			tx.Events = append(tx.Events, event)
+		case 8:
+			tx.Codespace = string(subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, error) {
