@@ -40,7 +40,7 @@ func initDb() dbm.DB {
 	dbPath := filepath.Join(homeDir, WatchDbDir)
 	backend := viper.GetString(FlagDBBackend)
 	if backend == "" {
-		backend = string(dbm.GoLevelDBBackend)
+		backend = string(dbm.RocksDBBackend)
 	}
 
 	return dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)

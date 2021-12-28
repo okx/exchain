@@ -1,15 +1,16 @@
 package baseapp
 
 import (
+	"path/filepath"
+	"sync"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 	db "github.com/tendermint/tm-db"
-	"path/filepath"
-	"sync"
 )
 
 const (
-	FlagDBBackend    = "db_backend"
+	FlagDBBackend = "db_backend"
 
 	HistoryGasUsedDbDir  = "data"
 	HistoryGasUsedDBName = "hgu"
@@ -18,8 +19,8 @@ const (
 )
 
 var (
-	once sync.Once
-	guDB db.DB
+	once          sync.Once
+	guDB          db.DB
 	GasUsedFactor = 0.4
 )
 
@@ -35,7 +36,7 @@ func initDb() db.DB {
 	dbPath := filepath.Join(homeDir, HistoryGasUsedDbDir)
 	backend := viper.GetString(FlagDBBackend)
 	if backend == "" {
-		backend = string(db.GoLevelDBBackend)
+		backend = string(db.RocksDBBackend)
 	}
 
 	return db.NewDB(HistoryGasUsedDBName, db.BackendType(backend), dbPath)

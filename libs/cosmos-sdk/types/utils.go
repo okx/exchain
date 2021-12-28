@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	// This is set at compile time. Could be cleveldb, defaults is goleveldb.
+	// DBBackend this is set at compile time. Could be cleveldb|goleveldb, defaults is rocksdb.
 	DBBackend = ""
-	backend   = dbm.GoLevelDBBackend
+	backend   = dbm.RocksDBBackend
 )
 
 func init() {
@@ -21,7 +21,7 @@ func init() {
 	}
 }
 
-// SortedJSON takes any JSON and returns it sorted by keys. Also, all white-spaces
+// SortJSON takes any JSON and returns it sorted by keys. Also, all white-spaces
 // are removed.
 // This method can be used to canonicalize JSON to be returned by GetSignBytes,
 // e.g. for the ledger integration.

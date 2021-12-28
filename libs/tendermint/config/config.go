@@ -248,7 +248,7 @@ func DefaultBaseConfig() BaseConfig {
 		FastSyncMode:       true,
 		AutoFastSync:       true,
 		FilterPeers:        false,
-		DBBackend:          "goleveldb",
+		DBBackend:          "rocksdb",
 		DBPath:             "data",
 		LogFile:            defaultLogFile,
 		LogStdout:          true,

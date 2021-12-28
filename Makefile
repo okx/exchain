@@ -18,6 +18,7 @@ ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
 MercuryHeight=0
+WITH_ROCKSDB=true
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -53,8 +54,8 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
 
-ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
+ifeq ($(WITH_ROCKSDB),false)
+  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=goleveldb
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'

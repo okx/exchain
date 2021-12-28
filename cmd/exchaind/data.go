@@ -23,13 +23,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/ammswap"
@@ -87,7 +87,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 
 	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
 	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
-	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	cmd.PersistentFlags().String(flagDBBackend, "rocksdb", "Database backend: goleveldb | rocksdb")
 	return cmd
 }
 
@@ -168,7 +168,6 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 
 	return cmd
 }
-
 
 func clearPruneHeightsCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
