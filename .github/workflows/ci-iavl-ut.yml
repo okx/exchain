@@ -14,5 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: test & coverage report creation
+        with:
+          go-version: 1.17
         run: |
           go test ./libs/iavl/...
