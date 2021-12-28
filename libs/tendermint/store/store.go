@@ -142,9 +142,13 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	if len(bz) == 0 {
 		return nil
 	}
-	err = cdc.UnmarshalBinaryBare(bz, part)
+	err = part.UnmarshalFromAmino(bz)
 	if err != nil {
-		panic(errors.Wrap(err, "Error reading block part"))
+		part = new(types.Part)
+		err = cdc.UnmarshalBinaryBare(bz, part)
+		if err != nil {
+			panic(errors.Wrap(err, "Error reading block part"))
+		}
 	}
 	return part
 }
