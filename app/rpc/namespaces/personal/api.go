@@ -141,17 +141,10 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	}
 
 	api.keyInfos = append(api.keyInfos, info)
-
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 
-	// export tendermint private key
-	privKey, err := api.ethAPI.ClientCtx().Keybase.ExportPrivateKeyObject(name, password)
-	if err != nil {
-		return common.Address{}, err
-	}
-	//create a keystore file to storage private key
-	keyDir := api.ethAPI.ClientCtx().Keybase.FileDir()
-	ksName, err := ethkeystore.CreateKeystoreByTmKey(privKey, keyDir, password)
+	// export a private key as ethereum keystore
+	ksName, err := exportKeystoreFromKeybase(api.ethAPI.ClientCtx().Keybase, name, password)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -161,6 +154,21 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
+}
+
+// exportKeystoreFromKeybase export a keybase.key to eth keystore.key
+func exportKeystoreFromKeybase(kb keys.Keybase, accName, password string) (string, error) {
+	// export tendermint private key
+	privKey, err := kb.ExportPrivateKeyObject(accName, password)
+	if err != nil {
+		return "", err
+	}
+	//create a keystore file to storage private key
+	keyDir, err := kb.FileDir()
+	if err != nil {
+		return "", err
+	}
+	return ethkeystore.CreateKeystoreByTmKey(privKey, keyDir, password)
 }
 
 // UnlockAccount will unlock the account associated with the given address with

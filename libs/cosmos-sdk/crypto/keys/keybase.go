@@ -477,6 +477,6 @@ func infoKey(name string) []byte {
 }
 
 // FileDir show dbKeybase position
-func (kb dbKeybase) FileDir() string {
-	return ""
+func (kb dbKeybase) FileDir() (string, error) {
+	return "", fmt.Errorf("dbKeybase unsupported export")
 }

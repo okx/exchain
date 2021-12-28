@@ -492,12 +492,8 @@ func (kb keyringKeybase) writeInfo(name string, info Info) {
 }
 
 //FileDir show keyringKeybase absolute position
-func (kb keyringKeybase) FileDir() string {
-	path, err := resolvePath(kb.fileDir)
-	if err != nil {
-		return ""
-	}
-	return path
+func (kb keyringKeybase) FileDir() (string, error) {
+	return resolvePath(kb.fileDir)
 }
 
 func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {

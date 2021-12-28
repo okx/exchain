@@ -19,6 +19,10 @@ import (
 
 // CreateKeystoreByTmKey  create a eth keystore by accountname from keybase
 func CreateKeystoreByTmKey(privKey tmcrypto.PrivKey, dir, encryptPassword string) (string, error) {
+	// dir must be absolute
+	if !filepath.IsAbs(dir) {
+		return "", fmt.Errorf("invalid directory")
+	}
 	// converts tendermint  key to ethereum key
 	ethKey, err := EncodeTmKeyToEthKey(privKey)
 	if err != nil {
