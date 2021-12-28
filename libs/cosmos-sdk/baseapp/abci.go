@@ -224,8 +224,6 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-
-
 // Commit implements the ABCI interface. It will commit all state that exists in
 // the deliver state's multi-store and includes the resulting commit ID in the
 // returned abci.ResponseCommit. Commit will set the check state based on the
@@ -280,7 +278,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data: commitID.Hash,
+		Data:   commitID.Hash,
 		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }
