@@ -99,12 +99,12 @@ func writeContract(client *ethclient.Client,
 	amount *big.Int,
 	sleep time.Duration,
 	name string,
-	args ...interface{}) {
+	args ...interface{}) error {
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		log.Printf("failed to fetch the value of nonce from network: %+v", err)
-		return
+		panic(err)
 	}
 
 	// 0.5 get the gasPrice
@@ -125,7 +125,8 @@ func writeContract(client *ethclient.Client,
 	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
 		log.Printf("%s", err)
-		return
+		return err
+
 	}
 
 	if amount == nil {
@@ -137,17 +138,18 @@ func writeContract(client *ethclient.Client,
 	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(ChainId)), privateKey)
 	if err != nil {
 		log.Printf("failed to sign the unsignedTx offline: %+v", err)
-		return
+		return err
 	}
 
 	// 3. send rawTx
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		log.Printf("%s", err)
-		return
+		return err
 	}
 
 	time.Sleep(sleep)
+	return nil
 }
 
 
@@ -204,7 +206,7 @@ func sleep(second time.Duration)  {
 func readContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
 	data, err := contract.abi.Pack(name, args ...)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	msg := ethereum.CallMsg{
@@ -214,16 +216,12 @@ func readContract(client *ethclient.Client, contract *Contract, name string, arg
 
 	output, err := client.CallContract(context.Background(), msg, nil)
 	if err != nil {
-		fmt.Printf("err: %s\n", err)
-		sleep(1)
-		return nil
+		panic(err)
 	}
 
 	ret, err := contract.abi.Unpack(name, output)
 	if err != nil {
-		fmt.Printf("err: %s\n", err)
-		sleep(1)
-		return nil
+		panic(err)
 	}
 	return ret
 }
@@ -246,60 +244,67 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 
 
 func deployContract(client *ethclient.Client, fromAddress common.Address,
-	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration)  {
+	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration) error {
 
 	fmt.Printf("%s deploying contract\n", fromAddress.String())
 	chainID := big.NewInt(ChainId)
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatalf("failed to fetch the value of nonce from network: %+v", err)
+		log.Printf("failed to fetch the value of nonce from network: %+v", err)
+		return err
 	}
 
 	//1. simulate unsignedTx as you want, fill out the parameters into a unsignedTx
-	unsignedTx := deployContractTx(nonce, contract)
-
+	unsignedTx, err := deployContractTx(nonce, contract)
+	if err != nil {
+		return err
+	}
 	// 2. sign unsignedTx -> rawTx
 	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
-		log.Fatalf("failed to sign the unsignedTx offline: %+v", err)
+		log.Printf("failed to sign the unsignedTx offline: %+v", err)
+		return err
 	}
 
 	// 3. send rawTx
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("SendTransaction err: %s", err)
+		return err
 	}
 
-	time.Sleep(blockTime)
+	sleep(blockTime)
 	// 4. get the contract address based on tx hash
 	hash, err := utils.Hash(signedTx)
 	if err != nil {
-		panic(err)
-		log.Fatal(err)
+		log.Printf("Hash tx err: %s", err)
+		return err
 	}
 
 	receipt, err := client.TransactionReceipt(context.Background(), hash)
 	if err != nil {
-		panic(err)
-		log.Fatal(err)
+		log.Printf("TransactionReceipt err: %s", err)
+		return err
 	}
 
 	contract.address = receipt.ContractAddress.String()
 	contract.addr = receipt.ContractAddress
 
 	fmt.Printf("new contract address: %s\n", contract.address)
+	return nil
 }
 
-func deployContractTx(nonce uint64, contract *Contract) *types.Transaction {
+func deployContractTx(nonce uint64, contract *Contract) (*types.Transaction, error) {
 	value := big.NewInt(0)
 	// Constructor
 	input, err := contract.abi.Pack("")
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("contract.abi.Pack err: %s", err)
+		return nil, err
 	}
 	data := append(contract.byteCode, input...)
-	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data)
+	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data), err
 }
 
 
