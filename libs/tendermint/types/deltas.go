@@ -24,8 +24,8 @@ const (
 
 	FlagFastQuery = "fast-query"
 
-	// when this DeltaVersion not equal with dds delta-version, can't use delta
-	DeltaVersion = 2
+	// do not apply delta if version does not match
+	DeltaVersion = 3
 )
 
 var (
@@ -86,7 +86,6 @@ type Deltas struct {
 	compressElapsed   time.Duration
 }
 
-
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
 	return len(d.ABCIRsp()) + len(d.DeltasBytes()) + len(d.WatchBytes())
@@ -109,7 +108,6 @@ func (d *Deltas) MarshalOrUnmarshalElapsed() time.Duration {
 func (d *Deltas) CompressOrUncompressElapsed() time.Duration {
 	return d.compressElapsed
 }
-
 
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
@@ -184,7 +182,7 @@ func (d *Deltas) String() string {
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if DeltaVersion < dds.Version ||
+	if DeltaVersion != dds.Version ||
 		dds.Height != height ||
 		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||

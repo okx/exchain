@@ -17,7 +17,23 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-type fromMapType map[string]int64
+type identityMapType map[string]int64
+
+func (m identityMapType) String() string {
+	var output string
+	var comma string
+	for k, v := range m {
+		output += fmt.Sprintf("%s%s=%d", comma, k, v)
+		comma = ","
+	}
+	return output
+}
+
+func (m identityMapType) increase(from string, num int64) {
+	if len(from) > 0 {
+		m[from] += num
+	}
+}
 
 var (
 	getWatchDataFunc func() ([]byte, error)
@@ -42,7 +58,7 @@ type DeltaContext struct {
 	compressType int
 	compressFlag int
 
-	fromMap  fromMapType
+	idMap  identityMapType
 	identity string
 }
 
@@ -52,7 +68,7 @@ func newDeltaContext(l log.Logger) *DeltaContext {
 		missed: 0.000001,
 		downloadDelta: types.EnableDownloadDelta(),
 		uploadDelta: types.EnableUploadDelta(),
-		fromMap: make(fromMapType),
+		idMap: make(identityMapType),
 		logger: l,
 	}
 
@@ -116,31 +132,15 @@ func (dc *DeltaContext) setIdentity() {
 }
 
 
-func (dc *DeltaContext) hitRate() float64 {
+func (dc *DeltaContext) hitRatio() float64 {
 	return dc.hit / (dc.hit + dc.missed)
 }
 
 
-func (m fromMapType) String() string {
-	var output string
-	var comma string
-	for k, v := range m {
-		output += fmt.Sprintf("%s%s=%d", comma, k, v)
-		comma = ","
-	}
-	return output
-}
-
-func (m fromMapType) increase(from string, num int64) {
-	if len(from) > 0 {
-		m[from] += num
-	}
-}
-
 func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) {
 	if applied {
 		dc.hit += float64(txnum)
-		dc.fromMap.increase(delta.From, int64(txnum))
+		dc.idMap.increase(delta.From, int64(txnum))
 	} else {
 		dc.missed += float64(txnum)
 	}
@@ -160,11 +160,11 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		dc.statistic(applied, len(abciResponses.DeliverTxs), delta)
 
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
-			fmt.Sprintf("applied<%t>, rate<%.2f>, from<%s>",
-				applied, dc.hitRate(), dc.fromMap),)
+			fmt.Sprintf("applied<%t>, ratio<%.2f>, from<%s>",
+				applied, dc.hitRatio(), dc.idMap),)
 
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
-			"applied-rate", dc.hitRate(), "delta", delta)
+			"applied-ratio", dc.hitRatio(), "delta", delta)
 
 		if applied && types.IsFastQuery() {
 			applyWatchDataFunc(delta.WatchBytes())
@@ -175,7 +175,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	if dc.uploadDelta && !isFastSync {
 
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
-			fmt.Sprintf("rate<%.2f>", dc.hitRate()))
+			fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		dc.uploadData(height, abciResponses, res)
 	}
 }

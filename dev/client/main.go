@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
 	"math/big"
 	"time"
 )
@@ -36,20 +35,23 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 	)
 	privateKey, senderAddress = initKey(privKey)
 
+	defer func() {
+		if r := recover(); r != nil {
+			sleep(3)
+			go writeRoutine(privKey, blockTime)
+		}
+	}()
+
 	client, err := ethclient.Dial(RpcUrl)
-	if err != nil {
-		log.Fatalf("failed to initialize client: %+v", err)
-	}
 
 	contract := newContract("counter", "", abiFile, binFile)
-	deployContract(client, senderAddress, privateKey, contract, 3*time.Second)
+	err = deployContract(client, senderAddress, privateKey, contract, 3*time.Second)
 
-	for {
-		writeContract(client, contract, senderAddress, privateKey,
-			nil, blockTime, "add", big.NewInt(100))
+	for err == nil {
+		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "add", big.NewInt(100))
 		uint256Output(client, contract, "getCounter")
-		writeContract(client, contract, senderAddress, privateKey,
-			nil, blockTime, "subtract",)
+		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "subtract",)
 		uint256Output(client, contract, "getCounter")
 	}
+	panic(err)
 }
