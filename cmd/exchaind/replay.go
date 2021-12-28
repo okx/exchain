@@ -70,8 +70,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(types.FlagDownloadDDS, false, "get delta from dc/redis or not")
 	cmd.Flags().Bool(types.FlagUploadDDS, false, "send delta to dc/redis or not")
-	cmd.Flags().Bool(types.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
-	cmd.Flags().Bool(types.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")

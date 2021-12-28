@@ -384,9 +384,6 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
-	if cs.prerunTx {
-		cs.blockExec.StopPreRun()
-	}
 }
 
 func (cs *State) OnReset() error {
@@ -1792,7 +1789,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		if cs.prerunTx {
-			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
+			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
 
 		// receive Deltas from BlockMessage and put into State(cs)
