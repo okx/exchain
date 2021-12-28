@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -19,11 +20,10 @@ import (
 	"time"
 )
 
-
 const (
 	//RpcUrl          = "https://exchaintestrpc.okex.org"
-	RpcUrl          = "http://127.0.0.1:8545"
-	ChainId int64   = 67 //  oec
+	RpcUrl        = "http://0.0.0.0:8545"
+	ChainId int64 = 67 //  oec
 	//RpcUrl          = "https://exchainrpc.okex.org"
 	//ChainId int64   = 66 //  oec
 	GasPrice int64  = 100000000 // 0.1 gwei
@@ -31,17 +31,17 @@ const (
 )
 
 type Contract struct {
-	name     string
-	address  string
-	addr     common.Address
-	abi      abi.ABI
+	name    string
+	address string
+	addr    common.Address
+	abi     abi.ABI
 }
 
 func NewContract(name, address, abiFile string) *Contract {
 	c := &Contract{
-		name: name,
+		name:    name,
 		address: address,
-		addr: common.HexToAddress(address),
+		addr:    common.HexToAddress(address),
 	}
 
 	abiByte, err := ioutil.ReadFile(abiFile)
@@ -56,11 +56,11 @@ func NewContract(name, address, abiFile string) *Contract {
 	return c
 }
 
-func str2bigInt(input string) *big.Int{
+func str2bigInt(input string) *big.Int {
 	return sdk.MustNewDecFromStr(input).Int
 }
 
-func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) (*big.Int) {
+func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) *big.Int {
 
 	value := ReadContract(client, c, name, args...)
 	ret := value[0].(*big.Int)
@@ -133,7 +133,6 @@ func WriteContract(client *ethclient.Client,
 	time.Sleep(time.Second * sleep)
 }
 
-
 func transferOKT(client *ethclient.Client,
 	fromAddress common.Address,
 	toAddress common.Address,
@@ -159,7 +158,7 @@ func transferOKT(client *ethclient.Client,
 		fromAddress,
 		toAddress,
 		sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision),
-		)
+	)
 
 	unsignedTx := types.NewTransaction(nonce, toAddress, amount, GasLimit, gasPrice, nil)
 
@@ -180,10 +179,8 @@ func transferOKT(client *ethclient.Client,
 	}
 }
 
-
-
 func ReadContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
-	data, err := contract.abi.Pack(name, args ...)
+	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -205,7 +202,7 @@ func ReadContract(client *ethclient.Client, contract *Contract, name string, arg
 	return ret
 }
 
-func initKey(key string) (*ecdsa.PrivateKey, common.Address){
+func initKey(key string) (*ecdsa.PrivateKey, common.Address) {
 	privateKey, err := crypto.HexToECDSA(key)
 	if err != nil {
 		log.Fatalf("failed to switch unencrypted private key -> secp256k1 private key: %+v", err)
@@ -220,3 +217,10 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 	return privateKey, senderAddress
 }
 
+func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string, name string, decimals uint8, totalSupply *big.Int, ownerAddress common.Address) common.Address {
+	address, _, _, err := DeployOIP20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return address
+}
