@@ -3,7 +3,6 @@ package client
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -84,8 +83,8 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 // ExportEthCompCommand exports a key with the given name as a keystore file.
 func ExportEthCompCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "export-eth-comp [name] [file]",
-		Short: "Export an Ethereum private keystore file",
+		Use:   "export-eth-comp [name] [dir]",
+		Short: "Export an Ethereum private keystore directory",
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
 	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
@@ -93,17 +92,7 @@ func ExportEthCompCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			accountName := args[0]
-			fileName := args[1]
-
-			if pathExist(fileName) {
-				overwrite, err := input.GetConfirmation("File already exists, overwrite", inBuf)
-				if err != nil {
-					return err
-				}
-				if !overwrite {
-					return fmt.Errorf("export keystore file is aborted")
-				}
-			}
+			dir := args[1]
 
 			kb, err := keys.NewKeyring(
 				sdk.KeyringServiceName(),
@@ -146,22 +135,14 @@ func ExportEthCompCommand() *cobra.Command {
 			}
 
 			// Exports private key from keybase using password
-			ethkeystore.CreateKeystoreByTmKey(privKey, fileName, encryptPassword)
+			 err =ethkeystore.CreateKeystoreByTmKey(privKey, dir, encryptPassword)
+			 if err!=nil{
+				 return err
+			 }
 
-			fmt.Printf("The keystore has exported to: %s \n", fileName)
+			fmt.Printf("The keystore has exported to: %s \n", dir)
 			return nil
 		},
 	}
 }
 
-// pathExist used for judging the file exist
-func pathExist(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}

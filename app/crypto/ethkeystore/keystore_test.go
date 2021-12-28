@@ -27,19 +27,16 @@ func testGetEthKey(t *testing.T) {
 		name    string
 		passwd  string
 		keyType keys.SigningAlgo
-		wantErr bool
 	}{
 		{
 			name:    "test-numbers-passwd",
 			passwd:  "12345678",
 			keyType: hd.EthSecp256k1,
-			wantErr: false,
 		},
 		{
 			name:    "test-characters-passwd",
 			passwd:  "abcdefgh",
 			keyType: hd.EthSecp256k1,
-			wantErr: false,
 		},
 	}
 	//generate test key

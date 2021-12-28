@@ -149,9 +149,14 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	if err != nil {
 		return common.Address{}, err
 	}
-	ethkeystore.CreateKeystoreByTmKey(privKey, api.ethAPI.ClientCtx().Keybase.FileDir(), password)
+	keyDir := api.ethAPI.ClientCtx().Keybase.FileDir()
+	err = ethkeystore.CreateKeystoreByTmKey(privKey, keyDir, password)
+	if err != nil {
+		return common.Address{}, err
+	}
 
 	api.logger.Info("Your new key was generated", "address", addr.String())
+	api.logger.Info("Please backup your eth keystore file", "path", keyDir)
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
