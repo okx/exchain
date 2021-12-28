@@ -9,11 +9,15 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
+	"net"
+	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+type fromMapType map[string]int64
 
 var (
 	getWatchDataFunc func() ([]byte, error)
@@ -32,19 +36,24 @@ type DeltaContext struct {
 
 	downloadDelta bool
 	uploadDelta bool
-	applied float64
+	hit float64
 	missed float64
 	logger log.Logger
 	compressType int
 	compressFlag int
+
+	fromMap  fromMapType
+	identity string
 }
 
-func newDeltaContext() *DeltaContext {
+func newDeltaContext(l log.Logger) *DeltaContext {
 	dp := &DeltaContext{
 		dataMap: newDataMap(),
 		missed: 0.000001,
 		downloadDelta: types.EnableDownloadDelta(),
 		uploadDelta: types.EnableUploadDelta(),
+		fromMap: make(fromMapType),
+		logger: l,
 	}
 
 	if dp.uploadDelta && dp.downloadDelta {
@@ -54,12 +63,12 @@ func newDeltaContext() *DeltaContext {
 	if dp.uploadDelta {
 		dp.compressType = viper.GetInt(types.FlagDDSCompressType)
 		dp.compressFlag = viper.GetInt(types.FlagDDSCompressFlag)
+		dp.setIdentity()
 	}
 	return dp
 }
 
-func (dc *DeltaContext) init(l log.Logger) {
-	dc.logger = l
+func (dc *DeltaContext) init() {
 
 	dc.logger.Info("DeltaContext init",
 		"uploadDelta", dc.uploadDelta,
@@ -70,7 +79,7 @@ func (dc *DeltaContext) init(l log.Logger) {
 		url := viper.GetString(types.FlagRedisUrl)
 		auth := viper.GetString(types.FlagRedisAuth)
 		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
-		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, l)
+		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
 		dc.logger.Info("Init delta broker", "url", url)
 	}
 
@@ -82,8 +91,59 @@ func (dc *DeltaContext) init(l log.Logger) {
 	}
 }
 
-func (dc *DeltaContext) appliedRate() float64 {
-	return dc.applied / (dc.applied + dc.missed)
+
+func (dc *DeltaContext) setIdentity() {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil{
+		dc.logger.Error("Failed to set identity", "err", err)
+		return
+	}
+	var comma string
+	for _, value := range addrs{
+		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback(){
+			if ipnet.IP.To4() != nil{
+				dc.identity += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
+				comma = ","
+			}
+		}
+	}
+
+	if viper.GetBool(types.FlagAppendPid) {
+		dc.identity = fmt.Sprintf("%s:%d", dc.identity, os.Getpid())
+	}
+
+	dc.logger.Error("Set identity", "identity", dc.identity)
+}
+
+
+func (dc *DeltaContext) hitRate() float64 {
+	return dc.hit / (dc.hit + dc.missed)
+}
+
+
+func (m fromMapType) String() string {
+	var output string
+	var comma string
+	for k, v := range m {
+		output += fmt.Sprintf("%s%s=%d", comma, k, v)
+		comma = ","
+	}
+	return output
+}
+
+func (m fromMapType) increase(from string, num int64) {
+	if len(from) > 0 {
+		m[from] += num
+	}
+}
+
+func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) {
+	if applied {
+		dc.hit += float64(txnum)
+		dc.fromMap.increase(delta.From, int64(txnum))
+	} else {
+		dc.missed += float64(txnum)
+	}
 }
 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
@@ -95,16 +155,16 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		applied := false
 		if delta != nil {
 			applied = true
-			dc.applied += float64(len(abciResponses.DeliverTxs))
-		} else {
-			dc.missed += float64(len(abciResponses.DeliverTxs))
 		}
 
+		dc.statistic(applied, len(abciResponses.DeliverTxs), delta)
+
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
-			fmt.Sprintf("applied<%t>, rate<%.2f>", applied, dc.appliedRate()))
+			fmt.Sprintf("applied<%t>, rate<%.2f>, from<%s>",
+				applied, dc.hitRate(), dc.fromMap),)
 
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
-			"applied-rate", dc.appliedRate(), "delta", delta)
+			"applied-rate", dc.hitRate(), "delta", delta)
 
 		if applied && types.IsFastQuery() {
 			applyWatchDataFunc(delta.WatchBytes())
@@ -113,6 +173,9 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 	// validator
 	if dc.uploadDelta && !isFastSync {
+
+		trace.GetElapsedInfo().AddInfo(trace.Delta,
+			fmt.Sprintf("rate<%.2f>", dc.hitRate()))
 		dc.uploadData(height, abciResponses, res)
 	}
 }
@@ -143,16 +206,17 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		Version:     types.DeltaVersion,
 		CompressType: dc.compressType,
 		CompressFlag: dc.compressFlag,
+		From:         dc.identity,
 	}
 
-	go dc.uploadRoutine(delta4Upload)
+	go dc.uploadRoutine(delta4Upload, float64(len(abciResponses.DeliverTxs)))
 }
 
-func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	if deltas == nil {
 		return
 	}
-
+	dc.missed += txnum
 	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
 	locked := dc.deltaBroker.GetLocker()
 	dc.logger.Info("Upload delta:", "locked", locked, "gid", gorid.GoRId)
@@ -163,12 +227,12 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas) {
 	defer dc.deltaBroker.ReleaseLocker()
 
 	upload := func() bool {
-		return dc.upload(deltas)
+		return dc.upload(deltas, txnum)
 	}
 	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
 }
 
-func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
+func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64) bool {
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -185,11 +249,15 @@ func (dc *DeltaContext) upload(deltas *types.Deltas) bool {
 
 	}
 	t3 := time.Now()
+	dc.missed -= txnum
+	dc.hit += txnum
 	dc.logger.Info("Upload delta finished",
 		"target-height", deltas.Height,
 		"marshal", deltas.MarshalOrUnmarshalElapsed(),
 		"compress", deltas.CompressOrUncompressElapsed(),
 		"upload", t3.Sub(t2),
+		"missed", dc.missed,
+		"uploaded", dc.hit,
 		"deltas", deltas,
 		"gid", gorid.GoRId)
 	return true

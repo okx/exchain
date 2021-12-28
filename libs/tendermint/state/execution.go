@@ -81,14 +81,14 @@ func NewBlockExecutor(
 		metrics:        NopMetrics(),
 		isAsync:        viper.GetBool(FlagParalleledTx),
 		prerunCtx:      newPrerunContex(logger),
-		deltaContext:   newDeltaContext(),
+		deltaContext:   newDeltaContext(logger),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
 	automation.LoadTestCase(logger)
-	res.deltaContext.init(logger)
+	res.deltaContext.init()
 
 	return res
 }
