@@ -224,8 +224,6 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-
-
 // Commit implements the ABCI interface. It will commit all state that exists in
 // the deliver state's multi-store and includes the resulting commit ID in the
 // returned abci.ResponseCommit. Commit will set the check state based on the
@@ -248,7 +246,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
-
+	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rFlatKV<%d>, rFlatKVTs<%dms>, wFlatKV<%d>",
+		app.cms.GetFlatKVReadTime(), app.cms.GetFlatKVReadCount(), app.cms.GetFlatKVWriteCount()))
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
@@ -280,7 +279,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data: commitID.Hash,
+		Data:   commitID.Hash,
 		Deltas: &abci.Deltas{DeltasByte: deltas},
 	}
 }

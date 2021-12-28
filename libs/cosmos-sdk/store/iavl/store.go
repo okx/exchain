@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -34,9 +36,48 @@ var (
 
 // Store Implements types.KVStore and CommitKVStore.
 type Store struct {
-	tree     Tree
-	flatKVDB dbm.DB
-	cache    map[string][]byte
+	tree             Tree
+	flatKVDB         dbm.DB
+	cache            map[string][]byte
+	flatKVReadTime   int64
+	flatKVReadCount  int64
+	flatKVWriteCount int64
+}
+
+func (st *Store) GetFlatKVReadTime() int {
+	return int(atomic.LoadInt64(&st.flatKVReadTime))
+}
+
+func (st *Store) addFlatKVReadTime(ts int64) {
+	atomic.AddInt64(&st.flatKVReadTime, ts)
+}
+
+func (st *Store) resetFlatKVReadTime() {
+	atomic.StoreInt64(&st.flatKVReadTime, 0)
+}
+
+func (st *Store) GetFlatKVReadCount() int {
+	return int(atomic.LoadInt64(&st.flatKVReadCount))
+}
+
+func (st *Store) addFlatKVReadCount() {
+	atomic.AddInt64(&st.flatKVReadCount, 1)
+}
+
+func (st *Store) resetFlatKVReadCount() {
+	atomic.StoreInt64(&st.flatKVReadCount, 0)
+}
+
+func (st *Store) GetFlatKVWriteCount() int {
+	return int(atomic.LoadInt64(&st.flatKVWriteCount))
+}
+
+func (st *Store) addFlatKVWriteCount() {
+	atomic.AddInt64(&st.flatKVWriteCount, 1)
+}
+
+func (st *Store) resetFlatKVWriteCount() {
+	atomic.StoreInt64(&st.flatKVWriteCount, 0)
 }
 
 func (st *Store) getCache(key string) (value []byte, ok bool) {
@@ -88,9 +129,12 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	}
 
 	return &Store{
-		tree:     tree,
-		flatKVDB: flatKVDB,
-		cache:    make(map[string][]byte),
+		tree:             tree,
+		flatKVDB:         flatKVDB,
+		cache:            make(map[string][]byte),
+		flatKVReadTime:   0,
+		flatKVReadCount:  0,
+		flatKVWriteCount: 0,
 	}, nil
 }
 
@@ -162,6 +206,7 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 		batch.Set([]byte(key), value)
 	}
 	batch.Write()
+	st.addFlatKVWriteCount()
 	// clear cache
 	st.cache = make(map[string][]byte)
 
@@ -219,7 +264,10 @@ func (st *Store) Get(key []byte) []byte {
 	if cacheVal, ok := st.getCache(strKey); ok {
 		return cacheVal
 	}
+	ts := time.Now()
 	value, err := st.flatKVDB.Get(key)
+	st.addFlatKVReadTime(time.Now().Sub(ts).Nanoseconds())
+	st.addFlatKVReadCount()
 	if err == nil && len(value) != 0 {
 		return value
 	}
@@ -237,7 +285,7 @@ func (st *Store) Has(key []byte) (exists bool) {
 	if _, ok := st.getCache(strKey); ok {
 		return true
 	}
-
+	st.addFlatKVReadCount()
 	if ok, err := st.flatKVDB.Has(key); err == nil && ok {
 		return true
 	}
@@ -249,6 +297,7 @@ func (st *Store) Has(key []byte) (exists bool) {
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
 	st.flatKVDB.Delete(key)
+	st.addFlatKVWriteCount()
 	st.deleteCache(string(key))
 }
 
@@ -393,6 +442,9 @@ func (st *Store) GetNodeReadCount() int {
 
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
+	st.resetFlatKVReadTime()
+	st.resetFlatKVReadCount()
+	st.resetFlatKVWriteCount()
 }
 
 //----------------------------------------

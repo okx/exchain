@@ -789,6 +789,30 @@ func (rs *Store) ResetCount() {
 	}
 }
 
+func (rs *Store) GetFlatKVReadTime() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetFlatKVReadTime()
+	}
+	return count
+}
+
+func (rs *Store) GetFlatKVReadCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetFlatKVReadCount()
+	}
+	return count
+}
+
+func (rs *Store) GetFlatKVWriteCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetFlatKVWriteCount()
+	}
+	return count
+}
+
 //----------------------------------------
 // storeParams
 
