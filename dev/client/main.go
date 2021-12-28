@@ -45,7 +45,7 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 	client, err := ethclient.Dial(RpcUrl)
 
 	contract := newContract("counter", "", abiFile, binFile)
-	err = deployContract(client, senderAddress, privateKey, contract, 3*time.Second)
+	err = deployContract(client, senderAddress, privateKey, contract, 3)
 
 	for err == nil {
 		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "add", big.NewInt(100))

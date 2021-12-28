@@ -274,7 +274,7 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 		return err
 	}
 
-	time.Sleep(blockTime)
+	sleep(blockTime)
 	// 4. get the contract address based on tx hash
 	hash, err := utils.Hash(signedTx)
 	if err != nil {

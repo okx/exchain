@@ -128,7 +128,7 @@ func (dc *DeltaContext) setIdentity() {
 		dc.identity = fmt.Sprintf("%s:%d", dc.identity, os.Getpid())
 	}
 
-	dc.logger.Error("Set identity", "identity", dc.identity)
+	dc.logger.Info("Set identity", "identity", dc.identity)
 }
 
 
