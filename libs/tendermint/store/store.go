@@ -100,11 +100,18 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		buf.Write(part.Bytes)
 	}
 
-	err := cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(buf.Bytes())
+	if err == nil {
+		err = block.UnmarshalFromAmino(cdc, bz)
+	}
 	if err != nil {
-		// NOTE: The existence of meta should imply the existence of the
-		// block. So, make sure meta is only saved after blocks are saved.
-		panic(errors.Wrap(err, "Error reading block"))
+		block = new(types.Block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+		if err != nil {
+			// NOTE: The existence of meta should imply the existence of the
+			// block. So, make sure meta is only saved after blocks are saved.
+			panic(errors.Wrap(err, "Error reading block"))
+		}
 	}
 	return block
 }
