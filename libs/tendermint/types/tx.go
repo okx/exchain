@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	amino "github.com/tendermint/go-amino"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	"github.com/tendermint/go-amino"
 )
 
 // Tx is an arbitrary byte array.
@@ -20,7 +19,7 @@ type Tx []byte
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
 func (tx Tx) Hash() []byte {
-	return tmhash.Sum(tx)
+	return etherhash.Sum(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
