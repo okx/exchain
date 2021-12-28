@@ -16,12 +16,6 @@ var (
 	stateKey = []byte("stateKey")
 )
 
-//-----------------------------------------------------------------------------
-// function for exchain get watchDB batch
-var (
-	GetWatchData func() []byte
-	UseWatchData func(data []byte)
-)
 
 //-----------------------------------------------------------------------------
 

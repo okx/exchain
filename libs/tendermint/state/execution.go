@@ -4,6 +4,7 @@ import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -46,11 +47,9 @@ type BlockExecutor struct {
 	// download or upload data to dds
 	deltaContext *DeltaContext
 
-	proactivelyRunTx bool
-	prerunChan chan *executionContext
-	prerunResultChan chan *executionContext
-	prerunIndex int64
-	prerunContext *executionContext
+	prerunCtx *prerunContext
+
+	isFastSync bool
 }
 
 
@@ -81,9 +80,8 @@ func NewBlockExecutor(
 		logger:         logger,
 		metrics:        NopMetrics(),
 		isAsync:        viper.GetBool(FlagParalleledTx),
-		prerunChan:           make(chan *executionContext, 1),
-		prerunResultChan:     make(chan *executionContext, 1),
-		deltaContext:         newDeltaContext(),
+		prerunCtx:      newPrerunContex(logger),
+		deltaContext:   newDeltaContext(),
 	}
 
 	for _, option := range options {
@@ -101,6 +99,10 @@ func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
 }
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
+}
+
+func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
+	blockExec.isFastSync = isSyncing
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -162,7 +164,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
-	//var inAbciRspLen, inDeltaLen, inWatchLen int
 	dc := blockExec.deltaContext
 
 	var delta *types.Deltas
@@ -170,10 +171,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
-		//trace.GetElapsedInfo().AddInfo(trace.InDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", inAbciRspLen, inDeltaLen, inWatchLen))
-		//trace.GetElapsedInfo().AddInfo(trace.OutDelta, fmt.Sprintf(
-		//	"abciRspLen<%d>, deltaLen<%d>, watchLen<%d>", len(delta.ABCIRsp), len(delta.DeltasBytes), len(delta.WatchBytes)))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -182,17 +179,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
-	trc.Pin("ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	trc.Pin("GetDelta")
-
 	delta = dc.prepareStateDelta(block.Height)
-	//inAbciRspLen = len(delta.ABCIRsp)
-	//inDeltaLen = len(delta.DeltasBytes)
-	//inWatchLen = len(delta.WatchBytes)
 
 	trc.Pin(trace.Abci)
 
@@ -247,6 +238,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
+	if blockExec.deltaContext.downloadDelta {
+		atomic.StoreInt64(&dc.lastCommitHeight, block.Height)
+	}
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
@@ -266,42 +260,35 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte)
+	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
-
 
 func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
 	if delta != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height,
-			"deltas", delta, "gid", gorid.GoRId)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(delta.ABCIRsp, &abciResponses)
+		err = types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		blockExec.logger.Info("Not apply delta", "height", block.Height,
-			"block-size", block.Size(),
-			"prerunIndex", blockExec.prerunIndex, "gid", gorid.GoRId)
+		//if blockExec.deltaContext.downloadDelta {
+		//	time.Sleep(time.Second*1)
+		//}
 
-		// blockExec.prerunIndex==0 means:
-		// 1. proactivelyRunTx disabled
-		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
-		if blockExec.prerunIndex > 0 {
-			if !blockExec.proactivelyRunTx {
-				panic("never gonna happen")
-			}
-			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
-			blockExec.prerunContext = nil
-			blockExec.prerunIndex = 0
-		} else {
-			ctx := &executionContext{
+		pc := blockExec.prerunCtx
+		if pc.prerunTx {
+			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
+		}
+
+		if abciResponses == nil {
+			ctx := &executionTask{
 				logger:   blockExec.logger,
 				block:    block,
 				db:       blockExec.db,
@@ -348,7 +335,7 @@ func (blockExec *BlockExecutor) commit(
 
 	abciDelta := &abci.Deltas{}
 	if delta != nil {
-		abciDelta.DeltasByte = delta.DeltasBytes
+		abciDelta.DeltasByte = delta.DeltasBytes()
 		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
 	}
 
@@ -411,7 +398,7 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	block := context.block
 	proxyAppConn := context.proxyApp
 	stateDB := context.db
@@ -682,7 +669,7 @@ func ExecCommitBlock(
 	stateDB dbm.DB,
 ) ([]byte, error) {
 
-	ctx := &executionContext{
+	ctx := &executionTask{
 		logger: logger,
 		block: block,
 		db: stateDB,
