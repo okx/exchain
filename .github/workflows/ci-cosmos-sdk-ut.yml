@@ -18,4 +18,4 @@ jobs:
           go-version: 1.14
 
       - name: Go Test cosmos-sdk
-        run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+        run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock rocksdb'
