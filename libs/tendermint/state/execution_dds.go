@@ -87,7 +87,7 @@ func (dc *DeltaContext) appliedRate() float64 {
 }
 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
-	abciResponses *ABCIResponses, res []byte) {
+	abciResponses *ABCIResponses, res []byte, isFastSync bool) {
 
 	// rpc
 	if dc.downloadDelta {
@@ -112,7 +112,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	}
 
 	// validator
-	if dc.uploadDelta {
+	if dc.uploadDelta && !isFastSync {
 		dc.uploadData(height, abciResponses, res)
 	}
 }
