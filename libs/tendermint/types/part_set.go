@@ -28,6 +28,54 @@ type Part struct {
 	Proof merkle.SimpleProof `json:"proof"`
 }
 
+func (part *Part) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			uvint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			part.Index = int(uvint)
+			dataLen = uint64(n)
+		case 2:
+			part.Bytes = make([]byte, dataLen)
+			copy(part.Bytes, subData)
+		case 3:
+			err = part.Proof.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // ValidateBasic performs basic validation.
 func (part *Part) ValidateBasic() error {
 	if part.Index < 0 {

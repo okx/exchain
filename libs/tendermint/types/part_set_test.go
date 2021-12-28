@@ -221,3 +221,75 @@ func BenchmarkPartSetHeaderAminoUnmarshal(b *testing.B) {
 		}
 	})
 }
+
+var partAminoTestCases = []Part{
+	{},
+	{
+		Index: 2,
+		Bytes: []byte("bytes"),
+		Proof: merkle.SimpleProof{
+			Total:    10,
+			Index:    2,
+			LeafHash: []byte("LeafHash"),
+			Aunts:    [][]byte{[]byte("aunt1"), []byte("aunt2")},
+		},
+	},
+	{
+		Index: math.MaxInt,
+		Bytes: []byte{},
+	},
+	{
+		Index: math.MinInt,
+	},
+}
+
+func TestPartAmino(t *testing.T) {
+	for _, part := range partAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(part)
+		require.NoError(t, err)
+		var expectValue Part
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+		var actualValue Part
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkPartAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(partAminoTestCases))
+	for i, p := range partAminoTestCases {
+		d, err := cdc.MarshalBinaryBare(p)
+		require.NoError(b, err)
+		testData[i] = d
+	}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var v Part
+				err := cdc.UnmarshalBinaryBare(d, &v)
+				if err != nil {
+					b.Fatal()
+				}
+			}
+		}
+	})
+
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var v Part
+				err := v.UnmarshalFromAmino(d)
+				if err != nil {
+					b.Fatal()
+				}
+			}
+		}
+	})
+}
