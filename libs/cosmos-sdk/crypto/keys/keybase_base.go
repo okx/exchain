@@ -3,6 +3,7 @@ package keys
 import (
 	"bufio"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"os"
 	"strings"
 
@@ -313,4 +314,25 @@ func IsSupportedAlgorithm(supported []SigningAlgo, algo SigningAlgo) bool {
 		}
 	}
 	return false
+}
+
+// resolvePath resolve to a absolute path
+func resolvePath(path string) (string, error) {
+	var err error
+	// expand tilde for home directory
+	if strings.HasPrefix(path, "~") {
+		home, err := homedir.Dir()
+		if err != nil {
+			return "", err
+		}
+		path = strings.Replace(path, "~", home, 1)
+	}
+
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(path, 0700)
+	} else if err != nil && !stat.IsDir() {
+		err = fmt.Errorf("%s is a file, not a directory", path)
+	}
+	return path, err
 }

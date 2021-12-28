@@ -135,14 +135,13 @@ func ExportEthCompCommand() *cobra.Command {
 			}
 
 			// Exports private key from keybase using password
-			 err =ethkeystore.CreateKeystoreByTmKey(privKey, dir, encryptPassword)
-			 if err!=nil{
-				 return err
-			 }
+			fileName, err := ethkeystore.CreateKeystoreByTmKey(privKey, dir, encryptPassword)
+			if err != nil {
+				return err
+			}
 
-			fmt.Printf("The keystore has exported to: %s \n", dir)
+			fmt.Printf("The keystore has exported to: %s \n", fileName)
 			return nil
 		},
 	}
 }
-

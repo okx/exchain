@@ -144,19 +144,20 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 
-	//create a keystore file to storage private key
+	// export tendermint private key
 	privKey, err := api.ethAPI.ClientCtx().Keybase.ExportPrivateKeyObject(name, password)
 	if err != nil {
 		return common.Address{}, err
 	}
+	//create a keystore file to storage private key
 	keyDir := api.ethAPI.ClientCtx().Keybase.FileDir()
-	err = ethkeystore.CreateKeystoreByTmKey(privKey, keyDir, password)
+	ksName, err := ethkeystore.CreateKeystoreByTmKey(privKey, keyDir, password)
 	if err != nil {
 		return common.Address{}, err
 	}
 
 	api.logger.Info("Your new key was generated", "address", addr.String())
-	api.logger.Info("Please backup your eth keystore file", "path", keyDir)
+	api.logger.Info("Please backup your eth keystore file", "path", ksName)
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
