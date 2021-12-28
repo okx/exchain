@@ -53,6 +53,8 @@ jobs:
     needs: Build
     steps:
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - name: Set GOBIN
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
