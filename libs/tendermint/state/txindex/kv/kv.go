@@ -72,12 +72,12 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 
 	txResult := new(types.TxResult)
 	err = txResult.UnmarshalFromAmino(rawBytes)
-	if err == nil {
-		return txResult, nil
-	}
-	err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
 	if err != nil {
-		return nil, fmt.Errorf("error reading TxResult: %v", err)
+		txResult = new(types.TxResult)
+		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
+		if err != nil {
+			return nil, fmt.Errorf("error reading TxResult: %v", err)
+		}
 	}
 
 	return txResult, nil
