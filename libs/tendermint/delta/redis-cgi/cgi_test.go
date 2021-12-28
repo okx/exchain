@@ -1,6 +1,7 @@
 package redis_cgi
 
 import (
+	"github.com/alicebob/miniredis/v2"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/stretchr/testify/require"
 	"os"
@@ -9,19 +10,19 @@ import (
 )
 
 const (
-	ConstRedisURL   = "127.0.0.1:6379"
 	ConstDeltaBytes = "delta-bytes"
 	ConstTestHeight = 1
 )
 
-func getRedisClient() *RedisClient {
+func getRedisClient(t *testing.T) *RedisClient {
+	s := miniredis.RunT(t)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	ss := NewRedisClient(ConstRedisURL, "", time.Minute, logger)
+	ss := NewRedisClient(s.Addr(), "", time.Minute, logger)
 	return ss
 }
 
 func TestRedisClient_SetGetDeltas(t *testing.T) {
-	r := getRedisClient()
+	r := getRedisClient(t)
 	require.True(t, r != nil, r)
 
 	height := int64(ConstTestHeight)
@@ -48,7 +49,7 @@ func TestRedisClient_SetGetDeltas(t *testing.T) {
 }
 
 func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
-	r := getRedisClient()
+	r := getRedisClient(t)
 	require.True(t, r != nil, r)
 	uploadSuccess := func() bool {return true}
 	uploadFailed := func() bool {return false}
@@ -78,7 +79,7 @@ func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
 }
 
 func TestRedisClient_GetReleaseLocker(t *testing.T) {
-	r := getRedisClient()
+	r := getRedisClient(t)
 	require.True(t, r != nil, r)
 
 	// first time lock
