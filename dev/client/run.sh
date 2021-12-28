@@ -14,6 +14,8 @@ gomod() {
   go mod vendor
 }
 
-gomod
+#gomod
 
-go run main.go common.go
+export GO111MODULE=on
+go build
+./client

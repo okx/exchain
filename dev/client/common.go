@@ -1,7 +1,7 @@
 package main
 
 import (
-	bytes2 "bytes"
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -55,7 +55,7 @@ func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.abi, err = abi.JSON(bytes2.NewReader(abiByte))
+	c.abi, err = abi.JSON(bytes.NewReader(abiByte))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func uint256Output(client *ethclient.Client, c *Contract, name string, args ...i
 
 	decRet := sdk.NewDecFromBigIntWithPrec(ret, sdk.Precision)
 
-	fmt.Printf("	<%s[%s(%s)]> uint256 output: %s\n", c.name, name, arg0, decRet)
+	fmt.Printf("	<%s[%s(%s)]>: %s\n", c.address, name, arg0, decRet)
 	return ret
 }
 
@@ -100,7 +100,8 @@ func writeContract(client *ethclient.Client,
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatalf("failed to fetch the value of nonce from network: %+v", err)
+		log.Printf("failed to fetch the value of nonce from network: %+v", err)
+		return
 	}
 
 	// 0.5 get the gasPrice
@@ -108,20 +109,20 @@ func writeContract(client *ethclient.Client,
 
 	fmt.Printf(
 		"==================================================\n"+
-			"write [%s<%s>]: \n"+
-			"	msg sender: <%s>\n"+
-			"	contract address: <%s>\n"+
-			"	abi: <%s %s>\n"+
+			"%s: \n"+
+			"	sender:   <%s>, nonce<%d>\n"+
+			"	contract: <%s>, abi: <%s %s>\n"+
 			"==================================================\n",
 		contract.name,
-		name,
 		fromAddress.Hex(),
+		nonce,
 		contract.address,
 		name, args)
 
 	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%s", err)
+		return
 	}
 
 	if amount == nil {
@@ -132,16 +133,18 @@ func writeContract(client *ethclient.Client,
 	// 2. sign unsignedTx -> rawTx
 	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(ChainId)), privateKey)
 	if err != nil {
-		log.Fatalf("failed to sign the unsignedTx offline: %+v", err)
+		log.Printf("failed to sign the unsignedTx offline: %+v", err)
+		return
 	}
 
 	// 3. send rawTx
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%s", err)
+		return
 	}
 
-	time.Sleep(time.Second * sleep)
+	time.Sleep(sleep)
 }
 
 
@@ -234,8 +237,9 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 
 
 func deployContract(client *ethclient.Client, fromAddress common.Address,
-	privateKey *ecdsa.PrivateKey, contract *Contract)  {
+	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration)  {
 
+	fmt.Printf("%s deploying contract\n", fromAddress.String())
 	chainID := big.NewInt(ChainId)
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
@@ -258,15 +262,17 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 		log.Fatal(err)
 	}
 
+	time.Sleep(blockTime)
 	// 4. get the contract address based on tx hash
 	hash, err := utils.Hash(signedTx)
 	if err != nil {
+		panic(err)
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second * 3)
 
 	receipt, err := client.TransactionReceipt(context.Background(), hash)
 	if err != nil {
+		panic(err)
 		log.Fatal(err)
 	}
 
@@ -285,4 +291,14 @@ func deployContractTx(nonce uint64, contract *Contract) *types.Transaction {
 	}
 	data := append(contract.byteCode, input...)
 	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data)
+}
+
+
+
+func send(client *ethclient.Client, to, privKey string) {
+	privateKey, senderAddress := initKey(privKey)
+	toAddress := common.HexToAddress(to)
+
+	// send 0.001okt
+	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
 }

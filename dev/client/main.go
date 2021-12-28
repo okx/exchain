@@ -6,57 +6,50 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
-)
-
-var privKey = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
-
-
-var (
-	privateKey             *ecdsa.PrivateKey
-	senderAddress          common.Address
+	"time"
 )
 
 const (
 	abiFile = "./contracts/counter/counter.abi"
 	binFile = "./contracts/counter/counter.bin"
 )
-func init() {
-	privateKey, senderAddress = initKey(privKey)
-
-}
 
 func main() {
+	privKey := []string {
+		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
+		"171786c73f805d257ceb07206d851eea30b3b41a2170ae55e1225e0ad516ef42",
+		"b7700998b973a2cae0cb8e8a328171399c043e57289735aca5f2419bd622297a",
+		"00dcf944648491b3a822d40bf212f359f699ed0dd5ce5a60f1da5e1142855949",
+	}
+
+	for _, key := range privKey {
+		go writeRoutine(key, time.Millisecond*50)
+	}
+
+	<-make(chan struct{})
+}
+
+func writeRoutine(privKey string, blockTime time.Duration) {
+	var (
+		privateKey             *ecdsa.PrivateKey
+		senderAddress          common.Address
+	)
+	privateKey, senderAddress = initKey(privKey)
+
 	client, err := ethclient.Dial(RpcUrl)
 	if err != nil {
 		log.Fatalf("failed to initialize client: %+v", err)
 	}
-	//send(client, "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0")
 
 	contract := newContract("counter", "", abiFile, binFile)
+	deployContract(client, senderAddress, privateKey, contract, 3*time.Second)
 
-	// 1. deploy contract
-	deployContract(client, senderAddress, privateKey, contract)
-
-	//contractAddr := common.HexToAddress("0x79BE5cc37B7e17594028BbF5d43875FDbed417db")
-
-	//contract := NewContract("", "0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D", abiFile)
-
-	// 2. call contract(write)
-	uint256Output(client, contract, "getCounter")
-	writeContract(client, contract, senderAddress, privateKey, nil, 3, "add", big.NewInt(100))
-	uint256Output(client, contract, "getCounter")
-	writeContract(client, contract, senderAddress, privateKey, nil, 3, "subtract",)
-	uint256Output(client, contract, "getCounter")
-}
-
-
-
-
-
-func send(client *ethclient.Client, to string) {
-	privateKey, senderAddress := initKey(privKey)
-	toAddress := common.HexToAddress(to)
-
-	// send 0.001okt
-	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+	for {
+		writeContract(client, contract, senderAddress, privateKey,
+			nil, blockTime, "add", big.NewInt(100))
+		uint256Output(client, contract, "getCounter")
+		writeContract(client, contract, senderAddress, privateKey,
+			nil, blockTime, "subtract",)
+		uint256Output(client, contract, "getCounter")
+	}
 }
