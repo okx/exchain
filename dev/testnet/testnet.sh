@@ -121,6 +121,8 @@ run() {
       sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' cache/node${index}/exchaind/config/genesis.json
   fi
 
+  exchaind add-genesis-account 0xbbE4733d85bc2b90682147779DA49caB38C0aA1F 900000000okt --home cache/node${index}/exchaind
+
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
@@ -153,7 +155,7 @@ function start() {
 
   echo "============================================"
   echo "=========== Startup seed node...============"
-  run $index true ${seedp2pport} ${seedrpcport}
+  #run $index true ${seedp2pport} ${seedrpcport}
   seed=$(exchaind tendermint show-node-id --home cache/node${index}/exchaind)
 
   echo "============================================"
