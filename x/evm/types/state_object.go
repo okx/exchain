@@ -392,8 +392,9 @@ func (so *stateObject) Code(db ethstate.Database) []byte {
 
 		if len(code) == 0 {
 			so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
+		} else {
+			so.code = code
 		}
-		so.code = code
 
 		return code
 	} else {

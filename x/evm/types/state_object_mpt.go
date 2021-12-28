@@ -171,7 +171,7 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if !sdk.HigherThanMercury(so.stateDB.ctx.BlockHeight()) {
+	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
 		return len(so.Code(db))
 	} else {
 		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
