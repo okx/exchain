@@ -701,9 +701,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
+	// Encode transaction by RLP encoder
+	txBytes, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -740,12 +739,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	txBytes := data
 
 	// send chanData to txPool
 	if api.txPool != nil {

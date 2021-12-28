@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-type ParseAppTxHandler func (cdc *codec.Codec, txBytes []byte) (sdk.Tx, error)
+type ParseAppTxHandler func(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error)
 
 var paresAppTx ParseAppTxHandler
 
