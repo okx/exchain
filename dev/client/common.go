@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -217,10 +216,21 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address) {
 	return privateKey, senderAddress
 }
 
-func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string, name string, decimals uint8, totalSupply *big.Int, ownerAddress common.Address) common.Address {
-	address, _, _, err := DeployOIP20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return address
+func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string, name string, decimals uint8, totalSupply *big.Int, ownerAddress common.Address, waitDuration time.Duration) (contractAddress common.Address, oip20 *OIP20, err error) {
+	contractAddress, _, oip20, err = DeployOIP20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
+	time.Sleep(waitDuration)
+	fmt.Printf(
+		"==================================================\n"+
+			"Deploy standard OIP20 contract:\n"+
+			"	contract name   : <%s>\n"+
+			"	owner address   : <%s>\n"+
+			"	contract address: <%s>\n"+
+			"	total supply    : <%s>\n"+
+			"==================================================\n",
+		name,
+		ownerAddress,
+		contractAddress,
+		totalSupply,
+	)
+	return contractAddress, oip20, err
 }
