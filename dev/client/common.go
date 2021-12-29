@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,11 +21,10 @@ import (
 	"time"
 )
 
-
 const (
 	//RpcUrl          = "https://exchaintestrpc.okex.org"
-	RpcUrl          = "http://127.0.0.1:8545"
-	ChainId int64   = 67 //  oec
+	RpcUrl        = "http://127.0.0.1:8545"
+	ChainId int64 = 67 //  oec
 	//RpcUrl          = "https://exchainrpc.okex.org"
 	//ChainId int64   = 66 //  oec
 	GasPrice int64  = 100000000 // 0.1 gwei
@@ -41,7 +41,7 @@ type Contract struct {
 
 func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	c := &Contract{
-		name: name,
+		name:    name,
 		address: address,
 	}
 
@@ -67,11 +67,11 @@ func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	return c
 }
 
-func str2bigInt(input string) *big.Int{
+func str2bigInt(input string) *big.Int {
 	return sdk.MustNewDecFromStr(input).Int
 }
 
-func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) (*big.Int) {
+func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) *big.Int {
 
 	value := readContract(client, c, name, args...)
 	if len(value) == 0 {
@@ -152,7 +152,6 @@ func writeContract(client *ethclient.Client,
 	return nil
 }
 
-
 func transferOKT(client *ethclient.Client,
 	fromAddress common.Address,
 	toAddress common.Address,
@@ -178,7 +177,7 @@ func transferOKT(client *ethclient.Client,
 		fromAddress,
 		toAddress,
 		sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision),
-		)
+	)
 
 	unsignedTx := types.NewTransaction(nonce, toAddress, amount, GasLimit, gasPrice, nil)
 
@@ -199,12 +198,12 @@ func transferOKT(client *ethclient.Client,
 	}
 }
 
-func sleep(second time.Duration)  {
-	time.Sleep(second*time.Second)
+func sleep(second time.Duration) {
+	time.Sleep(second * time.Second)
 }
 
 func readContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
-	data, err := contract.abi.Pack(name, args ...)
+	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -226,7 +225,7 @@ func readContract(client *ethclient.Client, contract *Contract, name string, arg
 	return ret
 }
 
-func initKey(key string) (*ecdsa.PrivateKey, common.Address){
+func initKey(key string) (*ecdsa.PrivateKey, common.Address) {
 	privateKey, err := crypto.HexToECDSA(key)
 	if err != nil {
 		log.Fatalf("failed to switch unencrypted private key -> secp256k1 private key: %+v", err)
@@ -240,8 +239,6 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 
 	return privateKey, senderAddress
 }
-
-
 
 func deployContract(client *ethclient.Client, fromAddress common.Address,
 	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration) error {
@@ -317,7 +314,24 @@ func deployContractTx(nonce uint64, contract *Contract) (*types.Transaction, err
 	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data), err
 }
 
-
+func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string, name string, decimals uint8, totalSupply *big.Int, ownerAddress common.Address, blockTime time.Duration) (contractAddress common.Address, oip20 *Oip20, err error) {
+	contractAddress, _, oip20, err = DeployOip20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
+	time.Sleep(blockTime)
+	fmt.Printf(
+		"==================================================\n"+
+			"Deploy standard OIP20 contract:\n"+
+			"	contract name   : <%s>\n"+
+			"	owner address   : <%s>\n"+
+			"	contract address: <%s>\n"+
+			"	total supply    : <%s>\n"+
+			"==================================================\n",
+		name,
+		ownerAddress,
+		contractAddress,
+		totalSupply,
+	)
+	return contractAddress, oip20, err
+}
 
 func send(client *ethclient.Client, to, privKey string) {
 	privateKey, senderAddress := initKey(privKey)
