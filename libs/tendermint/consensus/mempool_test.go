@@ -243,7 +243,7 @@ func txAsUint64(tx []byte) uint64 {
 	return binary.BigEndian.Uint64(tx8)
 }
 
-func (app *CounterApplication) Commit(abci.RequestCommit) abci.ResponseCommit {
+func (app *CounterApplication) Commit(rc abci.RequestCommit) abci.ResponseCommit {
 	app.mempoolTxCount = app.txCount
 	if app.txCount == 0 {
 		return abci.ResponseCommit{}

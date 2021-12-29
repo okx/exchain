@@ -1,26 +1,58 @@
 package main
 
 import (
+	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
+	"math/big"
+	"time"
 )
 
-var privKey = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+const (
+	abiFile = "./contracts/counter/counter.abi"
+	binFile = "./contracts/counter/counter.bin"
+)
 
 func main() {
-	client, err := ethclient.Dial(RpcUrl)
-	if err != nil {
-		log.Fatalf("failed to initialize client: %+v", err)
+	privKey := []string {
+		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
+		"171786c73f805d257ceb07206d851eea30b3b41a2170ae55e1225e0ad516ef42",
+		"b7700998b973a2cae0cb8e8a328171399c043e57289735aca5f2419bd622297a",
+		"00dcf944648491b3a822d40bf212f359f699ed0dd5ce5a60f1da5e1142855949",
 	}
-	send(client, "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0")
 
+	for _, key := range privKey {
+		go writeRoutine(key, time.Millisecond*50)
+	}
+
+	<-make(chan struct{})
 }
 
-func send(client *ethclient.Client, to string) {
-	privateKey, senderAddress := initKey(privKey)
-	toAddress := common.HexToAddress(to)
+func writeRoutine(privKey string, blockTime time.Duration) {
+	var (
+		privateKey             *ecdsa.PrivateKey
+		senderAddress          common.Address
+	)
 
-	// send 0.001okt
-	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+	defer func() {
+		if r := recover(); r != nil {
+			sleep(3)
+			go writeRoutine(privKey, blockTime)
+		}
+	}()
+	privateKey, senderAddress = initKey(privKey)
+	contract := newContract("counter", "", abiFile, binFile)
+
+	client, err := ethclient.Dial(RpcUrl)
+	if err == nil {
+		err = deployContract(client, senderAddress, privateKey, contract, 3)
+	}
+
+	for err == nil {
+		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "add", big.NewInt(100))
+		uint256Output(client, contract, "getCounter")
+		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "subtract",)
+		uint256Output(client, contract, "getCounter")
+	}
+	panic(err)
 }
