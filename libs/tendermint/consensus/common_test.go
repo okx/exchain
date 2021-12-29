@@ -47,9 +47,39 @@ const (
 type cleanupFunc func()
 
 // genesis, chain_id, priv_val
-var config *cfg.Config // NOTE: must be reset for each _test.go file
+var config *cfg.Config = configSetup() // NOTE: must be reset for each _test.go file
 var consensusReplayConfig *cfg.Config
 var ensureTimeout = time.Millisecond * 100
+
+// timeout=3s always above 3 second so use timeout 3100 to check,can also use 3010
+var ensureRoundTimeout = 4000 * time.Millisecond
+
+func configSetup() *cfg.Config {
+	t := &testing.T{}
+	t.Helper()
+
+	cfg := ResetConfig("consensus_reactor_test")
+
+	t.Cleanup(func() { os.RemoveAll(cfg.RootDir) })
+
+	consensusReplayConfig := ResetConfig("consensus_replay_test")
+
+	t.Cleanup(func() { os.RemoveAll(consensusReplayConfig.RootDir) })
+
+	configStateTest := ResetConfig("consensus_state_test")
+
+	t.Cleanup(func() { os.RemoveAll(configStateTest.RootDir) })
+
+	configMempoolTest := ResetConfig("consensus_mempool_test")
+
+	t.Cleanup(func() { os.RemoveAll(configMempoolTest.RootDir) })
+
+	configByzantineTest := ResetConfig("consensus_byzantine_test")
+
+	t.Cleanup(func() { os.RemoveAll(configByzantineTest.RootDir) })
+
+	return cfg
+}
 
 func ensureDir(dir string, mode os.FileMode) {
 	if err := tmos.EnsureDir(dir, mode); err != nil {
@@ -489,7 +519,7 @@ func ensureNewEvent(ch <-chan tmpubsub.Message, height int64, round int, timeout
 
 func ensureNewRound(roundCh <-chan tmpubsub.Message, height int64, round int) {
 	select {
-	case <-time.After(ensureTimeout):
+	case <-time.After(ensureRoundTimeout):
 		panic("Timeout expired while waiting for NewRound event")
 	case msg := <-roundCh:
 		newRoundEvent, ok := msg.Data().(types.EventDataNewRound)
@@ -507,7 +537,7 @@ func ensureNewRound(roundCh <-chan tmpubsub.Message, height int64, round int) {
 }
 
 func ensureNewTimeout(timeoutCh <-chan tmpubsub.Message, height int64, round int, timeout int64) {
-	timeoutDuration := time.Duration(timeout*10) * time.Nanosecond
+	timeoutDuration := time.Duration(timeout*100) * time.Nanosecond
 	ensureNewEvent(timeoutCh, height, round, timeoutDuration,
 		"Timeout expired while waiting for NewTimeout event")
 }
@@ -609,7 +639,7 @@ func ensurePrevote(voteCh <-chan tmpubsub.Message, height int64, round int) {
 func ensureVote(voteCh <-chan tmpubsub.Message, height int64, round int,
 	voteType types.SignedMsgType) {
 	select {
-	case <-time.After(ensureTimeout):
+	case <-time.After(ensureRoundTimeout):
 		panic("Timeout expired while waiting for NewVote event")
 	case msg := <-voteCh:
 		voteEvent, ok := msg.Data().(types.EventDataVote)
@@ -807,6 +837,12 @@ func (m *mockTicker) Start() error {
 }
 
 func (m *mockTicker) Stop() error {
+	return nil
+}
+
+//add noop Reset function for TimeoutTicker interface
+//need to implement when used
+func (m *mockTicker) Reset() error {
 	return nil
 }
 

@@ -42,7 +42,7 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
 
-	appconfig.RegisterDynamicConfig()
+	appconfig.RegisterDynamicConfig(suite.app.Logger())
 }
 
 func TestAnteTestSuite(t *testing.T) {
