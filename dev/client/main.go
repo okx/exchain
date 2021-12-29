@@ -33,7 +33,6 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 		privateKey             *ecdsa.PrivateKey
 		senderAddress          common.Address
 	)
-	privateKey, senderAddress = initKey(privKey)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -41,11 +40,13 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 			go writeRoutine(privKey, blockTime)
 		}
 	}()
+	privateKey, senderAddress = initKey(privKey)
+	contract := newContract("counter", "", abiFile, binFile)
 
 	client, err := ethclient.Dial(RpcUrl)
-
-	contract := newContract("counter", "", abiFile, binFile)
-	err = deployContract(client, senderAddress, privateKey, contract, 3)
+	if err == nil {
+		err = deployContract(client, senderAddress, privateKey, contract, 3)
+	}
 
 	for err == nil {
 		err = writeContract(client, contract, senderAddress, privateKey, nil, blockTime, "add", big.NewInt(100))
