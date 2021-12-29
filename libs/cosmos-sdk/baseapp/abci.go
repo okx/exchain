@@ -247,7 +247,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
 	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rdb<%d>, rdbTs<%dms>, wdb<%d>",
-		app.cms.GetFlatKVReadCount(), app.cms.GetFlatKVReadTime(), app.cms.GetFlatKVWriteCount()))
+		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount()))
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
