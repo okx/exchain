@@ -274,7 +274,6 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 		return err
 	}
 
-	sleep(blockTime)
 	// 4. get the contract address based on tx hash
 	hash, err := utils.Hash(signedTx)
 	if err != nil {
@@ -282,10 +281,21 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 		return err
 	}
 
-	receipt, err := client.TransactionReceipt(context.Background(), hash)
-	if err != nil {
-		log.Printf("TransactionReceipt err: %s", err)
-		return err
+	var receipt *types.Receipt
+	var retry int
+	for err == nil {
+		sleep(blockTime)
+		receipt, err = client.TransactionReceipt(context.Background(), hash)
+		if err != nil {
+			fmt.Printf("TransactionReceipt retry: %d, err: %s\n", retry, err)
+			retry++
+		} else {
+			break
+		}
+		if retry > 10 {
+			return err
+		}
+		err = nil
 	}
 
 	contract.address = receipt.ContractAddress.String()
