@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"flag"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
@@ -24,9 +22,7 @@ const (
 )
 
 func main() {
-
 	testTypeParam := flag.String("type", "oip20", "choose which test to run")
-
 	privKey := []string{
 		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
 		"171786c73f805d257ceb07206d851eea30b3b41a2170ae55e1225e0ad516ef42",
@@ -34,20 +30,18 @@ func main() {
 		"00dcf944648491b3a822d40bf212f359f699ed0dd5ce5a60f1da5e1142855949",
 	}
 
+	var testFunc func(privKey string, blockTime time.Duration)
 	switch TestType(*testTypeParam) {
-
 	case Oip20Test:
-		for _, key := range privKey {
-			go standardOip20Test(key, time.Millisecond*50)
-		}
+		testFunc = standardOip20Test
 		break
-	case CounterTest:
-		for _, key := range privKey {
-			go writeRoutine(key, time.Millisecond*50)
-		}
-		break
+	default:
+		testFunc = writeRoutine
 	}
 
+	for _, key := range privKey {
+		go testFunc(key, time.Millisecond*50)
+	}
 	<-make(chan struct{})
 }
 
@@ -60,6 +54,7 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 	defer func() {
 		if r := recover(); r != nil {
 			sleep(3)
+			log.Printf("recover writeRoutine")
 			go writeRoutine(privKey, blockTime)
 		}
 	}()
@@ -81,74 +76,42 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 }
 
 func standardOip20Test(privKey string, blockTime time.Duration) {
-	toAddress := common.HexToAddress("0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0")
-	privateKey, pubkey := initKey(privKey)
+	privateKey, sender := initKey(privKey)
 
 	defer func() {
 		if r := recover(); r != nil {
 			sleep(3)
+			log.Printf("recover standardOip20Test")
 			go standardOip20Test(privKey, blockTime)
 		}
 	}()
 
 	client, err := ethclient.Dial(RpcUrl)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("failed to dial: %+v", err)
 	}
 
-	nonce, err := client.PendingNonceAt(context.Background(), pubkey)
+	oip20, auth, err := deployOip(client, sender, privateKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("failed to deploy: %+v", err)
 	}
 
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(ChainId))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	gasPrice, err := client.SuggestGasPrice(auth.Context)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0) // in wei
-	auth.GasLimit = GasLimit   // in units
-	auth.GasPrice = gasPrice
-	auth.Context = context.Background()
-
-	symbol := "OIP20"
-	contractName := "OIP20 STD"
-	decimals := 18
-
-	var (
-		oip20 *Oip20
-	)
-
-	if err == nil {
-		_, oip20, err = deployStandardOIP20Contract(client, auth, symbol, contractName, uint8(decimals), str2bigInt("100000000000000000000000"), pubkey, blockTime)
-	}
-
+	toAddress := common.HexToAddress("0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0")
 	for err == nil {
-
-		nonce++
-		auth.Nonce = big.NewInt(int64(nonce))
-
-		transferAmount := str2bigInt("100000000000000000")
-		_, err = oip20.Transfer(auth, toAddress, transferAmount)
-
+		nonce, err := transferOip(client, oip20, sender, auth, toAddress)
+		if err != nil {
+			log.Printf("failed to transfer Oip: %+v", err)
+			break
+		}
 		fmt.Printf(
 			"==================================================\n"+
 				"Standard OIP20 transfer:\n"+
-				"	contract name				: <%s>\n"+
 				"	from					: <%s>\n"+
-				"	to					: <%s>\n"+
-				"	amount					: <%s>\n"+
-				"==================================================\n",
-			contractName,
-			pubkey,
-			toAddress,
-			transferAmount,
+				"	nonce					: <%d>\n"+
+				"	to					: <%s>\n",
+			sender, nonce, toAddress,
 		)
+		time.Sleep(blockTime)
 	}
+	panic(err)
 }

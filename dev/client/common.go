@@ -314,22 +314,13 @@ func deployContractTx(nonce uint64, contract *Contract) (*types.Transaction, err
 	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data), err
 }
 
-func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string, name string, decimals uint8, totalSupply *big.Int, ownerAddress common.Address, blockTime time.Duration) (contractAddress common.Address, oip20 *Oip20, err error) {
+func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string,
+	name string, decimals uint8, totalSupply *big.Int,
+	ownerAddress common.Address, blockTime time.Duration) (contractAddress common.Address,
+	oip20 *Oip20, err error) {
 	contractAddress, _, oip20, err = DeployOip20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
+	fmt.Printf("Deploy standard OIP20 contract: <%s>\n", contractAddress)
 	time.Sleep(blockTime)
-	fmt.Printf(
-		"==================================================\n"+
-			"Deploy standard OIP20 contract:\n"+
-			"	contract name   : <%s>\n"+
-			"	owner address   : <%s>\n"+
-			"	contract address: <%s>\n"+
-			"	total supply    : <%s>\n"+
-			"==================================================\n",
-		name,
-		ownerAddress,
-		contractAddress,
-		totalSupply,
-	)
 	return contractAddress, oip20, err
 }
 
@@ -339,4 +330,54 @@ func send(client *ethclient.Client, to, privKey string) {
 
 	// send 0.001okt
 	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+}
+
+
+func transferOip(client *ethclient.Client, oip20 *Oip20,
+	sender common.Address, auth *bind.TransactOpts, toAddress common.Address) (nonce uint64, err error) {
+	transferAmount := str2bigInt("100000")
+
+	nonce, err = client.PendingNonceAt(context.Background(), sender)
+	if err != nil {
+		log.Printf("failed to fetch nonce: %+v", err)
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	_, err = oip20.Transfer(auth, toAddress, transferAmount)
+	if err != nil {
+		log.Printf("failed to transfer: %+v", err)
+	}
+	return
+}
+
+
+func deployOip(client *ethclient.Client, sender common.Address,
+	privateKey *ecdsa.PrivateKey) (oip20 *Oip20, auth *bind.TransactOpts, err error) {
+
+	var nonce uint64
+	var gasPrice *big.Int
+	nonce, err = client.PendingNonceAt(context.Background(), sender)
+	if err != nil {
+		log.Printf("failed to fetch nonce: %+v", err)
+	}
+	auth, err = bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(ChainId))
+	if err != nil {
+		log.Printf("failed to gen TransactOpts: %+v", err)
+	}
+	gasPrice, err = client.SuggestGasPrice(auth.Context)
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0) // in wei
+	auth.GasLimit = GasLimit   // in units
+	auth.GasPrice = gasPrice
+	auth.Context = context.Background()
+
+	symbol := "OIP20"
+	contractName := "OIP20 STD"
+	decimals := 18
+
+	if err == nil {
+		_, oip20, err = deployStandardOIP20Contract(client, auth, symbol,
+			contractName, uint8(decimals), str2bigInt("100000000000000000000000"), sender, 3*time.Second)
+	}
+	return
 }
