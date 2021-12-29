@@ -11,54 +11,32 @@ import (
 )
 
 const (
-	// use delta from bcBlockResponseMessage or not
-	FlagApplyP2PDelta = "apply-p2p-delta"
-	// save into deltastore.db, and add delta into bcBlockResponseMessage
-	FlagBroadcastP2PDelta = "broadcast-delta"
-	// get delta from dc/redis
-	FlagDownloadDDS = "download-delta"
-	// send delta to dc/redis
+	FlagDownloadDDS     = "download-delta"
 	FlagUploadDDS       = "upload-delta"
+	FlagAppendPid       = "append-pid"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
 
 	// redis
-	FlagRedisUrl    = "delta-redis-url"
-	FlagRedisAuth   = "delta-redis-auth"
+	// url fmt (ip:port)
+	FlagRedisUrl  = "delta-redis-url"
+	FlagRedisAuth = "delta-redis-auth"
+	// expire unit: second
 	FlagRedisExpire = "delta-redis-expire"
+	FlagFastQuery   = "fast-query"
 
-	// fast-query
-	FlagFastQuery = "fast-query"
-
-	// delta version
-	// when this DeltaVersion not equal with dds delta-version, can't use delta
-	DeltaVersion = 3
+	// do not apply delta if version does not match
+	DeltaVersion = 4
 )
 
 var (
-	fastQuery = false
-	// fmt (http://ip:port/)
-	centerUrl = "http://127.0.0.1:8030/"
-	// fmt (ip:port)
-	redisUrl  = "127.0.0.1:6379"
-	redisAuth = "auth"
-	// unit: second
-	redisExpire = 300
+	fastQuery     = false
+	downloadDelta = false
+	uploadDelta   = false
 
-	applyP2PDelta    = false
-	broadcatP2PDelta = false
-	downloadDelta    = false
-	uploadDelta      = false
-
-	onceFastQuery   sync.Once
-	onceRedisUrl    sync.Once
-	onceRedisAuth   sync.Once
-	onceRedisExpire sync.Once
-
-	onceApplyP2P     sync.Once
-	onceBroadcastP2P sync.Once
-	onceDownload     sync.Once
-	onceUpload       sync.Once
+	onceFastQuery sync.Once
+	onceDownload  sync.Once
+	onceUpload    sync.Once
 )
 
 func IsFastQuery() bool {
@@ -66,20 +44,6 @@ func IsFastQuery() bool {
 		fastQuery = viper.GetBool(FlagFastQuery)
 	})
 	return fastQuery
-}
-
-func EnableApplyP2PDelta() bool {
-	onceApplyP2P.Do(func() {
-		applyP2PDelta = viper.GetBool(FlagApplyP2PDelta)
-	})
-	return applyP2PDelta
-}
-
-func EnableBroadcastP2PDelta() bool {
-	onceBroadcastP2P.Do(func() {
-		broadcatP2PDelta = viper.GetBool(FlagBroadcastP2PDelta)
-	})
-	return broadcatP2PDelta
 }
 
 func EnableDownloadDelta() bool {
@@ -96,33 +60,13 @@ func EnableUploadDelta() bool {
 	return uploadDelta
 }
 
-func RedisUrl() string {
-	onceRedisUrl.Do(func() {
-		redisUrl = viper.GetString(FlagRedisUrl)
-	})
-	return redisUrl
-}
-
-func RedisAuth() string {
-	onceRedisAuth.Do(func() {
-		redisAuth = viper.GetString(FlagRedisAuth)
-	})
-	return redisAuth
-}
-
-func RedisExpire() time.Duration {
-	onceRedisExpire.Do(func() {
-		redisExpire = viper.GetInt(FlagRedisExpire)
-	})
-	return time.Duration(redisExpire) * time.Second
-}
-
 type DeltasMessage struct {
+	PayloadHash  []byte `json:"payload_hash"`
 	Metadata     []byte `json:"metadata"`
 	Height       int64  `json:"height"`
 	Version      int    `json:"version"`
 	CompressType int    `json:"compress_type"`
-	PayloadHash  []byte `json:"payload_hash"`
+	From         string `json:"from"`
 }
 
 type DeltaPayload struct {
@@ -138,6 +82,7 @@ type Deltas struct {
 	Payload      DeltaPayload
 	CompressType int
 	CompressFlag int
+	From         string
 
 	marshalElapsed  time.Duration
 	compressElapsed time.Duration
@@ -198,6 +143,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Version:      d.Version,
 		CompressType: d.CompressType,
 		PayloadHash:  payloadHash,
+		From:         d.From,
 	}
 
 	// marshal to upload bytes
@@ -242,6 +188,7 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 
 	d.Version = msg.Version
 	d.Height = msg.Height
+	d.From = msg.From
 
 	d.compressElapsed = t2.Sub(t1)
 	d.hashElapsed = t3.Sub(t2)
@@ -250,10 +197,11 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, version<%d>, size<%d>",
+	return fmt.Sprintf("height<%d>, version<%d>, size<%d>, from<%s>",
 		d.Height,
 		d.Version,
 		d.Size(),
+		d.From,
 	)
 }
 

@@ -26,7 +26,7 @@ run() {
     exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
-      --consensus.timeout_commit 600ms \
+      --consensus.timeout_commit 200ms \
       --enable-preruntx \
       --iavl-enable-async-commit \
       --enable-gid \
@@ -80,6 +80,10 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
 exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y
 
+exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
+
+exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
+
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 exchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER
 
@@ -104,6 +108,8 @@ fi
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
 exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okt --home $HOME_SERVER
+exchaind add-genesis-account $(exchaincli keys show admin17 -a) 900000000okt --home $HOME_SERVER
+exchaind add-genesis-account $(exchaincli keys show admin18 -a) 900000000okt --home $HOME_SERVER
 
 # Sign genesis transaction
 exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER

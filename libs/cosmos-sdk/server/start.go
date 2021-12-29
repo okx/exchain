@@ -145,10 +145,9 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(FlagEvmImportPath, "", "Evm contract & storage db or files used for InitGenesis")
 	cmd.Flags().Uint64(FlagGoroutineNum, 0, "Limit on the number of goroutines used to import evm data(ignored if evm-import-mode is 'default')")
 
-	cmd.Flags().Bool(tmtypes.FlagDownloadDDS, false, "get delta from dc/redis or not")
-	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "send delta to dc/redis or not")
-	cmd.Flags().Bool(tmtypes.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
-	cmd.Flags().Bool(tmtypes.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
+	cmd.Flags().Bool(tmtypes.FlagDownloadDDS, false, "Download delta")
+	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "Upload delta")
+	cmd.Flags().Bool(tmtypes.FlagAppendPid, false, "Append pid to the identity of delta producer")
 	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
@@ -284,6 +283,11 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	if err != nil {
 		return nil, err
 	}
+
+	app.SetOption(abci.RequestSetOption{
+		Key: "CheckChainID",
+		Value: tmNode.GenesisDoc().ChainID,
+	})
 
 	if err := tmNode.Start(); err != nil {
 		return nil, err
