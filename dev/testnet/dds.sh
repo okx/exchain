@@ -20,6 +20,7 @@ sleep 5
 
 ./addnewnode.sh -n 4 -d
 ./addnewnode.sh -n 5 -u -x
+./addnewnode.sh -n 6 -u -x
 
 sleep 5
 

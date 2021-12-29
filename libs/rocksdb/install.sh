@@ -1,8 +1,8 @@
 #!/bin/sh
 #set -e
 #set -x
-
-VERSION="v6.15.5"
+VERSION_NUM=6.15.5
+VERSION=v$VERSION_NUM
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--version)
@@ -57,8 +57,9 @@ install_linux() {
 }
 
 install_macos(){
-  $sh_c "git clone https://github.com/facebook/rocksdb.git"
-  $sh_c "cd rocksdb && git checkout ${VERSION}"
+  $sh_c "wget https://github.com/facebook/rocksdb/archive/refs/tags/${VERSION}.tar.gz"
+  $sh_c "tar -zxvf ${VERSION}.tar.gz"
+  $sh_c "mv rocksdb-${VERSION_NUM} rocksdb"
   $sh_c "cd rocksdb && make uninstall"
   $sh_c "cd rocksdb && make shared_lib"
   $sh_c "cd rocksdb && make install-shared"

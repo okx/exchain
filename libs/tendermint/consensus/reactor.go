@@ -158,6 +158,8 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
+	conR.conS.blockExec.SetIsFastSyncing(true)
+
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
@@ -173,8 +175,6 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
-
-	conR.conS.blockExec.SetIsFastSyncing(true)
 
 	return conR.conS.GetState(), nil
 }
@@ -666,16 +666,12 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 			return
 		}
-		var deltas *types.Deltas
-		if types.EnableBroadcastP2PDelta() {
-			deltas = conR.conS.deltaStore.LoadDeltas(prs.Height)
-		}
+
 		// Send the part
 		msg := &BlockPartMessage{
 			Height: prs.Height, // Not our height, so it doesn't matter.
 			Round:  prs.Round,  // Not our height, so it doesn't matter.
 			Part:   part,
-			Deltas: deltas,
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {

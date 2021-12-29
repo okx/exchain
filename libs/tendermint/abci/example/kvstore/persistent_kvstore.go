@@ -41,6 +41,7 @@ func NewPersistentKVStoreApplication(dbDir string) *PersistentKVStoreApplication
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
 
 	state := loadState(db)
 
