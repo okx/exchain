@@ -108,8 +108,8 @@ do_install() {
 			if [ -z "$lsb_dist" ]; then
 				if is_darwin; then
 				  pre_reqs="git make"
-#          $sh_c "xcode-select --install"
-#          $sh_c "brew install $pre_reqs"
+          $sh_c "xcode-select --install"
+          $sh_c "brew install $pre_reqs"
           install_macos
           exit 0
 				fi
