@@ -75,6 +75,13 @@ func NewHandler(k *Keeper) sdk.Handler {
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgEthermint(ctx, k, msg)
 			}
+		case types.MsgEthereumCheckedTx:
+			name = "handleMsgEthereumTx"
+			handlerFun = func() (*sdk.Result, error) {
+				emsg := msg.ConvertToOriginTx()
+				// maybe need the logic to handle the From logic in evm
+				return handleMsgEthereumTx(ctx, k, emsg)
+			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
@@ -115,7 +122,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// parse the chainID from a string to a base-10 integer
 	StartTxLog(bam.EvmHandler)
 	defer StopTxLog(bam.EvmHandler)
-
 
 	StartTxLog(bam.Txhash)
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())

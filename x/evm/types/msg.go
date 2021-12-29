@@ -29,7 +29,6 @@ var (
 	_ sdk.Msg    = MsgEthereumTx{}
 	_ sdk.Tx     = MsgEthereumTx{}
 	_ ante.FeeTx = MsgEthereumTx{}
-	//TODO: add a new message type for mempool to carry a checked logic
 )
 
 var big8 = big.NewInt(8)
@@ -42,6 +41,8 @@ const (
 	TypeMsgEthereumTx = "ethereum"
 	// TypeMsgEthermint defines the type string of Ethermint message
 	TypeMsgEthermint = "ethermint"
+	// TypeMsgEthereumCheckekTx defines the type string of Erhereum checked tx
+	TypeMsgEthereumCheckekTx = "ethereum-checked"
 )
 
 // MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
