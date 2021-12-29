@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,11 +21,10 @@ import (
 	"time"
 )
 
-
 const (
 	//RpcUrl          = "https://exchaintestrpc.okex.org"
-	RpcUrl          = "http://127.0.0.1:8545"
-	ChainId int64   = 67 //  oec
+	RpcUrl        = "http://127.0.0.1:8545"
+	ChainId int64 = 67 //  oec
 	//RpcUrl          = "https://exchainrpc.okex.org"
 	//ChainId int64   = 66 //  oec
 	GasPrice int64  = 100000000 // 0.1 gwei
@@ -41,7 +41,7 @@ type Contract struct {
 
 func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	c := &Contract{
-		name: name,
+		name:    name,
 		address: address,
 	}
 
@@ -67,11 +67,11 @@ func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	return c
 }
 
-func str2bigInt(input string) *big.Int{
+func str2bigInt(input string) *big.Int {
 	return sdk.MustNewDecFromStr(input).Int
 }
 
-func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) (*big.Int) {
+func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) *big.Int {
 
 	value := readContract(client, c, name, args...)
 	if len(value) == 0 {
@@ -152,7 +152,6 @@ func writeContract(client *ethclient.Client,
 	return nil
 }
 
-
 func transferOKT(client *ethclient.Client,
 	fromAddress common.Address,
 	toAddress common.Address,
@@ -178,7 +177,7 @@ func transferOKT(client *ethclient.Client,
 		fromAddress,
 		toAddress,
 		sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision),
-		)
+	)
 
 	unsignedTx := types.NewTransaction(nonce, toAddress, amount, GasLimit, gasPrice, nil)
 
@@ -199,12 +198,12 @@ func transferOKT(client *ethclient.Client,
 	}
 }
 
-func sleep(second time.Duration)  {
-	time.Sleep(second*time.Second)
+func sleep(second time.Duration) {
+	time.Sleep(second * time.Second)
 }
 
 func readContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
-	data, err := contract.abi.Pack(name, args ...)
+	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -226,7 +225,7 @@ func readContract(client *ethclient.Client, contract *Contract, name string, arg
 	return ret
 }
 
-func initKey(key string) (*ecdsa.PrivateKey, common.Address){
+func initKey(key string) (*ecdsa.PrivateKey, common.Address) {
 	privateKey, err := crypto.HexToECDSA(key)
 	if err != nil {
 		log.Fatalf("failed to switch unencrypted private key -> secp256k1 private key: %+v", err)
@@ -240,8 +239,6 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 
 	return privateKey, senderAddress
 }
-
-
 
 func deployContract(client *ethclient.Client, fromAddress common.Address,
 	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration) error {
@@ -317,7 +314,15 @@ func deployContractTx(nonce uint64, contract *Contract) (*types.Transaction, err
 	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data), err
 }
 
-
+func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOpts, symbol string,
+	name string, decimals uint8, totalSupply *big.Int,
+	ownerAddress common.Address, blockTime time.Duration) (contractAddress common.Address,
+	oip20 *Oip20, err error) {
+	contractAddress, _, oip20, err = DeployOip20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
+	fmt.Printf("Deploy standard OIP20 contract: <%s>\n", contractAddress)
+	time.Sleep(blockTime)
+	return contractAddress, oip20, err
+}
 
 func send(client *ethclient.Client, to, privKey string) {
 	privateKey, senderAddress := initKey(privKey)
@@ -325,4 +330,54 @@ func send(client *ethclient.Client, to, privKey string) {
 
 	// send 0.001okt
 	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+}
+
+
+func transferOip(client *ethclient.Client, oip20 *Oip20,
+	sender common.Address, auth *bind.TransactOpts, toAddress common.Address) (nonce uint64, err error) {
+	transferAmount := str2bigInt("100000")
+
+	nonce, err = client.PendingNonceAt(context.Background(), sender)
+	if err != nil {
+		log.Printf("failed to fetch nonce: %+v", err)
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	_, err = oip20.Transfer(auth, toAddress, transferAmount)
+	if err != nil {
+		log.Printf("failed to transfer: %+v", err)
+	}
+	return
+}
+
+
+func deployOip(client *ethclient.Client, sender common.Address,
+	privateKey *ecdsa.PrivateKey) (oip20 *Oip20, auth *bind.TransactOpts, err error) {
+
+	var nonce uint64
+	var gasPrice *big.Int
+	nonce, err = client.PendingNonceAt(context.Background(), sender)
+	if err != nil {
+		log.Printf("failed to fetch nonce: %+v", err)
+	}
+	auth, err = bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(ChainId))
+	if err != nil {
+		log.Printf("failed to gen TransactOpts: %+v", err)
+	}
+	gasPrice, err = client.SuggestGasPrice(auth.Context)
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0) // in wei
+	auth.GasLimit = GasLimit   // in units
+	auth.GasPrice = gasPrice
+	auth.Context = context.Background()
+
+	symbol := "OIP20"
+	contractName := "OIP20 STD"
+	decimals := 18
+
+	if err == nil {
+		_, oip20, err = deployStandardOIP20Contract(client, auth, symbol,
+			contractName, uint8(decimals), str2bigInt("100000000000000000000000"), sender, 3*time.Second)
+	}
+	return
 }
