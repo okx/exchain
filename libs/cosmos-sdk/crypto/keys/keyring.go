@@ -42,18 +42,20 @@ var _ Keybase = keyringKeybase{}
 // keyringKeybase implements the Keybase interface by using the Keyring library
 // for account key persistence.
 type keyringKeybase struct {
-	base    baseKeybase
-	db      keyring.Keyring
-	fileDir string
+	base     baseKeybase
+	db       keyring.Keyring
+	passwdCh chan<- string
+	fileDir  string
 }
 
 var maxPassphraseEntryAttempts = 3
 
-func newKeyringKeybase(db keyring.Keyring, path string, opts ...KeybaseOption) Keybase {
+func newKeyringKeybase(db keyring.Keyring, path string, passwdCh chan<- string, opts ...KeybaseOption) Keybase {
 	return keyringKeybase{
-		db:      db,
-		fileDir: path,
-		base:    newBaseKeybase(opts...),
+		db:       db,
+		fileDir:  path,
+		passwdCh: passwdCh,
+		base:     newBaseKeybase(opts...),
 	}
 }
 
@@ -67,14 +69,15 @@ func NewKeyring(
 	var db keyring.Keyring
 	var err error
 	var config keyring.Config
+	passwdCh := make(chan string)
 
 	switch backend {
 	case BackendTest:
-		config = lkbToKeyringConfig(appName, rootDir, nil, true)
+		config = lkbToKeyringConfig(appName, rootDir, nil, nil, true)
 	case BackendFile:
-		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
+		config = newFileBackendKeyringConfig(appName, rootDir, userInput, passwdCh)
 	case BackendOS:
-		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
+		config = lkbToKeyringConfig(appName, rootDir, userInput, passwdCh, false)
 	case BackendKWallet:
 		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
@@ -87,7 +90,7 @@ func NewKeyring(
 		return nil, err
 	}
 
-	return newKeyringKeybase(db, config.FileDir, opts...), nil
+	return newKeyringKeybase(db, config.FileDir, passwdCh, opts...), nil
 }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
@@ -460,11 +463,13 @@ func (kb keyringKeybase) SupportedAlgosLedger() []SigningAlgo {
 // CloseDB releases the lock and closes the storage backend.
 func (kb keyringKeybase) CloseDB() {}
 
-func (kb keyringKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, _ string, algo SigningAlgo) Info {
+func (kb keyringKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, encPasswd string, algo SigningAlgo) Info {
 	// encrypt private key using keyring
 	pub := priv.PubKey()
 	info := newLocalInfo(name, pub, string(priv.Bytes()), algo)
 
+	//set password
+	kb.postPasswd(encPasswd)
 	kb.writeInfo(name, info)
 	return info
 }
@@ -496,7 +501,16 @@ func (kb keyringKeybase) FileDir() (string, error) {
 	return resolvePath(kb.fileDir)
 }
 
-func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {
+// postPasswd receive key passwd  from remote client
+func (kb keyringKeybase) postPasswd(passwd string) error {
+	select {
+	case kb.passwdCh <- passwd:
+	default:
+	}
+	return nil
+}
+
+func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, passwdCh <-chan string, test bool) keyring.Config {
 	if test {
 		return keyring.Config{
 			AllowedBackends: []keyring.BackendType{keyring.FileBackend},
@@ -511,7 +525,7 @@ func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.C
 	return keyring.Config{
 		ServiceName:      appName,
 		FileDir:          dir,
-		FilePasswordFunc: newRealPrompt(dir, buf),
+		FilePasswordFunc: newRealPrompt(dir, localBuf, passwdCh),
 	}
 }
 
@@ -533,23 +547,24 @@ func newPassBackendKeyringConfig(appName, dir string, _ io.Reader) keyring.Confi
 	}
 }
 
-func newFileBackendKeyringConfig(name, dir string, buf io.Reader) keyring.Config {
+func newFileBackendKeyringConfig(name, dir string, localBuf io.Reader, passwdCh <-chan string) keyring.Config {
 	fileDir := filepath.Join(dir, fmt.Sprintf(keyringDirNameFmt, name))
 	return keyring.Config{
 		AllowedBackends:  []keyring.BackendType{keyring.FileBackend},
 		ServiceName:      name,
 		FileDir:          fileDir,
-		FilePasswordFunc: newRealPrompt(fileDir, buf),
+		FilePasswordFunc: newRealPrompt(fileDir, localBuf, passwdCh),
 	}
 }
 
-func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
+func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(string) (string, error) {
 	return func(prompt string) (string, error) {
 		keyhashStored := false
 		keyhashFilePath := filepath.Join(dir, "keyhash")
-
+		var passwd string
 		var keyhash []byte
 
+		// read hashfile from file to check input password
 		_, err := os.Stat(keyhashFilePath)
 		switch {
 		case err == nil:
@@ -567,51 +582,90 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 			return "", fmt.Errorf("failed to open %s: %v", keyhashFilePath, err)
 		}
 
-		failureCounter := 0
-		for {
-			failureCounter++
-			if failureCounter > maxPassphraseEntryAttempts {
-				return "", fmt.Errorf("too many failed passphrase attempts")
-			}
+		// try to read data from remote buffer first
+		passwd, err = remotePrompt(passwdCh)
+		if err != nil {
+			return "", err
+		}
 
-			buf := bufio.NewReader(buf)
-			pass, err := input.GetPassword("Enter keyring passphrase:", buf)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				continue
+		// when empty remote receive nothing, use local input
+		// it can be tolerate of three time
+		if len(passwd) == 0 {
+			if passwd, err = localPrompt(localBuf, keyhashStored, keyhash); err != nil {
+				return "", err
 			}
+		}
 
-			if keyhashStored {
-				if err := bcrypt.CompareHashAndPassword(keyhash, []byte(pass)); err != nil {
-					fmt.Fprintln(os.Stderr, "incorrect passphrase")
-					continue
-				}
-				return pass, nil
-			}
-
-			reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				continue
-			}
-
-			if pass != reEnteredPass {
-				fmt.Fprintln(os.Stderr, "passphrase do not match")
-				continue
-			}
-
+		// must storage the keyhash, when we first create key
+		if !keyhashStored {
 			saltBytes := tmcrypto.CRandBytes(16)
-			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(pass), 2)
+			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(passwd), 2)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				continue
+				return "", err
 			}
 
 			if err := ioutil.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
 				return "", err
 			}
+		}
 
+		return passwd, nil
+	}
+}
+
+// remotePrompt reveive password from channel.
+// when channel never recieve password, please use local input.
+func remotePrompt(ch <-chan string) (string, error) {
+	var passwd string
+
+	select {
+	case passwd = <-ch:
+	default:
+		return "", nil
+	}
+
+	if len(passwd) < input.MinPassLength {
+		return "", fmt.Errorf("password must be at least %d characters", input.MinPassLength)
+	}
+	return passwd, nil
+}
+
+// localPrompt receive password from stdin
+func localPrompt(buffer io.Reader, keyhashStored bool, keyhash []byte) (string, error) {
+	failureCounter := 0
+	for {
+		failureCounter++
+		if failureCounter > maxPassphraseEntryAttempts {
+			return "", fmt.Errorf("too many failed passphrase attempts")
+		}
+
+		buf := bufio.NewReader(buffer)
+		pass, err := input.GetPassword("Enter keyring passphrase:", buf)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return "", err
+		}
+
+		if keyhashStored {
+			if err := bcrypt.CompareHashAndPassword(keyhash, []byte(pass)); err != nil {
+				fmt.Fprintln(os.Stderr, "incorrect passphrase")
+				continue
+			}
 			return pass, nil
 		}
+
+		reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return "", err
+		}
+
+		if pass != reEnteredPass {
+			fmt.Fprintln(os.Stderr, "passphrase do not match")
+			return "", fmt.Errorf("passphrase do not match")
+		}
+		return pass, nil
 	}
+
 }
