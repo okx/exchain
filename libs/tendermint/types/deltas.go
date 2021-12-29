@@ -9,10 +9,9 @@ import (
 )
 
 const (
-	// get delta from dc/redis
 	FlagDownloadDDS = "download-delta"
-	// send delta to dc/redis
 	FlagUploadDDS = "upload-delta"
+	FlagAppendPid = "append-pid"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
 
@@ -23,12 +22,10 @@ const (
 	// expire unit: second
 	FlagRedisExpire = "delta-redis-expire"
 
-	// fast-query
 	FlagFastQuery = "fast-query"
 
-	// delta version
-	// when this DeltaVersion not equal with dds delta-version, can't use delta
-	DeltaVersion = 2
+	// do not apply delta if version does not match
+	DeltaVersion = 3
 )
 
 var (
@@ -67,6 +64,7 @@ type DeltasMessage struct {
 	Height           int64  `json:"height"`
 	Version          int    `json:"version"`
 	CompressType     int    `json:"compress_type"`
+	From			 string `json:"from"`
 }
 
 type DeltaPayload struct {
@@ -82,11 +80,11 @@ type Deltas struct {
 	Payload          DeltaPayload
 	CompressType     int
 	CompressFlag     int
+	From			 string
 
 	marshalElapsed    time.Duration
 	compressElapsed   time.Duration
 }
-
 
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
@@ -111,7 +109,6 @@ func (d *Deltas) CompressOrUncompressElapsed() time.Duration {
 	return d.compressElapsed
 }
 
-
 // Marshal returns the amino encoding.
 func (d *Deltas) Marshal() ([]byte, error) {
 	t0 := time.Now()
@@ -133,6 +130,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Height: d.Height,
 		Version: d.Version,
 		CompressType: d.CompressType,
+		From: d.From,
 	}
 
 	res, err := cdc.MarshalBinaryBare(dt)
@@ -162,13 +160,12 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	}
 	t2 := time.Now()
 
-
 	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
 	t3 := time.Now()
 
 	d.Version = msg.Version
 	d.Height = msg.Height
-
+	d.From = msg.From
 
 	d.compressElapsed = t2.Sub(t1)
 	d.marshalElapsed = t3.Sub(t0) - d.compressElapsed
@@ -176,15 +173,16 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, version<%d>, size<%d>",
+	return fmt.Sprintf("height<%d>, version<%d>, size<%d>, from<%s>",
 		d.Height,
 		d.Version,
 		d.Size(),
+		d.From,
 		)
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if DeltaVersion < dds.Version ||
+	if DeltaVersion != dds.Version ||
 		dds.Height != height ||
 		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
