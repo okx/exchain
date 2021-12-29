@@ -584,10 +584,6 @@ func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, peerI
 	}
 	bpr.block = block
 
-	if types.EnableApplyP2PDelta() {
-		bpr.deltas = deltas
-	}
-
 	bpr.mtx.Unlock()
 
 	select {

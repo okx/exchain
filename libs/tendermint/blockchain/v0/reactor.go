@@ -174,13 +174,8 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	var deltas *types.Deltas
-	if types.EnableBroadcastP2PDelta() {
-		deltas = bcR.dstore.LoadDeltas(msg.Height)
-	}
-
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
