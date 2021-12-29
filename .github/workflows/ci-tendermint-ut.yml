@@ -29,7 +29,7 @@ jobs:
           key: ${{ runner.os }}-go-tm-binary
 
   tm-core:
-    name: tm-core tests noop
+    name: tm-core tests
     runs-on: ubuntu-latest
     needs: Build
     steps:
@@ -39,8 +39,8 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: tm-core noop test 
-        run: echo "do nothing" 
+      - name: test_tm_core 
+        run: echo "noop test" 
   tm-consensus:
     name: tm-consensus tests
     runs-on: ubuntu-latest
