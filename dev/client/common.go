@@ -1,7 +1,7 @@
 package main
 
 import (
-	bytes2 "bytes"
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/okex/exchain-ethereum-compatible/utils"
 
 	"io/ioutil"
 	"log"
@@ -35,24 +36,34 @@ type Contract struct {
 	address  string
 	addr     common.Address
 	abi      abi.ABI
+	byteCode []byte
 }
 
-func NewContract(name, address, abiFile string) *Contract {
+func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 	c := &Contract{
 		name: name,
 		address: address,
-		addr: common.HexToAddress(address),
 	}
+
+	bin, err := ioutil.ReadFile(byteCodeFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.byteCode = common.Hex2Bytes(string(bin))
 
 	abiByte, err := ioutil.ReadFile(abiFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.abi, err = abi.JSON(bytes2.NewReader(abiByte))
+	c.abi, err = abi.JSON(bytes.NewReader(abiByte))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	if len(address) > 0 {
+		c.addr = common.HexToAddress(address)
+		fmt.Printf("new contract: %s\n", address)
+	}
 	return c
 }
 
@@ -62,7 +73,10 @@ func str2bigInt(input string) *big.Int{
 
 func uint256Output(client *ethclient.Client, c *Contract, name string, args ...interface{}) (*big.Int) {
 
-	value := ReadContract(client, c, name, args...)
+	value := readContract(client, c, name, args...)
+	if len(value) == 0 {
+		return str2bigInt("0")
+	}
 	ret := value[0].(*big.Int)
 
 	arg0 := ""
@@ -74,22 +88,23 @@ func uint256Output(client *ethclient.Client, c *Contract, name string, args ...i
 
 	decRet := sdk.NewDecFromBigIntWithPrec(ret, sdk.Precision)
 
-	fmt.Printf("	<%s[%s(%s)]> uint256 output: %s\n", c.name, name, arg0, decRet)
+	fmt.Printf("	<%s[%s(%s)]>: %s\n", c.address, name, arg0, decRet)
 	return ret
 }
 
-func WriteContract(client *ethclient.Client,
+func writeContract(client *ethclient.Client,
 	contract *Contract,
 	fromAddress common.Address,
 	privateKey *ecdsa.PrivateKey,
 	amount *big.Int,
 	sleep time.Duration,
 	name string,
-	args ...interface{}) {
+	args ...interface{}) error {
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Fatalf("failed to fetch the value of nonce from network: %+v", err)
+		log.Printf("failed to fetch the value of nonce from network: %+v", err)
+		panic(err)
 	}
 
 	// 0.5 get the gasPrice
@@ -97,20 +112,21 @@ func WriteContract(client *ethclient.Client,
 
 	fmt.Printf(
 		"==================================================\n"+
-			"write [%s<%s>]: \n"+
-			"	msg sender: <%s>\n"+
-			"	contract address: <%s>\n"+
-			"	abi: <%s %s>\n"+
+			"%s: \n"+
+			"	sender:   <%s>, nonce<%d>\n"+
+			"	contract: <%s>, abi: <%s %s>\n"+
 			"==================================================\n",
 		contract.name,
-		name,
 		fromAddress.Hex(),
+		nonce,
 		contract.address,
 		name, args)
 
 	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%s", err)
+		return err
+
 	}
 
 	if amount == nil {
@@ -121,16 +137,19 @@ func WriteContract(client *ethclient.Client,
 	// 2. sign unsignedTx -> rawTx
 	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(ChainId)), privateKey)
 	if err != nil {
-		log.Fatalf("failed to sign the unsignedTx offline: %+v", err)
+		log.Printf("failed to sign the unsignedTx offline: %+v", err)
+		return err
 	}
 
 	// 3. send rawTx
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%s", err)
+		return err
 	}
 
-	time.Sleep(time.Second * sleep)
+	time.Sleep(sleep)
+	return nil
 }
 
 
@@ -180,12 +199,14 @@ func transferOKT(client *ethclient.Client,
 	}
 }
 
+func sleep(second time.Duration)  {
+	time.Sleep(second*time.Second)
+}
 
-
-func ReadContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
+func readContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
 	data, err := contract.abi.Pack(name, args ...)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	msg := ethereum.CallMsg{
@@ -220,3 +241,88 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 	return privateKey, senderAddress
 }
 
+
+
+func deployContract(client *ethclient.Client, fromAddress common.Address,
+	privateKey *ecdsa.PrivateKey, contract *Contract, blockTime time.Duration) error {
+
+	fmt.Printf("%s deploying contract\n", fromAddress.String())
+	chainID := big.NewInt(ChainId)
+	// 0. get the value of nonce, based on address
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Printf("failed to fetch the value of nonce from network: %+v", err)
+		return err
+	}
+
+	//1. simulate unsignedTx as you want, fill out the parameters into a unsignedTx
+	unsignedTx, err := deployContractTx(nonce, contract)
+	if err != nil {
+		return err
+	}
+	// 2. sign unsignedTx -> rawTx
+	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Printf("failed to sign the unsignedTx offline: %+v", err)
+		return err
+	}
+
+	// 3. send rawTx
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Printf("SendTransaction err: %s", err)
+		return err
+	}
+
+	// 4. get the contract address based on tx hash
+	hash, err := utils.Hash(signedTx)
+	if err != nil {
+		log.Printf("Hash tx err: %s", err)
+		return err
+	}
+
+	var receipt *types.Receipt
+	var retry int
+	for err == nil {
+		sleep(blockTime)
+		receipt, err = client.TransactionReceipt(context.Background(), hash)
+		if err != nil {
+			fmt.Printf("TransactionReceipt retry: %d, err: %s\n", retry, err)
+			retry++
+		} else {
+			break
+		}
+		if retry > 10 {
+			return err
+		}
+		err = nil
+	}
+
+	contract.address = receipt.ContractAddress.String()
+	contract.addr = receipt.ContractAddress
+
+	fmt.Printf("new contract address: %s\n", contract.address)
+	return nil
+}
+
+func deployContractTx(nonce uint64, contract *Contract) (*types.Transaction, error) {
+	value := big.NewInt(0)
+	// Constructor
+	input, err := contract.abi.Pack("")
+	if err != nil {
+		log.Printf("contract.abi.Pack err: %s", err)
+		return nil, err
+	}
+	data := append(contract.byteCode, input...)
+	return types.NewContractCreation(nonce, value, GasLimit, big.NewInt(GasPrice), data), err
+}
+
+
+
+func send(client *ethclient.Client, to, privKey string) {
+	privateKey, senderAddress := initKey(privKey)
+	toAddress := common.HexToAddress(to)
+
+	// send 0.001okt
+	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+}
