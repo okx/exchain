@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./testnet.sh -s -i -n 4 -c hang.json -x
+./testnet.sh -s -i -n 4 -c fastsync.json -x
 
 sleep 5
 
