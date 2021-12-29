@@ -189,6 +189,7 @@ func (wal *BaseWAL) OnStop() {
 	wal.FlushAndSync()
 	wal.group.Stop()
 	wal.group.Close()
+	wal.Logger.Error("Close wal file.")
 }
 
 // Wait for the underlying autofile group to finish shutting down

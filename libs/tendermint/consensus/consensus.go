@@ -317,17 +317,16 @@ func (cs *State) OnStart() error {
 
 	// we may set the WAL in testing before calling Start,
 	// so only OpenWAL if its still the nilWAL
-	//if _, ok := cs.wal.(nilWAL); ok {
-	walFile := cs.config.WalFile()
-	wal, err := cs.OpenWAL(walFile)
-	if err != nil {
-		cs.Logger.Error("Error loading State wal", "err", err.Error())
-		return err
+	if _, ok := cs.wal.(nilWAL); ok {
+		walFile := cs.config.WalFile()
+		wal, err := cs.OpenWAL(walFile)
+		if err != nil {
+			cs.Logger.Error("Error loading State wal", "err", err.Error())
+			return err
+		}
+		cs.wal = wal
+		cs.Logger.Error("Open wal file.")
 	}
-	cs.wal = wal
-	//} else if err := cs.wal.Start(); err != nil{
-	////	//return err
-	//}
 
 	// we need the timeoutRoutine for replay so
 	// we don't block on the tick chan.
@@ -389,6 +388,7 @@ func (cs *State) OnStop() {
 func (cs *State) OnReset() error {
 	cs.evsw.Reset()
 	cs.wal.Reset()
+	cs.wal = nilWAL{}
 	cs.timeoutTicker.Reset()
 	return nil
 }

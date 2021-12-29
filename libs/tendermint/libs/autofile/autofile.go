@@ -1,9 +1,11 @@
 package autofile
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -32,6 +34,8 @@ if err != nil {
 	panic(err)
 }
 */
+
+var FileOpenCount = int(0)
 
 const (
 	autoFileClosePeriod = 1000 * time.Millisecond
@@ -120,7 +124,13 @@ func (af *AutoFile) closeFile() (err error) {
 	}
 
 	af.file = nil
-	return file.Close()
+	err = file.Close()
+	if err != nil {
+		debug.PrintStack()
+		panic(fmt.Sprintf("close file failed. %+v\n", err))
+	}
+	FileOpenCount--
+	return err
 }
 
 // Write writes len(b) bytes to the AutoFile. It returns the number of bytes
@@ -170,6 +180,11 @@ func (af *AutoFile) openFile() error {
 	// 	return errors.NewErrPermissionsChanged(file.Name(), fileInfo.Mode(), autoFilePerms)
 	// }
 	af.file = file
+	FileOpenCount++
+	if FileOpenCount > 1 {
+		debug.PrintStack()
+		panic(fmt.Sprintf("Open file duplicated. count:%d path:%s", FileOpenCount, af.Path))
+	}
 	return nil
 }
 
