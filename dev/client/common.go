@@ -289,13 +289,13 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 		if err != nil {
 			fmt.Printf("TransactionReceipt retry: %d, err: %s\n", retry, err)
 			retry++
+			err = nil
 		} else {
 			break
 		}
 		if retry > 10 {
 			return err
 		}
-		err = nil
 	}
 
 	contract.address = receipt.ContractAddress.String()
