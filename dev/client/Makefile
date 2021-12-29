@@ -11,7 +11,7 @@ Version=v0.19.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
-Name=cherry
+Name=oecclient
 ServerName=exchaind
 ClientName=exchaincli
 
@@ -29,27 +29,12 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
+BUILD_FLAGS := -ldflags '$(ldflags)'
 
+all: build
 
-ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
-	-X $(GithubTop)/cosmos/cosmos-sdk/version.Name=$(Name) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
-
-
-BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-
-all: install
-
-install:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" .
-
+build:
+	go build $(BUILD_FLAGS) -o client .
 
 get_vendor_deps:
 	@echo "--> Generating vendor directory via dep ensure"
@@ -72,7 +57,5 @@ go.sum: go.mod
 	@go mod tidy
 
 
-build:
-	go build $(BUILD_FLAGS) -o ship .
 
 .PHONY: build
