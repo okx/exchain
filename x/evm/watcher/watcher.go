@@ -59,7 +59,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: map[uint64]uint64{}, sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	return watcher
 }
 
