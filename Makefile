@@ -144,7 +144,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./dev/devtools/install-rocksdb.sh
+	@bash ./libs/rocksdb/install.sh
 .PHONY: rocksdb
 
 .PHONY: build

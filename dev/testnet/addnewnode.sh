@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source exchain.profile
+source oec.profile
 
 set -e
 set -o errexit

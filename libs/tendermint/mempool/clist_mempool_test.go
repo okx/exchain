@@ -34,6 +34,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+const (
+	BlockMaxTxNum = 300
+)
+
 // A cleanupFunc cleans up any config / test files created for a particular
 // test.
 type cleanupFunc func()
@@ -331,7 +335,7 @@ func TestSerialReap(t *testing.T) {
 					res.Code, res.Data, res.Log)
 			}
 		}
-		res, err := appConnCon.CommitSync()
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
 		if err != nil {
 			t.Errorf("client error committing: %v", err)
 		}
@@ -356,23 +360,23 @@ func TestSerialReap(t *testing.T) {
 	deliverTxsRange(0, 1000)
 
 	// Reap the txs.
-	reapCheck(1000)
+	reapCheck(BlockMaxTxNum)
 
 	// Reap again.  We should get the same amount
-	reapCheck(1000)
+	reapCheck(BlockMaxTxNum)
 
 	// Commit from the conensus AppConn
-	commitRange(0, 500)
-	updateRange(0, 500)
+	commitRange(0, BlockMaxTxNum)
+	updateRange(0, BlockMaxTxNum)
 
 	// We should have 500 left.
-	reapCheck(500)
+	reapCheck(BlockMaxTxNum)
 
 	// Deliver 100 invalid txs and 100 valid txs
 	deliverTxsRange(900, 1100)
 
-	// We should have 600 now.
-	reapCheck(600)
+	// We should have 300 now.
+	reapCheck(BlockMaxTxNum)
 }
 
 func TestMempoolCloseWAL(t *testing.T) {
@@ -536,13 +540,19 @@ func TestMempoolTxsBytes(t *testing.T) {
 	res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
 	require.NoError(t, err)
 	require.EqualValues(t, 0, res.Code)
-	res2, err := appConnCon.CommitSync()
+	res2, err := appConnCon.CommitSync(abci.RequestCommit{})
 	require.NoError(t, err)
 	require.NotEmpty(t, res2.Data)
-
 	// Pretend like we committed nothing so txBytes gets rechecked and removed.
-	mempool.Update(1, []types.Tx{}, abciResponses(0, abci.CodeTypeOK), nil, nil)
-	assert.EqualValues(t, 0, mempool.TxsBytes())
+	// our config recheck flag default is false so cannot rechecked to remove unavailable txs
+	// add config to check whether to assert mempool txsbytes
+	height := int64(1)
+	mempool.Update(height, []types.Tx{}, abciResponses(0, abci.CodeTypeOK), nil, nil)
+	if cfg.DynamicConfig.GetMempoolRecheck() || height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
+		assert.EqualValues(t, 0, mempool.TxsBytes())
+	} else {
+		assert.EqualValues(t, len(txBytes), mempool.TxsBytes())
+	}
 }
 
 // This will non-deterministically catch some concurrency failures like
@@ -952,4 +962,3 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 
 	wait.Wait()
 }
-

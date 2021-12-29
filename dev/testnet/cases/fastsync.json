@@ -77,20 +77,20 @@
   ],
   "35":[
     {"round":0, "prevotesmaj23" : {"v0":true, "v1":true,"v2":true, "v3":true},  "precommitsmaj23" : {"v0":true, "v1":true,"v2":true, "v3":true}},
-    {"round":1, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}, "_comment_" : "switch to fast-sync mode from consensus mode when consensus failed"},
-    {"round":2, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}},
-    {"round":3, "prevotesmaj23" : {"v0":true},  "precommitsmaj23" : {"v0":true}}
+    {"round":1, "prevotesmaj23" : {"v1":true},  "precommitsmaj23" : {"v1":true}, "_comment_" : "switch to fast-sync mode from consensus mode when consensus failed"},
+    {"round":2, "prevotesmaj23" : {"v1":true},  "precommitsmaj23" : {"v1":true}},
+    {"round":3, "prevotesmaj23" : {"v1":true},  "precommitsmaj23" : {"v1":true}}
   ],
   "55":[
-    {"round":0, "recvblock" : {"v0":true}, "_comment_" : "switch to fast-sync mode from consensus mode when proposed block is not received"},
-    {"round":1, "recvblock" : {"v0":true}},
-    {"round":2, "recvblock" : {"v0":true}},
-    {"round":3, "recvblock" : {"v0":true}}
+    {"round":0, "recvblock" : {"v1":true}, "_comment_" : "switch to fast-sync mode from consensus mode when proposed block is not received"},
+    {"round":1, "recvblock" : {"v1":true}},
+    {"round":2, "recvblock" : {"v1":true}},
+    {"round":3, "recvblock" : {"v1":true}}
   ],
   "75":[
-    {"round":0, "disconnect" : {"v0":10}, "_comment_" : "switch to fast-sync mode from consensus mode when network disconnected for some time"}
+    {"round":0, "disconnect" : {"v1":10}, "_comment_" : "switch to fast-sync mode from consensus mode when network disconnected for some time"}
   ],
   "95":[
-    {"round":0, "prerun" : {"v0":10}, "_comment_" : "switch to fast-sync mode from consensus mode when prerun takes too long"}
+    {"round":0, "prerun" : {"v1":10}, "_comment_" : "switch to fast-sync mode from consensus mode when prerun takes too long"}
   ]
 }

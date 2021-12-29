@@ -145,7 +145,7 @@ func TestMempoolRmBadTx(t *testing.T) {
 	resDeliver := app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes})
 	assert.False(t, resDeliver.IsErr(), fmt.Sprintf("expected no error. got %v", resDeliver))
 
-	resCommit := app.Commit()
+	resCommit := app.Commit(abci.RequestCommit{})
 	assert.True(t, len(resCommit.Data) > 0)
 
 	emptyMempoolCh := make(chan struct{})
@@ -243,7 +243,7 @@ func txAsUint64(tx []byte) uint64 {
 	return binary.BigEndian.Uint64(tx8)
 }
 
-func (app *CounterApplication) Commit() abci.ResponseCommit {
+func (app *CounterApplication) Commit(rc abci.RequestCommit) abci.ResponseCommit {
 	app.mempoolTxCount = app.txCount
 	if app.txCount == 0 {
 		return abci.ResponseCommit{}

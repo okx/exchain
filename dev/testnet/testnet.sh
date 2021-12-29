@@ -15,7 +15,7 @@ set -m
 
 set -x # activate debugging
 
-source exchain.profile
+source oec.profile
 PRERUN=false
 while getopts "isn:b:p:c:Smx" opt; do
   case $opt in
