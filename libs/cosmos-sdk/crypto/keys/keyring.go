@@ -69,7 +69,7 @@ func NewKeyring(
 	var db keyring.Keyring
 	var err error
 	var config keyring.Config
-	passwdCh := make(chan string)
+	passwdCh := make(chan string, 1)
 
 	switch backend {
 	case BackendTest:
