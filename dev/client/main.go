@@ -51,13 +51,6 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 		senderAddress common.Address
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			sleep(3)
-			log.Printf("recover writeRoutine")
-			go writeRoutine(privKey, blockTime)
-		}
-	}()
 	privateKey, senderAddress = initKey(privKey)
 	counterContract := newContract("counter", "", abiFile, binFile)
 
@@ -72,19 +65,14 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 		err = writeContract(client, counterContract, senderAddress, privateKey, nil, blockTime, "subtract")
 		uint256Output(client, counterContract, "getCounter")
 	}
-	panic(err)
+
+	sleep(3)
+	log.Printf("recover writeRoutine")
+	go writeRoutine(privKey, blockTime)
 }
 
 func standardOip20Test(privKey string, blockTime time.Duration) {
 	privateKey, sender := initKey(privKey)
-
-	defer func() {
-		if r := recover(); r != nil {
-			sleep(3)
-			log.Printf("recover standardOip20Test")
-			go standardOip20Test(privKey, blockTime)
-		}
-	}()
 
 	client, err := ethclient.Dial(RpcUrl)
 	if err != nil {
@@ -113,5 +101,8 @@ func standardOip20Test(privKey string, blockTime time.Duration) {
 		)
 		time.Sleep(blockTime)
 	}
-	panic(err)
+
+	log.Printf("recover standardOip20Test")
+	sleep(3)
+	go standardOip20Test(privKey, blockTime)
 }
