@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/evm/client/utils"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/x/evm/client/utils"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
@@ -218,7 +219,7 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
 
-		bz, height, err := cliCtx.QueryWithData(path, nil)
+		bz, height, err := cliCtx.WithHeight(0).QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
