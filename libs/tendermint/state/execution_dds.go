@@ -47,7 +47,7 @@ func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
 
 type DeltaContext struct {
 	deltaBroker   delta.DeltaBroker
-	lastCommitHeight int64
+	lastFetchedHeight int64
 	dataMap *deltaMap
 
 	downloadDelta bool
@@ -57,6 +57,7 @@ type DeltaContext struct {
 	logger log.Logger
 	compressType int
 	compressFlag int
+	bufferSize int
 
 	idMap  identityMapType
 	identity string
@@ -86,12 +87,11 @@ func newDeltaContext(l log.Logger) *DeltaContext {
 
 func (dc *DeltaContext) init() {
 
-	dc.logger.Info("DeltaContext init",
-		"uploadDelta", dc.uploadDelta,
-		"downloadDelta", dc.downloadDelta,
-	)
-
 	if dc.uploadDelta || dc.downloadDelta {
+		dc.bufferSize = viper.GetInt(types.FlagBufferSize)
+		if dc.bufferSize < 5 {
+			dc.bufferSize = 5
+		}
 		url := viper.GetString(types.FlagRedisUrl)
 		auth := viper.GetString(types.FlagRedisAuth)
 		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
@@ -105,6 +105,13 @@ func (dc *DeltaContext) init() {
 	if dc.downloadDelta {
 		go dc.downloadRoutine()
 	}
+
+	dc.logger.Info("DeltaContext init",
+		"uploadDelta", dc.uploadDelta,
+		"downloadDelta", dc.downloadDelta,
+		"buffer-size", dc.bufferSize,
+	)
+
 }
 
 
@@ -271,6 +278,9 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	}
 	var latestHeight int64
 	dds, latestHeight = dc.dataMap.fetch(height)
+
+	atomic.StoreInt64(&dc.lastFetchedHeight, height)
+
 	var succeed bool
 	if dds != nil {
 		if !dds.Validate(height) {
@@ -299,9 +309,9 @@ type downloadInfo struct {
 }
 
 func (dc *DeltaContext) downloadRoutine() {
-	var height int64
+	var targetHeight int64
 	var lastRemoved int64
-	var buffer int64 = 5
+	buffer := int64(dc.bufferSize)
 	info := &downloadInfo{
 		firstErrorMap : make(map[int64]error),
 		lastErrorMap : make(map[int64]error),
@@ -315,42 +325,42 @@ func (dc *DeltaContext) downloadRoutine() {
 	ticker := time.NewTicker(50 * time.Millisecond)
 
 	for range ticker.C {
-		lastCommitHeight := atomic.LoadInt64(&dc.lastCommitHeight)
-		if height <= lastCommitHeight {
-			// move to lastCommitHeight + 1
-			height = lastCommitHeight + 1
+		lastFetchedHeight := atomic.LoadInt64(&dc.lastFetchedHeight)
+		if targetHeight <= lastFetchedHeight {
+			// move ahead to lastFetchedHeight + 1
+			targetHeight = lastFetchedHeight + 1
 
-			// git rid of all deltas before <height>
-			removed, left := dc.dataMap.remove(lastCommitHeight)
-			dc.logger.Info("Updated target delta height",
-				"target-height", height,
-				"lastCommitHeight", lastCommitHeight,
+			// git rid of all deltas before <targetHeight>
+			removed, left := dc.dataMap.remove(lastFetchedHeight)
+			dc.logger.Info("Reset target height",
+				"target-height", targetHeight,
+				"last-fetched", lastFetchedHeight,
 				"removed", removed,
 				"left", left,
 			)
 		} else {
-			if height % 10 == 0 && lastRemoved != lastCommitHeight {
-				removed, left := dc.dataMap.remove(lastCommitHeight)
-				dc.logger.Info("Remove stale delta",
-					"target-height", height,
-					"lastCommitHeight", lastCommitHeight,
+			if targetHeight % 10 == 0 && lastRemoved != lastFetchedHeight {
+				removed, left := dc.dataMap.remove(lastFetchedHeight)
+				dc.logger.Info("Remove stale deltas",
+					"target-height", targetHeight,
+					"last-fetched", lastFetchedHeight,
 					"removed", removed,
 					"left", left,
 				)
-				lastRemoved = lastCommitHeight
+				lastRemoved = lastFetchedHeight
 			}
 		}
 
-		lastCommitHeight = atomic.LoadInt64(&dc.lastCommitHeight)
-		if height > lastCommitHeight+buffer {
+		lastFetchedHeight = atomic.LoadInt64(&dc.lastFetchedHeight)
+		if targetHeight > lastFetchedHeight+buffer {
 			continue
 		}
 
-		err, delta, mrh := dc.download(height)
-		info.statistics(height, err, mrh)
+		err, delta, mrh := dc.download(targetHeight)
+		info.statistics(targetHeight, err, mrh)
 		if err == nil {
-			dc.dataMap.insert(height, delta, mrh)
-			height++
+			dc.dataMap.insert(targetHeight, delta, mrh)
+			targetHeight++
 		}
 	}
 }
@@ -371,6 +381,7 @@ func (info *downloadInfo) dump(msg string, target int64) {
 		"mrh-when-1st-err", info.mrhWhen1stErrHappens[target],
 		"last-err", info.lastErrorMap[target],
 		"mrh-when-last-err", info.mrhWhenlastErrHappens[target],
+		"map-size", len(info.retried),
 	)
 	info.clear(target)
 }
@@ -416,7 +427,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 	}
 
 	cacheMap, cacheList := dc.dataMap.info()
-	dc.logger.Info("Download delta finished:",
+	dc.logger.Info("Downloaded delta successfully:",
 		"target-height", height,
 		"cacheMap", cacheMap,
 		"cacheList", cacheList,
