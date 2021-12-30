@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -218,11 +217,6 @@ func NewOKExChainApp(
 	appConfig, err := config.ParseConfig()
 	if err != nil {
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
-		panic(err)
-	}
-	chainId := viper.GetString(flags.FlagChainID)
-	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
-		logger.Error(err.Error())
 		panic(err)
 	}
 
@@ -471,6 +465,16 @@ func NewOKExChainApp(
 	}
 
 	return app
+}
+
+func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
+	if req.Key == "CheckChainID" {
+		if err := okexchain.IsValidateChainIdWithGenesisHeight(req.Value); err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
+	}
+	return app.BaseApp.SetOption(req)
 }
 
 func (app *OKExChainApp) LoadStartVersion(height int64) error {
