@@ -61,8 +61,8 @@ func EnableUploadDelta() bool {
 }
 
 type DeltasMessage struct {
-	PayloadHash  []byte `json:"payload_hash"`
 	Metadata     []byte `json:"metadata"`
+	MetadataHash []byte `json:"metadata_hash"`
 	Height       int64  `json:"height"`
 	Version      int    `json:"version"`
 	CompressType int    `json:"compress_type"`
@@ -142,7 +142,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Height:       d.Height,
 		Version:      d.Version,
 		CompressType: d.CompressType,
-		PayloadHash:  payloadHash,
+		MetadataHash:  payloadHash,
 		From:         d.From,
 	}
 
@@ -178,7 +178,7 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	t2 := time.Now()
 	// calc payload hash
 	payloadHash := tmhash.Sum(msg.Metadata)
-	if hex.EncodeToString(payloadHash) != hex.EncodeToString(msg.PayloadHash) {
+	if hex.EncodeToString(payloadHash) != hex.EncodeToString(msg.MetadataHash) {
 		return fmt.Errorf("metadata hash is different")
 	}
 	t3 := time.Now()
