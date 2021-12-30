@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/spf13/viper"
@@ -40,17 +39,14 @@ const (
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
-	flatKVDBName          = "app_flat_kv"
 )
-
-var flatKVDB dbm.DB
-var onceFlatKVDB sync.Once
 
 // Store is composed of many CommitStores. Name contrasts with
 // cacheMultiStore which is for cache-wrapping other MultiStores. It implements
 // the CommitMultiStore interface.
 type Store struct {
 	db             dbm.DB
+	flatKVDB       dbm.DB
 	lastCommitInfo commitInfo
 	pruningOpts    types.PruningOptions
 	storesParams   map[types.StoreKey]storeParams
@@ -78,18 +74,9 @@ var (
 // a store is created, KVStores must be mounted and finally LoadLatestVersion or
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
-	onceFlatKVDB.Do(func() {
-		rootDir := viper.GetString("home")
-		dataDir := filepath.Join(rootDir, "data")
-		var err error
-		flatKVDB, err = sdk.NewLevelDB(flatKVDBName, dataDir)
-		if err != nil {
-			panic(err)
-		}
-	})
-
 	return &Store{
 		db:           db,
+		flatKVDB:     newFlatKVDB(),
 		pruningOpts:  types.PruneNothing,
 		storesParams: make(map[types.StoreKey]storeParams),
 		stores:       make(map[types.StoreKey]types.CommitKVStore),
@@ -97,6 +84,17 @@ func NewStore(db dbm.DB) *Store {
 		pruneHeights: make([]int64, 0),
 		versions:     make([]int64, 0),
 	}
+}
+
+func newFlatKVDB() dbm.DB {
+	rootDir := viper.GetString("home")
+	dataDir := filepath.Join(rootDir, "data")
+	var err error
+	flatKVDB, err := sdk.NewLevelDB("app_flat_kv", dataDir)
+	if err != nil {
+		panic(err)
+	}
+	return flatKVDB
 }
 
 // SetPruning sets the pruning strategy on the root store and all the sub-stores.
@@ -703,7 +701,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		var store types.CommitKVStore
 		var err error
 		prefix := "s/k:" + params.key.Name() + "/"
-		prefixDB := dbm.NewPrefixDB(flatKVDB, []byte(prefix))
+		prefixDB := dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
 		if params.initialVersion == 0 {
 			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {
