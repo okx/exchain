@@ -106,10 +106,6 @@ jobs:
         if: steps.second-attempt.outcome != 'success'
         run: go test -count=1 ./libs/tendermint/mempool/...
         continue-on-error: true
-      - name: Go Test mempool Retry again on failure
-        id: fourth-attempt
-        if: steps.third-attempt.outcome != 'success'
-        run: go test -count=1 ./libs/tendermint/mempool/...
 
   test_abci_apps:
     name: abci_apps tests
