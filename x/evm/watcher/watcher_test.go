@@ -9,40 +9,47 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	dbm "github.com/tendermint/tm-db"
 	"math/big"
 	"testing"
 	"time"
 )
-
-const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
-
-type WatcherTestw struct {
-	ctx     sdk.Context
-	querier sdk.Querier
-	app     *app.OKExChainApp
-	stateDB *types.CommitStateDB
-	address ethcmn.Address
-	handler    sdk.Handler
+type KV struct {
+	k []byte
+	v []byte
 }
 
+func calcHash(kvs []KV) []byte {
+	ha := tmhash.New()
+	// calc a hash
+	for _, kv := range kvs {
+		ha.Write(kv.k)
+		ha.Write(kv.v)
+	}
+	return ha.Sum(nil)
+}
 
-func SetupTest() *WatcherTestw {
-	w := &WatcherTestw{}
+type WatcherTestSt struct {
+	ctx     sdk.Context
+	app     *app.OKExChainApp
+	handler sdk.Handler
+}
+
+func setupTest() *WatcherTestSt {
+	w := &WatcherTestSt{}
 	checkTx := false
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
-//	w.stateDB = types.CreateEmptyCommitStateDB(w.app.EvmKeeper.GenerateCSDBParams(), w.ctx)
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
-//	w.querier = keeper.NewQuerier(*w.app.EvmKeeper)
-//	w.address = ethcmn.HexToAddress(addrHex)
 
 	params := types.DefaultParams()
 	params.EnableCreate = true
@@ -52,10 +59,50 @@ func SetupTest() *WatcherTestw {
 	return w
 }
 
+func getDBKV(t *testing.T, db dbm.DB) []KV {
+	var kvs []KV
+	fmt.Println(db.Stats())
+	it, _ := db.Iterator(nil, nil)
+	for it.Valid() {
+		kvs = append(kvs, KV{it.Key(), it.Value()})
+		err := db.Delete(it.Key())
+		require.Nil(t, err)
+		it.Next()
+	}
+	return kvs
+}
 
+func testWatchData(t *testing.T, w *WatcherTestSt) {
+	// produce WatchData
+	w.app.EvmKeeper.Watcher.Commit()
+	time.Sleep(time.Second * 2)
+	db := watcher.InstanceOfWatchStore().GetDB()
+	pWd := getDBKV(t, db)
+
+	// get WatchData
+	wd, err := state.GetWD()
+	require.Nil(t, err)
+	require.NotEmpty(t, wd)
+
+	db2 := watcher.InstanceOfWatchStore().GetDB()
+	fmt.Println(db2.Stats())
+
+	// use WatchData
+	state.UseWD(wd)
+	time.Sleep(time.Second * 5)
+	cWd := getDBKV(t, db2)
+
+	// compare db_kv of producer and consumer
+	require.Equal(t, pWd, cWd)
+	pHash := calcHash(pWd)
+	cHash := calcHash(cWd)
+	require.NotEmpty(t, pHash)
+	require.NotEmpty(t, cHash)
+	require.Equal(t, pHash, cHash)
+}
 
 func TestHandleMsgEthereumTx(t *testing.T) {
-	w := SetupTest()
+	w := setupTest()
 	privkey, err := ethsecp256k1.GenerateKey()
 	require.NoError(t, err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
@@ -87,7 +134,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.msg, func(t *testing.T) {
-			w = SetupTest() // reset
+			w = setupTest() // reset
 			//nolint
 			tc.malleate()
 			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
@@ -104,38 +151,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 				require.Nil(t, res)
 			}
 
-			// produce WatchData
-			w.app.EvmKeeper.Watcher.Commit()
-			time.Sleep(time.Second * 2)
-			db := watcher.InstanceOfWatchStore().GetDB()
-			fmt.Println(db.Stats())
-			it, _ := db.Iterator(nil, nil)
-			for ;it.Valid(); {
-				fmt.Println(string(it.Key()), string(it.Value()))
-				db.Delete(it.Key())
-				it.Next()
-			}
-
-			// get WatchData
-			wd, err := state.GetWD()
-			require.Nil(t, err)
-			fmt.Println(string(wd))
-
-			// use WatchData
-			//db2 := dbm.NewMemDB()
-			//w.app.EvmKeeper.Watcher.SetStore(db2)
-			w = SetupTest()
-			db2 := watcher.InstanceOfWatchStore().GetDB()
-			fmt.Println(db2.Stats())
-			state.UseWD(wd)
-			time.Sleep(time.Second * 2)
-			fmt.Println(db2.Stats())
-			it, _ = db2.Iterator(nil, nil)
-			for ;it.Valid(); {
-				fmt.Println(string(it.Key()), string(it.Value()))
-				it.Next()
-			}
-
+			testWatchData(t, w)
 		})
 	}
 }
@@ -146,7 +162,7 @@ func TestMsgEthermint(t *testing.T) {
 		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
-	w := SetupTest()
+	w := setupTest()
 	testCases := []struct {
 		msg      string
 		malleate func()
@@ -164,7 +180,7 @@ func TestMsgEthermint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			w = SetupTest() // reset
+			w = setupTest() // reset
 			//nolint
 			tc.malleate()
 			w.ctx = w.ctx.WithIsCheckTx(true)
@@ -180,38 +196,6 @@ func TestMsgEthermint(t *testing.T) {
 			} else {
 				require.Error(t, err)
 				require.Nil(t, res)
-			}
-
-			// produce WatchData
-			w.app.EvmKeeper.Watcher.Commit()
-			time.Sleep(time.Second * 2)
-			db := watcher.InstanceOfWatchStore().GetDB()
-			fmt.Println(db.Stats())
-			it, _ := db.Iterator(nil, nil)
-			for ;it.Valid(); {
-				fmt.Println(string(it.Key()), string(it.Value()))
-				db.Delete(it.Key())
-				it.Next()
-			}
-
-			// get WatchData
-			wd, err := state.GetWD()
-			require.Nil(t, err)
-			fmt.Println(string(wd))
-
-			// use WatchData
-			//db2 := dbm.NewMemDB()
-			//w.app.EvmKeeper.Watcher.SetStore(db2)
-			w = SetupTest()
-			db2 := watcher.InstanceOfWatchStore().GetDB()
-			fmt.Println(db2.Stats())
-			state.UseWD(wd)
-			time.Sleep(time.Second * 2)
-			fmt.Println(db2.Stats())
-			it, _ = db2.Iterator(nil, nil)
-			for ;it.Valid(); {
-				fmt.Println(string(it.Key()), string(it.Value()))
-				it.Next()
 			}
 		})
 	}
