@@ -229,7 +229,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	upload := func() bool {
 		return dc.upload(deltas, txnum)
 	}
-	dc.deltaBroker.ResetLatestHeightAfterUpload(deltas.Height, upload)
+	dc.deltaBroker.ResetMostRecentHeightAfterUpload(deltas.Height, upload)
 }
 
 func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64) bool {
@@ -292,7 +292,9 @@ type downloadInfo struct {
 	lastTarget int64
 	firstErrorMap map[int64]error
 	lastErrorMap  map[int64]error
-	retry map[int64]int64
+	mrhWhen1stErrHappens map[int64]int64
+	mrhWhenlastErrHappens map[int64]int64
+	retried map[int64]int64
 	logger log.Logger
 }
 
@@ -303,7 +305,9 @@ func (dc *DeltaContext) downloadRoutine() {
 	info := &downloadInfo{
 		firstErrorMap : make(map[int64]error),
 		lastErrorMap : make(map[int64]error),
-		retry : make(map[int64]int64),
+		mrhWhen1stErrHappens : make(map[int64]int64),
+		mrhWhenlastErrHappens : make(map[int64]int64),
+		retried : make(map[int64]int64),
 		logger: dc.logger,
 	}
 
@@ -342,71 +346,54 @@ func (dc *DeltaContext) downloadRoutine() {
 			continue
 		}
 
-		err, delta, latestHeight := dc.download(height)
-
-		info.onFinished(height, err, latestHeight)
-
+		err, delta, mrh := dc.download(height)
+		info.statistics(height, err, mrh)
 		if err == nil {
-			dc.dataMap.insert(height, delta, latestHeight)
+			dc.dataMap.insert(height, delta, mrh)
 			height++
 		}
-
-		//if lastTarget != height {
-		//	if lastError, ok := errMap[lastTarget]; ok {
-		//		delete(errMap, lastTarget)
-		//		dc.logger.Error("Failed to download",
-		//			"target-height", lastTarget,
-		//			"latestHeight", latestHeight,
-		//			"err", lastError,
-		//			"errMap-size", len(errMap),
-		//			"errMap", errMap,
-		//		)
-		//	}
-		//	lastTarget = height
-		//}
-
 	}
 }
 
 func (info *downloadInfo) clear(height int64) {
 	delete(info.firstErrorMap, height)
 	delete(info.lastErrorMap, height)
-	delete(info.retry, height)
+	delete(info.retried, height)
+	delete(info.mrhWhenlastErrHappens, height)
+	delete(info.mrhWhen1stErrHappens, height)
 }
 
-func (info *downloadInfo) onFinished(height int64, err error, latestHeight int64)  {
+func (info *downloadInfo) dump(msg string, target int64) {
+	info.logger.Info(msg,
+		"target-height", target,
+		"retried", info.retried[target],
+		"1st-err", info.firstErrorMap[target],
+		"mrh-when-1st-err", info.mrhWhen1stErrHappens[target],
+		"last-err", info.lastErrorMap[target],
+		"mrh-when-last-err", info.mrhWhenlastErrHappens[target],
+	)
+	info.clear(target)
+}
+
+func (info *downloadInfo) statistics(height int64, err error, mrh int64)  {
 	if err != nil {
 		if _, ok := info.firstErrorMap[height]; !ok {
 			info.firstErrorMap[height] = err
+			info.mrhWhen1stErrHappens[height] = mrh
 		}
 		info.lastErrorMap[height] = err
-		info.retry[height]++
+		info.retried[height]++
+		info.mrhWhenlastErrHappens[height] = mrh
 	} else {
-		info.logger.Info("Download info",
-			"target-height", height,
-			"latestHeight", latestHeight,
-			"retry", info.retry[height],
-			"1st-err", info.firstErrorMap[height],
-			"last-err", info.lastErrorMap[height],
-		)
-		info.clear(height)
+		info.dump("Download info", height)
 	}
 
 	if info.lastTarget != height {
-		if retry, ok := info.retry[info.lastTarget]; ok {
-			info.logger.Info("Failed to download",
-				"target-height", info.lastTarget,
-				"latestHeight", latestHeight,
-				"retry", retry,
-				"1st-err", info.firstErrorMap[info.lastTarget],
-				"last-err", info.lastErrorMap[info.lastTarget],
-			)
-			info.clear(info.lastTarget)
+		if _, ok := info.retried[info.lastTarget]; ok {
+			info.dump("Failed to download", info.lastTarget)
 		}
 		info.lastTarget = height
 	}
-
-
 }
 
 func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){

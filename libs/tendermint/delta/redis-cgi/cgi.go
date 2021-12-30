@@ -15,18 +15,18 @@ const (
 )
 
 var (
-	latestHeightKey string
+	mostRecentHeightKey string
 	deltaLockerKey  string
 )
 
 var once sync.Once
 func init()  {
 	const (
-		latestHeight = "LatestHeight"
+		mostRecentHeight = "MostRecentHeight"
 		deltaLocker  = "DeltaLocker"
 	)
 	once.Do(func() {
-		latestHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, latestHeight)
+		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, mostRecentHeight)
 		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, deltaLocker)
 	})
 }
@@ -63,15 +63,15 @@ func (r *RedisClient) ReleaseLocker() {
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) ResetLatestHeightAfterUpload(height int64, upload func() bool) bool {
+func (r *RedisClient) ResetMostRecentHeightAfterUpload(height int64, upload func() bool) bool {
 	var res bool
-	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
+	h, err := r.rdb.Get(context.Background(), mostRecentHeightKey).Int64()
 	if err != nil && err != redis.Nil {
 		return res
 	}
 
 	if h < height && upload() {
-		err = r.rdb.Set(context.Background(), latestHeightKey, height, 0).Err()
+		err = r.rdb.Set(context.Background(), mostRecentHeightKey, height, 0).Err()
 		if err == nil {
 			r.logger.Info("Reset LatestHeightKey", "height", height)
 			res = true
@@ -110,21 +110,21 @@ func (r *RedisClient) GetBlock(height int64) ([]byte, error) {
 }
 
 func (r *RedisClient) GetDeltas(height int64) ([]byte, error, int64) {
-	latestHeight := r.getLatestHeight()
+	mrh := r.getMostRecentHeight()
 	bytes, err := r.rdb.Get(context.Background(), genDeltaKey(height)).Bytes()
 	if err == redis.Nil {
-		return nil, fmt.Errorf("get empty delta"), latestHeight
+		return nil, fmt.Errorf("get empty delta"), mrh
 	}
-	return bytes, err, latestHeight
+	return bytes, err, mrh
 }
 
-func (r *RedisClient) getLatestHeight() (latestHeight int64) {
-	latestHeight = -1
-	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
+func (r *RedisClient) getMostRecentHeight() (mrh int64) {
+	mrh = -1
+	h, err := r.rdb.Get(context.Background(), mostRecentHeightKey).Int64()
 	if err == nil {
-		latestHeight = h
+		mrh = h
 	} else if err == redis.Nil {
-		latestHeight = 0
+		mrh = 0
 	}
 	return
 }
