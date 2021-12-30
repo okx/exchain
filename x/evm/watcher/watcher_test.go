@@ -10,7 +10,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -80,7 +79,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	pWd := getDBKV(t, db)
 
 	// get WatchData
-	wd, err := state.GetWD()
+	wd, err := w.app.EvmKeeper.Watcher.Gwd()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 
@@ -88,7 +87,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	fmt.Println(db2.Stats())
 
 	// use WatchData
-	state.UseWD(wd)
+	w.app.EvmKeeper.Watcher.Uwd(wd)
 	time.Sleep(time.Second * 5)
 	cWd := getDBKV(t, db2)
 
@@ -197,6 +196,8 @@ func TestMsgEthermint(t *testing.T) {
 				require.Error(t, err)
 				require.Nil(t, res)
 			}
+
+			testWatchData(t, w)
 		})
 	}
 }

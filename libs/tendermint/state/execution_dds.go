@@ -38,16 +38,11 @@ func (m identityMapType) increase(from string, num int64) {
 var (
 	getWatchDataFunc func() ([]byte, error)
 	applyWatchDataFunc func(data []byte)
-
-	GetWD func() ([]byte, error)
-	UseWD func([]byte)
 )
 
 func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
 	getWatchDataFunc = g
 	applyWatchDataFunc = u
-	GetWD = g
-	UseWD = u
 }
 
 type DeltaContext struct {
