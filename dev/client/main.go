@@ -30,34 +30,38 @@ func main() {
 		"00dcf944648491b3a822d40bf212f359f699ed0dd5ce5a60f1da5e1142855949",
 	}
 
-	var testFunc func(privKey string, blockTime time.Duration)
+	var testFunc func(privKey string, blockTime time.Duration) error
 	switch TestType(*testTypeParam) {
 	case Oip20Test:
 		testFunc = standardOip20Test
 		break
 	default:
-		testFunc = writeRoutine
+		testFunc = counterTest
 	}
-
+	
 	for _, key := range privKey {
-		go testFunc(key, time.Millisecond*50)
+		test := func() {
+			testFunc(key, time.Millisecond*50)
+		}
+		go writeRoutine(test)
 	}
 	<-make(chan struct{})
 }
 
-func writeRoutine(privKey string, blockTime time.Duration) {
+func writeRoutine(test func()) {
+	for {
+		test()
+		log.Printf("recover writeRoutine...")
+		sleep(3)
+	}
+}
+
+func counterTest(privKey string, blockTime time.Duration) error {
 	var (
 		privateKey    *ecdsa.PrivateKey
 		senderAddress common.Address
 	)
 
-	defer func() {
-		if r := recover(); r != nil {
-			sleep(3)
-			log.Printf("recover writeRoutine")
-			go writeRoutine(privKey, blockTime)
-		}
-	}()
 	privateKey, senderAddress = initKey(privKey)
 	counterContract := newContract("counter", "", abiFile, binFile)
 
@@ -72,19 +76,11 @@ func writeRoutine(privKey string, blockTime time.Duration) {
 		err = writeContract(client, counterContract, senderAddress, privateKey, nil, blockTime, "subtract")
 		uint256Output(client, counterContract, "getCounter")
 	}
-	panic(err)
+	return err
 }
 
-func standardOip20Test(privKey string, blockTime time.Duration) {
+func standardOip20Test(privKey string, blockTime time.Duration) error {
 	privateKey, sender := initKey(privKey)
-
-	defer func() {
-		if r := recover(); r != nil {
-			sleep(3)
-			log.Printf("recover standardOip20Test")
-			go standardOip20Test(privKey, blockTime)
-		}
-	}()
 
 	client, err := ethclient.Dial(RpcUrl)
 	if err != nil {
@@ -113,5 +109,6 @@ func standardOip20Test(privKey string, blockTime time.Duration) {
 		)
 		time.Sleep(blockTime)
 	}
-	panic(err)
+
+	return err
 }
