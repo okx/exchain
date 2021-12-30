@@ -616,7 +616,7 @@ func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(
 
 // remotePrompt reveive password from channel.
 // when channel never recieve password, please use local input.
-func remotePrompt(ch <-chan string) (string, error) {
+func remotePrompt(ch <-chan string, keyhashStored bool, keyhash []byte) (string, error) {
 	var passwd string
 
 	select {
@@ -625,8 +625,15 @@ func remotePrompt(ch <-chan string) (string, error) {
 		return "", nil
 	}
 
+	//too short
 	if len(passwd) < input.MinPassLength {
 		return "", fmt.Errorf("password must be at least %d characters", input.MinPassLength)
+	}
+	// newkey passwd must be same as the last .
+	if keyhashStored {
+		if err := bcrypt.CompareHashAndPassword(keyhash, []byte(passwd)); err != nil {
+			return "", fmt.Errorf("incorrect passphrase")
+		}
 	}
 	return passwd, nil
 }
@@ -641,31 +648,31 @@ func localPrompt(buffer io.Reader, keyhashStored bool, keyhash []byte) (string, 
 		}
 
 		buf := bufio.NewReader(buffer)
-		pass, err := input.GetPassword("Enter keyring passphrase:", buf)
+		passwd, err := input.GetPassword("Enter keyring passphrase:", buf)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			return "", err
+			continue
 		}
 
 		if keyhashStored {
-			if err := bcrypt.CompareHashAndPassword(keyhash, []byte(pass)); err != nil {
+			if err := bcrypt.CompareHashAndPassword(keyhash, []byte(passwd)); err != nil {
 				fmt.Fprintln(os.Stderr, "incorrect passphrase")
 				continue
 			}
-			return pass, nil
+			return passwd, nil
 		}
 
 		reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			return "", err
+			continue
 		}
 
-		if pass != reEnteredPass {
+		if passwd != reEnteredPass {
 			fmt.Fprintln(os.Stderr, "passphrase do not match")
-			return "", fmt.Errorf("passphrase do not match")
+			continue
 		}
-		return pass, nil
+		return passwd, nil
 	}
 
 }
