@@ -22,7 +22,7 @@ const (
 )
 
 func main() {
-	testTypeParam := flag.String("type", "counter", "choose which test to run")
+	testTypeParam := flag.String("type", "oip20", "choose which test to run")
 	privKey := []string{
 		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
 		"171786c73f805d257ceb07206d851eea30b3b41a2170ae55e1225e0ad516ef42",
@@ -39,18 +39,18 @@ func main() {
 		testFunc = counterTest
 	}
 	
-	for _, key := range privKey {
-		test := func() {
+	for _, k := range privKey {
+		test := func(key string) {
 			testFunc(key, time.Millisecond*50)
 		}
-		go writeRoutine(test)
+		go writeRoutine(test, k)
 	}
 	<-make(chan struct{})
 }
 
-func writeRoutine(test func()) {
+func writeRoutine(test func(string), key string) {
 	for {
-		test()
+		test(key)
 		log.Printf("recover writeRoutine...")
 		sleep(3)
 	}
