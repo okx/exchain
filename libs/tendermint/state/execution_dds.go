@@ -156,7 +156,7 @@ func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	abciResponses *ABCIResponses, res []byte, isFastSync bool) {
 
-	// rpc
+	// delta consumer
 	if dc.downloadDelta {
 
 		applied := false
@@ -178,12 +178,14 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		}
 	}
 
-	// validator
-	if dc.uploadDelta && !isFastSync {
-
-		trace.GetElapsedInfo().AddInfo(trace.Delta,
-			fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
-		dc.uploadData(height, abciResponses, res)
+	// delta producer
+	if dc.uploadDelta {
+		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
+		if !isFastSync {
+			dc.uploadData(height, abciResponses, res)
+		} else {
+			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
+		}
 	}
 }
 
@@ -289,8 +291,8 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	if !dc.downloadDelta {
 		return
 	}
-	var latestHeight int64
-	dds, latestHeight = dc.dataMap.fetch(height)
+	var mrh int64
+	dds, mrh = dc.dataMap.fetch(height)
 
 	atomic.StoreInt64(&dc.lastFetchedHeight, height)
 
@@ -299,14 +301,14 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 		if !dds.Validate(height) {
 			dc.logger.Error("Prepared an invalid delta!!!",
 				"expected-height", height,
-				"latestHeight", latestHeight,
+				"mrh", mrh,
 				"delta", dds)
 			return nil
 		}
 		succeed = true
 	}
 	dc.logger.Info("Prepare delta", "expected-height", height,
-		"latestHeight", latestHeight,
+		"mrh", mrh,
 		"succeed", succeed, "delta", dds)
 	return
 }

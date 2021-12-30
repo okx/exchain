@@ -10,7 +10,7 @@ type deltaMap struct {
 	mtx          sync.Mutex
 	cacheMap     map[int64]*list.Element
 	cacheList   *list.List
-	latestHeight int64
+	mrh          int64
 }
 
 func newDataMap() *deltaMap {
@@ -25,7 +25,7 @@ type payload struct {
 	d *types.Deltas
 }
 
-func (m *deltaMap) insert(height int64, data *types.Deltas, latestHeight int64) {
+func (m *deltaMap) insert(height int64, data *types.Deltas, mrh int64) {
 
 	if data == nil {
 		return
@@ -35,7 +35,7 @@ func (m *deltaMap) insert(height int64, data *types.Deltas, latestHeight int64) 
 	defer m.mtx.Unlock()
 	e := m.cacheList.PushBack(&payload{height, data})
 	m.cacheMap[height] = e
-	m.latestHeight = latestHeight
+	m.mrh = mrh
 }
 
 func (m *deltaMap) fetch(height int64) (*types.Deltas, int64) {
@@ -46,10 +46,10 @@ func (m *deltaMap) fetch(height int64) (*types.Deltas, int64) {
 	delete(m.cacheMap, height)
 	if popped != nil {
 		m.cacheList.Remove(popped)
-		return popped.Value.(*payload).d, m.latestHeight
+		return popped.Value.(*payload).d, m.mrh
 	}
 
-	return nil, m.latestHeight
+	return nil, m.mrh
 }
 
 // remove all elements no higher than target
