@@ -318,6 +318,8 @@ func deployStandardOIP20Contract(client *ethclient.Client, auth *bind.TransactOp
 	name string, decimals uint8, totalSupply *big.Int,
 	ownerAddress common.Address, blockTime time.Duration) (contractAddress common.Address,
 	oip20 *Oip20, err error) {
+	fmt.Printf("%s deploying OIP20 contract\n", ownerAddress)
+
 	contractAddress, _, oip20, err = DeployOip20(auth, client, symbol, name, decimals, totalSupply, ownerAddress, ownerAddress)
 	fmt.Printf("Deploy standard OIP20 contract: <%s>\n", contractAddress)
 	time.Sleep(blockTime)
