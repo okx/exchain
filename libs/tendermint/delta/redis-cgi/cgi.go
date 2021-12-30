@@ -63,23 +63,25 @@ func (r *RedisClient) ReleaseLocker() {
 }
 
 // return bool: if change the value of latest_height, need to upload
-func (r *RedisClient) ResetMostRecentHeightAfterUpload(height int64, upload func() bool) bool {
+func (r *RedisClient) ResetMostRecentHeightAfterUpload(targetHeight int64, upload func(int64) bool) (bool, int64, error) {
 	var res bool
-	h, err := r.rdb.Get(context.Background(), mostRecentHeightKey).Int64()
+	mrh, err := r.rdb.Get(context.Background(), mostRecentHeightKey).Int64()
 	if err != nil && err != redis.Nil {
-		return res
+		return res, mrh, err
 	}
 
-	if h < height && upload() {
-		err = r.rdb.Set(context.Background(), mostRecentHeightKey, height, 0).Err()
+	if mrh < targetHeight && upload(mrh) {
+		err = r.rdb.Set(context.Background(), mostRecentHeightKey, targetHeight, 0).Err()
 		if err == nil {
-			r.logger.Info("Reset LatestHeightKey", "height", height)
 			res = true
+			r.logger.Info("Reset most recent height", "new-mrh", targetHeight, "old-mrh", mrh, )
 		} else {
-			r.logger.Error("Failed to reset LatestHeightKey","err", err)
+			r.logger.Error("Failed to reset most recent height",
+				"target-mrh", targetHeight,
+				"existing-mrh", mrh, "err", err)
 		}
 	}
-	return res
+	return res, mrh, err
 }
 
 func (r *RedisClient) SetBlock(height int64, bytes []byte) error {

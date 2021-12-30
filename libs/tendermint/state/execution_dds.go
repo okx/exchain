@@ -224,42 +224,55 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 		return
 	}
 	dc.missed += txnum
-	dc.logger.Info("Upload delta started:", "target-height", deltas.Height, "gid", gorid.GoRId)
 	locked := dc.deltaBroker.GetLocker()
-	dc.logger.Info("Upload delta:", "locked", locked, "gid", gorid.GoRId)
+	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height,
+		"locked", locked,
+		"gid", gorid.GoRId)
+
 	if !locked {
 		return
 	}
 
 	defer dc.deltaBroker.ReleaseLocker()
 
-	upload := func() bool {
-		return dc.upload(deltas, txnum)
+	upload := func(mrh int64) bool {
+		return dc.upload(deltas, txnum, mrh)
 	}
-	dc.deltaBroker.ResetMostRecentHeightAfterUpload(deltas.Height, upload)
+	reset, mrh, err := dc.deltaBroker.ResetMostRecentHeightAfterUpload(deltas.Height, upload)
+	if !reset {
+		dc.logger.Info("Failed to reset mrh:",
+			"target-height", deltas.Height,
+			"existing-mrh", mrh,
+			"err", err)
+	}
 }
 
-func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64) bool {
+func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) bool {
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
 	if err != nil {
-		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		dc.logger.Error("Failed to upload delta",
+			"target-height", deltas.Height,
+			"mrh", mrh,
+			"error", err)
 		return false
 	}
 
 	t2 := time.Now()
 	// set into dds
 	if err = dc.deltaBroker.SetDeltas(deltas.Height, deltaBytes); err != nil {
-		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height, "error", err)
+		dc.logger.Error("Failed to upload delta", "target-height", deltas.Height,
+			"mrh", mrh, "error", err)
 		return false
 
 	}
 	t3 := time.Now()
 	dc.missed -= txnum
 	dc.hit += txnum
-	dc.logger.Info("Upload delta finished",
+	dc.logger.Info("Uploaded delta successfully",
 		"target-height", deltas.Height,
+		"mrh", mrh,
 		"marshal", deltas.MarshalOrUnmarshalElapsed(),
 		"calcHash", deltas.HashElapsed(),
 		"compress", deltas.CompressOrUncompressElapsed(),
