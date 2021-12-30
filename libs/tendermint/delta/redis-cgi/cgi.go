@@ -94,7 +94,7 @@ func (r *RedisClient) SetDeltas(height int64, bytes []byte) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("delta is empty")
 	}
-	req := r.rdb.SetNX(context.Background(), setDeltaKey(height), bytes, r.ttl)
+	req := r.rdb.SetNX(context.Background(), genDeltaKey(height), bytes, r.ttl)
 	return req.Err()
 }
 
@@ -109,21 +109,30 @@ func (r *RedisClient) GetBlock(height int64) ([]byte, error) {
 	return bytes, nil
 }
 
-func (r *RedisClient) GetDeltas(height int64) ([]byte, error) {
-	bytes, err := r.rdb.Get(context.Background(), setDeltaKey(height)).Bytes()
+func (r *RedisClient) GetDeltas(height int64) ([]byte, error, int64) {
+	latestHeight := r.getLatestHeight()
+	bytes, err := r.rdb.Get(context.Background(), genDeltaKey(height)).Bytes()
 	if err == redis.Nil {
-		return nil, fmt.Errorf("get empty delta")
+		return nil, fmt.Errorf("get empty delta"), latestHeight
 	}
-	if err != nil {
-		return nil, err
+	return bytes, err, latestHeight
+}
+
+func (r *RedisClient) getLatestHeight() (latestHeight int64) {
+	latestHeight = -1
+	h, err := r.rdb.Get(context.Background(), latestHeightKey).Int64()
+	if err == nil {
+		latestHeight = h
+	} else if err == redis.Nil {
+		latestHeight = 0
 	}
-	return bytes, nil
+	return
 }
 
 func setBlockKey(height int64) string {
 	return fmt.Sprintf("BH:%d", height)
 }
 
-func setDeltaKey(height int64) string {
+func genDeltaKey(height int64) string {
 	return fmt.Sprintf("DH-%d:%d", types.DeltaVersion, height)
 }

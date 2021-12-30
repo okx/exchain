@@ -269,23 +269,45 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	if !dc.downloadDelta {
 		return
 	}
-	dds = dc.dataMap.fetch(height)
+	var latestHeight int64
+	dds, latestHeight = dc.dataMap.fetch(height)
 	var succeed bool
 	if dds != nil {
 		if !dds.Validate(height) {
-			dc.logger.Error("Prepared an invalid delta!!!", "expected-height", height, "delta", dds)
+			dc.logger.Error("Prepared an invalid delta!!!",
+				"expected-height", height,
+				"latestHeight", latestHeight,
+				"delta", dds)
 			return nil
 		}
 		succeed = true
 	}
-	dc.logger.Info("Prepare delta", "expected-height", height, "succeed", succeed, "delta", dds)
+	dc.logger.Info("Prepare delta", "expected-height", height,
+		"latestHeight", latestHeight,
+		"succeed", succeed, "delta", dds)
 	return
+}
+
+type downloadInfo struct {
+	lastTarget int64
+	firstErrorMap map[int64]error
+	lastErrorMap  map[int64]error
+	retry map[int64]int64
+	logger log.Logger
 }
 
 func (dc *DeltaContext) downloadRoutine() {
 	var height int64
 	var lastRemoved int64
 	var buffer int64 = 5
+	info := &downloadInfo{
+		firstErrorMap : make(map[int64]error),
+		lastErrorMap : make(map[int64]error),
+		retry : make(map[int64]int64),
+		logger: dc.logger,
+	}
+
+
 	ticker := time.NewTicker(50 * time.Millisecond)
 
 	for range ticker.C {
@@ -320,22 +342,80 @@ func (dc *DeltaContext) downloadRoutine() {
 			continue
 		}
 
-		err, delta := dc.download(height)
+		err, delta, latestHeight := dc.download(height)
+
+		info.onFinished(height, err, latestHeight)
+
 		if err == nil {
-			dc.dataMap.insert(height, delta)
+			dc.dataMap.insert(height, delta, latestHeight)
 			height++
 		}
+
+		//if lastTarget != height {
+		//	if lastError, ok := errMap[lastTarget]; ok {
+		//		delete(errMap, lastTarget)
+		//		dc.logger.Error("Failed to download",
+		//			"target-height", lastTarget,
+		//			"latestHeight", latestHeight,
+		//			"err", lastError,
+		//			"errMap-size", len(errMap),
+		//			"errMap", errMap,
+		//		)
+		//	}
+		//	lastTarget = height
+		//}
+
 	}
 }
 
+func (info *downloadInfo) clear(height int64) {
+	delete(info.firstErrorMap, height)
+	delete(info.lastErrorMap, height)
+	delete(info.retry, height)
+}
 
-func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
+func (info *downloadInfo) onFinished(height int64, err error, latestHeight int64)  {
+	if err != nil {
+		if _, ok := info.firstErrorMap[height]; !ok {
+			info.firstErrorMap[height] = err
+		}
+		info.lastErrorMap[height] = err
+		info.retry[height]++
+	} else {
+		info.logger.Info("Download info",
+			"target-height", height,
+			"latestHeight", latestHeight,
+			"retry", info.retry[height],
+			"1st-err", info.firstErrorMap[height],
+			"last-err", info.lastErrorMap[height],
+		)
+		info.clear(height)
+	}
+
+	if info.lastTarget != height {
+		if retry, ok := info.retry[info.lastTarget]; ok {
+			info.logger.Info("Failed to download",
+				"target-height", info.lastTarget,
+				"latestHeight", latestHeight,
+				"retry", retry,
+				"1st-err", info.firstErrorMap[info.lastTarget],
+				"last-err", info.lastErrorMap[info.lastTarget],
+			)
+			info.clear(info.lastTarget)
+		}
+		info.lastTarget = height
+	}
+
+
+}
+
+func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
 
 	t0 := time.Now()
-	deltaBytes, err := dc.deltaBroker.GetDeltas(height)
+	deltaBytes, err, latestHeight := dc.deltaBroker.GetDeltas(height)
 	if err != nil {
-		return err, nil
+		return err, nil, latestHeight
 	}
 	t1 := time.Now()
 
@@ -345,7 +425,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
-		return err, nil
+		return err, nil, latestHeight
 	}
 
 	cacheMap, cacheList := dc.dataMap.info()
@@ -360,5 +440,5 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas){
 		"delta", delta,
 		"gid", gorid.GoRId)
 
-	return nil, delta
+	return nil, delta, latestHeight
 }
