@@ -5,15 +5,15 @@ import (
 )
 
 const (
-	COSMOS_CALL_TYPE = "cosmos"
-	COSMOS_DEPTH     = 0
+	CosmosCallType = "cosmos"
+	CosmosDepth    = 0
 
-	SEND_CALL_NAME       = "send"
-	DELEGATE_CALL_NAME   = "delegate"
-	MULTI_CALL_NAME      = "multi-send"
-	UNDELEGATE_CALL_NAME = "undelegate"
-	EVM_CALL_NAME        = "call"
-	EVM_CREATE_NAME      = "create"
+	SendCallName       = "send"
+	DelegateCallName   = "delegate"
+	MultiCallName      = "multi-send"
+	UndelegateCallName = "undelegate"
+	EvmCallName        = "call"
+	EvmCreateName      = "create"
 )
 
 var BIG0 = big.NewInt(0)
