@@ -583,7 +583,7 @@ func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(
 		}
 
 		// try to read data from remote buffer first
-		passwd, err = remotePrompt(passwdCh)
+		passwd, err = remotePrompt(passwdCh, keyhashStored, keyhash)
 		if err != nil {
 			return "", err
 		}
