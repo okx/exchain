@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v1.0.2
+Version=v1.0.3
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -144,7 +144,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./dev/devtools/install-rocksdb.sh
+	@bash ./libs/rocksdb/install.sh
 .PHONY: rocksdb
 
 .PHONY: build
