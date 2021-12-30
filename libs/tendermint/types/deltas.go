@@ -1,7 +1,7 @@
 package types
 
 import (
-	"encoding/hex"
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
@@ -178,7 +178,7 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	t2 := time.Now()
 	// calc payload hash
 	payloadHash := tmhash.Sum(msg.Metadata)
-	if hex.EncodeToString(payloadHash) != hex.EncodeToString(msg.MetadataHash) {
+	if bytes.Compare(payloadHash, msg.MetadataHash) != 0 {
 		return fmt.Errorf("metadata hash is different")
 	}
 	t3 := time.Now()
