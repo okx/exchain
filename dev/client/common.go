@@ -104,7 +104,7 @@ func writeContract(client *ethclient.Client,
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		log.Printf("failed to fetch the value of nonce from network: %+v", err)
-		panic(err)
+		return err
 	}
 
 	// 0.5 get the gasPrice
@@ -205,7 +205,7 @@ func sleep(second time.Duration) {
 func readContract(client *ethclient.Client, contract *Contract, name string, args ...interface{}) []interface{} {
 	data, err := contract.abi.Pack(name, args...)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 
 	msg := ethereum.CallMsg{
@@ -215,12 +215,12 @@ func readContract(client *ethclient.Client, contract *Contract, name string, arg
 
 	output, err := client.CallContract(context.Background(), msg, nil)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 
 	ret, err := contract.abi.Unpack(name, output)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	return ret
 }
