@@ -15,7 +15,7 @@ set -m
 
 set -x # activate debugging
 
-source exchain.profile
+source oec.profile
 PRERUN=false
 while getopts "isn:b:p:c:Smx" opt; do
   case $opt in
@@ -115,6 +115,9 @@ run() {
   fi
 
   exchaind add-genesis-account 0xbbE4733d85bc2b90682147779DA49caB38C0aA1F 900000000okt --home cache/node${index}/exchaind
+  exchaind add-genesis-account 0x4C12e733e58819A1d3520f1E7aDCc614Ca20De64 900000000okt --home cache/node${index}/exchaind
+  exchaind add-genesis-account 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 900000000okt --home cache/node${index}/exchaind
+  exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
@@ -125,7 +128,7 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 20ms \
+    --consensus.timeout_commit 600ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \

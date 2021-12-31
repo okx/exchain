@@ -4,7 +4,6 @@ import (
 	"fmt"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -81,14 +80,14 @@ func NewBlockExecutor(
 		metrics:        NopMetrics(),
 		isAsync:        viper.GetBool(FlagParalleledTx),
 		prerunCtx:      newPrerunContex(logger),
-		deltaContext:   newDeltaContext(),
+		deltaContext:   newDeltaContext(logger),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
 	automation.LoadTestCase(logger)
-	res.deltaContext.init(logger)
+	res.deltaContext.init()
 
 	return res
 }
@@ -236,10 +235,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
-	}
-
-	if blockExec.deltaContext.downloadDelta {
-		atomic.StoreInt64(&dc.lastCommitHeight, block.Height)
 	}
 
 	trc.Pin("evpool")
