@@ -27,7 +27,6 @@ const (
 )
 
 func TestWALTruncate(t *testing.T) {
-	//need to fix wal nil
 	walDir, err := ioutil.TempDir("", "wal")
 	require.NoError(t, err)
 	defer os.RemoveAll(walDir)
@@ -143,7 +142,6 @@ func TestWALWrite(t *testing.T) {
 }
 
 func TestWALSearchForEndHeight(t *testing.T) {
-	//need to fix wal nil
 	walBody, err := WALWithNBlocks(t, 6)
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +168,6 @@ func TestWALSearchForEndHeight(t *testing.T) {
 }
 
 func TestWALPeriodicSync(t *testing.T) {
-	//need to fix wal nil
 	walDir, err := ioutil.TempDir("", "wal")
 	require.NoError(t, err)
 	defer os.RemoveAll(walDir)
