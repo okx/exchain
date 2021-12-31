@@ -85,6 +85,12 @@ var (
 	// ErrPanic is only set when we recover from a panic, so we know to
 	// redact potentially sensitive system info
 	ErrPanic = Register(UndefinedCodespace, 111222, "panic")
+
+	// ErrInvalidHeight defines an error for an invalid height
+	ErrInvalidHeight = Register(RootCodespace, 26, "invalid height")
+
+	// ErrPackAny defines an error when packing a protobuf message to Any fails.
+	ErrPackAny = Register(RootCodespace, 33, "failed packing protobuf message to Any")
 )
 
 // Register returns an error instance that should be used as the base for

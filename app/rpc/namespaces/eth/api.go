@@ -1587,6 +1587,94 @@ func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
 	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
 }
 
+func (api *PublicEthereumAPI) GetTxTraceV2(hash common.Hash, config *evmtypes.TraceConfig) (interface{}, error) {
+	monitor := monitor.GetMonitor("eth_getTxTraceV2", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", hash)
+	//tx, err := api.GetTransactionByHash(hash)
+	transaction, err := api.backend.GetTxByEthHash(hash)
+	if err != nil {
+		api.logger.Debug("tx not found", "hash", hash)
+		return nil, err
+	}
+
+	// check if block number is 0
+	if transaction.Height == 0 {
+		return nil, errors.New("genesis is not traceable")
+	}
+
+	blk, err := api.backend.GetTendermintBlockByNumber(rpctypes.BlockNumber(transaction.Height))
+	if err != nil {
+		api.logger.Debug("block not found", "height", transaction.Height)
+		return nil, err
+	}
+
+	// check tx index is not out of bound
+	if uint32(len(blk.Block.Txs)) < transaction.Index {
+		api.logger.Debug("tx index out of bounds", "index", transaction.Index, "hash", hash.String(), "height", blk.Block.Height)
+		return nil, fmt.Errorf("transaction not included in block %v", blk.Block.Height)
+	}
+
+	// nolint: prealloc
+	var predecessors []*evmtypes.MsgEthereumTx
+	for _, txBz := range blk.Block.Txs[:transaction.Index] {
+		tx, err := api.clientCtx.TxConfig.TxDecoder()(txBz)
+		if err != nil {
+			api.logger.Debug("failed to decode transaction in block", "height", blk.Block.Height, "error", err.Error())
+			continue
+		}
+		msg := tx.GetMsgs()[0]
+		ethMsg, ok := msg.(*evmtypes.MsgEthereumTx)
+		if !ok {
+			continue
+		}
+
+		predecessors = append(predecessors, ethMsg)
+	}
+
+	tx, err := api.clientCtx.TxConfig.TxDecoder()(transaction.Tx)
+	if err != nil {
+		api.logger.Debug("tx not found", "hash", hash)
+		return nil, err
+	}
+
+	ethMessage, ok := tx.GetMsgs()[0].(*evmtypes.MsgEthereumTx)
+	if !ok {
+		api.logger.Debug("invalid transaction type", "type", fmt.Sprintf("%T", tx))
+		return nil, fmt.Errorf("invalid transaction type %T", tx)
+	}
+
+	traceTxRequest := evmtypes.QueryTraceTxRequest{
+		Msg:          ethMessage,
+		TxIndex:      uint64(transaction.Index),
+		Predecessors: predecessors,
+		BlockNumber:  blk.Block.Height,
+		BlockTime:    blk.Block.Time,
+		BlockHash:    common.Bytes2Hex(blk.BlockID.Hash),
+	}
+	if config != nil {
+		traceTxRequest.TraceConfig = config
+	}
+
+	// minus one to get the context of block beginning
+	contextHeight := transaction.Height - 1
+	if contextHeight < 1 {
+		// 0 is a special value in `ContextWithHeight`
+		contextHeight = 1
+	}
+
+	traceResult, err := api.queryClient.TraceTx(rpctypes.ContextWithHeight(contextHeight), &traceTxRequest)
+
+	// Response format is unknown due to custom tracer config param
+	// More information can be found here https://geth.ethereum.org/docs/dapp/tracing-filtered
+	var decodedResult interface{}
+	err = json.Unmarshal(traceResult.Data, &decodedResult)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedResult, nil
+}
+
 // DeleteTxTrace delete the trace of tx execution by txhash.
 func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
 	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()

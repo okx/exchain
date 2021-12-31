@@ -1,16 +1,18 @@
 package types
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/metadata"
 	"math"
 	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	grpctypes "github.com/okex/exchain/libs/cosmos-sdk/types/grpc"
 )
 
 // BlockNumber represents decoding hex string to block values
@@ -32,6 +34,17 @@ var ErrResourceNotFound = errors.New("resource not found")
 // NewBlockNumber creates a new BlockNumber instance.
 func NewBlockNumber(n *big.Int) BlockNumber {
 	return BlockNumber(n.Int64())
+}
+
+// ContextWithHeight wraps a context with the a gRPC block height header. If the provided height is
+// 0, it will return an empty context and the gRPC query will use the latest block height for querying.
+// Note that all metadata are processed and removed by tendermint layer, so it wont be accessible at gRPC server level.
+func ContextWithHeight(height int64) context.Context {
+	if height == 0 {
+		return context.Background()
+	}
+
+	return metadata.AppendToOutgoingContext(context.Background(), grpctypes.GRPCBlockHeightHeader, fmt.Sprintf("%d", height))
 }
 
 // UnmarshalJSON parses the given JSON fragment into a BlockNumber. It supports:

@@ -29,6 +29,7 @@ import (
 type Backend interface {
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
+	GetTendermintBlockByNumber(blockNum rpctypes.BlockNumber) (*tmrpctypes.ResultBlock, error)
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
@@ -106,6 +107,47 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 		blockNumber--
 	}
 	return hexutil.Uint64(blockNumber), nil
+}
+
+// GetTendermintBlockByNumber returns a Tendermint format block by block number
+func (b *EthermintBackend) GetTendermintBlockByNumber(blockNum rpctypes.BlockNumber) (*tmrpctypes.ResultBlock, error) {
+	height := blockNum.Int64()
+	currentBlockNumber, _ := b.BlockNumber()
+
+	switch blockNum {
+	case rpctypes.LatestBlockNumber:
+		if currentBlockNumber > 0 {
+			height = int64(currentBlockNumber)
+		}
+	case rpctypes.PendingBlockNumber:
+		if currentBlockNumber > 0 {
+			height = int64(currentBlockNumber)
+		}
+	case rpctypes.EarliestBlockNumber:
+		height = 1
+	default:
+		if blockNum < 0 {
+			return nil, errors.Errorf("cannot fetch a negative block height: %d", height)
+		}
+		if height > int64(currentBlockNumber) {
+			return nil, nil
+		}
+	}
+
+	resBlock, err := b.clientCtx.Client.Block(&height)
+	if err != nil {
+		if resBlock, err = b.clientCtx.Client.Block(nil); err != nil {
+			b.logger.Debug("tendermint client failed to get latest block", "height", height, "error", err.Error())
+			return nil, nil
+		}
+	}
+
+	if resBlock.Block == nil {
+		b.logger.Debug("GetBlockByNumber block not found", "height", height)
+		return nil, nil
+	}
+
+	return resBlock, nil
 }
 
 // GetBlockByNumber returns the block identified by number.

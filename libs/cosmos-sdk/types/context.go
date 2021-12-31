@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -24,6 +25,7 @@ type Context struct {
 	ctx           context.Context
 	ms            MultiStore
 	header        abci.Header
+	headerHash    tmbytes.HexBytes
 	chainID       string
 	txBytes       []byte
 	logger        log.Logger
@@ -108,6 +110,15 @@ func (c Context) WithBlockHeader(header abci.Header) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
 	c.header = header
+	return c
+}
+
+// WithHeaderHash returns a Context with an updated tendermint block header hash.
+func (c Context) WithHeaderHash(hash []byte) Context {
+	temp := make([]byte, len(hash))
+	copy(temp, hash)
+
+	c.headerHash = temp
 	return c
 }
 
@@ -252,4 +263,25 @@ func (c Context) WithSigCache(cache SigCache) Context {
 // struct{}.
 func EmptyContext() Context {
 	return Context{}
+}
+
+// ContextKey defines a type alias for a stdlib Context key.
+type ContextKey string
+
+// SdkContextKey is the key in the context.Context which holds the sdk.Context.
+const SdkContextKey ContextKey = "sdk-context"
+
+// WrapSDKContext returns a stdlib context.Context with the provided sdk.Context's internal
+// context as a value. It is useful for passing an sdk.Context  through methods that take a
+// stdlib context.Context parameter such as generated gRPC methods. To get the original
+// sdk.Context back, call UnwrapSDKContext.
+func WrapSDKContext(ctx Context) context.Context {
+	return context.WithValue(ctx.ctx, SdkContextKey, ctx)
+}
+
+// UnwrapSDKContext retrieves a Context from a context.Context instance
+// attached with WrapSDKContext. It panics if a Context was not properly
+// attached
+func UnwrapSDKContext(ctx context.Context) Context {
+	return ctx.Value(SdkContextKey).(Context)
 }

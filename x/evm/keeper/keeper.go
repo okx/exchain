@@ -46,6 +46,11 @@ type Keeper struct {
 	LogSize uint
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
+	// Manage the initial context and cache context stack for accessing the store,
+	// emit events and log info.
+	// It is kept as a field to make is accessible by the StateDb
+	// functions. Resets on every transaction/block.
+	ctxStack ContextStack
 
 	LogsManages *LogsManager
 
@@ -150,6 +155,11 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+// WithContext clears the context stack, and set the initial context.
+func (k *Keeper) WithContext(ctx sdk.Context) {
+	k.ctxStack.Reset(ctx)
 }
 
 // ----------------------------------------------------------------------------

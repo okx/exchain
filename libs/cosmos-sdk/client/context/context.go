@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmlite "github.com/okex/exchain/libs/tendermint/lite"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
 	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -43,6 +43,7 @@ type CLIContext struct {
 	GenerateOnly  bool
 	Indent        bool
 	SkipConfirm   bool
+	TxConfig      TxConfig
 }
 
 // NewCLIContextWithInputAndFrom returns a new initialized CLIContext with parameters from the
