@@ -472,10 +472,7 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, error) {
-	if beginBlock == nil {
-		return nil, nil
-	}
+func (beginBlock ResponseBeginBlock) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKey := byte(1<<3 | 2)
 	for i := 0; i < len(beginBlock.Events); i++ {
