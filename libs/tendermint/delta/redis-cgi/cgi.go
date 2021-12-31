@@ -88,7 +88,7 @@ func (r *RedisClient) SetBlock(height int64, bytes []byte) error {
 	if len(bytes) == 0 {
 		return fmt.Errorf("block is empty")
 	}
-	req := r.rdb.SetNX(context.Background(), setBlockKey(height), bytes, r.ttl)
+	req := r.rdb.SetNX(context.Background(), genBlockKey(height), bytes, r.ttl)
 	return req.Err()
 }
 
@@ -101,7 +101,7 @@ func (r *RedisClient) SetDeltas(height int64, bytes []byte) error {
 }
 
 func (r *RedisClient) GetBlock(height int64) ([]byte, error) {
-	bytes, err := r.rdb.Get(context.Background(), setBlockKey(height)).Bytes()
+	bytes, err := r.rdb.Get(context.Background(), genBlockKey(height)).Bytes()
 	if err == redis.Nil {
 		return nil, fmt.Errorf("get empty block")
 	}
@@ -131,7 +131,7 @@ func (r *RedisClient) getMostRecentHeight() (mrh int64) {
 	return
 }
 
-func setBlockKey(height int64) string {
+func genBlockKey(height int64) string {
 	return fmt.Sprintf("BH:%d", height)
 }
 
