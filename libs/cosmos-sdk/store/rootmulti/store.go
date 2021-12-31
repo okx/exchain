@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/spf13/viper"
 
@@ -74,9 +76,13 @@ var (
 // a store is created, KVStores must be mounted and finally LoadLatestVersion or
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
+	var flatKVDB dbm.DB
+	if viper.GetBool(flatkv.FlagEnable) {
+		flatKVDB = newFlatKVDB()
+	}
 	return &Store{
 		db:           db,
-		flatKVDB:     newFlatKVDB(),
+		flatKVDB:     flatKVDB,
 		pruningOpts:  types.PruneNothing,
 		storesParams: make(map[types.StoreKey]storeParams),
 		stores:       make(map[types.StoreKey]types.CommitKVStore),
@@ -701,7 +707,10 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		var store types.CommitKVStore
 		var err error
 		prefix := "s/k:" + params.key.Name() + "/"
-		prefixDB := dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
+		var prefixDB dbm.DB
+		if rs.flatKVDB != nil {
+			prefixDB = dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
+		}
 		if params.initialVersion == 0 {
 			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {

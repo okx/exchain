@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"sync/atomic"
-	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -36,61 +36,20 @@ var (
 
 // Store Implements types.KVStore and CommitKVStore.
 type Store struct {
-	tree             Tree
-	flatKVDB         dbm.DB
-	cache            map[string][]byte
-	flatKVReadTime   int64
-	flatKVReadCount  int64
-	flatKVWriteCount int64
+	tree        Tree
+	flatKVStore *flatkv.Store
 }
 
 func (st *Store) GetFlatKVReadTime() int {
-	return int(atomic.LoadInt64(&st.flatKVReadTime))
-}
-
-func (st *Store) addFlatKVReadTime(ts int64) {
-	atomic.AddInt64(&st.flatKVReadTime, ts)
-}
-
-func (st *Store) resetFlatKVReadTime() {
-	atomic.StoreInt64(&st.flatKVReadTime, 0)
+	return st.flatKVStore.GetDBReadTime()
 }
 
 func (st *Store) GetFlatKVReadCount() int {
-	return int(atomic.LoadInt64(&st.flatKVReadCount))
-}
-
-func (st *Store) addFlatKVReadCount() {
-	atomic.AddInt64(&st.flatKVReadCount, 1)
-}
-
-func (st *Store) resetFlatKVReadCount() {
-	atomic.StoreInt64(&st.flatKVReadCount, 0)
+	return st.flatKVStore.GetDBReadCount()
 }
 
 func (st *Store) GetFlatKVWriteCount() int {
-	return int(atomic.LoadInt64(&st.flatKVWriteCount))
-}
-
-func (st *Store) addFlatKVWriteCount() {
-	atomic.AddInt64(&st.flatKVWriteCount, 1)
-}
-
-func (st *Store) resetFlatKVWriteCount() {
-	atomic.StoreInt64(&st.flatKVWriteCount, 0)
-}
-
-func (st *Store) getCache(key string) (value []byte, ok bool) {
-	value, ok = st.cache[key]
-	return
-}
-
-func (st *Store) addCache(key string, value []byte) {
-	st.cache[key] = value
-}
-
-func (st *Store) deleteCache(key string) {
-	delete(st.cache, key)
+	return st.flatKVStore.GetDBWriteCount()
 }
 
 func (st *Store) StopStore() {
@@ -129,12 +88,8 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	}
 
 	return &Store{
-		tree:             tree,
-		flatKVDB:         flatKVDB,
-		cache:            make(map[string][]byte),
-		flatKVReadTime:   0,
-		flatKVReadCount:  0,
-		flatKVWriteCount: 0,
+		tree:        tree,
+		flatKVStore: flatkv.NewStore(flatKVDB),
 	}, nil
 }
 
@@ -200,15 +155,7 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 	}
 
 	// commit to flat kv db
-	batch := st.flatKVDB.NewBatch()
-	defer batch.Close()
-	for key, value := range st.cache {
-		batch.Set([]byte(key), value)
-	}
-	batch.Write()
-	st.addFlatKVWriteCount()
-	// clear cache
-	st.cache = make(map[string][]byte)
+	st.flatKVStore.Commit()
 
 	return types.CommitID{
 		Version: version,
@@ -254,26 +201,18 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
-	strKey := string(key)
-	st.addCache(strKey, value)
+	st.flatKVStore.Set(key, value)
 }
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	strKey := string(key)
-	if cacheVal, ok := st.getCache(strKey); ok {
-		return cacheVal
-	}
-	ts := time.Now()
-	value, err := st.flatKVDB.Get(key)
-	st.addFlatKVReadTime(time.Now().Sub(ts).Nanoseconds())
-	st.addFlatKVReadCount()
-	if err == nil && len(value) != 0 {
+	value := st.flatKVStore.Get(key)
+	if value != nil {
 		return value
 	}
 	_, value = st.tree.Get(key)
 	if value != nil {
-		st.addCache(strKey, value)
+		st.flatKVStore.Set(key, value)
 	}
 
 	return value
@@ -281,24 +220,16 @@ func (st *Store) Get(key []byte) []byte {
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
-	strKey := string(key)
-	if _, ok := st.getCache(strKey); ok {
+	if st.flatKVStore.Has(key) {
 		return true
 	}
-	st.addFlatKVReadCount()
-	if ok, err := st.flatKVDB.Has(key); err == nil && ok {
-		return true
-	}
-
 	return st.tree.Has(key)
 }
 
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
-	st.flatKVDB.Delete(key)
-	st.addFlatKVWriteCount()
-	st.deleteCache(string(key))
+	st.flatKVStore.Delete(key)
 }
 
 // DeleteVersions deletes a series of versions from the MutableTree. An error
@@ -442,9 +373,7 @@ func (st *Store) GetNodeReadCount() int {
 
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
-	st.resetFlatKVReadTime()
-	st.resetFlatKVReadCount()
-	st.resetFlatKVWriteCount()
+	st.flatKVStore.ResetCount()
 }
 
 //----------------------------------------
