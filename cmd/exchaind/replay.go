@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -10,6 +9,9 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	gorid "github.com/okex/exchain/libs/goroutine"
 
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -102,6 +104,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	return cmd
 }
