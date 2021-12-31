@@ -219,6 +219,10 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
 
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
 		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
@@ -242,6 +246,10 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractMethodBlockedList)
 
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
 		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
