@@ -452,7 +452,7 @@ func TestResponseEndBlockAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := MarshalResponseEndBlockToAmino(resp)
+		actual, err := resp.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}

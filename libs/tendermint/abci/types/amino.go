@@ -554,10 +554,7 @@ func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) {
-	if endBlock == nil {
-		return nil, nil
-	}
+func (endBlock ResponseEndBlock) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
