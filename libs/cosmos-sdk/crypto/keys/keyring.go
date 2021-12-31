@@ -73,7 +73,7 @@ func NewKeyring(
 
 	switch backend {
 	case BackendTest:
-		config = lkbToKeyringConfig(appName, rootDir, nil, nil, true)
+		config = lkbToKeyringConfig(appName, rootDir, nil, passwdCh, true)
 	case BackendFile:
 		config = newFileBackendKeyringConfig(appName, rootDir, userInput, passwdCh)
 	case BackendOS:
@@ -517,6 +517,8 @@ func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, passwdCh <-chan
 			ServiceName:     appName,
 			FileDir:         filepath.Join(dir, fmt.Sprintf(testKeyringDirNameFmt, appName)),
 			FilePasswordFunc: func(_ string) (string, error) {
+				//ignore passwd,if receive passwd from remote query
+				remotePrompt(passwdCh, false, []byte{})
 				return "test", nil
 			},
 		}
