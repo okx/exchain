@@ -176,7 +176,7 @@ func (params EvidenceParams) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalValidatorParamsToAmino(params ValidatorParams) ([]byte, error) {
+func (params ValidatorParams) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [1]byte{1<<3 | 2}
@@ -538,7 +538,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 				noWrite = true
 				break
 			}
-			data, err = MarshalValidatorParamsToAmino(*params.Validator)
+			data, err = params.Validator.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}

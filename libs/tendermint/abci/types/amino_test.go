@@ -244,7 +244,7 @@ func TestValidatorParamsAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
-		actual, err := MarshalValidatorParamsToAmino(test)
+		actual, err := test.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}
