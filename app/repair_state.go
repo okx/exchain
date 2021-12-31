@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -44,14 +44,21 @@ func (app *repairApp) getLatestVersion() int64 {
 }
 
 func repairStateOnStart(ctx *server.Context) {
+	// set flag
 	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
+	orgEnableFlatKV := viper.GetBool(flatkv.FlagEnable)
 	iavl.EnableAsyncCommit = false
+	viper.Set(flatkv.FlagEnable, false)
+
+	// repair state
 	RepairState(ctx, true)
-	//set original config
+
+	//set original flag
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
+	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	rmLockByDir(dataDir)
