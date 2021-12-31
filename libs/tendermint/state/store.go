@@ -143,7 +143,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := abci.MarshalResponseDeliverTxToAmino(arz.DeliverTxs[i])
+				data, err := arz.DeliverTxs[i].MarshalToAmino()
 				if err != nil {
 					return nil, err
 				}

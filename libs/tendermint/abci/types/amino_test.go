@@ -313,7 +313,7 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := MarshalResponseDeliverTxToAmino(resp)
+		actual, err := resp.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -345,7 +345,7 @@ func BenchmarkResponseDeliverTxAminoMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, resp := range responseDeliverTxTestCases {
-				_, err := MarshalResponseDeliverTxToAmino(resp)
+				_, err := resp.MarshalToAmino()
 				if err != nil {
 					b.Fatal(err)
 				}

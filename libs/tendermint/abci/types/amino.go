@@ -290,7 +290,7 @@ func (event *Event) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
+func (tx *ResponseDeliverTx) MarshalToAmino() ([]byte, error) {
 	if tx == nil {
 		return nil, nil
 	}
