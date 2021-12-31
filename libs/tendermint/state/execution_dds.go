@@ -66,7 +66,7 @@ type DeltaContext struct {
 func newDeltaContext(l log.Logger) *DeltaContext {
 	dp := &DeltaContext{
 		dataMap: newDataMap(),
-		missed: 0.000001,
+		missed: 1,
 		downloadDelta: types.EnableDownloadDelta(),
 		uploadDelta: types.EnableUploadDelta(),
 		idMap: make(identityMapType),
