@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 
 	appconfig "github.com/okex/exchain/app/config"
@@ -21,7 +22,7 @@ import (
 func setNodeConfig(ctx *server.Context) {
 	nodeMode := viper.GetString(types.FlagNodeMode)
 
-	ctx.Logger.Info("starting node","Genesis Height",
+	ctx.Logger.Info("starting node", "Genesis Height",
 		tendermintTypes.GetStartBlockHeight(), "node mode", nodeMode)
 
 	switch types.NodeMode(nodeMode) {
@@ -86,23 +87,9 @@ func setArchiveConfig(ctx *server.Context) {
 }
 
 func logStartingFlags(logger log.Logger) {
-	flagMap := map[string]interface{}{
-		server.FlagPruning:                  viper.GetString(server.FlagPruning),
-		abcitypes.FlagDisableABCIQueryMutex: viper.GetBool(abcitypes.FlagDisableABCIQueryMutex),
-		evmtypes.FlagEnableBloomFilter:      viper.GetBool(evmtypes.FlagEnableBloomFilter),
-		watcher.FlagFastQueryLru:            viper.GetInt(watcher.FlagFastQueryLru),
-		watcher.FlagFastQuery:               viper.GetBool(watcher.FlagFastQuery),
-		iavl.FlagIavlEnableAsyncCommit:      viper.GetBool(iavl.FlagIavlEnableAsyncCommit),
-		flags.FlagMaxOpenConnections:        viper.GetInt(flags.FlagMaxOpenConnections),
-		server.FlagCORS:                     viper.GetString(server.FlagCORS),
-		appconfig.FlagEnableDynamicGp:       viper.GetBool(appconfig.FlagEnableDynamicGp),
-		store.FlagIavlCacheSize:             viper.GetInt(store.FlagIavlCacheSize),
-		mempool.FlagEnablePendingPool:       viper.GetBool(mempool.FlagEnablePendingPool),
-		appconfig.FlagMaxGasUsedPerBlock:    viper.GetInt64(appconfig.FlagMaxGasUsedPerBlock),
-	}
 	msg := "starting flags:"
-	for k, v := range flagMap {
-		msg += fmt.Sprintf("\n	%s=%v", k, v)
+	for _, key := range viper.AllKeys() {
+		msg += fmt.Sprintf("\n	%s=%v", key, viper.Get(key))
 	}
 
 	logger.Info(msg)
