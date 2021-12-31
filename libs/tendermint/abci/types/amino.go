@@ -493,7 +493,7 @@ func (beginBlock ResponseBeginBlock) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err error) {
+func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
@@ -589,7 +589,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 			if err != nil {
 				return nil, err
 			}
-			data, err := MarshalConsensusParamsToAmino(*endBlock.ConsensusParamUpdates)
+			data, err := endBlock.ConsensusParamUpdates.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}
