@@ -26,7 +26,8 @@ ___
 - [如何启动测试网节点](https://forum.okt.club/d/179)
 
 ___
-- [如何搭建私有网络](https://forum.okt.club/d/179)
+- [How to build a private chain?](https://forum.okt.club/d/274-how-to-build-a-private-chain)
+- [如何搭建私有网络](https://forum.okt.club/d/273)
 
 
 
