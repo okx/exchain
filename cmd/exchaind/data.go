@@ -23,13 +23,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/ammswap"
@@ -169,7 +169,6 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-
 func clearPruneHeightsCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear-prune-heights",
@@ -244,7 +243,7 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert oec data from goleveldb to rocksdb",
+		Short: "Convert oec data from rocksdb to badgerdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))

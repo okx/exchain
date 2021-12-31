@@ -1,3 +1,4 @@
+//go:build rocksdb
 // +build rocksdb
 
 package main
@@ -20,30 +21,30 @@ func init() {
 }
 
 func LtoR(name, fromDir, toDir string) {
-	log.Printf("convert %s(goleveldb => rocksdb) start...\n", name)
+	log.Printf("convert %s(rocksdb => badgerdb) start...\n", name)
 
-	ldb, err := dbm.NewGoLevelDB(name, fromDir)
+	rdb, err := dbm.NewRocksDB(name, fromDir)
 	if err != nil {
 		panic(err)
 	}
 
-	rdb, err := dbm.NewRocksDB(name, toDir)
+	bdb, err := dbm.NewBadgerDB(name, toDir)
 	if err != nil {
 		panic(err)
 	}
 
-	iter, err := ldb.Iterator(nil, nil)
+	iter, err := rdb.Iterator(nil, nil)
 	if err != nil {
 		panic(err)
 	}
 
 	for ; iter.Valid(); iter.Next() {
-		rdb.Set(iter.Key(), iter.Value())
+		bdb.Set(iter.Key(), iter.Value())
 	}
 	iter.Close()
-	log.Printf("convert %s(goleveldb => rocksdb) end.\n", name)
+	log.Printf("convert %s(rocksdb => badgerdb) end.\n", name)
 
-	log.Printf("compact %s start...\n", name)
-	rdb.DB().CompactRange(gorocksdb.Range{})
-	log.Printf("compact %s end.\n", name)
+	//log.Printf("compact %s start...\n", name)
+	////bdb.DB()(gorocksdb.Range{})
+	//log.Printf("compact %s end.\n", name)
 }

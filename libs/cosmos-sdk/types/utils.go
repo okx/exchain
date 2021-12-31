@@ -12,7 +12,7 @@ import (
 var (
 	// This is set at compile time. Could be cleveldb, defaults is goleveldb.
 	DBBackend = ""
-	backend   = dbm.GoLevelDBBackend
+	backend   = dbm.BadgerDBBackend
 )
 
 func init() {
