@@ -43,7 +43,7 @@ func TestEventAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(event)
 		require.NoError(t, err)
 
-		actual, err := MarshalEventToAmino(event)
+		actual, err := event.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -76,7 +76,7 @@ func BenchmarkEventAminoMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, event := range eventTestcases {
-				_, err := MarshalEventToAmino(event)
+				_, err := event.MarshalToAmino()
 				if err != nil {
 					b.Fatal(err)
 				}

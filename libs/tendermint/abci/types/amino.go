@@ -203,7 +203,7 @@ func (params ValidatorParams) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalEventToAmino(event Event) ([]byte, error) {
+func (event Event) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
@@ -377,7 +377,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := MarshalEventToAmino(tx.Events[i])
+				data, err := tx.Events[i].MarshalToAmino()
 				if err != nil {
 					return nil, err
 				}
@@ -483,7 +483,7 @@ func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, e
 		if err != nil {
 			return nil, err
 		}
-		data, err := MarshalEventToAmino(beginBlock.Events[i])
+		data, err := beginBlock.Events[i].MarshalToAmino()
 		if err != nil {
 			return nil, err
 		}
@@ -610,7 +610,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 				if err != nil {
 					return nil, err
 				}
-				data, err := MarshalEventToAmino(endBlock.Events[i])
+				data, err := endBlock.Events[i].MarshalToAmino()
 				if err != nil {
 					return nil, err
 				}
