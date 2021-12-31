@@ -36,6 +36,7 @@ const (
 	keyringDirNameFmt     = "keyring-%s"
 	testKeyringDirNameFmt = "keyring-test-%s"
 )
+const defaultPasswdInput = 1000
 
 var _ Keybase = keyringKeybase{}
 
@@ -69,7 +70,7 @@ func NewKeyring(
 	var db keyring.Keyring
 	var err error
 	var config keyring.Config
-	passwdCh := make(chan string, 1)
+	passwdCh := make(chan string, defaultPasswdInput)
 
 	switch backend {
 	case BackendTest:

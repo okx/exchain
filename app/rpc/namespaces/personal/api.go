@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/spf13/viper"
 	"os"
 	"time"
 
@@ -23,20 +24,23 @@ import (
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 )
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PrivateAccountAPI struct {
-	ethAPI   *eth.PublicEthereumAPI
-	logger   log.Logger
-	keyInfos []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	ethAPI           *eth.PublicEthereumAPI
+	logger           log.Logger
+	keyInfos         []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	isExportKeystore bool
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
 func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 	api := &PrivateAccountAPI{
-		ethAPI: ethAPI,
-		logger: log.With("module", "json-rpc", "namespace", "personal"),
+		ethAPI:           ethAPI,
+		logger:           log.With("module", "json-rpc", "namespace", "personal"),
+		isExportKeystore: viper.GetBool(server.FlagExportKeystore),
 	}
 
 	err := api.ethAPI.GetKeyringInfo()
@@ -144,13 +148,15 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 
 	// export a private key as ethereum keystore
-	ksName, err := exportKeystoreFromKeybase(api.ethAPI.ClientCtx().Keybase, name, password)
-	if err != nil {
-		return common.Address{}, err
+	if api.isExportKeystore {
+		ksName, err := exportKeystoreFromKeybase(api.ethAPI.ClientCtx().Keybase, name, password)
+		if err != nil {
+			return common.Address{}, err
+		}
+		api.logger.Info("Please backup your eth keystore file", "path", ksName)
 	}
 
 	api.logger.Info("Your new key was generated", "address", addr.String())
-	api.logger.Info("Please backup your eth keystore file", "path", ksName)
 	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil

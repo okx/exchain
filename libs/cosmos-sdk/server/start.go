@@ -59,6 +59,7 @@ const (
 	FlagGoroutineNum      = "goroutine-num"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
+	FlagExportKeystore  = "export-keystore"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -154,7 +155,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 
-
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
@@ -170,6 +170,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
+	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
@@ -285,7 +286,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	}
 
 	app.SetOption(abci.RequestSetOption{
-		Key: "CheckChainID",
+		Key:   "CheckChainID",
 		Value: tmNode.GenesisDoc().ChainID,
 	})
 
