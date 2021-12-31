@@ -46,7 +46,7 @@ func (pubkey PubKey) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalValidatorUpdateToAmino(valUpdate ValidatorUpdate) ([]byte, error) {
+func (valUpdate ValidatorUpdate) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2 << 3}
@@ -575,7 +575,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 				if err != nil {
 					return nil, err
 				}
-				data, err := MarshalValidatorUpdateToAmino(endBlock.ValidatorUpdates[i])
+				data, err := endBlock.ValidatorUpdates[i].MarshalToAmino()
 				if err != nil {
 					return nil, err
 				}
