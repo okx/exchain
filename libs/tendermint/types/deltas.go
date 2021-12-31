@@ -14,6 +14,7 @@ const (
 	FlagDownloadDDS     = "download-delta"
 	FlagUploadDDS       = "upload-delta"
 	FlagAppendPid       = "append-pid"
+	FlagBufferSize      = "delta-buffer-size"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
 
