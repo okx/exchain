@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/component/listener"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
@@ -33,13 +34,15 @@ type BlockExecutor struct {
 
 	// events
 	eventBus types.BlockEventPublisher
+	// listeners
+	listener listener.IListenerComponent
 
 	// manage the mempool lock during commit
 	// and update both with block results after commit.
 	mempool mempl.Mempool
 	evpool  EvidencePool
 
-	logger log.Logger
+	logger  log.Logger
 	metrics *Metrics
 	isAsync bool
 
@@ -51,12 +54,41 @@ type BlockExecutor struct {
 	isFastSync bool
 }
 
-
 type BlockExecutorOption func(executor *BlockExecutor)
 
 func BlockExecutorWithMetrics(metrics *Metrics) BlockExecutorOption {
 	return func(blockExec *BlockExecutor) {
 		blockExec.metrics = metrics
+	}
+}
+
+func BlockExecutorWithListener(l listener.IListenerComponent) BlockExecutorOption {
+	return func(blockExec *BlockExecutor) {
+		blockExec.listener = l
+		// FIXME ,listener cant start here ,component should have his own switch
+		// we dont want to refactor too much codes ,so ,for now ,we start listener component by option
+		blockExec.listener.Start()
+	}
+}
+
+func BlockExecutorWithDeltaProvider(ops ...DeltaContextOption) BlockExecutorOption {
+	return func(blockExec *BlockExecutor) {
+		// what: deltaContext factory
+		// why:
+		//	1. if we refactor NewBlockExecutor,we have to change lots of codes
+		//  2. it will be also write test codes easily
+		// TODO: logger!=blockExec.logger(npe)
+		blockExec.deltaContext = newDeltaContext(blockExec.logger, ops...)
+	}
+}
+
+func BlockExecutorWithPreRunProvider(ops ...PreRunContextOption) BlockExecutorOption {
+	return func(blockExec *BlockExecutor) {
+		// what: preRunCtx factory
+		// why:
+		// 	1. if we refactor NewBlockExecutor,we have to change lots of codes
+		// 	2. hard to inject to customize the #run function
+		blockExec.prerunCtx = newPrerunContex(blockExec.logger, ops...)
 	}
 }
 
@@ -71,21 +103,34 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:             db,
-		proxyApp:       proxyApp,
-		eventBus:       types.NopEventBus{},
-		mempool:        mempool,
-		evpool:         evpool,
-		logger:         logger,
-		metrics:        NopMetrics(),
-		isAsync:        viper.GetBool(FlagParalleledTx),
-		prerunCtx:      newPrerunContex(logger),
-		deltaContext:   newDeltaContext(logger),
+		db:       db,
+		proxyApp: proxyApp,
+		eventBus: types.NopEventBus{},
+		mempool:  mempool,
+		evpool:   evpool,
+		logger:   logger,
+		metrics:  NopMetrics(),
+		isAsync:  viper.GetBool(FlagParalleledTx),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
+
+	// refactor by option
+	if nil == res.prerunCtx {
+		res.prerunCtx = newPrerunContex(logger, PreRunContextWithExecutorHook(func() {
+			res.metrics.DeltaHit.Add(1)
+		}, func() {
+			res.metrics.PreRunHit.Add(1)
+		}))
+	}
+
+	// refactor by option
+	if nil == res.deltaContext {
+		res.deltaContext = newDeltaContext(logger)
+	}
+
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
@@ -299,6 +344,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 
 	return abciResponses, err
 }
+
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
 // It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
@@ -665,9 +711,9 @@ func ExecCommitBlock(
 ) ([]byte, error) {
 
 	ctx := &executionTask{
-		logger: logger,
-		block: block,
-		db: stateDB,
+		logger:   logger,
+		block:    block,
+		db:       stateDB,
 		proxyApp: appConnConsensus,
 	}
 
@@ -685,4 +731,3 @@ func ExecCommitBlock(
 	// ResponseCommit has no error or log, just data
 	return res.Data, nil
 }
-

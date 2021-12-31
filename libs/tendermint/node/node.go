@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/okex/exchain/libs/component/listener"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec // securely exposed on separate, optional port
@@ -639,6 +640,9 @@ func NewNode(config *cfg.Config,
 		return nil, err
 	}
 
+	// TODO cmd line
+	l:=listener.DefaultNewListenerComponent(logger.With("module","listener"),"listener")
+
 	// make block executor for consensus and blockchain reactors to execute blocks
 	blockExec := sm.NewBlockExecutor(
 		stateDB,
@@ -647,6 +651,8 @@ func NewNode(config *cfg.Config,
 		mempool,
 		evidencePool,
 		sm.BlockExecutorWithMetrics(smMetrics),
+		sm.BlockExecutorWithListener(l),
+		sm.BlockExecutorWithDeltaProvider(sm.DeltaContextWithListener(l)),
 	)
 
 	// Make BlockchainReactor

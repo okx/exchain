@@ -27,6 +27,9 @@ type Metrics struct {
 	AbciTime metrics.Gauge
 	// Time during commiting app state
 	CommitTime metrics.Gauge
+
+	DeltaHit metrics.Counter
+	PreRunHit metrics.Counter
 }
 
 // PrometheusMetrics returns Metrics build using Prometheus client library.
@@ -64,6 +67,18 @@ func PrometheusMetrics(namespace string, labelsAndValues ...string) *Metrics {
 			Name:      "block_commit_time",
 			Help:      "Time during commiting app state in ms.",
 		}, labels).With(labelsAndValues...),
+		DeltaHit: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace:   namespace,
+			Subsystem:   MetricsSubsystem,
+			Name:        "block_delta_hit",
+			Help:        "delta data ",
+		},labels).With(labelsAndValues...),
+		PreRunHit: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace:   namespace,
+			Subsystem:   MetricsSubsystem,
+			Name:        "block_prerun_hit",
+			Help:        "prerrun tx",
+		},labels).With(labelsAndValues...),
 	}
 }
 
@@ -75,5 +90,7 @@ func NopMetrics() *Metrics {
 		lastBlockTime:       time.Now().UnixNano(),
 		AbciTime:            discard.NewGauge(),
 		CommitTime:          discard.NewGauge(),
+		DeltaHit:            discard.NewCounter(),
+		PreRunHit:           discard.NewCounter(),
 	}
 }

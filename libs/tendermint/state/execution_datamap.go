@@ -6,18 +6,24 @@ import (
 	"sync"
 )
 
+// TODO ,pipeline
+type Hook func(deltas *types.Deltas)
+
 type deltaMap struct {
-	mtx          sync.Mutex
-	cacheMap     map[int64]*list.Element
-	cacheList   *list.List
-	mrh          int64
+	mtx       sync.Mutex
+	cacheMap  map[int64]*list.Element
+	cacheList *list.List
+	mrh       int64
+	hook      Hook
 }
 
 func newDataMap() *deltaMap {
-	return &deltaMap {
-		cacheMap: make(map[int64]*list.Element),
+	ret := &deltaMap{
+		cacheMap:  make(map[int64]*list.Element),
 		cacheList: list.New(),
 	}
+
+	return ret
 }
 
 type payload struct {
@@ -30,8 +36,8 @@ func (m *deltaMap) insert(height int64, data *types.Deltas, mrh int64) {
 	if data == nil {
 		return
 	}
-
 	m.mtx.Lock()
+	defer m.hook(data)
 	defer m.mtx.Unlock()
 	e := m.cacheList.PushBack(&payload{height, data})
 	m.cacheMap[height] = e
@@ -51,6 +57,20 @@ func (m *deltaMap) fetch(height int64) (*types.Deltas, int64) {
 
 	return nil, m.mrh
 }
+
+// FIXME ,shoudle we remove from the cache ?,why not ttlHeight
+func (m *deltaMap) acquire(height int64) (*payload, int64) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	popped := m.cacheMap[height]
+	if popped != nil {
+		return popped.Value.(*payload), m.mrh
+	}
+
+	return nil, m.mrh
+}
+
 
 // remove all elements no higher than target
 func (m *deltaMap) remove(target int64) (int, int) {
@@ -80,5 +100,3 @@ func (m *deltaMap) info() (int, int) {
 	defer m.mtx.Unlock()
 	return len(m.cacheMap), m.cacheList.Len()
 }
-
-

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/okex/exchain/libs/component/listener"
 	"io/ioutil"
 	"os"
 	"path"
@@ -53,6 +54,11 @@ var ensureTimeout = time.Millisecond * 100
 
 // timeout=3s always above 3 second so use timeout 3100 to check,can also use 3010
 var ensureRoundTimeout = 4000 * time.Millisecond
+
+var ensureListenerFinishedTimeout = 5000 * time.Millisecond
+var watchData = []byte("itsfunny")
+var height1DeltaHex = "0a580a4c7b2264656c697665725f747873223a6e756c6c2c22656e645f626c6f636b223a7b2276616c696461746f725f75706461746573223a6e756c6c7d2c22626567696e5f626c6f636b223a7b7d7d1a0869747366756e6e791220cc37c1ab35089192c74e8659e802a510a4268d44d09f56a9709573e9406475b31801200432183139322e3136382e312e3130302c32362e32362e32362e31"
+var globalListener listener.IListenerComponent
 
 func configSetup() *cfg.Config {
 	t := &testing.T{}
@@ -374,9 +380,9 @@ func subscribeToVoter(cs *State, addr []byte) <-chan tmpubsub.Message {
 //-------------------------------------------------------------------------------
 // consensus states
 
-func newState(state sm.State, pv types.PrivValidator, app abci.Application) *State {
+func newState(state sm.State, pv types.PrivValidator, app abci.Application, ops ...sm.BlockExecutorOption) *State {
 	config := cfg.ResetTestRoot("consensus_state_test")
-	return newStateWithConfig(config, state, pv, app)
+	return newStateWithConfig(config, state, pv, app, ops...)
 }
 
 func newStateWithConfig(
@@ -384,9 +390,10 @@ func newStateWithConfig(
 	state sm.State,
 	pv types.PrivValidator,
 	app abci.Application,
+	ops ...sm.BlockExecutorOption,
 ) *State {
 	blockDB := dbm.NewMemDB()
-	return newStateWithConfigAndBlockStore(thisConfig, state, pv, app, blockDB)
+	return newStateWithConfigAndBlockStore(thisConfig, state, pv, app, blockDB, ops...)
 }
 
 func newStateWithConfigAndBlockStore(
@@ -395,6 +402,7 @@ func newStateWithConfigAndBlockStore(
 	pv types.PrivValidator,
 	app abci.Application,
 	blockDB dbm.DB,
+	ops ...sm.BlockExecutorOption,
 ) *State {
 	// Get BlockStore
 	blockStore := store.NewBlockStore(blockDB)
@@ -418,7 +426,7 @@ func newStateWithConfigAndBlockStore(
 	// Make State
 	stateDB := blockDB
 	sm.SaveState(stateDB, state) //for save height 1's validators info
-	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyAppConnCon, mempool, evpool)
+	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyAppConnCon, mempool, evpool, ops...)
 	cs := NewState(thisConfig.Consensus, state, blockExec, blockStore, deltaStore, mempool, evpool)
 	cs.SetLogger(log.TestingLogger().With("module", "consensus"))
 	cs.SetPrivValidator(pv)
@@ -439,13 +447,13 @@ func loadPrivValidator(config *cfg.Config) *privval.FilePV {
 	return privValidator
 }
 
-func randState(nValidators int) (*State, []*validatorStub) {
+func randState(nValidators int, ops ...sm.BlockExecutorOption) (*State, []*validatorStub) {
 	// Get State
 	state, privVals := randGenesisState(nValidators, false, 10)
 
 	vss := make([]*validatorStub, nValidators)
 
-	cs := newState(state, privVals[0], counter.NewApplication(true))
+	cs := newState(state, privVals[0], counter.NewApplication(true), ops...)
 
 	for i := 0; i < nValidators; i++ {
 		vss[i] = newValidatorStub(privVals[i], i)
@@ -880,4 +888,74 @@ func newPersistentKVStore() abci.Application {
 
 func newPersistentKVStoreWithPath(dbDir string) abci.Application {
 	return kvstore.NewPersistentKVStoreApplication(dbDir)
+}
+
+// -----------------
+
+func ensureListenerFinished(l <-chan interface{}) interface{} {
+	select {
+	case <-time.After(ensureRoundTimeout):
+		panic("Timeout expired while waiting for listener finished")
+	case msg := <-l:
+		return msg
+	}
+}
+
+var (
+	_ listener.IListenerComponent = (*catchAbleListener)(nil)
+)
+
+type catchAbleListener struct {
+	*listener.DefaultListenerComponent
+
+	mtx               sync.RWMutex
+	registerM         map[string]int
+	callBackRegisterM map[string]func(key string, component listener.IListenerComponent)
+	notifyM           map[string]int
+	cancelM           map[string]int
+}
+
+func newCatchAbleListener() *catchAbleListener {
+	ret := &catchAbleListener{
+		DefaultListenerComponent: listener.DefaultNewListenerComponent(log.TestingLogger().With("module", "listener"), "listener"),
+		registerM:                make(map[string]int),
+		notifyM:                  make(map[string]int),
+		cancelM:                  make(map[string]int),
+		callBackRegisterM:        make(map[string]func(key string, component listener.IListenerComponent)),
+	}
+	return ret
+}
+
+func (l *catchAbleListener) RegisterListener(topic ...string) <-chan interface{} {
+	ret := l.DefaultListenerComponent.RegisterListener(topic...)
+	if l.invoke(topic[0], l.registerM) {
+		l.mtx.RLock()
+		f := l.callBackRegisterM[topic[0]]
+		l.mtx.RUnlock()
+		if f != nil {
+			f(topic[0], l)
+		}
+	}
+	return ret
+}
+func (l *catchAbleListener) RegisterCallBack(f func(key string, com listener.IListenerComponent), topic ...string) {
+	key := topic[0]
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	l.callBackRegisterM[key] = f
+}
+func (l *catchAbleListener) NotifyListener(data interface{}, listenerIds ...string) {
+	l.DefaultListenerComponent.NotifyListener(data, listenerIds...)
+	l.invoke(listenerIds[0], l.notifyM)
+}
+func (l *catchAbleListener) CancelAsync(listenerIds ...string) {
+	l.DefaultListenerComponent.CancelAsync(listenerIds...)
+	l.invoke(listenerIds[0], l.cancelM)
+}
+func (l *catchAbleListener) invoke(key string, m map[string]int) bool {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	_, exist := m[key]
+	m[key]++
+	return exist
 }

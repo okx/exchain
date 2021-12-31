@@ -3,7 +3,12 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/component/listener"
+	"github.com/okex/exchain/libs/tendermint/delta/memory"
+	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 	"testing"
 	"time"
 
@@ -46,6 +51,14 @@ CatchupSuite
 HaltSuite
 x * TestHalt1 - if we see +2/3 precommits after timing out into new round, we should still commit
 
+x * TestUploadExists: 4 val running in the upload mode ,after commit step we should have the cache info
+x * TestDownloadExistsWithNoCache(`ignore Downloaded an invalid delta`): 4 val running in the download mode ,but the broker doesnt have the cache,
+so prerrunTx routine  will finish the round
+	TestDownloadWithCache(`ignore Downloaded an invalid delta`): 4 val running in the download mode ,and the broker has the delta cache ,so
+prerrunTx will quit before extryProxyOnApp
+	TestPrerunRunningWithListenerInvoke(`ignore Downloaded an invalid delta`): 4 val running in the download mode ,and at first the
+broker doesnt have the delta cache ,thus prerun running ,with the time goes by,broker download the delta ,next listener will get the
+data and then we will come to next round without waitting the proxyOnApp to finish
 */
 
 //----------------------------------------------------------------------------------------------------
@@ -1661,6 +1674,212 @@ func TestStateOutputVoteStats(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 
+}
+
+func localDebug(t *testing.T) {
+	ensureTimeout = time.Minute * 10
+	ensureRoundTimeout = time.Minute * 10
+	ensureRoundTimeout = time.Minute * 10
+	viper.Set(EnablePrerunTx, true)
+	sm.SetWatchDataFunc(func() ([]byte, error) {
+		return watchData, nil
+	}, func(i []byte) {
+	})
+}
+
+func TestUploadExists(t *testing.T) {
+	localDebug(t)
+	listenerComponent := listener.DefaultNewListenerComponent(log.TestingLogger().With("module", "listener"), "listener")
+	broker := memory.NewMemoryBroker(log.TestingLogger().With("module", "listener"))
+	ll := broker.RegisterBrokerDelta(1)
+
+	viper.Set(EnablePrerunTx, true)
+
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops, sm.BlockExecutorWithListener(listenerComponent))
+	ops = append(ops, sm.BlockExecutorWithDeltaProvider(
+		sm.DeltaContextWithBroker(broker),
+		sm.DeltaContextWithListener(listenerComponent),
+		sm.DeltaContextWithUploadControl(true)),
+		sm.BlockExecutorWithPreRunProvider(
+			sm.PreRunContextWithExecutorHook(func() {}, func() {}),
+		),
+	)
+
+	round(t, ops...)
+
+	v := ensureListenerFinished(ll)
+	require.Equal(t, int64(1), v)
+	deltas, err, _ := broker.GetDeltas(1)
+	require.NoError(t, err)
+	dels := &types.Deltas{}
+	err = dels.Unmarshal(deltas)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), dels.Height)
+	require.Equal(t, dels.Payload.WatchBytes, watchData)
+}
+
+func TestDownloadExistsWithNoCache(t *testing.T) {
+	localDebug(t)
+
+	listenerComponent := listener.DefaultNewListenerComponent(log.TestingLogger().With("module", "listener"), "listener")
+	broker := memory.NewMemoryBroker(log.TestingLogger().With("module", "listener"))
+
+	viper.Set(EnablePrerunTx, true)
+	proxyCount := 0
+	listenerCount := 0
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops, sm.BlockExecutorWithListener(listenerComponent))
+	ops = append(ops,
+		sm.BlockExecutorWithDeltaProvider(sm.DeltaContextWithBroker(broker),
+			sm.DeltaContextWithListener(listenerComponent),
+			sm.DeltaContextWithDownloadControl(true)),
+		sm.BlockExecutorWithPreRunProvider(
+			sm.PreRunContextWithExecutorHook(func() {
+				listenerCount++
+			}, func() {
+				proxyCount++
+			}),
+		),
+	)
+
+	round(t, ops...)
+
+	deltas, err, _ := broker.GetDeltas(1)
+	require.NoError(t, err)
+	dels := &types.Deltas{}
+	err = dels.Unmarshal(deltas)
+	require.Error(t, err)
+	require.Equal(t, 0, len(deltas))
+	require.Equal(t, 1, proxyCount)
+	require.Equal(t, 0, listenerCount)
+}
+
+func TestDownloadWithCache(t *testing.T) {
+	localDebug(t)
+
+	listenerComponent := newCatchAbleListener()
+	broker := memory.NewMemoryBroker(log.TestingLogger().With("module", "listener"))
+	deltaBytes, e := hex.DecodeString(height1DeltaHex)
+	require.NoError(t, e)
+	dels := &types.Deltas{}
+	e = dels.Unmarshal(deltaBytes)
+	require.NoError(t, e)
+	listenerComponent.Start()
+	ch := listenerComponent.RegisterListener("1")
+	listenerComponent.RegisterCallBack(func(key string, com listener.IListenerComponent) {
+		com.NotifyListener(dels, key)
+		v := <-ch
+		require.Equal(t, dels, v)
+	}, "1")
+
+	proxyCount := 0
+	listenerCount := 0
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops, sm.BlockExecutorWithListener(listenerComponent))
+	ops = append(ops,
+		sm.BlockExecutorWithDeltaProvider(sm.DeltaContextWithBroker(broker),
+			sm.DeltaContextWithListener(listenerComponent),
+			sm.DeltaContextWithDownloadControl(true)),
+		sm.BlockExecutorWithPreRunProvider(
+			sm.PreRunContextWithExecutorHook(func() {
+				listenerCount++
+			}, func() {
+				proxyCount++
+			}),
+		),
+	)
+
+	round(t, ops...)
+
+	require.Equal(t, 1, listenerCount)
+	require.Equal(t, 0, proxyCount)
+}
+
+func TestPrerunRunningWithListenerInvoke(t *testing.T) {
+	localDebug(t)
+
+	listenerComponent := newCatchAbleListener()
+	broker := memory.NewMemoryBroker(log.TestingLogger().With("module", "listener"))
+	deltaBytes, e := hex.DecodeString(height1DeltaHex)
+	require.NoError(t, e)
+	dels := &types.Deltas{}
+	e = dels.Unmarshal(deltaBytes)
+	require.NoError(t, e)
+	listenerComponent.Start()
+	ch := listenerComponent.RegisterListener("1")
+
+	proxyPre := 0
+	proxyCount := 0
+	listenerCount := 0
+	proxyAppExecutor := sm.RunOnProxyAppWithPrePost(func() {
+		proxyPre++
+		go listenerComponent.NotifyListener(dels, "1")
+		time.Sleep(time.Second * 2)
+		v := <-ch
+		require.Equal(t, dels, v)
+	}, func() {
+		proxyCount++
+	})
+	listenerF := func() {
+		listenerCount++ }
+	listenerExecutor := sm.RunOnListener(listenerF)
+	executor := sm.ConcurrentWithPreExecutor(listenerF, listenerExecutor, proxyAppExecutor)
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops, sm.BlockExecutorWithListener(listenerComponent))
+	ops = append(ops,
+		sm.BlockExecutorWithDeltaProvider(sm.DeltaContextWithBroker(broker),
+			sm.DeltaContextWithListener(listenerComponent),
+			sm.DeltaContextWithDownloadControl(true)),
+		sm.BlockExecutorWithPreRunProvider(
+			sm.PreRunContextWithExecutor(executor),
+		),
+	)
+
+	round(t, ops...)
+
+	require.Equal(t, 1, proxyPre)
+	require.Equal(t, 0, proxyCount)
+	require.Equal(t, 1, listenerCount)
+}
+
+func round(t *testing.T, ops ...sm.BlockExecutorOption) {
+	cs1, vss := randState(4, ops...)
+	height, round := cs1.Height, cs1.Round
+
+	newRoundCh := subscribe(cs1.eventBus, types.EventQueryNewRound)
+	proposalCh := subscribe(cs1.eventBus, types.EventQueryCompleteProposal)
+
+	startTestRound(cs1, height, round)
+
+	// Wait for new round so proposer is set.
+	ensureNewRound(newRoundCh, height, round)
+
+	// Commit a block and ensure proposer for the next height is correct.
+	prop := cs1.GetRoundState().Validators.GetProposer()
+	pv, err := cs1.privValidator.GetPubKey()
+	require.NoError(t, err)
+	address := pv.Address()
+	if !bytes.Equal(prop.Address, address) {
+		t.Fatalf("expected proposer to be validator %d. Got %X", 0, prop.Address)
+	}
+
+	// Wait for complete proposal.
+	ensureNewProposal(proposalCh, height, round)
+
+	rs := cs1.GetRoundState()
+	signAddVotes(cs1, types.PrecommitType, rs.ProposalBlock.Hash(), rs.ProposalBlockParts.Header(), vss[1:]...)
+
+	// Wait for new round so next validator is set.
+	ensureNewRound(newRoundCh, height+1, 0)
+
+	prop = cs1.GetRoundState().Validators.GetProposer()
+	pv1, err := vss[1].GetPubKey()
+	require.NoError(t, err)
+	addr := pv1.Address()
+	if !bytes.Equal(prop.Address, addr) {
+		panic(fmt.Sprintf("expected proposer to be validator %d. Got %X", 1, prop.Address))
+	}
 }
 
 // subscribe subscribes test client to the given query and returns a channel with cap = 1.

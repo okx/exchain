@@ -942,3 +942,4 @@ func TestVoteSetBitsMessageValidateBasic(t *testing.T) {
 		})
 	}
 }
+

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/component/listener"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
@@ -11,11 +12,36 @@ import (
 	"github.com/spf13/viper"
 	"net"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+type DeltaContextOption func(ctx *DeltaContext)
+
+func DeltaContextWithListener(l listener.IListenerComponent) DeltaContextOption {
+	return func(ctx *DeltaContext) {
+		ctx.listener = l
+	}
+}
+func DeltaContextWithBroker(broker delta.DeltaBroker) DeltaContextOption {
+	return func(ctx *DeltaContext) {
+		ctx.deltaBroker = broker
+	}
+}
+
+func DeltaContextWithDownloadControl(download bool) DeltaContextOption {
+	return func(ctx *DeltaContext) {
+		ctx.downloadDelta = download
+	}
+}
+func DeltaContextWithUploadControl(upload bool) DeltaContextOption {
+	return func(ctx *DeltaContext) {
+		ctx.uploadDelta = upload
+	}
+}
 
 type identityMapType map[string]int64
 
@@ -36,45 +62,60 @@ func (m identityMapType) increase(from string, num int64) {
 }
 
 var (
-	getWatchDataFunc func() ([]byte, error)
+	getWatchDataFunc   func() ([]byte, error)
 	applyWatchDataFunc func(data []byte)
 )
 
-func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
+type DeltaContextProvider func(l log.Logger) *DeltaContext
+
+func SetWatchDataFunc(g func() ([]byte, error), u func([]byte)) {
 	getWatchDataFunc = g
 	applyWatchDataFunc = u
 }
 
 type DeltaContext struct {
-	deltaBroker   delta.DeltaBroker
+	deltaBroker       delta.DeltaBroker
 	lastFetchedHeight int64
-	dataMap *deltaMap
+	dataMap           *deltaMap
+	listener          listener.IListenerComponent
 
 	downloadDelta bool
-	uploadDelta bool
-	hit float64
-	missed float64
-	logger log.Logger
-	compressType int
-	compressFlag int
-	bufferSize int
+	uploadDelta   bool
+	hit           float64
+	missed        float64
+	logger        log.Logger
+	compressType  int
+	compressFlag  int
+	bufferSize    int
 
-	idMap  identityMapType
+	idMap    identityMapType
 	identity string
 }
 
-func newDeltaContext(l log.Logger) *DeltaContext {
+func newDeltaContext(l log.Logger, ops ...DeltaContextOption) *DeltaContext {
 	dp := &DeltaContext{
-		dataMap: newDataMap(),
-		missed: 1,
+		dataMap:       newDataMap(),
+		missed:        1,
 		downloadDelta: types.EnableDownloadDelta(),
-		uploadDelta: types.EnableUploadDelta(),
-		idMap: make(identityMapType),
-		logger: l,
+		uploadDelta:   types.EnableUploadDelta(),
+		idMap:         make(identityMapType),
+		logger:        l,
+	}
+
+	for _, opt := range ops {
+		opt(dp)
 	}
 
 	if dp.uploadDelta && dp.downloadDelta {
 		panic("download delta is not allowed if upload delta enabled")
+	}
+
+	if dp.downloadDelta && nil != dp.listener {
+		dp.dataMap.hook = func(p *types.Deltas) {
+			dp.listener.NotifyListener(p, strconv.FormatInt(p.Height, 10))
+		}
+	} else {
+		dp.dataMap.hook = func(_ *types.Deltas) {}
 	}
 
 	if dp.uploadDelta {
@@ -92,11 +133,14 @@ func (dc *DeltaContext) init() {
 		if dc.bufferSize < 5 {
 			dc.bufferSize = 5
 		}
-		url := viper.GetString(types.FlagRedisUrl)
-		auth := viper.GetString(types.FlagRedisAuth)
-		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
-		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
-		dc.logger.Info("Init delta broker", "url", url)
+		// test case
+		if dc.deltaBroker == nil {
+			url := viper.GetString(types.FlagRedisUrl)
+			auth := viper.GetString(types.FlagRedisAuth)
+			expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
+			dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
+			dc.logger.Info("Init delta broker", "url", url)
+		}
 	}
 
 	// control if iavl produce delta or not
@@ -114,17 +158,16 @@ func (dc *DeltaContext) init() {
 
 }
 
-
 func (dc *DeltaContext) setIdentity() {
 	addrs, err := net.InterfaceAddrs()
-	if err != nil{
+	if err != nil {
 		dc.logger.Error("Failed to set identity", "err", err)
 		return
 	}
 	var comma string
-	for _, value := range addrs{
-		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback(){
-			if ipnet.IP.To4() != nil{
+	for _, value := range addrs {
+		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
 				dc.identity += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
 				comma = ","
 			}
@@ -138,11 +181,9 @@ func (dc *DeltaContext) setIdentity() {
 	dc.logger.Info("Set identity", "identity", dc.identity)
 }
 
-
 func (dc *DeltaContext) hitRatio() float64 {
 	return dc.hit / (dc.hit + dc.missed)
 }
-
 
 func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) {
 	if applied {
@@ -168,7 +209,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
 			fmt.Sprintf("applied<%t>, ratio<%.2f>, from<%s>",
-				applied, dc.hitRatio(), dc.idMap),)
+				applied, dc.hitRatio(), dc.idMap))
 
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
 			"applied-ratio", dc.hitRatio(), "delta", delta)
@@ -205,14 +246,14 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		return
 	}
 
-	delta4Upload := &types.Deltas {
+	delta4Upload := &types.Deltas{
 		Payload: types.DeltaPayload{
 			ABCIRsp:     abciResponsesBytes,
 			DeltasBytes: res,
 			WatchBytes:  wd,
 		},
-		Height:      height,
-		Version:     types.DeltaVersion,
+		Height:       height,
+		Version:      types.DeltaVersion,
 		CompressType: dc.compressType,
 		CompressFlag: dc.compressFlag,
 		From:         dc.identity,
@@ -314,13 +355,13 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 }
 
 type downloadInfo struct {
-	lastTarget int64
-	firstErrorMap map[int64]error
-	lastErrorMap  map[int64]error
-	mrhWhen1stErrHappens map[int64]int64
+	lastTarget            int64
+	firstErrorMap         map[int64]error
+	lastErrorMap          map[int64]error
+	mrhWhen1stErrHappens  map[int64]int64
 	mrhWhenlastErrHappens map[int64]int64
-	retried map[int64]int64
-	logger log.Logger
+	retried               map[int64]int64
+	logger                log.Logger
 }
 
 func (dc *DeltaContext) downloadRoutine() {
@@ -328,14 +369,13 @@ func (dc *DeltaContext) downloadRoutine() {
 	var lastRemoved int64
 	buffer := int64(dc.bufferSize)
 	info := &downloadInfo{
-		firstErrorMap : make(map[int64]error),
-		lastErrorMap : make(map[int64]error),
-		mrhWhen1stErrHappens : make(map[int64]int64),
-		mrhWhenlastErrHappens : make(map[int64]int64),
-		retried : make(map[int64]int64),
-		logger: dc.logger,
+		firstErrorMap:         make(map[int64]error),
+		lastErrorMap:          make(map[int64]error),
+		mrhWhen1stErrHappens:  make(map[int64]int64),
+		mrhWhenlastErrHappens: make(map[int64]int64),
+		retried:               make(map[int64]int64),
+		logger:                dc.logger,
 	}
-
 
 	ticker := time.NewTicker(50 * time.Millisecond)
 
@@ -354,7 +394,7 @@ func (dc *DeltaContext) downloadRoutine() {
 				"left", left,
 			)
 		} else {
-			if targetHeight % 10 == 0 && lastRemoved != lastFetchedHeight {
+			if targetHeight%10 == 0 && lastRemoved != lastFetchedHeight {
 				removed, left := dc.dataMap.remove(lastFetchedHeight)
 				dc.logger.Info("Remove stale deltas",
 					"target-height", targetHeight,
@@ -401,7 +441,7 @@ func (info *downloadInfo) dump(msg string, target int64) {
 	info.clear(target)
 }
 
-func (info *downloadInfo) statistics(height int64, err error, mrh int64)  {
+func (info *downloadInfo) statistics(height int64, err error, mrh int64) {
 	if err != nil {
 		if _, ok := info.firstErrorMap[height]; !ok {
 			info.firstErrorMap[height] = err
@@ -422,7 +462,7 @@ func (info *downloadInfo) statistics(height int64, err error, mrh int64)  {
 	}
 }
 
-func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
+func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64) {
 	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
 
 	t0 := time.Now()
@@ -437,7 +477,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
-		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err,)
+		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err)
 		return err, nil, latestHeight
 	}
 

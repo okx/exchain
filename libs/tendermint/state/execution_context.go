@@ -7,21 +7,45 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+type PreRunContextOption func(*prerunContext)
 
-type prerunContext struct {
-	prerunTx bool
-	taskChan chan *executionTask
-	taskResultChan chan *executionTask
-	prerunTask *executionTask
-	logger log.Logger
+func PreRunContextWithExecutor(executor TaskExecutor) PreRunContextOption {
+	return func(context *prerunContext) {
+		context.taskExecutor = executor
+	}
 }
 
-func newPrerunContex(logger log.Logger) *prerunContext {
-	return &prerunContext{
-		taskChan:           make(chan *executionTask, 1),
-		taskResultChan:     make(chan *executionTask, 1),
+func PreRunContextWithExecutorHook(listenerHook, proxyHook func()) PreRunContextOption {
+	return PreRunContextWithExecutor(ConcurrentWithPreExecutor(listenerHook, RunOnListener(listenerHook),RunOnProxyApp(proxyHook)))
+}
+
+type prerunContext struct {
+	prerunTx       bool
+	taskChan       chan *executionTask
+	taskResultChan chan *executionTask
+	prerunTask     *executionTask
+	logger         log.Logger
+
+	taskExecutor TaskExecutor
+}
+
+func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunContext {
+	ret := &prerunContext{
+		taskChan:       make(chan *executionTask, 1),
+		taskResultChan: make(chan *executionTask, 1),
 		logger:         logger,
 	}
+	for _, opt := range ops {
+		opt(ret)
+	}
+	if nil == ret.taskExecutor {
+		if !types.EnableDownloadDelta(){
+			ret.taskExecutor=RunOnProxyApp(EmptyFunc)
+		}else{
+			ret.taskExecutor = ConcurrentWithPreExecutor(EmptyFunc,RunOnListener(EmptyFunc),RunOnProxyApp(EmptyFunc))
+		}
+	}
+	return ret
 }
 
 func (pc *prerunContext) checkIndex(height int64) {
@@ -32,7 +56,6 @@ func (pc *prerunContext) checkIndex(height int64) {
 	pc.logger.Info("Not apply delta", "height", height, "prerunIndex", index)
 
 }
-
 
 func (pc *prerunContext) flushPrerunResult() {
 	for {
@@ -102,7 +125,6 @@ func (pc *prerunContext) stopPrerun(height int64) (index int64) {
 	pc.prerunTask = nil
 	return index
 }
-
 
 func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Block) {
 
