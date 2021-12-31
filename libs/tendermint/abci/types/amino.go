@@ -10,7 +10,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-func MarshalPubKeyToAmino(pubkey PubKey) ([]byte, error) {
+func (pubkey PubKey) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -57,7 +57,7 @@ func MarshalValidatorUpdateToAmino(valUpdate ValidatorUpdate) ([]byte, error) {
 		switch pos {
 		case 1:
 			var data []byte
-			data, err = MarshalPubKeyToAmino(valUpdate.PubKey)
+			data, err = valUpdate.PubKey.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}

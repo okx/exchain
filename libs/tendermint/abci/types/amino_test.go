@@ -137,7 +137,7 @@ func TestPubKeyAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(pubkey)
 		require.NoError(t, err)
 
-		actual, err := MarshalPubKeyToAmino(pubkey)
+		actual, err := pubkey.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}
