@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
+
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
@@ -12,13 +15,32 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+var (
+	VENUS_HEIGHT string
+	venusHeight  int64
+)
+
+func init() {
+	if VENUS_HEIGHT == "" {
+		return
+	}
+	n, err := strconv.ParseInt(VENUS_HEIGHT, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	venusHeight = n
+}
+
 // Tx is an arbitrary byte array.
 // NOTE: Tx has no types at this level, so when wire encoded it's just length-prefixed.
 // Might we want types here ?
 type Tx []byte
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
-func (tx Tx) Hash() []byte {
+func (tx Tx) Hash(height int64) []byte {
+	if height < venusHeight {
+		return tmhash.Sum(tx)
+	}
 	return etherhash.Sum(tx)
 }
 
@@ -32,12 +54,12 @@ type Txs []Tx
 
 // Hash returns the Merkle root hash of the transaction hashes.
 // i.e. the leaves of the tree are the hashes of the txs.
-func (txs Txs) Hash() []byte {
+func (txs Txs) Hash(height int64) []byte {
 	// These allocations will be removed once Txs is switched to [][]byte,
 	// ref #2603. This is because golang does not allow type casting slices without unsafe
 	txBzs := make([][]byte, len(txs))
 	for i := 0; i < len(txs); i++ {
-		txBzs[i] = txs[i].Hash()
+		txBzs[i] = txs[i].Hash(height)
 	}
 	return merkle.SimpleHashFromByteSlices(txBzs)
 }
@@ -53,9 +75,9 @@ func (txs Txs) Index(tx Tx) int {
 }
 
 // IndexByHash returns the index of this transaction hash in the list, or -1 if not found
-func (txs Txs) IndexByHash(hash []byte) int {
+func (txs Txs) IndexByHash(hash []byte, height int64) int {
 	for i := range txs {
-		if bytes.Equal(txs[i].Hash(), hash) {
+		if bytes.Equal(txs[i].Hash(height), hash) {
 			return i
 		}
 	}
@@ -65,11 +87,11 @@ func (txs Txs) IndexByHash(hash []byte) int {
 // Proof returns a simple merkle proof for this node.
 // Panics if i < 0 or i >= len(txs)
 // TODO: optimize this!
-func (txs Txs) Proof(i int) TxProof {
+func (txs Txs) Proof(i int, height int64) TxProof {
 	l := len(txs)
 	bzs := make([][]byte, l)
 	for i := 0; i < l; i++ {
-		bzs[i] = txs[i].Hash()
+		bzs[i] = txs[i].Hash(height)
 	}
 	root, proofs := merkle.SimpleProofsFromByteSlices(bzs)
 
@@ -88,13 +110,13 @@ type TxProof struct {
 }
 
 // Leaf returns the hash(tx), which is the leaf in the merkle tree which this proof refers to.
-func (tp TxProof) Leaf() []byte {
-	return tp.Data.Hash()
+func (tp TxProof) Leaf(height int64) []byte {
+	return tp.Data.Hash(height)
 }
 
 // Validate verifies the proof. It returns nil if the RootHash matches the dataHash argument,
 // and if the proof is internally consistent. Otherwise, it returns a sensible error.
-func (tp TxProof) Validate(dataHash []byte) error {
+func (tp TxProof) Validate(dataHash []byte, height int64) error {
 	if !bytes.Equal(dataHash, tp.RootHash) {
 		return errors.New("proof matches different data hash")
 	}
@@ -104,7 +126,7 @@ func (tp TxProof) Validate(dataHash []byte) error {
 	if tp.Proof.Total <= 0 {
 		return errors.New("proof total must be positive")
 	}
-	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf())
+	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf(height))
 	if valid != nil {
 		return errors.New("proof is not internally consistent")
 	}

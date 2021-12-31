@@ -147,7 +147,12 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx evmtypes.MsgEthereumTx
-	if err := rlp.DecodeBytes(txBytes, &tx); err != nil {
+	// try to decode through RLP first
+	if err := rlp.DecodeBytes(txBytes, &tx); err == nil {
+		return tx, nil
+	}
+	//try to decode through animo if it is not RLP-encoded
+	if err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err != nil {
 		return nil, err
 	}
 	return tx, nil

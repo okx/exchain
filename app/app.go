@@ -500,9 +500,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
-			txHash := fmt.Sprintf("%X", tendermintTypes.Tx(txBytes).Hash())
-			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetDeliverStateCtx()
+			txHash := fmt.Sprintf("%X", tendermintTypes.Tx(txBytes).Hash(ctx.BlockHeight()))
+			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
 				ctx.BlockHeader().Time.Unix())
 			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,

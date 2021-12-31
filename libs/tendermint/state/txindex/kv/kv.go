@@ -88,7 +88,7 @@ func (txi *TxIndex) AddBatch(b *txindex.Batch) error {
 	defer storeBatch.Close()
 
 	for _, result := range b.Ops {
-		hash := result.Tx.Hash()
+		hash := result.Tx.Hash(result.Height)
 
 		// index tx by events
 		txi.indexEvents(result, hash, storeBatch)
@@ -118,7 +118,7 @@ func (txi *TxIndex) Index(result *types.TxResult) error {
 	b := txi.store.NewBatch()
 	defer b.Close()
 
-	hash := result.Tx.Hash()
+	hash := result.Tx.Hash(result.Height)
 
 	// index tx by events
 	txi.indexEvents(result, hash, b)

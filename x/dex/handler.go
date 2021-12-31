@@ -281,7 +281,7 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 		HandlingFeeAddress: msg.HandlingFeeAddress,
 		Website:            msg.Website,
 		InitHeight:         ctx.BlockHeight(),
-		TxHash:             fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash()),
+		TxHash:             fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())),
 	}
 	keeper.SetOperator(ctx, operator)
 

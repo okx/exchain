@@ -403,7 +403,7 @@ func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 
 // addTokenSuffix add token suffix
 func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
-	hash := fmt.Sprintf("%x", types2.Tx(ctx.TxBytes()).Hash())
+	hash := fmt.Sprintf("%x", types2.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight()))
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {
 		name = originalSymbol + "-" + strings.ToLower(hash[3*i:3*i+3])

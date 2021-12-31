@@ -259,7 +259,7 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 		_, _, err := app.Deliver(tx)
 		if err == nil {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
-			txHash := fmt.Sprintf("%X", types3.Tx(txBytes).Hash())
+			txHash := fmt.Sprintf("%X", types3.Tx(txBytes).Hash(ctx.BlockHeight()))
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix()) // do not use tx
 		} else {

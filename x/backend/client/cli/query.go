@@ -419,7 +419,7 @@ func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error)
 	txLen := len(txs)
 	txHashes := make([]string, txLen)
 	for i, txBytes := range txs {
-		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash())
+		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash(height))
 	}
 	return txHashes, nil
 }

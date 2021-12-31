@@ -116,7 +116,7 @@ func getOrderFromMsg(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrder, ra
 	feePerBlockAmount := feeParams.FeePerBlock.Amount.Mul(sdk.MustNewDecFromStr(ratio))
 	feePerBlock := sdk.NewDecCoinFromDec(feeParams.FeePerBlock.Denom, feePerBlockAmount)
 	return types.NewOrder(
-		fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash()),
+		fmt.Sprintf("%X", types2.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())),
 		msg.Sender,
 		msg.Product,
 		msg.Side,
