@@ -25,6 +25,7 @@ ___
 - [Join the testnet](https://github.com/okex/testnet/blob/main/README.md)
 - [如何启动测试网节点](https://forum.okt.club/d/179)
 
-
+___
+- [如何搭建私有网络](https://forum.okt.club/d/179)
 
 
