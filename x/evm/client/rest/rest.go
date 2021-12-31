@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/evm/client/utils"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/x/evm/client/utils"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
@@ -218,7 +219,11 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
 
-		bz, height, err := cliCtx.QueryWithData(path, nil)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
@@ -232,8 +237,7 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 			ethAddrs = append(ethAddrs, ethcommon.BytesToAddress(accAddr.Bytes()).Hex())
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, ethAddrs)
+		rest.PostProcessResponseBare(w, cliCtx, ethAddrs)
 	}
 }
 
@@ -242,7 +246,11 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractMethodBlockedList)
 
-		bz, height, err := cliCtx.QueryWithData(path, nil)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
@@ -258,7 +266,6 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 			results = append(results, result)
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, results)
+		rest.PostProcessResponseBare(w, cliCtx, results)
 	}
 }
