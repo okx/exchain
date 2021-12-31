@@ -96,7 +96,7 @@ func (valUpdate ValidatorUpdate) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func MarshalBlockParamsToAmino(params BlockParams) ([]byte, error) {
+func (params BlockParams) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -512,7 +512,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 				noWrite = true
 				break
 			}
-			data, err = MarshalBlockParamsToAmino(*params.Block)
+			data, err = params.Block.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}
