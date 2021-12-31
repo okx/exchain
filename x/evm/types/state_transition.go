@@ -106,8 +106,15 @@ func (st StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+	preSSId := st.Csdb.Snapshot()
+	contractCreation := st.Recipient == nil
+
 	defer func() {
 		if e := recover(); e != nil {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
 			// contract calling
 			switch rType := e.(type) {
@@ -118,9 +125,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			}
 		}
 	}()
-
-	preSSId := st.Csdb.Snapshot()
-	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
