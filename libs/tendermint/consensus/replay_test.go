@@ -118,7 +118,6 @@ func sendTxs(ctx context.Context, cs *State) {
 // TestWALCrash uses crashing WAL to test we can recover from any WAL failure.
 func TestWALCrash(t *testing.T) {
 	// need to fix wal nil
-	return
 	testCases := []struct {
 		name         string
 		initFn       func(dbm.DB, *State, context.Context)
@@ -530,7 +529,6 @@ func TestSimulateValidatorsChange(t *testing.T) {
 // Sync from scratch
 func TestHandshakeReplayAll(t *testing.T) {
 	// need to fix wal nil
-	return
 	for _, m := range modes {
 		testHandshakeReplay(t, config, 0, m, false)
 	}
@@ -542,7 +540,6 @@ func TestHandshakeReplayAll(t *testing.T) {
 // Sync many, not from scratch
 func TestHandshakeReplaySome(t *testing.T) {
 	// need to fix wal nil
-	return
 	for _, m := range modes {
 		testHandshakeReplay(t, config, 2, m, false)
 	}
@@ -554,7 +551,6 @@ func TestHandshakeReplaySome(t *testing.T) {
 // Sync from lagging by one
 func TestHandshakeReplayOne(t *testing.T) {
 	// need to fix wal nil
-	return
 	for _, m := range modes {
 		testHandshakeReplay(t, config, numBlocks-1, m, false)
 	}
@@ -566,7 +562,6 @@ func TestHandshakeReplayOne(t *testing.T) {
 // Sync from caught up
 func TestHandshakeReplayNone(t *testing.T) {
 	// need to fix wal nil
-	return
 	for _, m := range modes {
 		testHandshakeReplay(t, config, numBlocks, m, false)
 	}
