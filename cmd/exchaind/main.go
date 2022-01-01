@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/app/logevents"
 	"io"
 
 	"github.com/okex/exchain/app/rpc"
@@ -62,10 +63,14 @@ func main() {
 
 	ctx := server.NewDefaultContext()
 
+	subFunc := func(logger log.Logger) log.Subscriber {
+		return logevents.NewProvider(logger)
+	}
+
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
+		PersistentPreRunE: server.PersistentPreRunEFn(ctx, subFunc),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(

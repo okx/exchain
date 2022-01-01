@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/logevents"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"os"
@@ -154,6 +155,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
+
+	cmd.Flags().String(logevents.FlagLogServerUrl, "", "log server url")
 
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
