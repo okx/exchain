@@ -47,7 +47,6 @@ func SetSubscriber(s Subscriber)  {
 
 type tmfmtLogger struct {
 	w io.Writer
-	//subscriber Subscriber
 }
 
 // NewTMFmtLogger returns a logger that encodes keyvals to the Writer in

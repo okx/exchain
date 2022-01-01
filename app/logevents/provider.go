@@ -2,6 +2,7 @@ package logevents
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
 	"net"
@@ -9,9 +10,6 @@ import (
 )
 
 
-const (
-	FlagLogServerUrl string = "log-server"
-)
 
 
 type provider struct {
@@ -22,7 +20,7 @@ type provider struct {
 }
 
 func NewProvider(logger log.Logger) log.Subscriber {
-	url := viper.GetString(FlagLogServerUrl)
+	url := viper.GetString(server.FlagLogServerUrl)
 	if len(url) == 0 {
 		return nil
 	}

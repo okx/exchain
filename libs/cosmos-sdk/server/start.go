@@ -4,7 +4,6 @@ package server
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/logevents"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	gorid "github.com/okex/exchain/libs/goroutine"
 	"os"
@@ -60,6 +59,7 @@ const (
 	FlagGoroutineNum      = "goroutine-num"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
+	FlagLogServerUrl    = "log-server"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -156,7 +156,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 
-	cmd.Flags().String(logevents.FlagLogServerUrl, "", "log server url")
+	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
