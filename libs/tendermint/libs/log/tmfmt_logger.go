@@ -32,8 +32,12 @@ var tmfmtEncoderPool = sync.Pool{
 	},
 }
 
+type Subscriber interface {
+	AddEvent(string)
+}
 type tmfmtLogger struct {
 	w io.Writer
+	subscriber Subscriber
 }
 
 // NewTMFmtLogger returns a logger that encodes keyvals to the Writer in
@@ -44,7 +48,7 @@ type tmfmtLogger struct {
 // The passed Writer must be safe for concurrent use by multiple goroutines if
 // the returned Logger will be used concurrently.
 func NewTMFmtLogger(w io.Writer) kitlog.Logger {
-	return &tmfmtLogger{w}
+	return &tmfmtLogger{w, nil}
 }
 
 var pid = os.Getpid()
@@ -134,9 +138,9 @@ KeyvalueLoop:
 	}
 
 	// send new event to kafka
-	//if l.subscriber != nil {
-	//	l.subscriber.NewEvent.(enc.buf.String())
-	//}
+	if l.subscriber != nil {
+		l.subscriber.AddEvent(enc.buf.String())
+	}
 	// The Logger interface requires implementations to be safe for concurrent
 	// use by multiple goroutines. For this implementation that means making
 	// only one call to l.w.Write() for each call to Log.

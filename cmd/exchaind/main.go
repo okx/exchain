@@ -88,6 +88,7 @@ func main() {
 		dataCmd(ctx),
 		exportAppCmd(ctx),
 		iaviewerCmd(cdc),
+		subscribeCmd(cdc),
 	)
 
 	// Tendermint node base commands
