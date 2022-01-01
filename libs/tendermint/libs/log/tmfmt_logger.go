@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"fmt"
+	gorid "github.com/okex/exchain/libs/goroutine"
 	"io"
 	"os"
 	"sync"
@@ -94,8 +95,18 @@ func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	//     D										- first character of the level, uppercase (ASCII only)
 	//     [2016-05-02|11:06:44.322]    - our time format (see https://golang.org/src/time/format.go)
 	//     Stopping ...					- message
-	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d] %-44s ",
-		lvl[0]-32, time.Now().Format("2006-01-02|15:04:05.000"), pid, msg))
+
+	goridInfo := "]"
+	if gorid.EnableGid {
+		goridInfo = fmt.Sprintf(":%-5s", gorid.GoRId.String()+"]")
+	}
+
+	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d%s %s. ",
+		lvl[0]-32,
+		time.Now().Format("2019-01-02|15:04:05.000"),
+		pid,
+		goridInfo,
+		msg))
 
 	if module != unknown {
 		enc.buf.WriteString("module=" + module + " ")
@@ -122,6 +133,10 @@ KeyvalueLoop:
 		return err
 	}
 
+	// send new event to kafka
+	//if l.subscriber != nil {
+	//	l.subscriber.NewEvent.(enc.buf.String())
+	//}
 	// The Logger interface requires implementations to be safe for concurrent
 	// use by multiple goroutines. For this implementation that means making
 	// only one call to l.w.Write() for each call to Log.

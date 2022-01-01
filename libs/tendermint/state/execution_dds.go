@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
@@ -228,8 +227,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	dc.missed += txnum
 	locked := dc.deltaBroker.GetLocker()
 	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height,
-		"locked", locked,
-		"gid", gorid.GoRId)
+		"locked", locked,)
 
 	if !locked {
 		return
@@ -281,8 +279,7 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 		"upload", t3.Sub(t2),
 		"missed", dc.missed,
 		"uploaded", dc.hit,
-		"deltas", deltas,
-		"gid", gorid.GoRId)
+		"deltas", deltas,)
 	return true
 }
 
@@ -423,7 +420,7 @@ func (info *downloadInfo) statistics(height int64, err error, mrh int64)  {
 }
 
 func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
-	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
+	dc.logger.Debug("Download delta started:", "target-height", height,)
 
 	t0 := time.Now()
 	deltaBytes, err, latestHeight := dc.deltaBroker.GetDeltas(height)
@@ -450,8 +447,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 		"calcHash", delta.HashElapsed(),
 		"uncompress", delta.CompressOrUncompressElapsed(),
 		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
-		"delta", delta,
-		"gid", gorid.GoRId)
+		"delta", delta,)
 
 	return nil, delta, latestHeight
 }
