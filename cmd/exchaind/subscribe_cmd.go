@@ -15,21 +15,21 @@ func subscribeCmd(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		subscriber(),
+		subscribeLog(),
 	)
 
 	return cmd
 
 }
 
-func subscriber() *cobra.Command {
+func subscribeLog() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "logs [urls] [topic]",
-		Short: "logs urls topic",
+		Use:   "logs [urls] [topic] [outdir]",
+		Short: "logs [urls] [topic] [outdir]",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("%s, %s\n", args[0], args[1])
 			subscriber := logevents.NewSubscriber()
-			subscriber.Init(args[0], args[1])
+			subscriber.Init(args[0], args[1], args[2])
 			subscriber.Run()
 		},
 	}

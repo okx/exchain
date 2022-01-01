@@ -3,7 +3,7 @@ package log
 import (
 	"bytes"
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/system"
 	"io"
 	"os"
 	"sync"
@@ -33,7 +33,7 @@ var tmfmtEncoderPool = sync.Pool{
 }
 
 type Subscriber interface {
-	AddEvent(event string)
+	AddEvent(*bytes.Buffer)
 }
 
 var subscriber Subscriber
@@ -47,7 +47,6 @@ func SetSubscriber(s Subscriber)  {
 
 type tmfmtLogger struct {
 	w io.Writer
-	//subscriber Subscriber
 }
 
 // NewTMFmtLogger returns a logger that encodes keyvals to the Writer in
@@ -111,8 +110,8 @@ func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	//     Stopping ...					- message
 
 	goridInfo := "]"
-	if gorid.EnableGid {
-		goridInfo = fmt.Sprintf(":%-5s", gorid.GoRId.String()+"]")
+	if system.EnableGid {
+		goridInfo = fmt.Sprintf(":%-5s", system.GoRId.String()+"]")
 	}
 
 	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d%s %s. ",
@@ -149,7 +148,7 @@ KeyvalueLoop:
 
 	// send new event to kafka
 	if subscriber != nil {
-		subscriber.AddEvent(enc.buf.String())
+		subscriber.AddEvent(&enc.buf)
 	}
 
 	// The Logger interface requires implementations to be safe for concurrent

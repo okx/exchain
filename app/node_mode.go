@@ -88,18 +88,22 @@ func setArchiveConfig(ctx *server.Context) {
 }
 
 func logStartingFlags(logger log.Logger) {
-	msg := "All flags:"
+	msg := "All flags:\n"
 
+	var maxLen int
 	kvMap := make(map[string]interface{})
 	var keys []string
 	for _, key := range viper.AllKeys() {
 		keys = append(keys, key)
 		kvMap[key] = viper.Get(key)
+		if len(key) > maxLen {
+			maxLen = len(key)
+		}
 	}
 
 	sort.Strings(keys)
 	for _, k := range keys {
-		msg += fmt.Sprintf("\n	%s=%v", k, kvMap[k])
+		msg += fmt.Sprintf("	%-45s= %v\n", k, kvMap[k])
 	}
 
 	logger.Info(msg)

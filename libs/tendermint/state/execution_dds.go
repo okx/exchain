@@ -2,14 +2,13 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
-	"net"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -115,23 +114,13 @@ func (dc *DeltaContext) init() {
 
 
 func (dc *DeltaContext) setIdentity() {
-	addrs, err := net.InterfaceAddrs()
+
+	var err error
+	dc.identity, err = system.GetIpAddr(viper.GetBool(types.FlagAppendPid))
+
 	if err != nil{
 		dc.logger.Error("Failed to set identity", "err", err)
 		return
-	}
-	var comma string
-	for _, value := range addrs{
-		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback(){
-			if ipnet.IP.To4() != nil{
-				dc.identity += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
-				comma = ","
-			}
-		}
-	}
-
-	if viper.GetBool(types.FlagAppendPid) {
-		dc.identity = fmt.Sprintf("%s:%d", dc.identity, os.Getpid())
 	}
 
 	dc.logger.Info("Set identity", "identity", dc.identity)

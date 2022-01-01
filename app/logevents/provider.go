@@ -1,28 +1,31 @@
 package logevents
 
 import (
-	"fmt"
+	"bytes"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
-	"net"
-	"strings"
+	"sync"
+	"time"
 )
-
-
-const (
-	FlagLogServerUrl string = "log-server"
-)
-
 
 type provider struct {
 	eventChan chan string
 	identity string
 	logServerUrl string
 	logger log.Logger
+	kafka *logClient
+	subscriberAlive bool
+
+	mutex sync.Mutex
+	lastHeartbeat time.Time
 }
 
 func NewProvider(logger log.Logger) log.Subscriber {
-	url := viper.GetString(FlagLogServerUrl)
+	url := viper.GetString(server.FlagLogServerUrl)
+
 	if len(url) == 0 {
 		return nil
 	}
@@ -37,34 +40,41 @@ func NewProvider(logger log.Logger) log.Subscriber {
 }
 
 func (p* provider) init()  {
-	addrs, err := net.InterfaceAddrs()
-	if err == nil {
-		var comma string
-		for _, value := range addrs {
-			if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ipnet.IP.To4() != nil {
-					p.identity += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
-					break
-				}
-			}
-		}
-	}
+
+	var err error
+	p.identity, err = system.GetIpAddr(viper.GetBool(types.FlagAppendPid))
+
 	if len(p.identity) == 0 {
-		panic("")
+		panic("Invalid identity")
 	}
 
-	p.logger.Info("provider init",
-		"url", p.logServerUrl,
-		"id", p.identity)
-
-	go p.eventRoutine()
-}
-
-func (p* provider) AddEvent(event string)  {
-	if strings.Index(event, "module=provider") != -1 {
+	if err != nil{
+		p.logger.Error("Failed to set identity", "err", err)
 		return
 	}
-	p.eventChan <- event
+
+	role := viper.GetString("consensus-role")
+	if len(role) > 0 {
+		p.identity = role
+	}
+
+	p.kafka = newLogClient(p.logServerUrl, OECLogTopic, HeartbeatTopic, p.identity)
+
+	p.logger.Info("Provider init", "url", p.logServerUrl, "id", p.identity)
+
+	go p.eventRoutine()
+	go p.expiredRoutine()
+	go p.heartbeatRoutine()
+}
+
+func (p* provider) AddEvent(buf *bytes.Buffer)  {
+	if !p.subscriberAlive {
+		return
+	}
+	//if strings.Index(event, "module=provider") != -1 {
+	//	return
+	//}
+	p.eventChan <- buf.String()
 }
 
 func (p* provider) eventRoutine()  {
@@ -73,21 +83,48 @@ func (p* provider) eventRoutine()  {
 	}
 }
 
-func (p* provider) eventHandler(event string)  {
-	p.logger.Info("new event", "event", event)
-	//write("sub.txt", event)
+func (p* provider) heartbeatInterval() time.Duration {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return time.Now().Sub(p.lastHeartbeat)
 }
 
-//func write(file, param string) {
-//	//f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-//	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0666)
-//	if err != nil {
-//		return
-//	}
-//	defer f.Close()
-//
-//	_, err = f.WriteString(param)
-//	if err != nil {
-//		return
-//	}
-//}
+func (p* provider) restHeartbeat() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.lastHeartbeat = time.Now()
+	p.subscriberAlive = true
+}
+
+func (p* provider) expiredRoutine() {
+	ticker := time.NewTicker(ExpiredInterval)
+	for range ticker.C {
+		interval := p.heartbeatInterval()
+		if interval > ExpiredInterval {
+			p.subscriberAlive = false
+			p.logger.Info("Subscriber expired", "last heartbeat", p.lastHeartbeat, )
+		}
+	}
+}
+
+func (p* provider) heartbeatRoutine()  {
+	for {
+		key, m, err := p.kafka.recv()
+		if err != nil {
+			p.logger.Error("Provider heartbeat routine", "err", err)
+			continue
+		}
+		p.logger.Info("Provider heartbeat routine. Recv:",
+			"from", key,
+			"value", m.Data,
+			//"topic", m.Topic,
+			"err", err,
+			)
+		p.restHeartbeat()
+	}
+}
+
+func (p* provider) eventHandler(event string)  {
+	// DO NOT use p.logger to log anything in this method!!!
+	p.kafka.send(p.identity, event)
+}

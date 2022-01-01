@@ -4,9 +4,8 @@ package server
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/logevents"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/system"
 	"os"
 	"runtime/pprof"
 
@@ -60,6 +59,7 @@ const (
 	FlagGoroutineNum      = "goroutine-num"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
+	FlagLogServerUrl    = "log-server"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -156,7 +156,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 
-	cmd.Flags().String(logevents.FlagLogServerUrl, "", "log server url")
+	cmd.Flags().String(FlagLogServerUrl, "localhost:9092", "log server url")
 
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
@@ -173,7 +173,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
-	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
+	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
@@ -361,7 +361,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	gorid.EnableGid = viper.GetBool(gorid.FlagEnableGid)
+	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 

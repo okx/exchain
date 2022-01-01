@@ -32,6 +32,7 @@ run() {
       --iavl-enable-async-commit \
       --enable-gid \
       --log-server url \
+      --append-pid=true \
       --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=1,acc=1 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
