@@ -1,7 +1,6 @@
 package logevents
 
 import (
-	"bytes"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -67,7 +66,7 @@ func (p* provider) init()  {
 	go p.heartbeatRoutine()
 }
 
-func (p* provider) AddEvent(buf *bytes.Buffer)  {
+func (p* provider) AddEvent(buf log.LogBuf)  {
 	if !p.subscriberAlive {
 		return
 	}
