@@ -2,12 +2,14 @@ package keeper
 
 import (
 	"encoding/binary"
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/x/evm/types"
 )
 
 var (
@@ -64,15 +66,30 @@ func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 }
 
 func (k *Keeper) OpenTrie() {
-	//types3.GetStartBlockHeight() // start height of oec
-	latestHeight := k.GetLatestBlockHeight()
-	latestRootHash := k.GetRootMptHash(latestHeight)
+	//startHeight := types2.GetStartBlockHeight() // start height of oec
+	latestStoredHeight := k.GetLatestStoredBlockHeight()
+	latestStoredRootHash := k.GetRootMptHash(latestStoredHeight)
 
-	tr, err := k.db.OpenTrie(latestRootHash)
+	tr, err := k.db.OpenTrie(latestStoredRootHash)
 	if err != nil {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	k.rootTrie = tr
+}
+
+func (k *Keeper) SetRepairHeight(repairHeight int64) {
+	latestStoredHeight := k.GetLatestStoredBlockHeight()
+	if latestStoredHeight < uint64(repairHeight) {
+		panic(fmt.Sprintf("The target start repair height is: %v, but the latest stored evm height is: %v" ,repairHeight, latestStoredHeight))
+	}
+	toRepairBlockRootHash := k.GetRootMptHash(uint64(repairHeight))
+
+	tr, err := k.db.OpenTrie(toRepairBlockRootHash)
+	if err != nil {
+		panic("Fail to open root mpt: " + err.Error())
+	}
+	k.rootTrie = tr
+	k.EvmStateDb = types2.NewCommitStateDB(k.GenerateCSDBParams())
 }
 
 func (k *Keeper) OnStop() error {
