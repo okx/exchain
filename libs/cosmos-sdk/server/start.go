@@ -6,6 +6,7 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
 
@@ -65,10 +66,14 @@ const (
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
 func StartCmd(ctx *Context,
-	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
+	cdc *codec.Codec,
+	appCreator AppCreator,
+	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error) *cobra.Command {
+	appPreRun func(ctx *Context) error,
+	subFunc func(logger log.Logger) log.Subscriber,
+) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -110,6 +115,9 @@ which accepts a path for the resulting pprof file.
 			}
 
 			ctx.Logger.Info("starting ABCI with Tendermint")
+
+			sub := subFunc(ctx.Logger)
+			log.SetSubscriber(sub)
 
 			setPID(ctx)
 			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)

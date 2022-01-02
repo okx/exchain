@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -94,6 +95,14 @@ func logStartingFlags(logger log.Logger) {
 	kvMap := make(map[string]interface{})
 	var keys []string
 	for _, key := range viper.AllKeys() {
+
+		if strings.Index(key, "stream.") == 0 {
+			continue
+		}
+		if strings.Index(key, "backend.") == 0 {
+			continue
+		}
+
 		keys = append(keys, key)
 		kvMap[key] = viper.Get(key)
 		if len(key) > maxLen {

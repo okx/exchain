@@ -63,14 +63,11 @@ func main() {
 
 	ctx := server.NewDefaultContext()
 
-	subFunc := func(logger log.Logger) log.Subscriber {
-		return logevents.NewProvider(logger)
-	}
 
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx, subFunc),
+		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
@@ -96,9 +93,13 @@ func main() {
 		subscribeCmd(cdc),
 	)
 
+
+	subFunc := func(logger log.Logger) log.Subscriber {
+		return logevents.NewProvider(logger)
+	}
 	// Tendermint node base commands
 	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
-		registerRoutes, client.RegisterAppFlag, app.PreRun)
+		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
