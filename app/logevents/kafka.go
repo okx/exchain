@@ -14,7 +14,6 @@ const (
 	LogConsumerGroup  = "oeclog-consumer-group"
 
 	HeartbeatTopic    = "oeclog-subscriber-heartbeat"
-	HeartbeatConsumerGroup  = "heartbeat-consumer-group"
 
 	HeartbeatInterval = 5*time.Second
 	ExpiredInterval   = 6*HeartbeatInterval
@@ -45,7 +44,6 @@ func newLogClient(kafkaAddrs string, wt, rt string, groupID string) *logClient {
 
 type KafkaMsg struct {
 	Topic  string           `json:"topic"`
-	//Source string           `json:"source"`
 	Data   string           `json:"data"`
 }
 

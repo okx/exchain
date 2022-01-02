@@ -29,7 +29,6 @@ func (s* subscriber) Init(urls string, topic string, logdir string)  {
 	s.logdir = logdir
 
 	_, err := os.Stat(logdir)
-
 	if os.IsNotExist(err) {
 		err = os.Mkdir(logdir, os.ModePerm)
 	}
@@ -65,21 +64,24 @@ func (s* subscriber) Run() {
 			continue
 		}
 		fmt.Printf("recv msg from %s, at topic: %v\n", key, m.Topic)
-		s.onEvent(key, m.Data)
+		err = s.onEvent(key, m.Data)
+		if err != nil {
+			fmt.Printf("onEvent err: %s", err)
+		}
 	}
 }
 
-func (s* subscriber) onEvent(from, event string)  {
+func (s* subscriber) onEvent(from, event string) (err error) {
 	from = s.logdir + string(os.PathSeparator) + from+".log"
-	f, err := s.getOsFile(from)
+
+	var f *os.File
+	f, err = s.getOsFile(from)
 	if err != nil {
 		return
 	}
 
 	_, err = f.WriteString(event)
-	if err != nil {
-		return
-	}
+	return
 }
 
 func (s* subscriber) getOsFile(fileName string) (file *os.File, err error) {
@@ -90,7 +92,7 @@ func (s* subscriber) getOsFile(fileName string) (file *os.File, err error) {
 		return
 	}
 
-	file, err = os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err = os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err == nil {
 		s.fileMap[fileName] = file
 	}
