@@ -26,6 +26,7 @@ type provider struct {
 func NewProvider(logger log.Logger) log.Subscriber {
 	url := viper.GetString(server.FlagLogServerUrl)
 	if len(url) == 0 {
+		logger.Info("Log publish is disabled")
 		return nil
 	}
 
@@ -70,9 +71,6 @@ func (p* provider) AddEvent(buf *bytes.Buffer)  {
 	if !p.subscriberAlive {
 		return
 	}
-	//if strings.Index(event, "module=provider") != -1 {
-	//	return
-	//}
 
 	msg := KafkaMsgPool.Get().(*KafkaMsg)
 	msg.Data = buf.String()
@@ -91,7 +89,7 @@ func (p* provider) heartbeatInterval() time.Duration {
 	return time.Now().Sub(p.lastHeartbeat)
 }
 
-func (p* provider) restHeartbeat() {
+func (p* provider) keepAlive() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.lastHeartbeat = time.Now()
@@ -116,13 +114,13 @@ func (p* provider) heartbeatRoutine()  {
 			p.logger.Error("Provider heartbeat routine", "err", err)
 			continue
 		}
-		p.logger.Info("Provider heartbeat routine. Recv:",
+		p.logger.Info("Provider heartbeat routine",
 			"from", key,
 			"value", m.Data,
 			//"topic", m.Topic,
 			"err", err,
 			)
-		p.restHeartbeat()
+		p.keepAlive()
 	}
 }
 
