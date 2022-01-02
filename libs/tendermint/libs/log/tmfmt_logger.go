@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/system"
 	"io"
-	"os"
 	"sync"
 	"time"
 
@@ -30,6 +29,11 @@ var tmfmtEncoderPool = sync.Pool{
 		enc.Encoder = logfmt.NewEncoder(&enc.buf)
 		return &enc
 	},
+}
+
+type LogEvent struct {
+	Buf *bytes.Buffer
+	DestructionFunc func()
 }
 
 type Subscriber interface {
@@ -60,7 +64,6 @@ func NewTMFmtLogger(w io.Writer) kitlog.Logger {
 	return &tmfmtLogger{w}
 }
 
-var pid = os.Getpid()
 
 func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	enc := tmfmtEncoderPool.Get().(*tmfmtEncoder)
@@ -117,7 +120,7 @@ func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d%s %s. ",
 		lvl[0]-32,
 		time.Now().Format("2006-01-02|15:04:05.000"),
-		pid,
+		system.Getpid(),
 		goridInfo,
 		msg))
 
@@ -146,10 +149,6 @@ KeyvalueLoop:
 		return err
 	}
 
-	// send new event to kafka
-	if subscriber != nil {
-		subscriber.AddEvent(&enc.buf)
-	}
 
 	// The Logger interface requires implementations to be safe for concurrent
 	// use by multiple goroutines. For this implementation that means making
@@ -157,5 +156,11 @@ KeyvalueLoop:
 	if _, err := l.w.Write(enc.buf.Bytes()); err != nil {
 		return err
 	}
+
+	// send new event to kafka
+	if subscriber != nil {
+		subscriber.AddEvent(&enc.buf)
+	}
+
 	return nil
 }

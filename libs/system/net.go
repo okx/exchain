@@ -3,7 +3,6 @@ package system
 import (
 	"fmt"
 	"net"
-	"os"
 )
 
 func GetIpAddr(appendPid bool) (res string, err error) {
@@ -24,7 +23,7 @@ func GetIpAddr(appendPid bool) (res string, err error) {
 	}
 
 	if appendPid {
-		res = fmt.Sprintf("%s_%d", res, os.Getpid())
+		res = fmt.Sprintf("%s_%d", res, Getpid())
 	}
 	return
 }

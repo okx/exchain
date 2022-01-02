@@ -12,7 +12,7 @@ import (
 )
 
 type provider struct {
-	eventChan chan string
+	eventChan chan *KafkaMsg
 	identity string
 	logServerUrl string
 	logger log.Logger
@@ -30,7 +30,7 @@ func NewProvider(logger log.Logger) log.Subscriber {
 	}
 
 	p := &provider{
-		eventChan: make(chan string, 1000),
+		eventChan: make(chan *KafkaMsg, 1000),
 		logServerUrl: url,
 		logger: logger.With("module", "provider"),
 	}
@@ -73,7 +73,10 @@ func (p* provider) AddEvent(buf *bytes.Buffer)  {
 	//if strings.Index(event, "module=provider") != -1 {
 	//	return
 	//}
-	p.eventChan <- buf.String()
+
+	msg := KafkaMsgPool.Get().(*KafkaMsg)
+	msg.Data = buf.String()
+	p.eventChan <- msg
 }
 
 func (p* provider) eventRoutine()  {
@@ -123,7 +126,8 @@ func (p* provider) heartbeatRoutine()  {
 	}
 }
 
-func (p* provider) eventHandler(event string)  {
+func (p* provider) eventHandler(msg *KafkaMsg)  {
 	// DO NOT use p.logger to log anything in this method!!!
-	p.kafka.send(p.identity, event)
+	defer KafkaMsgPool.Put(msg)
+	p.kafka.send(p.identity, msg)
 }

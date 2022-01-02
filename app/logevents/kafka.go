@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -48,6 +49,11 @@ type KafkaMsg struct {
 	Data   string           `json:"data"`
 }
 
+var KafkaMsgPool = sync.Pool{
+	New: func() interface{} {
+		return &KafkaMsg{}
+	},
+}
 
 func (kc *logClient) recv() (string, *KafkaMsg, error) {
 	const empty = ""
@@ -65,11 +71,10 @@ func (kc *logClient) recv() (string, *KafkaMsg, error) {
 	return string(rawMsg.Key), &msg, err
 }
 
-func (kc *logClient) send(key, value string) error {
-	msg, err := json.Marshal(KafkaMsg{
-		Topic: kc.wt,
-		Data:  value,
-	})
+func (kc *logClient) send(key string, rawMsg *KafkaMsg) error {
+	rawMsg.Topic = kc.wt
+
+	msg, err := json.Marshal(*rawMsg)
 	if err != nil {
 		return err
 	}

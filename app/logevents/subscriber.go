@@ -2,6 +2,7 @@ package logevents
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"os"
 	"time"
 )
@@ -39,11 +40,14 @@ func (s* subscriber) Init(urls string, topic string, logdir string)  {
 
 func (s* subscriber) heartbeatRoutine() {
 	ticker := time.NewTicker(HeartbeatInterval)
-	pid := os.Getpid()
+	pid := system.Getpid()
 	id := 0
 	for range ticker.C {
 		key :=	fmt.Sprintf("%d:%d", pid, id)
-		err := s.kafka.send(key, "heartbeat", )
+		msg := &KafkaMsg{
+			Data: "heartbeat",
+		}
+		err := s.kafka.send(key, msg)
 		if err != nil {
 			fmt.Printf("Subscriber heartbeat routine. %s, err: %s\n", key, err)
 		}
