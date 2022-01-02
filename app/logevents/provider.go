@@ -26,7 +26,7 @@ type provider struct {
 func NewProvider(logger log.Logger) log.Subscriber {
 	url := viper.GetString(server.FlagLogServerUrl)
 	if len(url) == 0 {
-		logger.Info("Log publish is disabled")
+		logger.Info("Publishing logs is disabled")
 		return nil
 	}
 
