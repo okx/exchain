@@ -25,7 +25,6 @@ type provider struct {
 
 func NewProvider(logger log.Logger) log.Subscriber {
 	url := viper.GetString(server.FlagLogServerUrl)
-
 	if len(url) == 0 {
 		return nil
 	}
