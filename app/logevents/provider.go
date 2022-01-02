@@ -102,7 +102,7 @@ func (p* provider) expiredRoutine() {
 		interval := p.heartbeatInterval()
 		if interval > ExpiredInterval {
 			p.subscriberAlive = false
-			p.logger.Info("Subscriber expired", "last heartbeat", p.lastHeartbeat, )
+			p.logger.Info("Subscriber expired", "not-seen-for", interval, )
 		}
 	}
 }
