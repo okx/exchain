@@ -8,7 +8,7 @@ import (
 )
 
 type Subscriber interface {
-	Init(urls string, topic string, logdir string)
+	Init(urls string, logdir string)
 	Run()
 }
 
@@ -24,7 +24,7 @@ type subscriber struct {
 	logdir string
 }
 
-func (s* subscriber) Init(urls string, topic string, logdir string)  {
+func (s* subscriber) Init(urls string, logdir string)  {
 	s.kafka = newLogClient(urls, HeartbeatTopic, OECLogTopic, LogConsumerGroup)
 	s.logdir = logdir
 
