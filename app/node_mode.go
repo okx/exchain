@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -87,9 +89,30 @@ func setArchiveConfig(ctx *server.Context) {
 }
 
 func logStartingFlags(logger log.Logger) {
-	msg := "starting flags:"
+	msg := "All flags:\n"
+
+	var maxLen int
+	kvMap := make(map[string]interface{})
+	var keys []string
 	for _, key := range viper.AllKeys() {
-		msg += fmt.Sprintf("\n	%s=%v", key, viper.Get(key))
+
+		if strings.Index(key, "stream.") == 0 {
+			continue
+		}
+		if strings.Index(key, "backend.") == 0 {
+			continue
+		}
+
+		keys = append(keys, key)
+		kvMap[key] = viper.Get(key)
+		if len(key) > maxLen {
+			maxLen = len(key)
+		}
+	}
+
+	sort.Strings(keys)
+	for _, k := range keys {
+		msg += fmt.Sprintf("	%-45s= %v\n", k, kvMap[k])
 	}
 
 	logger.Info(msg)
