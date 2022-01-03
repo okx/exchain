@@ -17,7 +17,7 @@ set -x # activate debugging
 
 source oec.profile
 PRERUN=false
-while getopts "isn:b:p:c:Smx" opt; do
+while getopts "isn:b:p:c:Smxk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -30,6 +30,10 @@ while getopts "isn:b:p:c:Smx" opt; do
   s)
     echo "OKCHAIN_START"
     OKCHAIN_START=1
+    ;;
+  k)
+    echo "LOG_SERVER"
+    LOG_SERVER="--log-server $OPTARG"
     ;;
   c)
     echo "Test_CASE"
@@ -102,7 +106,6 @@ run() {
   p2p_seed_opt=$6
   p2p_seed_arg=$7
 
-  LOG_LEVEL=main:info,*:error,consensus:error,state:info,blockchain:info
 
   if [ "$(uname -s)" == "Darwin" ]; then
       sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
@@ -119,6 +122,8 @@ run() {
   exchaind add-genesis-account 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 900000000okt --home cache/node${index}/exchaind
   exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info,provider:info
+
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
@@ -133,6 +138,8 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
+    --append-pid=true \
+    ${LOG_SERVER} \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
     --enable-preruntx=$PRERUN \
