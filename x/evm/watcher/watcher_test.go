@@ -75,7 +75,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Second * 2)
-	db := InstanceOfWatchStore().GetDB()
+	db := InstanceOfWatchStore().getDB()
 	pWd := getDBKV(t, db)
 
 	// get WatchData
@@ -83,7 +83,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 
-	db2 := InstanceOfWatchStore().GetDB()
+	db2 := InstanceOfWatchStore().getDB()
 	fmt.Println(db2.Stats())
 
 	// use WatchData
