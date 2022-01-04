@@ -5,7 +5,8 @@ package server
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
 
@@ -59,15 +60,21 @@ const (
 	FlagGoroutineNum      = "goroutine-num"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
+	FlagExportKeystore  = "export-keystore"
+	FlagLogServerUrl    = "log-server"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
 func StartCmd(ctx *Context,
-	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
+	cdc *codec.Codec,
+	appCreator AppCreator,
+	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error) *cobra.Command {
+	appPreRun func(ctx *Context) error,
+	subFunc func(logger log.Logger) log.Subscriber,
+) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -109,6 +116,9 @@ which accepts a path for the resulting pprof file.
 			}
 
 			ctx.Logger.Info("starting ABCI with Tendermint")
+
+			sub := subFunc(ctx.Logger)
+			log.SetSubscriber(sub)
 
 			setPID(ctx)
 			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
@@ -154,7 +164,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
-
+	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
@@ -170,7 +180,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
-	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
+	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
+	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
@@ -286,7 +297,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	}
 
 	app.SetOption(abci.RequestSetOption{
-		Key: "CheckChainID",
+		Key:   "CheckChainID",
 		Value: tmNode.GenesisDoc().ChainID,
 	})
 
@@ -358,7 +369,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	gorid.EnableGid = viper.GetBool(gorid.FlagEnableGid)
+	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 

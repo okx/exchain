@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -47,7 +46,6 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 func (e *executionTask) dump(when string) {
 
 	e.logger.Info(when,
-		"gid", gorid.GoRId,
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
