@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"encoding/hex"
 	jsoniter "github.com/json-iterator/go"
 	"math/big"
 	"sync"
@@ -40,8 +41,10 @@ type Watcher struct {
 var (
 	watcherEnable  = false
 	watcherLruSize = 1000
+	checkWd        = false
 	onceEnable     sync.Once
 	onceLru        sync.Once
+	onceCheckWd    sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -56,6 +59,13 @@ func GetWatchLruSize() int {
 		watcherLruSize = viper.GetInt(FlagFastQueryLru)
 	})
 	return watcherLruSize
+}
+
+func CheckWdEnabled() bool {
+	onceCheckWd.Do(func() {
+		checkWd = viper.GetBool(FlagCheckWd)
+	})
+	return checkWd
 }
 
 func NewWatcher() *Watcher {
@@ -79,7 +89,7 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
-func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
+func (w *Watcher) NewHeight(ctx sdk.Context, height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
 	}
@@ -378,7 +388,8 @@ func (w *Watcher) CommitWatchData() {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	for _, b := range batch {
+	keys := make([][]byte, len(batch))
+	for i, b := range batch {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -386,15 +397,26 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		if typeValue == TypeState {
 			state.SetStateToLru(common.BytesToHash(key), value)
 		}
+		keys[i] = key
+	}
+
+	if CheckWdEnabled() {
+		w.CheckWatchDB(keys)
 	}
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
-	for _, b := range batch {
+	keys := make([][]byte, len(batch))
+	for i, b := range batch {
 		w.store.Set(b.Key, b.Value)
 		if b.TypeValue == TypeState {
 			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 		}
+		keys[i] = b.Key
+	}
+
+	if CheckWdEnabled() {
+		w.CheckWatchDB(keys)
 	}
 }
 
@@ -446,4 +468,17 @@ func (w *Watcher) SetWatchDataFunc() {
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
 	return &w.watchData.BloomData
+}
+
+func (w *Watcher) CheckWatchDB(keys [][]byte) {
+	output := make(map[string]string, len(keys))
+	for _, key := range keys {
+		value, err := w.store.Get(key)
+		if err != nil {
+			continue
+		}
+		output[hex.EncodeToString(key)] = string(value)
+	}
+
+	// todo output to log
 }
