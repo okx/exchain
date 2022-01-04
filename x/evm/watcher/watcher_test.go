@@ -47,6 +47,7 @@ func setupTest() *WatcherTestSt {
 	checkTx := false
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(watcher.FlagCheckWd, true)
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	w.handler = evm.NewHandler(w.app.EvmKeeper)

@@ -406,7 +406,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 
 	if CheckWdEnabled() {
-		w.CheckWatchDB(keys)
+		w.CheckWatchDB(keys, "producer")
 	}
 }
 
@@ -421,7 +421,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 	}
 
 	if CheckWdEnabled() {
-		w.CheckWatchDB(keys)
+		w.CheckWatchDB(keys, "consumer")
 	}
 }
 
@@ -475,7 +475,7 @@ func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
 	return &w.watchData.BloomData
 }
 
-func (w *Watcher) CheckWatchDB(keys [][]byte) {
+func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	output := make(map[string]string, len(keys))
 	kvHash := tmhash.New()
 	for _, key := range keys {
@@ -488,5 +488,5 @@ func (w *Watcher) CheckWatchDB(keys [][]byte) {
 		output[hex.EncodeToString(key)] = string(value)
 	}
 
-	w.log.Info("watchDB delta", "height", w.height, "kv", output, "hash", hex.EncodeToString(kvHash.Sum(nil)))
+	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
