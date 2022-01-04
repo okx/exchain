@@ -44,7 +44,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.Bhash = common.BytesToHash(currentHash)
 
 	//that can make sure latest block has been committed
-	k.Watcher.NewHeight(ctx, uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
 	k.Watcher.ExecuteDelayEraseKey()
 }
 

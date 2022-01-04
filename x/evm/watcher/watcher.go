@@ -3,7 +3,10 @@ package watcher
 import (
 	"encoding/hex"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
+	"os"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -34,6 +37,7 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	log log.Logger
 	// for state delta transfering in network
 	watchData *WatchData
 }
@@ -70,6 +74,7 @@ func CheckWdEnabled() bool {
 
 func NewWatcher() *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	watcher.log = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "watcher")
 	return watcher
 }
 
@@ -89,7 +94,7 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
-func (w *Watcher) NewHeight(ctx sdk.Context, height uint64, blockHash common.Hash, header types.Header) {
+func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
 	}
@@ -472,13 +477,16 @@ func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
 
 func (w *Watcher) CheckWatchDB(keys [][]byte) {
 	output := make(map[string]string, len(keys))
+	kvHash := tmhash.New()
 	for _, key := range keys {
 		value, err := w.store.Get(key)
 		if err != nil {
 			continue
 		}
+		kvHash.Write(key)
+		kvHash.Write(value)
 		output[hex.EncodeToString(key)] = string(value)
 	}
 
-	// todo output to log
+	w.log.Info("watchDB delta", "height", w.height, "kv", output, "hash", hex.EncodeToString(kvHash.Sum(nil)))
 }
