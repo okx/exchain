@@ -262,20 +262,30 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
+
+	// produce delta
+	SetProduceDelta(true)
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h)
 	assert.EqualValues(t, 10, v)
-	assert.Equal(t, delta, emptyDelta())
-	assert.Empty(t, tree.savedNodes)
-	//
-	//tree.Set([]byte("b"), []byte{0x02})
-	//SetProduceDelta(true)
-	//h, v, delta, err = tree.SaveVersion(true)
-	//fmt.Println(delta)
-	//require.NoError(t, err)
-	//assert.NotEmpty(t, h)
-	//assert.EqualValues(t, 11, v)
-	//assert.NotEqual(t, delta, emptyDelta())
-	//assert.NotEmpty(t, tree.savedNodes)
+	// delta is empty or not depends on SetProduceDelta()
+	assert.NotEqual(t, delta, emptyDelta())
+
+	tree.Set([]byte("b"), []byte{0x02})
+	tree.SetDelta(&delta)
+	h2, v2, delta2, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h2)
+	assert.EqualValues(t, 11, v2)
+	assert.NotEqual(t, delta2, emptyDelta())
+	assert.Equal(t, delta, delta2)
+
+	// not produce delta
+	SetProduceDelta(false)
+	h3, v3, delta3, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h3)
+	assert.EqualValues(t, 12, v3)
+	assert.Equal(t, delta3, emptyDelta())
 }

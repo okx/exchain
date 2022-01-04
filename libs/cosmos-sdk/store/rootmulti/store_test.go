@@ -5,6 +5,7 @@ import (
 	iavltree "github.com/okex/exchain/libs/iavl"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 
@@ -559,9 +560,10 @@ func TestMultiStore_Delta(t *testing.T) {
 	store1.Set(k, v)
 
 	// get deltas
+	iavltree.SetProduceDelta(true)
 	cID, _, deltas := ms.Commit(nil, nil)
 	require.Equal(t, int64(1), cID.Version)
-//	assert.NotEmpty(t, deltas)
+	assert.NotEmpty(t, deltas)
 
 	// use deltas
 	viper.Set(tmtypes.FlagDownloadDDS, true)

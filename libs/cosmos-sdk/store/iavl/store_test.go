@@ -111,7 +111,9 @@ func TestGetImmutable(t *testing.T) {
 	store := UnsafeNewStore(tree)
 
 	require.True(t, tree.Set([]byte("hello"), []byte("adios")))
-	hash, ver, _, err := tree.SaveVersion(false)
+	iavl.SetProduceDelta(true)
+	hash, ver, d, err := tree.SaveVersion(false)
+	fmt.Println(d)
 	cID = types.CommitID{Version: ver, Hash: hash}
 	require.Nil(t, err)
 
