@@ -252,3 +252,30 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 		t.Set(randBytes(10), []byte{})
 	}
 }
+
+func emptyDelta() TreeDelta {
+	return TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+}
+func TestMutableTree_SaveVersionDelta(t *testing.T) {
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 9})
+	require.NoError(t, err)
+
+	tree.Set([]byte("a"), []byte{0x01})
+	h, v, delta, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h)
+	assert.EqualValues(t, 10, v)
+	assert.Equal(t, delta, emptyDelta())
+	assert.Empty(t, tree.savedNodes)
+	//
+	//tree.Set([]byte("b"), []byte{0x02})
+	//SetProduceDelta(true)
+	//h, v, delta, err = tree.SaveVersion(true)
+	//fmt.Println(delta)
+	//require.NoError(t, err)
+	//assert.NotEmpty(t, h)
+	//assert.EqualValues(t, 11, v)
+	//assert.NotEqual(t, delta, emptyDelta())
+	//assert.NotEmpty(t, tree.savedNodes)
+}
