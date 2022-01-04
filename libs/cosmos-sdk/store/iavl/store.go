@@ -40,18 +40,6 @@ type Store struct {
 	flatKVStore *flatkv.Store
 }
 
-func (st *Store) GetFlatKVReadTime() int {
-	return st.flatKVStore.GetDBReadTime()
-}
-
-func (st *Store) GetFlatKVReadCount() int {
-	return st.flatKVStore.GetDBReadCount()
-}
-
-func (st *Store) GetFlatKVWriteCount() int {
-	return st.flatKVStore.GetDBWriteCount()
-}
-
 func (st *Store) StopStore() {
 	tr := st.tree.(*iavl.MutableTree)
 	tr.StopTree()
@@ -155,7 +143,7 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 	}
 
 	// commit to flat kv db
-	st.flatKVStore.Commit()
+	st.commitFlatKV()
 
 	return types.CommitID{
 		Version: version,
@@ -201,18 +189,18 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
-	st.flatKVStore.Set(key, value)
+	st.setFlatKV(key, value)
 }
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	value := st.flatKVStore.Get(key)
+	value := st.getFlatKV(key)
 	if value != nil {
 		return value
 	}
 	_, value = st.tree.Get(key)
 	if value != nil {
-		st.flatKVStore.Set(key, value)
+		st.setFlatKV(key, value)
 	}
 
 	return value
@@ -220,7 +208,7 @@ func (st *Store) Get(key []byte) []byte {
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
-	if st.flatKVStore.Has(key) {
+	if st.hasFlatKV(key) {
 		return true
 	}
 	return st.tree.Has(key)
@@ -229,7 +217,7 @@ func (st *Store) Has(key []byte) (exists bool) {
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
-	st.flatKVStore.Delete(key)
+	st.deleteFlatKV(key)
 }
 
 // DeleteVersions deletes a series of versions from the MutableTree. An error
@@ -373,7 +361,7 @@ func (st *Store) GetNodeReadCount() int {
 
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
-	st.flatKVStore.ResetCount()
+	st.resetFlatKVCount()
 }
 
 //----------------------------------------

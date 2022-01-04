@@ -10,6 +10,7 @@ import (
 
 const FlagEnable = "enable-flat-kv"
 
+// Store wraps app_flat_kv.db for read performance.
 type Store struct {
 	db         dbm.DB
 	cache      map[string][]byte
