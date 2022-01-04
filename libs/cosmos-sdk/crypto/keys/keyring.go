@@ -36,27 +36,24 @@ const (
 	keyringDirNameFmt     = "keyring-%s"
 	testKeyringDirNameFmt = "keyring-test-%s"
 )
-const defaultPasswdInput = 1000
 
 var _ Keybase = keyringKeybase{}
 
 // keyringKeybase implements the Keybase interface by using the Keyring library
 // for account key persistence.
 type keyringKeybase struct {
-	base     baseKeybase
-	db       keyring.Keyring
-	passwdCh chan<- string
-	fileDir  string
+	base    baseKeybase
+	db      keyring.Keyring
+	fileDir string
 }
 
 var maxPassphraseEntryAttempts = 3
 
-func newKeyringKeybase(db keyring.Keyring, path string, passwdCh chan<- string, opts ...KeybaseOption) Keybase {
+func newKeyringKeybase(db keyring.Keyring, path string, opts ...KeybaseOption) Keybase {
 	return keyringKeybase{
-		db:       db,
-		fileDir:  path,
-		passwdCh: passwdCh,
-		base:     newBaseKeybase(opts...),
+		db:      db,
+		fileDir: path,
+		base:    newBaseKeybase(opts...),
 	}
 }
 
@@ -70,15 +67,14 @@ func NewKeyring(
 	var db keyring.Keyring
 	var err error
 	var config keyring.Config
-	passwdCh := make(chan string, defaultPasswdInput)
 
 	switch backend {
 	case BackendTest:
-		config = lkbToKeyringConfig(appName, rootDir, nil, passwdCh, true)
+		config = lkbToKeyringConfig(appName, rootDir, nil, true)
 	case BackendFile:
-		config = newFileBackendKeyringConfig(appName, rootDir, userInput, passwdCh)
+		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendOS:
-		config = lkbToKeyringConfig(appName, rootDir, userInput, passwdCh, false)
+		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
 	case BackendKWallet:
 		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
@@ -91,7 +87,7 @@ func NewKeyring(
 		return nil, err
 	}
 
-	return newKeyringKeybase(db, config.FileDir, passwdCh, opts...), nil
+	return newKeyringKeybase(db, config.FileDir, opts...), nil
 }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
@@ -464,13 +460,11 @@ func (kb keyringKeybase) SupportedAlgosLedger() []SigningAlgo {
 // CloseDB releases the lock and closes the storage backend.
 func (kb keyringKeybase) CloseDB() {}
 
-func (kb keyringKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, encPasswd string, algo SigningAlgo) Info {
+func (kb keyringKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, _ string, algo SigningAlgo) Info {
 	// encrypt private key using keyring
 	pub := priv.PubKey()
 	info := newLocalInfo(name, pub, string(priv.Bytes()), algo)
 
-	//set password
-	kb.postPasswd(encPasswd)
 	kb.writeInfo(name, info)
 	return info
 }
@@ -502,24 +496,13 @@ func (kb keyringKeybase) FileDir() (string, error) {
 	return resolvePath(kb.fileDir)
 }
 
-// postPasswd receive key passwd  from remote client
-func (kb keyringKeybase) postPasswd(passwd string) error {
-	select {
-	case kb.passwdCh <- passwd:
-	default:
-	}
-	return nil
-}
-
-func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, passwdCh <-chan string, test bool) keyring.Config {
+func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, test bool) keyring.Config {
 	if test {
 		return keyring.Config{
 			AllowedBackends: []keyring.BackendType{keyring.FileBackend},
 			ServiceName:     appName,
 			FileDir:         filepath.Join(dir, fmt.Sprintf(testKeyringDirNameFmt, appName)),
 			FilePasswordFunc: func(_ string) (string, error) {
-				//ignore passwd,if receive passwd from remote query
-				remotePrompt(passwdCh, false, []byte{})
 				return "test", nil
 			},
 		}
@@ -528,7 +511,7 @@ func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, passwdCh <-chan
 	return keyring.Config{
 		ServiceName:      appName,
 		FileDir:          dir,
-		FilePasswordFunc: newRealPrompt(dir, localBuf, passwdCh),
+		FilePasswordFunc: newRealPrompt(dir, localBuf),
 	}
 }
 
@@ -550,17 +533,17 @@ func newPassBackendKeyringConfig(appName, dir string, _ io.Reader) keyring.Confi
 	}
 }
 
-func newFileBackendKeyringConfig(name, dir string, localBuf io.Reader, passwdCh <-chan string) keyring.Config {
+func newFileBackendKeyringConfig(name, dir string, localBuf io.Reader) keyring.Config {
 	fileDir := filepath.Join(dir, fmt.Sprintf(keyringDirNameFmt, name))
 	return keyring.Config{
 		AllowedBackends:  []keyring.BackendType{keyring.FileBackend},
 		ServiceName:      name,
 		FileDir:          fileDir,
-		FilePasswordFunc: newRealPrompt(fileDir, localBuf, passwdCh),
+		FilePasswordFunc: newRealPrompt(fileDir, localBuf),
 	}
 }
 
-func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(string) (string, error) {
+func newRealPrompt(dir string, localBuf io.Reader) func(string) (string, error) {
 	return func(prompt string) (string, error) {
 		keyhashStored := false
 		keyhashFilePath := filepath.Join(dir, "keyhash")
@@ -585,18 +568,10 @@ func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(
 			return "", fmt.Errorf("failed to open %s: %v", keyhashFilePath, err)
 		}
 
-		// try to read data from remote buffer first
-		passwd, err = remotePrompt(passwdCh, keyhashStored, keyhash)
-		if err != nil {
+		// use local stdin input password
+		// it can be tolerated of three time
+		if passwd, err = localPrompt(localBuf, keyhashStored, keyhash); err != nil {
 			return "", err
-		}
-
-		// when empty remote receive nothing, use local input
-		// it can be tolerate of three time
-		if len(passwd) == 0 {
-			if passwd, err = localPrompt(localBuf, keyhashStored, keyhash); err != nil {
-				return "", err
-			}
 		}
 
 		// must storage the keyhash, when we first create key
@@ -615,30 +590,6 @@ func newRealPrompt(dir string, localBuf io.Reader, passwdCh <-chan string) func(
 
 		return passwd, nil
 	}
-}
-
-// remotePrompt reveive password from channel.
-// when channel never recieve password, please use local input.
-func remotePrompt(ch <-chan string, keyhashStored bool, keyhash []byte) (string, error) {
-	var passwd string
-
-	select {
-	case passwd = <-ch:
-	default:
-		return "", nil
-	}
-
-	//too short
-	if len(passwd) < input.MinPassLength {
-		return "", fmt.Errorf("password must be at least %d characters", input.MinPassLength)
-	}
-	// newkey passwd must be same as the last .
-	if keyhashStored {
-		if err := bcrypt.CompareHashAndPassword(keyhash, []byte(passwd)); err != nil {
-			return "", fmt.Errorf("incorrect passphrase")
-		}
-	}
-	return passwd, nil
 }
 
 // localPrompt receive password from stdin

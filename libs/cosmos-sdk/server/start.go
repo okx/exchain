@@ -180,7 +180,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
-	cmd.Flags().Bool(gorid.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
 	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
 
