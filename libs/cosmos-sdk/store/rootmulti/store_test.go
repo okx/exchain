@@ -3,6 +3,8 @@ package rootmulti
 import (
 	"fmt"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	"math"
 	"testing"
 
@@ -540,6 +542,32 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 		_, err := ms.CacheMultiStoreWithVersion(v)
 		require.NoError(t, err, "expected no error when loading height, found err: %d", v)
 	}
+}
+
+func TestMultiStore_Delta(t *testing.T) {
+	var db dbm.DB = dbm.NewMemDB()
+	ms := newMultiStoreWithMounts(db, types.PruneNothing)
+	err := ms.LoadLatestVersion()
+	require.Nil(t, err)
+
+	commitID := types.CommitID{}
+	checkStore(t, ms, commitID, commitID)
+
+	k, v := []byte("wind"), []byte("blows")
+
+	store1 := ms.getStoreByName("store1").(types.KVStore)
+	store1.Set(k, v)
+
+	// get deltas
+	cID, _, deltas := ms.Commit(nil, nil)
+	require.Equal(t, int64(1), cID.Version)
+//	assert.NotEmpty(t, deltas)
+
+	// use deltas
+	viper.Set(tmtypes.FlagDownloadDDS, true)
+	cID, _, deltas2 := ms.Commit(nil, deltas)
+	require.Equal(t, int64(2), cID.Version)
+	require.Equal(t, deltas, deltas2)
 }
 
 //-----------------------------------------------------------------------
