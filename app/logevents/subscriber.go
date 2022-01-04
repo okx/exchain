@@ -49,6 +49,7 @@ func (s* subscriber) heartbeatRoutine() {
 		err := s.kafka.send(key, msg)
 		if err != nil {
 			fmt.Printf("Subscriber heartbeat routine. %s, err: %s\n", key, err)
+			continue
 		}
 		id++
 		fmt.Printf("Subscriber heartbeat routine. Send: %s\n", key)
