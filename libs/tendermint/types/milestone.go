@@ -72,3 +72,11 @@ func IsTestNet() bool {
 func GetStartBlockHeight() int64 {
 	return genesisHeight
 }
+
+func GetVenusHeight() int64 {
+	return milestoneVenusHeight
+}
+
+func GetMercuryHeight() int64 {
+	return milestoneMercuryHeight
+}

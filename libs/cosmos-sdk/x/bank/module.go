@@ -124,7 +124,9 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 }
 
 // BeginBlock performs a no-op.
-func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
+func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	keeper.BeginBlocker(ctx, req, am.keeper.GetInnerTxKeeper())
+}
 
 // EndBlock returns the end blocker for the bank module. It returns no validator
 // updates.
