@@ -2,9 +2,7 @@ package state
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -238,10 +236,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	if blockExec.deltaContext.downloadDelta {
-		atomic.StoreInt64(&dc.lastCommitHeight, block.Height)
-	}
-
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
@@ -336,7 +330,7 @@ func (blockExec *BlockExecutor) commit(
 	abciDelta := &abci.Deltas{}
 	if delta != nil {
 		abciDelta.DeltasByte = delta.DeltasBytes()
-		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
+		blockExec.logger.Debug("set abciDelta", "abciDelta", delta)
 	}
 
 	// Commit block, get hash back
