@@ -83,7 +83,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{}
+	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -343,6 +343,8 @@ func (w *Watcher) Reset() {
 	w.staleBatch = []WatchMessage{}
 }
 
+
+// why: because CommitWatchData will commit the batch ,before CommitWatchData,we have to be ready
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
@@ -437,7 +439,6 @@ func (w *Watcher) SetWatchDataFunc() {
 			w.watchData = &wd
 			w.delayEraseKey = wd.DelayEraseKey
 		}
-
 		w.CommitWatchData()
 	}
 

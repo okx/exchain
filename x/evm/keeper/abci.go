@@ -103,7 +103,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
-		k.Watcher.Commit()
 	}
 
 	k.UpdateInnerBlockData()
