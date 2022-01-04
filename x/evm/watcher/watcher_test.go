@@ -1,4 +1,4 @@
-package watcher_test
+package watcher
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
@@ -20,6 +19,7 @@ import (
 	"testing"
 	"time"
 )
+
 type KV struct {
 	k []byte
 	v []byte
@@ -44,8 +44,8 @@ type WatcherTestSt struct {
 func setupTest() *WatcherTestSt {
 	w := &WatcherTestSt{}
 	checkTx := false
-	viper.Set(watcher.FlagFastQuery, true)
-	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(FlagFastQuery, true)
+	viper.Set(FlagDBBackend, "memdb")
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
@@ -75,19 +75,19 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Second * 2)
-	db := watcher.InstanceOfWatchStore().GetDB()
+	db := InstanceOfWatchStore().GetDB()
 	pWd := getDBKV(t, db)
 
 	// get WatchData
-	wd, err := w.app.EvmKeeper.Watcher.Gwd()
+	wd, err := w.app.EvmKeeper.Watcher.gwd()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 
-	db2 := watcher.InstanceOfWatchStore().GetDB()
+	db2 := InstanceOfWatchStore().GetDB()
 	fmt.Println(db2.Stats())
 
 	// use WatchData
-	w.app.EvmKeeper.Watcher.Uwd(wd)
+	w.app.EvmKeeper.Watcher.uwd(wd)
 	time.Sleep(time.Second * 5)
 	cWd := getDBKV(t, db2)
 
