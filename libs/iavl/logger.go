@@ -32,7 +32,7 @@ func SetLogFunc(l LogFuncType)  {
 
 func iavlLog(module string, level int, format string, args ...interface{}) {
 	if v, ok := OutputModules[module]; ok && v != 0 && logFunc != nil {
-		format = fmt.Sprintf("%s", format)
+		format = fmt.Sprintf("%s: %s", module, format)
 		logFunc(level, format, args...)
 	}
 }
