@@ -905,7 +905,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 	}
 
 	if err != nil {
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMercury(ctx.BlockHeight()) {
 			codeSpace, code, info := sdkerrors.ABCIInfo(err, app.trace)
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
