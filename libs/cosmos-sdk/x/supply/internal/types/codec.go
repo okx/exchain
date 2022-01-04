@@ -28,9 +28,9 @@ func RegisterCodec(cdc *codec.Codec) {
 	})
 	cdc.RegisterConcreteMarshaller(MuduleAccountName, func(cdc *amino.Codec, v interface{}) ([]byte, error) {
 		if m, ok := v.(*ModuleAccount); ok {
-			return m.MarshalToAmino()
+			return m.MarshalToAmino(cdc)
 		} else if m, ok := v.(ModuleAccount); ok {
-			return m.MarshalToAmino()
+			return m.MarshalToAmino(cdc)
 		} else {
 			return nil, fmt.Errorf("%T is not a ModuleAccount", v)
 		}

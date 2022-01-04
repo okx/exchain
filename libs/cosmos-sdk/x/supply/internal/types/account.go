@@ -92,7 +92,7 @@ func (acc ModuleAccount) Copy() interface{} {
 
 var moduleAccountBufferPool = amino.NewBufferPool()
 
-func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
+func (acc ModuleAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = moduleAccountBufferPool.Get()
 	defer moduleAccountBufferPool.Put(buf)
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
@@ -110,7 +110,7 @@ func (acc ModuleAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			data, err := acc.BaseAccount.MarshalToAmino()
+			data, err := acc.BaseAccount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}

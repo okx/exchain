@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUnmarshalEthAccount(t *testing.T) {
+func TestEthAccountAmino(t *testing.T) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	RegisterCodec(cdc)
@@ -55,10 +55,6 @@ func TestUnmarshalEthAccount(t *testing.T) {
 			ethcrypto.Keccak256(nil),
 		},
 		{
-			nil,
-			nil,
-		},
-		{
 			auth.NewBaseAccount(
 				nil,
 				nil,
@@ -67,6 +63,10 @@ func TestUnmarshalEthAccount(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
+		},
+		{},
+		{
+			BaseAccount: &auth.BaseAccount{},
 		},
 	}
 
@@ -97,7 +97,7 @@ func TestUnmarshalEthAccount(t *testing.T) {
 	}
 }
 
-func BenchmarkUnmarshalEthAccount(b *testing.B) {
+func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	RegisterCodec(cdc)
@@ -140,7 +140,7 @@ func BenchmarkUnmarshalEthAccount(b *testing.B) {
 	})
 }
 
-func BenchmarkMarshalEthAccount(b *testing.B) {
+func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	RegisterCodec(cdc)

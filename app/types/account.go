@@ -93,7 +93,7 @@ func (acc EthAccount) Copy() interface{} {
 
 var ethAccountBufferPool = amino.NewBufferPool()
 
-func (acc EthAccount) MarshalToAmino() ([]byte, error) {
+func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = ethAccountBufferPool.Get()
 	defer ethAccountBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
@@ -114,7 +114,7 @@ func (acc EthAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			data, err := acc.BaseAccount.MarshalToAmino()
+			data, err := acc.BaseAccount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}

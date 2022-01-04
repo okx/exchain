@@ -522,7 +522,8 @@ func TestDecCoinAmino(t *testing.T) {
 		var dc DecCoin
 		err = cdc.UnmarshalBinaryBare(expect, &dc)
 		require.NoError(t, err)
-		actualDc, err := UnmarshalCoinFromAmino(expect)
+		var actualDc DecCoin
+		err = actualDc.UnmarshalFromAmino(expect)
 		require.NoError(t, err)
 		require.EqualValues(t, dc, actualDc)
 

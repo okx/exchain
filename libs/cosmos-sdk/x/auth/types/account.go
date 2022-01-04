@@ -63,17 +63,20 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			acc.Address = make([]byte, len(subData))
 			copy(acc.Address, subData)
 		case 2:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
 			acc.Coins = append(acc.Coins, coin)
 		case 3:
-			pubkey, err := cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			acc.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
 			if err != nil {
-				return err
+				err = cdc.UnmarshalBinaryBare(subData, &acc.PubKey)
+				if err != nil {
+					return err
+				}
 			}
-			acc.PubKey = pubkey
 		case 4:
 			var n int
 			acc.AccountNumber, n, err = amino.DecodeUvarint(data)
@@ -99,7 +102,7 @@ func (acc BaseAccount) Copy() interface{} {
 
 var baseAccountBufferPool = amino.NewBufferPool()
 
-func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
+func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = baseAccountBufferPool.Get()
 	defer baseAccountBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5 << 3}
@@ -173,7 +176,10 @@ func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
 			}
 			data, err := cryptoamino.MarshalPubKeyToAminoWithTypePrefix(acc.PubKey)
 			if err != nil {
-				return nil, err
+				data, err = cdc.MarshalBinaryBare(acc.PubKey)
+				if err != nil {
+					return nil, err
+				}
 			}
 			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
 			if err != nil {

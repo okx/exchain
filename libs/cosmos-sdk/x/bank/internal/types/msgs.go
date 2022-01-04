@@ -97,7 +97,8 @@ func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
 			msg.ToAddress = make([]byte, dataLen)
 			copy(msg.ToAddress, subData)
 		case 3:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}

@@ -338,7 +338,8 @@ func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}

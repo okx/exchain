@@ -19,6 +19,44 @@ type DecCoin struct {
 	Amount Dec    `json:"amount"`
 }
 
+func (coin *DecCoin) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			coin.Denom = string(subData)
+		case 2:
+			err = coin.Amount.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // NewDecCoin creates a new DecCoin instance from an Int.
 func NewDecCoin(denom string, amount Int) DecCoin {
 	if err := validate(denom, amount); err != nil {

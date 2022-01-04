@@ -124,6 +124,7 @@ func TestModuleAccountAmino(t *testing.T) {
 	addr := sdk.AccAddress(pubkey.Address())
 
 	accounts := []ModuleAccount{
+		{},
 		{
 			authtypes.NewBaseAccount(
 				addr,
