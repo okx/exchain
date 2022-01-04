@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/component/listener"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
 
@@ -377,7 +376,7 @@ func (blockExec *BlockExecutor) commit(
 	abciDelta := &abci.Deltas{}
 	if delta != nil {
 		abciDelta.DeltasByte = delta.DeltasBytes()
-		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
+		blockExec.logger.Debug("set abciDelta", "abciDelta", delta)
 	}
 
 	// Commit block, get hash back

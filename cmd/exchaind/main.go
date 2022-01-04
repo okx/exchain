@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/app/logevents"
 	"io"
 
 	"github.com/okex/exchain/app/rpc"
@@ -62,6 +63,7 @@ func main() {
 
 	ctx := server.NewDefaultContext()
 
+
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
@@ -88,11 +90,16 @@ func main() {
 		dataCmd(ctx),
 		exportAppCmd(ctx),
 		iaviewerCmd(cdc),
+		subscribeCmd(cdc),
 	)
 
+
+	subFunc := func(logger log.Logger) log.Subscriber {
+		return logevents.NewProvider(logger)
+	}
 	// Tendermint node base commands
 	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
-		registerRoutes, client.RegisterAppFlag, app.PreRun)
+		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)

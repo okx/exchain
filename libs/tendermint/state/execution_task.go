@@ -3,7 +3,6 @@ package state
 import (
 	"context"
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -55,7 +54,6 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 func (e *executionTask) dump(when string) {
 
 	e.logger.Info(when,
-		"gid", gorid.GoRId,
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
@@ -134,7 +132,7 @@ func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
 // 		 	3.deltaDownloading the delta => prerrun running =>
 //		 	listener receive the delta (means deltaDownloaded the data) => quit(execBlockOnProxyAppWithDeltas still running)
 
-func ConcurrentWithPreExecutor(listenerF func(),executor ...TaskExecutor) TaskExecutor {
+func ConcurrentWithPreExecutor(listenerF func(), executor ...TaskExecutor) TaskExecutor {
 	return func(ctx context.Context, task *executionTask, results chan<- *executionResult) {
 		data := task.listenerDone()
 		if data != nil && fillResultByDelta(task, data, results) {
@@ -142,7 +140,7 @@ func ConcurrentWithPreExecutor(listenerF func(),executor ...TaskExecutor) TaskEx
 			listenerF()
 			return
 		}
-		ConcurrentTaskExecutor(executor...)(ctx,task,results)
+		ConcurrentTaskExecutor(executor...)(ctx, task, results)
 	}
 }
 
@@ -176,7 +174,7 @@ func RunOnListener(listenerH func()) TaskExecutor {
 func RunOnProxyAppWithPrePost(pre, proxyExecuteH func()) TaskExecutor {
 	return func(ctx context.Context, task *executionTask, results chan<- *executionResult) {
 		pre()
-		RunOnProxyApp(proxyExecuteH)(ctx,task,results)
+		RunOnProxyApp(proxyExecuteH)(ctx, task, results)
 	}
 }
 
