@@ -60,6 +60,7 @@ const (
 	FlagGoroutineNum      = "goroutine-num"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
+	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
 )
 
@@ -165,7 +166,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 
-
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
@@ -180,6 +180,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
+	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
 	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
 
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
@@ -296,7 +297,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	}
 
 	app.SetOption(abci.RequestSetOption{
-		Key: "CheckChainID",
+		Key:   "CheckChainID",
 		Value: tmNode.GenesisDoc().ChainID,
 	})
 
