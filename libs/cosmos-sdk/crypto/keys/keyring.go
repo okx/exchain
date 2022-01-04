@@ -496,7 +496,7 @@ func (kb keyringKeybase) FileDir() (string, error) {
 	return resolvePath(kb.fileDir)
 }
 
-func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, test bool) keyring.Config {
+func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {
 	if test {
 		return keyring.Config{
 			AllowedBackends: []keyring.BackendType{keyring.FileBackend},
@@ -511,7 +511,7 @@ func lkbToKeyringConfig(appName, dir string, localBuf io.Reader, test bool) keyr
 	return keyring.Config{
 		ServiceName:      appName,
 		FileDir:          dir,
-		FilePasswordFunc: newRealPrompt(dir, localBuf),
+		FilePasswordFunc: newRealPrompt(dir, buf),
 	}
 }
 
@@ -533,21 +533,20 @@ func newPassBackendKeyringConfig(appName, dir string, _ io.Reader) keyring.Confi
 	}
 }
 
-func newFileBackendKeyringConfig(name, dir string, localBuf io.Reader) keyring.Config {
+func newFileBackendKeyringConfig(name, dir string, buf io.Reader) keyring.Config {
 	fileDir := filepath.Join(dir, fmt.Sprintf(keyringDirNameFmt, name))
 	return keyring.Config{
 		AllowedBackends:  []keyring.BackendType{keyring.FileBackend},
 		ServiceName:      name,
 		FileDir:          fileDir,
-		FilePasswordFunc: newRealPrompt(fileDir, localBuf),
+		FilePasswordFunc: newRealPrompt(fileDir, buf),
 	}
 }
 
-func newRealPrompt(dir string, localBuf io.Reader) func(string) (string, error) {
+func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 	return func(prompt string) (string, error) {
 		keyhashStored := false
 		keyhashFilePath := filepath.Join(dir, "keyhash")
-		var passwd string
 		var keyhash []byte
 
 		// read hashfile from file to check input password
@@ -568,65 +567,50 @@ func newRealPrompt(dir string, localBuf io.Reader) func(string) (string, error) 
 			return "", fmt.Errorf("failed to open %s: %v", keyhashFilePath, err)
 		}
 
-		// use local stdin input password
-		// it can be tolerated of three time
-		if passwd, err = localPrompt(localBuf, keyhashStored, keyhash); err != nil {
-			return "", err
-		}
+		failureCounter := 0
+		for {
+			failureCounter++
+			if failureCounter > maxPassphraseEntryAttempts {
+				return "", fmt.Errorf("too many failed passphrase attempts")
+			}
 
-		// must storage the keyhash, when we first create key
-		if !keyhashStored {
-			saltBytes := tmcrypto.CRandBytes(16)
-			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(passwd), 2)
+			buf := bufio.NewReader(buf)
+			pass, err := input.GetPassword("Enter keyring passphrase:", buf)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				return "", err
+				continue
+			}
+
+			if keyhashStored {
+				if err := bcrypt.CompareHashAndPassword(keyhash, []byte(pass)); err != nil {
+					fmt.Fprintln(os.Stderr, "incorrect passphrase")
+					continue
+				}
+				return pass, nil
+			}
+
+			reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+
+			if pass != reEnteredPass {
+				fmt.Fprintln(os.Stderr, "passphrase do not match")
+				continue
+			}
+
+			saltBytes := tmcrypto.CRandBytes(16)
+			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(pass), 2)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
 			}
 
 			if err := ioutil.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
 				return "", err
 			}
+			return pass, nil
 		}
-
-		return passwd, nil
 	}
-}
-
-// localPrompt receive password from stdin
-func localPrompt(buffer io.Reader, keyhashStored bool, keyhash []byte) (string, error) {
-	failureCounter := 0
-	for {
-		failureCounter++
-		if failureCounter > maxPassphraseEntryAttempts {
-			return "", fmt.Errorf("too many failed passphrase attempts")
-		}
-
-		buf := bufio.NewReader(buffer)
-		passwd, err := input.GetPassword("Enter keyring passphrase:", buf)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
-		}
-
-		if keyhashStored {
-			if err := bcrypt.CompareHashAndPassword(keyhash, []byte(passwd)); err != nil {
-				fmt.Fprintln(os.Stderr, "incorrect passphrase")
-				continue
-			}
-			return passwd, nil
-		}
-
-		reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
-		}
-
-		if passwd != reEnteredPass {
-			fmt.Fprintln(os.Stderr, "passphrase do not match")
-			continue
-		}
-		return passwd, nil
-	}
-
 }
