@@ -4,32 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
-
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/tendermint/go-amino"
 )
-
-var (
-	VENUS_HEIGHT string
-	venusHeight  int64
-)
-
-func init() {
-	if VENUS_HEIGHT == "" {
-		return
-	}
-	n, err := strconv.ParseInt(VENUS_HEIGHT, 10, 64)
-	if err != nil {
-		panic(err)
-	}
-	venusHeight = n
-}
 
 // Tx is an arbitrary byte array.
 // NOTE: Tx has no types at this level, so when wire encoded it's just length-prefixed.
@@ -38,10 +20,10 @@ type Tx []byte
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
 func (tx Tx) Hash(height int64) []byte {
-	if height < venusHeight {
-		return tmhash.Sum(tx)
+	if HigherThanVenus(height) {
+		return etherhash.Sum(tx)
 	}
-	return etherhash.Sum(tx)
+	return tmhash.Sum(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
