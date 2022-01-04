@@ -37,6 +37,53 @@ type EthAccount struct {
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
 }
 
+func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var read int
+
+	for {
+		data = data[dataLen:]
+		read += int(dataLen)
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+		read += 1
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+
+		data = data[n:]
+		read += n
+		subData := data[:dataLen]
+
+		switch pos {
+		case 1:
+			base := new(auth.BaseAccount)
+			err = base.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			acc.BaseAccount = base
+		case 2:
+			acc.CodeHash = make([]byte, len(subData))
+			copy(acc.CodeHash, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func (acc EthAccount) Copy() interface{} {
 	return &EthAccount{
 		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),

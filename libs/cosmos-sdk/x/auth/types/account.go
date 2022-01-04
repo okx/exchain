@@ -33,6 +33,66 @@ type BaseAccount struct {
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
 }
 
+func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			acc.Address = make([]byte, len(subData))
+			copy(acc.Address, subData)
+		case 2:
+			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			acc.Coins = append(acc.Coins, coin)
+		case 3:
+			pubkey, err := cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			if err != nil {
+				return err
+			}
+			acc.PubKey = pubkey
+		case 4:
+			var n int
+			acc.AccountNumber, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 5:
+			var n int
+			acc.Sequence, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		}
+	}
+	return nil
+}
+
 func (acc BaseAccount) Copy() interface{} {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }

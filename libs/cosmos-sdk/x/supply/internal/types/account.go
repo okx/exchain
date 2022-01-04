@@ -38,6 +38,54 @@ type ModuleAccount struct {
 	Permissions []string `json:"permissions" yaml:"permissions"` // permissions of module account
 }
 
+func (acc *ModuleAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var read int
+
+	for {
+		data = data[dataLen:]
+		read += int(dataLen)
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+		read += 1
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+
+		data = data[n:]
+		read += n
+		subData := data[:dataLen]
+
+		switch pos {
+		case 1:
+			base := new(authtypes.BaseAccount)
+			err = base.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			acc.BaseAccount = base
+		case 2:
+			acc.Name = string(subData)
+		case 3:
+			acc.Permissions = append(acc.Permissions, string(subData))
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func (acc ModuleAccount) Copy() interface{} {
 	return NewModuleAccount(authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence), acc.Name, acc.Permissions...)
 }
