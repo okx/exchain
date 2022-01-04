@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/queue"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
@@ -15,6 +16,12 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+type DeltaContextOption func(ctx *DeltaContext)
+func DeltaContextWithQueue(q queue.Queue)DeltaContextOption{
+	return func(ctx *DeltaContext) {
+		ctx.producerQ=q
+	}
+}
 type identityMapType map[string]int64
 
 func (m identityMapType) String() string {
@@ -56,12 +63,12 @@ type DeltaContext struct {
 	compressType int
 	compressFlag int
 	bufferSize int
-
+	producerQ queue.Queue
 	idMap  identityMapType
 	identity string
 }
 
-func newDeltaContext(l log.Logger) *DeltaContext {
+func newDeltaContext(l log.Logger,ops ...DeltaContextOption) *DeltaContext {
 	dp := &DeltaContext{
 		dataMap: newDataMap(),
 		missed: 1,
@@ -69,6 +76,10 @@ func newDeltaContext(l log.Logger) *DeltaContext {
 		uploadDelta: types.EnableUploadDelta(),
 		idMap: make(identityMapType),
 		logger: l,
+	}
+
+	for _,opt:=range ops{
+		opt(dp)
 	}
 
 	if dp.uploadDelta && dp.downloadDelta {
@@ -147,7 +158,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	// delta consumer
 	if dc.downloadDelta {
 
-		applied := false
+		applied:=false
 		if delta != nil {
 			applied = true
 		}
@@ -165,6 +176,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 			applyWatchDataFunc(delta.WatchBytes())
 		}
 	}
+
 
 	// delta producer
 	if dc.uploadDelta {
@@ -299,6 +311,7 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 	return
 }
 
+
 type downloadInfo struct {
 	lastTarget int64
 	firstErrorMap map[int64]error
@@ -360,6 +373,11 @@ func (dc *DeltaContext) downloadRoutine() {
 		err, delta, mrh := dc.download(targetHeight)
 		info.statistics(targetHeight, err, mrh)
 		if err == nil {
+			dc.producerQ.Push(&DeltaJob{
+				Delta: delta,
+				Cb: func(h int64) {
+				},
+			})
 			dc.dataMap.insert(targetHeight, delta, mrh)
 			targetHeight++
 		}

@@ -17,6 +17,7 @@ const (
 	FlagBufferSize      = "delta-buffer-size"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
+	FlagEnablePreRun="enable-preruntx"
 
 	// redis
 	// url fmt (ip:port)
@@ -34,10 +35,12 @@ var (
 	fastQuery     = false
 	downloadDelta = false
 	uploadDelta   = false
+	enablePreRun=false
 
 	onceFastQuery sync.Once
 	onceDownload  sync.Once
 	onceUpload    sync.Once
+	oncePreRun sync.Once
 )
 
 func IsFastQuery() bool {
@@ -52,6 +55,13 @@ func EnableDownloadDelta() bool {
 		downloadDelta = viper.GetBool(FlagDownloadDDS)
 	})
 	return downloadDelta
+}
+
+func EnablePreRunTx()bool{
+	oncePreRun.Do(func() {
+		enablePreRun=viper.GetBool(FlagEnablePreRun)
+	})
+	return enablePreRun
 }
 
 func EnableUploadDelta() bool {
