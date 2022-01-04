@@ -21,15 +21,17 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:info,iavl:info,*:error,state:info
+    LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
 
     exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
-      --consensus.timeout_commit 200ms \
+      --log_file json \
+      --consensus.timeout_commit 2000ms \
       --enable-preruntx \
       --iavl-enable-async-commit \
       --enable-gid \
+      --append-pid=true \
       --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=1,acc=1 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
