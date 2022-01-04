@@ -66,7 +66,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- replay success ---------")
 		},
 	}
-	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(types.FlagDownloadDDS, false, "get delta from dc/redis or not")
