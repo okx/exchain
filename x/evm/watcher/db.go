@@ -73,3 +73,7 @@ func (w WatchStore) Has(key []byte) bool {
 	}
 	return res
 }
+
+func (w WatchStore) getDB() dbm.DB {
+	return w.db
+}
