@@ -1,7 +1,6 @@
 package watcher_test
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -15,7 +14,6 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 	"math/big"
 	"testing"
 	"time"
@@ -59,14 +57,12 @@ func setupTest() *WatcherTestSt {
 	return w
 }
 
-func getDBKV(t *testing.T, db dbm.DB) []KV {
+func getDBKV(db *watcher.WatchStore) []KV {
 	var kvs []KV
-	fmt.Println(db.Stats())
-	it, _ := db.Iterator(nil, nil)
+	it := db.Iterator(nil, nil)
 	for it.Valid() {
 		kvs = append(kvs, KV{it.Key(), it.Value()})
-		err := db.Delete(it.Key())
-		require.Nil(t, err)
+		db.Delete(it.Key())
 		it.Next()
 	}
 	return kvs
@@ -76,21 +72,19 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Second * 2)
-	db := watcher.InstanceOfWatchStore().GetDB()
-	pWd := getDBKV(t, db)
+	store := watcher.InstanceOfWatchStore()
+	pWd := getDBKV(store)
 
 	// get WatchData
-	wd, err := w.app.EvmKeeper.Watcher.Gwd()
+	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 
-	db2 := watcher.InstanceOfWatchStore().GetDB()
-	fmt.Println(db2.Stats())
-
+	store2 := watcher.InstanceOfWatchStore()
 	// use WatchData
-	w.app.EvmKeeper.Watcher.Uwd(wd)
+	w.app.EvmKeeper.Watcher.UseWatchData(wd)
 	time.Sleep(time.Second * 5)
-	cWd := getDBKV(t, db2)
+	cWd := getDBKV(store2)
 
 	// compare db_kv of producer and consumer
 	require.Equal(t, pWd, cWd)

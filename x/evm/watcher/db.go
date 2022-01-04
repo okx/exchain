@@ -73,6 +73,11 @@ func (w WatchStore) Has(key []byte) bool {
 	return res
 }
 
-func (w WatchStore) GetDB() dbm.DB {
-	return w.db
+func (w WatchStore) Iterator(start, end []byte) dbm.Iterator {
+	it, err := w.db.Iterator(start, end)
+	if err != nil {
+		log.Println("watchdb error: " + err.Error())
+		return nil
+	}
+	return it
 }

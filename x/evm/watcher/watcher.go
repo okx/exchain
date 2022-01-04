@@ -59,7 +59,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: map[uint64]uint64{}, sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	return watcher
 }
 
@@ -417,7 +417,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
-func (w *Watcher) Gwd() ([]byte, error) {
+func (w *Watcher) GetWatchData() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 	valueByte, err := itjs.Marshal(value)
@@ -427,7 +427,7 @@ func (w *Watcher) Gwd() ([]byte, error) {
 	return valueByte, nil
 }
 
-func (w *Watcher) Uwd(wdByte []byte) {
+func (w *Watcher) UseWatchData(wdByte []byte) {
 	if len(wdByte) > 0 {
 		wd := WatchData{}
 		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
@@ -441,7 +441,7 @@ func (w *Watcher) Uwd(wdByte []byte) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	tmstate.SetWatchDataFunc(w.Gwd, w.Uwd)
+	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
