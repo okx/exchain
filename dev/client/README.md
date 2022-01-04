@@ -1,4 +1,5 @@
-# transfer okt
+# how to use
 ```
-./run.sh
+go build
+./client
 ```
