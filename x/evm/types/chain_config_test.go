@@ -1,7 +1,10 @@
 package types
 
 import (
+	"math"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/stretchr/testify/require"
 
@@ -261,4 +264,48 @@ yoloV2_block: "-1"
 ewasm_block: "-1"
 `
 	require.Equal(t, configStr, DefaultChainConfig().String())
+}
+
+func TestChainConfigAmino(t *testing.T) {
+	testCases := []ChainConfig{
+		{},
+		{
+			DAOForkSupport: true,
+			EIP150Hash:     "EIP150Hash",
+		},
+		{
+			sdk.NewInt(0),
+			sdk.NewInt(1),
+			false,
+			sdk.NewInt(2),
+			"test",
+			sdk.NewInt(3),
+			sdk.NewInt(4),
+			sdk.NewInt(5),
+			sdk.NewInt(6),
+			sdk.NewInt(7),
+			sdk.NewInt(8),
+			sdk.NewInt(9),
+			sdk.NewInt(math.MaxInt64),
+			sdk.NewInt(math.MinInt64),
+		},
+	}
+
+	cdc := amino.NewCodec()
+	RegisterCodec(cdc)
+
+	for _, chainConfig := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(chainConfig)
+		require.NoError(t, err)
+
+		var expectValue ChainConfig
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue ChainConfig
+		err = actualValue.UnmarshalFromAmino(expectData[4:])
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
 }
