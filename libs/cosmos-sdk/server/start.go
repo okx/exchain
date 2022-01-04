@@ -4,9 +4,10 @@ package server
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"os"
 	"runtime/pprof"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -66,7 +67,8 @@ func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error) *cobra.Command {
+	appPreRun func(ctx *Context) error,
+	signedFunc mempool.PostCheckAndSignFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -110,7 +112,7 @@ which accepts a path for the resulting pprof file.
 			ctx.Logger.Info("starting ABCI with Tendermint")
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
+			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn, signedFunc)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -242,7 +244,7 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 }
 
 func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
-	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
+	registerRoutesFn func(restServer *lcd.RestServer), signedFunc mempool.PostCheckAndSignFunc) (*node.Node, error) {
 
 	cfg := ctx.Config
 	home := cfg.RootDir
@@ -277,6 +279,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
+		node.InjectMempoolSignedCallback(signedFunc),
 	)
 	if err != nil {
 		return nil, err

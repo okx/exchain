@@ -53,9 +53,10 @@ type CListMempool struct {
 
 	// Exclusive mutex for Update method to prevent concurrent execution of
 	// CheckTx or ReapMaxBytesMaxGas(ReapMaxTxs) methods.
-	updateMtx sync.RWMutex
-	preCheck  PreCheckFunc
-	postCheck PostCheckFunc
+	updateMtx  sync.RWMutex
+	preCheck   PreCheckFunc
+	postCheck  PostCheckFunc
+	postSigned PostCheckAndSignFunc
 
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
@@ -152,6 +153,10 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 // SetLogger sets the Logger.
 func (mem *CListMempool) SetLogger(l log.Logger) {
 	mem.logger = l
+}
+
+func (mem *CListMempool) SetPostCheckSigenFunc(f PostCheckAndSignFunc) {
+	mem.postSigned = f
 }
 
 // WithPreCheck sets a filter for the mempool to reject a tx if f(tx) returns
@@ -596,6 +601,15 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
+			}
+
+			if mem.postSigned != nil {
+				tx, err := mem.postSigned(memTx.tx, r)
+				if err != nil {
+					mem.logger.Info("Try to sign the TX", txID(memTx.tx), err)
+				} else {
+					memTx.tx = tx
+				}
 			}
 
 			var err error
