@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/x/common/analyzer"
 )
 
@@ -165,9 +166,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
 	vmConfig := vm.Config{
-		ExtraEips:  params.ExtraEIPs,
-		Debug:      enableDebug,
-		Tracer:     tracer,
+		ExtraEips:        params.ExtraEIPs,
+		Debug:            enableDebug,
+		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
 
@@ -187,7 +188,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := addDefaultInnerTx(evm, st.Sender.String())
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, st.Sender.String(), "", "", "", st.Amount, nil)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -207,7 +208,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		updateDefaultInnerTxTo(callTx, contractAddress.String())
+		innertx.UpdateDefaultInnerTx(callTx, contractAddress.String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
@@ -221,12 +222,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 
-		updateDefaultInnerTxTo(callTx, st.Recipient.String())
+		innertx.UpdateDefaultInnerTx(callTx, st.Recipient.String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
 	}
 
 	gasConsumed := gasLimit - leftOverGas
 
-	innerTxs, erc20Contracts = parseInnerTxAndContract(evm, err != nil)
+	innerTxs, erc20Contracts = innertx.ParseInnerTxAndContract(evm, err != nil)
 
 	defer func() {
 		// Consume gas from evm execution
