@@ -1,7 +1,6 @@
 package watcher_test
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app"
@@ -66,26 +65,18 @@ func getDBKV(db *watcher.WatchStore) []KV {
 	it := db.Iterator(nil, nil)
 	for it.Valid() {
 		kvs = append(kvs, KV{it.Key(), it.Value()})
+		db.Delete(it.Key())
 		it.Next()
 	}
 	return kvs
 }
 
-func flushDB(db *watcher.WatchStore) {
-	it := db.Iterator(nil, nil)
-	for it.Valid() {
-		db.Delete(it.Key())
-		it.Next()
-	}
-}
-
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
-	flushDB(store)
 
 	// get WatchData
 	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
@@ -94,13 +85,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 
 	// use WatchData
 	w.app.EvmKeeper.Watcher.UseWatchData(wd)
-	fmt.Println(len(wd))
-	for i:=1; i<=5; i++ {
-		tmp := getDBKV(store)
-		fmt.Println(len(tmp))
-		time.Sleep(time.Second)
-	}
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 4)
 	cWd := getDBKV(store)
 
 	// compare db_kv of producer and consumer
