@@ -64,6 +64,10 @@ func (ts *Store) GetFlatKVReadTime() int {
 	return 0
 }
 
+func (ts *Store) GetFlatKVWriteTime() int {
+	return 0
+}
+
 func (ts *Store) GetFlatKVReadCount() int {
 	return 0
 }

@@ -15,6 +15,7 @@ type Store struct {
 	db         dbm.DB
 	cache      map[string][]byte
 	readTime   int64
+	writeTime  int64
 	readCount  int64
 	writeCount int64
 	enable     bool
@@ -25,6 +26,7 @@ func NewStore(db dbm.DB) *Store {
 		db:         db,
 		cache:      make(map[string][]byte),
 		readTime:   0,
+		writeTime:  0,
 		readCount:  0,
 		writeCount: 0,
 		enable:     viper.GetBool(FlagEnable),
@@ -73,7 +75,9 @@ func (st *Store) Delete(key []byte) {
 	if !st.enable {
 		return
 	}
+	ts := time.Now()
 	st.db.Delete(key)
+	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
 	st.deleteCache(key)
 }
@@ -82,6 +86,7 @@ func (st *Store) Commit() {
 	if !st.enable {
 		return
 	}
+	ts := time.Now()
 	// commit to flat kv db
 	batch := st.db.NewBatch()
 	defer batch.Close()
@@ -89,6 +94,7 @@ func (st *Store) Commit() {
 		batch.Set([]byte(key), value)
 	}
 	batch.Write()
+	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
 	// clear cache
 	st.cache = make(map[string][]byte)
@@ -99,6 +105,7 @@ func (st *Store) ResetCount() {
 		return
 	}
 	st.resetDBReadTime()
+	st.resetDBWriteTime()
 	st.resetDBReadCount()
 	st.resetDBWriteCount()
 }
@@ -116,6 +123,21 @@ func (st *Store) addDBReadTime(ts int64) {
 
 func (st *Store) resetDBReadTime() {
 	atomic.StoreInt64(&st.readTime, 0)
+}
+
+func (st *Store) GetDBWriteTime() int {
+	if !st.enable {
+		return 0
+	}
+	return int(atomic.LoadInt64(&st.writeTime))
+}
+
+func (st *Store) addDBWriteTime(ts int64) {
+	atomic.AddInt64(&st.writeTime, ts)
+}
+
+func (st *Store) resetDBWriteTime() {
+	atomic.StoreInt64(&st.writeTime, 0)
 }
 
 func (st *Store) GetDBReadCount() int {

@@ -33,6 +33,7 @@ type Analyser interface {
 	GetDBReadCount() int
 	GetNodeReadCount() int
 	GetFlatKVReadTime() int
+	GetFlatKVWriteTime() int
 	GetFlatKVReadCount() int
 	GetFlatKVWriteCount() int
 	ResetCount()

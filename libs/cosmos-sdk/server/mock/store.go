@@ -122,6 +122,10 @@ func (ms multiStore) GetFlatKVReadTime() int {
 	return 0
 }
 
+func (ms multiStore) GetFlatKVWriteTime() int {
+	return 0
+}
+
 func (ms multiStore) GetFlatKVReadCount() int {
 	return 0
 }

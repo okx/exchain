@@ -43,13 +43,29 @@ func (st *Store) resetFlatKVCount() {
 }
 
 func (st *Store) GetFlatKVReadTime() int {
+	if st.flatKVStore == nil {
+		return 0
+	}
 	return st.flatKVStore.GetDBReadTime()
 }
 
+func (st *Store) GetFlatKVWriteTime() int {
+	if st.flatKVStore == nil {
+		return 0
+	}
+	return st.flatKVStore.GetDBWriteTime()
+}
+
 func (st *Store) GetFlatKVReadCount() int {
+	if st.flatKVStore == nil {
+		return 0
+	}
 	return st.flatKVStore.GetDBReadCount()
 }
 
 func (st *Store) GetFlatKVWriteCount() int {
+	if st.flatKVStore == nil {
+		return 0
+	}
 	return st.flatKVStore.GetDBWriteCount()
 }

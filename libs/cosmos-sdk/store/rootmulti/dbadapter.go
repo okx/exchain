@@ -42,5 +42,6 @@ func (cdsa commitDBStoreAdapter) GetNodeReadCount() int { return 0 }
 func (cdsa commitDBStoreAdapter) ResetCount() {}
 
 func (cdsa commitDBStoreAdapter) GetFlatKVReadTime() int   { return 0 }
+func (cdsa commitDBStoreAdapter) GetFlatKVWriteTime() int  { return 0 }
 func (cdsa commitDBStoreAdapter) GetFlatKVReadCount() int  { return 0 }
 func (cdsa commitDBStoreAdapter) GetFlatKVWriteCount() int { return 0 }

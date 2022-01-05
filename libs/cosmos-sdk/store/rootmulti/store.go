@@ -96,7 +96,7 @@ func newFlatKVDB() dbm.DB {
 	rootDir := viper.GetString("home")
 	dataDir := filepath.Join(rootDir, "data")
 	var err error
-	flatKVDB, err := sdk.NewLevelDB("app_flat_kv", dataDir)
+	flatKVDB, err := sdk.NewLevelDB("flat", dataDir)
 	if err != nil {
 		panic(err)
 	}
@@ -797,11 +797,19 @@ func (rs *Store) ResetCount() {
 }
 
 func (rs *Store) GetFlatKVReadTime() int {
-	count := 0
+	rt := 0
 	for _, store := range rs.stores {
-		count += store.GetFlatKVReadTime()
+		rt += store.GetFlatKVReadTime()
 	}
-	return count
+	return rt
+}
+
+func (rs *Store) GetFlatKVWriteTime() int {
+	wt := 0
+	for _, store := range rs.stores {
+		wt += store.GetFlatKVWriteTime()
+	}
+	return wt
 }
 
 func (rs *Store) GetFlatKVReadCount() int {
