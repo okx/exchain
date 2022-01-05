@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -54,7 +53,7 @@ func TestBroadcastError(t *testing.T) {
 	}
 
 	txBytes := []byte{0xA, 0xB}
-	txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
+	txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(0))
 
 	for _, mode := range modes {
 		for err, code := range errors {

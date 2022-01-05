@@ -363,7 +363,7 @@ func (c *Client) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
 	}
 
 	// Validate the proof.
-	return res, res.Proof.Validate(h.DataHash)
+	return res, res.Proof.Validate(h.DataHash, res.Height)
 }
 
 func (c *Client) TxSearch(query string, prove bool, page, perPage int, orderBy string) (

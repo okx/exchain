@@ -122,7 +122,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
+	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
 		if err != nil {
 			return err
 		}
-		err = resTx.Proof.Validate(check.Header.DataHash)
+		err = resTx.Proof.Validate(check.Header.DataHash, resTx.Height)
 		if err != nil {
 			return err
 		}

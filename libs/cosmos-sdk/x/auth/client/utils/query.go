@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-type ParseAppTxHandler func (cdc *codec.Codec, txBytes []byte) (sdk.Tx, error)
+type ParseAppTxHandler func(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error)
 
 var paresAppTx ParseAppTxHandler
 
@@ -142,7 +142,7 @@ func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
 		if err != nil {
 			return err
 		}
-		err = resTx.Proof.Validate(check.Header.DataHash)
+		err = resTx.Proof.Validate(check.Header.DataHash, resTx.Height)
 		if err != nil {
 			return err
 		}
