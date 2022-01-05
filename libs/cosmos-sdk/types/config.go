@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
@@ -47,7 +46,6 @@ func NewConfig() *Config {
 		txEncoder:          nil,
 	}
 }
-
 
 // GetConfig returns the config instance for the SDK.
 func GetConfig() *Config {
@@ -143,18 +141,6 @@ func (config *Config) Seal() *Config {
 	return config
 }
 
-
-
-// RecoverPrefixForAcc recover config as before.
-func (config *Config) RecoverPrefixForAcc(addressPrefix, pubKeyPrefix string) {
-	config.SetBech32PrefixForAccount(addressPrefix, pubKeyPrefix)
-
-	//update signal
-	config.mtx.Lock()
-	defer config.mtx.Unlock()
-	config.sealed = true
-}
-
 // GetBech32AccountAddrPrefix returns the Bech32 prefix for account address
 func (config *Config) GetBech32AccountAddrPrefix() string {
 	return config.bech32AddressPrefix["account_addr"]
@@ -210,29 +196,4 @@ func KeyringServiceName() string {
 		return DefaultKeyringServiceName
 	}
 	return version.Name
-}
-
-
-
-// Unseal unseals the config after we ensure no other gorountine use it,
-// and must recover all change as before.
-func (config *Config) Unseal() {
-	config.mtx.Lock()
-	defer config.mtx.Unlock()
-
-	// signal unsealed and not allow other use this
-	// implement
-	config.sealed = false
-}
-
-// Bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
-func (config *Config) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
-	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
-	return AccAddressFromBech32(srcAddr)
-}
-
-// Bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
-func (config *Config) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
-	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
-	return accAddr.String()
 }

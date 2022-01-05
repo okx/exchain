@@ -44,33 +44,27 @@ func convertCommand() *cobra.Command {
 			targetPrefix := []string{okexPrefix, exPrefix, rawPrefix}
 			srcAddr := args[0]
 
-			config := sdk.GetConfig()
-			//register func to encode account address to prefix address.
+			// register func to encode account address to prefix address.
 			toPrefixFunc := map[string]accAddrToPrefixFunc{
-				okexPrefix: config.Bech32FromAccAddr,
-				exPrefix:   config.Bech32FromAccAddr,
+				okexPrefix: bech32FromAccAddr,
+				exPrefix:   bech32FromAccAddr,
 				rawPrefix:  hexFromAccAddr,
 			}
 
-			// save previous config to recover
-			pfxAddrPre := config.GetBech32AccountAddrPrefix()
-			pfxPubPre := config.GetBech32AccountPubPrefix()
-			config.Unseal()
-			defer config.RecoverPrefixForAcc(pfxAddrPre, pfxPubPre)
-
-			//prefix is "okexchain","ex" or "0x"
+			// prefix is "okexchain","ex" or "0x"
+			// convert srcAddr to accAddr
 			var accAddr sdk.AccAddress
 			var err error
 			switch {
 			case strings.HasPrefix(srcAddr, okexPrefix):
 				//source address parse to account address
 				addrList[okexPrefix] = srcAddr
-				accAddr, err = config.Bech32ToAccAddr(okexPrefix, srcAddr)
+				accAddr, err = bech32ToAccAddr(okexPrefix, srcAddr)
 
 			case strings.HasPrefix(srcAddr, exPrefix):
 				//source address parse to account address
 				addrList[exPrefix] = srcAddr
-				accAddr, err = config.Bech32ToAccAddr(exPrefix, srcAddr)
+				accAddr, err = bech32ToAccAddr(exPrefix, srcAddr)
 
 			case strings.HasPrefix(srcAddr, rawPrefix):
 				addrList[rawPrefix] = srcAddr
@@ -105,6 +99,16 @@ func convertCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
+func bech32ToAccAddr(prefix string, srcAddr string) (sdk.AccAddress, error) {
+	return sdk.AccAddressFromBech32ByPrefix(srcAddr, prefix)
+}
+
+// bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
+func bech32FromAccAddr(accAddr sdk.AccAddress, prefix string) string {
+	return accAddr.Bech32String(prefix)
 }
 
 // hexToAccAddr convert a hex string to an account address
