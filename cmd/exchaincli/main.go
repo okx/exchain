@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
@@ -72,6 +73,7 @@ func main() {
 		txCmd(cdc),
 		flags.LineBreak,
 		client.KeyCommands(),
+		client.AddrCommands(),
 		flags.LineBreak,
 		version.Cmd,
 		flags.NewCompletionCmd(rootCmd, true),
