@@ -427,19 +427,25 @@ func TestResponseEndBlockAmino(t *testing.T) {
 						Type: "test",
 					},
 				},
+				{
+					PubKey: PubKey{
+						Type: "test2",
+					},
+				},
+				{},
 			},
 			ConsensusParamUpdates: &ConsensusParams{},
-			Events:                []Event{},
+			Events:                []Event{{}, {Type: "Event"}, {Type: "Event2"}},
 		},
 		{
 			ValidatorUpdates:      []ValidatorUpdate{},
 			ConsensusParamUpdates: &ConsensusParams{},
-			Events:                []Event{{}},
+			Events:                []Event{},
 		},
 		{
 			ValidatorUpdates:      []ValidatorUpdate{{}},
 			ConsensusParamUpdates: &ConsensusParams{Block: &BlockParams{}, Evidence: &EvidenceParams{}, Validator: &ValidatorParams{}},
-			Events:                []Event{{}, {Type: "Event"}, {}},
+			Events:                []Event{{}},
 		},
 	}
 	for _, resp := range resps {

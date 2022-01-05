@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"sync"
 )
 
@@ -33,7 +32,7 @@ func SetLogFunc(l LogFuncType)  {
 
 func iavlLog(module string, level int, format string, args ...interface{}) {
 	if v, ok := OutputModules[module]; ok && v != 0 && logFunc != nil {
-		format = fmt.Sprintf("gid[%s] %s", gorid.GoRId, format)
+		format = fmt.Sprintf("%s", format)
 		logFunc(level, format, args...)
 	}
 }

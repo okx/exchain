@@ -575,7 +575,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 				if err != nil {
 					return nil, err
 				}
-				data, err := MarshalValidatorUpdateToAmino(endBlock.ValidatorUpdates[0])
+				data, err := MarshalValidatorUpdateToAmino(endBlock.ValidatorUpdates[i])
 				if err != nil {
 					return nil, err
 				}
