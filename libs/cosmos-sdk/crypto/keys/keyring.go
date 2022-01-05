@@ -14,9 +14,9 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/crypto/bcrypt"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/crypto/bcrypt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
@@ -42,16 +42,18 @@ var _ Keybase = keyringKeybase{}
 // keyringKeybase implements the Keybase interface by using the Keyring library
 // for account key persistence.
 type keyringKeybase struct {
-	base baseKeybase
-	db   keyring.Keyring
+	base    baseKeybase
+	db      keyring.Keyring
+	fileDir string
 }
 
 var maxPassphraseEntryAttempts = 3
 
-func newKeyringKeybase(db keyring.Keyring, opts ...KeybaseOption) Keybase {
+func newKeyringKeybase(db keyring.Keyring, path string, opts ...KeybaseOption) Keybase {
 	return keyringKeybase{
-		db:   db,
-		base: newBaseKeybase(opts...),
+		db:      db,
+		fileDir: path,
+		base:    newBaseKeybase(opts...),
 	}
 }
 
@@ -64,26 +66,28 @@ func NewKeyring(
 
 	var db keyring.Keyring
 	var err error
+	var config keyring.Config
 
 	switch backend {
 	case BackendTest:
-		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, nil, true))
+		config = lkbToKeyringConfig(appName, rootDir, nil, true)
 	case BackendFile:
-		db, err = keyring.Open(newFileBackendKeyringConfig(appName, rootDir, userInput))
+		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendOS:
-		db, err = keyring.Open(lkbToKeyringConfig(appName, rootDir, userInput, false))
+		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
 	case BackendKWallet:
-		db, err = keyring.Open(newKWalletBackendKeyringConfig(appName, rootDir, userInput))
+		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
-		db, err = keyring.Open(newPassBackendKeyringConfig(appName, rootDir, userInput))
+		config = newPassBackendKeyringConfig(appName, rootDir, userInput)
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
 	}
+	db, err = keyring.Open(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return newKeyringKeybase(db, opts...), nil
+	return newKeyringKeybase(db, config.FileDir, opts...), nil
 }
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
@@ -487,6 +491,11 @@ func (kb keyringKeybase) writeInfo(name string, info Info) {
 	}
 }
 
+//FileDir show keyringKeybase absolute position
+func (kb keyringKeybase) FileDir() (string, error) {
+	return resolvePath(kb.fileDir)
+}
+
 func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.Config {
 	if test {
 		return keyring.Config{
@@ -538,9 +547,9 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 	return func(prompt string) (string, error) {
 		keyhashStored := false
 		keyhashFilePath := filepath.Join(dir, "keyhash")
-
 		var keyhash []byte
 
+		// read hashfile from file to check input password
 		_, err := os.Stat(keyhashFilePath)
 		switch {
 		case err == nil:
@@ -601,7 +610,6 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 			if err := ioutil.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
 				return "", err
 			}
-
 			return pass, nil
 		}
 	}

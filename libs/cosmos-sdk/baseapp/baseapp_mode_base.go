@@ -146,7 +146,7 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (error) {
 
 	if err != nil {
-		if sdk.HigherThanMercury(info.ctx.BlockHeight()) {
+		if tmtypes.HigherThanMercury(info.ctx.BlockHeight()) {
 			codeSpace, code, info := sdkerrors.ABCIInfo(err, m.app.trace)
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
