@@ -2,26 +2,21 @@ package client
 
 import (
 	"bufio"
-	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/okex/exchain/app/crypto/ethkeystore"
+	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/crypto/hd"
 )
 
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
@@ -68,14 +63,14 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				return err
 			}
 
-			// Converts key to Ethermint secp256 implementation
-			emintKey, ok := privKey.(ethsecp256k1.PrivKey)
-			if !ok {
+			// Converts tendermint  key to ethereum key
+			ethKey, err := ethkeystore.EncodeTmKeyToEthKey(privKey)
+			if err != nil {
 				return fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
 			}
 
 			// Formats key for output
-			privB := ethcrypto.FromECDSA(emintKey.ToECDSA())
+			privB := ethcrypto.FromECDSA(ethKey)
 			keyS := strings.ToLower(hexutil.Encode(privB)[2:])
 
 			fmt.Println(keyS)
@@ -88,8 +83,8 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 // ExportEthCompCommand exports a key with the given name as a keystore file.
 func ExportEthCompCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "export-eth-comp [name] [file]",
-		Short: "Export an Ethereum private keystore file",
+		Use:   "export-eth-comp [name] [dir]",
+		Short: "Export an Ethereum private keystore directory",
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
 	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
@@ -97,17 +92,7 @@ func ExportEthCompCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			accountName := args[0]
-			fileName := args[1]
-
-			if pathExist(fileName) {
-				overwrite, err := input.GetConfirmation("File already exists, overwrite", inBuf)
-				if err != nil {
-					return err
-				}
-				if !overwrite {
-					return fmt.Errorf("export keystore file is aborted")
-				}
-			}
+			dir := args[1]
 
 			kb, err := keys.NewKeyring(
 				sdk.KeyringServiceName(),
@@ -143,14 +128,15 @@ func ExportEthCompCommand() *cobra.Command {
 				return err
 			}
 
-			// Get eth keystore key by Name
-			ethKey, err := getEthKeyByName(kb, accountName, decryptPassword)
+			// exports private key from keybase using password
+			privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
 			if err != nil {
 				return err
 			}
 
-			// Export Key to keystore file
-			if err := exportKeyStoreFile(ethKey, encryptPassword, fileName); err != nil {
+			// Exports private key from keybase using password
+			fileName, err := ethkeystore.CreateKeystoreByTmKey(privKey, dir, encryptPassword)
+			if err != nil {
 				return err
 			}
 
@@ -158,68 +144,4 @@ func ExportEthCompCommand() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-// pathExist used for judging the file exist
-func pathExist(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
-// exportKeyStoreFile Export Key to  keystore file
-func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) error {
-	// Encrypt Key to get keystore file
-	content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt key: %s", err.Error())
-	}
-
-	// Write to keystore file
-	err = ioutil.WriteFile(fileName, content, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("failed to write keystore: %s", err.Error())
-	}
-	return nil
-}
-
-// getEthKeyByName Get eth keystore key by Name
-func getEthKeyByName(kb keys.Keybase, accountName, decryptPassword string) (*keystore.Key, error) {
-	// Exports private key from keybase using password
-	privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
-	if err != nil {
-		return nil, err
-	}
-
-	// Converts key to Ethermint secp256 implementation
-	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
-	if !ok {
-		return nil, fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
-	}
-
-	//  Converts Ethermint secp256 implementation key to keystore key
-	ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
-	if err != nil {
-		return nil, fmt.Errorf("failed convert to ethKey: %s", err.Error())
-	}
-	return ethKey, nil
-}
-
-// newEthKeyFromECDSA new eth.keystore Key
-func newEthKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) (*keystore.Key, error) {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return nil, fmt.Errorf("Could not create random uuid: %v", err)
-	}
-	key := &keystore.Key{
-		Id:         id,
-		Address:    ethcrypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
-		PrivateKey: privateKeyECDSA,
-	}
-	return key, nil
 }
