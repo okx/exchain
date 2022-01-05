@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"math/big"
 	"sync"
@@ -378,6 +379,7 @@ func (w *Watcher) CommitWatchData() {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	fmt.Println("Batch len:", len(batch))
 	for _, b := range batch {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
@@ -390,6 +392,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	fmt.Println("cBatch len:", len(batch))
 	for _, b := range batch {
 		w.store.Set(b.Key, b.Value)
 		if b.TypeValue == TypeState {
