@@ -28,9 +28,6 @@ type Config struct {
 var (
 	sdkConfig  *Config
 	initConfig sync.Once
-
-	sdkUnsealConfig  *UnsealConfig
-	initUnsealConfig sync.Once
 )
 
 // New returns a new Config with default values.
@@ -217,21 +214,9 @@ func KeyringServiceName() string {
 
 
 
-type UnsealConfig struct {
-	*Config
-}
-
-func GetUnsealConfig() *UnsealConfig {
-	initUnsealConfig.Do(func() {
-		sdkUnsealConfig = &UnsealConfig {
-			Config:NewConfig(),
-		}
-	})
-	return sdkUnsealConfig
-}
 // Unseal unseals the config after we ensure no other gorountine use it,
 // and must recover all change as before.
-func (config *UnsealConfig) Unseal() {
+func (config *Config) Unseal() {
 	config.mtx.Lock()
 	defer config.mtx.Unlock()
 
@@ -241,13 +226,13 @@ func (config *UnsealConfig) Unseal() {
 }
 
 // Bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
-func (config *UnsealConfig) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
+func (config *Config) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
 	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
 	return AccAddressFromBech32(srcAddr)
 }
 
 // Bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
-func (config *UnsealConfig) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
+func (config *Config) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
 	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
 	return accAddr.String()
 }
