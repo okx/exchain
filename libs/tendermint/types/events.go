@@ -155,8 +155,8 @@ var (
 	EventQueryVote                = QueryForEvent(EventVote)
 )
 
-func EventQueryTxFor(tx Tx) tmpubsub.Query {
-	return tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s='%X'", EventTypeKey, EventTx, TxHashKey, tx.Hash()))
+func EventQueryTxFor(tx Tx, height int64) tmpubsub.Query {
+	return tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s='%X'", EventTypeKey, EventTx, TxHashKey, tx.Hash(height)))
 }
 
 func QueryForEvent(eventType string) tmpubsub.Query {

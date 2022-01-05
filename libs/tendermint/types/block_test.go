@@ -202,8 +202,8 @@ func TestNilHeaderHashDoesntCrash(t *testing.T) {
 }
 
 func TestNilDataHashDoesntCrash(t *testing.T) {
-	assert.Equal(t, []byte((*Data)(nil).Hash()), nilBytes)
-	assert.Equal(t, []byte(new(Data).Hash()), nilBytes)
+	assert.Equal(t, []byte((*Data)(nil).Hash(0)), nilBytes)
+	assert.Equal(t, []byte(new(Data).Hash(0)), nilBytes)
 }
 
 func TestCommit(t *testing.T) {

@@ -146,7 +146,7 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		res = []byte(err.Error())
 	}
 
-	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(), res)
+	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight()), res)
 }
 
 func saveToDB(txHash []byte, value json.RawMessage) {
