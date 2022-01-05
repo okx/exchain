@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
@@ -132,6 +133,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	sender := senderSigCache.GetFrom()
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
+	fmt.Printf("txhash: %s\n", string(ethHash.String()))
 	StopTxLog(bam.Txhash)
 
 	StartTxLog(bam.SaveTx)

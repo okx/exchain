@@ -706,6 +706,14 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	if err != nil {
 		return common.Hash{}, err
 	}
+	panic("")
+	fmt.Printf("encode len: %d\n", len(txBytes))
+	// Encode transaction by default Tx encoder
+	//txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
+	//txBytes, err := txEncoder(tx)
+	//if err != nil {
+	//	return common.Hash{}, err
+	//}
 
 	// send chanData to txPool
 	if api.txPool != nil {
@@ -733,9 +741,12 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	defer monitor.OnEnd("data", data)
 	tx := new(evmtypes.MsgEthereumTx)
 
+	fmt.Printf("SendRawTransaction: encode len: %d\n", len(data))
+
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
+		fmt.Printf("SendRawTransaction:err: %s\n", err)
 		return common.Hash{}, err
 	}
 
