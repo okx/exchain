@@ -365,16 +365,16 @@ func (w *Watcher) CommitWatchData() {
 		return
 	}
 	if w.watchData.Batches != nil {
-		go w.commitCenterBatch(w.watchData.Batches)
+		w.commitCenterBatch(w.watchData.Batches)
 	}
 	if w.watchData.DirtyAccount != nil {
-		go w.delDirtyAccount(w.watchData.DirtyAccount)
+		w.delDirtyAccount(w.watchData.DirtyAccount)
 	}
 	if w.watchData.DirtyList != nil {
-		go w.delDirtyList(w.watchData.DirtyList)
+		w.delDirtyList(w.watchData.DirtyList)
 	}
 	if w.watchData.BloomData != nil {
-		go w.commitBloomData(w.watchData.BloomData)
+		w.commitBloomData(w.watchData.BloomData)
 	}
 }
 
@@ -438,7 +438,7 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 		w.delayEraseKey = wd.DelayEraseKey
 	}
 
-	w.CommitWatchData()
+	go w.CommitWatchData()
 }
 
 func (w *Watcher) SetWatchDataFunc() {
