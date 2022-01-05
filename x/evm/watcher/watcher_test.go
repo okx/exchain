@@ -3,6 +3,7 @@ package watcher_test
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
@@ -21,6 +22,8 @@ import (
 	"testing"
 	"time"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type KV struct {
 	k []byte
@@ -65,27 +68,47 @@ func getDBKV(db *watcher.WatchStore) []KV {
 	it := db.Iterator(nil, nil)
 	for it.Valid() {
 		kvs = append(kvs, KV{it.Key(), it.Value()})
-		db.Delete(it.Key())
 		it.Next()
 	}
 	return kvs
+}
+func flushDB(db *watcher.WatchStore) {
+	it := db.Iterator(nil, nil)
+	for it.Valid() {
+		db.Delete(it.Key())
+		it.Next()
+	}
+}
+
+func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
+	wd := watcher.WatchData{}
+	if err := json.Unmarshal(wdBytes, &wd); err != nil {return err}
+	for _, account := range wd.DirtyAccount {
+		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
+	}
+	return nil
 }
 
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 2)
-	store := watcher.InstanceOfWatchStore()
-	pWd := getDBKV(store)
+	time.Sleep(time.Second * 1)
 
 	// get WatchData
 	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
+	err = delDirtyAccount(wd, w)
+	require.Nil(t, err)
+
+	store := watcher.InstanceOfWatchStore()
+	pWd := getDBKV(store)
+	flushDB(store)
 
 	// use WatchData
 	w.app.EvmKeeper.Watcher.UseWatchData(wd)
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 1)
+
 	cWd := getDBKV(store)
 
 	// compare db_kv of producer and consumer
