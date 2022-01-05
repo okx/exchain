@@ -254,16 +254,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	blockExec.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte, blockExec.isFastSync)
+	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
-
-func (blockExec *BlockExecutor) postApplyBlock(height int64, delta *types.Deltas,
-	abciResponses *ABCIResponses, res []byte, isFastSync bool) {
-	blockExec.deltaContext.postApplyBlock(height,delta,abciResponses,res,isFastSync)
-}
-
 
 func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses

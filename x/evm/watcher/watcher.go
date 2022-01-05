@@ -344,7 +344,6 @@ func (w *Watcher) Reset() {
 }
 
 
-// why: because CommitWatchData will commit the batch ,before CommitWatchData,we have to be ready
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
