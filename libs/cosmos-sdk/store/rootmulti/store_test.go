@@ -555,18 +555,24 @@ func TestMultiStore_Delta(t *testing.T) {
 	checkStore(t, ms, commitID, commitID)
 
 	k, v := []byte("wind"), []byte("blows")
+	k1, v1 := []byte("key1"), []byte("val1")
+	k2, v2 := []byte("key2"), []byte("val2")
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
+	store1.Set(k1, v1)
+	store2 := ms.getStoreByName("store2").(types.KVStore)
+	store2.Set(k2, v2)
 
 	// get deltas
+	viper.Set(tmtypes.FlagUploadDDS, true)
+	viper.Set(tmtypes.FlagDownloadDDS, true)
 	iavltree.SetProduceDelta(true)
 	cID, _, deltas := ms.Commit(nil, nil)
 	require.Equal(t, int64(1), cID.Version)
 	assert.NotEmpty(t, deltas)
 
 	// use deltas
-	viper.Set(tmtypes.FlagDownloadDDS, true)
 	cID, _, deltas2 := ms.Commit(nil, deltas)
 	require.Equal(t, int64(2), cID.Version)
 	require.Equal(t, deltas, deltas2)

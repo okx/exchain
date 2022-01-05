@@ -3,11 +3,14 @@ package iavl
 import (
 	crand "crypto/rand"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -540,6 +543,95 @@ func TestIAVLStoreQuery(t *testing.T) {
 	qres = iavlStore.Query(query0)
 	require.Equal(t, uint32(0), qres.Code)
 	require.Equal(t, v1, qres.Value)
+}
+
+func TestCommitDelta(t *testing.T) {
+	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
+	viper.Set(tmtypes.FlagDownloadDDS, true)
+
+	db := dbm.NewMemDB()
+	tree, err := iavl.NewMutableTree(db, cacheSize)
+	require.NoError(t, err)
+
+	iavlStore := UnsafeNewStore(tree)
+
+	k1, v1 := []byte("key1"), []byte("val1")
+	k2, v2 := []byte("key2"), []byte("val2")
+
+	// set data
+	iavlStore.Set(k1, v1)
+	iavlStore.Set(k2, v2)
+
+	// normal case (not use delta and not produce delta)
+	cid, treeDelta, _ := iavlStore.Commit(nil, nil)
+	assert.NotEmpty(t, cid.Hash)
+	assert.EqualValues(t, 1, cid.Version)
+	assert.Equal(t, emptyDelta, treeDelta)
+
+	// not use delta and produce delta
+	iavl.SetProduceDelta(true)
+	cid1, treeDelta1, _ := iavlStore.Commit(nil, nil)
+	assert.NotEmpty(t, cid1.Hash)
+	assert.EqualValues(t, 2, cid1.Version)
+	assert.NotEqual(t, emptyDelta, treeDelta1)
+
+	// use delta and produce delta
+	cid2, treeDelta2, _ := iavlStore.Commit(&treeDelta1, []byte("delta"))
+	assert.NotEmpty(t, cid2.Hash)
+	assert.EqualValues(t, 3, cid2.Version)
+	assert.NotEqual(t, emptyDelta, treeDelta2)
+	assert.Equal(t, treeDelta1, treeDelta2)
+
+	// use delta and not produce delta
+	iavl.SetProduceDelta(false)
+	cid3, treeDelta3, _ := iavlStore.Commit(&treeDelta1, []byte("delta"))
+	assert.NotEmpty(t, cid3.Hash)
+	assert.EqualValues(t, 4, cid3.Version)
+	assert.Equal(t, emptyDelta, treeDelta3)
+}
+
+func TestIAVLDelta(t *testing.T) {
+	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
+
+	db := dbm.NewMemDB()
+	tree, _ := newAlohaTree(t, db)
+
+	// Create non-pruned height H
+	require.True(t, tree.Set([]byte("hello"), []byte("hallo")))
+
+	// normal case (not use delta and not produce delta)
+	h, v, delta, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h)
+	assert.EqualValues(t, 2, v)
+	assert.Equal(t, delta, emptyDelta)
+
+	// not use delta and produce delta
+	iavl.SetProduceDelta(true)
+	h1, v1, delta1, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h1)
+	assert.EqualValues(t, 3, v1)
+	// delta is empty or not depends on SetProduceDelta()
+	assert.NotEqual(t, delta1, emptyDelta)
+
+	// use delta and produce delta
+	tree.SetDelta(&delta1)
+	h2, v2, delta2, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h2)
+	assert.EqualValues(t, 4, v2)
+	assert.NotEqual(t, delta2, emptyDelta)
+	assert.Equal(t, delta1, delta2)
+
+	// use delta and not produce delta
+	iavl.SetProduceDelta(false)
+	tree.SetDelta(&delta1)
+	h3, v3, delta3, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h3)
+	assert.EqualValues(t, 5, v3)
+	assert.Equal(t, delta3, emptyDelta)
 }
 
 func BenchmarkIAVLIteratorNext(b *testing.B) {

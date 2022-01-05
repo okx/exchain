@@ -253,33 +253,40 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 	}
 }
 
-func emptyDelta() TreeDelta {
-	return TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
-}
 func TestMutableTree_SaveVersionDelta(t *testing.T) {
+	emptyDelta := TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+
 	memDB := db.NewMemDB()
-	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 9})
+	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 8})
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
 
-	// produce delta
-	SetProduceDelta(true)
+	// not use delta and not produce delta
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h)
-	assert.EqualValues(t, 10, v)
-	// delta is empty or not depends on SetProduceDelta()
-	assert.NotEqual(t, delta, emptyDelta())
+	assert.EqualValues(t, 9, v)
+	assert.Equal(t, delta, emptyDelta)
 
+	// not use delta and produce delta
+	SetProduceDelta(true)
+	h1, v1, delta1, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h1)
+	assert.EqualValues(t, 10, v1)
+	// delta is empty or not depends on SetProduceDelta()
+	assert.NotEqual(t, delta1, emptyDelta)
+
+	// use delta and produce delta
 	tree.Set([]byte("b"), []byte{0x02})
-	tree.SetDelta(&delta)
+	tree.SetDelta(&delta1)
 	h2, v2, delta2, err := tree.SaveVersion(true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h2)
 	assert.EqualValues(t, 11, v2)
-	assert.NotEqual(t, delta2, emptyDelta())
-	assert.Equal(t, delta, delta2)
+	assert.NotEqual(t, delta2, emptyDelta)
+	assert.Equal(t, delta1, delta2)
 
 	// not produce delta
 	SetProduceDelta(false)
@@ -287,5 +294,13 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, h3)
 	assert.EqualValues(t, 12, v3)
-	assert.Equal(t, delta3, emptyDelta())
+	assert.Equal(t, delta3, emptyDelta)
+
+	// use delta and not produce delta
+	tree.SetDelta(&delta1)
+	h4, v4, delta4, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h4)
+	assert.EqualValues(t, 13, v4)
+	assert.Equal(t, delta4, emptyDelta)
 }
