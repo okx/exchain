@@ -28,6 +28,9 @@ type Config struct {
 var (
 	sdkConfig  *Config
 	initConfig sync.Once
+
+	sdkUnsealConfig  *UnsealConfig
+	initUnsealConfig sync.Once
 )
 
 // New returns a new Config with default values.
@@ -47,6 +50,7 @@ func NewConfig() *Config {
 		txEncoder:          nil,
 	}
 }
+
 
 // GetConfig returns the config instance for the SDK.
 func GetConfig() *Config {
@@ -142,20 +146,7 @@ func (config *Config) Seal() *Config {
 	return config
 }
 
-// Unseal unseals the config after we ensure no other gorountine use it,
-// and must recover all change as before.
-func (config *Config) Unseal() {
-	config.mtx.Lock()
-	defer config.mtx.Unlock()
 
-	if !config.sealed {
-		return
-	}
-
-	// signal unsealed and not allow other use this
-	// implement
-	config.sealed = false
-}
 
 // RecoverPrefixForAcc recover config as before.
 func (config *Config) RecoverPrefixForAcc(addressPrefix, pubKeyPrefix string) {
@@ -234,4 +225,29 @@ func KeyringServiceName() string {
 		return DefaultKeyringServiceName
 	}
 	return version.Name
+}
+
+
+
+type UnsealConfig struct {
+	*Config
+}
+
+func GetUnsealConfig() *UnsealConfig {
+	initUnsealConfig.Do(func() {
+		sdkUnsealConfig = &UnsealConfig {
+			Config:NewConfig(),
+		}
+	})
+	return sdkUnsealConfig
+}
+// Unseal unseals the config after we ensure no other gorountine use it,
+// and must recover all change as before.
+func (config *UnsealConfig) Unseal() {
+	config.mtx.Lock()
+	defer config.mtx.Unlock()
+
+	// signal unsealed and not allow other use this
+	// implement
+	config.sealed = false
 }

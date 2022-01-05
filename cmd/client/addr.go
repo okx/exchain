@@ -44,7 +44,7 @@ func convertCommand() *cobra.Command {
 			targetPrefix := []string{okexPrefix, exPrefix, rawPrefix}
 			srcAddr := args[0]
 
-			config := sdk.GetConfig()
+			config := sdk.GetUnsealConfig()
 			//register func to encode account address to prefix address.
 			toPrefixFunc := map[string]accAddrToPrefixFunc{
 				okexPrefix: config.Bech32FromAccAddr,
