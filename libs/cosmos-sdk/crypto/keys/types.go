@@ -83,6 +83,9 @@ type Keybase interface {
 
 	// CloseDB closes the database.
 	CloseDB()
+
+	//FileDir show where keybase storage a new key
+	FileDir() (string, error)
 }
 
 // KeyType reflects a human-readable type for key listing.

@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
-
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -24,8 +22,7 @@ import (
 func setNodeConfig(ctx *server.Context) {
 	nodeMode := viper.GetString(types.FlagNodeMode)
 
-	ctx.Logger.Info("starting node", "Genesis Height",
-		tendermintTypes.GetStartBlockHeight(), "node mode", nodeMode)
+	ctx.Logger.Info("Starting node", "mode", nodeMode)
 
 	switch types.NodeMode(nodeMode) {
 	case types.RpcNode:

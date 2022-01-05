@@ -8,6 +8,7 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	vestexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
@@ -23,6 +24,8 @@ type Keeper interface {
 
 	DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) error
 	UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) error
+
+	GetInnerTxKeeper() innertx.InnerTxKeeper
 }
 
 // BaseKeeper manages transfers between accounts. It implements the Keeper interface.
@@ -51,7 +54,12 @@ func NewBaseKeeper(
 // vesting and vested coins.
 // The coins are then transferred from the delegator address to a ModuleAccount address.
 // If any of the delegation amounts are negative, an error is returned.
-func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) error {
+func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) (err error) {
+	defer func() {
+		if !ctx.IsCheckTx() && keeper.ik != nil {
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, delegatorAddr, moduleAccAddr, innertx.CosmosCallType, innertx.DelegateCallName, amt, err)
+		}
+	}()
 	delegatorAcc := keeper.ak.GetAccount(ctx, delegatorAddr)
 	if delegatorAcc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", delegatorAddr)
@@ -81,7 +89,7 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 
 	keeper.ak.SetAccount(ctx, delegatorAcc)
 
-	_, err := keeper.AddCoins(ctx, moduleAccAddr, amt)
+	_, err = keeper.AddCoins(ctx, moduleAccAddr, amt)
 	if err != nil {
 		return err
 	}
@@ -94,7 +102,13 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 // vesting and vested coins.
 // The coins are then transferred from a ModuleAccount address to the delegator address.
 // If any of the undelegation amounts are negative, an error is returned.
-func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) error {
+func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) (err error) {
+	defer func() {
+		if !ctx.IsCheckTx() && keeper.ik != nil {
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, moduleAccAddr, delegatorAddr, innertx.CosmosCallType, innertx.UndelegateCallName, amt, err)
+		}
+	}()
+
 	delegatorAcc := keeper.ak.GetAccount(ctx, delegatorAddr)
 	if delegatorAcc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", delegatorAddr)
@@ -118,8 +132,7 @@ func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegat
 		)
 	}
 
-	err := keeper.SetCoins(ctx, moduleAccAddr, newCoins)
-	if err != nil {
+	if err = keeper.SetCoins(ctx, moduleAccAddr, newCoins); err != nil {
 		return err
 	}
 
@@ -161,6 +174,8 @@ type BaseSendKeeper struct {
 
 	// list of addresses that are restricted from receiving transactions
 	blacklistedAddrs map[string]bool
+
+	ik innertx.InnerTxKeeper
 }
 
 // NewBaseSendKeeper returns a new BaseSendKeeper.
@@ -177,7 +192,18 @@ func NewBaseSendKeeper(
 }
 
 // InputOutputCoins handles a list of inputs and outputs
-func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.Input, outputs []types.Output) error {
+func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.Input, outputs []types.Output) (err error) {
+	defer func() {
+		if !ctx.IsCheckTx() && keeper.ik != nil {
+			for _, in := range inputs {
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, in.Address, sdk.AccAddress{}, innertx.CosmosCallType, innertx.MultiCallName, in.Coins, err)
+			}
+
+			for _, out := range outputs {
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, sdk.AccAddress{}, out.Address, innertx.CosmosCallType, innertx.MultiCallName, out.Coins, err)
+			}
+		}
+	}()
 	// Safety check ensuring that when sending coins the keeper must maintain the
 	// Check supply invariant and validity of Coins.
 	if err := types.ValidateInputsOutputs(inputs, outputs); err != nil {
@@ -226,7 +252,12 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 }
 
 // SendCoins moves coins from one account to another
-func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) (err error) {
+	defer func() {
+		if !ctx.IsCheckTx() && keeper.ik != nil {
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, fromAddr, toAddr, innertx.CosmosCallType, innertx.SendCallName, amt, err)
+		}
+	}()
 	ctx.EventManager().EmitEvents(sdk.Events{
 		// This event should have all info (to, from, amount) without looking at other events
 		sdk.NewEvent(
@@ -241,7 +272,7 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 		),
 	})
 
-	_, err := keeper.SubtractCoins(ctx, fromAddr, amt)
+	_, err = keeper.SubtractCoins(ctx, fromAddr, amt)
 	if err != nil {
 		return err
 	}
@@ -340,6 +371,19 @@ func (keeper BaseSendKeeper) SetSendEnabled(ctx sdk.Context, enabled bool) {
 // receiving funds)
 func (keeper BaseSendKeeper) BlacklistedAddr(addr sdk.AccAddress) bool {
 	return keeper.blacklistedAddrs[addr.String()]
+}
+
+// SetInnerTxKeeper set innerTxKeeper
+func (k *BaseKeeper) SetInnerTxKeeper(keeper innertx.InnerTxKeeper) {
+	k.BaseSendKeeper.SetInnerTxKeeper(keeper)
+}
+
+func (k *BaseSendKeeper) SetInnerTxKeeper(keeper innertx.InnerTxKeeper) {
+	k.ik = keeper
+}
+
+func (k BaseSendKeeper) GetInnerTxKeeper() innertx.InnerTxKeeper {
+	return k.ik
 }
 
 var _ ViewKeeper = (*BaseViewKeeper)(nil)

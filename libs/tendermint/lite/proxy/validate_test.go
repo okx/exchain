@@ -12,7 +12,7 @@ import (
 
 var (
 	deadBeefTxs  = types.Txs{[]byte("DE"), []byte("AD"), []byte("BE"), []byte("EF")}
-	deadBeefHash = deadBeefTxs.Hash()
+	deadBeefHash = deadBeefTxs.Hash(0)
 	testTime1    = time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)
 	testTime2    = time.Date(2017, 1, 2, 1, 1, 1, 1, time.UTC)
 )
