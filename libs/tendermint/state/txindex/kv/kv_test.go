@@ -33,7 +33,7 @@ func TestTxIndex(t *testing.T) {
 			Code: abci.CodeTypeOK, Log: "", Events: nil,
 		},
 	}
-	hash := tx.Hash()
+	hash := tx.Hash(txResult.Height)
 
 	batch := txindex.NewBatch(1)
 	if err := batch.Add(txResult); err != nil {
@@ -56,7 +56,7 @@ func TestTxIndex(t *testing.T) {
 			Code: abci.CodeTypeOK, Log: "", Events: nil,
 		},
 	}
-	hash2 := tx2.Hash()
+	hash2 := tx2.Hash(txResult2.Height)
 
 	err = indexer.Index(txResult2)
 	require.NoError(t, err)
@@ -75,7 +75,7 @@ func TestTxSearch(t *testing.T) {
 		{Type: "account", Attributes: []kv.Pair{{Key: []byte("owner"), Value: []byte("Ivan")}}},
 		{Type: "", Attributes: []kv.Pair{{Key: []byte("not_allowed"), Value: []byte("Vlad")}}},
 	})
-	hash := txResult.Tx.Hash()
+	hash := txResult.Tx.Hash(txResult.Height)
 
 	err := indexer.Index(txResult)
 	require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestTxSearchDeprecatedIndexing(t *testing.T) {
 	txResult1 := txResultWithEvents([]abci.Event{
 		{Type: "account", Attributes: []kv.Pair{{Key: []byte("number"), Value: []byte("1")}}},
 	})
-	hash1 := txResult1.Tx.Hash()
+	hash1 := txResult1.Tx.Hash(txResult1.Height)
 
 	err := indexer.Index(txResult1)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestTxSearchDeprecatedIndexing(t *testing.T) {
 	txResult2 := txResultWithEvents(nil)
 	txResult2.Tx = types.Tx("HELLO WORLD 2")
 
-	hash2 := txResult2.Tx.Hash()
+	hash2 := txResult2.Tx.Hash(txResult2.Height)
 	b := indexer.store.NewBatch()
 
 	rawBytes, err := cdc.MarshalBinaryBare(txResult2)
