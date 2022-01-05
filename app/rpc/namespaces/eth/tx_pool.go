@@ -1,7 +1,6 @@
 package eth
 
 import (
-	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -9,18 +8,18 @@ import (
 	"sync"
 	"time"
 
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -140,7 +139,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
+	return common.BytesToHash(types.Tx(txBytes).Hash(api.clientCtx.Height)), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {

@@ -3,16 +3,8 @@ package main
 import (
 	"fmt"
 
-	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/x/dex"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/order"
-	"github.com/spf13/cobra"
 
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -22,13 +14,22 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
 	clientrpc "github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
+	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authcmd "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/cli"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/x/dex"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/order"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -148,8 +149,12 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx evmtypes.MsgEthereumTx
-	err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
-	if err != nil {
+	// try to decode through RLP first
+	if err := rlp.DecodeBytes(txBytes, &tx); err == nil {
+		return tx, nil
+	}
+	//try to decode through animo if it is not RLP-encoded
+	if err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err != nil {
 		return nil, err
 	}
 	return tx, nil
