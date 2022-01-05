@@ -135,18 +135,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	}
 
 	// Doesn't exist, load.
-	buf, err := ndb.dbGet(ndb.nodeKey(hash))
-	if err != nil {
-		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
-	}
-	if buf == nil {
-		panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
-	}
-
-	node, err := MakeNode(buf)
-	if err != nil {
-		panic(fmt.Sprintf("Error reading Node. bytes: %x, error: %v", buf, err))
-	}
+	node := ndb.makeNodeFromDbByHash(hash)
 
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
