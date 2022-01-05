@@ -141,6 +141,29 @@ func (config *Config) Seal() *Config {
 	return config
 }
 
+// Unseal unseals the config after we ensure no other gorountine use it,
+// and must recover all change as before.
+func (config *Config) Unseal() {
+	config.mtx.Lock()
+	defer config.mtx.Unlock()
+
+	if !config.sealed {
+		return
+	}
+
+	// signal unsealed and not allow other use this
+	// implement
+	config.sealed = false
+}
+func (config *Config) RecoverPrefixForAcc(addressPrefix, pubKeyPrefix string) {
+	config.SetBech32PrefixForAccount(addressPrefix, pubKeyPrefix)
+
+	//update signal
+	config.mtx.Lock()
+	defer config.mtx.Unlock()
+	config.sealed = true
+}
+
 // GetBech32AccountAddrPrefix returns the Bech32 prefix for account address
 func (config *Config) GetBech32AccountAddrPrefix() string {
 	return config.bech32AddressPrefix["account_addr"]

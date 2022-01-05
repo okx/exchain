@@ -5,14 +5,19 @@ import (
 
 	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/x/dex"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/spf13/cobra"
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/cmd/client"
 	sdkclient "github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
@@ -23,11 +28,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authcmd "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/cli"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/codec"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/cmd/client"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
 )
 
@@ -72,6 +72,7 @@ func main() {
 		txCmd(cdc),
 		flags.LineBreak,
 		client.KeyCommands(),
+		client.AddrCommands(),
 		flags.LineBreak,
 		version.Cmd,
 		flags.NewCompletionCmd(rootCmd, true),
