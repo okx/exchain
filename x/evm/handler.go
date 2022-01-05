@@ -125,7 +125,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StartTxLog(bam.EvmHandler)
 	defer StopTxLog(bam.EvmHandler)
 
-
 	StartTxLog(bam.Txhash)
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -140,7 +139,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	sender := senderSigCache.GetFrom()
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog(bam.Txhash)
 
@@ -293,7 +292,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, err
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 
 	st := types.StateTransition{

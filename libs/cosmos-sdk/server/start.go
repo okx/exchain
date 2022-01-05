@@ -115,7 +115,7 @@ which accepts a path for the resulting pprof file.
 				return startStandAlone(ctx, appCreator)
 			}
 
-			ctx.Logger.Info("starting ABCI with Tendermint")
+			ctx.Logger.Info("Starting ABCI with Tendermint")
 
 			sub := subFunc(ctx.Logger)
 			log.SetSubscriber(sub)

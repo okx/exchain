@@ -23,7 +23,7 @@ func ValidateBlock(meta *types.Block, sh types.SignedHeader) error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(meta.Data.Hash(), meta.Header.DataHash) {
+	if !bytes.Equal(meta.Data.Hash(meta.Height), meta.Header.DataHash) {
 		return errors.New("data hash doesn't match header")
 	}
 	return nil

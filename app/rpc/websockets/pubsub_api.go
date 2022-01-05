@@ -8,11 +8,11 @@ import (
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -377,7 +377,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
 					continue
 				}
-				txHash := common.BytesToHash(data.Tx.Hash())
+				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
 
 				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
