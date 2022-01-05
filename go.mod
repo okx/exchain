@@ -42,6 +42,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20210614093730-56a4d342a6ff
 	github.com/minio/highwayhash v1.0.0
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mosn/holmes v0.0.0-20210830110104-685dc05437bf
 	github.com/nacos-group/nacos-sdk-go v1.0.0
 	github.com/pelletier/go-toml v1.6.0
@@ -112,7 +113,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20181016162300-f8f6d4d2b643 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
@@ -154,5 +154,5 @@ replace (
 	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec2
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain2
-	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain4
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20220105094631-15fa91c8a839
 )
