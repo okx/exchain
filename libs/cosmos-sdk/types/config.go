@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
@@ -155,6 +156,8 @@ func (config *Config) Unseal() {
 	// implement
 	config.sealed = false
 }
+
+// RecoverPrefixForAcc recover config as before.
 func (config *Config) RecoverPrefixForAcc(addressPrefix, pubKeyPrefix string) {
 	config.SetBech32PrefixForAccount(addressPrefix, pubKeyPrefix)
 
@@ -212,6 +215,18 @@ func (config *Config) GetCoinType() uint32 {
 // GetFullFundraiserPath returns the BIP44Prefix.
 func (config *Config) GetFullFundraiserPath() string {
 	return config.fullFundraiserPath
+}
+
+// Bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
+func (config *Config) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
+	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
+	return AccAddressFromBech32(srcAddr)
+}
+
+// Bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
+func (config *Config) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
+	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
+	return accAddr.String()
 }
 
 func KeyringServiceName() string {

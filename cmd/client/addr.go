@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -11,8 +12,10 @@ import (
 const (
 	okexPrefix = "okexchain"
 	exPrefix   = "ex"
-	zxPrefix   = "0x"
+	rawPrefix  = "0x"
 )
+
+type accAddrToPrefixFunc func(sdk.AccAddress, string) string
 
 // AddrCommands registers a sub-tree of commands to interact with oec address
 func AddrCommands() *cobra.Command {
@@ -38,36 +41,46 @@ func convertCommand() *cobra.Command {
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			addrList := make(map[string]string)
-			targetPrefix := []string{okexPrefix, exPrefix, zxPrefix}
+			targetPrefix := []string{okexPrefix, exPrefix, rawPrefix}
 			srcAddr := args[0]
 
-			// read previous config
 			config := sdk.GetConfig()
+			//register func to encode account address to prefix address.
+			toPrefixFunc := map[string]accAddrToPrefixFunc{
+				okexPrefix: config.Bech32FromAccAddr,
+				exPrefix:   config.Bech32FromAccAddr,
+				rawPrefix:  hexFromAccAddr,
+			}
+
+			// save previous config to recover
 			pfxAddrPre := config.GetBech32AccountAddrPrefix()
 			pfxPubPre := config.GetBech32AccountPubPrefix()
 			config.Unseal()
 			defer config.RecoverPrefixForAcc(pfxAddrPre, pfxPubPre)
 
 			//prefix is "okexchain","ex" or "0x"
-			var srcPrefix string
+			var accAddr sdk.AccAddress
+			var err error
 			switch {
 			case strings.HasPrefix(srcAddr, okexPrefix):
-				srcPrefix = okexPrefix
+				//source address parse to account address
+				addrList[okexPrefix] = srcAddr
+				accAddr, err = config.Bech32ToAccAddr(okexPrefix, srcAddr)
 
 			case strings.HasPrefix(srcAddr, exPrefix):
-				srcPrefix = exPrefix
+				//source address parse to account address
+				addrList[exPrefix] = srcAddr
+				accAddr, err = config.Bech32ToAccAddr(exPrefix, srcAddr)
 
-			case strings.HasPrefix(srcAddr, zxPrefix):
-				srcPrefix = zxPrefix
+			case strings.HasPrefix(srcAddr, rawPrefix):
+				addrList[rawPrefix] = srcAddr
+				accAddr, err = hexToAccAddr(rawPrefix, srcAddr)
 
 			default:
 				return fmt.Errorf("unsupported prefix to convert")
 			}
 
-			//source address parse to account address
-			addrList[srcPrefix] = srcAddr
-			config.SetBech32PrefixForAccount(srcPrefix, fmt.Sprintf("%s%s", srcPrefix, sdk.PrefixPublic))
-			accAddr, err := sdk.AccAddressFromBech32(srcAddr)
+			// check account address
 			if err != nil {
 				fmt.Printf("Parse bech32 address error: %s", err)
 				return err
@@ -76,8 +89,7 @@ func convertCommand() *cobra.Command {
 			// fill other kinds of prefix address out
 			for _, pfx := range targetPrefix {
 				if _, ok := addrList[pfx]; !ok {
-					config.SetBech32PrefixForAccount(pfx, fmt.Sprintf("%s%s", pfx, sdk.PrefixPublic))
-					addrList[pfx] = accAddr.String()
+					addrList[pfx] = toPrefixFunc[pfx](accAddr, pfx)
 				}
 			}
 
@@ -89,4 +101,15 @@ func convertCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// hexToAccAddr convert a hex string to an account address
+func hexToAccAddr(prefix string, srcAddr string) (sdk.AccAddress, error) {
+	srcAddr = strings.TrimPrefix(srcAddr, prefix)
+	return sdk.AccAddressFromHex(srcAddr)
+}
+
+// hexFromAccAddr create a hex string from an account address
+func hexFromAccAddr(accAddr sdk.AccAddress, prefix string) string {
+	return prefix + hex.EncodeToString(accAddr.Bytes())
 }
