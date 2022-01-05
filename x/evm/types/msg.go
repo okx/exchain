@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync/atomic"
@@ -432,7 +433,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
-		if sdk.HigherThanMercury(height) {
+		if tmtypes.HigherThanMercury(height) {
 			return nil, errors.New("deprecated support for homestead Signer")
 		}
 

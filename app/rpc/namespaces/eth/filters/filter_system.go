@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/spf13/viper"
 	tmquery "github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -43,8 +43,8 @@ type EventSystem struct {
 	// light client mode
 	lightMode bool
 
-	index      filterIndex
-	indexMux   *sync.RWMutex
+	index    filterIndex
+	indexMux *sync.RWMutex
 
 	// Channels
 	install   chan *Subscription // install filter for event notification
@@ -261,7 +261,7 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	for _, f := range es.index[filters.PendingTransactionsSubscription] {
-		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
+		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash(data.Height))}
 	}
 }
 
