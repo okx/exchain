@@ -95,7 +95,11 @@ func convertCommand() *cobra.Command {
 
 			//show all kinds of prefix address out
 			for _, pfx := range targetPrefix {
-				fmt.Printf("prefix: %s, its complete address is %s \n", pfx, addrList[pfx])
+				addrType := "Bech32"
+				if pfx == "0x" {
+					addrType = "Hex"
+				}
+				fmt.Printf("%s format with prefix <%s>: %5s\n", addrType, pfx, addrList[pfx])
 			}
 
 			return nil
