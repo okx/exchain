@@ -59,7 +59,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	return watcher
 }
 
@@ -417,31 +417,31 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
+func (w *Watcher) GetWatchData() ([]byte, error) {
+	value := w.watchData
+	value.DelayEraseKey = w.delayEraseKey
+	valueByte, err := itjs.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return valueByte, nil
+}
+
+func (w *Watcher) UseWatchData(wdByte []byte) {
+	if len(wdByte) > 0 {
+		wd := WatchData{}
+		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+			return
+		}
+		w.watchData = &wd
+		w.delayEraseKey = wd.DelayEraseKey
+	}
+
+	w.CommitWatchData()
+}
+
 func (w *Watcher) SetWatchDataFunc() {
-	gwd := func() ([]byte, error) {
-		value := w.watchData
-		value.DelayEraseKey = w.delayEraseKey
-		valueByte, err := itjs.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		return valueByte, nil
-	}
-
-	uwd := func(wdByte []byte) {
-		if len(wdByte) > 0 {
-			wd := WatchData{}
-			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-				return
-			}
-			w.watchData = &wd
-			w.delayEraseKey = wd.DelayEraseKey
-		}
-
-		w.CommitWatchData()
-	}
-
-	tmstate.SetWatchDataFunc(gwd, uwd)
+	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
