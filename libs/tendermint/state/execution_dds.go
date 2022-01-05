@@ -2,15 +2,13 @@ package state
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
-	"net"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -116,23 +114,13 @@ func (dc *DeltaContext) init() {
 
 
 func (dc *DeltaContext) setIdentity() {
-	addrs, err := net.InterfaceAddrs()
+
+	var err error
+	dc.identity, err = system.GetIpAddr(viper.GetBool(types.FlagAppendPid))
+
 	if err != nil{
 		dc.logger.Error("Failed to set identity", "err", err)
 		return
-	}
-	var comma string
-	for _, value := range addrs{
-		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback(){
-			if ipnet.IP.To4() != nil{
-				dc.identity += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
-				comma = ","
-			}
-		}
-	}
-
-	if viper.GetBool(types.FlagAppendPid) {
-		dc.identity = fmt.Sprintf("%s:%d", dc.identity, os.Getpid())
 	}
 
 	dc.logger.Info("Set identity", "identity", dc.identity)
@@ -228,8 +216,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	dc.missed += txnum
 	locked := dc.deltaBroker.GetLocker()
 	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height,
-		"locked", locked,
-		"gid", gorid.GoRId)
+		"locked", locked,)
 
 	if !locked {
 		return
@@ -281,8 +268,7 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 		"upload", t3.Sub(t2),
 		"missed", dc.missed,
 		"uploaded", dc.hit,
-		"deltas", deltas,
-		"gid", gorid.GoRId)
+		"deltas", deltas,)
 	return true
 }
 
@@ -423,7 +409,7 @@ func (info *downloadInfo) statistics(height int64, err error, mrh int64)  {
 }
 
 func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
-	dc.logger.Debug("Download delta started:", "target-height", height, "gid", gorid.GoRId)
+	dc.logger.Debug("Download delta started:", "target-height", height,)
 
 	t0 := time.Now()
 	deltaBytes, err, latestHeight := dc.deltaBroker.GetDeltas(height)
@@ -450,8 +436,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 		"calcHash", delta.HashElapsed(),
 		"uncompress", delta.CompressOrUncompressElapsed(),
 		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
-		"delta", delta,
-		"gid", gorid.GoRId)
+		"delta", delta,)
 
 	return nil, delta, latestHeight
 }

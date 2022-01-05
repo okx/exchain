@@ -5,6 +5,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"strings"
+	"sync"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -15,7 +16,7 @@ const FlagEnableAnalyzer string = "enable-analyzer"
 var (
 	singleAnalys *analyer
 	openAnalyzer bool
-	initState    bool
+	once sync.Once
 )
 
 type analyer struct {
@@ -48,14 +49,12 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
-
 }
 
 func getOpen() bool {
-	if !initState {
+	once.Do(func() {
 		openAnalyzer = viper.GetBool(FlagEnableAnalyzer)
-	}
-	initState = true
+	})
 	return openAnalyzer
 }
 
@@ -264,5 +263,5 @@ func (s *analyer) format() {
 	format = strings.TrimRight(format, ", ")
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
-	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
+	trace.GetElapsedInfo().AddInfo(trace.DeliverTxs, format)
 }
