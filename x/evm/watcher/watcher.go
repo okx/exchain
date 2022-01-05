@@ -83,7 +83,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{}
+	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -342,6 +342,7 @@ func (w *Watcher) Reset() {
 	}
 	w.staleBatch = []WatchMessage{}
 }
+
 
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
