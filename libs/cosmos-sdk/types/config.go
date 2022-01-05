@@ -208,18 +208,6 @@ func (config *Config) GetFullFundraiserPath() string {
 	return config.fullFundraiserPath
 }
 
-// Bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
-func (config *Config) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
-	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
-	return AccAddressFromBech32(srcAddr)
-}
-
-// Bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
-func (config *Config) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
-	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
-	return accAddr.String()
-}
-
 func KeyringServiceName() string {
 	if len(version.Name) == 0 {
 		return DefaultKeyringServiceName
@@ -250,4 +238,16 @@ func (config *UnsealConfig) Unseal() {
 	// signal unsealed and not allow other use this
 	// implement
 	config.sealed = false
+}
+
+// Bech32ToAccAddr convert a hex string which begins with 'prefix' to an account address
+func (config *UnsealConfig) Bech32ToAccAddr(prefix string, srcAddr string) (AccAddress, error) {
+	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
+	return AccAddressFromBech32(srcAddr)
+}
+
+// Bech32FromAccAddr create a hex string which begins with 'prefix' to from account address
+func (config *UnsealConfig) Bech32FromAccAddr(accAddr AccAddress, prefix string) string {
+	config.SetBech32PrefixForAccount(prefix, fmt.Sprintf("%s%s", prefix, PrefixPublic))
+	return accAddr.String()
 }
