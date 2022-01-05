@@ -38,11 +38,11 @@ build_tags := $(strip $(build_tags))
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
    MercuryHeight=5150000
-   VenusHeight=8100000
+   VenusHeight=8160000
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
-   VenusHeight=0 # todo: update height
+   VenusHeight=8510000
 endif
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
