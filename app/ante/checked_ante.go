@@ -11,6 +11,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
+//CheckedTxSignedFunc is the callback function call by mempool to generate a new CheckedTx and sign it
 func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, res *abci.Response_CheckTx) (tmtypes.Tx, error) {
 	// decode to MsgEthereumTx
 	// if err then try decode to MsgEthereumCheckedTx
@@ -48,7 +49,7 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, res *abci.Respons
 }
 
 func getCurrentNodeKey() *p2p.NodeKey {
-	// TODO: find the way to get this key from config
+	// TODO: find the way to get this key from config with viper
 	return nil
 }
 

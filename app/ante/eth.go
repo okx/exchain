@@ -2,19 +2,20 @@ package ante
 
 import (
 	"fmt"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethcore "github.com/ethereum/go-ethereum/core"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/ethereum/go-ethereum/common"
-	ethcore "github.com/ethereum/go-ethereum/core"
-	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -93,6 +94,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return next(ctx, tx, simulate)
 	}
 
+	// TODO: type assert  for checked
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)

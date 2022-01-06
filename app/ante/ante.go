@@ -66,7 +66,12 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
-			// TODO: add new Tx message to support the lgoic with carried logic
+		case evmtypes.MsgEthereumCheckedTx:
+			//TODO: get carried data to identify the signature
+			//if signature is valid then
+			//1. GasAnteHandler
+			//2. MempoolFee
+
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
