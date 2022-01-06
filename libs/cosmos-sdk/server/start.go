@@ -298,7 +298,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
-		Value: tmNode.GenesisDoc().ChainID,
+		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
 
 	if err := tmNode.Start(); err != nil {
