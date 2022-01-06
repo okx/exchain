@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/ethereum/go-ethereum v1.10.8
-	github.com/okex/exchain-ethereum-compatible v1.1.1-0.20220105212231-6e9f7d01fc45
+	github.com/okex/exchain-ethereum-compatible v1.1.1-0.20220106041708-3e2b27b3e94b
 )
 
 require (
