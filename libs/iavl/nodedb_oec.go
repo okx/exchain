@@ -97,7 +97,7 @@ func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 	}()
 	ndb.addDBReadCount()
 
-	v, err := ndb.db.GetUnsafeValueAndProcess(k, func(buf []byte, err error) (interface{}, error) {
+	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte, err error) (interface{}, error) {
 		if err != nil {
 			panic(fmt.Sprintf("can't get node %X: %v", hash, err))
 		}
