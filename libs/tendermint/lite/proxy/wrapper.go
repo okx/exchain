@@ -61,7 +61,7 @@ func (w Wrapper) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
 	if err != nil {
 		return res, err
 	}
-	err = res.Proof.Validate(sh.DataHash)
+	err = res.Proof.Validate(sh.DataHash, res.Height)
 	return res, err
 }
 

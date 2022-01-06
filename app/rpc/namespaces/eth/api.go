@@ -701,9 +701,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
+	// Encode transaction by RLP encoder
+	txBytes, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -740,12 +739,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	txBytes := data
 
 	// send chanData to txPool
 	if api.txPool != nil {
@@ -1077,7 +1071,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	}
 
 	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash()), blockHash, height, uint64(tx.Index))
+	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -1160,7 +1154,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	}
 
 	height := uint64(block.Height)
-	txHash := common.BytesToHash(block.Txs[idx].Hash())
+	txHash := common.BytesToHash(block.Txs[idx].Hash(block.Height))
 	blockHash := common.BytesToHash(block.Hash())
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }

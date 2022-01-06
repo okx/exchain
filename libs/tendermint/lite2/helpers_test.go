@@ -131,7 +131,7 @@ func genHeader(chainID string, height int64, bTime time.Time, txs types.Txs,
 		// LastCommitHash
 		ValidatorsHash:     valset.Hash(),
 		NextValidatorsHash: nextValset.Hash(),
-		DataHash:           txs.Hash(),
+		DataHash:           txs.Hash(height),
 		AppHash:            appHash,
 		ConsensusHash:      consHash,
 		LastResultsHash:    resHash,
