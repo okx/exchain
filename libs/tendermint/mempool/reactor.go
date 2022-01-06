@@ -179,7 +179,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		err := memR.mempool.CheckTx(msg.Tx, nil, txInfo)
 		if err != nil {
-			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx), "err", err)
+			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx, memR.mempool.height), "err", err)
 		}
 		// broadcasting happens from go routines per peer
 	default:

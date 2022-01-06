@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -10,6 +9,8 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"time"
+
+	"github.com/okex/exchain/libs/system"
 
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -32,10 +33,10 @@ import (
 )
 
 const (
-	dataDirFlag   = "data_dir"
-	applicationDB = "application"
-	blockStoreDB  = "blockstore"
-	stateDB       = "state"
+	replayedBlockDir = "replayed_block_dir"
+	applicationDB    = "application"
+	blockStoreDB     = "blockstore"
+	stateDB          = "state"
 
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
@@ -60,12 +61,12 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 				}
 			}()
 
-			dataDir := viper.GetString(dataDirFlag)
+			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
 		},
 	}
-	cmd.Flags().StringP(dataDirFlag, "d", ".exchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(types.FlagDownloadDDS, false, "get delta from dc/redis or not")

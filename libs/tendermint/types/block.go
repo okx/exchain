@@ -3,7 +3,6 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,33 +38,6 @@ const (
 	MaxAminoOverheadForBlock int64 = 11
 )
 
-// GetStartBlockHeight() is the block height from which the chain starts
-var (
-	startBlockHeightStr       = "0"
-	startBlockHeight    int64 = 0
-	once                sync.Once
-)
-
-func initStartBlockHeight() {
-	once.Do(func() {
-		var err error
-		if len(startBlockHeightStr) == 0 {
-			startBlockHeightStr = "0"
-		}
-		startBlockHeight, err = strconv.ParseInt(startBlockHeightStr, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-	})
-}
-
-func init() {
-	initStartBlockHeight()
-}
-
-func GetStartBlockHeight() int64 {
-	return startBlockHeight
-}
 
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
@@ -164,10 +136,10 @@ func (b *Block) ValidateBasic() error {
 	}
 
 	// NOTE: b.Data.Txs may be nil, but b.Data.Hash() still works fine.
-	if !bytes.Equal(b.DataHash, b.Data.Hash()) {
+	if !bytes.Equal(b.DataHash, b.Data.Hash(b.Height)) {
 		return fmt.Errorf(
 			"wrong Header.DataHash. Expected %v, got %v",
-			b.Data.Hash(),
+			b.Data.Hash(b.Height),
 			b.DataHash,
 		)
 	}
@@ -195,7 +167,7 @@ func (b *Block) fillHeader() {
 		b.LastCommitHash = b.LastCommit.Hash()
 	}
 	if b.DataHash == nil {
-		b.DataHash = b.Data.Hash()
+		b.DataHash = b.Data.Hash(b.Height)
 	}
 	if b.EvidenceHash == nil {
 		b.EvidenceHash = b.Evidence.Hash()
@@ -275,7 +247,7 @@ func (b *Block) StringIndented(indent string) string {
 %s  %v
 %s}#%v`,
 		indent, b.Header.StringIndented(indent+"  "),
-		indent, b.Data.StringIndented(indent+"  "),
+		indent, b.Data.StringIndented(indent+"  ", b.Height),
 		indent, b.Evidence.StringIndented(indent+"  "),
 		indent, b.LastCommit.StringIndented(indent+"  "),
 		indent, b.Hash())
@@ -1361,18 +1333,18 @@ func (d *Data) UnmarshalFromAmino(data []byte) error {
 }
 
 // Hash returns the hash of the data
-func (data *Data) Hash() tmbytes.HexBytes {
+func (data *Data) Hash(height int64) tmbytes.HexBytes {
 	if data == nil {
-		return (Txs{}).Hash()
+		return (Txs{}).Hash(height)
 	}
 	if data.hash == nil {
-		data.hash = data.Txs.Hash() // NOTE: leaves of merkle tree are TxIDs
+		data.hash = data.Txs.Hash(height) // NOTE: leaves of merkle tree are TxIDs
 	}
 	return data.hash
 }
 
 // StringIndented returns a string representation of the transactions
-func (data *Data) StringIndented(indent string) string {
+func (data *Data) StringIndented(indent string, height int64) string {
 	if data == nil {
 		return "nil-Data"
 	}
@@ -1382,7 +1354,7 @@ func (data *Data) StringIndented(indent string) string {
 			txStrings[i] = fmt.Sprintf("... (%v total)", len(data.Txs))
 			break
 		}
-		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(), len(tx))
+		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(height), len(tx))
 	}
 	return fmt.Sprintf(`Data{
 %s  %v
@@ -1621,12 +1593,3 @@ func BlockIDFromProto(bID *tmproto.BlockID) (*BlockID, error) {
 	return blockID, blockID.ValidateBasic()
 }
 
-// 2322600 is mainnet GenesisHeight
-func IsMainNet() bool {
-	return startBlockHeightStr == "2322600"
-}
-
-// 1121818 is testnet GenesisHeight
-func IsTestNet() bool {
-	return startBlockHeightStr == "1121818"
-}

@@ -57,10 +57,10 @@ func (p *PendingPool) getTx(address string, nonce uint64) *PendingTx {
 	return nil
 }
 
-func (p *PendingPool) hasTx(tx types.Tx) bool {
+func (p *PendingPool) hasTx(tx types.Tx, height int64) bool {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
-	_, exist := p.txsMap[txID(tx)]
+	_, exist := p.txsMap[txID(tx, height)]
 	return exist
 }
 
@@ -71,7 +71,7 @@ func (p *PendingPool) addTx(pendingTx *PendingTx) {
 		p.addressTxsMap[pendingTx.exTxInfo.Sender] = make(map[uint64]*PendingTx)
 	}
 	p.addressTxsMap[pendingTx.exTxInfo.Sender][pendingTx.exTxInfo.Nonce] = pendingTx
-	p.txsMap[txID(pendingTx.mempoolTx.tx)] = pendingTx
+	p.txsMap[txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height)] = pendingTx
 }
 
 func (p *PendingPool) removeTx(address string, nonce uint64) {
@@ -80,7 +80,7 @@ func (p *PendingPool) removeTx(address string, nonce uint64) {
 	if _, ok := p.addressTxsMap[address]; ok {
 		if pendingTx, ok := p.addressTxsMap[address][nonce]; ok {
 			delete(p.addressTxsMap[address], nonce)
-			delete(p.txsMap, txID(pendingTx.mempoolTx.tx))
+			delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
 		}
 		if len(p.addressTxsMap[address]) == 0 {
 			delete(p.addressTxsMap, address)
@@ -124,7 +124,7 @@ func (p *PendingPool) handlePendingTx(addressNonce map[string]uint64) map[string
 				// remove invalid pending tx
 				if nonce <= accountNonce {
 					delete(p.addressTxsMap[addr], nonce)
-					delete(p.txsMap, txID(pendingTx.mempoolTx.tx))
+					delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
 				} else if nonce == accountNonce+1 {
 					addrMap[addr] = nonce
 				}
@@ -145,7 +145,7 @@ func (p *PendingPool) handlePeriodCounter() {
 		if count >= p.reserveBlocks {
 			delete(p.addressTxsMap, addr)
 			for _, pendingTx := range txMap {
-				delete(p.txsMap, txID(pendingTx.mempoolTx.tx))
+				delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
 			}
 			delete(p.periodCounter, addr)
 		} else {
@@ -154,11 +154,11 @@ func (p *PendingPool) handlePeriodCounter() {
 	}
 }
 
-func (p *PendingPool) validate(address string, tx types.Tx) error {
+func (p *PendingPool) validate(address string, tx types.Tx, height int64) error {
 	// tx already in pending pool
-	if p.hasTx(tx) {
+	if p.hasTx(tx, height) {
 		return ErrTxAlreadyInPendingPool{
-			txHash: txID(tx),
+			txHash: txID(tx, height),
 		}
 	}
 
