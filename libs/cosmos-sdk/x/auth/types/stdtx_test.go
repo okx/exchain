@@ -37,7 +37,7 @@ func TestStdTx(t *testing.T) {
 	require.Equal(t, addr, feePayer)
 }
 
-func TestStdTxUnmarshalFromAmino(t *testing.T) {
+func TestStdTxAmino(t *testing.T) {
 	cdc := ModuleCdc
 	sdk.RegisterCodec(cdc)
 	cdc.RegisterConcrete(sdk.TestMsg2{}, "cosmos-sdk/Test2", nil)
@@ -47,19 +47,54 @@ func TestStdTxUnmarshalFromAmino(t *testing.T) {
 	sigs := []StdSignature{}
 
 	tx := NewStdTx(msgs, fee, sigs, "")
-	txBytes, err := cdc.MarshalBinaryBare(tx)
-	require.NoError(t, err)
 
-	tx2 := StdTx{}
-	err = cdc.UnmarshalBinaryBare(txBytes, &tx2)
-	require.NoError(t, err)
+	testCases := []StdTx{
+		{},
+		tx,
+		{
+			Msgs: []sdk.Msg{sdk.NewTestMsg2(addr), sdk.NewTestMsg2(addr), sdk.NewTestMsg2(addr)},
+			Fee: StdFee{
+				Amount: sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10), sdk.NewInt64Coin("barcoin", 15)),
+				Gas:    10000,
+			},
+			Signatures: []StdSignature{
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{1, 2, 3},
+				},
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{2, 3, 4},
+				},
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{3, 4, 5},
+				},
+			},
+			Memo: "TestMemo",
+		},
+		{
+			Msgs:       []sdk.Msg{},
+			Signatures: []StdSignature{},
+			Memo:       "",
+		},
+	}
 
-	tx3 := StdTx{}
-	v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
-	require.NoError(t, err)
-	tx3 = v.(StdTx)
+	for _, tx := range testCases {
+		txBytes, err := cdc.MarshalBinaryBare(tx)
+		require.NoError(t, err)
 
-	require.EqualValues(t, tx2, tx3)
+		tx2 := StdTx{}
+		err = cdc.UnmarshalBinaryBare(txBytes, &tx2)
+		require.NoError(t, err)
+
+		tx3 := StdTx{}
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
+		require.NoError(t, err)
+		tx3 = v.(StdTx)
+
+		require.EqualValues(t, tx2, tx3)
+	}
 }
 
 func TestStdSignBytes(t *testing.T) {
