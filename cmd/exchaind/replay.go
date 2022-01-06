@@ -10,6 +10,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/okex/exchain/libs/system"
+
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -31,10 +33,10 @@ import (
 )
 
 const (
-	dataDirFlag   = "data_dir"
-	applicationDB = "application"
-	blockStoreDB  = "blockstore"
-	stateDB       = "state"
+	replayedBlockDir = "replayed_block_dir"
+	applicationDB    = "application"
+	blockStoreDB     = "blockstore"
+	stateDB          = "state"
 
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
@@ -59,23 +61,20 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 				}
 			}()
 
-			dataDir := viper.GetString(dataDirFlag)
+			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
 		},
 	}
-	cmd.Flags().StringP(dataDirFlag, "d", ".exchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(types.FlagDownloadDDS, false, "get delta from dc/redis or not")
 	cmd.Flags().Bool(types.FlagUploadDDS, false, "send delta to dc/redis or not")
-	cmd.Flags().Bool(types.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
-	cmd.Flags().Bool(types.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
+	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 
-	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
-	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:8030/", "data-center-url")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
@@ -96,7 +95,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
-	cmd.Flags().BoolVar(&tmiavl.EnableGid, tmiavl.FlagIavlEnableGid, false, "Display goroutine id in iavl log")
+	cmd.Flags().BoolVar(&system.EnableGid, system.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")

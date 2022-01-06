@@ -41,9 +41,6 @@ jobs:
       - run:
           name: Build
           command: make build
-      #      - run:
-      #          name: Unit Test
-      #          command: make test-unit
       - save_cache:
           name: Save go modules cache
           key: go-mod-v1-{{ checksum "go.sum" }}

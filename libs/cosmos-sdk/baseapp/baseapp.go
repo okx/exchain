@@ -19,7 +19,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
@@ -667,7 +666,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmhash.Sum(txBytes)),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -906,7 +905,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 	}
 
 	if err != nil {
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMercury(ctx.BlockHeight()) {
 			codeSpace, code, info := sdkerrors.ABCIInfo(err, app.trace)
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
@@ -1036,9 +1035,8 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-

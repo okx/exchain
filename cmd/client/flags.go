@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/stream"
@@ -88,9 +89,11 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
-	cmd.Flags().Bool(consensus.EnableProactivelyRunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
 	cmd.Flags().String(automation.ConsensusRole, "", "consensus role")
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
+
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 }

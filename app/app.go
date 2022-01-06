@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -29,10 +28,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -196,7 +194,11 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-	logger.Info(fmt.Sprintf("GenesisHeight<%d>", tendermintTypes.GetStartBlockHeight()))
+	logger.Info("Starting OEC",
+		"GenesisHeight", tmtypes.GetStartBlockHeight(),
+		"MercuryHeight", tmtypes.GetMercuryHeight(),
+		"VenusHeight", tmtypes.GetVenusHeight(),
+		)
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -218,11 +220,6 @@ func NewOKExChainApp(
 	appConfig, err := config.ParseConfig()
 	if err != nil {
 		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
-		panic(err)
-	}
-	chainId := viper.GetString(flags.FlagChainID)
-	if err = okexchain.IsValidateChainIdWithGenesisHeight(chainId); err != nil {
-		logger.Error(err.Error())
 		panic(err)
 	}
 
@@ -277,9 +274,10 @@ func NewOKExChainApp(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
-	app.BankKeeper = bank.NewBaseKeeper(
+	bankKeeper := bank.NewBaseKeeper(
 		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
+	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
@@ -305,6 +303,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
 		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
+	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
@@ -395,6 +394,7 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
+		bank.ModuleName,
 		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
@@ -471,6 +471,16 @@ func NewOKExChainApp(
 	return app
 }
 
+func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
+	if req.Key == "CheckChainID" {
+		if err := okexchain.IsValidateChainIdWithGenesisHeight(req.Value); err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
+	}
+	return app.BaseApp.SetOption(req)
+}
+
 func (app *OKExChainApp) LoadStartVersion(height int64) error {
 	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 }
@@ -497,9 +507,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
-			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
-			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetDeliverStateCtx()
+			txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight()))
+			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
 				ctx.BlockHeader().Time.Unix())
 			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,

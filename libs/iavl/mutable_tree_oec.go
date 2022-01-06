@@ -19,7 +19,6 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableGid              = "iavl-enable-gid"
 )
 
 var (
@@ -33,7 +32,6 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	EnableGid                       = false
 )
 
 type commitEvent struct {
@@ -180,8 +178,9 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.committedHeightMap[version] = true
 		tree.committedHeightQueue.PushBack(version)
 	}
-	tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
-
+	if len(versionSlice) > 0 {
+		tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
+	}
 }
 
 func (tree *MutableTree) StopTree() {

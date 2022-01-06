@@ -385,6 +385,7 @@ func createConsensusReactor(config *cfg.Config,
 	privValidator types.PrivValidator,
 	csMetrics *cs.Metrics,
 	fastSync bool,
+	autoFastSync bool,
 	eventBus *types.EventBus,
 	consensusLogger log.Logger) (*consensus.Reactor, *consensus.State) {
 
@@ -402,7 +403,7 @@ func createConsensusReactor(config *cfg.Config,
 	if privValidator != nil {
 		consensusState.SetPrivValidator(privValidator)
 	}
-	consensusReactor := cs.NewReactor(consensusState, fastSync, cs.ReactorMetrics(csMetrics))
+	consensusReactor := cs.NewReactor(consensusState, fastSync, autoFastSync, cs.ReactorMetrics(csMetrics))
 	consensusReactor.SetLogger(consensusLogger)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
@@ -632,6 +633,7 @@ func NewNode(config *cfg.Config,
 	// Decide whether to fast-sync or not
 	// We don't fast-sync when the only validator is us.
 	fastSync := config.FastSyncMode && !onlyValidatorIsUs(state, pubKey)
+	autoFastSync := config.AutoFastSync
 
 	csMetrics, p2pMetrics, memplMetrics, smMetrics := metricsProvider(genDoc.ChainID)
 
@@ -664,7 +666,7 @@ func NewNode(config *cfg.Config,
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
 		config, state, blockExec, blockStore, deltasStore, mempool, evidencePool,
-		privValidator, csMetrics, fastSync, eventBus, consensusLogger,
+		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
 
 	nodeInfo, err := makeNodeInfo(config, nodeKey, txIndexer, genDoc, state)

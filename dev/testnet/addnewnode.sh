@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source exchain.profile
+source oec.profile
 
 set -e
 set -o errexit
@@ -9,12 +9,24 @@ set -m
 
 set -x # activate debugging
 
-
-while getopts "i:n:p:r:s:b:" opt; do
+PRERUN=false
+while getopts "i:n:p:r:s:b:dux" opt; do
   case $opt in
     i)
       echo "IP=$OPTARG"
       IP=$OPTARG
+      ;;
+    x)
+      echo "PRERUN=$OPTARG"
+      PRERUN=true
+      ;;
+    d)
+      echo "DOWNLOAD_DELTA=$OPTARG"
+      DOWNLOAD_DELTA="--download-delta=true"
+      ;;
+    u)
+      echo "DOWNLOAD_DELTA=$OPTARG"
+      UPLOAD_DELTA="--upload-delta=true"
       ;;
     n)
       echo "INPUT_INDEX=$OPTARG"
@@ -126,8 +138,8 @@ start() {
 #     echo "${BIN_NAME} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind  start --p2p.laddr tcp://${IP}:${p2pport} --p2p.seeds ${seednode} --rpc.laddr tcp://${IP}:${rpcport}"
 
 #    LOG_LEVEL=main:info,*:error
-#    LOG_LEVEL=main:info,*:error,consensus:info,state:info
     LOG_LEVEL=main:info,*:error,state:info
+#    LOG_LEVEL=main:info,*:error,state:debug,consensus:debug
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
@@ -135,14 +147,17 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
-    --download-delta=false \
+    --enable-gid \
+    --append-pid \
+    ${UPLOAD_DELTA} \
+    ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
-    --enable-proactively-runtx \
+    --enable-preruntx=${PRERUN} \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
 #     --download-delta \
-#     --enable-proactively-runtx \
+#     --enable-preruntx \
 
 }
 

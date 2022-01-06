@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/okex/exchain/app/logevents"
+
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
@@ -89,11 +91,15 @@ func main() {
 		dataCmd(ctx),
 		exportAppCmd(ctx),
 		iaviewerCmd(cdc),
+		subscribeCmd(cdc),
 	)
 
+	subFunc := func(logger log.Logger) log.Subscriber {
+		return logevents.NewProvider(logger)
+	}
 	// Tendermint node base commands
 	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
-		registerRoutes, client.RegisterAppFlag, app.PreRun, ante.CheckedTxSignedFunc(cdc))
+		registerRoutes, client.RegisterAppFlag, app.PreRun, ante.CheckedTxSignedFunc(cdc), subFunc)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)

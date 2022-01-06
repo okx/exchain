@@ -1,15 +1,27 @@
-package gorid
+package system
 
 import (
 	"bytes"
 	"runtime"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type GoRoutineID int
 
-var goroutineSpace = []byte("goroutine ")
+const (
+	FlagEnableGid = "enable-gid"
+)
+
+func Sleep(seconds time.Duration)  {
+	time.Sleep(seconds*time.Second)
+}
+
+var (
+	goroutineSpace = []byte("goroutine ")
+	EnableGid      = false
+)
 
 var littleBuf = sync.Pool{
 	New: func() interface{} {
@@ -21,6 +33,9 @@ var littleBuf = sync.Pool{
 var GoRId GoRoutineID = 0
 
 func (base GoRoutineID) String() string {
+	if !EnableGid {
+		return "NA"
+	}
 	bp := littleBuf.Get().(*[]byte)
 	defer littleBuf.Put(bp)
 	b := *bp

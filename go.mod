@@ -20,6 +20,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/garyburd/redigo v1.6.2
+	github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-redis/redis v6.15.9+incompatible
@@ -88,7 +89,6 @@ require (
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
-	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect

@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
@@ -40,7 +39,6 @@ type Watcher struct {
 
 var (
 	watcherEnable  = false
-	centerEnable   = false
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
@@ -53,13 +51,6 @@ func IsWatcherEnabled() bool {
 	return watcherEnable
 }
 
-func IsCenterEnabled() bool {
-	onceEnable.Do(func() {
-		centerEnable = viper.GetBool(tmtypes.FlagDataCenter)
-	})
-	return centerEnable
-}
-
 func GetWatchLruSize() int {
 	onceLru.Do(func() {
 		watcherLruSize = viper.GetInt(FlagFastQueryLru)
@@ -68,7 +59,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	return watcher
 }
 
@@ -92,7 +83,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{}
+	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -352,6 +343,7 @@ func (w *Watcher) Reset() {
 	w.staleBatch = []WatchMessage{}
 }
 
+
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
@@ -373,16 +365,16 @@ func (w *Watcher) CommitWatchData() {
 		return
 	}
 	if w.watchData.Batches != nil {
-		go w.commitCenterBatch(w.watchData.Batches)
+		w.commitCenterBatch(w.watchData.Batches)
 	}
 	if w.watchData.DirtyAccount != nil {
-		go w.delDirtyAccount(w.watchData.DirtyAccount)
+		w.delDirtyAccount(w.watchData.DirtyAccount)
 	}
 	if w.watchData.DirtyList != nil {
-		go w.delDirtyList(w.watchData.DirtyList)
+		w.delDirtyList(w.watchData.DirtyList)
 	}
 	if w.watchData.BloomData != nil {
-		go w.commitBloomData(w.watchData.BloomData)
+		w.commitBloomData(w.watchData.BloomData)
 	}
 }
 
@@ -426,32 +418,31 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
+func (w *Watcher) GetWatchData() ([]byte, error) {
+	value := w.watchData
+	value.DelayEraseKey = w.delayEraseKey
+	valueByte, err := itjs.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return valueByte, nil
+}
+
+func (w *Watcher) UseWatchData(wdByte []byte) {
+	if len(wdByte) > 0 {
+		wd := WatchData{}
+		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+			return
+		}
+		w.watchData = &wd
+		w.delayEraseKey = wd.DelayEraseKey
+	}
+
+	go w.CommitWatchData()
+}
+
 func (w *Watcher) SetWatchDataFunc() {
-	gwd := func() []byte {
-		value := w.watchData
-		value.DelayEraseKey = w.delayEraseKey
-		valueByte, err := itjs.Marshal(value)
-		if err != nil {
-			return nil
-		}
-		return valueByte
-	}
-
-	uwd := func(wdByte []byte) {
-		if len(wdByte) > 0 {
-			wd := WatchData{}
-			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-				return
-			}
-			w.watchData = &wd
-			w.delayEraseKey = wd.DelayEraseKey
-		}
-
-		w.CommitWatchData()
-	}
-
-	tmstate.GetWatchData = gwd
-	tmstate.UseWatchData = uwd
+	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {

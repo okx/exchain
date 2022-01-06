@@ -44,8 +44,8 @@ var (
 //-----------------------------------------------------------------------------
 
 var (
-	msgQueueSize           = 1000
-	EnableProactivelyRunTx = "enable-proactively-runtx"
+	msgQueueSize   = 1000
+	EnablePrerunTx = "enable-preruntx"
 )
 
 // msgs from the reactor which may update the state
@@ -151,7 +151,7 @@ type State struct {
 
 	trc *trace.Tracer
 
-	proactivelyRunTx bool
+	prerunTx bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -185,7 +185,7 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		proactivelyRunTx:  viper.GetBool(EnableProactivelyRunTx),
+		prerunTx:         viper.GetBool(EnablePrerunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -193,7 +193,7 @@ func NewState(
 	cs.setProposal = cs.defaultSetProposal
 
 	cs.updateToState(state)
-	if cs.proactivelyRunTx {
+	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
 	}
 
@@ -311,6 +311,7 @@ func (cs *State) LoadCommit(height int64) *types.Commit {
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
 func (cs *State) OnStart() error {
 	if err := cs.evsw.Start(); err != nil {
+		cs.Logger.Error("evsw start failed. err: ", err)
 		return err
 	}
 
@@ -362,8 +363,11 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 		}
 	}
 
-	// now start the receiveRoutine
+	if cs.done == nil {
+		cs.done = make(chan struct{})
+	}
 
+	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
 	// schedule the first round!
@@ -373,13 +377,19 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	return nil
 }
 
-
-
 // OnStop implements service.Service.
 func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
+}
+
+func (cs *State) OnReset() error {
+	cs.evsw.Reset()
+	cs.wal.Reset()
+	cs.wal = nilWAL{}
+	cs.timeoutTicker.Reset()
+	return nil
 }
 
 // Wait waits for the the main routine to return.
@@ -530,16 +540,18 @@ func (cs *State) reconstructLastCommit(state sm.State) {
 // Updates State and increments height to match that of state.
 // The round becomes 0 and cs.Step becomes cstypes.RoundStepNewHeight.
 func (cs *State) updateToState(state sm.State) {
-	if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
-		panic(fmt.Sprintf("updateToState() expected state height of %v but found %v",
-			cs.Height, state.LastBlockHeight))
-	}
-	if !cs.state.IsEmpty() && cs.state.LastBlockHeight+1 != cs.Height {
-		// This might happen when someone else is mutating cs.state.
-		// Someone forgot to pass in state.Copy() somewhere?!
-		panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
-			cs.state.LastBlockHeight+1, cs.Height))
-	}
+	// Do not consider this situation that the consensus machine was stopped
+	// when the fast-sync mode opens. So remove it!
+	//if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
+	//	panic(fmt.Sprintf("updateToState() expected state height of %v but found %v",
+	//		cs.Height, state.LastBlockHeight))
+	//}
+	//if !cs.state.IsEmpty() && cs.state.LastBlockHeight+1 != cs.Height {
+	//	// This might happen when someone else is mutating cs.state.
+	//	// Someone forgot to pass in state.Copy() somewhere?!
+	//	panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
+	//		cs.state.LastBlockHeight+1, cs.Height))
+	//}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
@@ -636,6 +648,7 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		cs.wal.Wait()
 
 		close(cs.done)
+		cs.done = nil
 	}
 
 	defer func() {
@@ -1145,7 +1158,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if automation.PrevoteNil(height, round){
+	if automation.PrevoteNil(height, round) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1531,10 +1544,10 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	/*
-	var deltas *types.Deltas
-	if types.EnableApplyP2PDelta() {
-		deltas = cs.Deltas
-	}
+		var deltas *types.Deltas
+		if types.EnableApplyP2PDelta() {
+			deltas = cs.Deltas
+		}
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
@@ -1553,11 +1566,11 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	/*
-	if types.EnableBroadcastP2PDelta() {
-		// persists the given deltas to the underlying db.
-		deltas.Height = block.Height
-		cs.deltaStore.SaveDeltas(deltas, block.Height)
-	}
+		if types.EnableBroadcastP2PDelta() {
+			// persists the given deltas to the underlying db.
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
 	*/
 
 	fail.Fail() // XXX
@@ -1738,6 +1751,10 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
+	if automation.BlockIsNotCompleted(height, round) {
+		return false, nil
+	}
+
 	automation.AddBlockTimeOut(height, round)
 
 	// Blocks might be reused, so round mismatch is OK
@@ -1770,8 +1787,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
-		if cs.proactivelyRunTx {
-			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
+		if cs.prerunTx {
+			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
 
 		// receive Deltas from BlockMessage and put into State(cs)
@@ -2133,4 +2150,3 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
-
