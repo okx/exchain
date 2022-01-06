@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -190,5 +191,47 @@ func TestStdSignatureMarshalYAML(t *testing.T) {
 		bz, err := yaml.Marshal(tc.sig)
 		require.NoError(t, err)
 		require.Equal(t, tc.output, string(bz), "test case #%d", i)
+	}
+}
+
+func TestStdFeeAmino(t *testing.T) {
+	testCases := []StdFee{
+		{},
+		{
+			Amount: sdk.Coins{
+				sdk.Coin{
+					Denom:  "dummy",
+					Amount: sdk.NewDec(5),
+				},
+				sdk.Coin{
+					Denom:  "summy",
+					Amount: sdk.NewDec(math.MaxInt64),
+				},
+				sdk.Coin{
+					Denom:  "summy",
+					Amount: sdk.Dec{},
+				},
+			},
+			Gas: uint64(5),
+		},
+		{
+			Amount: sdk.Coins{},
+			Gas:    math.MaxUint64,
+		},
+	}
+
+	for _, stdFee := range testCases {
+		expectData, err := ModuleCdc.MarshalBinaryBare(stdFee)
+		require.NoError(t, err)
+
+		var expectValue StdFee
+		err = ModuleCdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue StdFee
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }
