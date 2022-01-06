@@ -378,4 +378,8 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 	abci.SetDisableABCIQueryMutex(viper.GetBool(abci.FlagDisableABCIQueryMutex))
 	abci.SetDisableCheckTx(viper.GetBool(abci.FlagDisableCheckTx))
+
+	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
+	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
+	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 }
