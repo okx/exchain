@@ -18,4 +18,11 @@ gomod() {
 
 export GO111MODULE=on
 go build
-./client
+
+TYPE=counter
+if [ ! -z "$1" ];
+then
+  TYPE=$1
+fi
+
+./client --type ${TYPE}
