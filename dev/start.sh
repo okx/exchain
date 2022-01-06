@@ -28,7 +28,7 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --consensus.timeout_commit 5000ms \
-      --enable-preruntx \
+      --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
