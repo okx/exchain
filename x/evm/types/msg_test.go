@@ -262,26 +262,70 @@ func TestMsgEthereumTxGetter(t *testing.T) {
 	require.True(t, expectedS.Cmp(s) == 0)
 }
 
-func TestMsgEthermintTxUnmarshal(t *testing.T) {
+func TestMsgEthermintTxAmino(t *testing.T) {
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
 	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
 	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
 	err := msg.Sign(big.NewInt(3), priv.ToECDSA())
 	require.NoError(t, err)
+	hash := ethcmn.BigToHash(big.NewInt(2))
 
-	raw, err := ModuleCdc.MarshalBinaryBare(msg)
-	require.NoError(t, err)
+	testCases := []MsgEthereumTx{
+		msg,
+		{
+			Data: TxData{
+				AccountNonce: 2,
+				Price:        big.NewInt(3),
+				GasLimit:     1,
+				Recipient:    &addr,
+				Amount:       big.NewInt(4),
+				Payload:      []byte("test"),
+				V:            big.NewInt(5),
+				R:            big.NewInt(6),
+				S:            big.NewInt(7),
+				Hash:         &hash,
+			},
+		},
+		{
+			Data: TxData{
+				Price:     big.NewInt(math.MinInt64),
+				Recipient: &ethcmn.Address{},
+				Amount:    big.NewInt(math.MinInt64),
+				Payload:   []byte{},
+				V:         big.NewInt(math.MinInt64),
+				R:         big.NewInt(math.MinInt64),
+				S:         big.NewInt(math.MinInt64),
+				Hash:      &ethcmn.Hash{},
+			},
+		},
+		{
+			Data: TxData{
+				AccountNonce: math.MaxUint64,
+				Price:        big.NewInt(math.MaxInt64),
+				GasLimit:     math.MaxUint64,
+				Amount:       big.NewInt(math.MaxInt64),
+				V:            big.NewInt(math.MaxInt64),
+				R:            big.NewInt(math.MaxInt64),
+				S:            big.NewInt(math.MaxInt64),
+			},
+		},
+	}
 
-	var msg2 MsgEthereumTx
-	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
-	require.NoError(t, err)
+	for _, msg := range testCases {
+		raw, err := ModuleCdc.MarshalBinaryBare(msg)
+		require.NoError(t, err)
 
-	var msg3 MsgEthereumTx
-	v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
-	require.NoError(t, err)
-	msg3 = v.(MsgEthereumTx)
-	require.EqualValues(t, msg2, msg3)
+		var msg2 MsgEthereumTx
+		err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
+		require.NoError(t, err)
+
+		var msg3 MsgEthereumTx
+		v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
+		require.NoError(t, err)
+		msg3 = v.(MsgEthereumTx)
+		require.EqualValues(t, msg2, msg3)
+	}
 }
 
 func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
