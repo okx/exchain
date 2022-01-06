@@ -97,7 +97,7 @@ func (msg MsgEthereumCheckedTx) String() string {
 // specific methods
 
 // Sign this struct with the p2p.NodeKey to specific this message is a Checked message
-func (msg *MsgEthereumCheckedTx) Sign(chainID *big.Int, nodeKey *p2p.NodeKey) error {
+func (msg *MsgEthereumCheckedTx) Sign(_ *big.Int, nodeKey *p2p.NodeKey) error {
 	wait, err := msg.Data.MarshalAmino()
 	if err != nil {
 		return err
