@@ -630,6 +630,7 @@ func TestIAVLDelta(t *testing.T) {
 	require.True(t, tree.Set([]byte("hello"), []byte("hallo")))
 
 	// normal case (not use delta and not produce delta)
+	iavl.SetProduceDelta(false)
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h)
