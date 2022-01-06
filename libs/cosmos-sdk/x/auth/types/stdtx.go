@@ -86,7 +86,7 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 		case 3:
 			var sig StdSignature
-			if err := sig.UnmarshalFromAmino(subData); err != nil {
+			if err := sig.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 			tx.Signatures = append(tx.Signatures, sig)
@@ -456,7 +456,7 @@ func (ss StdSignature) MarshalYAML() (interface{}, error) {
 	return string(bz), err
 }
 
-func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
+func (ss *StdSignature) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -492,7 +492,10 @@ func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
 			if err != nil {
-				return err
+				err = cdc.UnmarshalBinaryBare(subData, &ss.PubKey)
+				if err != nil {
+					return err
+				}
 			}
 		case 2:
 			ss.Signature = make([]byte, dataLen)

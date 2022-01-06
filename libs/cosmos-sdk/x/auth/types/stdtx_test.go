@@ -5,6 +5,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
@@ -191,6 +193,32 @@ func TestStdSignatureMarshalYAML(t *testing.T) {
 		bz, err := yaml.Marshal(tc.sig)
 		require.NoError(t, err)
 		require.Equal(t, tc.output, string(bz), "test case #%d", i)
+	}
+}
+
+func TestStdSignatureAmino(t *testing.T) {
+	_, pubKey, _ := KeyTestPubAddr()
+	testCases := []StdSignature{
+		{},
+		{PubKey: pubKey, Signature: []byte("dummySig")},
+		{PubKey: multisig.PubKeyMultisigThreshold{}, Signature: []byte{}},
+	}
+
+	cdc := ModuleCdc
+
+	for _, stdSig := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(stdSig)
+		require.NoError(t, err)
+
+		var expectValue StdSignature
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue StdSignature
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }
 
