@@ -259,7 +259,7 @@ func (pool *TxPool) dropTxs(index int, address common.Address) {
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
-	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
