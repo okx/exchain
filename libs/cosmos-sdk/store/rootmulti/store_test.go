@@ -546,6 +546,9 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 }
 
 func TestMultiStore_Delta(t *testing.T) {
+	viper.Set(tmtypes.FlagUploadDDS, true)
+	viper.Set(tmtypes.FlagDownloadDDS, true)
+
 	var db dbm.DB = dbm.NewMemDB()
 	ms := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := ms.LoadLatestVersion()
@@ -565,8 +568,6 @@ func TestMultiStore_Delta(t *testing.T) {
 	store2.Set(k2, v2)
 
 	// get deltas
-	viper.Set(tmtypes.FlagUploadDDS, true)
-	viper.Set(tmtypes.FlagDownloadDDS, true)
 	iavltree.SetProduceDelta(true)
 	cID, _, deltas := ms.Commit(nil, nil)
 	require.Equal(t, int64(1), cID.Version)
