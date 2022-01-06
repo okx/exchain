@@ -301,6 +301,10 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
 
+	ctx.Logger.Info("startInProcess",
+		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
+		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
+		)
 	if err := tmNode.Start(); err != nil {
 		return nil, err
 	}
