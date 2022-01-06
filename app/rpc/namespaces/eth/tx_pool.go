@@ -281,7 +281,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	key := []byte(address.Hex() + "|" + strconv.Itoa(int(tx.Data.AccountNonce)))
 
-	txBytes, err := rlp.EncodeToBytes(tx)
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}

@@ -701,8 +701,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+
 	// Encode transaction by RLP encoder
-	txBytes, err := rlp.EncodeToBytes(tx)
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -930,7 +932,7 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
