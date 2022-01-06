@@ -1,13 +1,18 @@
 package rootmulti
 
 import (
+	"bytes"
 	"fmt"
-	iavltree "github.com/okex/exchain/libs/iavl"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"math"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
+
+	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/stretchr/testify/assert"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -544,8 +549,7 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 		require.NoError(t, err, "expected no error when loading height, found err: %d", v)
 	}
 }
-
-func TestMultiStore_Delta(t *testing.T) {
+func testMultiStoreDelta(t *testing.T) {
 	viper.Set(tmtypes.FlagUploadDDS, true)
 	viper.Set(tmtypes.FlagDownloadDDS, true)
 
@@ -577,6 +581,31 @@ func TestMultiStore_Delta(t *testing.T) {
 	cID, _, deltas2 := ms.Commit(nil, deltas)
 	require.Equal(t, int64(2), cID.Version)
 	require.Equal(t, deltas, deltas2)
+}
+func TestMultiStore_Delta(t *testing.T) {
+	if os.Getenv("SUB_PROCESS") == "1" {
+		testMultiStoreDelta(t)
+		return
+	}
+
+	var outb, errb bytes.Buffer
+	cmd := exec.Command(os.Args[0], "-test.run=TestMultiStore_Delta")
+	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		isFailed := false
+		if strings.Contains(outb.String(), "FAIL:") ||
+			strings.Contains(errb.String(), "FAIL:") {
+			fmt.Print(cmd.Stderr)
+			fmt.Print(cmd.Stdout)
+			isFailed = true
+		}
+		assert.Equal(t, isFailed, false)
+
+		return
+	}
 }
 
 //-----------------------------------------------------------------------

@@ -1,11 +1,15 @@
 package iavl
 
 import (
+	"bytes"
 	crand "crypto/rand"
 	"fmt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/okex/exchain/libs/iavl"
@@ -545,7 +549,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Equal(t, v1, qres.Value)
 }
 
-func TestCommitDelta(t *testing.T) {
+func testCommitDelta(t *testing.T) {
 	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
 	viper.Set(tmtypes.FlagDownloadDDS, true)
 	iavl.SetProduceDelta(false)
@@ -589,6 +593,31 @@ func TestCommitDelta(t *testing.T) {
 	assert.NotEmpty(t, cid3.Hash)
 	assert.EqualValues(t, 4, cid3.Version)
 	assert.Equal(t, emptyDelta, treeDelta3)
+}
+func TestCommitDelta(t *testing.T) {
+	if os.Getenv("SUB_PROCESS") == "1" {
+		testCommitDelta(t)
+		return
+	}
+
+	var outb, errb bytes.Buffer
+	cmd := exec.Command(os.Args[0], "-test.run=TestCommitDelta")
+	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		isFailed := false
+		if strings.Contains(outb.String(), "FAIL:") ||
+			strings.Contains(errb.String(), "FAIL:") {
+			fmt.Print(cmd.Stderr)
+			fmt.Print(cmd.Stdout)
+			isFailed = true
+		}
+		assert.Equal(t, isFailed, false)
+
+		return
+	}
 }
 
 func TestIAVLDelta(t *testing.T) {
