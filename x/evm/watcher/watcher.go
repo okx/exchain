@@ -48,7 +48,6 @@ var (
 	checkWd        = false
 	onceEnable     sync.Once
 	onceLru        sync.Once
-	onceCheckWd    sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -65,16 +64,10 @@ func GetWatchLruSize() int {
 	return watcherLruSize
 }
 
-func CheckWdEnabled() bool {
-	onceCheckWd.Do(func() {
-		checkWd = viper.GetBool(FlagCheckWd)
-	})
-	return checkWd
-}
-
 func NewWatcher() *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	watcher.log = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "watcher")
+	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
 
@@ -406,7 +399,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		keys[i] = key
 	}
 
-	if CheckWdEnabled() {
+	if checkWd {
 		w.CheckWatchDB(keys, "producer")
 	}
 }
@@ -421,7 +414,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 		keys[i] = b.Key
 	}
 
-	if CheckWdEnabled() {
+	if checkWd {
 		w.CheckWatchDB(keys, "consumer")
 	}
 }
