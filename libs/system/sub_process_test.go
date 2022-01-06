@@ -22,7 +22,7 @@ func testTmp2(t *testing.T) {
 	v := tmtypes.EnableDownloadDelta()
 	assert.False(t, v, "tmp2")
 }
-func TestCommitDelta(t *testing.T) {
+func TestSubProcess(t *testing.T) {
 	var funcs = []func(t *testing.T) {
 		testTmp1,
 		testTmp2,
@@ -36,7 +36,7 @@ func TestCommitDelta(t *testing.T) {
 
 	for i, _ := range funcs {
 		var outb, errb bytes.Buffer
-		cmd := exec.Command(os.Args[0], "-test.run=TestCommitDelta")
+		cmd := exec.Command(os.Args[0], "-test.run=TestSubProcess")
 		cmd.Env = append(os.Environ(), fmt.Sprintf("SUB_PROCESS=%d", i))
 		cmd.Stdout = &outb
 		cmd.Stderr = &errb
