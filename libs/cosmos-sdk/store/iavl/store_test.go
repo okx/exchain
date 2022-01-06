@@ -548,6 +548,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 func TestCommitDelta(t *testing.T) {
 	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
 	viper.Set(tmtypes.FlagDownloadDDS, true)
+	iavl.SetProduceDelta(false)
 
 	db := dbm.NewMemDB()
 	tree, err := iavl.NewMutableTree(db, cacheSize)
