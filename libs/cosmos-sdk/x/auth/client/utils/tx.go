@@ -250,12 +250,32 @@ func populateAccountFromState(
 	return txBldr.WithAccountNumber(num).WithSequence(seq), nil
 }
 
+type txEncoderConfig struct {
+	isEthereumTx bool
+}
+
+type Option func(config *txEncoderConfig)
+
+func WithEthereumTx() Option {
+	return func(cfg *txEncoderConfig) {
+		cfg.isEthereumTx = true
+	}
+}
+
 // GetTxEncoder return tx encoder from global sdk configuration if ones is defined.
 // Otherwise returns encoder with default logic.
-func GetTxEncoder(cdc *codec.Codec) (encoder sdk.TxEncoder) {
+func GetTxEncoder(cdc *codec.Codec, options ...Option) (encoder sdk.TxEncoder) {
 	encoder = sdk.GetConfig().GetTxEncoder()
 	if encoder == nil {
-		encoder = authtypes.DefaultTxEncoder(cdc)
+		var cfg txEncoderConfig
+		for _, op := range options {
+			op(&cfg)
+		}
+		if cfg.isEthereumTx {
+			encoder = authtypes.EthereumTxEncoder(cdc)
+		} else {
+			encoder = authtypes.DefaultTxEncoder(cdc)
+		}
 	}
 
 	return encoder
