@@ -3,27 +3,41 @@ package system_test
 import (
 	"bytes"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 )
 
+const flagStr = "flag"
+
+var (
+	flag bool
+	o    sync.Once
+)
+
+func GetOnceFlag() bool {
+	o.Do(func() {
+		flag = viper.GetBool(flagStr)
+	})
+	return flag
+}
+
 func testTmp1(t *testing.T) {
-	viper.Set(tmtypes.FlagDownloadDDS, true)
-	v := tmtypes.EnableDownloadDelta()
+	viper.Set(flagStr, true)
+	v := GetOnceFlag()
 	assert.True(t, v, "tmp1")
 }
 func testTmp2(t *testing.T) {
-	viper.Set(tmtypes.FlagDownloadDDS, false)
-	v := tmtypes.EnableDownloadDelta()
+	viper.Set(flagStr, false)
+	v := GetOnceFlag()
 	assert.False(t, v, "tmp2")
 }
 func TestSubProcess(t *testing.T) {
-	var funcs = []func(t *testing.T) {
+	var funcs = []func(t *testing.T){
 		testTmp1,
 		testTmp2,
 	}
