@@ -37,7 +37,7 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
-	log log.Logger
+	log           log.Logger
 	// for state delta transfering in network
 	watchData *WatchData
 }
