@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -701,8 +700,9 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+
+	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -735,17 +735,12 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
-	if err := rlp.DecodeBytes(data, tx); err != nil {
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	txBytes := data
 
 	// send chanData to txPool
 	if api.txPool != nil {
@@ -1077,7 +1072,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	}
 
 	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash()), blockHash, height, uint64(tx.Index))
+	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -1160,7 +1155,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	}
 
 	height := uint64(block.Height)
-	txHash := common.BytesToHash(block.Txs[idx].Hash())
+	txHash := common.BytesToHash(block.Txs[idx].Hash(block.Height))
 	blockHash := common.BytesToHash(block.Hash())
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }

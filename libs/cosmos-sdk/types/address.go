@@ -134,12 +134,15 @@ func VerifyAddressFormat(bz []byte) error {
 }
 
 // AccAddressFromBech32 creates an AccAddress from a Bech32 string.
-func AccAddressFromBech32(address string) (addr AccAddress, err error) {
+func AccAddressFromBech32(address string) (AccAddress, error) {
+	return AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
+}
+
+// AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
+func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (addr AccAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
 		return AccAddress{}, nil
 	}
-
-	bech32PrefixAccAddr := GetConfig().GetBech32AccountAddrPrefix()
 
 	if !strings.HasPrefix(address, bech32PrefixAccAddr) {
 		// strip 0x prefix if exists
@@ -248,8 +251,11 @@ func (aa AccAddress) String() string {
 		return ""
 	}
 
-	bech32PrefixAccAddr := GetConfig().GetBech32AccountAddrPrefix()
+	return aa.Bech32String(GetConfig().GetBech32AccountAddrPrefix())
+}
 
+// Bech32String convert account address to bech32 address.
+func (aa AccAddress) Bech32String(bech32PrefixAccAddr string) string {
 	bech32Addr, err := bech32.ConvertAndEncode(bech32PrefixAccAddr, aa.Bytes())
 	if err != nil {
 		panic(err)

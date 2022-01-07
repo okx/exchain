@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"strings"
 
@@ -534,25 +535,28 @@ func DecodeResultData(in []byte) (ResultData, error) {
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte) (sdk.Tx, error) {
 		var tx sdk.Tx
-
+		var err error
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+		}
+
+		// TODO: Is there a better way to Decode RLP-encoded MsgEthereumTx?
+		// Try to decode as MsgEthereumTx through RLP
+		var ethTx MsgEthereumTx
+		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+			return ethTx, nil
 		}
 
 		// sdk.Tx is an interface. The concrete message types
 		// are registered by MakeTxCodec
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx)
-		if err != nil {
-			err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
-			if err != nil {
-				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-			}
-		} else {
-			tx = v.(sdk.Tx)
+		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+			return v.(sdk.Tx), nil
 		}
-
-		return tx, nil
+		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			return tx, nil
+		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 	}
 }
 

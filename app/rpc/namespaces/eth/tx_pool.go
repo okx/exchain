@@ -1,26 +1,25 @@
 package eth
 
 import (
-	"encoding/hex"
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rlp"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -97,7 +96,7 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 		}
 
 		tx := new(evmtypes.MsgEthereumTx)
-		if err = rlp.DecodeBytes(txBytes, tx); err != nil {
+		if err = authtypes.EthereumTxDecode(txBytes, tx); err != nil {
 			return err
 		}
 		if int(tx.Data.AccountNonce) != txNonce {
@@ -140,7 +139,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
+	return common.BytesToHash(types.Tx(txBytes).Hash(api.clientCtx.Height)), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
@@ -260,7 +259,7 @@ func (pool *TxPool) dropTxs(index int, address common.Address) {
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
-	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
@@ -282,7 +281,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	key := []byte(address.Hex() + "|" + strconv.Itoa(int(tx.Data.AccountNonce)))
 
-	txBytes, err := rlp.EncodeToBytes(tx)
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}

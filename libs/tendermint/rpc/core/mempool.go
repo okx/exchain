@@ -27,7 +27,7 @@ func BroadcastTxAsync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadca
 	if err != nil {
 		return nil, err
 	}
-	return &ctypes.ResultBroadcastTx{Hash: tx.Hash()}, nil
+	return &ctypes.ResultBroadcastTx{Hash: tx.Hash(env.BlockStore.Height())}, nil
 }
 
 // BroadcastTxSync returns with the response from CheckTx. Does not wait for
@@ -48,7 +48,7 @@ func BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcas
 		Data:      r.Data,
 		Log:       r.Log,
 		Codespace: r.Codespace,
-		Hash:      tx.Hash(),
+		Hash:      tx.Hash(env.BlockStore.Height()),
 	}, nil
 }
 
@@ -66,7 +66,7 @@ func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadc
 	// Subscribe to tx being committed in block.
 	subCtx, cancel := context.WithTimeout(ctx.Context(), SubscribeTimeout)
 	defer cancel()
-	q := types.EventQueryTxFor(tx)
+	q := types.EventQueryTxFor(tx, env.BlockStore.Height())
 	deliverTxSub, err := env.EventBus.Subscribe(subCtx, subscriber, q)
 	if err != nil {
 		err = fmt.Errorf("failed to subscribe to tx: %w", err)
@@ -90,7 +90,7 @@ func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadc
 		return &ctypes.ResultBroadcastTxCommit{
 			CheckTx:   *checkTxRes,
 			DeliverTx: abci.ResponseDeliverTx{},
-			Hash:      tx.Hash(),
+			Hash:      tx.Hash(env.BlockStore.Height()),
 		}, nil
 	}
 
@@ -101,7 +101,7 @@ func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadc
 		return &ctypes.ResultBroadcastTxCommit{
 			CheckTx:   *checkTxRes,
 			DeliverTx: deliverTxRes.Result,
-			Hash:      tx.Hash(),
+			Hash:      tx.Hash(env.BlockStore.Height()),
 			Height:    deliverTxRes.Height,
 		}, nil
 	case <-deliverTxSub.Cancelled():
@@ -116,7 +116,7 @@ func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadc
 		return &ctypes.ResultBroadcastTxCommit{
 			CheckTx:   *checkTxRes,
 			DeliverTx: abci.ResponseDeliverTx{},
-			Hash:      tx.Hash(),
+			Hash:      tx.Hash(env.BlockStore.Height()),
 		}, err
 	case <-time.After(env.Config.TimeoutBroadcastTxCommit):
 		err = errors.New("timed out waiting for tx to be included in a block")
@@ -124,7 +124,7 @@ func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadc
 		return &ctypes.ResultBroadcastTxCommit{
 			CheckTx:   *checkTxRes,
 			DeliverTx: abci.ResponseDeliverTx{},
-			Hash:      tx.Hash(),
+			Hash:      tx.Hash(env.BlockStore.Height()),
 		}, err
 	}
 }
