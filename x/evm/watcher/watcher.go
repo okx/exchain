@@ -390,7 +390,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		keys[i] = data.Batches[i].Key
 	}
 	if checkWd {
-		w.CheckWatchDB(keys, "consumer-laste")
+		w.CheckWatchDB(keys, "consumer")
 	}
 }
 
@@ -408,7 +408,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 
 	if checkWd {
-		w.CheckWatchDB(keys, "producer------")
+		w.CheckWatchDB(keys, "producer")
 	}
 }
 
@@ -420,9 +420,6 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 		}
 		keys[i] = b.Key
-	}
-	if checkWd {
-		w.CheckWatchDB(keys, "consumer-batch")
 	}
 }
 
