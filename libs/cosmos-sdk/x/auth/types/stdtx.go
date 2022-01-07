@@ -431,6 +431,10 @@ func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	}
 }
 
+func EthereumTxDecode(b []byte, tx interface{}) error {
+	return rlp.DecodeBytes(b, tx)
+}
+
 // MarshalYAML returns the YAML representation of the signature.
 func (ss StdSignature) MarshalYAML() (interface{}, error) {
 	var (
