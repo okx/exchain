@@ -28,7 +28,7 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --consensus.timeout_commit 2000ms \
-      --enable-preruntx \
+      --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
@@ -64,7 +64,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install)
+(cd .. && make install VenusHeight=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID

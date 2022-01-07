@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -701,8 +700,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+
 	// Encode transaction by RLP encoder
-	txBytes, err := rlp.EncodeToBytes(tx)
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -734,7 +735,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
-	if err := rlp.DecodeBytes(data, tx); err != nil {
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
 		return common.Hash{}, err
 	}
@@ -930,7 +931,7 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err

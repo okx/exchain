@@ -43,7 +43,7 @@ func NewRestServer(cdc *codec.Codec, tmNode *node.Node) *RestServer {
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
 	if tmNode != nil {
-		cliCtx = cliCtx.WithChainID(tmNode.GenesisDoc().ChainID)
+		cliCtx = cliCtx.WithChainID(tmNode.ConsensusState().GetState().ChainID)
 		cliCtx.Client = local.New(tmNode)
 		logger = tmNode.Logger.With("module", "rest-server")
 	}
