@@ -413,13 +413,11 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
-	keys := make([][]byte, len(batch))
-	for i, b := range batch {
+	for _, b := range batch {
 		w.store.Set(b.Key, b.Value)
 		if b.TypeValue == TypeState {
 			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 		}
-		keys[i] = b.Key
 	}
 }
 
