@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/spf13/cobra"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -421,7 +419,7 @@ func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error)
 	txLen := len(txs)
 	txHashes := make([]string, txLen)
 	for i, txBytes := range txs {
-		txHashes[i] = fmt.Sprintf("%X", tmhash.Sum(txBytes))
+		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash(height))
 	}
 	return txHashes, nil
 }

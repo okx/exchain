@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -249,7 +249,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -290,7 +290,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -321,7 +321,7 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash()), common.Hash{}, 0, 0)
+	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, tx := range block.Block.Txs {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
+		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
 		if err != nil {
 			continue
 		}

@@ -34,8 +34,6 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
-	k.InitInnerBlock(common.BytesToHash(currentHash).Hex())
-
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
@@ -105,7 +103,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
-		k.Watcher.Commit()
 	}
 
 	k.UpdateInnerBlockData()

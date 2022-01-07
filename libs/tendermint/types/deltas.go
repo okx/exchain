@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	"github.com/spf13/viper"
-	"sync"
 	"time"
 )
 
@@ -17,7 +15,6 @@ const (
 	FlagBufferSize      = "delta-buffer-size"
 	FlagDDSCompressType = "compress-type"
 	FlagDDSCompressFlag = "compress-flag"
-	FlagEnablePreRun="enable-preruntx"
 
 	// redis
 	// url fmt (ip:port)
@@ -32,44 +29,11 @@ const (
 )
 
 var (
-	fastQuery     = false
-	downloadDelta = false
-	uploadDelta   = false
-	enablePreRun=false
-
-	onceFastQuery sync.Once
-	onceDownload  sync.Once
-	onceUpload    sync.Once
-	oncePreRun sync.Once
+	FastQuery     = false
+	DownloadDelta = false
+	UploadDelta   = false
+	PreRun        = false
 )
-
-func IsFastQuery() bool {
-	onceFastQuery.Do(func() {
-		fastQuery = viper.GetBool(FlagFastQuery)
-	})
-	return fastQuery
-}
-
-func EnableDownloadDelta() bool {
-	onceDownload.Do(func() {
-		downloadDelta = viper.GetBool(FlagDownloadDDS)
-	})
-	return downloadDelta
-}
-
-func EnablePreRunTx()bool{
-	oncePreRun.Do(func() {
-		enablePreRun=viper.GetBool(FlagEnablePreRun)
-	})
-	return enablePreRun
-}
-
-func EnableUploadDelta() bool {
-	onceUpload.Do(func() {
-		uploadDelta = viper.GetBool(FlagUploadDDS)
-	})
-	return uploadDelta
-}
 
 type DeltasMessage struct {
 	Metadata     []byte `json:"metadata"`
@@ -153,7 +117,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Height:       d.Height,
 		Version:      d.Version,
 		CompressType: d.CompressType,
-		MetadataHash:  payloadHash,
+		MetadataHash: payloadHash,
 		From:         d.From,
 	}
 

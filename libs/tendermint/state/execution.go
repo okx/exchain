@@ -85,7 +85,7 @@ func NewBlockExecutor(
 ) *BlockExecutor {
 
 	var q queue.Queue
-	if types.EnablePreRunTx() && types.EnableDownloadDelta() {
+	if types.PreRun && types.DownloadDelta {
 		q = queue.NewLinkedBlockQueue()
 	} else {
 		q = queue.NewNonOpQueue()

@@ -23,6 +23,8 @@ const (
 
 func main() {
 	testTypeParam := flag.String("type", "oip20", "choose which test to run")
+	flag.Parse()
+
 	privKey := []string{
 		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
 		"171786c73f805d257ceb07206d851eea30b3b41a2170ae55e1225e0ad516ef42",
@@ -33,15 +35,17 @@ func main() {
 	var testFunc func(privKey string, blockTime time.Duration) error
 	switch TestType(*testTypeParam) {
 	case Oip20Test:
+		fmt.Printf("contract: %s\n", *testTypeParam)
 		testFunc = standardOip20Test
 		break
 	default:
+		fmt.Printf("contract: %s\n", CounterTest)
 		testFunc = counterTest
 	}
 	
 	for _, k := range privKey {
 		test := func(key string) {
-			testFunc(key, time.Millisecond*50)
+			testFunc(key, time.Millisecond*500)
 		}
 		go writeRoutine(test, k)
 	}

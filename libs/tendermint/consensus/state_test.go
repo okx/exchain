@@ -1907,7 +1907,6 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32),afterRound
 	raceEndSuccCount := 0
 	for _, node := range traceNodes {
 		if node.trace&sm.RACE_BEGINBLOCK_SUCCESS >= sm.RACE_BEGINBLOCK_SUCCESS {
-			fmt.Println(node.trace)
 			if statusCheckBeginBlock > 0 && node.status&statusCheckBeginBlock >= statusCheckBeginBlock {
 				beginBlockStatusHit++
 			}
@@ -1956,6 +1955,8 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32),afterRound
 }
 
 func localDebug(t *testing.T) {
+	types.PreRun=true
+	types.DownloadDelta=true
 	viper.Set(EnablePrerunTx, true)
 	viper.Set("download-delta", true)
 	sm.SetWatchDataFunc(func() ([]byte, error) {
