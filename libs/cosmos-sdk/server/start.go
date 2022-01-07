@@ -186,7 +186,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
-	cmd.Flags().BoolVar(&sdk.TrieDirtyDisabled, sdk.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 	cmd.Flags().UintVar(&sdk.TrieCacheSize, sdk.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")

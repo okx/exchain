@@ -11,26 +11,29 @@ import (
 // 3. BankTransferBlock
 
 var (
-	MILESTONE_GENESIS_HEIGHT     string
-	genesisHeight                int64
+	MILESTONE_GENESIS_HEIGHT string
+	genesisHeight            int64
 
-	MILESTONE_MERCURY_HEIGHT     string
-	milestoneMercuryHeight       int64
+	MILESTONE_MERCURY_HEIGHT string
+	milestoneMercuryHeight   int64
 
-	MILESTONE_VENUS_HEIGHT       string
-	milestoneVenusHeight         int64
+	MILESTONE_VENUS_HEIGHT string
+	milestoneVenusHeight   int64
 
-	once                         sync.Once
+	MILESTONE_MARS_HEIGHT string
+	milestoneMarsHeight   int64
+
+	once sync.Once
 )
 
 func init() {
 	once.Do(func() {
-		genesisHeight          = string2number(MILESTONE_GENESIS_HEIGHT)
+		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
-		milestoneVenusHeight   = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 	})
 }
-
 
 func string2number(input string) int64 {
 	if len(input) == 0 {
@@ -59,6 +62,14 @@ func HigherThanVenus(height int64) bool {
 	return height > milestoneVenusHeight
 }
 
+//use MPT storage model to replace IAVL storage model
+func HigherThanMars(height int64) bool {
+	if milestoneMarsHeight == 0 {
+		return false
+	}
+	return height > milestoneMarsHeight
+}
+
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
 	return MILESTONE_GENESIS_HEIGHT == "2322600"
@@ -79,4 +90,8 @@ func GetVenusHeight() int64 {
 
 func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
+}
+
+func GetMarsHeight() int64 {
+	return milestoneMarsHeight
 }

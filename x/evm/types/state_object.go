@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	types2 "github.com/ethereum/go-ethereum/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync"
@@ -371,7 +372,7 @@ func (so *stateObject) Nonce() uint64 {
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(db ethstate.Database) []byte {
-	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		if len(so.code) > 0 {
 			return so.code
 		}
@@ -423,7 +424,7 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 //
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
-	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		// If the fake storage is set, only lookup the state here(in the debugging mode)
 		if so.fakeStorage != nil {
 			return so.fakeStorage[key]
@@ -472,7 +473,7 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		newAccount := types.ProtoAccount().(*types.EthAccount)
 		jsonAccount, err := so.account.MarshalJSON()
 		if err != nil {

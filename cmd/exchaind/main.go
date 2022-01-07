@@ -84,6 +84,7 @@ func main() {
 		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx),
 		repairStateCmd(ctx),
+		displayStateCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
@@ -105,6 +106,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().BoolVar(&sdk.TrieDirtyDisabled, sdk.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

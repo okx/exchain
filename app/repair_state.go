@@ -108,7 +108,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
-	repairApp.EvmKeeper.SetRepairHeight(startVersion)
+	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)

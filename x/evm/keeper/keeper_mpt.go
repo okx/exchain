@@ -9,29 +9,14 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/x/evm/types"
 )
 
 var (
-	KeyPrefixLatestHeight       = []byte{0x01}
-	KeyPrefixRootMptHash        = []byte{0x02}
-	KeyPrefixLatestStoredHeight = []byte{0x03}
+	KeyPrefixRootMptHash        = []byte{0x01}
+	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
-
-// GetLatestBlockHeight get latest mpt storage height
-func (k *Keeper) GetLatestBlockHeight() uint64 {
-	rst, err := k.db.TrieDB().DiskDB().Get(KeyPrefixLatestHeight)
-	if err != nil || len(rst) == 0 {
-		return 0
-	}
-	return binary.BigEndian.Uint64(rst)
-}
-
-// SetLatestBlockHeight sets the latest storage height
-func (k *Keeper) SetLatestBlockHeight(height uint64) {
-	hhash := sdk.Uint64ToBigEndian(height)
-	k.db.TrieDB().DiskDB().Put(KeyPrefixLatestHeight, hhash)
-}
 
 // GetRootMptHash gets root mpt hash from block height
 func (k *Keeper) GetRootMptHash(height uint64) ethcmn.Hash {
@@ -77,12 +62,16 @@ func (k *Keeper) OpenTrie() {
 	k.rootTrie = tr
 }
 
-func (k *Keeper) SetRepairHeight(repairHeight int64) {
-	latestStoredHeight := k.GetLatestStoredBlockHeight()
-	if latestStoredHeight < uint64(repairHeight) {
-		panic(fmt.Sprintf("The target start repair height is: %v, but the latest stored evm height is: %v" ,repairHeight, latestStoredHeight))
+func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
+	if !tmtypes.HigherThanMars(targetVersion) {
+		return
 	}
-	toRepairBlockRootHash := k.GetRootMptHash(uint64(repairHeight))
+
+	latestStoredHeight := k.GetLatestStoredBlockHeight()
+	if latestStoredHeight < uint64(targetVersion) {
+		panic(fmt.Sprintf("The target mpt height is: %v, but the latest stored evm height is: %v" , targetVersion, latestStoredHeight))
+	}
+	toRepairBlockRootHash := k.GetRootMptHash(uint64(targetVersion))
 
 	tr, err := k.db.OpenTrie(toRepairBlockRootHash)
 	if err != nil {
@@ -172,7 +161,6 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 
 	latestHeight := uint64(ctx.BlockHeight())
 	k.SetRootMptHash(latestHeight, root)
-	k.SetLatestBlockHeight(latestHeight)
 
 	k.PushData2Database(ctx, root)
 }

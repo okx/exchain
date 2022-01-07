@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sort"
 	"sync"
@@ -582,7 +583,7 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 
 // GetCode returns the code for a given code hash.
 func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		ctx := csdb.ctx
 		store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
 		code := store.Get(hash.Bytes())
@@ -641,7 +642,7 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 
 // GetStateByKey retrieves a value from the given account's storage store.
 func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		ctx := csdb.ctx
 		store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
 		data := store.Get(key.Bytes())
@@ -728,7 +729,7 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		csdb.IntermediateRoot(deleteEmptyObjects)
 
 		// Commit objects to the trie, measuring the elapsed time
@@ -791,7 +792,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 	// Finalise all the dirty storage states and write them into the tries
 	csdb.Finalise(deleteEmptyObjects)
 
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		for addr := range csdb.stateObjectsPending {
 			if obj := csdb.stateObjects[addr]; !obj.deleted {
 				obj.commitState()
@@ -862,7 +863,7 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	if sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		csdb.DeleteAccountStorageInfo(so)
 	}
 }
@@ -1064,7 +1065,7 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		return nil
 	}
 
-	if !sdk.HigherThanVenus(csdb.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		store := csdb.ctx.KVStore(csdb.storeKey)
 		prefix := AddressStoragePrefix(so.Address())
 		iterator := sdk.KVStorePrefixIterator(store, prefix)

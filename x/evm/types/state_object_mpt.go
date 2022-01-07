@@ -7,7 +7,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
@@ -171,7 +171,7 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if !sdk.HigherThanVenus(so.stateDB.ctx.BlockHeight()) {
+	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		return len(so.Code(db))
 	} else {
 		if bytes.Equal(so.CodeHash(), emptyCodeHash) {

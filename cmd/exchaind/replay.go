@@ -103,7 +103,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
-	cmd.Flags().BoolVar(&sdk.TrieDirtyDisabled, sdk.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 
 	return cmd
 }

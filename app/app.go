@@ -198,6 +198,7 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"MarsHeight", tmtypes.GetMarsHeight(),
 		)
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
@@ -658,7 +659,7 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if sdk.HigherThanVenus(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 			ak.Commit(ctx)
 		}
 	}
