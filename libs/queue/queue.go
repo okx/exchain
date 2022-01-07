@@ -2,8 +2,6 @@ package queue
 
 import (
 	"github.com/emirpasic/gods/lists/arraylist"
-	"log"
-	"reflect"
 	"sync"
 )
 
@@ -46,7 +44,6 @@ func (l *linkedBlockingQueue) Take() interface{} {
 	return nil
 }
 func (l *linkedBlockingQueue) Push(task interface{}) (int, error) {
-	log.Println("add job ","task",task,"type",reflect.TypeOf(task))
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
 	l.list.Add(task)

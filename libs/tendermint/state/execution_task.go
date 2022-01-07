@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"sync"
 	"sync/atomic"
 
@@ -86,7 +87,7 @@ func (t *executionTask) run() {
 	)
 
 	t.dump("Start prerun")
-	//trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
+	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
 
 	if t.height != 1 {
 		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
@@ -132,7 +133,7 @@ func (t *executionTask) run() {
 		traceHook(CASE_PRERRUN_SITUATION_RACE_END_SUCCESS, t.status)
 	}, func() {
 		traceHook(CASE_PRERRUN_SITUATION_RACE_END_FAIL, t.status)
-	}, curStatus, TASK_DELTA, TASK_PRERRUN)
+	},trc, curStatus, TASK_DELTA, TASK_PRERRUN)
 }
 
 //========================================================

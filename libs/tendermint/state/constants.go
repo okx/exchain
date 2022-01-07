@@ -6,8 +6,6 @@ const (
 	TASK_BEGIN_DELTA_EXISTS = 1 << 2
 	TASK_DELTA              = 1 << 3
 	TASK_PRERRUN            = 1 << 4
-	TASK_SUCCESS            = 1 << 5
-	TASK_POPPED             = 1 << 6
 )
 
 const (

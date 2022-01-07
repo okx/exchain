@@ -373,11 +373,7 @@ func (dc *DeltaContext) downloadRoutine() {
 		err, delta, mrh := dc.download(targetHeight)
 		info.statistics(targetHeight, err, mrh)
 		if err == nil {
-			dc.producerQ.Push(&DeltaJob{
-				Delta: delta,
-				Cb: func(h int64) {
-				},
-			})
+			dc.producerQ.Push(&DeltaJob{Delta: delta})
 			dc.dataMap.insert(targetHeight, delta, mrh)
 			targetHeight++
 		}

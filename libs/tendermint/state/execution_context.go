@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/queue"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"sync"
 	"sync/atomic"
 )
-
-const ()
 
 var (
 	traceHook func(trace, status int32) = func(_, _ int32) {}
@@ -136,17 +135,22 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	curDb := curTask.db
 	app := curTask.proxyApp
 
-	// best effort: try to avoid to run twice
+	// best effort: try to avoid  running twice
 	if curBlock.Height > delta.Height || curTask.stopped {
 		// ignore
 		return
 	} else if curBlock.Height < delta.Height {
+		if delta.Height > pc.lastPruneHeight+10{
+			return
+		}
 		// cache the delta
 		store(v, pc.cache)
 		return
 	}
 
 	traceHook(CASE_SPECIAL_DELTA_BEFORE_FINAL_STORE, curTask.status)
+
+	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
 
 	// store the delta:  in case of  `cpu edge case`
 	// we will delete the height by prune
@@ -198,13 +202,14 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		}
 	}, func() {
 		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL,curTask.status)
-	}, curStatus, TASK_PRERRUN, TASK_DELTA)
+	},trc, curStatus, TASK_PRERRUN, TASK_DELTA)
 }
 func notifyResult(curTask *executionTask,
 	abciResponses *ABCIResponses,
 	err error,
 	hook func(),
 	elseH func(),
+	trc *trace.Tracer,
 	currentStatus int32,
 	invalidStatus,
 	deltaStatus int32) {
@@ -225,6 +230,7 @@ func notifyResult(curTask *executionTask,
 	select {
 	case curTask.taskResultChan <- curTask:
 		traceHook(RESULT_TRAEC, currentStatus)
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	default:
 		panic("programa error")
 	}
