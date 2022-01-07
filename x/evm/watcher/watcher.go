@@ -2,7 +2,6 @@ package watcher
 
 import (
 	"encoding/hex"
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -170,17 +169,10 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 		return
 	}
 	wMsg := NewMsgAccount(account)
-	fmt.Println(account.GetAddress().String(), isDirectly)
 	if wMsg != nil {
 		if isDirectly {
-			for _, b := range w.batch {
-				if hex.EncodeToString(b.GetKey()) == hex.EncodeToString(wMsg.GetKey()) {return}
-			}
 			w.batch = append(w.batch, wMsg)
 		} else {
-			for _, b := range w.staleBatch {
-				if hex.EncodeToString(b.GetKey()) == hex.EncodeToString(wMsg.GetKey()) {return}
-			}
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
 
@@ -365,7 +357,6 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-
 	go w.commitBatch(batch)
 
 	// get centerBatch for sending to DataCenter
