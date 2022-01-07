@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -995,8 +996,9 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
 
+	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
 	for _, fn := range app.customizeModuleOnStop {
-		fn()
+		fn(ctx)
 	}
 }
 

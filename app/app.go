@@ -652,15 +652,18 @@ func PreRun(ctx *server.Context) error {
 }
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
-	return func() error {
-		return ak.OnStop()
+	return func(ctx sdk.Context) error {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+			return ak.OnStop(ctx)
+		}
+		return nil
 	}
 }
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
 		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-			ak.Commit(ctx)
+			ak.PushData2Database(ctx)
 		}
 	}
 }

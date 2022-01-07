@@ -18,8 +18,8 @@ var (
 	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
 
-// GetRootMptHash gets root mpt hash from block height
-func (k *Keeper) GetRootMptHash(height uint64) ethcmn.Hash {
+// GetMptRootHash gets root mpt hash from block height
+func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	hhash := sdk.Uint64ToBigEndian(height)
 	rst, err := k.db.TrieDB().DiskDB().Get(append(KeyPrefixRootMptHash, hhash...))
 	if err != nil || len(rst) == 0 {
@@ -29,8 +29,8 @@ func (k *Keeper) GetRootMptHash(height uint64) ethcmn.Hash {
 	return ethcmn.BytesToHash(rst)
 }
 
-// SetRootMptHash sets the mapping from block height to root mpt hash
-func (k *Keeper) SetRootMptHash(height uint64, hash ethcmn.Hash) {
+// SetMptRootHash sets the mapping from block height to root mpt hash
+func (k *Keeper) SetMptRootHash(height uint64, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(height)
 	k.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }
@@ -53,7 +53,7 @@ func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 func (k *Keeper) OpenTrie() {
 	//startHeight := types2.GetStartBlockHeight() // start height of oec
 	latestStoredHeight := k.GetLatestStoredBlockHeight()
-	latestStoredRootHash := k.GetRootMptHash(latestStoredHeight)
+	latestStoredRootHash := k.GetMptRootHash(latestStoredHeight)
 
 	tr, err := k.db.OpenTrie(latestStoredRootHash)
 	if err != nil {
@@ -71,9 +71,9 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 	if latestStoredHeight < uint64(targetVersion) {
 		panic(fmt.Sprintf("The target mpt height is: %v, but the latest stored evm height is: %v" , targetVersion, latestStoredHeight))
 	}
-	toRepairBlockRootHash := k.GetRootMptHash(uint64(targetVersion))
+	targetMptRootHash := k.GetMptRootHash(uint64(targetVersion))
 
-	tr, err := k.db.OpenTrie(toRepairBlockRootHash)
+	tr, err := k.db.OpenTrie(targetMptRootHash)
 	if err != nil {
 		panic("Fail to open root mpt: " + err.Error())
 	}
@@ -81,27 +81,57 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 	k.EvmStateDb = types2.NewCommitStateDB(k.GenerateCSDBParams())
 }
 
-func (k *Keeper) OnStop() error {
-	for !k.triegc.Empty() {
-		k.db.TrieDB().Dereference(k.triegc.PopItem().(ethcmn.Hash))
+// Stop stops the blockchain service. If any imports are currently in progress
+// it will abort them using the procInterrupt.
+func (k *Keeper) OnStop(ctx sdk.Context) error {
+	// Ensure the state of a recent block is also stored to disk before exiting.
+	// We're writing three different states to catch different restart scenarios:
+	//  - HEAD:     So we don't need to reprocess any blocks in the general case
+	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
+	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
+	if !sdk.TrieDirtyDisabled {
+		triedb := k.db.TrieDB()
+		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
+
+		for _, offset := range []uint64{0, 1, core.TriesInMemory - 1} {
+			if number := uint64(ctx.BlockHeight()); number > offset {
+				recent := number - offset
+				if recent <= oecStartHeight {
+					break
+				}
+
+				recentMptRoot := k.GetMptRootHash(recent)
+				k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "root",recentMptRoot)
+				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
+					k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+				}
+			}
+		}
+
+		for !k.triegc.Empty() {
+			k.db.TrieDB().Dereference(k.triegc.PopItem().(ethcmn.Hash))
+		}
 	}
 
 	return nil
 }
 
-func (k *Keeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
+func (k *Keeper) PushData2Database(ctx sdk.Context) {
+	curHeight := ctx.BlockHeight()
+	curMptRoot := k.GetMptRootHash(uint64(curHeight))
+
 	triedb := k.db.TrieDB()
 	// Full but not archive node, do proper garbage collection
-	triedb.Reference(root, ethcmn.Hash{}) // metadata reference to keep trie alive
-	k.triegc.Push(root, -int64(ctx.BlockHeight()))
+	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
+	k.triegc.Push(curMptRoot, -int64(curHeight))
 
 	if sdk.TrieDirtyDisabled {
-		if err := triedb.Commit(root, false, nil); err != nil {
+		if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 			panic("fail to commit mpt data: " + err.Error())
 		}
-		k.SetLatestStoredBlockHeight(uint64(ctx.BlockHeight()))
+		k.SetLatestStoredBlockHeight(uint64(curHeight))
 	} else {
-		if ctx.BlockHeight() > core.TriesInMemory {
+		if curHeight > core.TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
@@ -112,16 +142,15 @@ func (k *Keeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 				triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
-			chosen := ctx.BlockHeight() - core.TriesInMemory
+			chosen := curHeight - core.TriesInMemory
 
 			// If the header is missing (canonical chain behind), we're reorging a low
 			// diff sidechain. Suspend committing until this operation is completed.
-			chRoot := k.GetRootMptHash(uint64(chosen))
+			chRoot := k.GetMptRootHash(uint64(chosen))
 			if chRoot == (ethcmn.Hash{}) {
 				k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
 			} else {
 				k.SetLatestStoredBlockHeight(uint64(chosen))
-
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
 				if err := triedb.Commit(chRoot, true, nil); err != nil {
@@ -143,6 +172,9 @@ func (k *Keeper) PushData2Database(ctx sdk.Context, root ethcmn.Hash) {
 }
 
 func (k *Keeper) Commit(ctx sdk.Context) {
+	// commit contract storage mpt trie
+	k.EvmStateDb.WithContext(ctx).Commit(true)
+
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
 	var storageRoot ethcmn.Hash
@@ -158,9 +190,5 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 
 		return nil
 	})
-
-	latestHeight := uint64(ctx.BlockHeight())
-	k.SetRootMptHash(latestHeight, root)
-
-	k.PushData2Database(ctx, root)
+	k.SetMptRootHash(uint64(ctx.BlockHeight()), root)
 }

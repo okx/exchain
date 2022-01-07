@@ -17,7 +17,7 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
 
-type CustomizeOnStop func() error
+type CustomizeOnStop func(ctx Context) error
 
 type MptCommitHandler func(ctx Context)
 
