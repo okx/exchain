@@ -300,9 +300,13 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
-		Value: tmNode.GenesisDoc().ChainID,
+		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
 
+	ctx.Logger.Info("startInProcess",
+		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
+		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
+		)
 	if err := tmNode.Start(); err != nil {
 		return nil, err
 	}
@@ -380,4 +384,8 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 	abci.SetDisableABCIQueryMutex(viper.GetBool(abci.FlagDisableABCIQueryMutex))
 	abci.SetDisableCheckTx(viper.GetBool(abci.FlagDisableCheckTx))
+
+	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
+	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
+	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 }

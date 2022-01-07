@@ -65,8 +65,8 @@ func newDeltaContext(l log.Logger) *DeltaContext {
 	dp := &DeltaContext{
 		dataMap: newDataMap(),
 		missed: 1,
-		downloadDelta: types.EnableDownloadDelta(),
-		uploadDelta: types.EnableUploadDelta(),
+		downloadDelta: types.DownloadDelta,
+		uploadDelta: types.UploadDelta,
 		idMap: make(identityMapType),
 		logger: l,
 	}
@@ -161,7 +161,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
 			"applied-ratio", dc.hitRatio(), "delta", delta)
 
-		if applied && types.IsFastQuery() {
+		if applied && types.FastQuery {
 			applyWatchDataFunc(delta.WatchBytes())
 		}
 	}
