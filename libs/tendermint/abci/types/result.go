@@ -12,6 +12,12 @@ const (
 	CodeTypeNonceInc uint32 = 100000
 )
 
+type ExTxInfo struct {
+	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte  `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+
 // IsOK returns true if Code is OK.
 func (r ResponseCheckTx) IsOK() bool {
 	return r.Code == CodeTypeOK

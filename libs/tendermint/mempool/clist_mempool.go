@@ -604,9 +604,15 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if mem.postSigned != nil {
-				tx, err := mem.postSigned(memTx.tx, r)
+				info := &abci.ExTxInfo{
+					Metadata: exTxInfo.Metadata,
+					NodeKey: exTxInfo.NodeKey,
+					Signature: exTxInfo.Signature,
+				}
+
+				tx, err := mem.postSigned(memTx.tx, r, info) // CheckedTxSignedFunc
 				if err != nil {
-					mem.logger.Info("Try to sign the TX", txID(memTx.tx), err)
+					//mem.logger.Info("Try to sign the TX", txID(memTx.tx), err)
 				} else {
 					memTx.tx = tx
 				}
@@ -1134,6 +1140,10 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
+
+	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte  `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {

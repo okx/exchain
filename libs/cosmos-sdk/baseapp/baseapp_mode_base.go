@@ -163,6 +163,9 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 
 	exTxInfo := m.app.GetTxInfo(info.ctx, info.tx)
 	exTxInfo.SenderNonce = info.accountNonce
+	exTxInfo.Metadata = nil
+	exTxInfo.Signature = nil
+	exTxInfo.NodeKey = nil
 
 	data, err := json.Marshal(exTxInfo)
 	if err == nil {

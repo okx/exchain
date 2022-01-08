@@ -115,7 +115,7 @@ type PostCheckFunc func(types.Tx, *abci.ResponseCheckTx) error
 
 // PostCheckAndSignFunc using the origin Tx to signed and generate the signed Tx
 // this callback function should be set in the Application
-type PostCheckAndSignFunc func(types.Tx, *abci.Response_CheckTx) (types.Tx, error)
+type PostCheckAndSignFunc func(types.Tx, *abci.Response_CheckTx, *abci.ExTxInfo) (types.Tx, error)
 
 // TxInfo are parameters that get passed when attempting to add a tx to the
 // mempool.

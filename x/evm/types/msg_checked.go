@@ -89,6 +89,15 @@ type MsgEthereumCheckedTx struct {
 	Payload []byte `json:"payload"`
 }
 
+
+type MsgCheckedTx struct {
+	Payload   []byte  `json:"payload"`   // std tx or evm tx
+	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte  `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+
+
 func (msg MsgEthereumCheckedTx) String() string {
 	return ""
 }
