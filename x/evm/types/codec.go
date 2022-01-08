@@ -13,7 +13,6 @@ var ModuleCdc = codec.New()
 
 const (
 	MsgEthereumTxName        = "ethermint/MsgEthereumTx"
-	MsgEthereumCheckedTxName = "ethermint/MsgEthereumCheckedTx"
 	ChainConfigName          = "ethermint/ChainConfig"
 	MsgEthermintName         = "ethermint/MsgEthermint"
 	TxDataName               = "ethermint/TxData"
@@ -27,7 +26,6 @@ const (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgEthereumTx{}, MsgEthereumTxName, nil)
 	cdc.RegisterConcrete(MsgEthermint{}, MsgEthermintName, nil)
-	cdc.RegisterConcrete(MsgEthereumCheckedTx{}, MsgEthereumCheckedTxName, nil)
 	cdc.RegisterConcrete(TxData{}, TxDataName, nil)
 	cdc.RegisterConcrete(ChainConfig{}, ChainConfigName, nil)
 	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, ManageContractDeploymentWhitelistProposalName, nil)
