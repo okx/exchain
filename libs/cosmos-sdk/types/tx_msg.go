@@ -50,11 +50,6 @@ type Tx interface {
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
-
-	// Return the data carried by multi type Tx
-	// StdTx, EthereumTx
-	// the return value is format with tlv, see more details in the libs/tendermint/libs/tlv
-	GetTxCarriedData() []byte
 }
 
 //__________________________________________________________
@@ -64,6 +59,13 @@ type TxDecoder func(txBytes []byte) (Tx, error)
 
 // TxEncoder marshals transaction to bytes
 type TxEncoder func(tx Tx) ([]byte, error)
+
+type ExTxInfo struct {
+	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte  `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+type CheckedTxEncoder func(txBytes []byte, info *ExTxInfo) ([]byte, error)
 
 //__________________________________________________________
 

@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // CheckedMempoolFeeDecorator used for checked tx to check mempool fee
@@ -30,18 +29,18 @@ func (cmfd CheckedMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, si
 
 	var minFees sdk.Dec // after type asset this struct is non-empty
 	var fee sdk.DecCoin
-	minGasPrices := ctx.MinGasPrices()
+	//minGasPrices := ctx.MinGasPrices()
 	evmDenom := sdk.DefaultBondDenom
-	if len(tx.GetTxCarriedData()) > 0 {
-		if t, ok := tx.(evmtypes.MsgEthereumCheckedTx); ok {
-			// TODO: add the FeeTx for the MsgEthereumChedkedTx to conver the fee
-			minFees = minGasPrices.AmountOf(evmDenom).MulInt64(int64(t.Data.GasLimit))
-		} else {
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-		}
-	} else {
-
-	}
+	//if len(tx.GetTxCarriedData()) > 0 {
+	//	if t, ok := tx.(evmtypes.MsgEthereumCheckedTx); ok {
+	//		// TODO: add the FeeTx for the MsgEthereumChedkedTx to conver the fee
+	//		minFees = minGasPrices.AmountOf(evmDenom).MulInt64(int64(t.Data.GasLimit))
+	//	} else {
+	//		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+	//	}
+	//} else {
+	//
+	//}
 
 	var hasEnoughFees bool
 	if fee.Amount.GTE(minFees) {

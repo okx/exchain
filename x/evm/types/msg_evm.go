@@ -11,10 +11,8 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -168,11 +166,6 @@ func (msg MsgEthereumTx) ValidateBasic() error {
 // transaction is a contract creation.
 func (msg MsgEthereumTx) To() *ethcmn.Address {
 	return msg.Data.Recipient
-}
-
-// GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
-func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
-	return []sdk.Msg{msg}
 }
 
 // GetSigners returns the expected signers for an Ethereum transaction message.
@@ -407,36 +400,6 @@ func deriveChainID(v *big.Int) *big.Int {
 	return v.Div(v, big.NewInt(2))
 }
 
-// Return tx sender and gas price
-func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	exTxInfo := mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    msg.Data.AccountNonce,
-	}
-
-	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return exTxInfo
-	}
-
-	// Verify signature and retrieve sender address
-	fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-	if err != nil {
-		return exTxInfo
-	}
-
-	from := fromSigCache.GetFrom()
-	exTxInfo.Sender = from.String()
-	exTxInfo.GasPrice = msg.Data.Price
-
-	return exTxInfo
-}
-
-// GetGasPrice return gas price
-func (msg MsgEthereumTx) GetGasPrice() *big.Int {
-	return msg.Data.Price
-}
 
 func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 	var dataLen uint64 = 0
@@ -477,27 +440,5 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
 	}
-	return nil
-}
-
-func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
-	// deploy contract case
-	if msg.Data.Recipient == nil {
-		return DefaultDeployContractFnSignature, len(msg.Data.Payload)
-	}
-
-	// most case is transfer token
-	if len(msg.Data.Payload) < 4 {
-		return DefaultSendCoinFnSignature, 0
-	}
-
-	// call contract case (some times will together with transfer token case)
-	recipient := msg.Data.Recipient.Bytes()
-	methodId := msg.Data.Payload[0:4]
-	return append(recipient, methodId...), 0
-}
-
-// GetTxCarriedData implement the sdk.Tx interface
-func (msg MsgEthereumTx) GetTxCarriedData() []byte {
 	return nil
 }

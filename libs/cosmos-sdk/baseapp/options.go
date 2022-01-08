@@ -147,6 +147,10 @@ func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
 	app.cms.SetTracer(w)
 }
 
+func (app *BaseApp) SetCheckedTxEncoder(chktxEncoder sdk.CheckedTxEncoder) {
+	app.chktxEncoder = chktxEncoder
+}
+
 // SetStoreLoader allows us to customize the rootMultiStore initialization.
 func (app *BaseApp) SetStoreLoader(loader StoreLoader) {
 	if app.sealed {

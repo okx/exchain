@@ -29,49 +29,52 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
+	sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.(type) {
+
+		stdTxAnteHandler := sdk.ChainAnteDecorators(
+			authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+			NewAccountSetupDecorator(ak),
+			NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+			authante.NewMempoolFeeDecorator(),
+			authante.NewValidateBasicDecorator(),
+			authante.NewValidateMemoDecorator(ak),
+			authante.NewConsumeGasForTxSizeDecorator(ak),
+			authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+			authante.NewValidateSigCountDecorator(ak),
+			authante.NewDeductFeeDecorator(ak, sk),
+			authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+			authante.NewSigVerificationDecorator(ak),
+			authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+			NewValidateMsgHandlerDecorator(validateMsgHandler),
+		)
+
+		evmTxAnteHandler := sdk.ChainAnteDecorators(
+			NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+			NewGasLimitDecorator(evmKeeper),
+			NewEthMempoolFeeDecorator(evmKeeper),
+			authante.NewValidateBasicDecorator(),
+			NewEthSigVerificationDecorator(),
+			NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+			NewAccountVerificationDecorator(ak, evmKeeper),
+			NewNonceVerificationDecorator(ak),
+			NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+			NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+		)
+
+		switch txType := tx.(type) {
 		case auth.StdTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountSetupDecorator(ak),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				authante.NewMempoolFeeDecorator(),
-				authante.NewValidateBasicDecorator(),
-				authante.NewValidateMemoDecorator(ak),
-				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
-				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				authante.NewSigVerificationDecorator(ak),
-				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-				NewValidateMsgHandlerDecorator(validateMsgHandler),
-			)
-
+			anteHandler = stdTxAnteHandler
 		case evmtypes.MsgEthereumTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-				NewGasLimitDecorator(evmKeeper),
-				NewEthMempoolFeeDecorator(evmKeeper),
-				authante.NewValidateBasicDecorator(),
-				NewEthSigVerificationDecorator(),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				NewAccountVerificationDecorator(ak, evmKeeper),
-				NewNonceVerificationDecorator(ak),
-				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
-			)
-		case evmtypes.MsgEthereumCheckedTx:
-			//TODO: get carried data to identify the signature
-			//if signature is valid then
-			//1. GasAnteHandler
-			//2. MempoolFee
-
+			anteHandler = evmTxAnteHandler
+		case auth.ChkTx:
+			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
+				return checkTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
+			}
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
@@ -79,6 +82,32 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		return anteHandler(ctx, tx, sim)
 	}
 }
+
+func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
+
+	var payloadAnteHandler sdk.AnteHandler
+
+	switch payloadTx.(type) {
+	case auth.StdTx:
+		payloadAnteHandler = stdTxAnteHandler
+	case evmtypes.MsgEthereumTx:
+		payloadAnteHandler = evmTxAnteHandler
+	default:
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid payload transaction type: %T", payloadTx)
+	}
+
+	chkTxAnteHandler := sdk.ChainAnteDecorators(
+		authante.NewNodeSignatureDecorator(),
+	)
+
+	newCtx, err = chkTxAnteHandler(ctx, tx, sim)
+	if err != nil {
+		newCtx, err = payloadAnteHandler(ctx, payloadTx, sim)
+	}
+
+	return newCtx, err
+}
+
 
 // sigGasConsumer overrides the DefaultSigVerificationGasConsumer from the x/auth
 // module on the SDK. It doesn't allow ed25519 nor multisig thresholds.

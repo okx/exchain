@@ -39,6 +39,7 @@ type Context struct {
 	sigCache      SigCache
 	isAsync       bool
 	cache         *Cache
+	checked       int
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -62,6 +63,7 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) Checked() int                { return c.checked }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -254,6 +256,11 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 // WithSigCache set sigCache.
 func (c Context) WithSigCache(cache SigCache) Context {
 	c.sigCache = cache
+	return c
+}
+
+func (c Context) WithChecked(check int) Context {
+	c.checked = check
 	return c
 }
 

@@ -20,6 +20,7 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
+	checked        int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -108,9 +109,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
+	info.checked = newCtx.Checked()
 	if !newCtx.IsZero() {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 		// replaced by the AnteHandler. We want the original multistore, not one

@@ -100,6 +100,8 @@ type BaseApp struct { // nolint: maligned
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
 
+	chktxEncoder   sdk.CheckedTxEncoder
+
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
 

@@ -11,25 +11,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
-//CheckedTxSignedFunc is the callback function call by mempool to generate a new CheckedTx and sign it
-func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, res *abci.Response_CheckTx, info *abci.ExTxInfo) (tmtypes.Tx, error) {
-	// decode to MsgEthereumTx
-	// if err then try decode to MsgEthereumCheckedTx
-	// and then if all faild then return origin Tx
-	return func(tx tmtypes.Tx, _ *abci.Response_CheckTx, info *abci.ExTxInfo) (tmtypes.Tx, error) {
-		checkedTx := evmtypes.MsgCheckedTx {
-			Payload: []byte(tx),
-			Metadata: info.Metadata,
-			Signature: info.Signature,
-			NodeKey: info.NodeKey,
-		}
-		slice, err := cdc.MarshalBinaryBare(checkedTx)
-		return slice, err
-	}
-}
-
-
-func CheckedTxSignedFunc_org(cdc *codec.Codec) func(tx tmtypes.Tx, res *abci.Response_CheckTx) (tmtypes.Tx, error) {
+func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, res *abci.Response_CheckTx) (tmtypes.Tx, error) {
 	// decode to MsgEthereumTx
 	// if err then try decode to MsgEthereumCheckedTx
 	// and then if all faild then return origin Tx
