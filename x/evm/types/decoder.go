@@ -42,10 +42,10 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 
 		//----------------------------------------------
 		//----------------------------------------------
-		// 2. Try to decode as MsgEthereumTx through RLP
-		var ethTx MsgEthereumTx
-		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-			return ethTx, nil
+		// 2. Try to decode as MsgEthereumTx by RLP
+		var evmTx sdk.Tx
+		if evmTx, err = decoderEvmtx(txBytes); err == nil {
+			return evmTx, nil
 		} else {
 			fmt.Printf("EthereumTxDecode failed: %p %s\n", txBytes, err)
 		}
@@ -71,4 +71,13 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		}
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 	}
+}
+
+
+func decoderEvmtx(txBytes []byte) (sdk.Tx, error) {
+	var ethTx MsgEthereumTx
+	if err := authtypes.EthereumTxDecode(txBytes, &ethTx); err != nil {
+		return nil, err
+	}
+	return ethTx, nil
 }
