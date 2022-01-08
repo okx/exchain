@@ -149,11 +149,11 @@ func TestCheckedTxDecoder(t *testing.T) {
 	evmTxbytesByAmino, err := genEvmTxBytes(cdc, false)
 	require.NoError(t, err)
 
-	cmTxbytesByAmino, err := genTxBytes(cdc)
-	require.NoError(t, err)
+	//cmTxbytesByAmino, err := genTxBytes(cdc)
+	//require.NoError(t, err)
 
 	var txBytesList [][]byte
-	txBytesList = append(txBytesList, cmTxbytesByAmino)
+	//txBytesList = append(txBytesList, cmTxbytesByAmino)
 	txBytesList = append(txBytesList, evmTxbytesByRlp)
 	txBytesList = append(txBytesList, evmTxbytesByAmino)
 
