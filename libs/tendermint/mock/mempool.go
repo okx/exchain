@@ -25,8 +25,6 @@ func (m Mempool) GetTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 
 var _ mempl.Mempool = Mempool{}
 
-func (Mempool) SetPostCheckSigenFunc(f mempl.PostCheckAndSignFunc) {}
-
 func (Mempool) Lock()     {}
 func (Mempool) Unlock()   {}
 func (Mempool) Size() int { return 0 }

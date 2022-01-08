@@ -56,7 +56,6 @@ type CListMempool struct {
 	updateMtx  sync.RWMutex
 	preCheck   PreCheckFunc
 	postCheck  PostCheckFunc
-	postSigned PostCheckAndSignFunc
 
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
@@ -155,9 +154,6 @@ func (mem *CListMempool) SetLogger(l log.Logger) {
 	mem.logger = l
 }
 
-func (mem *CListMempool) SetPostCheckSigenFunc(f PostCheckAndSignFunc) {
-	mem.postSigned = f
-}
 
 // WithPreCheck sets a filter for the mempool to reject a tx if f(tx) returns
 // false. This is ran before CheckTx.

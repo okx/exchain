@@ -34,7 +34,6 @@ func (msg CheckedTx) String() string {
 }
 
 
-// called by: mem.postSigned(memTx.tx, info) CheckedTxSignedFunc
 func EncodeCheckedTx(payload []byte, info *sdk.ExTxInfo) ([]byte, error) {
 
 	raw := &RawCheckedTx{

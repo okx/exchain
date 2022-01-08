@@ -9,38 +9,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-//type Tx interface {
-//	GetMsgs() []Msg
-//	// ValidateBasic does a simple and lightweight validation check that doesn't
-//	// require access to any other information.
-//	ValidateBasic() error
-//	GetTxInfo(ctx Context) mempool.ExTxInfo
-//	GetGasPrice() *big.Int
-//	GetTxFnSignatureInfo() ([]byte, int)
-//	GetTxCarriedData() []byte
-//}
-
-
-// ValidateBasic implements the sdk.Msg interface. It performs basic validation
-// checks of a Transaction. If returns an error if validation fails.
-//func (msg MsgEthereumTx) ValidateBasic() error {
-//	if msg.Data.Price.Cmp(big.NewInt(0)) == 0 {
-//		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
-//	}
-//
-//	if msg.Data.Price.Sign() == -1 {
-//		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be negative %s", msg.Data.Price)
-//	}
-//
-//	// Amount can be 0
-//	if msg.Data.Amount.Sign() == -1 {
-//		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Data.Amount)
-//	}
-//
-//	return nil
-//}
-
-
 //___________________std tx______________________
 
 // GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
@@ -97,7 +65,3 @@ func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return append(recipient, methodId...), 0
 }
 
-// GetTxCarriedData implement the sdk.Tx interface
-func (msg MsgEthereumTx) GetTxCarriedData() []byte {
-	return nil
-}

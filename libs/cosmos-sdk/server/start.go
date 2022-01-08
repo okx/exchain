@@ -74,8 +74,7 @@ func StartCmd(ctx *Context,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context) error,
-	subFunc func(logger log.Logger) log.Subscriber,
-	signedFunc mempool.PostCheckAndSignFunc) *cobra.Command {
+	subFunc func(logger log.Logger) log.Subscriber) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -122,7 +121,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn, signedFunc)
+			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -257,7 +256,7 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 }
 
 func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
-	registerRoutesFn func(restServer *lcd.RestServer), signedFunc mempool.PostCheckAndSignFunc) (*node.Node, error) {
+	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
 	home := cfg.RootDir
@@ -292,7 +291,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
-		node.InjectMempoolSignedCallback(signedFunc),
 	)
 	if err != nil {
 		return nil, err

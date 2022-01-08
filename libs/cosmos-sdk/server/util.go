@@ -25,7 +25,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // server context
@@ -137,7 +136,6 @@ func AddCommands(
 	registerRouters func(rs *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context) error,
-	signedFunc mempool.PostCheckAndSignFunc,
 	subFunc func(logger log.Logger) log.Subscriber) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
@@ -157,7 +155,7 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		StartCmd(ctx, cdc, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc, signedFunc),
+		StartCmd(ctx, cdc, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
 		StopCmd(ctx),
 		UnsafeResetAllCmd(ctx),
 		flags.LineBreak,

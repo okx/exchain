@@ -217,9 +217,5 @@ func (msg MsgEthereumCheckedTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return append(recipient, methodId...), 0
 }
 
-// nolint
-func (msg MsgEthereumCheckedTx) GetTxCarriedData() []byte {
-	return msg.Payload
-}
 
 //================================================

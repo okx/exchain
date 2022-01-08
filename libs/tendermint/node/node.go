@@ -147,13 +147,6 @@ func CustomReactors(reactors map[string]p2p.Reactor) Option {
 	}
 }
 
-// InjectMempoolSignedCallback set the callback for options
-func InjectMempoolSignedCallback(f mempl.PostCheckAndSignFunc) Option {
-	return func(n *Node) {
-		n.mempool.SetPostCheckSigenFunc(f)
-	}
-}
-
 //------------------------------------------------------------------------------
 
 // Node is the highest level interface to a full Tendermint node.
