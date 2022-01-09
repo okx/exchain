@@ -6,6 +6,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"runtime/debug"
 )
 
 // ----------------------------------------------------------------------------
@@ -24,6 +25,8 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// 1. try sdk.CheckedTx
 		var chkTx sdk.Tx
 		if chkTx, err = authtypes.DecodeCheckedTx(txBytes, payloadDecoder); err == nil {
+			dumpTxType(chkTx)
+
 			return chkTx, nil
 		} else {
 			fmt.Printf("DecodeCheckedTx failed:%p %s\n", txBytes, err)
@@ -33,9 +36,15 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	}
 }
 
+func dumpTxType(tx sdk.Tx)  {
+	fmt.Printf("DecodeTx: %T\n", tx)
+
+	//switch t tx.(type) {
+	//
+	//}
+}
 func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
-		var err error
+	return func(txBytes []byte) (tx sdk.Tx, err error) {
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
@@ -43,9 +52,10 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		//----------------------------------------------
 		// 2. Try to decode as MsgEthereumTx by RLP
-		var evmTx sdk.Tx
-		if evmTx, err = decoderEvmtx(txBytes); err == nil {
-			return evmTx, nil
+		if tx, err = decoderEvmtx(txBytes); err == nil {
+			dumpTxType(tx)
+
+			return tx, nil
 		} else {
 			fmt.Printf("EthereumTxDecode failed: %p %s\n", txBytes, err)
 		}
@@ -54,8 +64,10 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		// 3. try other concrete message types registered by MakeTxCodec
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		var tx sdk.Tx
 		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+
+			debug.PrintStack()
+			dumpTxType(v.(sdk.Tx))
 			return v.(sdk.Tx), nil
 		} else {
 			fmt.Printf("UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller failed:%p %s\n", txBytes, err)
@@ -65,6 +77,9 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		// 4. try others
 		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			dumpTxType(tx)
+
+			debug.PrintStack()
 			return tx, nil
 		} else {
 			fmt.Printf("UnmarshalBinaryLengthPrefixed failed: %p %s\n", txBytes, err)
