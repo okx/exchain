@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"strings"
 
@@ -542,7 +543,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// TODO: Is there a better way to Decode RLP-encoded MsgEthereumTx?
 		// Try to decode as MsgEthereumTx through RLP
 		var ethTx MsgEthereumTx
-		if err = rlp.DecodeBytes(txBytes, &ethTx); err == nil {
+		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
 			return ethTx, nil
 		}
 
