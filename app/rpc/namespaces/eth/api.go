@@ -700,7 +700,16 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
@@ -740,7 +749,18 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
 	txBytes := data
+	if !tmtypes.HigherThanVenus(int64(height)) {
+		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
 
 	// send chanData to txPool
 	if api.txPool != nil {
@@ -1066,7 +1086,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 
 	blockHash := common.BytesToHash(block.Block.Hash())
 
-	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx, tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,7 +1168,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 		return nil, nil
 	}
 
-	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, block.Txs[idx])
+	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, block.Txs[idx], block.Height)
 	if err != nil {
 		// return nil error if the transaction is not a MsgEthereumTx
 		return nil, nil
@@ -1239,7 +1259,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	blockHash := common.BytesToHash(block.Block.Hash())
 
 	// Convert tx bytes to eth transaction
-	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx, tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1319,14 +1339,14 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	var receipts []*watcher.TransactionReceipt
 	var block *ctypes.ResultBlock
 	var blockHash common.Hash
-	for _, tx := range txs {
-		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
+	for i := range txs {
+		res, _ := api.wrappedBackend.GetTransactionReceipt(txs[i].Hash)
 		if res != nil {
 			receipts = append(receipts, res)
 			continue
 		}
 
-		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
+		tx, err := api.clientCtx.Client.Tx(txs[i].Hash.Bytes(), false)
 		if err != nil {
 			// Return nil for transaction when not found
 			return nil, nil
@@ -1342,7 +1362,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		// Convert tx bytes to eth transaction
-		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx, tx.Height)
 		if err != nil {
 			return nil, err
 		}

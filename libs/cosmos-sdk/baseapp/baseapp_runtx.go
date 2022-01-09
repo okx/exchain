@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 )
 
@@ -56,7 +57,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -74,12 +74,10 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 	app.pin(ValTxMsgs, false, mode)
-
 
 	app.pin(AnteHandler, true, mode)
 	if app.anteHandler != nil {
@@ -97,8 +95,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	return info, err
 }
 
-
-func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	var anteCtx sdk.Context
 
@@ -144,10 +141,14 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	return nil
 }
 
-
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-
-	tx, err := app.txDecoder(req.Tx)
+	var txDecoder sdk.TxDecoder
+	if types.HigherThanVenus(app.Info(abci.RequestInfo{}).LastBlockHeight) {
+		txDecoder = app.txDecoderWithRLP
+	} else {
+		txDecoder = app.txDecoder
+	}
+	tx, err := txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
@@ -171,7 +172,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -203,7 +203,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
+func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx) {
 
 	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
 	if !txStatus.isEvmTx {

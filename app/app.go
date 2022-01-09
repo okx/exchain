@@ -198,7 +198,7 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
-		)
+	)
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -226,7 +226,7 @@ func NewOKExChainApp(
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), evm.TxDecoder(cdc, evmtypes.EnableRLP()), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
@@ -502,7 +502,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 	return app.mm.EndBlock(ctx, req)
 }
-
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"net/http"
 	"strings"
 	"time"
@@ -89,8 +90,13 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 			return sdk.TxResponse{}, err
 		}
 	}
-
-	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx)
+	var txDecoder sdk.TxDecoder
+	if types2.HigherThanVenus(resTx.Height) {
+		txDecoder = evmtypes.TxDecoder(cliCtx.Codec, evmtypes.EnableRLP())
+	} else {
+		txDecoder = evmtypes.TxDecoder(cliCtx.Codec)
+	}
+	tx, err := txDecoder(resTx.Tx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}

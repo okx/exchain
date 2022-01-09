@@ -100,6 +100,8 @@ type BaseApp struct { // nolint: maligned
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
 
+	txDecoderWithRLP sdk.TxDecoder
+
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
 
@@ -174,20 +176,21 @@ type recordHandle func(string)
 //
 // NOTE: The db is used to store the version number for now.
 func NewBaseApp(
-	name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, options ...func(*BaseApp),
+	name string, logger log.Logger, db dbm.DB, txDecoder, txDecoderWithRLP sdk.TxDecoder, options ...func(*BaseApp),
 ) *BaseApp {
 
 	app := &BaseApp{
-		logger:         logger,
-		name:           name,
-		db:             db,
-		cms:            store.NewCommitMultiStore(db),
-		storeLoader:    DefaultStoreLoader,
-		router:         NewRouter(),
-		queryRouter:    NewQueryRouter(),
-		txDecoder:      txDecoder,
-		fauxMerkleMode: false,
-		trace:          false,
+		logger:           logger,
+		name:             name,
+		db:               db,
+		cms:              store.NewCommitMultiStore(db),
+		storeLoader:      DefaultStoreLoader,
+		router:           NewRouter(),
+		queryRouter:      NewQueryRouter(),
+		txDecoder:        txDecoder,
+		txDecoderWithRLP: txDecoderWithRLP,
+		fauxMerkleMode:   false,
+		trace:            false,
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
@@ -1008,7 +1011,13 @@ func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 }
 
 func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
-	tx, err := app.txDecoder(rawTx)
+	var txDecoder sdk.TxDecoder
+	if tmtypes.HigherThanVenus(app.Info(abci.RequestInfo{}).LastBlockHeight) {
+		txDecoder = app.txDecoderWithRLP
+	} else {
+		txDecoder = app.txDecoder
+	}
+	tx, err := txDecoder(rawTx)
 	if err != nil {
 		return mempool.ExTxInfo{}
 	}
@@ -1017,7 +1026,8 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
-	tx, err := app.txDecoder(rawTx)
+	// Venus height is ignored because this function does not matter the result.
+	tx, err := app.txDecoderWithRLP(rawTx)
 	if err != nil {
 		return -1
 	}

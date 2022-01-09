@@ -530,9 +530,27 @@ func DecodeResultData(in []byte) (ResultData, error) {
 // ----------------------------------------------------------------------------
 // Auxiliary
 
+type decoderConfig struct {
+	enableRLP bool // disable RLP by default
+}
+
+// Option is function to choose decoder.
+type Option func(config *decoderConfig)
+
+// EnableRLP enables RLP decoder.
+func EnableRLP() Option {
+	return func(config *decoderConfig) {
+		config.enableRLP = true
+	}
+}
+
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+func TxDecoder(cdc *codec.Codec, options ...Option) sdk.TxDecoder {
+	var cfg decoderConfig
+	for _, op := range options {
+		op(&cfg)
+	}
 	return func(txBytes []byte) (sdk.Tx, error) {
 		var tx sdk.Tx
 		var err error
@@ -540,11 +558,12 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		// TODO: Is there a better way to Decode RLP-encoded MsgEthereumTx?
-		// Try to decode as MsgEthereumTx through RLP
-		var ethTx MsgEthereumTx
-		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-			return ethTx, nil
+		if cfg.enableRLP {
+			// Try to decode as MsgEthereumTx through RLP
+			var ethTx MsgEthereumTx
+			if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+				return ethTx, nil
+			}
 		}
 
 		// sdk.Tx is an interface. The concrete message types

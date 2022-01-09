@@ -2,10 +2,13 @@ package app
 
 import (
 	appconfig "github.com/okex/exchain/app/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
+	types2 "github.com/okex/exchain/x/evm/types"
 )
 
 // BeginBlock implements the Application interface
@@ -25,7 +28,14 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		info := app.Info(abci.RequestInfo{})
+		var txDecoder sdk.TxDecoder
+		if types.HigherThanVenus(info.LastBlockHeight) {
+			txDecoder = evm.TxDecoder(app.Codec(), types2.EnableRLP())
+		} else {
+			txDecoder = evm.TxDecoder(app.Codec())
+		}
+		tx, err := txDecoder(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
@@ -46,7 +56,6 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	defer analyzer.OnCommitDone()
 	res := app.BaseApp.Commit(req)
-
 
 	// we call watch#Commit here ,because
 	// 1. this round commit a valid block

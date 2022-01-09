@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,6 +18,12 @@ type extraDataForTx struct {
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
+	var txDecoder sdk.TxDecoder
+	if types.HigherThanVenus(app.Info(abci.RequestInfo{}).LastBlockHeight) {
+		txDecoder = app.txDecoderWithRLP
+	} else {
+		txDecoder = app.txDecoder
+	}
 	res := make([]*extraDataForTx, len(txs), len(txs))
 	var wg sync.WaitGroup
 	for index, txBytes := range txs {
@@ -24,7 +31,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 		index := index
 		txBytes := txBytes
 		go func() {
-			tx, err := app.txDecoder(txBytes)
+			tx, err := txDecoder(txBytes)
 			if err != nil {
 				panic(err)
 			}
@@ -173,7 +180,13 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 //we reuse the nonce that changed by the last async call
 //if last ante handler has been failed, we need rerun it ? or not?
 func (app *BaseApp) deliverTxWithCache(req abci.RequestDeliverTx) *executeResult {
-	tx, err := app.txDecoder(req.Tx)
+	var txDecoder sdk.TxDecoder
+	if types.HigherThanVenus(app.Info(abci.RequestInfo{}).LastBlockHeight) {
+		txDecoder = app.txDecoderWithRLP
+	} else {
+		txDecoder = app.txDecoder
+	}
+	tx, err := txDecoder(req.Tx)
 	if err != nil {
 		return nil
 	}

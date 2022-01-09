@@ -235,6 +235,10 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error) {
+	height, err := b.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
 	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
 	if err != nil {
 		return nil, err
@@ -242,14 +246,14 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 
 	transactions := make([]*rpctypes.Transaction, 0, len(pendingTxs.Txs))
 	for _, tx := range pendingTxs.Txs {
-		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
+		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx, int64(height))
 		if err != nil {
 			// ignore non Ethermint EVM transactions
 			continue
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(int64(height))), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -277,20 +281,25 @@ func (b *EthermintBackend) UserPendingTransactionsCnt(address string) (int, erro
 }
 
 func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error) {
+	height, err := b.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := b.clientCtx.Client.UserUnconfirmedTxs(address, limit)
 	if err != nil {
 		return nil, err
 	}
 	transactions := make([]*rpctypes.Transaction, 0, len(result.Txs))
 	for _, tx := range result.Txs {
-		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
+		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx, int64(height))
 		if err != nil {
 			// ignore non Ethermint EVM transactions
 			continue
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(int64(height))), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -312,16 +321,20 @@ func (b *EthermintBackend) PendingAddressList() ([]string, error) {
 // PendingTransactions returns the transaction that is in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+	height, err := b.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
 	pendingTx, err := b.clientCtx.Client.GetUnconfirmedTxByHash(target)
 	if err != nil {
 		return nil, err
 	}
-	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, pendingTx)
+	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, pendingTx, int64(height))
 	if err != nil {
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(b.clientCtx.Height)), common.Hash{}, 0, 0)
+	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(int64(height))), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}

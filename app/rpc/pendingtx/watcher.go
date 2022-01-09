@@ -52,7 +52,7 @@ func (w *Watcher) Start() {
 				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
 				w.logger.Debug("receive tx from mempool", "txHash=", txHash.String())
 
-				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx)
+				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx, data.Height)
 				if err != nil {
 					w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
 					continue

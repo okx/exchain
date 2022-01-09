@@ -139,7 +139,11 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.BytesToHash(types.Tx(txBytes).Hash(api.clientCtx.Height)), nil
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(types.Tx(txBytes).Hash(int64(height))), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {

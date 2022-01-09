@@ -1,6 +1,7 @@
 package simapp
 
 import (
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"io"
 	"os"
 
@@ -138,7 +139,7 @@ func NewSimApp(
 
 	cdc := MakeCodec()
 
-	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), evmtypes.TxDecoder(cdc, evmtypes.EnableRLP()), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 

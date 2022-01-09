@@ -41,7 +41,7 @@ func newBaseApp(name string, options ...func(*BaseApp)) *BaseApp {
 	db := dbm.NewMemDB()
 	codec := codec.New()
 	registerTestCodec(codec)
-	return NewBaseApp(name, logger, db, testTxDecoder(codec), options...)
+	return NewBaseApp(name, logger, db, testTxDecoder(codec), nil, options...)
 }
 
 func registerTestCodec(cdc *codec.Codec) {
@@ -90,7 +90,7 @@ func TestLoadVersion(t *testing.T) {
 	pruningOpt := SetPruning(store.PruneNothing)
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app := NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
@@ -119,7 +119,7 @@ func TestLoadVersion(t *testing.T) {
 	commitID2 := sdk.CommitID{Version: 2, Hash: res.Data}
 
 	// reload with LoadLatestVersion
-	app = NewBaseApp(name, logger, db, nil, pruningOpt)
+	app = NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 	app.MountStores(capKey)
 	err = app.LoadLatestVersion(capKey)
 	require.Nil(t, err)
@@ -127,7 +127,7 @@ func TestLoadVersion(t *testing.T) {
 
 	// reload with LoadVersion, see if you can commit the same block and get
 	// the same result
-	app = NewBaseApp(name, logger, db, nil, pruningOpt)
+	app = NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 	app.MountStores(capKey)
 	err = app.LoadVersion(1, capKey)
 	require.Nil(t, err)
@@ -252,7 +252,7 @@ func TestSetLoader(t *testing.T) {
 			if tc.setLoader != nil {
 				opts = append(opts, tc.setLoader)
 			}
-			app := NewBaseApp(t.Name(), defaultLogger(), db, nil, opts...)
+			app := NewBaseApp(t.Name(), defaultLogger(), db, nil, nil, opts...)
 			capKey := sdk.NewKVStoreKey(MainStoreKey)
 			app.MountStores(capKey)
 			app.MountStores(sdk.NewKVStoreKey(tc.loadStoreKey))
@@ -280,7 +280,7 @@ func TestAppVersionSetterGetter(t *testing.T) {
 	pruningOpt := SetPruning(store.PruneDefault)
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app := NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 
 	require.Equal(t, "", app.AppVersion())
 	res := app.Query(abci.RequestQuery{Path: "app/version"})
@@ -300,7 +300,7 @@ func TestLoadVersionInvalid(t *testing.T) {
 	pruningOpt := SetPruning(store.PruneNothing)
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app := NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
 	app.MountStores(capKey)
@@ -317,7 +317,7 @@ func TestLoadVersionInvalid(t *testing.T) {
 	commitID1 := sdk.CommitID{Version: 1, Hash: res.Data}
 
 	// create a new app with the stores mounted under the same cap key
-	app = NewBaseApp(name, logger, db, nil, pruningOpt)
+	app = NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 	app.MountStores(capKey)
 
 	// require we can load the latest version
@@ -340,7 +340,7 @@ func TestLoadVersionPruning(t *testing.T) {
 	pruningOpt := SetPruning(pruningOptions)
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app := NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
@@ -377,7 +377,7 @@ func TestLoadVersionPruning(t *testing.T) {
 	}
 
 	// reload with LoadLatestVersion, check it loads last version
-	app = NewBaseApp(name, logger, db, nil, pruningOpt)
+	app = NewBaseApp(name, logger, db, nil, nil, pruningOpt)
 	app.MountStores(capKey)
 
 	err = app.LoadLatestVersion(capKey)
@@ -395,7 +395,7 @@ func testLoadVersionHelper(t *testing.T, app *BaseApp, expectedHeight int64, exp
 func TestOptionFunction(t *testing.T) {
 	logger := defaultLogger()
 	db := dbm.NewMemDB()
-	bap := NewBaseApp("starting name", logger, db, nil, testChangeNameHelper("new name"))
+	bap := NewBaseApp("starting name", logger, db, nil, nil, testChangeNameHelper("new name"))
 	require.Equal(t, bap.name, "new name", "BaseApp should have had name changed via option function")
 }
 
@@ -493,7 +493,7 @@ func TestInitChainer(t *testing.T) {
 	// we can reload the same  app later
 	db := dbm.NewMemDB()
 	logger := defaultLogger()
-	app := NewBaseApp(name, logger, db, nil)
+	app := NewBaseApp(name, logger, db, nil, nil)
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
 	capKey2 := sdk.NewKVStoreKey("key2")
 	app.MountStores(capKey, capKey2)
@@ -539,7 +539,7 @@ func TestInitChainer(t *testing.T) {
 	require.Equal(t, value, res.Value)
 
 	// reload app
-	app = NewBaseApp(name, logger, db, nil)
+	app = NewBaseApp(name, logger, db, nil, nil)
 	app.SetInitChainer(initChainer)
 	app.MountStores(capKey, capKey2)
 	err = app.LoadLatestVersion(capKey) // needed to make stores non-nil

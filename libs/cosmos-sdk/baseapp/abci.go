@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
 	"strings"
@@ -181,7 +182,13 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.txDecoder(req.Tx)
+	var txDecoder sdk.TxDecoder
+	if types.HigherThanVenus(app.Info(abci.RequestInfo{}).LastBlockHeight) {
+		txDecoder = app.txDecoderWithRLP
+	} else {
+		txDecoder = app.txDecoder
+	}
+	tx, err := txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
@@ -336,8 +343,13 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 		switch path[1] {
 		case "simulate":
 			txBytes := req.Data
-
-			tx, err := app.txDecoder(txBytes)
+			var txDecoder sdk.TxDecoder
+			if types.HigherThanVenus(req.Height) {
+				txDecoder = app.txDecoderWithRLP
+			} else {
+				txDecoder = app.txDecoder
+			}
+			tx, err := txDecoder(txBytes)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 			}
