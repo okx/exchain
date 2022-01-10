@@ -535,14 +535,24 @@ func DecodeResultData(in []byte) (ResultData, error) {
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 1 {
+			return nil, fmt.Errorf("to many height parameters")
+		}
 		var tx sdk.Tx
 		var err error
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		if types.HigherThanVenus(global.GetGlobalHeight()) {
+		var height int64
+		if len(heights) == 1 {
+			height = heights[0]
+		} else {
+			height = global.GetGlobalHeight()
+		}
+
+		if types.HigherThanVenus(height) {
 			// Try to decode as MsgEthereumTx through RLP
 			var ethTx MsgEthereumTx
 			if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
