@@ -6,6 +6,7 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
@@ -296,6 +297,8 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		return nil, err
 	}
 
+	global.SetGlobalHeight(tmNode.ConsensusState().Height)
+
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
 		Value: tmNode.ConsensusState().GetState().ChainID,
@@ -304,7 +307,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
 		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
-		)
+	)
 	if err := tmNode.Start(); err != nil {
 		return nil, err
 	}
