@@ -2,71 +2,64 @@ package state
 
 import (
 	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/tendermint/delta"
-	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"os"
+	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
 	s := miniredis.RunT(t)
-	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger := log.TestingLogger()
 	ss := redis_cgi.NewRedisClient(s.Addr(), "", time.Minute, logger)
 	return ss
 }
 
+func failRedisClient() *redis_cgi.RedisClient {
+	logger := log.TestingLogger()
+	ss := redis_cgi.NewRedisClient("127.0.0.1:6378", "", time.Minute, logger)
+	return ss
+}
+
+func setupTest(t *testing.T) *DeltaContext {
+	dc := newDeltaContext(log.TestingLogger())
+	dc.deltaBroker = getRedisClient(t)
+	return dc
+}
+
+func produceDelta() {
+
+}
+
 func TestDeltaContext_upload(t *testing.T) {
-	type fields struct {
-		deltaBroker       delta.DeltaBroker
-		lastFetchedHeight int64
-		dataMap           *deltaMap
-		downloadDelta     bool
-		uploadDelta       bool
-		hit               float64
-		missed            float64
-		logger            log.Logger
-		compressType      int
-		compressFlag      int
-		bufferSize        int
-		idMap             identityMapType
-		identity          string
-	}
+	dc := setupTest(t)
 	type args struct {
-		deltas *tmtypes.Deltas
+		deltas *types.Deltas
 		txnum  float64
 		mrh    int64
 	}
 	tests := []struct {
 		name   string
-		fields fields
 		args   args
 		want   bool
 	}{
+		{"normal case", args{nil, 0, 0}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dc := &DeltaContext{
-				deltaBroker:       tt.fields.deltaBroker,
-				lastFetchedHeight: tt.fields.lastFetchedHeight,
-				dataMap:           tt.fields.dataMap,
-				downloadDelta:     tt.fields.downloadDelta,
-				uploadDelta:       tt.fields.uploadDelta,
-				hit:               tt.fields.hit,
-				missed:            tt.fields.missed,
-				logger:            tt.fields.logger,
-				compressType:      tt.fields.compressType,
-				compressFlag:      tt.fields.compressFlag,
-				bufferSize:        tt.fields.bufferSize,
-				idMap:             tt.fields.idMap,
-				identity:          tt.fields.identity,
-			}
-			if got := dc.upload(tt.args.deltas, tt.args.txnum, tt.args.mrh); got != tt.want {
-				t.Errorf("upload() = %v, want %v", got, tt.want)
-			}
+			//if got := dc.upload(tt.args.deltas, tt.args.txnum, tt.args.mrh); got != tt.want {
+			//	t.Errorf("upload() = %v, want %v", got, tt.want)
+			//}
+			assert.Panics(t, func() {
+				dc.upload(tt.args.deltas, tt.args.txnum, tt.args.mrh)
+			})
 		})
 	}
+
+	// connect to redis failed
+	dc.deltaBroker = failRedisClient()
+	got := dc.upload(&types.Deltas{}, 0, 0)
+	assert.False(t, got)
 }
