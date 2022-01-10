@@ -17,8 +17,8 @@ ServerName=exchaind
 ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
-MercuryHeight=0
-VenusHeight=0
+MercuryHeight=1
+VenusHeight=1
 
 # process linker flags
 ifeq ($(VERSION),)
