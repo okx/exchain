@@ -33,6 +33,10 @@ type StdTx struct {
 	Memo       string         `json:"memo" yaml:"memo"`
 }
 
+func (tx StdTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte

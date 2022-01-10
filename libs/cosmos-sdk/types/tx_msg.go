@@ -50,6 +50,8 @@ type Tx interface {
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
+
+	GetPayloadTx() Tx
 }
 
 //__________________________________________________________
@@ -65,7 +67,7 @@ type ExTxInfo struct {
 	Signature []byte  `json:"signature"` // signature for payload+metadata
 	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
-type CheckedTxEncoder func(txBytes []byte, info *ExTxInfo) ([]byte, error)
+type CheckedTxEncoder func(txBytes []byte, info *ExTxInfo, replace bool) ([]byte, error)
 
 //__________________________________________________________
 

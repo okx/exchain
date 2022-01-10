@@ -1,6 +1,7 @@
 package ante
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -68,14 +69,20 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 
 		switch txType := tx.(type) {
 		case auth.StdTx:
+			fmt.Printf("ante \t\tcase auth.StdTx:\n")
 			anteHandler = stdTxAnteHandler
 		case evmtypes.MsgEthereumTx:
+			fmt.Printf("ante \t\tcase MsgEthereumTx:\n")
+
 			anteHandler = evmTxAnteHandler
+		//case types.CheckedTx:
 		case auth.ChkTx:
+			fmt.Printf("ante \t\tcase auth.ChkTx:\n")
 			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
 				return checkTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
 			}
 		default:
+			fmt.Printf("invalid transaction type: %T\n", tx)
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
 
@@ -86,6 +93,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
 	var payloadAnteHandler sdk.AnteHandler
+	fmt.Printf("ante checkTxAnteHandler:\n")
 
 	switch payloadTx.(type) {
 	case auth.StdTx:

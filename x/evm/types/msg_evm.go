@@ -52,6 +52,10 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
+func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))

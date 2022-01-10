@@ -34,22 +34,33 @@ func (msg CheckedTx) String() string {
 }
 
 
-func EncodeCheckedTx(payload []byte, info *sdk.ExTxInfo) ([]byte, error) {
+func EncodeCheckedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, error) {
 
-	raw := &RawCheckedTx{
+	payload := txbytes
+	if replace {
+		// txbytes is a wrapped one
+		raw := &RawCheckedTx{}
+		err := json.Unmarshal(txbytes, raw)
+		if err != nil {
+			return nil, err
+		}
+		payload = raw.Payload
+	}
+
+	wrapped := &RawCheckedTx{
 		Payload: payload,
 		NodeKey: info.NodeKey,
 		Signature: info.Signature,
 		Metadata: info.Metadata,
 	}
 
-	return json.Marshal(raw)
+	return json.Marshal(wrapped)
 }
 
-func DecodeCheckedTx(b []byte, payloadDecoder func(txBytes []byte) (sdk.Tx, error)) (sdk.Tx, error) {
+func DecodeCheckedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)) (sdk.Tx, error) {
 
 	raw := &RawCheckedTx{}
-	err := json.Unmarshal(b, raw)
+	err := json.Unmarshal(txbytes, raw)
 	if err != nil {
 		return nil, err
 	}

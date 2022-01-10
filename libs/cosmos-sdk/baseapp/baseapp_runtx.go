@@ -20,7 +20,7 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
-	checked        int
+	verifyResult   int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -43,6 +43,8 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
+	app.logger.Info("info.tx = tx", "payloadtx", info.tx.GetPayloadTx())
+
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
@@ -109,10 +111,16 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	app.logger.Info("app.anteHandler", "payloadtx", info.tx.GetPayloadTx())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
-	info.checked = newCtx.Checked()
+	info.verifyResult = newCtx.VerifyResult()
+	app.logger.Info("app.anteHandler done",
+		"verifyResult", info.verifyResult,
+		"payloadtx", info.tx.GetPayloadTx())
+
 	if !newCtx.IsZero() {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 		// replaced by the AnteHandler. We want the original multistore, not one
@@ -149,6 +157,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
+	app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
 
 	//just for asynchronous deliver tx
 	if app.parallelTxManage.isAsyncDeliverTx {

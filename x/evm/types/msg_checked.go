@@ -39,6 +39,11 @@ func (sig *EthereumCheckedSignature) encode() []byte {
 	return buf.Bytes()
 }
 
+
+func (tx MsgEthereumCheckedTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
 // nolint
 func (sig *EthereumCheckedSignature) decode(pyload []byte) error {
 	buf := tlv.With(pyload)

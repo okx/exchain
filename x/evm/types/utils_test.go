@@ -175,7 +175,7 @@ func TestCheckedTxDecoder(t *testing.T) {
 			Signature: []byte("s1"),
 		}
 
-		chkTxBytes, err := types.EncodeCheckedTx(txbytes, info)
+		chkTxBytes, err := types.EncodeCheckedTx(txbytes, info, false)
 		require.NoError(t, err)
 
 		chkTx, err := decoder(chkTxBytes)

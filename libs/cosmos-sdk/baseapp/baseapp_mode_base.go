@@ -158,11 +158,12 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 
 func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
 
-	if info.checked > 0 {
+	if info.verifyResult > 0 {
 		return
 	}
 
 	enableCheckedTx := false
+	enableCheckedTx = true
 
 	if enableCheckedTx && m.app.chktxEncoder != nil {
 
@@ -172,9 +173,10 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 			NodeKey: []byte("dummy NodeKey"),
 		}
 
-		data, err := m.app.chktxEncoder(info.txBytes, exInfo)
+		data, err := m.app.chktxEncoder(info.txBytes, exInfo, info.verifyResult < 0)
 		if err == nil {
 			exTxInfo.CheckedTx = data
+			m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)
 		}
 	}
 }
