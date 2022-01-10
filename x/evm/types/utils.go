@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 
@@ -540,11 +542,12 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		// TODO: Is there a better way to Decode RLP-encoded MsgEthereumTx?
-		// Try to decode as MsgEthereumTx through RLP
-		var ethTx MsgEthereumTx
-		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-			return ethTx, nil
+		if types.HigherThanVenus(global.GetGlobalHeight()) {
+			// Try to decode as MsgEthereumTx through RLP
+			var ethTx MsgEthereumTx
+			if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+				return ethTx, nil
+			}
 		}
 
 		// sdk.Tx is an interface. The concrete message types
