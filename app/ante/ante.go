@@ -75,9 +75,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 			fmt.Printf("ante \t\tcase MsgEthereumTx:\n")
 
 			anteHandler = evmTxAnteHandler
-		//case types.CheckedTx:
-		case auth.ChkTx:
-			fmt.Printf("ante \t\tcase auth.ChkTx:\n")
+		case auth.WrappedTx:
+			fmt.Printf("ante \t\tcase auth.WrappedTx:\n")
 			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
 				return checkTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
 			}

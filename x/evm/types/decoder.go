@@ -6,7 +6,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"runtime/debug"
 )
 
 // ----------------------------------------------------------------------------
@@ -24,12 +23,12 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		// 1. try sdk.CheckedTx
 		var chkTx sdk.Tx
-		if chkTx, err = authtypes.DecodeCheckedTx(txBytes, payloadDecoder); err == nil {
+		if chkTx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder); err == nil {
 			dumpTxType(chkTx)
 
 			return chkTx, nil
 		} else {
-			fmt.Printf("DecodeCheckedTx failed:%p %s\n", txBytes, err)
+			fmt.Printf("DecodeWrappedTx failed:%p %s\n", txBytes, err)
 		}
 
 		return payloadDecoder(txBytes)
@@ -66,7 +65,7 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
 		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
 
-			debug.PrintStack()
+			//debug.PrintStack()
 			dumpTxType(v.(sdk.Tx))
 			return v.(sdk.Tx), nil
 		} else {
@@ -79,7 +78,7 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
 			dumpTxType(tx)
 
-			debug.PrintStack()
+			//debug.PrintStack()
 			return tx, nil
 		} else {
 			fmt.Printf("UnmarshalBinaryLengthPrefixed failed: %p %s\n", txBytes, err)

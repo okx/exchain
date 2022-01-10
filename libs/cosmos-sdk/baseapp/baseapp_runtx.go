@@ -45,6 +45,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info.tx = tx
 	app.logger.Info("info.tx = tx", "payloadtx", info.tx.GetPayloadTx())
 
+	//debug.PrintStack()
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)

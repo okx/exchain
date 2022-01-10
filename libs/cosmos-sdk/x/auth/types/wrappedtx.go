@@ -6,25 +6,25 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 var (
-	_ sdk.Tx = (*CheckedTx)(nil)
+	_ sdk.Tx = (*WrappedTx)(nil)
 
 )
 
-type RawCheckedTx struct {
+type RawWrappedTx struct {
 	Payload   []byte  `json:"payload"`   // std tx or evm tx
 	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
 	Signature []byte  `json:"signature"` // signature for payload+metadata
 	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
 
-type CheckedTx struct {
+type WrappedTx struct {
 	sdk.Tx
 	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
-	Signature []byte  `json:"signature"` // signature for payload+metadata
+	Signature []byte  `json:"signature"` // node signature for payload+metadata
 	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
 
-func (msg CheckedTx) String() string {
+func (msg WrappedTx) String() string {
 	return fmt.Sprintf("StdTx=<%s>, Metadata=<%s>, Signature=<%s>, NodeKey=<%s>",
 		msg.Tx,
 		msg.Metadata,
@@ -33,13 +33,16 @@ func (msg CheckedTx) String() string {
 		)
 }
 
+func (wtx WrappedTx) GetPayloadTx() sdk.Tx {
+	return wtx.Tx
+}
 
-func EncodeCheckedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, error) {
+func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, error) {
 
 	payload := txbytes
 	if replace {
 		// txbytes is a wrapped one
-		raw := &RawCheckedTx{}
+		raw := &RawWrappedTx{}
 		err := json.Unmarshal(txbytes, raw)
 		if err != nil {
 			return nil, err
@@ -47,7 +50,7 @@ func EncodeCheckedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, 
 		payload = raw.Payload
 	}
 
-	wrapped := &RawCheckedTx{
+	wrapped := &RawWrappedTx{
 		Payload: payload,
 		NodeKey: info.NodeKey,
 		Signature: info.Signature,
@@ -57,9 +60,9 @@ func EncodeCheckedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, 
 	return json.Marshal(wrapped)
 }
 
-func DecodeCheckedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)) (sdk.Tx, error) {
+func DecodeWrappedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)) (sdk.Tx, error) {
 
-	raw := &RawCheckedTx{}
+	raw := &RawWrappedTx{}
 	err := json.Unmarshal(txbytes, raw)
 	if err != nil {
 		return nil, err
@@ -70,7 +73,7 @@ func DecodeCheckedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)
 		return nil, err
 	}
 
-	tx := &CheckedTx{
+	tx := &WrappedTx{
 		Tx: payloadTx,
 		NodeKey: raw.NodeKey,
 		Metadata: raw.Metadata,
