@@ -66,11 +66,12 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		}
 
 		logger.Info("TxDecoder started", "address", fmt.Sprintf("%p", txBytes))
+		//debug.PrintStack()
 		defer logger.Info("TxDecoder finished", "address", fmt.Sprintf("%p", txBytes))
+
 		defer func() {
 			dumpTxType(tx, txBytes)
 		}()
-
 
 		payloadDecoder := payloadTxDecoder(cdc)
 
