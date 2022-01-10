@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/dex"
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/okex/exchain/x/stream/types"
@@ -50,14 +49,11 @@ func NewMarketConfig(enable bool, urls, nameSpace string, clusters []string, ser
 
 type KlineData struct {
 	Height        int64
-	matchResults  []*backend.MatchResult
 	newTokenPairs []*dex.TokenPair
 }
 
 func NewKlineData() *KlineData {
-	return &KlineData{
-		matchResults: make([]*backend.MatchResult, 0),
-	}
+	return &KlineData{}
 }
 
 func (kd KlineData) BlockHeight() int64 {
@@ -70,18 +66,9 @@ func (kd KlineData) DataType() types.StreamDataKind {
 
 func (kd *KlineData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, cache *common.Cache) {
 	kd.Height = ctx.BlockHeight()
-	kd.matchResults = common.GetMatchResults(ctx, orderKeeper)
 	kd.newTokenPairs = cache.GetNewTokenPairs()
 }
 
 func (kd *KlineData) GetNewTokenPairs() []*dex.TokenPair {
 	return kd.newTokenPairs
-}
-
-func (kd *KlineData) GetMatchResults() []*backend.MatchResult {
-	return kd.matchResults
-}
-
-func (kd *KlineData) SetMatchResults(matchResults []*backend.MatchResult) {
-	kd.matchResults = matchResults
 }

@@ -12,12 +12,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/go-sql-driver/mysql"
-
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/analyservice"
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/okex/exchain/x/stream/pulsarclient"
@@ -61,17 +58,14 @@ var EngineKind2StreamKindMap = map[EngineKind]Kind{
 type MySQLEngine struct {
 	url    string
 	logger log.Logger
-	orm    *backend.ORM
 }
 
 func NewMySQLEngine(url string, log log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
-	ormTmp := analyservice.NewMysqlORM(url)
 	log.Info("NewAnalysisService succeed")
 	// connect mysql through streamUrl
 	return &MySQLEngine{
 		url:    url,
 		logger: log,
-		orm:    ormTmp,
 	}, nil
 }
 
@@ -81,28 +75,9 @@ func (e *MySQLEngine) URL() string {
 
 func (e *MySQLEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering MySqlEngine write")
-	enData, ok := data.(*analyservice.DataAnalysis)
+	_, ok := data.(*analyservice.DataAnalysis)
 	if !ok {
 		panic(fmt.Sprintf("MySqlEngine Convert data %+v to DataAnalysis failed", data))
-	}
-
-	results, err := e.orm.BatchInsertOrUpdate(enData.NewOrders, enData.UpdatedOrders, enData.Deals, enData.MatchResults,
-		enData.FeeDetails, enData.Trans, enData.SwapInfos, enData.ClaimInfos)
-	if err != nil {
-		e.logger.Error(fmt.Sprintf("MySqlEngine write failed: %s, results: %v", err.Error(), results))
-		*success = false
-
-		if mysqlerr, ok := err.(*mysql.MySQLError); ok {
-			e.logger.Error(fmt.Sprintf("MySQLError: %+v", err.Error()))
-			// Duplicate entry 'XXX' for key 'PRIMARY'
-			if mysqlerr.Number == 1062 {
-				e.logger.Error(fmt.Sprintf("MySqlEngine write failed becoz 1062: %s, considered success, result: %+v", err.Error(), results))
-				*success = true
-			}
-		}
-	} else {
-		e.logger.Debug(fmt.Sprintf("MySqlEngine write result: %+v", results))
-		*success = true
 	}
 
 }

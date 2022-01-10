@@ -6,8 +6,6 @@ import (
 
 	"github.com/okex/exchain/x/stream/pushservice/conn"
 
-	"github.com/okex/exchain/x/backend"
-
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/x/stream/pushservice/types"
@@ -39,29 +37,11 @@ func NewPushService(redisURL, redisPassword string, db int, log log.Logger) (srv
 func (p PushService) WriteSync(b *types.RedisBlock) (map[string]int, error) {
 	result := make(map[string]int)
 
-	// orders
-	for _, val := range b.OrdersMap {
-		result["orders"] += len(val)
-	}
-	for k, v := range b.OrdersMap {
-		if err := p.setOrders(k, v); err != nil {
-			return result, fmt.Errorf("setOrders failed, %s", err.Error())
-		}
-	}
-
 	// accounts
 	result["accs"] = len(b.AccountsMap)
 	for k, v := range b.AccountsMap {
 		if err := p.setAccount(k, v); err != nil {
 			return result, fmt.Errorf("setAccount failed, %s", err.Error())
-		}
-	}
-
-	// match results
-	result["matches"] += len(b.MatchesMap)
-	for k, v := range b.MatchesMap {
-		if err := p.setMatches(k, v); err != nil {
-			return result, fmt.Errorf("setMatches failed, %s", err.Error())
 		}
 	}
 
@@ -110,33 +90,6 @@ func (p PushService) setAccount(address string, info token.CoinInfo) error {
 	key := address
 	p.log.Debug("setAccount", "key", key, "value", string(value))
 	return p.client.PrivatePub(key, string(value))
-}
-
-// setOrders push orders to private channel
-func (p PushService) setOrders(address string, orders []backend.Order) error {
-	value, err := json.Marshal(orders)
-	if err != nil {
-		return err
-	}
-	key := address
-	p.log.Debug("setOrders", "key", key, "value", string(value))
-	return p.client.PrivatePub(key, string(value)[1:len(string(value))-1])
-}
-
-// setMatches push matches to public channel
-func (p PushService) setMatches(product string, matches backend.MatchResult) error {
-	value, err := json.Marshal(matches)
-	if err != nil {
-		return err
-	}
-	key1 := product
-	key2 := product
-	p.log.Debug("setMatches_pub", "key", key1, "value", string(value))
-	p.log.Debug("setMatches_set", "key", key2, "value", string(value))
-	if err := p.client.Set(key2, string(value)); err != nil {
-		return err
-	}
-	return p.client.PublicPub(key1, string(value))
 }
 
 // setDepthSnapshot push depth to public channel

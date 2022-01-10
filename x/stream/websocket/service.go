@@ -6,8 +6,8 @@ import (
 
 	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/stream/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/stream/types"
 )
 
 // Engine
@@ -52,26 +52,6 @@ func (engine *Engine) Write(data types.IStreamData, success *bool) {
 	// 1. collect account events
 	for key, value := range wsData.AccountsMap {
 		channel := fmt.Sprintf("%s:%s", DexSpotAccount, key)
-		event, err := engine.NewEvent(channel, value)
-		if err != nil {
-			panic(err)
-		}
-		events = append(events, event)
-	}
-
-	// 2. collect order events
-	for key, value := range wsData.OrdersMap {
-		channel := fmt.Sprintf("%s:%s", DexSpotOrder, key)
-		event, err := engine.NewEvent(channel, value)
-		if err != nil {
-			panic(err)
-		}
-		events = append(events, event)
-	}
-
-	// 3. collect matches events
-	for key, value := range wsData.MatchesMap {
-		channel := fmt.Sprintf("%s:%s", DexSpotMatch, key)
 		event, err := engine.NewEvent(channel, value)
 		if err != nil {
 			panic(err)

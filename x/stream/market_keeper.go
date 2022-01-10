@@ -3,19 +3,14 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/backend/types"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/pushservice/conn"
 )
-
-type MarketKeeper backend.MarketKeeper
 
 type BaseMarketKeeper struct {
 }
@@ -54,7 +49,7 @@ func (k *RedisMarketKeeper) GetKlineByProductID(productID uint64, granularity, s
 	for _, field := range fieldList {
 		timeInt, err := strconv.ParseInt(field, 10, 64)
 		if err != nil {
-			return nil, types.ErrGetInvalidateGranularity(err.Error(), key, field)
+			return nil, err
 		}
 
 		values := strings.Split(r[field], "|")
@@ -88,7 +83,7 @@ func (k *RedisMarketKeeper) GetTickerByProducts(products []string) ([]map[string
 			if err == nil {
 				tickers = append(tickers, ticker)
 			} else {
-				return tickers, types.ErrGetInvalidTickerByProducts(key)
+				return tickers, nil
 			}
 		}
 	}

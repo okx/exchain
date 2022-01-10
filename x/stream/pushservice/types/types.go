@@ -12,7 +12,6 @@ import (
 	"github.com/okex/exchain/x/stream/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/backend"
 	ordertype "github.com/okex/exchain/x/order/types"
 	"github.com/okex/exchain/x/token"
 )
@@ -22,24 +21,20 @@ type Writer interface {
 }
 
 type RedisBlock struct {
-	Height        int64                      `json:"height"`
-	OrdersMap     map[string][]backend.Order `json:"orders"`
-	DepthBooksMap map[string]BookRes         `json:"depthBooks"`
+	Height        int64              `json:"height"`
+	DepthBooksMap map[string]BookRes `json:"depthBooks"`
 
-	AccountsMap map[string]token.CoinInfo      `json:"accounts"`
-	Instruments map[string]struct{}            `json:"instruments"`
-	MatchesMap  map[string]backend.MatchResult `json:"matches"`
+	AccountsMap map[string]token.CoinInfo `json:"accounts"`
+	Instruments map[string]struct{}       `json:"instruments"`
 }
 
 func NewRedisBlock() *RedisBlock {
 	return &RedisBlock{
 		Height:        -1,
-		OrdersMap:     make(map[string][]backend.Order),
 		DepthBooksMap: make(map[string]BookRes),
 
 		AccountsMap: make(map[string]token.CoinInfo),
 		Instruments: make(map[string]struct{}),
-		MatchesMap:  make(map[string]backend.MatchResult),
 	}
 }
 func (rb RedisBlock) String() string {
@@ -62,21 +57,14 @@ func (rb *RedisBlock) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, to
 }
 
 func (rb *RedisBlock) Empty() bool {
-	if rb.Height == -1 && len(rb.DepthBooksMap) == 0 &&
-		len(rb.OrdersMap) == 0 && len(rb.AccountsMap) == 0 &&
-		len(rb.Instruments) == 0 && len(rb.MatchesMap) == 0 {
-		return true
-	}
 	return false
 }
 
 func (rb *RedisBlock) Clear() {
 	rb.Height = -1
-	rb.OrdersMap = make(map[string][]backend.Order)
 	rb.DepthBooksMap = make(map[string]BookRes)
 	rb.Instruments = make(map[string]struct{})
 	rb.AccountsMap = make(map[string]token.CoinInfo)
-	rb.MatchesMap = make(map[string]backend.MatchResult)
 }
 
 func (rb *RedisBlock) storeInstruments(ctx sdk.Context, cache *common.Cache, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper) {
@@ -116,50 +104,17 @@ func getAddressProductPrefix(s1, s2 string) string {
 
 // nolint
 func (rb *RedisBlock) storeNewOrders(ctx sdk.Context, orderKeeper types.OrderKeeper, blockHeight int64) {
-	logger := ctx.Logger().With("module", "stream")
-	orders, err := backend.GetNewOrdersAtEndBlock(ctx, orderKeeper)
-	if err != nil {
-		logger.Error("RedisBlock storeNewOrders error", "msg", err.Error())
-	}
-	for _, o := range orders {
-		// key := o.Sender
-		key := getAddressProductPrefix(o.Product, o.Sender)
-		rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
-		logger.Debug("storeNewOrders", "order", o)
-	}
+
 }
 
 // nolint
 func (rb *RedisBlock) updateOrders(ctx sdk.Context, orderKeeper types.OrderKeeper) {
-	logger := ctx.Logger().With("module", "stream")
-	orders := backend.GetUpdatedOrdersAtEndBlock(ctx, orderKeeper)
-	for _, o := range orders {
-		// key := o.Sender
-		key := getAddressProductPrefix(o.Product, o.Sender)
-		if _, ok := rb.OrdersMap[key]; ok {
-			if i, found := find(rb.OrdersMap[key], *o); found {
-				rb.OrdersMap[key][i] = *o
-			} else {
-				rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
-			}
-		} else {
-			rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
-		}
-		logger.Debug("updateOrders", "order", o)
-	}
+
 }
 
 // nolint
 func (rb *RedisBlock) storeMatches(ctx sdk.Context, orderKeeper types.OrderKeeper) {
-	logger := ctx.Logger().With("module", "stream")
-	_, matches, err := backend.GetNewDealsAndMatchResultsAtEndBlock(ctx, orderKeeper)
-	if err != nil {
-		logger.Error("RedisBlock storeMatches error", "msg", err.Error())
-	}
-	for _, m := range matches {
-		rb.MatchesMap[m.Product] = *m
-		logger.Debug("storeMatches", "match", m)
-	}
+
 }
 
 type BookResItem struct {

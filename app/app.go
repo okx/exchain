@@ -32,7 +32,6 @@ import (
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
@@ -105,7 +104,6 @@ var (
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
-		backend.AppModuleBasic{},
 		stream.AppModuleBasic{},
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
@@ -123,7 +121,6 @@ var (
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		dex.ModuleName:            nil,
 		order.ModuleName:          nil,
-		backend.ModuleName:        nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
 		farm.YieldFarmingAccount:  nil,
@@ -172,7 +169,6 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
-	BackendKeeper  backend.Keeper
 	StreamKeeper   stream.Keeper
 
 	// the module manager
@@ -198,7 +194,7 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
-		)
+	)
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -324,8 +320,6 @@ func NewOKExChainApp(
 
 	app.StreamKeeper = stream.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.AccountKeeper, &app.SwapKeeper,
 		&app.FarmKeeper, app.cdc, logger, appConfig, streamMetrics)
-	app.BackendKeeper = backend.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.SwapKeeper, &app.FarmKeeper,
-		app.MintKeeper, app.StreamKeeper.GetMarketKeeper(), app.cdc, logger, appConfig.BackendConfig)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -385,7 +379,6 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
-		backend.NewAppModule(app.BackendKeeper),
 		stream.NewAppModule(app.StreamKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 	)
@@ -413,7 +406,6 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		order.ModuleName,
 		staking.ModuleName,
-		backend.ModuleName,
 		stream.ModuleName,
 		evm.ModuleName,
 	)
@@ -510,8 +502,6 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 			ctx := app.GetDeliverStateCtx()
 			txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight()))
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
-			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
 			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
 				ctx.BlockHeader().Time.Unix())
 		}

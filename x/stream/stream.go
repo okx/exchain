@@ -9,17 +9,16 @@ import (
 	"github.com/okex/exchain/x/stream/nacos"
 	"github.com/okex/exchain/x/stream/websocket"
 
-	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/google/uuid"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/x/stream/distrlock"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
-	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/okex/exchain/x/stream/pushservice"
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (
@@ -35,9 +34,8 @@ const (
 
 // Stream maintains the engines
 type Stream struct {
-	orderKeeper    types.OrderKeeper    // The reference to the OrderKeeper to get deals
-	tokenKeeper    types.TokenKeeper    // The reference to the TokenKeeper to get fee details
-	marketKeeper   backend.MarketKeeper // The reference to MarketKeeper to get ticker/klines
+	orderKeeper    types.OrderKeeper // The reference to the OrderKeeper to get deals
+	tokenKeeper    types.TokenKeeper // The reference to the TokenKeeper to get fee details
 	dexKeeper      types.DexKeeper
 	swapKeeper     types.SwapKeeper
 	farmKeeper     types.FarmKeeper
@@ -96,11 +94,10 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		if err != nil {
 			logger.Error("Fail to parse redis url ", se.cfg.KlineQueryConnect, " error: ", err.Error())
 		} else {
-			srv, err := pushservice.NewPushService(address, password, 0, logger)
+			_, err := pushservice.NewPushService(address, password, 0, logger)
 			if err != nil {
 				logger.Error("NewPushService failed ", err.Error())
 			} else {
-				se.marketKeeper = NewRedisMarketKeeper(srv.GetConnCli(), logger)
 				logger.Info("NewPushService succeed")
 			}
 		}

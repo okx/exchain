@@ -4,6 +4,8 @@ import (
 	"fmt"
 	evmclient "github.com/okex/exchain/x/evm/client"
 
+	"github.com/okex/exchain/app/rpc"
+	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -11,10 +13,7 @@ import (
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
-	"github.com/okex/exchain/app/rpc"
-	"github.com/okex/exchain/app/types"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
-	backendrest "github.com/okex/exchain/x/backend/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	dexrest "github.com/okex/exchain/x/dex/client/rest"
 	dist "github.com/okex/exchain/x/distribution"
@@ -55,12 +54,11 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 
 	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
 	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.StoreKey)
-	backendrest.RegisterRoutes(rs.CliCtx, v1Router)
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
-	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	evmrest.RegisterRoutes(rs.CliCtx, v1Router, true)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -79,8 +77,7 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v2Router)
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
-
+	evmrest.RegisterRoutes(rs.CliCtx, v2Router, false)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
-	backendrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }

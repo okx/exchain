@@ -1,20 +1,16 @@
 package pulsarclient
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Comcast/pulsar-client-go"
-	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/google/uuid"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/exchain/x/backend"
-	"github.com/okex/exchain/x/stream/common/kline"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/stream/common/kline"
 )
 
 type PulsarProducer struct {
@@ -83,52 +79,6 @@ func (pp *PulsarProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.L
 func (pp *PulsarProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "pulsar")
 	result := make(map[string]int)
-	matchResults := data.GetMatchResults()
-	result["matchResults"] = len(matchResults)
-	if len(matchResults) == 0 {
-		return result, nil
-	}
 
-	var errChan = make(chan error, len(matchResults))
-	var wg sync.WaitGroup
-	wg.Add(len(matchResults))
-	for _, matchResult := range matchResults {
-		go func(matchResult backend.MatchResult) {
-			defer wg.Done()
-			marketID, ok := kline.GetMarketIDMap()[matchResult.Product]
-			if !ok {
-				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
-				errChan <- err
-				return
-			}
-
-			msg, err := json.Marshal(&matchResult)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			_, err = pp.producers[marketID%(pp.partion)].Send(sctx, msg)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			logger.Debug(
-				fmt.Sprintf("successfully send matchResult [marketId:%d, CreatedTime:%s, BlockHeight:%d, Quantity:%f, Price:%f, InstrumentName:%s]",
-					marketID, time.Unix(matchResult.Timestamp, 0).Format("2006-01-02 15:04:05"), matchResult.BlockHeight,
-					matchResult.Quantity, matchResult.Price, matchResult.Product,
-				),
-			)
-		}(*matchResult)
-	}
-	wg.Wait()
-
-	if len(errChan) != 0 {
-		err := <-errChan
-		return result, err
-	}
 	return result, nil
 }

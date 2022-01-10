@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,7 +21,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
@@ -31,15 +31,18 @@ import (
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
-func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")         // default from auth
-	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
-	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
-	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
-	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, isV1Router bool) {
+	if isV1Router {
+		r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+		r.HandleFunc("/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")         // default from auth
+		r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
+		r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
+		r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
+		r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
+		r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
+		r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
+	}
+
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 
