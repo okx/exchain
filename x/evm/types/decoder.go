@@ -45,6 +45,7 @@ func dumpTxType(tx sdk.Tx, txBytes []byte)  {
 		"tx-type", fmt.Sprintf("%T", tx),
 		"msg-type", msgType,
 		"address", fmt.Sprintf("%p", txBytes),
+		"tx", tx,
 	)
 }
 
