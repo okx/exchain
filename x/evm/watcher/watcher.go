@@ -358,8 +358,8 @@ func (w *Watcher) Commit() {
 	go w.commitBatch(batch)
 
 	// get centerBatch for sending to DataCenter
-	ddsBatch := make([]*Batch, len(w.batch))
-	for i, b := range w.batch {
+	ddsBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
 		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
 	}
 	w.watchData.Batches = ddsBatch
