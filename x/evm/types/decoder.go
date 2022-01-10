@@ -6,7 +6,9 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"sync"
 )
 
@@ -30,7 +32,6 @@ func (l decoderLogger) Info(msg string, keyvals ...interface{}) {
 }
 
 func dumpTxType(tx sdk.Tx, txBytes []byte)  {
-
 	var msgType string
 	if tx != nil {
 		if len(tx.GetMsgs()) > 0 {
@@ -45,9 +46,7 @@ func dumpTxType(tx sdk.Tx, txBytes []byte)  {
 		"msg-type", msgType,
 		"address", fmt.Sprintf("%p", txBytes),
 	)
-
 }
-
 
 func dumpErr(txBytes []byte, caller string, err error)  {
 	logger.Info("------> failed to attempt",
@@ -60,7 +59,7 @@ func dumpErr(txBytes []byte, caller string, err error)  {
 // Auxiliary
 
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (tx sdk.Tx, err error) {
+	return func(txBytes []byte, heights ...int64) (tx sdk.Tx, err error) {
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
@@ -71,37 +70,46 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			dumpTxType(tx, txBytes)
 		}()
 
+
 		payloadDecoder := payloadTxDecoder(cdc)
 
 		//----------------------------------------------
 		//----------------------------------------------
 		// 1. try sdk.WrappedTx
-		if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder); err == nil {
+		if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
 			return
 		} else {
 			dumpErr(txBytes, "DecodeWrappedTx", err)
 		}
 
-		tx, err = payloadDecoder(txBytes)
+		tx, err = payloadDecoder(txBytes, heights...)
 		return
 	}
 }
 
 func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (tx sdk.Tx, err error) {
+	return func(txBytes []byte, heights ...int64) (tx sdk.Tx, err error) {
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		//----------------------------------------------
-		//----------------------------------------------
-		// 2. Try to decode as MsgEthereumTx by RLP
-		if tx, err = decoderEvmtx(txBytes); err == nil {
-			return
+		var height int64
+		if len(heights) >= 1 {
+			height = heights[0]
 		} else {
-			dumpErr(txBytes, "decoderEvmtx", err)
+			height = global.GetGlobalHeight()
 		}
 
+		if types.HigherThanVenus(height) {
+			//----------------------------------------------
+			//----------------------------------------------
+			// 2. Try to decode as MsgEthereumTx by RLP
+			if tx, err = decoderEvmtx(txBytes); err == nil {
+				return
+			} else {
+				dumpErr(txBytes, "decoderEvmtx", err)
+			}
+		}
 		//----------------------------------------------
 		//----------------------------------------------
 		// 3. try other concrete message types registered by MakeTxCodec

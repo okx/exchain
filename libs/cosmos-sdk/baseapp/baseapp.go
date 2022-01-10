@@ -196,8 +196,8 @@ func NewBaseApp(
 		wrappedTxDecoder:      txDecoder,
 	}
 
-	app.txDecoder = func(txBytes []byte) (tx sdk.Tx, err error) {
-		tx, err = app.wrappedTxDecoder(txBytes)
+	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
+		tx, err = app.wrappedTxDecoder(txBytes, height...)
 		if err != nil {
 			return
 		}

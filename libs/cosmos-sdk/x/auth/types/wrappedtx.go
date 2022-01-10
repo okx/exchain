@@ -59,7 +59,7 @@ func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, 
 	return json.Marshal(wrapped)
 }
 
-func DecodeWrappedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)) (sdk.Tx, error) {
+func DecodeWrappedTx(txbytes []byte, payloadDecoder sdk.TxDecoder, heights ...int64) (sdk.Tx, error) {
 
 	raw := &RawWrappedTx{}
 	err := json.Unmarshal(txbytes, raw)
@@ -67,7 +67,7 @@ func DecodeWrappedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)
 		return nil, err
 	}
 
-	payloadTx, err := payloadDecoder(raw.Payload)
+	payloadTx, err := payloadDecoder(raw.Payload, heights...)
 	if err != nil {
 		return nil, err
 	}
