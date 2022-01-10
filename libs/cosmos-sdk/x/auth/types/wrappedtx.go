@@ -7,7 +7,6 @@ import (
 )
 var (
 	_ sdk.Tx = (*WrappedTx)(nil)
-
 )
 
 type RawWrappedTx struct {
@@ -27,9 +26,9 @@ type WrappedTx struct {
 func (msg WrappedTx) String() string {
 	return fmt.Sprintf("StdTx=<%s>, Metadata=<%s>, Signature=<%s>, NodeKey=<%s>",
 		msg.Tx,
-		msg.Metadata,
-		msg.Signature,
-		msg.NodeKey,
+		string(msg.Metadata),
+		string(msg.Signature),
+		string(msg.NodeKey),
 		)
 }
 
@@ -73,7 +72,7 @@ func DecodeWrappedTx(txbytes []byte, payloadDecoder func([]byte) (sdk.Tx, error)
 		return nil, err
 	}
 
-	tx := &WrappedTx{
+	tx := WrappedTx{
 		Tx: payloadTx,
 		NodeKey: raw.NodeKey,
 		Metadata: raw.Metadata,

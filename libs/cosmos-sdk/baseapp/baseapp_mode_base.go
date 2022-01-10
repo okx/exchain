@@ -165,7 +165,7 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 	enableCheckedTx := false
 	enableCheckedTx = true
 
-	if enableCheckedTx && m.app.chktxEncoder != nil {
+	if enableCheckedTx && m.app.wrappedTxEncoder != nil {
 
 		exInfo := &sdk.ExTxInfo{
 			Metadata: []byte("dummy Metadata"),
@@ -173,7 +173,7 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 			NodeKey: []byte("dummy NodeKey"),
 		}
 
-		data, err := m.app.chktxEncoder(info.txBytes, exInfo, info.verifyResult < 0)
+		data, err := m.app.wrappedTxEncoder(info.txBytes, exInfo, info.verifyResult < 0)
 		if err == nil {
 			exTxInfo.CheckedTx = data
 			m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)

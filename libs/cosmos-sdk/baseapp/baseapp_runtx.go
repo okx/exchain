@@ -43,9 +43,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
-	app.logger.Info("info.tx = tx", "payloadtx", info.tx.GetPayloadTx())
 
-	//debug.PrintStack()
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
@@ -112,14 +110,14 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	app.logger.Info("app.anteHandler", "payloadtx", info.tx.GetPayloadTx())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 	info.verifyResult = newCtx.VerifyResult()
-	app.logger.Info("app.anteHandler done",
+	app.logger.Info("anteHandler done",
 		"verifyResult", info.verifyResult,
+		"err", err,
 		"payloadtx", info.tx.GetPayloadTx())
 
 	if !newCtx.IsZero() {

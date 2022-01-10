@@ -99,9 +99,9 @@ type BaseApp struct { // nolint: maligned
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
-	wrapperTxDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.WrapperTx
+	wrappedTxDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.WrapperTx
 
-	chktxEncoder   sdk.CheckedTxEncoder
+	wrappedTxEncoder   sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -193,11 +193,11 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		wrapperTxDecoder:      txDecoder,
+		wrappedTxDecoder:      txDecoder,
 	}
 
 	app.txDecoder = func(txBytes []byte) (tx sdk.Tx, err error) {
-		tx, err = app.wrapperTxDecoder(txBytes)
+		tx, err = app.wrappedTxDecoder(txBytes)
 		if err != nil {
 			return
 		}
