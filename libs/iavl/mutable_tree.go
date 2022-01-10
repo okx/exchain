@@ -514,12 +514,18 @@ func (tree *MutableTree) Rollback() {
 func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 	index int64, value []byte,
 ) {
+	tree.log(IavlInfo, "GetVersioned KEY:%s, VERSION: %d\n", fmt.Sprintf("%x", key), version)
+
 	if tree.versions.Get(version) {
+		tree.log(IavlInfo, "GetVersioned KEY:%s, VERSION: %d exist\n", fmt.Sprintf("%x", key), version)
 		t, err := tree.GetImmutable(version)
 		if err != nil {
+			tree.log(IavlInfo, "GetVersioned KEY: %s, VERSION: %d, ERROR: %s\n", fmt.Sprintf("%x", key), version, err.Error())
 			return -1, nil
 		}
-		return t.Get(key)
+		index, value =  t.Get(key)
+		tree.log(IavlInfo,"GetVersioned KEY: %s, INDEX: %d, VALUE: %s, VERSION:%d\n", fmt.Sprintf("%x", key), index, fmt.Sprintf("%x", value), version)
+		return
 	}
 	return -1, nil
 }
