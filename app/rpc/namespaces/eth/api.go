@@ -94,7 +94,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
-		watcherBackend: watcher.NewWatcher(),
+		watcherBackend: watcher.NewWatcher(log),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
