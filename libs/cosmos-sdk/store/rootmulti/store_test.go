@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	"math"
 	"os"
 	"os/exec"
@@ -550,9 +549,6 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 	}
 }
 func testMultiStoreDelta(t *testing.T) {
-	viper.Set(tmtypes.FlagUploadDDS, true)
-	viper.Set(tmtypes.FlagDownloadDDS, true)
-
 	var db dbm.DB = dbm.NewMemDB()
 	ms := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := ms.LoadLatestVersion()
@@ -572,6 +568,8 @@ func testMultiStoreDelta(t *testing.T) {
 	store2.Set(k2, v2)
 
 	// get deltas
+	tmtypes.UploadDelta = true
+	tmtypes.DownloadDelta = true
 	iavltree.SetProduceDelta(true)
 	cID, _, deltas := ms.Commit(nil, nil)
 	require.Equal(t, int64(1), cID.Version)

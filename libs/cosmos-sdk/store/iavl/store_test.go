@@ -5,7 +5,6 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
@@ -551,7 +550,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 func testCommitDelta(t *testing.T) {
 	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
-	viper.Set(tmtypes.FlagDownloadDDS, true)
+	tmtypes.DownloadDelta = true
 	iavl.SetProduceDelta(false)
 
 	db := dbm.NewMemDB()
