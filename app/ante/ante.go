@@ -1,13 +1,14 @@
 package ante
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"sync"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -17,6 +18,24 @@ import (
 
 func init() {
 	ethsecp256k1.RegisterCodec(types.ModuleCdc)
+}
+var logger anteLogger
+var loggerOnce sync.Once
+func SetLogger(l log.Logger) {
+	loggerOnce.Do(func() {
+		logger.Logger = l.With("module", "main")
+	})
+}
+
+type anteLogger struct {
+	log.Logger
+}
+
+func (l anteLogger) Info(msg string, keyvals ...interface{}) {
+	if l.Logger == nil {
+		return
+	}
+	l.Logger.Info(msg, keyvals...)
 }
 
 const (
@@ -69,19 +88,19 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 
 		switch txType := tx.(type) {
 		case auth.StdTx:
-			fmt.Printf("ante \t\tcase auth.StdTx:\n")
+			logger.Info("ante auth.StdTx")
 			anteHandler = stdTxAnteHandler
 		case evmtypes.MsgEthereumTx:
-			fmt.Printf("ante \t\tcase MsgEthereumTx:\n")
+			logger.Info("ante MsgEthereumTx")
 
 			anteHandler = evmTxAnteHandler
 		case auth.WrappedTx:
-			fmt.Printf("ante \t\tcase auth.WrappedTx:\n")
+			logger.Info("ante auth.WrappedTx")
 			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
 				return checkTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
 			}
 		default:
-			fmt.Printf("invalid transaction type: %T\n", tx)
+			logger.Info("invalid transaction type: %T", tx)
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
 
@@ -92,7 +111,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
 	var payloadAnteHandler sdk.AnteHandler
-	fmt.Printf("ante checkTxAnteHandler:\n")
+	logger.Info("ante checkTxAnteHandler")
 
 	switch payloadTx.(type) {
 	case auth.StdTx:
@@ -104,7 +123,7 @@ func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, 
 	}
 
 	chkTxAnteHandler := sdk.ChainAnteDecorators(
-		authante.NewNodeSignatureDecorator(),
+		authante.NewNodeSignatureDecorator(logger.Logger),
 	)
 
 	newCtx, err = chkTxAnteHandler(ctx, tx, sim)

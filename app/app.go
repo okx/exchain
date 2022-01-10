@@ -465,6 +465,7 @@ func NewOKExChainApp(
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	evmtypes.SetLogger(app.Logger())
+	ante.SetLogger(app.Logger())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
