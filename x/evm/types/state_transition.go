@@ -33,6 +33,7 @@ type StateTransition struct {
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
+	TraceTx  bool
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -106,7 +107,7 @@ func (st StateTransition) newEVM(
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig, tracer vm.Tracer) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
@@ -156,14 +157,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	var tracer vm.Tracer
-	tracer = vm.NewStructLogger(evmLogConfig)
-
-	to := ""
-	if st.Recipient != nil {
-		to = st.Recipient.String()
+	var enableDebug bool
+	if _, ok := tracer.(NoOpTracer); !ok {
+		enableDebug = true
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,

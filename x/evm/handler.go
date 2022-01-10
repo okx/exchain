@@ -2,6 +2,7 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -14,6 +15,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/spf13/viper"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -200,7 +202,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	StartTxLog(bam.TransitionDb)
-	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config, types.NewNoOpTracer())
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
 			ResultData: resultData,
@@ -270,7 +272,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 
-	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() && !ctx.IsTraceTx() {
 		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
 
@@ -294,6 +296,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
 	}
 
 	if msg.Recipient != nil {
@@ -313,7 +316,20 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+	var tracer vm.Tracer
+	if ctx.IsTraceTx() {
+		evmLogConfig := &vm.LogConfig{
+			DisableMemory:     viper.GetBool(types.FlagTraceDisableMemory),
+			DisableStack:      viper.GetBool(types.FlagTraceDisableStack),
+			DisableStorage:    viper.GetBool(types.FlagTraceDisableStorage),
+			DisableReturnData: viper.GetBool(types.FlagTraceDisableReturnData),
+			Debug:             viper.GetBool(types.FlagTraceDebug),
+		}
+		tracer = vm.NewStructLogger(evmLogConfig)
+	} else {
+		tracer = types.NewNoOpTracer()
+	}
+	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config, tracer)
 	if err != nil {
 		return nil, err
 	}

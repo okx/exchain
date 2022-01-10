@@ -32,6 +32,7 @@ type Context struct {
 	blockGasMeter GasMeter
 	checkTx       bool
 	recheckTx     bool // if recheckTx == true, then checkTx must also be true
+	traceTx       bool
 	minGasPrice   DecCoins
 	consParams    *abci.ConsensusParams
 	eventManager  *EventManager
@@ -57,6 +58,7 @@ func (c Context) GasMeter() GasMeter          { return c.gasMeter }
 func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c Context) IsTraceTx() bool             { return c.traceTx }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
@@ -178,7 +180,10 @@ func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
 	c.recheckTx = isRecheckTx
 	return c
 }
-
+func (c Context) WithIsTraceTx(isTraceTx bool) Context {
+	c.traceTx = isTraceTx
+	return c
+}
 func (c Context) WithMinGasPrices(gasPrices DecCoins) Context {
 	c.minGasPrice = gasPrices
 	return c

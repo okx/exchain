@@ -2,9 +2,11 @@ package types
 
 import (
 	"fmt"
+	"math/big"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -29,6 +31,11 @@ const (
 	FlagTraceDisableStorage    = "evm-trace-nostorage"
 	FlagTraceDisableReturnData = "evm-trace-noreturndata"
 	FlagTraceDebug             = "evm-trace-debug"
+
+	TracerAccessList = "access_list"
+	TracerJSON       = "json"
+	TracerStruct     = "struct"
+	TracerMarkdown   = "markdown"
 )
 
 var (
@@ -175,4 +182,71 @@ func DeleteTracesFromDB(txHash []byte) error {
 		return fmt.Errorf("traces db is nil")
 	}
 	return tracesDB.Delete(txHash)
+}
+
+// NoOpTracer is an empty implementation of vm.Tracer interface
+type NoOpTracer struct{}
+
+// NewNoOpTracer creates a no-op vm.Tracer
+func NewNoOpTracer() *NoOpTracer {
+	return &NoOpTracer{}
+}
+
+// CaptureStart implements vm.Tracer interface
+func (dt NoOpTracer) CaptureStart(
+	env *vm.EVM,
+	from, to common.Address,
+	create bool,
+	input []byte,
+	gas uint64,
+	value *big.Int,
+) {
+}
+
+// CaptureEnter implements vm.Tracer interface
+func (dt NoOpTracer) CaptureEnter(
+	typ vm.OpCode,
+	from common.Address,
+	to common.Address,
+	input []byte,
+	gas uint64,
+	value *big.Int,
+) {
+}
+
+// CaptureExit implements vm.Tracer interface
+func (dt NoOpTracer) CaptureExit(output []byte, gasUsed uint64, err error) {}
+
+// CaptureState implements vm.Tracer interface
+func (dt NoOpTracer) CaptureState(
+	env *vm.EVM,
+	pc uint64,
+	op vm.OpCode,
+	gas, cost uint64,
+	scope *vm.ScopeContext,
+	rData []byte,
+	depth int,
+	err error,
+) {
+}
+
+// CaptureFault implements vm.Tracer interface
+func (dt NoOpTracer) CaptureFault(
+	env *vm.EVM,
+	pc uint64,
+	op vm.OpCode,
+	gas, cost uint64,
+	scope *vm.ScopeContext,
+	depth int,
+	err error,
+) {
+}
+
+// CaptureEnd implements vm.Tracer interface
+func (dt NoOpTracer) CaptureEnd(
+	output []byte,
+	gasUsed uint64,
+	t time.Duration,
+	err error,
+) {
 }

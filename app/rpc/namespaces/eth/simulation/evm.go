@@ -3,17 +3,17 @@ package simulation
 import (
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/ethereum/go-ethereum/common"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -84,6 +84,22 @@ func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationRespon
 		},
 		Result: r,
 	}, nil
+}
+
+func (es *EvmSimulator) TraceTx(msg *evmtypes.MsgEthermint, predecessors []*evmtypes.MsgEthereumTx) (*sdk.Result, error) {
+
+	es.ctx.WithIsCheckTx(false)
+	es.ctx.WithIsTraceTx(false)
+	for _, predecessor := range predecessors {
+		_, e := es.handler(es.ctx, predecessor)
+		if e != nil {
+			//
+			return nil, e
+		}
+	}
+	es.ctx.WithIsCheckTx(true)
+	es.ctx.WithIsTraceTx(true)
+	return es.handler(es.ctx, msg)
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
