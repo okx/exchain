@@ -94,7 +94,9 @@ func (t *executionTask) run() {
 	}
 	curStatus := int32(TASK_BEGIN_PRERUN)
 	traceHook(CASE_SPECIAL_BEFORE_LOAD_CACHE, t.status)
-	deltas, exists := t.cache.LoadAndDelete(t.block.Height)
+	// github ci:low go version
+	deltas, exists :=t.cache.Load(t.block.Height)
+	//deltas, exists := t.cache.LoadAndDelete(t.block.Height)
 	traceHook(CASE_SPECIAL_AFTER_LOAD_CACHE, t.status)
 	if exists {
 		if !atomic.CompareAndSwapInt32(&t.status, 0, TASK_BEGIN_DELTA_EXISTS) {
@@ -139,7 +141,6 @@ func (t *executionTask) run() {
 //========================================================
 func (blockExec *BlockExecutor) InitPrerun() {
 	if blockExec.deltaContext.downloadDelta {
-		//panic("download delta is not allowed if prerun enabled")
 		go blockExec.prerunCtx.consume()
 	}
 	go blockExec.prerunCtx.prerunRoutine()

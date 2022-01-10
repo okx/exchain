@@ -128,7 +128,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		return
 	}
 
-	if curTask==nil{
+	if curTask == nil {
 		return
 	}
 	curBlock := curTask.block
@@ -140,7 +140,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		// ignore
 		return
 	} else if curBlock.Height < delta.Height {
-		if delta.Height > pc.lastPruneHeight+10{
+		if delta.Height > pc.lastPruneHeight+10 {
 			return
 		}
 		// cache the delta
@@ -202,8 +202,8 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 			}
 		}
 	}, func() {
-		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL,curTask.status)
-	},trc, curStatus, TASK_PRERRUN, TASK_DELTA)
+		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL, curTask.status)
+	}, trc, curStatus, TASK_PRERRUN, TASK_DELTA)
 }
 func notifyResult(curTask *executionTask,
 	abciResponses *ABCIResponses,
@@ -333,7 +333,12 @@ func (pc *prerunContext) handlePrune(v PruneCacheJob) {
 		return
 	}
 	h := v.h
-	for i := h; i > pc.lastPruneHeight; i-- {
+	// why: edge case ,prerunContext#lastPruneHeight was 0 at first ( if we can get the initial height,we may remove these codes)
+	pruneLimit := pc.lastPruneHeight
+	if pruneLimit == 0 {
+		pruneLimit = h-1
+	}
+	for i := h; i > pruneLimit; i-- {
 		pc.cache.Delete(i)
 	}
 	pc.lastPruneHeight = h
