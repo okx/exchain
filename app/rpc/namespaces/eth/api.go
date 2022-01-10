@@ -931,7 +931,7 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	txEncoder := authclient.GetTxEncoder(clientCtx.Codec, authclient.WithEthereumTx())
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
