@@ -154,6 +154,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 
 	// store the delta:  in case of  `cpu edge case`
 	// we will delete the height by prune
+	// FIXME
 	store(v, pc.cache)
 
 	abciResponses := ABCIResponses{}
