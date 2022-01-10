@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,12 +15,14 @@ import (
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/common"
@@ -37,6 +40,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 
 }
 
@@ -268,4 +273,76 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 
 		rest.PostProcessResponseBare(w, cliCtx, results)
 	}
+}
+func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		blockHeightStr := vars["blockHeight"]
+		blockHeight, err := strconv.ParseInt(blockHeightStr, 10, 64)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
+			return
+		}
+		res, err := GetBlockTxHashes(cliCtx, blockHeight)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, evmtypes.CodeGetBlockTxHashesFailed,
+				fmt.Sprintf("failed to get block tx hash: %s", err.Error()))
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h, err := rpc.GetChainHeight(cliCtx)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, evmtypes.CodeGetChainHeightFailed,
+				fmt.Sprintf("failed to get chain height: %s", err.Error()))
+			return
+		}
+		res := common.GetBaseResponse(h)
+		bz, err := json.Marshal(res)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+		}
+		rest.PostProcessResponse(w, cliCtx, bz)
+	}
+}
+
+// GetBlockTxHashes return tx hashes in the block of the given height
+func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error) {
+	// get the node
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	// header -> BlockchainInfo
+	// header, tx -> Block
+	// results -> BlockResults
+	res, err := node.Block(&height)
+	if err != nil {
+		return nil, err
+	}
+
+	if !cliCtx.TrustNode {
+		check, err := cliCtx.Verify(res.Block.Height)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tmliteProxy.ValidateBlock(res.Block, check)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	txs := res.Block.Txs
+	txLen := len(txs)
+	txHashes := make([]string, txLen)
+	for i, txBytes := range txs {
+		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash(height))
+	}
+	return txHashes, nil
 }
