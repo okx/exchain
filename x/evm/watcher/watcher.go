@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
-	"os"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -64,9 +63,8 @@ func GetWatchLruSize() int {
 	return watcherLruSize
 }
 
-func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
-	watcher.log = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "watcher")
+func NewWatcher(logger log.Logger) *Watcher {
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -385,18 +383,17 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	}
 	w.delayEraseKey = data.DelayEraseKey
 
-	keys := make([][]byte, len(data.Batches))
-	for i, _ := range data.Batches {
-		keys[i] = data.Batches[i].Key
-	}
 	if checkWd {
+		keys := make([][]byte, len(data.Batches))
+		for i, _ := range data.Batches {
+			keys[i] = data.Batches[i].Key
+		}
 		w.CheckWatchDB(keys, "consumer")
 	}
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	keys := make([][]byte, len(batch))
-	for i, b := range batch {
+	for _, b := range batch {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -404,10 +401,13 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		if typeValue == TypeState {
 			state.SetStateToLru(common.BytesToHash(key), value)
 		}
-		keys[i] = key
 	}
 
 	if checkWd {
+		keys := make([][]byte, len(batch))
+		for i, _ := range batch {
+			keys[i] = batch[i].GetKey()
+		}
 		w.CheckWatchDB(keys, "producer")
 	}
 }
