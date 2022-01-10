@@ -121,6 +121,10 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 }
 
 func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
+	info, err := api.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return common.Hash{}, err
+	}
 	// Get sender address
 	chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 	if err != nil {
@@ -139,7 +143,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.BytesToHash(types.Tx(txBytes).Hash(api.clientCtx.Height)), nil
+	return common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight)), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {

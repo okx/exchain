@@ -11,26 +11,25 @@ import (
 // 3. BankTransferBlock
 
 var (
-	MILESTONE_GENESIS_HEIGHT     string
-	genesisHeight                int64
+	MILESTONE_GENESIS_HEIGHT string
+	genesisHeight            int64
 
-	MILESTONE_MERCURY_HEIGHT     string
-	milestoneMercuryHeight       int64
+	MILESTONE_MERCURY_HEIGHT string
+	milestoneMercuryHeight   int64
 
-	MILESTONE_VENUS_HEIGHT       string
-	milestoneVenusHeight         int64
+	MILESTONE_VENUS_HEIGHT string
+	milestoneVenusHeight   int64
 
-	once                         sync.Once
+	once sync.Once
 )
 
 func init() {
 	once.Do(func() {
-		genesisHeight          = string2number(MILESTONE_GENESIS_HEIGHT)
+		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
-		milestoneVenusHeight   = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 	})
 }
-
 
 func string2number(input string) int64 {
 	if len(input) == 0 {
@@ -56,7 +55,7 @@ func HigherThanVenus(height int64) bool {
 	if milestoneVenusHeight == 0 {
 		return false
 	}
-	return height > milestoneVenusHeight
+	return height >= milestoneVenusHeight
 }
 
 // 2322600 is mainnet GenesisHeight
