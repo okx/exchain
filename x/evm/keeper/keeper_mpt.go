@@ -60,6 +60,7 @@ func (k *Keeper) OpenTrie() {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	k.rootTrie = tr
+	k.startHeight = latestStoredHeight
 }
 
 func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
@@ -69,7 +70,7 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 
 	latestStoredHeight := k.GetLatestStoredBlockHeight()
 	if latestStoredHeight < uint64(targetVersion) {
-		panic(fmt.Sprintf("The target mpt height is: %v, but the latest stored evm height is: %v" , targetVersion, latestStoredHeight))
+		panic(fmt.Sprintf("The target mpt height is: %v, but the latest stored evm height is: %v", targetVersion, latestStoredHeight))
 	}
 	targetMptRootHash := k.GetMptRootHash(uint64(targetVersion))
 
@@ -96,14 +97,18 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 		for _, offset := range []uint64{0, 1, core.TriesInMemory - 1} {
 			if number := uint64(ctx.BlockHeight()); number > offset {
 				recent := number - offset
-				if recent <= oecStartHeight {
+				if recent <= oecStartHeight || recent <= k.startHeight {
 					break
 				}
 
 				recentMptRoot := k.GetMptRootHash(recent)
-				k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "root",recentMptRoot)
-				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
-					k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+				if recentMptRoot == (ethcmn.Hash{}) {
+					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "recent", recent)
+				} else {
+					k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "root", recentMptRoot)
+					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
+						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+					}
 				}
 			}
 		}
@@ -121,16 +126,16 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 	curMptRoot := k.GetMptRootHash(uint64(curHeight))
 
 	triedb := k.db.TrieDB()
-	// Full but not archive node, do proper garbage collection
-	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
-	k.triegc.Push(curMptRoot, -int64(curHeight))
-
 	if sdk.TrieDirtyDisabled {
 		if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 			panic("fail to commit mpt data: " + err.Error())
 		}
 		k.SetLatestStoredBlockHeight(uint64(curHeight))
 	} else {
+		// Full but not archive node, do proper garbage collection
+		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
+		k.triegc.Push(curMptRoot, -int64(curHeight))
+
 		if curHeight > core.TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
@@ -143,6 +148,10 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 			}
 			// Find the next state trie we need to commit
 			chosen := curHeight - core.TriesInMemory
+
+			if chosen <= int64(k.startHeight) {
+				return
+			}
 
 			// If the header is missing (canonical chain behind), we're reorging a low
 			// diff sidechain. Suspend committing until this operation is completed.

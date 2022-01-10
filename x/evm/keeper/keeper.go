@@ -56,9 +56,10 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	db     ethstate.Database
-	rootTrie   ethstate.Trie
-	triegc *prque.Prque
+	db          ethstate.Database
+	rootTrie    ethstate.Trie
+	startHeight uint64
+	triegc      *prque.Prque
 
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address

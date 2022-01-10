@@ -95,9 +95,15 @@ func RepairState(ctx *server.Context, onStart bool) {
 	startVersion := viper.GetInt64(FlagStartHeight)
 	if startVersion == 0 {
 		latestVersion := repairApp.getLatestVersion()
+		if types.HigherThanMars(latestVersion) {
+			lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
+			if lastMptVersion < latestVersion {
+				latestVersion = lastMptVersion
+			}
+		}
 		startVersion = latestVersion - 2
 	}
-	if startVersion == 0 {
+	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
 
@@ -108,6 +114,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
+	sdk.TrieDirtyDisabled = true
 	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
