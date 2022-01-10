@@ -66,7 +66,7 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
-	watcherBackend *watcher.Watcher
+	watcherBackend watcher.IWatcher
 	evmFactory     simulation.EvmFactory
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics

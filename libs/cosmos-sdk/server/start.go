@@ -7,6 +7,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/watcher"
 	"os"
 	"runtime/pprof"
 
@@ -386,4 +387,6 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
+
+	watcher.AsyncTxEnable=viper.GetBool(state.FlagParalleledTx)
 }

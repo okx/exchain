@@ -82,7 +82,9 @@ func flushDB(db *watcher.WatchStore) {
 
 func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {return err}
+	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+		return err
+	}
 	for _, account := range wd.DirtyAccount {
 		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
 	}

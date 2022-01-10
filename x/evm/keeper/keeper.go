@@ -44,7 +44,7 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
-	Watcher *watcher.Watcher
+	Watcher watcher.IWatcher
 	Ada     types.DbAdapter
 
 	LogsManages *LogsManager
@@ -89,7 +89,7 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 	}
-	k.Watcher.SetWatchDataFunc()
+	k.Watcher.Init()
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
 	}
