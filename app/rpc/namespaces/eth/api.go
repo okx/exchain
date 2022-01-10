@@ -94,7 +94,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
-		watcherBackend: watcher.NewWatcher(),
+		watcherBackend: watcher.NewWatcher(log),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -670,6 +670,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	defer monitor.OnEnd("args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
@@ -700,7 +704,12 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
@@ -709,7 +718,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	// send chanData to txPool
-	if api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -732,6 +741,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
 	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("data", data)
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
 	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
@@ -741,9 +754,15 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	txBytes := data
+	if !tmtypes.HigherThanVenus(int64(height)) {
+		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
 
 	// send chanData to txPool
-	if api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
