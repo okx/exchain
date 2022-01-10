@@ -59,7 +59,7 @@ func HigherThanVenus(height int64) bool {
 	if milestoneVenusHeight == 0 {
 		return false
 	}
-	return height > milestoneVenusHeight
+	return height >= milestoneVenusHeight
 }
 
 //use MPT storage model to replace IAVL storage model
