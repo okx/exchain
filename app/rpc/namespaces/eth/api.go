@@ -718,7 +718,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	// send chanData to txPool
-	if api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -763,7 +763,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	// send chanData to txPool
-	if api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
