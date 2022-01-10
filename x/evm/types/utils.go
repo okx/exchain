@@ -564,9 +564,15 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// are registered by MakeTxCodec
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
 		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+			if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+			}
 			return v.(sdk.Tx), nil
 		}
 		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+			}
 			return tx, nil
 		}
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
