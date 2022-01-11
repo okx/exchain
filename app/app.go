@@ -34,7 +34,6 @@ import (
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
-	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
@@ -105,7 +104,6 @@ var (
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
 		stream.AppModuleBasic{},
-		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 	)
