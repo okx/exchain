@@ -30,8 +30,8 @@ var (
 func CreateAppCallback(cdc *codec.Codec) server.AppCallback {
 	return server.AppCallback{
 		MempoolTxSignatureCallback:       CheckedTxSignedFunc(cdc),
-		MempoolTxSignatureNodeKeysSetter: setCurrentNodeKeys,
-		ServerConfigCallback:             setServerConfig,
+		MempoolTxSignatureNodeKeysSetter: SetCurrentNodeKeys,
+		ServerConfigCallback:             SetServerConfig,
 	}
 }
 
@@ -105,16 +105,16 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, _ *abci.Response_
 	}
 }
 
-// setCurrentNodeKeys used in the BaseApp to set the node keys
-func setCurrentNodeKeys(pub crypto.PubKey, priv crypto.PrivKey) {
+// SetCurrentNodeKeys used in the BaseApp to set the node keys
+func SetCurrentNodeKeys(pub crypto.PubKey, priv crypto.PrivKey) {
 	currentNodeKeyOnce.Do(func() {
 		currentNodePriv = priv
 		currentNodePub = pub
 	})
 }
 
-// use the callback to set the server config reference
-func setServerConfig(cfg *cfg.Config) {
+// SetServerConfig use the callback to set the server config reference
+func SetServerConfig(cfg *cfg.Config) {
 	serverConfigOnce.Do(func() {
 		serverConfig = cfg
 	})
