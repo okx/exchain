@@ -76,8 +76,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 					origin = wrapped.GetOriginTx()
 					goto check
 				}
-				//ctx.TxBytes() // origin tx used to verify the signature
-				confident, e := verifyConfidentTx(wrapped.Signature, wrapped.NodeKey)
+				confident, e := verifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
 				if confident {
 					switch wrapped.Type {
 					//FIXME: add new ante logic

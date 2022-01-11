@@ -99,7 +99,7 @@ func main() {
 	}
 	// Tendermint node base commands
 	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
-		registerRoutes, client.RegisterAppFlag, app.PreRun, ante.CheckedTxSignedFunc(cdc), subFunc)
+		registerRoutes, client.RegisterAppFlag, app.PreRun, ante.CreateAppCallback(cdc), subFunc)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)

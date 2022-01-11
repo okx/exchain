@@ -75,7 +75,7 @@ func StartCmd(ctx *Context,
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context) error,
 	subFunc func(logger log.Logger) log.Subscriber,
-	signedFunc mempool.PostCheckAndSignFunc) *cobra.Command {
+	appCallback AppCallback) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -122,7 +122,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn, signedFunc)
+			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn, appCallback)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -257,12 +257,15 @@ func startStandAlone(ctx *Context, appCreator AppCreator) error {
 }
 
 func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
-	registerRoutesFn func(restServer *lcd.RestServer), signedFunc mempool.PostCheckAndSignFunc) (*node.Node, error) {
+	registerRoutesFn func(restServer *lcd.RestServer), appCallback AppCallback) (*node.Node, error) {
 
 	cfg := ctx.Config
 	home := cfg.RootDir
 	//startInProcess hooker
 	callHooker(FlagHookstartInProcess, ctx)
+	if appCallback.ServerConfigCallback != nil {
+		appCallback.ServerConfigCallback(cfg)
+	}
 
 	traceWriterFile := viper.GetString(flagTraceStore)
 	db, err := openDB(home)
@@ -281,18 +284,21 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	if err != nil {
 		return nil, err
 	}
-
+	filePv := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+	if appCallback.MempoolTxSignatureNodeKeysSetter != nil {
+		appCallback.MempoolTxSignatureNodeKeysSetter(filePv.Key.PubKey, filePv.Key.PrivKey)
+	}
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
-		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
+		filePv,
 		nodeKey,
 		proxy.NewLocalClientCreator(app),
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
-		node.InjectMempoolSignedCallback(signedFunc),
+		node.InjectMempoolSignedCallback(appCallback.MempoolTxSignatureCallback),
 	)
 	if err != nil {
 		return nil, err
@@ -306,7 +312,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
 		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
-		)
+	)
 	if err := tmNode.Start(); err != nil {
 		return nil, err
 	}
