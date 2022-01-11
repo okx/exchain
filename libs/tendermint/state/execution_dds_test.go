@@ -82,7 +82,7 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 
 func TestDeltaContext_download(t *testing.T) {
 	dc := setupTest(t)
-	deltas := &types.Deltas{Height: 1, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
+	deltas := &types.Deltas{Height: 10, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
 	dc.uploadRoutine(deltas, 0)
 
 	tests := []struct {
@@ -90,8 +90,9 @@ func TestDeltaContext_download(t *testing.T) {
 		height int64
 		wants  *types.Deltas
 	}{
-		{"normal case", 1, deltas},
-		{"wrong height", 11, nil},
+		{"normal case", 10, deltas},
+		{"higher height", 11, nil},
+		{"lower height", 9, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

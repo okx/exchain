@@ -131,7 +131,6 @@ func (r *RedisClient) getMostRecentHeight() (mrh int64) {
 	return
 }
 
-
 func genBlockKey(height int64) string {
 	return fmt.Sprintf("BH:%d", height)
 }
