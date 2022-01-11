@@ -606,7 +606,7 @@ func (mem *CListMempool) resCbFirstTime(
 			if mem.postSigned != nil {
 				tx, err := mem.postSigned(memTx.tx, r)
 				if err != nil {
-					mem.logger.Info("Try to sign the TX", txID(memTx.tx), err)
+					mem.logger.Error("Try to sign the TX", txID(memTx.tx, mem.height), err)
 				} else {
 					memTx.tx = tx
 				}

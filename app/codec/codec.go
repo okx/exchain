@@ -18,7 +18,6 @@ import (
 // migrated to protobuf.
 func MakeCodec(bm module.BasicManager) *codec.Codec {
 	cdc := codec.New()
-
 	bm.RegisterCodec(cdc)
 	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
@@ -26,6 +25,9 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	codec.RegisterCrypto(cdc)
 	ethermint.RegisterCodec(cdc)
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
+
+	// register the codec
+	cdc.RegisterConcrete(&ethermint.WrappedTx{}, "wrapped-tx", nil)
 
 	return cdc
 }

@@ -1,6 +1,7 @@
 package ante
 
 import (
+	app "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -34,7 +35,9 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.(type) {
+		origin := tx
+	check:
+		switch origin.(type) {
 		case auth.StdTx:
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
@@ -66,17 +69,58 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
-		case evmtypes.MsgEthereumCheckedTx:
-			//TODO: get carried data to identify the signature
-			//if signature is valid then
-			//1. GasAnteHandler
-			//2. MempoolFee
-
+		case app.WrappedTx:
+			{
+				wrapped := origin.(app.WrappedTx)
+				if !wrapped.IsSigned() {
+					origin = wrapped.GetOriginTx()
+					goto check
+				}
+				//ctx.TxBytes() // origin tx used to verify the signature
+				confident, e := verifyConfidentTx(wrapped.Signature, wrapped.NodeKey)
+				if confident {
+					switch wrapped.Type {
+					//FIXME: add new ante logic
+					case app.EthereumTransaction:
+						anteHandler = sdk.ChainAnteDecorators(
+							authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+							NewAccountSetupDecorator(ak),
+							NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+							authante.NewMempoolFeeDecorator(),
+							authante.NewConsumeGasForTxSizeDecorator(ak),
+							authante.NewDeductFeeDecorator(ak, sk),
+							authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+							authante.NewSigVerificationDecorator(ak),
+							authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+							NewValidateMsgHandlerDecorator(validateMsgHandler),
+						)
+					case app.StdTransaction:
+						anteHandler = sdk.ChainAnteDecorators(
+							NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+							NewGasLimitDecorator(evmKeeper),
+							NewEthMempoolFeeDecorator(evmKeeper),
+							NewEthSigVerificationDecorator(),
+							NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+							NewAccountVerificationDecorator(ak, evmKeeper),
+							NewNonceVerificationDecorator(ak),
+							NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+							NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+						)
+					default:
+						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+					}
+				} else {
+					if e != nil {
+						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
+					}
+					origin = wrapped.GetOriginTx()
+				}
+			}
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
 
-		return anteHandler(ctx, tx, sim)
+		return anteHandler(ctx, origin, sim)
 	}
 }
 
