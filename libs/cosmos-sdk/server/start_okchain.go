@@ -18,20 +18,23 @@ import (
 
 // exchain full-node start flags
 const (
-	FlagListenAddr         = "rest.laddr"
-	FlagExternalListenAddr = "rest.external_laddr"
-	FlagUlockKey           = "rest.unlock_key"
-	FlagUlockKeyHome       = "rest.unlock_key_home"
-	FlagRestPathPrefix     = "rest.path_prefix"
-	FlagCORS               = "cors"
-	FlagMaxOpenConnections = "max-open"
-	FlagHookstartInProcess = "startInProcess"
-	FlagWebsocket          = "wsport"
-	FlagWsMaxConnections   = "ws.max_connections"
-	FlagWsSubChannelLength = "ws.sub_channel_length"
+	FlagListenAddr           = "rest.laddr"
+	FlagExternalListenAddr   = "rest.external_laddr"
+	FlagUlockKey             = "rest.unlock_key"
+	FlagUlockKeyHome         = "rest.unlock_key_home"
+	FlagRestPathPrefix       = "rest.path_prefix"
+	FlagCORS                 = "cors"
+	FlagMaxOpenConnections   = "max-open"
+	FlagHookstartInProcess   = "startInProcess"
+	FlagWebsocket            = "wsport"
+	FlagWsMaxConnections     = "ws.max_connections"
+	FlagWsSubChannelLength   = "ws.sub_channel_length"
+	FlagEnableBackend        = "rest.enable_backend"
+	FlagRestApplicationName  = "rest.application_name"
+	FlagRestNacosUrls        = "rest.nacos_urls"
+	FlagRestNacosNamespaceId = "rest.nacos_namespace_id"
 
 	// plugin flags
-	FlagBackendEnableBackend       = "backend.enable_backend"
 	FlagBackendEnableMktCompute    = "backend.enable_mkt_compute"
 	FlagBackendLogSQL              = "backend.log_sql"
 	FlagBackendCleanUpsTime        = "backend.clean_ups_time"
@@ -55,9 +58,6 @@ const (
 	FlagStreamMarketNacosGroupName          = "stream.market_nacos_group_name"
 	FlagStreamMarketEurekaName              = "stream.market_eureka_name"
 	FlagStreamEurekaServerUrl               = "stream.eureka_server_url"
-	FlagStreamRestApplicationName           = "stream.rest_application_name"
-	FlagStreamRestNacosUrls                 = "stream.rest_nacos_urls"
-	FlagStreamRestNacosNamespaceId          = "stream.rest_nacos_namespace_id"
 	FlagStreamPushservicePulsarPublicTopic  = "stream.pushservice_pulsar_public_topic"
 	FlagStreamPushservicePulsarPrivateTopic = "stream.pushservice_pulsar_private_topic"
 	FlagStreamPushservicePulsarDepthTopic   = "stream.pushservice_pulsar_depth_topic"
@@ -202,8 +202,8 @@ func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
 
 // registerExChainPluginFlags registers the flags required for rest server
 func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().Bool(FlagBackendEnableBackend, backendConf.EnableBackend, "Enable the node's backend plugin")
-	cmd.Flags().MarkHidden(FlagBackendEnableBackend)
+	cmd.Flags().Bool(FlagEnableBackend, backendConf.EnableBackend, "Enable the node's backend plugin")
+	cmd.Flags().MarkHidden(FlagEnableBackend)
 	cmd.Flags().Bool(FlagBackendEnableMktCompute, backendConf.EnableMktCompute, "Enable kline and ticker calculating")
 	cmd.Flags().MarkHidden(FlagBackendEnableMktCompute)
 	cmd.Flags().Bool(FlagBackendLogSQL, backendConf.LogSQL, "Enable backend plugin logging sql feature")
@@ -257,14 +257,6 @@ func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().MarkHidden(FlagStreamMarketEurekaName)
 	cmd.Flags().String(FlagStreamEurekaServerUrl, streamConf.EurekaServerUrl, "Eureka server url for discovery service of rest api")
 	cmd.Flags().MarkHidden(FlagStreamEurekaServerUrl)
-
-	// restful service flags
-	cmd.Flags().String(FlagStreamRestApplicationName, streamConf.RestApplicationName, "Stream plugin`s rest application name in eureka or nacos")
-	cmd.Flags().MarkHidden(FlagStreamRestApplicationName)
-	cmd.Flags().String(FlagStreamRestNacosUrls, streamConf.RestNacosUrls, "Stream plugin`s nacos server urls for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagStreamRestNacosUrls)
-	cmd.Flags().String(FlagStreamRestNacosNamespaceId, streamConf.RestNacosNamespaceId, "Stream plugin`s nacos namepace id for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagStreamRestNacosNamespaceId)
 
 	// push service flags
 	cmd.Flags().String(FlagStreamPushservicePulsarPublicTopic, streamConf.PushservicePulsarPublicTopic, "Stream plugin`s pulsar public topic of push service")
