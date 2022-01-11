@@ -51,7 +51,6 @@ import (
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
-	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -99,11 +98,9 @@ var (
 		evidence.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
-
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
-		stream.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 	)
@@ -167,7 +164,6 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
-	StreamKeeper   stream.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -316,9 +312,6 @@ func NewOKExChainApp(
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
 
-	app.StreamKeeper = stream.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.AccountKeeper, &app.SwapKeeper,
-		&app.FarmKeeper, app.cdc, logger, appConfig, streamMetrics)
-
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
 		cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
@@ -377,7 +370,6 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
-		stream.NewAppModule(app.StreamKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 	)
 
@@ -386,7 +378,6 @@ func NewOKExChainApp(
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
 		bank.ModuleName,
-		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -404,7 +395,6 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		order.ModuleName,
 		staking.ModuleName,
-		stream.ModuleName,
 		evm.ModuleName,
 	)
 
@@ -496,12 +486,11 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
-		if stdTx, ok := tx.(auth.StdTx); ok {
+		if _, ok := tx.(auth.StdTx); ok {
 			ctx := app.GetDeliverStateCtx()
 			txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight()))
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
-			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
+
 		}
 	}
 }
