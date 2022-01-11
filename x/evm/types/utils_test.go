@@ -182,7 +182,7 @@ func TestCheckedTxDecoder(t *testing.T) {
 		require.NoError(t, err)
 
 		switch tx := chkTx.(type) {
-		case *auth.ChkTx:
+		case *auth.WrappedTx:
 			fmt.Printf("sdk.CheckedTx %+v\n", tx)
 			break
 		default:

@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/tendermint/libs/tlv"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/pkg/errors"
@@ -33,10 +32,7 @@ func (sig EthereumCheckedSignature) WithPayload(payload []byte) EthereumCheckedS
 
 // nolint
 func (sig *EthereumCheckedSignature) encode() []byte {
-	buf := tlv.NewBuffer()
-	buf.Write(sig.Signature)
-	buf.Write(sig.NodeKey)
-	return buf.Bytes()
+	return nil
 }
 
 
@@ -46,17 +42,6 @@ func (tx MsgEthereumCheckedTx) GetPayloadTx() sdk.Tx {
 
 // nolint
 func (sig *EthereumCheckedSignature) decode(pyload []byte) error {
-	buf := tlv.With(pyload)
-	if v, t := buf.Read(); t == tlv.Bytes {
-		sig.Signature = v.([]byte)
-	} else {
-		return errors.New("TODO: should convert to sdkerrors")
-	}
-	if v, t := buf.Read(); t == tlv.Bytes {
-		sig.NodeKey = v.([]byte)
-	} else {
-
-	}
 	return nil
 }
 
