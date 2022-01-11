@@ -51,6 +51,8 @@ func setupTest() *WatcherTestSt {
 	checkTx := false
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(watcher.FlagCheckWd, true)
+
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
@@ -72,6 +74,7 @@ func getDBKV(db *watcher.WatchStore) []KV {
 	}
 	return kvs
 }
+
 func flushDB(db *watcher.WatchStore) {
 	it := db.Iterator(nil, nil)
 	for it.Valid() {
@@ -89,6 +92,16 @@ func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 	return nil
 }
 
+func checkWD(wdBytes []byte, w *WatcherTestSt) {
+	wd := watcher.WatchData{}
+	if err := json.Unmarshal(wdBytes, &wd); err != nil {return}
+	keys := make([][]byte, len(wd.Batches))
+	for i, b := range wd.Batches {
+		keys[i] = b.Key
+	}
+	w.app.EvmKeeper.Watcher.CheckWatchDB(keys, "producer--test")
+}
+
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
@@ -103,6 +116,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
+	checkWD(wd, w)
 	flushDB(store)
 
 	// use WatchData
