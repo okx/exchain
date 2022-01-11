@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -66,6 +67,29 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 		ctx:     ctx,
 	}
 }
+func (ef EvmFactory) BuildSimulatorForSpecificBlock(qoc QueryOnChainProxy, blockID tmtypes.BlockID, block *tmtypes.Block) *EvmSimulator {
+	keeper := ef.makeEvmKeeper(qoc)
+
+	req := abci.RequestBeginBlock{
+		Header: abci.Header{
+			ChainID: ef.ChainId,
+			LastBlockId: abci.BlockID{
+				Hash: blockID.Hash.Bytes(),
+			},
+			Height: block.Height,
+			Time:   block.Time,
+		},
+		Hash: blockID.Hash.Bytes(),
+	}
+
+	ctx := ef.makeContext(keeper, req.Header)
+	keeper.BeginBlock(ctx, req)
+
+	return &EvmSimulator{
+		handler: evm.NewHandler(keeper),
+		ctx:     ctx,
+	}
+}
 
 type EvmSimulator struct {
 	handler sdk.Handler
@@ -86,7 +110,7 @@ func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationRespon
 	}, nil
 }
 
-func (es *EvmSimulator) TraceTx(msg *evmtypes.MsgEthermint, predecessors []*evmtypes.MsgEthereumTx) (*sdk.Result, error) {
+func (es *EvmSimulator) TraceTx(msg *evmtypes.MsgEthereumTx, predecessors []*evmtypes.MsgEthereumTx) (*sdk.Result, error) {
 
 	es.ctx.WithIsCheckTx(false)
 	es.ctx.WithIsTraceTx(false)

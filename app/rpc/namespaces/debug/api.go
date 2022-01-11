@@ -13,6 +13,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	"github.com/okex/exchain/app/rpc/backend"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
@@ -36,10 +37,6 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 
 // GetAccount returns the provided account's balance up to the provided block number.
 func (api *PublicDebugAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
-	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
-	if err == nil {
-		return acc, nil
-	}
 	clientCtx := api.clientCtx
 
 	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
@@ -56,8 +53,45 @@ func (api *PublicDebugAPI) GetAccount(address common.Address) (*ethermint.EthAcc
 	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
 		return nil, err
 	}
+	return &account, nil
+}
 
-	api.watcherBackend.CommitAccountToRpcDb(account)
+func (api *PublicDebugAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
+
+	clientCtx := api.clientCtx
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCodeByHash, hash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out evmtypes.QueryResCode
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	return out.Code, nil
+}
+
+// GetStorageAtInternal returns the contract storage at the given address, block number, and key.
+func (api *PublicDebugAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
+	return api.getStorageAt(address, key, 0, true)
+}
+func (api *PublicDebugAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
+	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
+
+	var queryStr = ""
+	if !directlyKey {
+		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	} else {
+		queryStr = fmt.Sprintf("custom/%s/storageKey/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	}
+
+	res, _, err := clientCtx.QueryWithData(queryStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out evmtypes.QueryResStorage
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+	return out.Value, nil
 }
 
 // TraceTransaction returns the structured logs created during the execution of EVM
@@ -92,7 +126,6 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash) (hexutil.Bytes, 
 		if err != nil {
 			return nil, err
 		}
-
 		predecessors = append(predecessors, tx)
 	}
 
@@ -108,7 +141,7 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash) (hexutil.Bytes, 
 		contextHeight = 1
 	}
 
-	sim := api.evmFactory.BuildSimulator(api)
+	sim := api.evmFactory.BuildSimulatorForSpecificBlock(api, res.BlockID, res.Block)
 	if sim == nil {
 		return nil, err
 	}
