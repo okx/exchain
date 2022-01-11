@@ -34,8 +34,12 @@ func bytesEqual(b1, b2 []byte) bool {
 	return hex.EncodeToString(b1) == hex.EncodeToString(b2)
 }
 func deltaEqual(d1, d2 *types.Deltas) bool {
-	if d1 == nil && d2 == nil { return true }
-	if d1 == nil || d2 == nil { return false }
+	if d1 == nil && d2 == nil {
+		return true
+	}
+	if d1 == nil || d2 == nil {
+		return false
+	}
 	return d1.Height == d2.Height &&
 		d1.Version == d2.Version &&
 		d1.From == d2.From &&
@@ -48,20 +52,28 @@ func deltaEqual(d1, d2 *types.Deltas) bool {
 
 func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	dc := setupTest(t)
+	dc.downloadDelta = true
+	delta1 := &types.Deltas{Height: 1, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
+	delta2 := &types.Deltas{Height: 2, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
+	delta3 := &types.Deltas{Height: 3, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
+	dc.dataMap.insert(1, delta1, 1)
+	dc.dataMap.insert(2, delta2, 2)
+	dc.dataMap.insert(3, delta3, 3)
 
-	type args struct {
-		height int64
-	}
 	tests := []struct {
 		name    string
-		args    args
+		height  int64
 		wantDds *types.Deltas
 	}{
-		{},
+		{"normal case", 1, delta1},
+		{"empty delta", 4, nil},
+		{"already remove", 1, nil},
+		{"higher height", 3, delta3},
+		{"lower remove", 2, delta2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotDds := dc.prepareStateDelta(tt.args.height); !reflect.DeepEqual(gotDds, tt.wantDds) {
+			if gotDds := dc.prepareStateDelta(tt.height); !reflect.DeepEqual(gotDds, tt.wantDds) {
 				t.Errorf("prepareStateDelta() = %v, want %v", gotDds, tt.wantDds)
 			}
 		})
