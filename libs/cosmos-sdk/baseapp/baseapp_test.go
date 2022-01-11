@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/okex/exchain/libs/iavl"
 
 	"github.com/okex/exchain/libs/tendermint/mempool"
 
@@ -594,6 +595,10 @@ func (tx txTest) GetGasPrice() *big.Int {
 
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
+}
+
+func (tx txTest) GetTxCarriedData() []byte {
+	return nil
 }
 
 const (

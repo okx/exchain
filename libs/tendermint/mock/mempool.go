@@ -73,3 +73,5 @@ func (Mempool) SetAccountRetriever(_ mempl.AccountRetriever) {
 func (Mempool) SetTxInfoParser(_ mempl.TxInfoParser) {
 
 }
+
+func (Mempool) SetPostCheckSigenFunc(_ mempl.PostCheckAndSignFunc) {}
