@@ -112,5 +112,9 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash) (hexutil.Bytes, 
 	if sim == nil {
 		return nil, err
 	}
-	sim.TraceTx(ethMessage, predecessors)
+	resTrace, err := sim.TraceTx(ethMessage, predecessors)
+	if err != nil {
+		return nil, err
+	}
+	return resTrace.Data, nil
 }

@@ -2,7 +2,6 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -15,7 +14,6 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/spf13/viper"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -202,7 +200,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	StartTxLog(bam.TransitionDb)
-	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config, types.NewNoOpTracer())
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
 			ResultData: resultData,
@@ -316,20 +314,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	var tracer vm.Tracer
-	if ctx.IsTraceTx() {
-		evmLogConfig := &vm.LogConfig{
-			DisableMemory:     viper.GetBool(types.FlagTraceDisableMemory),
-			DisableStack:      viper.GetBool(types.FlagTraceDisableStack),
-			DisableStorage:    viper.GetBool(types.FlagTraceDisableStorage),
-			DisableReturnData: viper.GetBool(types.FlagTraceDisableReturnData),
-			Debug:             viper.GetBool(types.FlagTraceDebug),
-		}
-		tracer = vm.NewStructLogger(evmLogConfig)
-	} else {
-		tracer = types.NewNoOpTracer()
-	}
-	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config, tracer)
+	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -372,5 +357,9 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
+
+	if ctx.IsTraceTx() {
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }

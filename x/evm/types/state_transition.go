@@ -46,10 +46,11 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs    []*ethtypes.Log
-	Bloom   *big.Int
-	Result  *sdk.Result
-	GasInfo GasInfo
+	Logs      []*ethtypes.Log
+	Bloom     *big.Int
+	Result    *sdk.Result
+	GasInfo   GasInfo
+	TraceLogs []byte
 }
 
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
@@ -107,7 +108,7 @@ func (st StateTransition) newEVM(
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig, tracer vm.Tracer) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
@@ -157,14 +158,22 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig, trac
 
 	params := csdb.GetParams()
 
-	var enableDebug bool
-	if _, ok := tracer.(NoOpTracer); !ok {
-		enableDebug = true
+	to := ""
+	if st.Recipient != nil {
+		to = st.Recipient.String()
+	}
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
+
+	var tracer vm.Tracer
+	if ctx.IsTraceTx() || enableDebug {
+		tracer = vm.NewStructLogger(evmLogConfig)
+	} else {
+		tracer = NewNoOpTracer()
 	}
 
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
-		Debug:            enableDebug,
+		Debug:            ctx.IsTraceTx() || enableDebug,
 		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
@@ -298,10 +307,22 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig, trac
 		return
 	}
 
+	// return trace log if tracetx
+	var traceLogs []byte
+	if ctx.IsTraceTx() {
+		result := &core.ExecutionResult{
+			UsedGas:    gasConsumed,
+			Err:        err,
+			ReturnData: ret,
+		}
+		traceLogs, err = GetTracerResult(tracer, result)
+		if err != nil {
+			traceLogs = []byte(err.Error())
+		}
+	}
 	resultLog := fmt.Sprintf(
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
-
 	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -314,8 +335,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig, trac
 			GasLimit:    gasLimit,
 			GasRefunded: leftOverGas,
 		},
+		TraceLogs: traceLogs,
 	}
-
 	return
 }
 

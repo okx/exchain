@@ -31,11 +31,6 @@ const (
 	FlagTraceDisableStorage    = "evm-trace-nostorage"
 	FlagTraceDisableReturnData = "evm-trace-noreturndata"
 	FlagTraceDebug             = "evm-trace-debug"
-
-	TracerAccessList = "access_list"
-	TracerJSON       = "json"
-	TracerStruct     = "struct"
-	TracerMarkdown   = "markdown"
 )
 
 var (
@@ -122,8 +117,7 @@ func checkTracesSegment(height int64, from, to string) bool {
 		(len(traceFromAddrs) == 0 || (len(traceFromAddrs) > 0 && fromOk)) &&
 		(len(traceToAddrs) == 0 || to == "" || (len(traceToAddrs) > 0 && toOk))
 }
-
-func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
+func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, error) {
 	var (
 		res []byte
 		err error
@@ -136,7 +130,6 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		if len(result.Revert()) > 0 {
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
-
 		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
@@ -148,11 +141,14 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 	default:
 		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
 	}
+	return res, err
+}
+func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
 
+	res, err := GetTracerResult(tracer, result)
 	if err != nil {
 		res = []byte(err.Error())
 	}
-
 	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight()), res)
 }
 
