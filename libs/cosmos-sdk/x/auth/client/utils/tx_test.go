@@ -98,6 +98,13 @@ func TestDefaultTxEncoder(t *testing.T) {
 	compareEncoders(t, defaultEncoder, encoder)
 }
 
+func TestEthereumTxEncoder(t *testing.T) {
+	ethereumTxEncoder := authtypes.EthereumTxEncoder(nil)
+	encoder := GetTxEncoder(nil, WithEthereumTx())
+
+	compareEncoders(t, ethereumTxEncoder, encoder)
+}
+
 func TestConfiguredTxEncoder(t *testing.T) {
 	cdc := makeCodec()
 

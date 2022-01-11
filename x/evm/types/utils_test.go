@@ -2,6 +2,9 @@ package types
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -130,6 +133,40 @@ func TestTxDecoder(t *testing.T) {
 
 	_, err = txDecoder(txbytes[1:])
 	require.Error(t, err)
+
+	oldHeight := types.GetMilestoneVenusHeight()
+	defer types.SetMilestoneVenusHeight(oldHeight)
+	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
+	require.Nil(t, err)
+
+	for _, c := range []struct {
+		curHeight          int64
+		venusHeight        int64
+		enableAminoDecoder bool
+		enableRLPDecoder   bool
+	}{
+		{999, 0, true, false},
+		{999, 1000, true, false},
+		{1000, 1000, false, true},
+		{1500, 1000, false, true},
+	} {
+		types.SetMilestoneVenusHeight(c.venusHeight)
+		_, err = TxDecoder(cdc)(txbytes, c.curHeight)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes, c.curHeight)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+
+		// use global height when height is not pass through parameters.
+		global.SetGlobalHeight(c.curHeight)
+		_, err = TxDecoder(cdc)(txbytes)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+	}
+	// only one height parameter is allowed.
+	tx, err = TxDecoder(cdc)(txbytes, 0, 999)
+	require.NotNil(t, err)
+
 }
 
 func TestEthLogAmino(t *testing.T) {
