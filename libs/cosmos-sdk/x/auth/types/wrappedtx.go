@@ -18,9 +18,9 @@ type RawWrappedTx struct {
 
 type WrappedTx struct {
 	sdk.Tx
-	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
-	Signature []byte  `json:"signature"` // node signature for payload+metadata
-	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
+	Metadata  []byte
+	Signature []byte
+	NodeKey   []byte
 }
 
 func (msg WrappedTx) String() string {

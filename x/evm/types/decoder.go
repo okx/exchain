@@ -56,9 +56,6 @@ func dumpErr(txBytes []byte, caller string, err error)  {
 	)
 }
 
-// ----------------------------------------------------------------------------
-// Auxiliary
-
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (tx sdk.Tx, err error) {
 		if len(txBytes) == 0 {
@@ -77,7 +74,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 
 		//----------------------------------------------
 		//----------------------------------------------
-		// 1. try sdk.WrappedTx
+		// 0. try sdk.WrappedTx
 		if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
 			return
 		} else {
@@ -89,58 +86,83 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	}
 }
 
+type decodeFunc func(*codec.Codec, []byte, int64)(sdk.Tx, error)
+
 func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (tx sdk.Tx, err error) {
 		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+			return
 		}
-
-		var height int64
+		height := global.GetGlobalHeight()
 		if len(heights) >= 1 {
 			height = heights[0]
-		} else {
-			height = global.GetGlobalHeight()
 		}
 
-		if types.HigherThanVenus(height) {
-			//----------------------------------------------
-			//----------------------------------------------
-			// 2. Try to decode as MsgEthereumTx by RLP
-			if tx, err = decoderEvmtx(txBytes); err == nil {
+		decoders := []decodeFunc {
+			evmDecoder,
+			ubruDecoder,
+			ubDecoder,
+		}
+
+		for _, decoder := range decoders {
+			tx, err = decoder(cdc, txBytes, height)
+			if err == nil {
 				return
-			} else {
-				dumpErr(txBytes, "decoderEvmtx", err)
 			}
 		}
-		//----------------------------------------------
-		//----------------------------------------------
-		// 3. try other concrete message types registered by MakeTxCodec
-		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		var v interface{}
-		if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
-			tx = v.(sdk.Tx)
-			return
-		} else {
-			dumpErr(txBytes, "UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller", err)
-		}
-
-		//----------------------------------------------
-		//----------------------------------------------
-		// 4. try others
-		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
-			return
-		} else {
-			dumpErr(txBytes, "UnmarshalBinaryLengthPrefixed", err)
-		}
-		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		return
 	}
 }
 
+// 1. Try to decode as MsgEthereumTx by RLP
+func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+	if !types.HigherThanVenus(height) {
+		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "lower than Venus")
+		return
+	}
 
-func decoderEvmtx(txBytes []byte) (sdk.Tx, error) {
 	var ethTx MsgEthereumTx
-	if err := authtypes.EthereumTxDecode(txBytes, &ethTx); err != nil {
-		return nil, err
+	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+		tx = ethTx
+		return
+	} else {
+		dumpErr(txBytes, "decoderEvmtx", err)
 	}
-	return ethTx, nil
+	return
 }
+
+// 2. try customized unmarshalling implemented by UnmarshalFromAmino
+func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+	var v interface{}
+	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+		tx = v.(sdk.Tx)
+		if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+			tx = nil
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+		}
+		return
+	} else {
+		dumpErr(txBytes, "UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller", err)
+	}
+	return
+}
+
+// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+// 3. the original amino one, decode by reflection.
+func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+	var v interface{}
+	if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+		if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+			tx = nil
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+		}
+		return
+	} else {
+		dumpErr(txBytes, "UnmarshalBinaryLengthPrefixed", err)
+	}
+	return
+}
+
+
