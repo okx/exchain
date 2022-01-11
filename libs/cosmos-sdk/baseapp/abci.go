@@ -360,6 +360,19 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Height:    req.Height,
 				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 			}
+		case "trace":
+			res, err := app.TraceTx(req.Data)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
+			}
+			simRes := sdk.SimulationResponse{
+				Result: res,
+			}
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    req.Height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
 
 		case "version":
 			return abci.ResponseQuery{
