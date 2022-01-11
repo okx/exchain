@@ -399,13 +399,16 @@ func TestResponseBeginBlockAmino(t *testing.T) {
 				{
 					Type: "test",
 				},
+				{
+					Type: "test2",
+				},
 			},
 		},
 		{
 			Events: []Event{},
 		},
 		{
-			Events: []Event{{}},
+			Events: []Event{{}, {}, {}, {}},
 		},
 	}
 	for _, resp := range resps {
