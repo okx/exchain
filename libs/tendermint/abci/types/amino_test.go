@@ -30,6 +30,7 @@ var eventTestcases = []Event{
 		Attributes: []kv.Pair{
 			{Key: []byte("key"), Value: []byte("value")},
 			{Key: []byte("key2"), Value: []byte("value2")},
+			{Key: []byte("key3"), Value: []byte("value3")},
 			{},
 		},
 	},
@@ -305,7 +306,7 @@ var responseDeliverTxTestCases = []*ResponseDeliverTx{
 	{Code: math.MaxUint32, GasWanted: math.MaxInt64, GasUsed: math.MaxInt64},
 	{Code: 0, GasWanted: -1, GasUsed: -1},
 	{Code: 0, GasWanted: math.MinInt64, GasUsed: math.MinInt64},
-	{Events: []Event{{}, {Type: "Event"}}, Data: []byte{}},
+	{Events: []Event{{}, {Type: "Event"}, {Type: "Event2"}}, Data: []byte{}},
 }
 
 func TestResponseDeliverTxAmino(t *testing.T) {
