@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 	"strings"
@@ -508,11 +507,10 @@ func EncodeResultData(data ResultData) ([]byte, error) {
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
 func DecodeResultData(in []byte) (ResultData, error) {
 	if len(in) > 0 {
-		u64, n := binary.Uvarint(in)
-		if u64 == uint64(len(in)-n) {
-			bz := in[n:]
+		bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(in)
+		if err == nil {
 			var data ResultData
-			err := data.UnmarshalFromAmino(bz)
+			err = data.UnmarshalFromAmino(bz)
 			if err == nil {
 				return data, nil
 			}

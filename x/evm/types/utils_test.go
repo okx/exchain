@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -158,11 +159,11 @@ func TestEthLogAmino(t *testing.T) {
 				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
 			},
 			Data:        []byte{5, 6, 7, 8},
-			BlockNumber: 18,
+			BlockNumber: math.MaxUint64,
 			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-			TxIndex:     0,
+			TxIndex:     math.MaxUint,
 			BlockHash:   ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
-			Index:       0,
+			Index:       math.MaxUint,
 			Removed:     true,
 		},
 	}
@@ -205,7 +206,19 @@ func TestResultDataAmino(t *testing.T) {
 					Data:        []byte{1, 2, 3, 4},
 					BlockNumber: 17,
 					Index:       10,
-				}},
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				nil,
+			},
 			Ret:    ret,
 			TxHash: ethcmn.HexToHash("0x00"),
 		},
