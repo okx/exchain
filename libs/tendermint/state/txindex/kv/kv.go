@@ -55,23 +55,12 @@ func IndexAllEvents() func(*TxIndex) {
 	}
 }
 
-// Get gets transaction from the TxIndex storage and returns it or nil if the
-// transaction is not found.
-func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
-	if len(hash) == 0 {
-		return nil, txindex.ErrorEmptyHash
-	}
-
-	rawBytes, err := txi.store.Get(hash)
-	if err != nil {
-		panic(err)
-	}
+func getTxResultFromBytes(rawBytes []byte) (*types.TxResult, error) {
 	if rawBytes == nil {
 		return nil, nil
 	}
-
 	txResult := new(types.TxResult)
-	err = txResult.UnmarshalFromAmino(rawBytes)
+	err := txResult.UnmarshalFromAmino(rawBytes)
 	if err != nil {
 		txResult = new(types.TxResult)
 		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
@@ -79,8 +68,24 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 			return nil, fmt.Errorf("error reading TxResult: %v", err)
 		}
 	}
-
 	return txResult, nil
+}
+
+// Get gets transaction from the TxIndex storage and returns it or nil if the
+// transaction is not found.
+func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
+	if len(hash) == 0 {
+		return nil, txindex.ErrorEmptyHash
+	}
+
+	v, err := txi.store.GetUnsafeValue(hash, func(rawBytes []byte, err error) (interface{}, error) {
+		if err != nil {
+			panic(err)
+		}
+		return getTxResultFromBytes(rawBytes)
+	})
+	txResult := v.(*types.TxResult)
+	return txResult, err
 }
 
 // AddBatch indexes a batch of transactions using the given list of events. Each
