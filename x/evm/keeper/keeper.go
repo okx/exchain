@@ -56,7 +56,7 @@ type Keeper struct {
 // NewKeeper generates new evm module keeper
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
-) *Keeper {
+	logger log.Logger) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -84,7 +84,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(),
+		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
@@ -100,7 +100,7 @@ func NewKeeper(
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
-) *Keeper {
+	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return &Keeper{
 		cdc:           cdc,
@@ -112,7 +112,7 @@ func NewSimulateKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(),
+		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 	}
 }
