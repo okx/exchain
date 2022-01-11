@@ -198,6 +198,7 @@ func TestABCIResponsesAmino(t *testing.T) {
 		{
 			[]*abci.ResponseDeliverTx{
 				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
 			},
 			&abci.ResponseEndBlock{
 				ValidatorUpdates: []abci.ValidatorUpdate{
