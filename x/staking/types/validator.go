@@ -174,7 +174,7 @@ func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, er
 	}
 	value = value[n:]
 
-	if err = validator.UnmarshalFromAmino(value); err != nil {
+	if err = validator.UnmarshalFromAmino(cdc, value); err != nil {
 		err = cdc.UnmarshalBinaryBare(value, &validator)
 	}
 	return validator, err
@@ -279,7 +279,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v *Validator) UnmarshalFromAmino(data []byte) error {
+func (v *Validator) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var unbondingCompletionTimeUpdated bool
@@ -316,9 +316,15 @@ func (v *Validator) UnmarshalFromAmino(data []byte) error {
 		case 2:
 			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
 			if err != nil {
-				return err
+				err = cdc.UnmarshalBinaryBare(subData, &v.ConsPubKey)
+				if err != nil {
+					return err
+				}
 			}
 		case 3:
+			if len(data) == 0 {
+				return fmt.Errorf("Validator : Jailed, not enough data")
+			}
 			if data[0] == 0 {
 				v.Jailed = false
 			} else if data[0] == 1 {

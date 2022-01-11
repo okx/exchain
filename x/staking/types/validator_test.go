@@ -1,7 +1,10 @@
 package types
 
 import (
+	"math"
 	"testing"
+
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 
 	"github.com/okex/exchain/libs/tendermint/types/time"
 
@@ -151,18 +154,60 @@ func TestValidatorUnmarshalFromAmino(t *testing.T) {
 	validator.Commission = NewCommission(sdk.NewDec(1000), sdk.NewDec(2000), sdk.NewDec(3000))
 	validator.Commission.UpdateTime = time.Now()
 	cdc := ModuleCdc
-	bz, err := cdc.MarshalBinaryBare(validator)
-	require.NoError(t, err)
 
-	var v1 Validator
-	err = cdc.UnmarshalBinaryBare(bz, &v1)
-	require.NoError(t, err)
+	testCases := []Validator{
+		{},
+		{
+			OperatorAddress:         valAddr1,
+			ConsPubKey:              pk1,
+			Jailed:                  true,
+			Status:                  sdk.Bonded,
+			Tokens:                  sdk.OneInt(),
+			DelegatorShares:         sdk.OneDec(),
+			Description:             Description{"1", "2", "3", "4"},
+			UnbondingHeight:         math.MaxInt64,
+			UnbondingCompletionTime: time.Now(),
+			Commission: Commission{
+				CommissionRates{sdk.ZeroDec(), sdk.OneDec(), sdk.NewDec(123)},
+				time.Now(),
+			},
+			MinSelfDelegation: DefaultMinSelfDelegation,
+		},
+		{
+			OperatorAddress:   []byte{},
+			ConsPubKey:        multisig.PubKeyMultisigThreshold{},
+			Jailed:            false,
+			Status:            sdk.Unbonded,
+			Tokens:            sdk.NewInt(math.MaxInt64),
+			DelegatorShares:   sdk.NewDec(math.MaxInt64),
+			UnbondingHeight:   math.MinInt64,
+			Commission:        NewCommission(sdk.NewDec(math.MaxInt64), sdk.NewDec(math.MaxInt64), sdk.NewDec(math.MaxInt64)),
+			MinSelfDelegation: sdk.NewDec(math.MaxInt64),
+		},
+		{
+			Status:            sdk.Unbonding,
+			Tokens:            sdk.NewInt(math.MinInt64),
+			DelegatorShares:   sdk.NewDec(math.MinInt64),
+			Commission:        NewCommission(sdk.NewDec(math.MinInt64), sdk.NewDec(math.MinInt64), sdk.NewDec(math.MinInt64)),
+			MinSelfDelegation: sdk.NewDec(math.MinInt64),
+		},
+		validator,
+	}
 
-	var v2 Validator
-	err = v2.UnmarshalFromAmino(bz)
-	require.NoError(t, err)
+	for _, validator := range testCases {
+		bz, err := cdc.MarshalBinaryBare(validator)
+		require.NoError(t, err)
 
-	require.EqualValues(t, v1, v2)
+		var v1 Validator
+		err = cdc.UnmarshalBinaryBare(bz, &v1)
+		require.NoError(t, err)
+
+		var v2 Validator
+		err = v2.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.EqualValues(t, v1, v2)
+	}
 }
 
 func TestValidatorSetInitialCommission(t *testing.T) {
