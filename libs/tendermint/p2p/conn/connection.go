@@ -986,18 +986,15 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 	defer packetMsgBufferPool.Put(buf)
 	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err := buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
-
+		var err error
 		switch pos {
 		case 1:
 			if mp.ChannelID == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			if mp.ChannelID <= 0b0111_1111 {
 				err = buf.WriteByte(mp.ChannelID)
@@ -1016,8 +1013,11 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			}
 		case 2:
 			if mp.EOF == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			if mp.EOF <= 0b0111_1111 {
 				err = buf.WriteByte(mp.EOF)
@@ -1036,8 +1036,11 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			}
 		case 3:
 			if len(mp.Bytes) == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			err = amino.EncodeByteSliceToBuffer(buf, mp.Bytes)
 			if err != nil {
@@ -1045,10 +1048,6 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			}
 		default:
 			panic("unreachable")
-		}
-
-		if noWrite {
-			buf.Truncate(lBeforeKey)
 		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil

@@ -3,6 +3,7 @@ package conn
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"net"
 	"testing"
@@ -654,4 +655,52 @@ func TestBytesStringer(t *testing.T) {
 	require.EqualValues(t, expect, actual)
 	actual = fmt.Sprintf("%s", testStringer)
 	require.EqualValues(t, expect, actual)
+}
+
+func TestPacketMsgAmino(t *testing.T) {
+	testCases := []PacketMsg{
+		{},
+		{
+			ChannelID: 12,
+			EOF:       25,
+		},
+		{
+			ChannelID: math.MaxInt8,
+			EOF:       math.MaxInt8,
+			Bytes:     []byte("Bytes"),
+		},
+		{
+			Bytes: []byte{},
+		},
+	}
+	for _, msg := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(msg)
+		require.NoError(t, err)
+
+		actualData, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(msg)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectData, actualData)
+		actualData, err = msg.MarshalToAmino()
+		if actualData == nil {
+			actualData = []byte{}
+		}
+		require.EqualValues(t, expectData[4:], actualData)
+
+		var expectValue PacketMsg
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actulaValue PacketMsg
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actulaValue)
+		require.NoError(t, err)
+		_, ok := tmp.(PacketMsg)
+		require.True(t, ok)
+		actulaValue = tmp.(PacketMsg)
+
+		require.EqualValues(t, expectValue, actulaValue)
+		err = actulaValue.UnmarshalFromAmino(expectData[4:])
+		require.NoError(t, err)
+		require.EqualValues(t, expectValue, actulaValue)
+	}
 }
