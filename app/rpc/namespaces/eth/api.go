@@ -719,9 +719,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 
 	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
 	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() < 1800 {
-		VenusTxPoolHeight = 0
-	} else {
+	if tmtypes.GetVenusHeight() > 1800 {
 		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
 	}
 	// send chanData to txPool
@@ -770,9 +768,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 
 	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
 	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() < 1800 {
-		VenusTxPoolHeight = 0
-	} else {
+	if tmtypes.GetVenusHeight() > 1800 {
 		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
 	}
 	// send chanData to txPool
