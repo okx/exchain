@@ -662,7 +662,7 @@ func (msg msgCounter2) ValidateBasic() error {
 
 // amino decode
 func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 		var tx txTest
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
