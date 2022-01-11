@@ -7,6 +7,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/pprof"
 	"time"
 
@@ -38,8 +39,9 @@ const (
 	blockStoreDB     = "blockstore"
 	stateDB          = "state"
 
-	pprofAddrFlag    = "pprof_addr"
-	runWithPprofFlag = "gen_pprof"
+	pprofAddrFlag       = "pprof_addr"
+	runWithPprofFlag    = "gen_pprof"
+	runWithPprofMemFlag = "gen_pprof_mem"
 
 	saveBlock = "save_block"
 
@@ -64,6 +66,17 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
+		},
+		PostRun: func(cmd *cobra.Command, args []string) {
+			if viper.GetBool(runWithPprofMemFlag) {
+				log.Println("--------- gen pprof mem start ---------")
+				err := dumpMemPprof()
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Println("--------- gen pprof mem success ---------")
+				}
+			}
 		},
 	}
 	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
@@ -97,6 +110,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().BoolVar(&system.EnableGid, system.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
+	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Int64(config.FlagMaxGasUsedPerBlock, -1, "Maximum gas used of transactions in a block")
@@ -290,6 +304,20 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+}
+
+func dumpMemPprof() error {
+	fileName := fmt.Sprintf("replay_pprof_%s.mem.bin", time.Now().Format("20060102150405"))
+	f, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("create mem pprof file %s error: %w", fileName, err)
+	}
+	defer f.Close()
+	runtime.GC() // get up-to-date statistics
+	if err = pprof.WriteHeapProfile(f); err != nil {
+		return fmt.Errorf("could not write memory profile: %w", err)
+	}
+	return nil
 }
 
 func startDumpPprof() {
