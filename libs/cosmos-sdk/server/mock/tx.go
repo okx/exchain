@@ -77,7 +77,7 @@ func (tx kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 
 // takes raw transaction bytes and decodes them into an sdk.Tx. An sdk.Tx has
 // all the signatures and can be used to authenticate.
-func decodeTx(txBytes []byte) (sdk.Tx, error) {
+func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 	var tx sdk.Tx
 
 	split := bytes.Split(txBytes, []byte("="))

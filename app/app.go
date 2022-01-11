@@ -302,7 +302,7 @@ func NewOKExChainApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
+		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -503,20 +503,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-func (app *OKExChainApp) syncTx(txBytes []byte) {
-
-	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
-		if stdTx, ok := tx.(auth.StdTx); ok {
-			ctx := app.GetDeliverStateCtx()
-			txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight()))
-			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
-			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
-			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
-		}
-	}
-}
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {

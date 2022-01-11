@@ -1,7 +1,10 @@
 package watcher
 
 import (
+	"encoding/hex"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
 
@@ -33,6 +36,7 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	log           log.Logger
 	// for state delta transfering in network
 	watchData *WatchData
 }
@@ -40,6 +44,7 @@ type Watcher struct {
 var (
 	watcherEnable  = false
 	watcherLruSize = 1000
+	checkWd        = false
 	onceEnable     sync.Once
 	onceLru        sync.Once
 )
@@ -58,8 +63,9 @@ func GetWatchLruSize() int {
 	return watcherLruSize
 }
 
-func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+func NewWatcher(logger log.Logger) *Watcher {
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
 
@@ -83,7 +89,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{}
+	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -349,31 +355,40 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go w.commitBatch(w.batch)
+	go w.commitBatch(batch)
 
 	// get centerBatch for sending to DataCenter
-	centerBatch := make([]*Batch, len(batch))
+	ddsBatch := make([]*Batch, len(batch))
 	for i, b := range batch {
-		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
 	}
-	w.watchData.Batches = centerBatch
+	w.watchData.Batches = ddsBatch
 }
 
-func (w *Watcher) CommitWatchData() {
-	if w.watchData == nil || w.watchData.Size() == 0 {
+func (w *Watcher) CommitWatchData(data WatchData) {
+	if data.Size() == 0 {
 		return
 	}
-	if w.watchData.Batches != nil {
-		go w.commitCenterBatch(w.watchData.Batches)
+	if data.Batches != nil {
+		w.commitCenterBatch(data.Batches)
 	}
-	if w.watchData.DirtyAccount != nil {
-		go w.delDirtyAccount(w.watchData.DirtyAccount)
+	if data.DirtyAccount != nil {
+		w.delDirtyAccount(data.DirtyAccount)
 	}
-	if w.watchData.DirtyList != nil {
-		go w.delDirtyList(w.watchData.DirtyList)
+	if data.DirtyList != nil {
+		w.delDirtyList(data.DirtyList)
 	}
-	if w.watchData.BloomData != nil {
-		go w.commitBloomData(w.watchData.BloomData)
+	if data.BloomData != nil {
+		w.commitBloomData(data.BloomData)
+	}
+	w.delayEraseKey = data.DelayEraseKey
+
+	if checkWd {
+		keys := make([][]byte, len(data.Batches))
+		for i, _ := range data.Batches {
+			keys[i] = data.Batches[i].Key
+		}
+		w.CheckWatchDB(keys, "consumer")
 	}
 }
 
@@ -386,6 +401,14 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		if typeValue == TypeState {
 			state.SetStateToLru(common.BytesToHash(key), value)
 		}
+	}
+
+	if checkWd {
+		keys := make([][]byte, len(batch))
+		for i, _ := range batch {
+			keys[i] = batch[i].GetKey()
+		}
+		w.CheckWatchDB(keys, "producer")
 	}
 }
 
@@ -428,16 +451,14 @@ func (w *Watcher) GetWatchData() ([]byte, error) {
 }
 
 func (w *Watcher) UseWatchData(wdByte []byte) {
+	wd := WatchData{}
 	if len(wdByte) > 0 {
-		wd := WatchData{}
 		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 			return
 		}
-		w.watchData = &wd
-		w.delayEraseKey = wd.DelayEraseKey
 	}
 
-	w.CommitWatchData()
+	go w.CommitWatchData(wd)
 }
 
 func (w *Watcher) SetWatchDataFunc() {
@@ -446,4 +467,20 @@ func (w *Watcher) SetWatchDataFunc() {
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
 	return &w.watchData.BloomData
+}
+
+func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
+	output := make(map[string]string, len(keys))
+	kvHash := tmhash.New()
+	for _, key := range keys {
+		value, err := w.store.Get(key)
+		if err != nil {
+			continue
+		}
+		kvHash.Write(key)
+		kvHash.Write(value)
+		output[hex.EncodeToString(key)] = string(value)
+	}
+
+	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }

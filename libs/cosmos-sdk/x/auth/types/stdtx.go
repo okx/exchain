@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-	yaml "gopkg.in/yaml.v2"
-
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/tendermint/go-amino"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -401,7 +400,10 @@ type StdSignature struct {
 
 // DefaultTxDecoder logic for standard transaction decoding
 func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 0 {
+			return nil, fmt.Errorf("too many height parameters")
+		}
 		var tx = StdTx{}
 
 		if len(txBytes) == 0 {
@@ -424,6 +426,23 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
 		return cdc.MarshalBinaryLengthPrefixed(tx)
 	}
+}
+
+func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
+	return func(tx sdk.Tx) ([]byte, error) {
+		//if !types.HigherThanVenus(height) {
+		//	return nil, fmt.Errorf("lower than Venus")
+		//}
+		return rlp.EncodeToBytes(tx)
+	}
+}
+
+func EthereumTxDecode(b []byte, tx interface{}) error {
+	//if !types.HigherThanVenus(height) {
+	//	return fmt.Errorf("lower than Venus")
+	//}
+
+	return rlp.DecodeBytes(b, tx)
 }
 
 // MarshalYAML returns the YAML representation of the signature.
