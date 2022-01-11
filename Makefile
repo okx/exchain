@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v1.1.1
+Version=v1.1.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -38,7 +38,7 @@ build_tags := $(strip $(build_tags))
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
    MercuryHeight=5150000
-   VenusHeight=8160000
+   VenusHeight=8200000
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
