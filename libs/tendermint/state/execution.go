@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/queue"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
 
@@ -270,6 +271,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
+	global.SetGlobalHeight(block.Height)
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
