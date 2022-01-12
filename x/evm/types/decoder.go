@@ -75,11 +75,11 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		//----------------------------------------------
 		// 0. try sdk.WrappedTx
-		if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
-			return
-		} else {
-			dumpErr(txBytes, "DecodeWrappedTx", err)
-		}
+		//if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
+		//	return
+		//} else {
+		//	dumpErr(txBytes, "DecodeWrappedTx", err)
+		//}
 
 		tx, err = payloadDecoder(txBytes, heights...)
 		return
@@ -137,7 +137,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 	return
 }
 
-// 2. try customized unmarshalling implemented by UnmarshalFromAmino
+// 2. try customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
 func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	var v interface{}
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
@@ -149,7 +149,7 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 }
 
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-// 3. the original amino one, decode by reflection.
+// 3. the original amino way, decode by reflection.
 func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
 		return sanityCheck(tx, height)
