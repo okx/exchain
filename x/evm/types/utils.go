@@ -583,9 +583,6 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 //
 func TxDecoderOnlyInQuery(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
-		if len(heights) > 1 {
-			return nil, fmt.Errorf("to many height parameters")
-		}
 		var tx sdk.Tx
 		var err error
 		if len(txBytes) == 0 {
