@@ -391,4 +391,5 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.PreRun=viper.GetBool(consensus.EnablePrerunTx)
+	tmtypes.PreRunConsumeDebugEnable=viper.GetBool(tmtypes.FlagPrerunConsumeLogEnable)
 }

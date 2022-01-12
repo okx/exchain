@@ -82,17 +82,6 @@ func NewBlockExecutor(
 	evpool EvidencePool,
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
-
-	var (
-		q queue.Queue
-	)
-	if types.PreRun && types.DownloadDelta {
-		q = queue.NewLinkedBlockQueue()
-	} else {
-		q = queue.NewNonOpQueue()
-	}
-	dataM:=newDataMap()
-
 	res := &BlockExecutor{
 		db:       db,
 		proxyApp: proxyApp,
@@ -108,22 +97,35 @@ func NewBlockExecutor(
 		option(res)
 	}
 
-	if res.prerunCtx == nil {
-		res.prerunCtx = newPrerunContex(logger, PreRunContextWithQueue(q),PreRunContextWithAcquirer(dataM))
-	}else if res.prerunCtx.acquirer==nil{
-		res.prerunCtx.acquirer=dataM
-	}
-
-	if res.deltaContext == nil {
-		res.deltaContext = newDeltaContext(logger, DeltaContextWithQueue(q),DeltaContextWithDataMap(dataM))
-	}else if res.deltaContext.dataMap==nil{
-		res.deltaContext.dataMap=dataM
-	}
-
 	automation.LoadTestCase(logger)
-	res.deltaContext.init()
+
+	res.init()
 
 	return res
+}
+
+func (blockExec *BlockExecutor) init() {
+	var (
+		q     queue.Queue
+		dataM *deltaMap
+	)
+	if types.PreRun && types.DownloadDelta {
+		q = queue.NewLinkedBlockQueue()
+	} else {
+		q = queue.NewNonOpQueue()
+	}
+	dataM = newDataMap()
+
+	if blockExec.prerunCtx == nil {
+		blockExec.prerunCtx = newPrerunContex(blockExec.logger, PreRunContextWithQueue(q),
+			PreRunContextWithFetcher(dataM), PreRunWithFastSyncCheck(func() bool { return blockExec.isFastSync }))
+	}
+	if blockExec.deltaContext == nil {
+		blockExec.deltaContext = newDeltaContext(blockExec.logger, DeltaContextWithQueue(q), DeltaContextWithDataMap(dataM))
+	}
+
+	blockExec.deltaContext.init(dataM, q)
+	blockExec.prerunCtx.init(dataM, q, blockExec)
 }
 
 func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
@@ -216,7 +218,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	// FIXME , if prerun with download ,delta should always be nil
 	delta = dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
@@ -300,7 +301,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	var abciResponses *ABCIResponses
 	var err error
 	// if prerrunTx with download enable ,prerrun#consume will  try to execute execBlockOnProxyAppWithDeltas automatically
-	if delta != nil && !blockExec.prerunCtx.prerunTx {
+	if delta != nil  &&  (blockExec.isFastSync||!blockExec.prerunCtx.prerunTx){
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
@@ -315,7 +316,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
+			abciResponses, err = pc.getPrerunResult(block,block.Height, blockExec.isFastSync)
 		}
 
 		if abciResponses == nil {

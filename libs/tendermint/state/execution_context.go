@@ -12,15 +12,16 @@ import (
 )
 
 var (
-	traceHook func(trace, status int32) = func(_, _ int32) {}
+	traceHook func(trace, status int32, cb func()) = func(_, _ int32, _ func()) {}
+	emptyF    func()
 )
 
-func SetTraceHook(f func(trace, status int32)) {
+func SetTraceHook(f func(trace, status int32, cb func())) {
 	traceHook = f
 }
 
-type Acquirer interface {
-	Acquire(height int64) (*types.Deltas, int64)
+type Fetcher interface {
+	Fetch(height int64) (*types.Deltas, int64)
 }
 
 type DeltaJob struct {
@@ -36,9 +37,15 @@ func PreRunContextWithQueue(q queue.Queue) PreRunContextOption {
 	}
 }
 
-func PreRunContextWithAcquirer(deltaMap Acquirer) PreRunContextOption {
+func PreRunContextWithFetcher(deltaMap Fetcher) PreRunContextOption {
 	return func(ctx *prerunContext) {
-		ctx.acquirer = deltaMap
+		ctx.fetcher = deltaMap
+	}
+}
+
+func PreRunWithFastSyncCheck(f func() bool) PreRunContextOption {
+	return func(ctx *prerunContext) {
+		ctx.isFastSync = f
 	}
 }
 
@@ -49,8 +56,9 @@ type prerunContext struct {
 	prerunTask      *executionTask
 	logger          log.Logger
 	consumerQ       queue.Queue
-	acquirer         Acquirer
+	fetcher         Fetcher
 	lastPruneHeight int64
+	isFastSync      func() bool
 }
 
 func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunContext {
@@ -59,12 +67,38 @@ func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunConte
 		taskResultChan: make(chan *executionTask, 1),
 		logger:         logger,
 	}
-
 	for _, opt := range ops {
 		opt(ret)
 	}
 
 	return ret
+}
+
+func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
+	if pc.consumerQ == nil {
+		pc.consumerQ = q
+	}
+	if pc.isFastSync == nil {
+		pc.isFastSync = func() bool {
+			return e.isFastSync
+		}
+	}
+	if pc.fetcher == nil {
+		pc.fetcher = f
+	}
+	if types.PreRunConsumeDebugEnable {
+		SetTraceHook(func(trace, status int32, cb func()) {
+			executor := "[special | result]"
+			if trace&TRACE_PRERUN_WITH_CACHE >= TRACE_PRERUN_WITH_CACHE {
+				executor = "PRERRUN_WITH_CACHE"
+			} else if trace&TRACE_DELTA >= TRACE_DELTA {
+				executor = "DELTA"
+			} else if trace&TRACE_PRERUN_WITH_NO_CACHE > +TRACE_PRERUN_WITH_NO_CACHE {
+				executor = "TRACE_PRERUN_WITH_NO_CACHE"
+			}
+			e.prerunCtx.logger.Info("traceHook", "executor", executor, "trace", trace, "status", status)
+		})
+	}
 }
 
 func (pc *prerunContext) checkIndex(height int64) {
@@ -94,7 +128,6 @@ func (pc *prerunContext) prerunRoutine() {
 	}
 }
 
-// note: if tendermint network failed all the time ,prerunContext#cache#memory will keep  growing
 func (pc *prerunContext) consume() {
 	var (
 		v interface{}
@@ -117,24 +150,27 @@ func (pc *prerunContext) handleMsg(msg interface{}) {
 }
 
 func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
+	if pc.isFastSync() {
+		return
+	}
+	pc.logger.Info("receive deltaMsgJob,", "height", v.Delta.Height)
 	delta := v.Delta
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_BEGIN, 0)
+	traceHook(CASE_SPECIAL_DELTA_BEFORE_BEGIN, 0, emptyF)
 
 	// hold the pointer at first
 	curTask := pc.prerunTask
 	// in case of  producer is too faster than consumer
 	if curTask == nil && delta.Height > pc.lastPruneHeight && delta.Height < pc.lastPruneHeight+10 {
-		// cache the delta
 		return
 	}
 
 	if curTask == nil {
+		pc.logger.Info("currentTask is nil,discard current deltaJob")
 		return
 	}
 	curBlock := curTask.block
 	curDb := curTask.db
 	app := curTask.proxyApp
-
 	// best effort: try to avoid  running twice
 	if curBlock.Height > delta.Height || curTask.stopped {
 		// ignore
@@ -143,16 +179,11 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		if delta.Height > pc.lastPruneHeight+10 {
 			return
 		}
-		// cache the delta
 		return
 	}
-
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_FINAL_STORE, curTask.status)
+	traceHook(CASE_SPECIAL_DELTA_BEFORE_FINAL_STORE, curTask.status, emptyF)
 
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
-
-	// store the delta:  in case of  `cpu edge case`
-	// we will delete the height by prune
 
 	abciResponses := ABCIResponses{}
 	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
@@ -160,12 +191,14 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	if !atomic.CompareAndSwapInt32(&curTask.status, 0, TASK_BEGIN_DELTA) {
 		loadStatus := atomic.LoadInt32(&curTask.status)
 		if loadStatus&TASK_BEGIN_DELTA_EXISTS >= TASK_BEGIN_DELTA_EXISTS {
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_DELTA_ALREADY_EXISTS_IN_CACHE_BY_PRERRUN, loadStatus)
+			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_DELTA_ALREADY_EXISTS_IN_CACHE_BY_PRERRUN, loadStatus, emptyF)
+			pc.logger.Info("currentTask has been execute by prerun_cache,discard", "height", curBlock.Height)
 			return
 		}
 		// edge case 2 ,prerrun already finished the task
 		if loadStatus&TASK_PRERRUN >= TASK_PRERRUN {
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_TASK_FINISHED_BY_PRERRUN, loadStatus)
+			pc.logger.Info("currentTask has been executed by prerun,discard", "height", curBlock.Height)
+			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_TASK_FINISHED_BY_PRERRUN, loadStatus, emptyF)
 			return
 		}
 
@@ -173,33 +206,35 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		// and we have to make sure ,it returns success
 		v := <-curTask.notifyC
 		if v != nil {
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus)
+			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, emptyF)
 			pc.logger.Error("prerrun run the task faield", "err", v)
 			return
 		}
-		traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus)
+		traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, func() { execBlockOnProxyAppWithDeltas(app, curBlock, curDb) })
 		curStatus = TASK_BEGIN_PRERUN
 	} else {
 		//
-		traceHook(CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, curTask.status)
+		traceHook(CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, curTask.status, emptyF)
 		execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
 	}
 
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_RACE_END, 0)
+	traceHook(CASE_SPECIAL_DELTA_BEFORE_RACE_END, 0, emptyF)
 	notifyResult(curTask, &abciResponses, err, func() {
 		//  case: delta finished before prerrun
-		traceHook(CASE_DELTA_SITUATION_RACE_END_SUCCESS, curTask.status)
+		pc.logger.Info("waiting  prerun canceled")
+		traceHook(CASE_DELTA_SITUATION_RACE_END_SUCCESS, curTask.status, emptyF)
 		for {
 			select {
 			case _, ok := <-curTask.notifyC:
 				if !ok {
-					traceHook(CASE_DELTA_ENTER_CHAN_RECEIVE_WAIT_PRERRUN_CLOSE_NOTIFY, curTask.status)
+					pc.logger.Info("prerun canceled successfully")
+					traceHook(CASE_DELTA_ENTER_CHAN_RECEIVE_WAIT_PRERRUN_CLOSE_NOTIFY, curTask.status, emptyF)
 					return
 				}
 			}
 		}
 	}, func() {
-		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL, curTask.status)
+		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL, curTask.status, emptyF)
 	}, trc, curStatus, TASK_PRERRUN, TASK_DELTA)
 }
 func notifyResult(curTask *executionTask,
@@ -215,11 +250,10 @@ func notifyResult(curTask *executionTask,
 		return
 	}
 
-	// TODO ,useless code blcok
 	currentStatus = curTask.status
 	if currentStatus&invalidStatus >= invalidStatus {
-		curTask.status &^= deltaStatus
-		return
+		//curTask.status &^= deltaStatus
+		panic("programa error")
 	}
 
 	curTask.result = &executionResult{res: abciResponses, err: err}
@@ -227,7 +261,8 @@ func notifyResult(curTask *executionTask,
 	hook()
 	select {
 	case curTask.taskResultChan <- curTask:
-		traceHook(RESULT_TRAEC, currentStatus)
+		traceHook(RESULT_TRAEC, currentStatus, emptyF)
+		curTask.dump(fmt.Sprintf("curTaskFinished,deltaStatus=%d,currentTaskStatus=%d", deltaStatus,curTask.status))
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	default:
 		panic("programa error")
@@ -241,7 +276,7 @@ func store(job *DeltaJob, cache *sync.Map) {
 	}
 }
 
-func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
+func (pc *prerunContext) dequeueResult(b *types.Block) (*ABCIResponses, error) {
 	expected := pc.prerunTask
 	for context := range pc.taskResultChan {
 
@@ -260,6 +295,9 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 		}
 
 		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
+			if !bytes.Equal(b.Hash(), context.block.Hash()) {
+				panic("asdkjdkdkdk")
+			}
 			return context.result.res, context.result.err
 		} else {
 			// todo
@@ -297,7 +335,7 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	stoppedIndex := pc.stopPrerun(block.Height)
 	stoppedIndex++
 
-	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.acquirer)
+	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.fetcher)
 
 	pc.prerunTask.dump("Notify prerun")
 
@@ -305,10 +343,9 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(b *types.Block, height int64, fastSync bool) (res *ABCIResponses, err error) {
 
 	pc.checkIndex(height)
-
 	if fastSync {
 		pc.stopPrerun(height)
 		return
@@ -317,7 +354,7 @@ func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCI
 	// 1. prerunTx disabled
 	// 2. we are in fasy-sync: the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 	if pc.prerunTask != nil {
-		res, err = pc.dequeueResult()
+		res, err = pc.dequeueResult(b)
 		pc.prerunTask = nil
 	}
 	return

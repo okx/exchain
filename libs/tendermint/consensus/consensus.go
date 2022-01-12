@@ -1488,7 +1488,7 @@ func (cs *State) finalizeCommit(height int64) {
 		panic(fmt.Sprintf("Cannot finalizeCommit, ProposalBlock does not hash to commit hash"))
 	}
 	if err := cs.blockExec.ValidateBlock(cs.state, block); err != nil {
-		panic(fmt.Sprintf("+2/3 committed an invalid block: %v", err))
+		panic(fmt.Sprintf("+2/3 committed an invalid block,height=%d: %v",block.Height, err))
 	}
 
 	cs.Logger.Info("Finalizing commit of block with N txs",

@@ -1,5 +1,6 @@
 package state
 
+
 const (
 	TASK_BEGIN_DELTA        = 1 << 0
 	TASK_BEGIN_PRERUN       = 1 << 1

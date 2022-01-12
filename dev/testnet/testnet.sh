@@ -17,7 +17,9 @@ set -x # activate debugging
 
 source oec.profile
 PRERUN=false
-while getopts "isn:b:p:c:Smxk:" opt; do
+DOWNLOAD_DELTA="--download-delta=false"
+UPLOAD_DELTA="--upload-delta=false"
+while getopts "isn:b:p:c:Smxkdu:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -58,6 +60,14 @@ while getopts "isn:b:p:c:Smxk:" opt; do
   m)
     echo "HARDCODED_MNEMONIC"
     HARDCODED_MNEMONIC=true
+    ;;
+  d)
+    echo "DOWNLOAD_DELTA=$OPTARG"
+    DOWNLOAD_DELTA="--download-delta=true"
+    ;;
+  u)
+    echo "DOWNLOAD_DELTA=$OPTARG"
+    UPLOAD_DELTA="--upload-delta=true"
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -143,6 +153,9 @@ run() {
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
     --enable-preruntx=$PRERUN \
+    --log-prerun=false \
+    ${DOWNLOAD_DELTA} \
+    ${UPLOAD_DELTA} \
     --consensus-role=v$index \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &

@@ -1669,22 +1669,22 @@ func TestStateOutputVoteStats(t *testing.T) {
 }
 
 var (
-	_ sm.Acquirer = (*mockAcquirer)(nil)
+	_ sm.Fetcher = (*mockFetcher)(nil)
 )
 
-type mockAcquirer struct {
+type mockFetcher struct {
 	data  map[int64]*types.Deltas
 	count map[int64]int
 }
 
-func (m *mockAcquirer) Acquire(height int64) (*types.Deltas, int64) {
+func (m *mockFetcher) Fetch(height int64) (*types.Deltas, int64) {
 	defer func() {
 		m.count[height]++
 	}()
 	return m.data[height], height
 }
-func newMockAcquirer() *mockAcquirer {
-	ret := &mockAcquirer{data: make(map[int64]*types.Deltas), count: make(map[int64]int)}
+func newMockAcquirer() *mockFetcher {
+	ret := &mockFetcher{data: make(map[int64]*types.Deltas), count: make(map[int64]int)}
 	return ret
 }
 
@@ -1699,7 +1699,7 @@ func TestCase1PrerrunWithCacheFirst(t *testing.T) {
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
-			sm.PreRunContextWithAcquirer(aq),
+			sm.PreRunContextWithFetcher(aq),
 		),
 	)
 
@@ -1707,7 +1707,7 @@ func TestCase1PrerrunWithCacheFirst(t *testing.T) {
 	aq.data[1] = d
 
 	disableTrace := []int32{}
-	vertifyPrerunWithDelta(t, func(trace, status int32) {}, func() {},
+	vertifyPrerunWithDelta(t, func(trace, status int32, cb func()) {}, func() {},
 		disableTrace, sm.TASK_BEGIN_DELTA_EXISTS, sm.TASK_PRERRUN,
 		0, 1, 0, 1, ops...)
 	require.Equal(t, 1, aq.count[1])
@@ -1724,17 +1724,17 @@ func TestCase2PrerunWithCacheButCASFailed(t *testing.T) {
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
-			sm.PreRunContextWithAcquirer(aq),
+			sm.PreRunContextWithFetcher(aq),
 		),
 	)
-	d:=pushQ(t, q)
-	aq.data[1]=d
+	d := pushQ(t, q)
+	aq.data[1] = d
 
 	c1 := make(chan struct{})
 	c2 := make(chan struct{})
 	disableTrace := []int32{sm.TRACE_PRERUN_WITH_NO_CACHE}
 	count := 0
-	vertifyPrerunWithDelta(t, func(trace, status int32) {
+	vertifyPrerunWithDelta(t, func(trace, status int32, cb func()) {
 		// CASE_SPECIAL_DELTA_BEFORE_BEGIN:make sure ,there has at least one task
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
 			<-c1
@@ -1757,7 +1757,7 @@ func TestNormalCase1(t *testing.T) {
 	localDebug(t)
 	viper.Set("download-delta", false)
 	disableTrace := []int32{sm.TRACE_DELTA, sm.TRACE_PRERUN_WITH_CACHE}
-	vertifyPrerunWithDelta(t, func(trace, status int32) {}, func() {}, disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_PRERRUN,
+	vertifyPrerunWithDelta(t, func(trace, status int32, cb func()) {}, func() {}, disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_PRERRUN,
 		0, 1, 0, 1)
 }
 
@@ -1772,7 +1772,7 @@ func TestCase3D2D1PrerunGetBeginBlockAndRaceConditionPrerunGetRaceEnd(t *testing
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
-			sm.PreRunContextWithAcquirer(aq),
+			sm.PreRunContextWithFetcher(aq),
 		),
 	)
 
@@ -1780,7 +1780,7 @@ func TestCase3D2D1PrerunGetBeginBlockAndRaceConditionPrerunGetRaceEnd(t *testing
 	count := 0
 	c1 := make(chan struct{}, 1)
 	pushQ(t, q)
-	f := func(trace, status int32) {
+	f := func(trace, status int32, cb func()) {
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
 			<-c1
 		} else if trace == sm.CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN {
@@ -1813,7 +1813,7 @@ func TestCase3D2D2PreRunDontLockBeginBlcokAndReturned(t *testing.T) {
 	c2 := make(chan struct{})
 	count := 0
 	pushQ(t, q)
-	f := func(trace, status int32) {
+	f := func(trace, status int32, cb func()) {
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
 			<-c1
 		} else if trace == sm.CASE_SPECIAL_AFTER_LOAD_CACHE {
@@ -1851,7 +1851,7 @@ func TestCaseWhenPrerrunRaceEndFailed(t *testing.T) {
 	pushQ(t, q)
 	count := 0
 	doneC := make(chan struct{})
-	f := func(trace, status int32) {
+	f := func(trace, status int32, cb func()) {
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
 			// make sure prerun can execute the beginBlock
 			<-c1
@@ -1880,6 +1880,113 @@ func TestCaseWhenPrerrunRaceEndFailed(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
+func TestExecuteBlockTwiceAndExecuteByPrerunFirst(t *testing.T) {
+	localDebug(t)
+
+	q := queue.NewLinkedBlockQueue()
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops,
+		sm.BlockExecutorWithDeltaContext(
+			sm.DeltaContextWithQueue(q)),
+		sm.BlockExecutorWithPreRunContext(
+			sm.PreRunContextWithQueue(q),
+		),
+	)
+
+	c1 := make(chan struct{})
+	preRunbeginBlockFinished := make(chan struct{})
+	deltaExecuteBeginBlock := make(chan struct{})
+	pushQ(t, q)
+	step := 0
+	// 1. prerun execute the beginBlock
+	// 2. delta execute the beginBlock  again after prerun executed
+	// 3. except to see
+	f := func(trace, status int32, cb func()) {
+		if trace&sm.RACE_BEGINBLOCK_FAIL|sm.TRACE_DELTA >= (sm.RACE_BEGINBLOCK_FAIL | sm.TRACE_DELTA) {
+			// which means delta get beginBlcok failed
+			// we have to  wait until the prerun finished the beginBlock so that we can execute BeginBlock twice
+			f := func() {
+				<-preRunbeginBlockFinished
+				cb()
+				close(deltaExecuteBeginBlock)
+			}
+			go f()
+		} else if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
+			// make sure prerun can execute the beginBlock
+			<-c1
+		} else if trace == sm.CASE_SPECIAL_PRERUN_BEFORE_RACE_END {
+			// means prerun finished the beginBlock
+			// delta can be notified to execute again
+			close(c1)
+			close(preRunbeginBlockFinished)
+			<-deltaExecuteBeginBlock
+			step++
+		}
+	}
+
+	disableTrace := []int32{sm.TRACE_PRERUN_WITH_CACHE}
+	vertifyPrerunWithDelta(t, f, func() {},
+		disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_DELTA,
+		1, 1, -1, 1, ops...)
+	require.Equal(t, 1, step)
+}
+
+func TestExecuteBlockTwiceAndExecuteByDeltaFirst(t *testing.T) {
+	localDebug(t)
+
+	q := queue.NewLinkedBlockQueue()
+	ops := make([]sm.BlockExecutorOption, 0)
+	ops = append(ops,
+		sm.BlockExecutorWithDeltaContext(
+			sm.DeltaContextWithQueue(q)),
+		sm.BlockExecutorWithPreRunContext(
+			sm.PreRunContextWithQueue(q),
+		),
+	)
+	pushQ(t, q)
+
+	c1 := make(chan struct{})
+	ok := 0
+	count := 0
+	c2 := make(chan struct{})
+	c3 := make(chan struct{})
+	f := func(trace, status int32, cb func()) {
+		if trace==sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN{
+			// [1] make sure ,prerun has the task
+			<-c1
+		}else if trace == sm.CASE_SPECIAL_AFTER_LOAD_CACHE {
+			// [1] notify delta, prerun has the task
+			close(c1)
+			// [2] and make sure delta can execute the beginBlock
+			<-c2
+		} else if trace == sm.CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS {
+			// means delta can execute the beginBlock
+			ok++
+		} else if trace == sm.CASE_SPECIAL_DELTA_BEFORE_RACE_END {
+			require.Equal(t, 1, ok)
+			// [2] means delta finished execute the beginBlock
+			// we can notify the prerun to execute the beginBlock
+			close(c2)
+		} else if trace == sm.CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED {
+			// means prerun get the beginBlock failed
+			// then ,we will wait delta until it finished beginBlock
+			f := func() {
+				<-c2
+				// prerun execute beginBlock again
+				cb()
+				count++
+				close(c3)
+			}
+			go f()
+		}
+	}
+	disableTrace := []int32{sm.TRACE_PRERUN_WITH_CACHE}
+	vertifyPrerunWithDelta(t, f, func() {},
+		disableTrace, sm.TASK_BEGIN_DELTA, sm.TASK_DELTA,
+		1, 1, -1, 1, ops...)
+	require.Equal(t, 1, count)
+}
+
 func pushQ(t *testing.T, q queue.Queue) *types.Deltas {
 	d := getDelta(t)
 	cbCount := 0
@@ -1900,7 +2007,7 @@ func getDelta(t *testing.T) *types.Deltas {
 	return d
 }
 
-func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32), afterRoundF func(),
+func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32, cb func()), afterRoundF func(),
 	disableTrace []int32, statusCheckBeginBlock, statusCheckRaceEnd int32,
 	exRaceBeginBlockFailCount, exRaceBeginBlockSuccCount int,
 	exRaceEndFailCount, exRaceEndSuccCount int, ops ...sm.BlockExecutorOption) {
@@ -1913,8 +2020,8 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32), afterRoun
 	mtx := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	traceNodes := make([]*statusTraceNode, 0)
-	sm.SetTraceHook(func(trace, status int32) {
-		f(trace, status)
+	sm.SetTraceHook(func(trace, status int32, cb func()) {
+		f(trace, status, cb)
 		wg.Add(1)
 		go func() {
 			mtx.Lock()
@@ -1958,7 +2065,6 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32), afterRoun
 		}
 		for _, dis := range disableTrace {
 			if node.trace&dis >= dis {
-				fmt.Println(node.trace)
 				disableHit++
 			}
 		}
@@ -1985,6 +2091,8 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32), afterRoun
 }
 
 func localDebug(t *testing.T) {
+	ensureTimeout=time.Minute*10
+	ensureRoundTimeout=time.Minute*10
 	types.PreRun = true
 	types.DownloadDelta = true
 	viper.Set(EnablePrerunTx, true)

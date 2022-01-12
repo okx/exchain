@@ -100,8 +100,13 @@ func newDeltaContext(l log.Logger, ops ...DeltaContextOption) *DeltaContext {
 	return dp
 }
 
-func (dc *DeltaContext) init() {
-
+func (dc *DeltaContext) init(dataM *deltaMap,q queue.Queue) {
+	if dc.dataMap==nil{
+		dc.dataMap=dataM
+	}
+	if dc.producerQ==nil{
+		dc.producerQ=q
+	}
 	if dc.uploadDelta || dc.downloadDelta {
 		dc.bufferSize = viper.GetInt(types.FlagBufferSize)
 		if dc.bufferSize < 5 {
@@ -373,6 +378,7 @@ func (dc *DeltaContext) downloadRoutine() {
 		err, delta, mrh := dc.download(targetHeight)
 		info.statistics(targetHeight, err, mrh)
 		if err == nil {
+			dc.logger.Info("download data.and notify")
 			dc.producerQ.Push(&DeltaJob{Delta: delta})
 			dc.dataMap.insert(targetHeight, delta, mrh)
 			targetHeight++

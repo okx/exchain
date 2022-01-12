@@ -26,6 +26,8 @@ const (
 
 	// do not apply delta if version does not match
 	DeltaVersion = 4
+
+	FlagPrerunConsumeLogEnable="log-prerun"
 )
 
 var (
@@ -33,6 +35,7 @@ var (
 	DownloadDelta = false
 	UploadDelta   = false
 	PreRun        = false
+	PreRunConsumeDebugEnable=false
 )
 
 type DeltasMessage struct {

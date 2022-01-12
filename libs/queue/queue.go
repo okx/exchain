@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/emirpasic/gods/lists/arraylist"
+	"container/list"
 	"sync"
 )
 
@@ -18,13 +18,13 @@ var (
 type linkedBlockingQueue struct {
 	sync.Mutex
 	condition *sync.Cond
-	list      *arraylist.List
+	list      *list.List
 }
 
 func NewLinkedBlockQueue() *linkedBlockingQueue {
 	r := &linkedBlockingQueue{}
 	r.condition = sync.NewCond(&r.Mutex)
-	r.list = arraylist.New()
+	r.list = list.New()
 	return r
 }
 
@@ -33,29 +33,31 @@ func (l *linkedBlockingQueue) Take() interface{} {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
 
-	for l.list.Size() == 0 {
+	for l.list.Len() == 0 {
 		c.Wait()
 	}
-	if l.list.Size() > 0 {
-		task, _ := l.list.Get(0)
-		l.list.Remove(0)
-		return task
+	if l.list.Len() > 0 {
+		task := l.list.Front()
+		if nil != task {
+			l.list.Remove(task)
+			return task.Value
+		}
 	}
 	return nil
 }
 func (l *linkedBlockingQueue) Push(task interface{}) (int, error) {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
-	l.list.Add(task)
+	l.list.PushBack(task)
 	l.condition.Signal()
-	return l.list.Size(), nil
+	return l.list.Len(), nil
 }
 
 type NonOpQueue struct {
 }
 
-func NewNonOpQueue()Queue{
-	ret:=&NonOpQueue{}
+func NewNonOpQueue() Queue {
+	ret := &NonOpQueue{}
 	return ret
 }
 
@@ -64,6 +66,5 @@ func (n *NonOpQueue) Take() interface{} {
 }
 
 func (n *NonOpQueue) Push(i interface{}) (int, error) {
-	return 0,nil
+	return 0, nil
 }
-

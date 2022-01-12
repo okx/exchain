@@ -52,7 +52,7 @@ func (m *deltaMap) fetch(height int64) (*types.Deltas, int64) {
 	return nil, m.mrh
 }
 
-func (m *deltaMap) Acquire(height int64) (*types.Deltas, int64){
+func (m *deltaMap) Fetch(height int64) (*types.Deltas, int64){
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 

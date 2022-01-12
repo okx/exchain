@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -91,6 +92,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().Bool(tmtypes.FlagPrerunConsumeLogEnable,false,"log prerun message(precondition: prerun enable and download enable),default false")
 	cmd.Flags().String(automation.ConsensusRole, "", "consensus role")
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 
