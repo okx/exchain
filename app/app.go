@@ -15,7 +15,6 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -207,11 +206,7 @@ func NewOKExChainApp(
 		logStartingFlags(logger)
 	})
 	// get config
-	appConfig, err := config.ParseConfig()
-	if err != nil {
-		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
-		panic(err)
-	}
+	isEnableBackend := viper.GetBool(server.FlagEnableBackend)
 
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
@@ -297,14 +292,14 @@ func NewOKExChainApp(
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, appConfig.BackendConfig.EnableBackend, &app.AccountKeeper)
+		app.cdc, isEnableBackend, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
+		app.keys[order.OrderStoreKey], app.cdc, isEnableBackend, orderMetrics,
 	)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
