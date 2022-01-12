@@ -1668,47 +1668,72 @@ func TestStateOutputVoteStats(t *testing.T) {
 
 }
 
+var (
+	_ sm.Acquirer = (*mockAcquirer)(nil)
+)
 
+type mockAcquirer struct {
+	data  map[int64]*types.Deltas
+	count map[int64]int
+}
+
+func (m *mockAcquirer) Acquire(height int64) (*types.Deltas, int64) {
+	defer func() {
+		m.count[height]++
+	}()
+	return m.data[height], height
+}
+func newMockAcquirer() *mockAcquirer {
+	ret := &mockAcquirer{data: make(map[int64]*types.Deltas), count: make(map[int64]int)}
+	return ret
+}
 
 func TestCase1PrerrunWithCacheFirst(t *testing.T) {
 	localDebug(t)
 
 	q := queue.NewLinkedBlockQueue()
+	aq := newMockAcquirer()
 	ops := make([]sm.BlockExecutorOption, 0)
 	ops = append(ops,
 		sm.BlockExecutorWithDeltaContext(
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
+			sm.PreRunContextWithAcquirer(aq),
 		),
 	)
-	pushQ(t, q)
+
+	d := getDelta(t)
+	aq.data[1] = d
 
 	disableTrace := []int32{}
 	vertifyPrerunWithDelta(t, func(trace, status int32) {}, func() {},
 		disableTrace, sm.TASK_BEGIN_DELTA_EXISTS, sm.TASK_PRERRUN,
 		0, 1, 0, 1, ops...)
+	require.Equal(t, 1, aq.count[1])
 }
 
 func TestCase2PrerunWithCacheButCASFailed(t *testing.T) {
 	localDebug(t)
 
 	q := queue.NewLinkedBlockQueue()
+	aq := newMockAcquirer()
 	ops := make([]sm.BlockExecutorOption, 0)
 	ops = append(ops,
 		sm.BlockExecutorWithDeltaContext(
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
+			sm.PreRunContextWithAcquirer(aq),
 		),
 	)
-
-	pushQ(t, q)
+	d:=pushQ(t, q)
+	aq.data[1]=d
 
 	c1 := make(chan struct{})
 	c2 := make(chan struct{})
 	disableTrace := []int32{sm.TRACE_PRERUN_WITH_NO_CACHE}
-	count:=0
+	count := 0
 	vertifyPrerunWithDelta(t, func(trace, status int32) {
 		// CASE_SPECIAL_DELTA_BEFORE_BEGIN:make sure ,there has at least one task
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
@@ -1720,19 +1745,19 @@ func TestCase2PrerunWithCacheButCASFailed(t *testing.T) {
 			<-c2      // block until delta cas succsss
 		} else if trace == sm.CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS {
 			close(c2)
-		}else if trace==sm.CASE_PRERRUNDELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED{
+		} else if trace == sm.CASE_PRERRUNDELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED {
 			count++
 		}
-	}, func() {},disableTrace, sm.TASK_BEGIN_DELTA, sm.TASK_DELTA,
+	}, func() {}, disableTrace, sm.TASK_BEGIN_DELTA, sm.TASK_DELTA,
 		1, 1, 0, 1, ops...)
-	require.Equal(t, 1,count)
+	require.Equal(t, 1, count)
 }
 
 func TestNormalCase1(t *testing.T) {
 	localDebug(t)
 	viper.Set("download-delta", false)
 	disableTrace := []int32{sm.TRACE_DELTA, sm.TRACE_PRERUN_WITH_CACHE}
-	vertifyPrerunWithDelta(t, func(trace, status int32) {},func() {}, disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_PRERRUN,
+	vertifyPrerunWithDelta(t, func(trace, status int32) {}, func() {}, disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_PRERRUN,
 		0, 1, 0, 1)
 }
 
@@ -1740,12 +1765,14 @@ func TestCase3D2D1PrerunGetBeginBlockAndRaceConditionPrerunGetRaceEnd(t *testing
 	localDebug(t)
 
 	q := queue.NewLinkedBlockQueue()
+	aq := newMockAcquirer()
 	ops := make([]sm.BlockExecutorOption, 0)
 	ops = append(ops,
 		sm.BlockExecutorWithDeltaContext(
 			sm.DeltaContextWithQueue(q)),
 		sm.BlockExecutorWithPreRunContext(
 			sm.PreRunContextWithQueue(q),
+			sm.PreRunContextWithAcquirer(aq),
 		),
 	)
 
@@ -1764,7 +1791,7 @@ func TestCase3D2D1PrerunGetBeginBlockAndRaceConditionPrerunGetRaceEnd(t *testing
 		}
 	}
 
-	vertifyPrerunWithDelta(t, f, func() {},disableTrace, sm.TASK_BEGIN_PRERUN, -1,
+	vertifyPrerunWithDelta(t, f, func() {}, disableTrace, sm.TASK_BEGIN_PRERUN, -1,
 		1, 1, -1, 1, ops...)
 	require.Equal(t, 1, count)
 }
@@ -1784,7 +1811,7 @@ func TestCase3D2D2PreRunDontLockBeginBlcokAndReturned(t *testing.T) {
 
 	c1 := make(chan struct{}, 1)
 	c2 := make(chan struct{})
-	count:=0
+	count := 0
 	pushQ(t, q)
 	f := func(trace, status int32) {
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
@@ -1794,19 +1821,19 @@ func TestCase3D2D2PreRunDontLockBeginBlcokAndReturned(t *testing.T) {
 			<-c2
 		} else if trace == sm.CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS {
 			close(c2)
-		}else if trace==sm.CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED{
+		} else if trace == sm.CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED {
 			count++
 		}
 	}
 
 	disableTrace := []int32{sm.TRACE_PRERUN_WITH_CACHE}
-	vertifyPrerunWithDelta(t, f,func() {},
+	vertifyPrerunWithDelta(t, f, func() {},
 		disableTrace, sm.TASK_BEGIN_DELTA, sm.TASK_DELTA,
 		1, 1, 0, 1, ops...)
-	require.Equal(t, 1,count)
+	require.Equal(t, 1, count)
 }
 
-func TestCaseWhenPrerrunRaceEndFailed(t *testing.T){
+func TestCaseWhenPrerrunRaceEndFailed(t *testing.T) {
 	localDebug(t)
 
 	q := queue.NewLinkedBlockQueue()
@@ -1820,45 +1847,41 @@ func TestCaseWhenPrerrunRaceEndFailed(t *testing.T){
 	)
 
 	c1 := make(chan struct{})
-	c2:=make(chan struct{})
+	c2 := make(chan struct{})
 	pushQ(t, q)
-	count:=0
-	doneC:=make(chan struct{})
+	count := 0
+	doneC := make(chan struct{})
 	f := func(trace, status int32) {
 		if trace == sm.CASE_SPECIAL_DELTA_BEFORE_BEGIN {
 			// make sure prerun can execute the beginBlock
 			<-c1
-		} else if trace==sm.CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS{
+		} else if trace == sm.CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS {
 			// now :
 			close(c1)
-		}else if trace==sm.CASE_SPECIAL_PRERUN_BEFORE_RACE_END{
+		} else if trace == sm.CASE_SPECIAL_PRERUN_BEFORE_RACE_END {
 			// make sure delta ,commit successfully
 			<-c2
-		}else if trace==sm.CASE_DELTA_SITUATION_RACE_END_SUCCESS{
+		} else if trace == sm.CASE_DELTA_SITUATION_RACE_END_SUCCESS {
 			close(c2)
 			count++
-		}else if trace==sm.CASE_PRERRUN_SITUATION_RACE_END_FAIL{
+		} else if trace == sm.CASE_PRERRUN_SITUATION_RACE_END_FAIL {
 			close(doneC)
-		}else if trace==sm.CASE_PRERRUN_CANCELED_BY_DELTA{
+		} else if trace == sm.CASE_PRERRUN_CANCELED_BY_DELTA {
 			close(doneC)
 		}
 	}
 
 	disableTrace := []int32{sm.TRACE_PRERUN_WITH_CACHE}
-	vertifyPrerunWithDelta(t, f,func() {
+	vertifyPrerunWithDelta(t, f, func() {
 		<-doneC
 	},
 		disableTrace, sm.TASK_BEGIN_PRERUN, sm.TASK_DELTA,
 		1, 1, -1, 1, ops...)
-	require.Equal(t, 1,count)
+	require.Equal(t, 1, count)
 }
 
-func pushQ(t *testing.T, q queue.Queue) {
-	h1DDSHex := "0ae4080a81087b2264656c697665725f747873223a6e756c6c2c22656e645f626c6f636b223a7b2276616c696461746f725f75706461746573223a5b5d7d2c22626567696e5f626c6f636b223a7b226576656e7473223a5b7b2274797065223a227472616e73666572222c2261747472696275746573223a5b7b226b6579223a22636d566a615842705a573530222c2276616c7565223a225a5867784e3368775a6e5a68613230795957316e4f5459796557787a4e6d59344e486f7a613256736244686a4e57786a637a5135656a493d227d2c7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d2c7b2274797065223a226d657373616765222c2261747472696275746573223a5b7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d5d7d2c7b2274797065223a227472616e73666572222c2261747472696275746573223a5b7b226b6579223a22636d566a615842705a573530222c2276616c7565223a225a5867786454426b59325274613346724e58426a4d6a4a775a6a4a6d6133557a626a4231634468354e336b7a65475a726558706f4e33633d227d2c7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d2c7b2274797065223a226d657373616765222c2261747472696275746573223a5b7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d5d7d2c7b2274797065223a226d696e74222c2261747472696275746573223a5b7b226b6579223a226157356d6247463061573975222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d44413d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d5334774d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d5d7d7d1a5e7b2264697274795f6163636f756e74223a6e756c6c2c2262617463686573223a6e756c6c2c2264656c61795f65726173655f6b6579223a5b5d2c22626c6f6f6d5f64617461223a6e756c6c2c2264697274795f6c697374223a6e756c6c7d12201247e0f14402bae2412b24c4b68c9e1ee1c506e3aaca6a12c5eff859fcb18b3818012004"
-	h1Bytes, _ := hex.DecodeString(h1DDSHex)
-	d := &types.Deltas{}
-	e := d.Unmarshal(h1Bytes)
-	require.NoError(t, e)
+func pushQ(t *testing.T, q queue.Queue) *types.Deltas {
+	d := getDelta(t)
 	cbCount := 0
 	q.Push(&sm.DeltaJob{
 		Delta: d,
@@ -1866,9 +1889,18 @@ func pushQ(t *testing.T, q queue.Queue) {
 			cbCount++
 		},
 	})
+	return d
+}
+func getDelta(t *testing.T) *types.Deltas {
+	h1DDSHex := "0ae4080a81087b2264656c697665725f747873223a6e756c6c2c22656e645f626c6f636b223a7b2276616c696461746f725f75706461746573223a5b5d7d2c22626567696e5f626c6f636b223a7b226576656e7473223a5b7b2274797065223a227472616e73666572222c2261747472696275746573223a5b7b226b6579223a22636d566a615842705a573530222c2276616c7565223a225a5867784e3368775a6e5a68613230795957316e4f5459796557787a4e6d59344e486f7a613256736244686a4e57786a637a5135656a493d227d2c7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d2c7b2274797065223a226d657373616765222c2261747472696275746573223a5b7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d5d7d2c7b2274797065223a227472616e73666572222c2261747472696275746573223a5b7b226b6579223a22636d566a615842705a573530222c2276616c7565223a225a5867786454426b59325274613346724e58426a4d6a4a775a6a4a6d6133557a626a4231634468354e336b7a65475a726558706f4e33633d227d2c7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d2c7b2274797065223a226d657373616765222c2261747472696275746573223a5b7b226b6579223a22633256755a475679222c2276616c7565223a225a58677862544e6f4d7a423362485a7a5a6a687362484a31654852776457746b646e4e354d4774744d6d743162546878597a4e686432673d227d5d7d2c7b2274797065223a226d696e74222c2261747472696275746573223a5b7b226b6579223a226157356d6247463061573975222c2276616c7565223a224d4334314d4441774d4441774d4441774d4441774d4441774d44413d227d2c7b226b6579223a225957317664573530222c2276616c7565223a224d5334774d4441774d4441774d4441774d4441774d4441774d4442766133513d227d5d7d5d7d7d1a5e7b2264697274795f6163636f756e74223a6e756c6c2c2262617463686573223a6e756c6c2c2264656c61795f65726173655f6b6579223a5b5d2c22626c6f6f6d5f64617461223a6e756c6c2c2264697274795f6c697374223a6e756c6c7d12201247e0f14402bae2412b24c4b68c9e1ee1c506e3aaca6a12c5eff859fcb18b3818012004"
+	h1Bytes, _ := hex.DecodeString(h1DDSHex)
+	d := &types.Deltas{}
+	e := d.Unmarshal(h1Bytes)
+	require.NoError(t, e)
+	return d
 }
 
-func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32),afterRoundF func(),
+func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32), afterRoundF func(),
 	disableTrace []int32, statusCheckBeginBlock, statusCheckRaceEnd int32,
 	exRaceBeginBlockFailCount, exRaceBeginBlockSuccCount int,
 	exRaceEndFailCount, exRaceEndSuccCount int, ops ...sm.BlockExecutorOption) {
@@ -1894,9 +1926,7 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32),afterRound
 
 	round(t, ops...)
 
-
 	wg.Wait()
-
 
 	disableHit := 0
 	raceBeginBlockFailCount := 0
@@ -1955,8 +1985,8 @@ func vertifyPrerunWithDelta(t *testing.T, f func(trace, status int32),afterRound
 }
 
 func localDebug(t *testing.T) {
-	types.PreRun=true
-	types.DownloadDelta=true
+	types.PreRun = true
+	types.DownloadDelta = true
 	viper.Set(EnablePrerunTx, true)
 	viper.Set("download-delta", true)
 	sm.SetWatchDataFunc(func() ([]byte, error) {

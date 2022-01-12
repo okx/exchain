@@ -4,7 +4,6 @@ import (
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
-	"sync"
 	"sync/atomic"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -31,13 +30,13 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 
-	cache   *sync.Map
+	acquirer   Acquirer
 	notifyC chan error
 	// why: atomic is better, if we use mutex ,we have to define more variables
 	status int32
 }
 
-func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64, c *sync.Map) *executionTask {
+func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64, c Acquirer) *executionTask {
 
 	return &executionTask{
 		height:         block.Height,
@@ -47,7 +46,7 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64,
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		cache:          c,
+		acquirer:          c,
 		notifyC:        make(chan error, 1),
 	}
 }
@@ -94,11 +93,9 @@ func (t *executionTask) run() {
 	}
 	curStatus := int32(TASK_BEGIN_PRERUN)
 	traceHook(CASE_SPECIAL_BEFORE_LOAD_CACHE, t.status)
-	// github ci:low go version
-	deltas, exists :=t.cache.Load(t.block.Height)
-	//deltas, exists := t.cache.LoadAndDelete(t.block.Height)
+	deltas,_:=t.acquirer.Acquire(t.block.Height)
 	traceHook(CASE_SPECIAL_AFTER_LOAD_CACHE, t.status)
-	if exists {
+	if deltas!=nil {
 		if !atomic.CompareAndSwapInt32(&t.status, 0, TASK_BEGIN_DELTA_EXISTS) {
 			// case delta running
 			traceHook(CASE_PRERRUNDELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED, t.status)
@@ -109,7 +106,7 @@ func (t *executionTask) run() {
 		// delta  already downloaded
 		execBlockOnProxyAppWithDeltas(t.proxyApp, t.block, t.db)
 		resp := ABCIResponses{}
-		err = types.Json.Unmarshal(deltas.(*types.Deltas).ABCIRsp(), &resp)
+		err = types.Json.Unmarshal(deltas.ABCIRsp(), &resp)
 		abciResponses = &resp
 	} else {
 

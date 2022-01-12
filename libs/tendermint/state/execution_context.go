@@ -19,8 +19,8 @@ func SetTraceHook(f func(trace, status int32)) {
 	traceHook = f
 }
 
-type PruneCacheJob struct {
-	h int64
+type Acquirer interface {
+	Acquire(height int64) (*types.Deltas, int64)
 }
 
 type DeltaJob struct {
@@ -36,6 +36,12 @@ func PreRunContextWithQueue(q queue.Queue) PreRunContextOption {
 	}
 }
 
+func PreRunContextWithAcquirer(deltaMap Acquirer) PreRunContextOption {
+	return func(ctx *prerunContext) {
+		ctx.acquirer = deltaMap
+	}
+}
+
 type prerunContext struct {
 	prerunTx        bool
 	taskChan        chan *executionTask
@@ -43,7 +49,7 @@ type prerunContext struct {
 	prerunTask      *executionTask
 	logger          log.Logger
 	consumerQ       queue.Queue
-	cache           *sync.Map
+	acquirer         Acquirer
 	lastPruneHeight int64
 }
 
@@ -52,7 +58,6 @@ func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunConte
 		taskChan:       make(chan *executionTask, 1),
 		taskResultChan: make(chan *executionTask, 1),
 		logger:         logger,
-		cache:          &sync.Map{},
 	}
 
 	for _, opt := range ops {
@@ -104,8 +109,6 @@ func (pc *prerunContext) consume() {
 
 func (pc *prerunContext) handleMsg(msg interface{}) {
 	switch v := msg.(type) {
-	case PruneCacheJob:
-		pc.handlePrune(v)
 	case *DeltaJob:
 		pc.handleDeltaMsg(v)
 	default:
@@ -115,8 +118,6 @@ func (pc *prerunContext) handleMsg(msg interface{}) {
 
 func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	delta := v.Delta
-	// TODO cmd line
-
 	traceHook(CASE_SPECIAL_DELTA_BEFORE_BEGIN, 0)
 
 	// hold the pointer at first
@@ -124,7 +125,6 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	// in case of  producer is too faster than consumer
 	if curTask == nil && delta.Height > pc.lastPruneHeight && delta.Height < pc.lastPruneHeight+10 {
 		// cache the delta
-		store(v, pc.cache)
 		return
 	}
 
@@ -144,7 +144,6 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 			return
 		}
 		// cache the delta
-		store(v, pc.cache)
 		return
 	}
 
@@ -154,8 +153,6 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 
 	// store the delta:  in case of  `cpu edge case`
 	// we will delete the height by prune
-	// FIXME
-	store(v, pc.cache)
 
 	abciResponses := ABCIResponses{}
 	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
@@ -263,8 +260,6 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 		}
 
 		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
-			// push prune job
-			pc.consumerQ.Push(PruneCacheJob{h: expected.block.Height})
 			return context.result.res, context.result.err
 		} else {
 			// todo
@@ -302,7 +297,7 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	stoppedIndex := pc.stopPrerun(block.Height)
 	stoppedIndex++
 
-	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.cache)
+	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.acquirer)
 
 	pc.prerunTask.dump("Notify prerun")
 
@@ -326,20 +321,4 @@ func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCI
 		pc.prerunTask = nil
 	}
 	return
-}
-
-func (pc *prerunContext) handlePrune(v PruneCacheJob) {
-	if v.h < pc.lastPruneHeight {
-		return
-	}
-	h := v.h
-	// why: edge case ,prerunContext#lastPruneHeight was 0 at first ( if we can get the initial height,we may remove these codes)
-	pruneLimit := pc.lastPruneHeight
-	if pruneLimit == 0 {
-		pruneLimit = h-1
-	}
-	for i := h; i > pruneLimit; i-- {
-		pc.cache.Delete(i)
-	}
-	pc.lastPruneHeight = h
 }

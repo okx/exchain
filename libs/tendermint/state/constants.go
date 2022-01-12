@@ -4,6 +4,7 @@ const (
 	TASK_BEGIN_DELTA        = 1 << 0
 	TASK_BEGIN_PRERUN       = 1 << 1
 	TASK_BEGIN_DELTA_EXISTS = 1 << 2
+
 	TASK_DELTA              = 1 << 3
 	TASK_PRERRUN            = 1 << 4
 )

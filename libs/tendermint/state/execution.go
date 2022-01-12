@@ -59,19 +59,17 @@ func BlockExecutorWithMetrics(metrics *Metrics) BlockExecutorOption {
 	}
 }
 
-func BlockExecutorWithPreRunContext(ops ...PreRunContextOption)BlockExecutorOption{
+func BlockExecutorWithPreRunContext(ops ...PreRunContextOption) BlockExecutorOption {
 	return func(blockExec *BlockExecutor) {
-		blockExec.prerunCtx=newPrerunContex(blockExec.logger,ops...)
+		blockExec.prerunCtx = newPrerunContex(blockExec.logger, ops...)
 	}
 }
 
-func BlockExecutorWithDeltaContext(ops ...DeltaContextOption)BlockExecutorOption{
+func BlockExecutorWithDeltaContext(ops ...DeltaContextOption) BlockExecutorOption {
 	return func(blockExec *BlockExecutor) {
-		blockExec.deltaContext=newDeltaContext(blockExec.logger,ops...)
+		blockExec.deltaContext = newDeltaContext(blockExec.logger, ops...)
 	}
 }
-
-
 
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
@@ -84,35 +82,41 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 
-	var q queue.Queue
+	var (
+		q queue.Queue
+	)
 	if types.PreRun && types.DownloadDelta {
 		q = queue.NewLinkedBlockQueue()
 	} else {
 		q = queue.NewNonOpQueue()
 	}
+	dataM:=newDataMap()
 
 	res := &BlockExecutor{
-		db:           db,
-		proxyApp:     proxyApp,
-		eventBus:     types.NopEventBus{},
-		mempool:      mempool,
-		evpool:       evpool,
-		logger:       logger,
-		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
+		db:       db,
+		proxyApp: proxyApp,
+		eventBus: types.NopEventBus{},
+		mempool:  mempool,
+		evpool:   evpool,
+		logger:   logger,
+		metrics:  NopMetrics(),
+		isAsync:  viper.GetBool(FlagParalleledTx),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
-	
-	// TODO ,queue must exists
-	if res.prerunCtx==nil{
-		res.prerunCtx= newPrerunContex(logger, PreRunContextWithQueue(q))
+
+	if res.prerunCtx == nil {
+		res.prerunCtx = newPrerunContex(logger, PreRunContextWithQueue(q),PreRunContextWithAcquirer(dataM))
+	}else if res.prerunCtx.acquirer==nil{
+		res.prerunCtx.acquirer=dataM
 	}
 
-	if res.deltaContext==nil{
-		res.deltaContext= newDeltaContext(logger, DeltaContextWithQueue(q))
+	if res.deltaContext == nil {
+		res.deltaContext = newDeltaContext(logger, DeltaContextWithQueue(q),DeltaContextWithDataMap(dataM))
+	}else if res.deltaContext.dataMap==nil{
+		res.deltaContext.dataMap=dataM
 	}
 
 	automation.LoadTestCase(logger)
@@ -294,7 +298,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	var abciResponses *ABCIResponses
 	var err error
 	// if prerrunTx with download enable ,prerrun#consume will  try to execute execBlockOnProxyAppWithDeltas automatically
-	if delta != nil  && !blockExec.prerunCtx.prerunTx {
+	if delta != nil && !blockExec.prerunCtx.prerunTx {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
@@ -486,9 +490,9 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, err
 		}
 		// stop
-		if context.status>0 && context.status & TASK_DELTA>=TASK_DELTA{
+		if context.status > 0 && context.status&TASK_DELTA >= TASK_DELTA {
 			// close notifyC to notify consumer go on
-			return nil,err_delta_invoked
+			return nil, err_delta_invoked
 		}
 		if context != nil && context.stopped {
 			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
