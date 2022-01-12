@@ -930,7 +930,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	returnedDeltas := map[string]iavltree.TreeDelta{}
 
 	var err error
-	if tmtypes.EnableDownloadDelta() && len(deltas) != 0 {
+	if tmtypes.DownloadDelta && len(deltas) != 0 {
 		err = itjs.Unmarshal(deltas, &appliedDeltas)
 		if err != nil {
 			panic(err)
@@ -951,7 +951,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		returnedDeltas[key.Name()] = reDelta
 	}
 
-	if tmtypes.EnableUploadDelta() {
+	if tmtypes.UploadDelta {
 		deltas, err = itjs.Marshal(returnedDeltas)
 		if err != nil {
 			panic(err)

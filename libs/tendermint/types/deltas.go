@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	"github.com/spf13/viper"
-	"sync"
 	"time"
 )
 
@@ -31,35 +29,10 @@ const (
 )
 
 var (
-	fastQuery     = false
-	downloadDelta = false
-	uploadDelta   = false
-
-	onceFastQuery sync.Once
-	onceDownload  sync.Once
-	onceUpload    sync.Once
+	FastQuery     = false
+	DownloadDelta = false
+	UploadDelta   = false
 )
-
-func IsFastQuery() bool {
-	onceFastQuery.Do(func() {
-		fastQuery = viper.GetBool(FlagFastQuery)
-	})
-	return fastQuery
-}
-
-func EnableDownloadDelta() bool {
-	onceDownload.Do(func() {
-		downloadDelta = viper.GetBool(FlagDownloadDDS)
-	})
-	return downloadDelta
-}
-
-func EnableUploadDelta() bool {
-	onceUpload.Do(func() {
-		uploadDelta = viper.GetBool(FlagUploadDDS)
-	})
-	return uploadDelta
-}
 
 type DeltasMessage struct {
 	Metadata     []byte `json:"metadata"`
