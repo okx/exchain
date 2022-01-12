@@ -435,22 +435,16 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 
 func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
-		return EncodeEvmTx(tx)
+		return EthereumTxEncode(tx)
 	}
 }
 
 
-func EncodeEvmTx(tx sdk.Tx) ([]byte, error) {
-		//if !types.HigherThanVenus(height) {
-		//	return nil, fmt.Errorf("lower than Venus")
-		//}
+func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
 	return rlp.EncodeToBytes(tx)
 }
 
 func EthereumTxDecode(b []byte, tx interface{}) error {
-	//if !types.HigherThanVenus(height) {
-	//	return fmt.Errorf("lower than Venus")
-	//}
 	return rlp.DecodeBytes(b, tx)
 }
 

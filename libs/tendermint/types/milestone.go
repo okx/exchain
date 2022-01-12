@@ -17,7 +17,7 @@ var (
 	MILESTONE_MERCURY_HEIGHT string
 	milestoneMercuryHeight   int64
 
-	MILESTONE_VENUS_HEIGHT string = "1"
+	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
 	once sync.Once

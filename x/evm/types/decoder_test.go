@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"math/big"
 	"reflect"
@@ -22,7 +23,7 @@ func genEvmTxBytes(cdc *codec.Codec, rlp bool) (res []byte, err error) {
 	expectedEthAddr := ethcmn.BytesToAddress([]byte("test_address"))
 	expectedEthMsg := NewMsgEthereumTx(expectUint64, &expectedEthAddr, expectedBigInt, expectUint64, expectedBigInt, expectedBytes)
 	if rlp {
-		res, err = types.EncodeEvmTx(&expectedEthMsg)
+		res, err = types.EthereumTxEncode(&expectedEthMsg)
 	} else {
 		res = cdc.MustMarshalBinaryLengthPrefixed(expectedEthMsg)
 	}
@@ -50,14 +51,44 @@ func makeCodec() *codec.Codec {
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	types.RegisterCodec(cdc)
+	RegisterCodec(cdc)
 	cdc.RegisterConcrete(sdk.TestMsg{}, "cosmos-sdk/Test", nil)
 	return cdc
 }
+
+func TestAminoDecoder4EvmTx(t *testing.T) {
+
+	cdc := makeCodec()
+	decoder := TxDecoder(cdc)
+	tmtypes.UnittestOnlySetVenusHeight(1)
+
+	evmTxbytesByAmino, err := genEvmTxBytes(cdc, false)
+	require.NoError(t, err)
+
+	_, err = decoder(evmTxbytesByAmino, 2)
+	t.Log(err)
+	require.Error(t, err)
+
+	_, err = ubDecoder(cdc, evmTxbytesByAmino, 2)
+	t.Log(err)
+	require.Error(t, err)
+
+	_, err = ubruDecoder(cdc, evmTxbytesByAmino, 2)
+	t.Log(err)
+	require.Error(t, err)
+
+	_, err = ubDecoder(cdc, evmTxbytesByAmino, 0)
+	require.NoError(t, err)
+
+	_, err = ubruDecoder(cdc, evmTxbytesByAmino, 0)
+	require.NoError(t, err)
+}
+
+
 func TestCheckedTxDecoder(t *testing.T) {
 
-	cdc := codec.New()
-	cdc.RegisterInterface((*sdk.Tx)(nil), nil)
-	RegisterCodec(cdc)
+	cdc := makeCodec()
+
 	decoder := TxDecoder(cdc)
 
 	//evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)

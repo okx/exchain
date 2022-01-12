@@ -152,9 +152,8 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
 // 3. the original amino one, decode by reflection.
 func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
-	var v interface{}
 	if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
-		if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+		if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
 			tx = nil
 			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
 		}
