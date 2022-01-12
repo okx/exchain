@@ -9,7 +9,6 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"math/big"
 	"reflect"
-	"strings"
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -153,7 +152,6 @@ func TestWrappedTxEncoder(t *testing.T) {
 	tmtypes.UnittestOnlySetVenusHeight(1)
 	defer tmtypes.UnittestOnlySetVenusHeight(0)
 
-
 	evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)
 	require.NoError(t, err)
 
@@ -188,40 +186,7 @@ func TestWrappedTxEncoder(t *testing.T) {
 	require.Equal(t, bytes.Compare(wtx.NodeKey, info2.NodeKey), 0)
 	require.Equal(t, bytes.Compare(wtx.Signature, info2.Signature), 0)
 
-
 	// todo
 	//wtxBytes, err = types.EncodeWrappedTx(wtxBytes, info2, int(types.EvmTxType))
 	//require.Error(t, err)
-
-}
-
-func TestTxDecoder(t *testing.T) {
-	expectUint64, expectedBigInt, expectedBytes := uint64(1024), big.NewInt(1024), []byte("default payload")
-	expectedEthAddr := ethcmn.BytesToAddress([]byte("test_address"))
-	expectedEthMsg := NewMsgEthereumTx(expectUint64, &expectedEthAddr, expectedBigInt, expectUint64, expectedBigInt, expectedBytes)
-
-	// register codec
-	cdc := codec.New()
-	cdc.RegisterInterface((*sdk.Tx)(nil), nil)
-	RegisterCodec(cdc)
-
-	txbytes := cdc.MustMarshalBinaryLengthPrefixed(expectedEthMsg)
-	txDecoder := TxDecoder(cdc)
-	tx, err := txDecoder(txbytes)
-	require.NoError(t, err)
-
-	msgs := tx.GetMsgs()
-	require.Equal(t, 1, len(msgs))
-	require.NoError(t, msgs[0].ValidateBasic())
-	require.True(t, strings.EqualFold(expectedEthMsg.Route(), msgs[0].Route()))
-	require.True(t, strings.EqualFold(expectedEthMsg.Type(), msgs[0].Type()))
-
-	require.NoError(t, tx.ValidateBasic())
-
-	// error check
-	_, err = txDecoder([]byte{})
-	require.Error(t, err)
-
-	_, err = txDecoder(txbytes[1:])
-	require.Error(t, err)
 }
