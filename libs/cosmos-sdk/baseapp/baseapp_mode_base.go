@@ -3,10 +3,11 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -155,6 +156,30 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 	return err
 }
 
+func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
+
+	if info.verifyResult > 0 {
+		return
+	}
+
+	enableCheckedTx := false
+	enableCheckedTx = true
+
+	if enableCheckedTx && m.app.wrappedTxEncoder != nil {
+
+		exInfo := &sdk.ExTxInfo{
+			Metadata: []byte("dummy Metadata"),
+			Signature: []byte("dummy Signature"),
+			NodeKey: []byte("dummy NodeKey"),
+		}
+
+		data, err := m.app.wrappedTxEncoder(info.txBytes, exInfo, info.tx.GetType())
+		if err == nil {
+			exTxInfo.CheckedTx = data
+			m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)
+		}
+	}
+}
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 	if m.mode != runTxModeCheck {
@@ -163,6 +188,8 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 
 	exTxInfo := m.app.GetTxInfo(info.ctx, info.tx)
 	exTxInfo.SenderNonce = info.accountNonce
+
+	m.addExTxInfo(info, &exTxInfo)
 
 	data, err := json.Marshal(exTxInfo)
 	if err == nil {

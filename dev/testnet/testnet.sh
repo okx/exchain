@@ -82,7 +82,7 @@ killbyname() {
 init() {
   killbyname ${BIN_NAME}
 
-  (cd ${OKCHAIN_TOP} && make install)
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
 
   rm -rf cache
 

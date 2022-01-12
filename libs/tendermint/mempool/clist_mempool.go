@@ -53,9 +53,9 @@ type CListMempool struct {
 
 	// Exclusive mutex for Update method to prevent concurrent execution of
 	// CheckTx or ReapMaxBytesMaxGas(ReapMaxTxs) methods.
-	updateMtx sync.RWMutex
-	preCheck  PreCheckFunc
-	postCheck PostCheckFunc
+	updateMtx  sync.RWMutex
+	preCheck   PreCheckFunc
+	postCheck  PostCheckFunc
 
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
@@ -153,6 +153,7 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 func (mem *CListMempool) SetLogger(l log.Logger) {
 	mem.logger = l
 }
+
 
 // WithPreCheck sets a filter for the mempool to reject a tx if f(tx) returns
 // false. This is ran before CheckTx.
@@ -596,6 +597,10 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
+			}
+
+			if exTxInfo.CheckedTx != nil {
+				memTx.tx = exTxInfo.CheckedTx
 			}
 
 			var err error
@@ -1120,6 +1125,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
+	CheckedTx   []byte   `json:"checked_tx"`  // sdk.WrappedTx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {

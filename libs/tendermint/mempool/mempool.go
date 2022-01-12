@@ -3,6 +3,7 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
+
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"

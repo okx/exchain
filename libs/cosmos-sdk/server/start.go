@@ -4,12 +4,13 @@ package server
 
 import (
 	"fmt"
+	"os"
+	"runtime/pprof"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"os"
-	"runtime/pprof"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -74,8 +75,7 @@ func StartCmd(ctx *Context,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context) error,
-	subFunc func(logger log.Logger) log.Subscriber,
-) *cobra.Command {
+	subFunc func(logger log.Logger) log.Subscriber) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",

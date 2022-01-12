@@ -17,6 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEvmDataDecoding(t *testing.T) {
+
+}
+
 func TestEvmDataEncoding(t *testing.T) {
 	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
 	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
@@ -163,9 +167,9 @@ func TestTxDecoder(t *testing.T) {
 		_, err = TxDecoder(cdc)(rlpBytes)
 		require.Equal(t, c.enableRLPDecoder, err == nil)
 	}
-	// only one height parameter is allowed.
+	// more heights parameter allowed.
 	tx, err = TxDecoder(cdc)(txbytes, 0, 999)
-	require.NotNil(t, err)
+	require.Nil(t, err)
 
 }
 

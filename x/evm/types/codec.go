@@ -12,10 +12,10 @@ import (
 var ModuleCdc = codec.New()
 
 const (
-	MsgEthereumTxName = "ethermint/MsgEthereumTx"
-	ChainConfigName   = "ethermint/ChainConfig"
-	MsgEthermintName  = "ethermint/MsgEthermint"
-	TxDataName        = "ethermint/TxData"
+	MsgEthereumTxName        = "ethermint/MsgEthereumTx"
+	ChainConfigName          = "ethermint/ChainConfig"
+	MsgEthermintName         = "ethermint/MsgEthermint"
+	TxDataName               = "ethermint/TxData"
 
 	ManageContractDeploymentWhitelistProposalName = "okexchain/evm/ManageContractDeploymentWhitelistProposal"
 	ManageContractBlockedListProposalName         = "okexchain/evm/ManageContractBlockedListProposal"
