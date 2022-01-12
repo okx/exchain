@@ -51,11 +51,24 @@ type Tx interface {
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
 
+	// none nil for wrapped tx type, nil for other tx type
 	GetPayloadTx() Tx
+
+	// 1 for wrapped tx type, 0 for other tx type
+	GetType() int
 }
 
 //__________________________________________________________
 
+type TransactionType int
+const (
+	StdTxType       TransactionType = 0
+	WrappedTxType   TransactionType = 1
+	EvmTxType       TransactionType = 2
+	OtherType       TransactionType = 3
+)
+
+//__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
 
@@ -67,7 +80,7 @@ type ExTxInfo struct {
 	Signature []byte  `json:"signature"` // signature for payload+metadata
 	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
-type WrappedTxEncoder func(txBytes []byte, info *ExTxInfo, replace bool) ([]byte, error)
+type WrappedTxEncoder func(txBytes []byte, info *ExTxInfo, txtype int) ([]byte, error)
 
 //__________________________________________________________
 

@@ -36,11 +36,15 @@ func (wtx WrappedTx) GetPayloadTx() sdk.Tx {
 	return wtx.Tx
 }
 
-func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, replace bool) ([]byte, error) {
+func (tx WrappedTx) GetType() int {
+	return 1
+}
+
+
+func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, txType int) ([]byte, error) {
 
 	payload := txbytes
-	if replace {
-		// txbytes is a wrapped one
+	if sdk.TransactionType(txType) == sdk.WrappedTxType {
 		raw := &RawWrappedTx{}
 		err := json.Unmarshal(txbytes, raw)
 		if err != nil {

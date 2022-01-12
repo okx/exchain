@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -55,12 +56,25 @@ func makeCodec() *codec.Codec {
 	cdc.RegisterConcrete(sdk.TestMsg{}, "cosmos-sdk/Test", nil)
 	return cdc
 }
+func mustWtx(t *testing.T, cdc *codec.Codec, txbytes []byte) (wtx auth.WrappedTx) {
+	decoder := TxDecoder(cdc)
+
+	tx, err := decoder(txbytes, 2)
+	require.NoError(t, err)
+
+	var ok bool
+	wtx, ok = tx.(auth.WrappedTx)
+	require.Equal(t, ok, true)
+
+	return
+}
 
 func TestAminoDecoder4EvmTx(t *testing.T) {
 
 	cdc := makeCodec()
 	decoder := TxDecoder(cdc)
 	tmtypes.UnittestOnlySetVenusHeight(1)
+	defer tmtypes.UnittestOnlySetVenusHeight(0)
 
 	evmTxbytesByAmino, err := genEvmTxBytes(cdc, false)
 	require.NoError(t, err)
@@ -84,26 +98,19 @@ func TestAminoDecoder4EvmTx(t *testing.T) {
 	require.NoError(t, err)
 }
 
-
-func TestCheckedTxDecoder(t *testing.T) {
+func TestWrappedTxDecoder(t *testing.T) {
 
 	cdc := makeCodec()
+	tmtypes.UnittestOnlySetVenusHeight(1)
+	defer tmtypes.UnittestOnlySetVenusHeight(0)
 
 	decoder := TxDecoder(cdc)
 
-	//evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)
-	//require.NoError(t, err)
-
-	evmTxbytesByAmino, err := genEvmTxBytes(cdc, false)
+	evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)
 	require.NoError(t, err)
 
-	//cmTxbytesByAmino, err := genTxBytes(cdc)
-	//require.NoError(t, err)
-
 	var txBytesList [][]byte
-	//txBytesList = append(txBytesList, cmTxbytesByAmino)
-	//txBytesList = append(txBytesList, evmTxbytesByRlp)
-	txBytesList = append(txBytesList, evmTxbytesByAmino)
+	txBytesList = append(txBytesList, evmTxbytesByRlp)
 
 	for _, txbytes := range txBytesList {
 		evmTx, err := decoder(txbytes, 2)
@@ -123,39 +130,69 @@ func TestCheckedTxDecoder(t *testing.T) {
 			Signature: []byte("s1"),
 		}
 
-		chkTxBytes, err := types.EncodeWrappedTx(txbytes, info, false)
+		wtxBytes, err := types.EncodeWrappedTx(txbytes, info, int(sdk.EvmTxType))
 		require.NoError(t, err)
 
-		chkTx, err := decoder(chkTxBytes, 2)
+		wtx, err := decoder(wtxBytes, 2)
 		require.NoError(t, err)
 
-		switch tx := chkTx.(type) {
+		switch tx := wtx.(type) {
 		case auth.WrappedTx:
-			fmt.Printf("sdk.CheckedTx %+v\n", tx)
+			fmt.Printf("sdk.WrappedTx %+v\n", tx)
 			break
 		default:
-			err = fmt.Errorf("received: %v", reflect.TypeOf(chkTx).String())
+			err = fmt.Errorf("received: %v", reflect.TypeOf(wtx).String())
 		}
 		require.NoError(t, err)
 	}
-	//txDecoder := TxDecoder(cdc)
-	//tx, err := txDecoder(txbytes)
-	//require.NoError(t, err)
+}
 
-	//msgs := tx.GetMsgs()
-	//require.Equal(t, 1, len(msgs))
-	//require.NoError(t, msgs[0].ValidateBasic())
-	//require.True(t, strings.EqualFold(expectedEthMsg.Route(), msgs[0].Route()))
-	//require.True(t, strings.EqualFold(expectedEthMsg.Type(), msgs[0].Type()))
-	//
-	//require.NoError(t, tx.ValidateBasic())
-	//
-	//// error check
-	//_, err = txDecoder([]byte{})
+func TestWrappedTxEncoder(t *testing.T) {
+
+	cdc := makeCodec()
+	tmtypes.UnittestOnlySetVenusHeight(1)
+	defer tmtypes.UnittestOnlySetVenusHeight(0)
+
+
+	evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)
+	require.NoError(t, err)
+
+	info := &sdk.ExTxInfo{
+		Metadata:  []byte("m1"),
+		NodeKey:   []byte("n1"),
+		Signature: []byte("s1"),
+	}
+
+	_, err = types.EncodeWrappedTx(evmTxbytesByRlp, info, int(sdk.WrappedTxType))
+	require.Error(t, err)
+
+	wtxBytes, err := types.EncodeWrappedTx(evmTxbytesByRlp, info, int(sdk.EvmTxType))
+	require.NoError(t, err)
+
+	wtx := mustWtx(t, cdc, wtxBytes)
+	require.Equal(t, bytes.Compare(wtx.Metadata, info.Metadata), 0)
+	require.Equal(t, bytes.Compare(wtx.NodeKey, info.NodeKey), 0)
+	require.Equal(t, bytes.Compare(wtx.Signature, info.Signature), 0)
+
+	info2 := &sdk.ExTxInfo{
+		Metadata:  []byte("m2"),
+		NodeKey:   []byte("n2"),
+		Signature: []byte("s2"),
+	}
+
+	wtxBytes, err = types.EncodeWrappedTx(wtxBytes, info2, int(sdk.WrappedTxType))
+	require.NoError(t, err)
+
+	wtx = mustWtx(t, cdc, wtxBytes)
+	require.Equal(t, bytes.Compare(wtx.Metadata, info2.Metadata), 0)
+	require.Equal(t, bytes.Compare(wtx.NodeKey, info2.NodeKey), 0)
+	require.Equal(t, bytes.Compare(wtx.Signature, info2.Signature), 0)
+
+
+	// todo
+	//wtxBytes, err = types.EncodeWrappedTx(wtxBytes, info2, int(types.EvmTxType))
 	//require.Error(t, err)
-	//
-	//_, err = txDecoder(txbytes[1:])
-	//require.Error(t, err)
+
 }
 
 func TestTxDecoder(t *testing.T) {

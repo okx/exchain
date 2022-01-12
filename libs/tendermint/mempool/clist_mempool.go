@@ -1125,7 +1125,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
-	CheckedTx   []byte   `json:"checked_tx"`  // std.CheckedTx
+	CheckedTx   []byte   `json:"checked_tx"`  // sdk.WrappedTx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {

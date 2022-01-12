@@ -598,6 +598,9 @@ func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 func (tx txTest) GetPayloadTx() sdk.Tx {
 	return nil
 }
+func (tx txTest) GetType() int {
+	return 0
+}
 
 const (
 	routeMsgCounter  = "msgCounter"

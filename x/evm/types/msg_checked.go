@@ -40,6 +40,9 @@ func (tx MsgEthereumCheckedTx) GetPayloadTx() sdk.Tx {
 	return nil
 }
 
+func (tx MsgEthereumCheckedTx) GetType() int {
+	return 0
+}
 // nolint
 func (sig *EthereumCheckedSignature) decode(pyload []byte) error {
 	return nil
