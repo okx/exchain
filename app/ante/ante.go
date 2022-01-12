@@ -35,16 +35,17 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.(type) {
+		origin := tx
+		switch tx := tx.(type) {
 		case auth.StdTx:
 			anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case evmtypes.MsgEthereumTx:
 			anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case app.WrappedTx:
 			{
-				wrapped := tx.(app.WrappedTx)
+				wrapped := tx
 				if !wrapped.IsSigned() {
-					tx = wrapped.GetOriginTx()
+					origin = wrapped.GetOriginTx()
 					break
 				}
 				confident, e := verifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
@@ -74,7 +75,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
-		return anteHandler(ctx, tx, sim)
+		return anteHandler(ctx, origin, sim)
 	}
 }
 

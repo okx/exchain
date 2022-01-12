@@ -19,9 +19,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
-	apptypes "github.com/okex/exchain/app/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
@@ -53,13 +52,18 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	suite.nodePriv, suite.nodePub = newNodeKeyPair()
 
+	// ante init logic
 	ante.SetCurrentNodeKeys(suite.nodePub, suite.nodePriv)
 
-	// generate a series pub key as confident key
+	confidentKeys := []string{}
+	for i := 0; i < 5; i++ {
+		_, pub := newNodeKeyPair()
+		confidentKeys = append(confidentKeys, hexutil.Encode(pub.Bytes()))
+	}
 
 	serverConfig := cfg.DefaultConfig()
-	serverConfig.Mempool.ConfidentNodeKeys = []string{}
-
+	serverConfig.Mempool.ConfidentNodeKeys = confidentKeys
+	ante.SetServerConfig(serverConfig)
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -134,16 +138,16 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 }
 
 func NewWrappedTx(tx sdk.Tx, signature, key []byte) (sdk.Tx, error) {
-	ty := apptypes.StdTransaction
+	ty := okexchain.StdTransaction
 	switch tx.(type) {
 	case auth.StdTx:
-		ty = apptypes.StdTransaction
+		ty = okexchain.StdTransaction
 	case evmtypes.MsgEthereumTx:
-		ty = apptypes.EthereumTransaction
+		ty = okexchain.EthereumTransaction
 	default:
 		return nil, fmt.Errorf("invalid tx type :%T", tx)
 	}
-	return &apptypes.WrappedTx{
+	return &okexchain.WrappedTx{
 		Inner:     tx,
 		Extra:     []byte{},
 		Signature: signature,

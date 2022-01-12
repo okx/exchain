@@ -36,19 +36,20 @@ func CreateAppCallback(cdc *codec.Codec) server.AppCallback {
 }
 
 //CheckedTxSignedFunc is the callback function call by mempool to generate a new CheckedTx and sign it
-func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, _ *abci.Response_CheckTx) (tmtypes.Tx, error) {
+func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_CheckTx) (tmtypes.Tx, error) {
 	decoder := evm.TxDecoder(cdc)
 	// decode to MsgEthereumTx
 	// if err then try decode to MsgEthereumCheckedTx
 	// and then if all faild then return origin Tx
-	return func(tx tmtypes.Tx, res *abci.Response_CheckTx) (tmtypes.Tx, error) {
+	return func(tx tmtypes.Tx, _ *abci.Response_CheckTx) (tmtypes.Tx, error) {
 		slice := []byte(tx)
 		t, err := decoder(slice)
+		var wrapped app.WrappedTx
 		if err != nil {
 			return tx, err
 		} else {
 			var txType uint32
-			switch t.(type) {
+			switch t := t.(type) {
 			case auth.StdTx:
 				{
 					txType = app.StdTransaction
@@ -59,7 +60,7 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, _ *abci.Response_
 				}
 			case app.WrappedTx:
 				{
-					wrapped := t.(app.WrappedTx)
+					wrapped = t
 					if wrapped.IsSigned() {
 						confident, err := verifyConfidentTx([]byte(tx), wrapped.Signature, wrapped.NodeKey)
 						if confident && err == nil {
@@ -70,7 +71,6 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, _ *abci.Response_
 					if err != nil {
 						return tx, err
 					}
-					// FIXME: need reduce the repeated code
 					priv, pub := getCurrentNodeKey()
 					signature, err := priv.Sign(inner)
 					if err != nil {
@@ -100,8 +100,6 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tx tmtypes.Tx, _ *abci.Response_
 			}
 			return slice, nil
 		}
-		// for stdTx
-		// return tx, nil
 	}
 }
 
@@ -136,7 +134,7 @@ func verifyConfidentTx(message, signature, pub []byte) (confident bool, err erro
 			}
 		}
 	} else {
-		err = errors.New("can not verify the signature !")
+		err = errors.New("can not verify the signature")
 	}
 	return
 }

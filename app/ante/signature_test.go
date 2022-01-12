@@ -40,3 +40,7 @@ func (suite *AnteTestSuite) TestWrappedTxSignatureRecover() {
 
 	requireValidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
 }
+
+func (suite *AnteTestSuite) TestSignatureCallback() {
+
+}
