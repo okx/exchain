@@ -72,8 +72,8 @@ func TestAminoDecoder4EvmTx(t *testing.T) {
 
 	cdc := makeCodec()
 	decoder := TxDecoder(cdc)
-	tmtypes.UnittestOnlySetVenusHeight(1)
-	defer tmtypes.UnittestOnlySetVenusHeight(0)
+	tmtypes.UnittestOnlySetMilestoneVenusHeight(1)
+	defer tmtypes.UnittestOnlySetMilestoneVenusHeight(0)
 
 	evmTxbytesByAmino, err := genEvmTxBytes(cdc, false)
 	require.NoError(t, err)
@@ -100,8 +100,8 @@ func TestAminoDecoder4EvmTx(t *testing.T) {
 func TestWrappedTxDecoder(t *testing.T) {
 
 	cdc := makeCodec()
-	tmtypes.UnittestOnlySetVenusHeight(1)
-	defer tmtypes.UnittestOnlySetVenusHeight(0)
+	tmtypes.UnittestOnlySetMilestoneVenusHeight(1)
+	defer tmtypes.UnittestOnlySetMilestoneVenusHeight(0)
 
 	decoder := TxDecoder(cdc)
 
@@ -149,8 +149,8 @@ func TestWrappedTxDecoder(t *testing.T) {
 func TestWrappedTxEncoder(t *testing.T) {
 
 	cdc := makeCodec()
-	tmtypes.UnittestOnlySetVenusHeight(1)
-	defer tmtypes.UnittestOnlySetVenusHeight(0)
+	tmtypes.UnittestOnlySetMilestoneVenusHeight(1)
+	defer tmtypes.UnittestOnlySetMilestoneVenusHeight(0)
 
 	evmTxbytesByRlp, err := genEvmTxBytes(cdc, true)
 	require.NoError(t, err)
