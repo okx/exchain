@@ -579,6 +579,33 @@ func TxDecoderDev(cdc *codec.Codec) sdk.TxDecoder {
 	}
 }
 
+//
+func TxDecoderOnlyInQuery(cdc *codec.Codec) sdk.TxDecoder {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		var tx sdk.Tx
+		var err error
+		if len(txBytes) == 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+		}
+
+		var ethTx MsgEthereumTx
+		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+			return ethTx, nil
+		}
+
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
+		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+			return v.(sdk.Tx), nil
+		}
+		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			return tx, nil
+		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+	}
+}
+
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.
 //

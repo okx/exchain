@@ -16,7 +16,7 @@ var logger decoderLogger
 var loggerOnce sync.Once
 func SetLogger(l log.Logger) {
 	loggerOnce.Do(func() {
-		logger.Logger = l.With("module", "main")
+		logger.Logger = l.With("module", "txdecoder")
 	})
 }
 
@@ -118,9 +118,13 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 
 // 1. Try to decode as MsgEthereumTx by RLP
 func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
-	if !types.HigherThanVenus(height) {
-		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "lower than Venus")
-		return
+
+	// bypass height checking in case of a negative number
+	if height >= 0 {
+		if !types.HigherThanVenus(height) {
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "lower than Venus")
+			return
+		}
 	}
 
 	var ethTx MsgEthereumTx
@@ -157,11 +161,15 @@ func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err e
 
 
 func sanityCheck(tx sdk.Tx, height int64) (output sdk.Tx, err error) {
-	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
-		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
-	} else {
-		output = tx
+	output = tx
+	// bypass height checking in case of a negative number
+	if height >= 0 {
+		if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
+			output = nil
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+		}
 	}
 	return
 }
+
 
