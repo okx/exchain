@@ -135,7 +135,7 @@ func TestTxDecoder(t *testing.T) {
 	require.Error(t, err)
 
 	oldHeight := types.GetMilestoneVenusHeight()
-	defer types.SetMilestoneVenusHeight(oldHeight)
+	defer types.UnittestOnlySetMilestoneVenusHeight(oldHeight)
 	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
 	require.Nil(t, err)
 
@@ -150,7 +150,7 @@ func TestTxDecoder(t *testing.T) {
 		{1000, 1000, false, true},
 		{1500, 1000, false, true},
 	} {
-		types.SetMilestoneVenusHeight(c.venusHeight)
+		types.UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
 		_, err = TxDecoder(cdc)(txbytes, c.curHeight)
 		require.Equal(t, c.enableAminoDecoder, err == nil)
 		_, err = TxDecoder(cdc)(rlpBytes, c.curHeight)

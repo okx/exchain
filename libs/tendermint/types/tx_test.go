@@ -27,7 +27,7 @@ func randInt(low, high int) int {
 func TestTx_Hash(t *testing.T) {
 	tx := Tx("Hello, world!")
 	oldHeight := GetMilestoneVenusHeight()
-	defer SetMilestoneVenusHeight(oldHeight)
+	defer UnittestOnlySetMilestoneVenusHeight(oldHeight)
 	for _, c := range []struct {
 		curHeight   int64
 		venusHeight int64
@@ -38,7 +38,7 @@ func TestTx_Hash(t *testing.T) {
 		{1000, 1000, etherhash.Sum(tx)},
 		{1500, 1000, etherhash.Sum(tx)},
 	} {
-		SetMilestoneVenusHeight(c.venusHeight)
+		UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
 		assert.Equal(t, c.expected, tx.Hash(c.curHeight))
 	}
 }

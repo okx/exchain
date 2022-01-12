@@ -58,10 +58,7 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
-// SetMilestoneVenusHeight can be used in unit test
-func SetMilestoneVenusHeight(height int64) {
-	milestoneVenusHeight = height
-}
+
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
@@ -88,4 +85,9 @@ func GetVenusHeight() int64 {
 
 func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
+}
+
+// can be used in unit test only
+func UnittestOnlySetMilestoneVenusHeight(height int64) {
+	milestoneVenusHeight = height
 }
