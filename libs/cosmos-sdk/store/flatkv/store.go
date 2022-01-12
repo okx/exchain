@@ -8,7 +8,11 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-const FlagEnable = "enable-flat-kv"
+const (
+	latestVersionKey = "s/latest"
+
+	FlagEnable = "enable-flat-kv"
+)
 
 // Store wraps app_flat_kv.db for read performance.
 type Store struct {
@@ -33,6 +37,9 @@ func NewStore(db dbm.DB) *Store {
 	}
 }
 
+func (st *Store) Enable() bool {
+	return st.enable
+}
 func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
@@ -82,7 +89,7 @@ func (st *Store) Delete(key []byte) {
 	st.deleteCache(key)
 }
 
-func (st *Store) Commit() {
+func (st *Store) Commit(version int64) {
 	if !st.enable {
 		return
 	}
@@ -93,6 +100,7 @@ func (st *Store) Commit() {
 	for key, value := range st.cache {
 		batch.Set([]byte(key), value)
 	}
+	st.setLatestVersion(batch, version)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
@@ -184,4 +192,33 @@ func (st *Store) addCache(key, value []byte) {
 func (st *Store) deleteCache(key []byte) {
 	strKey := string(key)
 	delete(st.cache, strKey)
+}
+
+func (st *Store) GetLatestVersion() int64 {
+	if !st.enable {
+		return 0
+	}
+	return getLatestVersion(st.db)
+}
+
+func getLatestVersion(db dbm.DB) int64 {
+	var latest int64
+	latestBytes, err := db.Get([]byte(latestVersionKey))
+	if err != nil {
+		panic(err)
+	} else if latestBytes == nil {
+		return 0
+	}
+
+	err = cdc.UnmarshalBinaryLengthPrefixed(latestBytes, &latest)
+	if err != nil {
+		panic(err)
+	}
+
+	return latest
+}
+
+func (st *Store) setLatestVersion(batch dbm.Batch, version int64) {
+	latestBytes := cdc.MustMarshalBinaryLengthPrefixed(version)
+	batch.Set([]byte(latestVersionKey), latestBytes)
 }

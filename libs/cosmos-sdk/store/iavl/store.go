@@ -75,10 +75,16 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 		return nil, err
 	}
 
-	return &Store{
+	st := &Store{
 		tree:        tree,
 		flatKVStore: flatkv.NewStore(flatKVDB),
-	}, nil
+	}
+
+	if err = st.ValidateFlatVersion(); err != nil {
+		return nil, err
+	}
+
+	return st, nil
 }
 
 func GetCommitVersion(db dbm.DB) (int64, error) {
@@ -143,7 +149,7 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 	}
 
 	// commit to flat kv db
-	st.commitFlatKV()
+	st.commitFlatKV(version)
 
 	return types.CommitID{
 		Version: version,

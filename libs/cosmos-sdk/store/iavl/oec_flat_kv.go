@@ -1,5 +1,7 @@
 package iavl
 
+import "fmt"
+
 func (st *Store) getFlatKV(key []byte) []byte {
 	if st.flatKVStore == nil {
 		return nil
@@ -14,11 +16,11 @@ func (st *Store) setFlatKV(key, value []byte) {
 	st.flatKVStore.Set(key, value)
 }
 
-func (st *Store) commitFlatKV() {
+func (st *Store) commitFlatKV(version int64) {
 	if st.flatKVStore == nil {
 		return
 	}
-	st.flatKVStore.Commit()
+	st.flatKVStore.Commit(version)
 }
 
 func (st *Store) hasFlatKV(key []byte) bool {
@@ -68,4 +70,18 @@ func (st *Store) GetFlatKVWriteCount() int {
 		return 0
 	}
 	return st.flatKVStore.GetDBWriteCount()
+}
+
+func (st *Store) ValidateFlatVersion() error {
+	if !st.flatKVStore.Enable() {
+		return nil
+	}
+
+	treeVersion := st.tree.Version()
+	flatVersion := st.flatKVStore.GetLatestVersion()
+	if flatVersion != 0 && flatVersion != treeVersion {
+		return fmt.Errorf("the version of flat db(%d) does not match the version of iavl tree(%d)",
+			flatVersion, treeVersion)
+	}
+	return nil
 }
