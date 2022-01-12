@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"math/big"
 	"reflect"
 	"testing"
@@ -27,22 +26,6 @@ func genEvmTxBytes(cdc *codec.Codec, rlp bool) (res []byte, err error) {
 	} else {
 		res = cdc.MustMarshalBinaryLengthPrefixed(expectedEthMsg)
 	}
-	return
-}
-
-
-func genTxBytes(cdc *codec.Codec) (res []byte, err error) {
-
-	msg := stakingtypes.MsgEditValidator{
-		Description: stakingtypes.Description{
-			"1",
-			"12",
-			"3",
-			"4",
-		},
-	}
-	stakingtypes.RegisterCodec(cdc)
-	res, err = cdc.MarshalBinaryLengthPrefixed(msg)
 	return
 }
 
