@@ -31,6 +31,12 @@ func (c MockClient) BroadcastTxSync(tx tmtypes.Tx) (*ctypes.ResultBroadcastTx, e
 	return nil, c.err
 }
 
+func (c MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error) {
+	return &ctypes.ResultBlockchainInfo{
+		LastHeight: 0,
+	}, nil
+}
+
 func CreateContextWithErrorAndMode(err error, mode string) CLIContext {
 	return CLIContext{
 		Client:        MockClient{err: err},
