@@ -598,8 +598,8 @@ func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 func (tx txTest) GetPayloadTx() sdk.Tx {
 	return nil
 }
-func (tx txTest) GetType() int {
-	return 0
+func (tx txTest) GetType() sdk.TransactionType {
+	return sdk.StdTxType
 }
 
 const (

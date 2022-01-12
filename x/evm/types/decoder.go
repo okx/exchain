@@ -137,12 +137,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	var v interface{}
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
-		tx = v.(sdk.Tx)
-		if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
-			tx = nil
-			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
-		}
-		return
+		return sanityCheck(v.(sdk.Tx), height)
 	} else {
 		dumpErr(txBytes, "UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller", err)
 	}
@@ -153,15 +148,20 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 // 3. the original amino one, decode by reflection.
 func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
-		if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
-			tx = nil
-			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
-		}
-		return
+		return sanityCheck(tx, height)
 	} else {
 		dumpErr(txBytes, "UnmarshalBinaryLengthPrefixed", err)
 	}
 	return
 }
 
+
+func sanityCheck(tx sdk.Tx, height int64) (output sdk.Tx, err error) {
+	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
+		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+	} else {
+		output = tx
+	}
+	return
+}
 

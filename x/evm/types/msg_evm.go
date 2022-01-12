@@ -56,8 +56,8 @@ func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
 	return nil
 }
 
-func (tx MsgEthereumTx) GetType() int {
-	return 0
+func (tx MsgEthereumTx) GetType() sdk.TransactionType {
+	return sdk.EvmTxType
 }
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)

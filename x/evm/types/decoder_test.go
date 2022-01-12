@@ -112,7 +112,7 @@ func TestWrappedTxDecoder(t *testing.T) {
 			Signature: []byte("s1"),
 		}
 
-		wtxBytes, err := types.EncodeWrappedTx(txbytes, info, int(sdk.EvmTxType))
+		wtxBytes, err := types.EncodeWrappedTx(txbytes, info, sdk.EvmTxType)
 		require.NoError(t, err)
 
 		wtx, err := decoder(wtxBytes, 2)
@@ -144,10 +144,10 @@ func TestWrappedTxEncoder(t *testing.T) {
 		Signature: []byte("s1"),
 	}
 
-	_, err = types.EncodeWrappedTx(evmTxbytesByRlp, info, int(sdk.WrappedTxType))
+	_, err = types.EncodeWrappedTx(evmTxbytesByRlp, info, sdk.WrappedTxType)
 	require.Error(t, err)
 
-	wtxBytes, err := types.EncodeWrappedTx(evmTxbytesByRlp, info, int(sdk.EvmTxType))
+	wtxBytes, err := types.EncodeWrappedTx(evmTxbytesByRlp, info, sdk.EvmTxType)
 	require.NoError(t, err)
 
 	wtx := mustWtx(t, cdc, wtxBytes)
@@ -161,7 +161,7 @@ func TestWrappedTxEncoder(t *testing.T) {
 		Signature: []byte("s2"),
 	}
 
-	wtxBytes, err = types.EncodeWrappedTx(wtxBytes, info2, int(sdk.WrappedTxType))
+	wtxBytes, err = types.EncodeWrappedTx(wtxBytes, info2, sdk.WrappedTxType)
 	require.NoError(t, err)
 
 	wtx = mustWtx(t, cdc, wtxBytes)

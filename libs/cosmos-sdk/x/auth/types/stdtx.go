@@ -37,8 +37,8 @@ func (tx StdTx) GetPayloadTx() sdk.Tx {
 	return nil
 }
 
-func (tx StdTx) GetType() int {
-	return 0
+func (tx StdTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
 }
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
