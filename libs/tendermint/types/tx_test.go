@@ -2,9 +2,9 @@ package types
 
 import (
 	"bytes"
-	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"testing"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	ctest "github.com/okex/exchain/libs/tendermint/libs/test"
