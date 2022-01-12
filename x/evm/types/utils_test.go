@@ -9,8 +9,11 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,6 +106,71 @@ func TestResultData_String(t *testing.T) {
 	}
 
 	require.True(t, strings.EqualFold(expectedResultDataStr, data.String()))
+}
+
+func TestTxDecoder(t *testing.T) {
+	expectUint64, expectedBigInt, expectedBytes := uint64(1024), big.NewInt(1024), []byte("default payload")
+	expectedEthAddr := ethcmn.BytesToAddress([]byte("test_address"))
+	expectedEthMsg := NewMsgEthereumTx(expectUint64, &expectedEthAddr, expectedBigInt, expectUint64, expectedBigInt, expectedBytes)
+
+	// register codec
+	cdc := codec.New()
+	cdc.RegisterInterface((*sdk.Tx)(nil), nil)
+	RegisterCodec(cdc)
+
+	txbytes := cdc.MustMarshalBinaryLengthPrefixed(expectedEthMsg)
+	txDecoder := TxDecoder(cdc)
+	tx, err := txDecoder(txbytes)
+	require.NoError(t, err)
+
+	msgs := tx.GetMsgs()
+	require.Equal(t, 1, len(msgs))
+	require.NoError(t, msgs[0].ValidateBasic())
+	require.True(t, strings.EqualFold(expectedEthMsg.Route(), msgs[0].Route()))
+	require.True(t, strings.EqualFold(expectedEthMsg.Type(), msgs[0].Type()))
+
+	require.NoError(t, tx.ValidateBasic())
+
+	// error check
+	_, err = txDecoder([]byte{})
+	require.Error(t, err)
+
+	_, err = txDecoder(txbytes[1:])
+	require.Error(t, err)
+
+	oldHeight := types.GetMilestoneVenusHeight()
+	defer types.UnittestOnlySetMilestoneVenusHeight(oldHeight)
+	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
+	require.Nil(t, err)
+
+	for _, c := range []struct {
+		curHeight          int64
+		venusHeight        int64
+		enableAminoDecoder bool
+		enableRLPDecoder   bool
+	}{
+		{999, 0, true, false},
+		{999, 1000, true, false},
+		{1000, 1000, false, true},
+		{1500, 1000, false, true},
+	} {
+		types.UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
+		_, err = TxDecoder(cdc)(txbytes, c.curHeight)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes, c.curHeight)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+
+		// use global height when height is not pass through parameters.
+		global.SetGlobalHeight(c.curHeight)
+		_, err = TxDecoder(cdc)(txbytes)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+	}
+	// only one height parameter is allowed.
+	tx, err = TxDecoder(cdc)(txbytes, 0, 999)
+	require.NotNil(t, err)
+
 }
 
 func TestEthLogAmino(t *testing.T) {

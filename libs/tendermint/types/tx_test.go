@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	ctest "github.com/okex/exchain/libs/tendermint/libs/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func makeTxs(cnt, size int) Txs {
@@ -21,6 +22,25 @@ func makeTxs(cnt, size int) Txs {
 func randInt(low, high int) int {
 	off := tmrand.Int() % (high - low)
 	return low + off
+}
+
+func TestTx_Hash(t *testing.T) {
+	tx := Tx("Hello, world!")
+	oldHeight := GetMilestoneVenusHeight()
+	defer UnittestOnlySetMilestoneVenusHeight(oldHeight)
+	for _, c := range []struct {
+		curHeight   int64
+		venusHeight int64
+		expected    []byte
+	}{
+		{999, 0, tmhash.Sum(tx)},
+		{999, 1000, tmhash.Sum(tx)},
+		{1000, 1000, etherhash.Sum(tx)},
+		{1500, 1000, etherhash.Sum(tx)},
+	} {
+		UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
+		assert.Equal(t, c.expected, tx.Hash(c.curHeight))
+	}
 }
 
 func TestTxIndex(t *testing.T) {
