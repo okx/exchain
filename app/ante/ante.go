@@ -35,91 +35,46 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		origin := tx
-	check:
-		switch origin.(type) {
+		switch tx.(type) {
 		case auth.StdTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountSetupDecorator(ak),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				authante.NewMempoolFeeDecorator(),
-				authante.NewValidateBasicDecorator(),
-				authante.NewValidateMemoDecorator(ak),
-				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
-				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				authante.NewSigVerificationDecorator(ak),
-				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-				NewValidateMsgHandlerDecorator(validateMsgHandler),
-			)
-
+			anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case evmtypes.MsgEthereumTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-				NewGasLimitDecorator(evmKeeper),
-				NewEthMempoolFeeDecorator(evmKeeper),
-				authante.NewValidateBasicDecorator(),
-				NewEthSigVerificationDecorator(),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				NewAccountVerificationDecorator(ak, evmKeeper),
-				NewNonceVerificationDecorator(ak),
-				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
-			)
+			anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case app.WrappedTx:
 			{
-				wrapped := origin.(app.WrappedTx)
+				wrapped := tx.(app.WrappedTx)
 				if !wrapped.IsSigned() {
-					origin = wrapped.GetOriginTx()
-					goto check
+					tx = wrapped.GetOriginTx()
+					break
 				}
 				confident, e := verifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
-				if confident {
-					switch wrapped.Type {
-					//FIXME: add new ante logic
-					case app.EthereumTransaction:
-						anteHandler = sdk.ChainAnteDecorators(
-							authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-							NewAccountSetupDecorator(ak),
-							NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-							authante.NewMempoolFeeDecorator(),
-							authante.NewConsumeGasForTxSizeDecorator(ak),
-							authante.NewDeductFeeDecorator(ak, sk),
-							authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-							authante.NewSigVerificationDecorator(ak),
-							authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-							NewValidateMsgHandlerDecorator(validateMsgHandler),
-						)
-					case app.StdTransaction:
-						anteHandler = sdk.ChainAnteDecorators(
-							NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-							NewGasLimitDecorator(evmKeeper),
-							NewEthMempoolFeeDecorator(evmKeeper),
-							NewEthSigVerificationDecorator(),
-							NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-							NewAccountVerificationDecorator(ak, evmKeeper),
-							NewNonceVerificationDecorator(ak),
-							NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-							NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
-						)
-					default:
-						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-					}
-				} else {
-					if e != nil {
-						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
-					}
-					origin = wrapped.GetOriginTx()
+				if e != nil {
+					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
 				}
+				switch wrapped.Type {
+				case app.EthereumTransaction:
+					{
+						if confident {
+							anteHandler = buildLightEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+						} else {
+							anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+						}
+					}
+				case app.StdTransaction:
+					if confident {
+						anteHandler = buildLightStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+					} else {
+						anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+					}
+				default:
+					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+				}
+
 			}
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
-
-		return anteHandler(ctx, origin, sim)
+		return anteHandler(ctx, tx, sim)
 	}
 }
 
