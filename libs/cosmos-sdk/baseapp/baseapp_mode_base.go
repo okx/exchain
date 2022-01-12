@@ -158,27 +158,31 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 
 func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
 
+	enableWrappedTx := false
+	//enableWrappedTx = true
+	if !enableWrappedTx {
+		return
+	}
 	if info.verifyResult > 0 {
 		return
 	}
 
-	enableCheckedTx := false
-	enableCheckedTx = true
-
-	if enableCheckedTx && m.app.wrappedTxEncoder != nil {
-
-		exInfo := &sdk.ExTxInfo{
-			Metadata: []byte("dummy Metadata"),
-			Signature: []byte("dummy Signature"),
-			NodeKey: []byte("dummy NodeKey"),
-		}
-
-		data, err := m.app.wrappedTxEncoder(info.txBytes, exInfo, info.tx.GetType())
-		if err == nil {
-			exTxInfo.CheckedTx = data
-			m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)
-		}
+	if  m.app.wrappedTxEncoder == nil {
+		return
 	}
+
+	exInfo := &sdk.ExTxInfo{
+		Metadata:  []byte("dummy Metadata"),
+		Signature: []byte("dummy Signature"),
+		NodeKey:   []byte("dummy NodeKey"),
+	}
+
+	data, err := m.app.wrappedTxEncoder(info.txBytes, exInfo, info.tx.GetType())
+	if err == nil {
+		exTxInfo.WrappedTx = data
+		m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)
+	}
+
 }
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {

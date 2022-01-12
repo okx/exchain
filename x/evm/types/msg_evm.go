@@ -37,8 +37,6 @@ var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("00000000000000000000000000000
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgEthereumTx = "ethereum"
-	// TypeMsgEthereumCheckekTx defines the type string of Erhereum checked tx
-	TypeMsgEthereumCheckekTx = "ethereum-checked"
 )
 
 
