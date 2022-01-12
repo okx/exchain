@@ -400,7 +400,10 @@ type StdSignature struct {
 
 // DefaultTxDecoder logic for standard transaction decoding
 func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 0 {
+			return nil, fmt.Errorf("too many height parameters")
+		}
 		var tx = StdTx{}
 
 		if len(txBytes) == 0 {
@@ -427,8 +430,19 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 
 func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
+		//if !types.HigherThanVenus(height) {
+		//	return nil, fmt.Errorf("lower than Venus")
+		//}
 		return rlp.EncodeToBytes(tx)
 	}
+}
+
+func EthereumTxDecode(b []byte, tx interface{}) error {
+	//if !types.HigherThanVenus(height) {
+	//	return fmt.Errorf("lower than Venus")
+	//}
+
+	return rlp.DecodeBytes(b, tx)
 }
 
 // MarshalYAML returns the YAML representation of the signature.

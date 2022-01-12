@@ -2,6 +2,7 @@ package eth
 
 import (
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rlp"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -96,7 +96,7 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 		}
 
 		tx := new(evmtypes.MsgEthereumTx)
-		if err = rlp.DecodeBytes(txBytes, tx); err != nil {
+		if err = authtypes.EthereumTxDecode(txBytes, tx); err != nil {
 			return err
 		}
 		if int(tx.Data.AccountNonce) != txNonce {
@@ -121,6 +121,10 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 }
 
 func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
+	info, err := api.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return common.Hash{}, err
+	}
 	// Get sender address
 	chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 	if err != nil {
@@ -139,7 +143,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.BytesToHash(types.Tx(txBytes).Hash(api.clientCtx.Height)), nil
+	return common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight)), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
@@ -281,7 +285,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	key := []byte(address.Hex() + "|" + strconv.Itoa(int(tx.Data.AccountNonce)))
 
-	txBytes, err := rlp.EncodeToBytes(tx)
+	txEncoder := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}

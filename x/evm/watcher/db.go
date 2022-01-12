@@ -14,6 +14,7 @@ const (
 	FlagFastQuery    = "fast-query"
 	FlagFastQueryLru = "fast-lru"
 	FlagDBBackend    = "db_backend"
+	FlagCheckWd      = "check_watchdb"
 
 	WatchDbDir  = "data"
 	WatchDBName = "watch"
