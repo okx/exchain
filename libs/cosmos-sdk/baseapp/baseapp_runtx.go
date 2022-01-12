@@ -115,9 +115,12 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 	info.verifyResult = newCtx.VerifyResult()
-	app.logger.Info("anteHandler done",
+	app.logger.Debug("anteHandler finished",
+		"mode", mode,
+		"type", info.tx.GetType(),
 		"verifyResult", info.verifyResult,
 		"err", err,
+		"tx", info.tx,
 		"payloadtx", info.tx.GetPayloadTx())
 
 	if !newCtx.IsZero() {
@@ -156,7 +159,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
-	app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
+	//app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
 
 	//just for asynchronous deliver tx
 	if app.parallelTxManage.isAsyncDeliverTx {

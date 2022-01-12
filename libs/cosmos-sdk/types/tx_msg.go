@@ -68,6 +68,19 @@ const (
 	UnknownType     TransactionType = 3
 )
 
+func (t TransactionType) String() (res string) {
+	switch t {
+	case StdTxType:
+		res = "StdTx"
+	case WrappedTxType:
+		res = "WrappedTx"
+	case EvmTxType:
+		res = "EvmTx"
+	default:
+		res = "Unknown"
+	}
+	return res
+}
 //__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)

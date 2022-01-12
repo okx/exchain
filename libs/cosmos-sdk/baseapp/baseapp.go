@@ -88,6 +88,26 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
+
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
