@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -17,6 +16,8 @@ var (
 	KeyPrefixRootMptHash        = []byte{0x01}
 	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
+
+const TriesInMemory = 100
 
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
@@ -94,7 +95,7 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
-		for _, offset := range []uint64{0, 1, core.TriesInMemory - 1} {
+		for _, offset := range []uint64{0, 1, TriesInMemory - 1} {
 			if number := uint64(ctx.BlockHeight()); number > offset {
 				recent := number - offset
 				if recent <= oecStartHeight || recent <= k.startHeight {
@@ -136,7 +137,7 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 		k.triegc.Push(curMptRoot, -int64(curHeight))
 
-		if curHeight > core.TriesInMemory {
+		if curHeight > TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
@@ -147,7 +148,7 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 				triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
-			chosen := curHeight - core.TriesInMemory
+			chosen := curHeight - TriesInMemory
 
 			if chosen <= int64(k.startHeight) {
 				return
