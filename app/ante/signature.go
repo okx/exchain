@@ -51,45 +51,34 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_Check
 		if err != nil {
 			return tx, err
 		} else {
-			var txType uint32
-			switch t := t.(type) {
-			case auth.StdTx:
-				{
-					txType = app.StdTransaction
-				}
-			case evmtypes.MsgEthereumTx:
-				{
-					txType = app.EthereumTransaction
-				}
-			case app.WrappedTx:
-				{
-					wrapped = t
-					if wrapped.IsSigned() {
-						confident, err := VerifyConfidentTx([]byte(tx), wrapped.Signature, wrapped.NodeKey)
-						if confident && err == nil {
-							return tx, nil
-						}
-					}
-					inner, err := cdc.MarshalBinaryLengthPrefixed(wrapped.Inner)
-					if err != nil {
-						return tx, err
-					}
-					priv, pub := getCurrentNodeKey()
-					signature, err := priv.Sign(inner)
-					if err != nil {
-						return tx, err
-					}
-					wrapped = wrapped.WithSignature(signature, pub.Bytes())
-					slice, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
-					if err != nil {
-						return tx, err
-					}
-					return slice, nil
-				}
+			if origin, ok := t.(auth.StdTx); ok {
+				wrapped.Inner = origin
+				wrapped.Type = app.StdTransaction
 			}
-			wrapped := app.WrappedTx{
-				Inner: t,
-				Type:  txType,
+			if origin, ok := t.(evmtypes.MsgEthereumTx); ok {
+				wrapped.Inner = origin
+				wrapped.Type = app.EthereumTransaction
+			}
+			if origin, ok := t.(app.WrappedTx); ok {
+				message, _ := cdc.MarshalBinaryLengthPrefixed(origin.Inner)
+				if origin.IsSigned() {
+					confident, err := VerifyConfidentTx(message, wrapped.Signature, wrapped.NodeKey)
+					if confident && err == nil {
+						return tx, nil
+					}
+				}
+				priv, pub := getCurrentNodeKey()
+				signature, err := priv.Sign(message)
+				if err != nil {
+					return tx, err
+				}
+				origin.NodeKey = pub.Bytes()
+				origin.Signature = signature
+				slice, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
+				if err != nil {
+					return tx, err
+				}
+				return slice, nil
 			}
 			priv, pub := getCurrentNodeKey()
 			signature, err := priv.Sign(tx)

@@ -2,6 +2,7 @@ package ante
 
 import (
 	app "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -30,25 +31,29 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
+func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
 		origin := tx
-		switch tx := tx.(type) {
+		switch wrapped := tx.(type) {
 		case auth.StdTx:
 			anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case evmtypes.MsgEthereumTx:
 			anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 		case app.WrappedTx:
 			{
-				wrapped := tx
 				if !wrapped.IsSigned() {
 					origin = wrapped.GetOriginTx()
 					break
 				}
-				confident, e := VerifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
+				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx())
+				if err != nil {
+					origin = wrapped.GetOriginTx()
+					break
+				}
+				confident, e := VerifyConfidentTx(message, wrapped.Signature, wrapped.NodeKey)
 				if e != nil {
 					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
 				}

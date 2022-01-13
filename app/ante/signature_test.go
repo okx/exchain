@@ -61,7 +61,7 @@ func (suite *AnteTestSuite) TestSignatureCallback() {
 	callback := ante.CheckedTxSignedFunc(suite.app.Codec())
 	wrappedTx, err := suite.app.Codec().MarshalBinaryLengthPrefixed(wrapped)
 	suite.Require().NoError(err)
-	callbacked, err := callback(tmtypes.Tx(wrappedTx), nil)
+	callbacked, err := callback(tmtypes.Tx(wrappedTx), nil) // because of the inner type assertion failed ????
 	suite.Require().NoError(err)
 	suite.Require().Equal(wrappedTx, []byte(callbacked))
 }

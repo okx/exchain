@@ -46,7 +46,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "okexchain-3", Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
+	suite.anteHandler = ante.NewAnteHandler(suite.app.Codec(), suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
 
 	appconfig.RegisterDynamicConfig(suite.app.Logger())
 
