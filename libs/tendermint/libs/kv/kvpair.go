@@ -78,7 +78,7 @@ func MarshalPairToAmino(pair Pair) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (pair *Pair) UnmarshalFromAmino(data []byte) error {
+func (pair *Pair) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

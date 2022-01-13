@@ -128,7 +128,7 @@ type ABCIResponses struct {
 	BeginBlock *abci.ResponseBeginBlock  `json:"begin_block"`
 }
 
-func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
+func (arz ABCIResponses) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
@@ -143,7 +143,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := arz.DeliverTxs[i].MarshalToAmino()
+				data, err := arz.DeliverTxs[i].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
@@ -160,7 +160,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			data, err := arz.EndBlock.MarshalToAmino()
+			data, err := arz.EndBlock.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -176,7 +176,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			data, err := arz.BeginBlock.MarshalToAmino()
+			data, err := arz.BeginBlock.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -301,7 +301,7 @@ func NewABCIResponses(block *types.Block) *ABCIResponses {
 
 // Bytes serializes the ABCIResponse using go-amino.
 func (arz *ABCIResponses) Bytes() []byte {
-	bz, err := arz.MarshalToAmino()
+	bz, err := arz.MarshalToAmino(cdc)
 	if err != nil {
 		return cdc.MustMarshalBinaryBare(arz)
 	}

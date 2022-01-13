@@ -277,7 +277,7 @@ func TestResultDataAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(data)
 		require.NoError(t, err)
 
-		actual, err := data.MarshalToAmino()
+		actual, err := data.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 		t.Log(fmt.Sprintf("%d pass\n", i))
@@ -286,7 +286,7 @@ func TestResultDataAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expect, &expectRd)
 		require.NoError(t, err)
 		var actualRd ResultData
-		err = actualRd.UnmarshalFromAmino(expect)
+		err = actualRd.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
 

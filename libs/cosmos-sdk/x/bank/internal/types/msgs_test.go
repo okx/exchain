@@ -84,7 +84,7 @@ func TestMsgSendAmino(t *testing.T) {
 		require.EqualValues(t, msg2, msg3)
 
 		var msg4 MsgSend
-		err = msg4.UnmarshalFromAmino(data[4:])
+		err = msg4.UnmarshalFromAmino(cdc, data[4:])
 		require.NoError(t, err)
 		require.EqualValues(t, msg2, msg4)
 	}

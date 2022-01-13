@@ -157,7 +157,7 @@ func (cc ChainConfig) Validate() error {
 	return nil
 }
 
-func (config *ChainConfig) UnmarshalFromAmino(data []byte) error {
+func (config *ChainConfig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

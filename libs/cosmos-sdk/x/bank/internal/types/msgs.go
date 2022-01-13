@@ -58,7 +58,7 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }
 
-func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgSend) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -98,7 +98,7 @@ func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
 			copy(msg.ToAddress, subData)
 		case 3:
 			var coin sdk.DecCoin
-			err = coin.UnmarshalFromAmino(subData)
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

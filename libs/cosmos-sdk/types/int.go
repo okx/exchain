@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/tendermint/go-amino"
+
 	"math/big"
 )
 
@@ -379,7 +381,7 @@ func (i *Int) UnmarshalAmino(text string) error {
 	return unmarshalAmino(i.i, text)
 }
 
-func (i *Int) UnmarshalFromAmino(data []byte) error {
+func (i *Int) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	if i.i == nil { // Necessary since default Int initialization has i.i as nil
 		i.i = new(big.Int)
 	}

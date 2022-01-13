@@ -125,7 +125,7 @@ type TxResult struct {
 	Result abci.ResponseDeliverTx `json:"result"`
 }
 
-func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
+func (txResult *TxResult) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -167,7 +167,7 @@ func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
 			txResult.Tx = make(Tx, dataLen)
 			copy(txResult.Tx, subData)
 		case 4:
-			err = txResult.Result.UnmarshalFromAmino(subData)
+			err = txResult.Result.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

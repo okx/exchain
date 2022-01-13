@@ -80,7 +80,7 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				tx.Msgs = append(tx.Msgs, v.(sdk.Msg))
 			}
 		case 2:
-			if err := tx.Fee.UnmarshalFromAmino(subData); err != nil {
+			if err := tx.Fee.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 3:
@@ -306,7 +306,7 @@ func (fee StdFee) GasPrices() sdk.DecCoins {
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
 }
 
-func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
+func (fee *StdFee) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -338,7 +338,7 @@ func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
 		switch pos {
 		case 1:
 			var coin sdk.DecCoin
-			err = coin.UnmarshalFromAmino(subData)
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

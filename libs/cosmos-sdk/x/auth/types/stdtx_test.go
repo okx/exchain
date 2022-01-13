@@ -292,7 +292,7 @@ func TestStdFeeAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue StdFee
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(ModuleCdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)

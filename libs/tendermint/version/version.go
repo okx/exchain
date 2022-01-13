@@ -83,7 +83,7 @@ func (c Consensus) AminoSize() int {
 	return size
 }
 
-func (c *Consensus) UnmarshalFromAmino(data []byte) error {
+func (c *Consensus) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 
 	for {

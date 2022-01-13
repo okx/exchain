@@ -752,7 +752,7 @@ func TestBlockIDAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var tc3 BlockID
-		err = tc3.UnmarshalFromAmino(bz)
+		err = tc3.UnmarshalFromAmino(cdc, bz)
 		require.NoError(t, err)
 
 		require.EqualValues(t, tc2, tc3)
@@ -790,7 +790,7 @@ func TestHeaderAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue Header
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
@@ -822,7 +822,7 @@ func BenchmarkHeaderAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var header Header
-				err := header.UnmarshalFromAmino(data)
+				err := header.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -850,7 +850,7 @@ func TestDataAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue Data
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
@@ -873,7 +873,7 @@ func TestCommitSigAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue CommitSig
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 
 		require.NoError(t, err)
 
@@ -910,7 +910,7 @@ func TestCommitAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue Commit
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)

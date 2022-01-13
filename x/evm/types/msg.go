@@ -4,10 +4,11 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -123,7 +124,7 @@ func (msg MsgEthermint) To() *ethcmn.Address {
 	return &addr
 }
 
-func (msg *MsgEthermint) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgEthermint) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -584,7 +585,7 @@ func (msg MsgEthereumTx) GetGasPrice() *big.Int {
 	return msg.Data.Price
 }
 
-func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -616,7 +617,7 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			if err := msg.Data.UnmarshalFromAmino(subData); err != nil {
+			if err := msg.Data.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		default:

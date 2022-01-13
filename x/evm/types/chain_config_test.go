@@ -303,7 +303,7 @@ func TestChainConfigAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue ChainConfig
-		err = actualValue.UnmarshalFromAmino(expectData[4:])
+		err = actualValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)

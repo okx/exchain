@@ -681,7 +681,7 @@ func TestPacketMsgAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectData, actualData)
-		actualData, err = msg.MarshalToAmino()
+		actualData, err = msg.MarshalToAmino(cdc)
 		if actualData == nil {
 			actualData = []byte{}
 		}
@@ -699,7 +699,7 @@ func TestPacketMsgAmino(t *testing.T) {
 		actulaValue = tmp.(PacketMsg)
 
 		require.EqualValues(t, expectValue, actulaValue)
-		err = actulaValue.UnmarshalFromAmino(expectData[4:])
+		err = actulaValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
 		require.EqualValues(t, expectValue, actulaValue)
 	}

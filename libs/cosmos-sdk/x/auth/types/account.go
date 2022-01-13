@@ -64,7 +64,7 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			copy(acc.Address, subData)
 		case 2:
 			var coin sdk.DecCoin
-			err = coin.UnmarshalFromAmino(subData)
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -133,7 +133,7 @@ func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 				break
 			}
 			if coinsLen == 1 {
-				data, err := acc.Coins[0].MarshalToAmino()
+				data, err := acc.Coins[0].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
@@ -152,7 +152,7 @@ func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 					if err != nil {
 						return nil, err
 					}
-					data, err := coin.MarshalToAmino()
+					data, err := coin.MarshalToAmino(cdc)
 					if err != nil {
 						return nil, err
 					}

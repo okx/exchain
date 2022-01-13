@@ -32,6 +32,8 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 		Hash:         &hash,
 	}
 
+	cdc := amino.NewCodec()
+
 	bz, err := txData.MarshalAmino()
 	require.NoError(t, err)
 	require.NotNil(t, bz)
@@ -43,7 +45,7 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	require.Equal(t, txData, txData2)
 
 	var txData3 TxData
-	err = txData3.UnmarshalFromAmino(bz)
+	err = txData3.UnmarshalFromAmino(cdc, bz)
 	require.NoError(t, err)
 	require.Equal(t, txData2, txData3)
 
@@ -131,6 +133,7 @@ func BenchmarkUnmarshalTxData(b *testing.B) {
 	}
 
 	bz, _ := txData.MarshalAmino()
+	cdc := amino.NewCodec()
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -142,7 +145,7 @@ func BenchmarkUnmarshalTxData(b *testing.B) {
 
 	b.Run("unmarshaller", func(b *testing.B) {
 		var txData3 TxData
-		_ = txData3.UnmarshalFromAmino(bz)
+		_ = txData3.UnmarshalFromAmino(cdc, bz)
 	})
 }
 

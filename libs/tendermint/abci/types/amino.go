@@ -10,7 +10,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-func (pubkey PubKey) MarshalToAmino() ([]byte, error) {
+func (pubkey PubKey) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -46,7 +46,7 @@ func (pubkey PubKey) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (valUpdate ValidatorUpdate) MarshalToAmino() ([]byte, error) {
+func (valUpdate ValidatorUpdate) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2 << 3}
@@ -57,7 +57,7 @@ func (valUpdate ValidatorUpdate) MarshalToAmino() ([]byte, error) {
 		switch pos {
 		case 1:
 			var data []byte
-			data, err = valUpdate.PubKey.MarshalToAmino()
+			data, err = valUpdate.PubKey.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +96,7 @@ func (valUpdate ValidatorUpdate) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params BlockParams) MarshalToAmino() ([]byte, error) {
+func (params BlockParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -136,7 +136,7 @@ func (params BlockParams) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params EvidenceParams) MarshalToAmino() ([]byte, error) {
+func (params EvidenceParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -176,7 +176,7 @@ func (params EvidenceParams) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params ValidatorParams) MarshalToAmino() ([]byte, error) {
+func (params ValidatorParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [1]byte{1<<3 | 2}
@@ -203,7 +203,7 @@ func (params ValidatorParams) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (event Event) MarshalToAmino() ([]byte, error) {
+func (event Event) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
@@ -247,7 +247,7 @@ func (event Event) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (event *Event) UnmarshalFromAmino(data []byte) error {
+func (event *Event) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -278,7 +278,7 @@ func (event *Event) UnmarshalFromAmino(data []byte) error {
 			event.Type = string(subData)
 		case 2:
 			var kvpair kv.Pair
-			err = kvpair.UnmarshalFromAmino(subData)
+			err = kvpair.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -290,7 +290,7 @@ func (event *Event) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func (tx *ResponseDeliverTx) MarshalToAmino() ([]byte, error) {
+func (tx *ResponseDeliverTx) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	if tx == nil {
 		return nil, nil
 	}
@@ -377,7 +377,7 @@ func (tx *ResponseDeliverTx) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := tx.Events[i].MarshalToAmino()
+				data, err := tx.Events[i].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
@@ -405,7 +405,7 @@ func (tx *ResponseDeliverTx) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
+func (tx *ResponseDeliverTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -458,7 +458,7 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
 			dataLen = uint64(n)
 		case 7:
 			var event Event
-			err = event.UnmarshalFromAmino(subData)
+			err = event.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -472,7 +472,7 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func (beginBlock ResponseBeginBlock) MarshalToAmino() ([]byte, error) {
+func (beginBlock ResponseBeginBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKey := byte(1<<3 | 2)
 	for i := 0; i < len(beginBlock.Events); i++ {
@@ -480,7 +480,7 @@ func (beginBlock ResponseBeginBlock) MarshalToAmino() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		data, err := beginBlock.Events[i].MarshalToAmino()
+		data, err := beginBlock.Events[i].MarshalToAmino(cdc)
 		if err != nil {
 			return nil, err
 		}
@@ -493,7 +493,7 @@ func (beginBlock ResponseBeginBlock) MarshalToAmino() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
+func (params ConsensusParams) MarshalToAmino(cdc *amino.Codec) (data []byte, err error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
@@ -509,7 +509,7 @@ func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 				noWrite = true
 				break
 			}
-			data, err = params.Block.MarshalToAmino()
+			data, err = params.Block.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -522,7 +522,7 @@ func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 				noWrite = true
 				break
 			}
-			data, err = params.Evidence.MarshalToAmino()
+			data, err = params.Evidence.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -535,7 +535,7 @@ func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 				noWrite = true
 				break
 			}
-			data, err = params.Validator.MarshalToAmino()
+			data, err = params.Validator.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -554,7 +554,7 @@ func (params ConsensusParams) MarshalToAmino() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (endBlock ResponseEndBlock) MarshalToAmino() ([]byte, error) {
+func (endBlock ResponseEndBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
@@ -569,7 +569,7 @@ func (endBlock ResponseEndBlock) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := endBlock.ValidatorUpdates[i].MarshalToAmino()
+				data, err := endBlock.ValidatorUpdates[i].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
@@ -586,7 +586,7 @@ func (endBlock ResponseEndBlock) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			data, err := endBlock.ConsensusParamUpdates.MarshalToAmino()
+			data, err := endBlock.ConsensusParamUpdates.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
@@ -604,7 +604,7 @@ func (endBlock ResponseEndBlock) MarshalToAmino() ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				data, err := endBlock.Events[i].MarshalToAmino()
+				data, err := endBlock.Events[i].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}

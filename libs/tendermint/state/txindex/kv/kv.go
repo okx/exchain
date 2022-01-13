@@ -71,7 +71,7 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 	}
 
 	txResult := new(types.TxResult)
-	err = txResult.UnmarshalFromAmino(rawBytes)
+	err = txResult.UnmarshalFromAmino(cdc, rawBytes)
 	if err != nil {
 		txResult = new(types.TxResult)
 		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)

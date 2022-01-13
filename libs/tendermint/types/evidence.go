@@ -267,13 +267,13 @@ func (dve *DuplicateVoteEvidence) UnmarshalFromAmino(cdc *amino.Codec, data []by
 			}
 		case 2:
 			dve.VoteA = new(Vote)
-			err = dve.VoteA.UnmarshalFromAmino(subData)
+			err = dve.VoteA.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 3:
 			dve.VoteB = new(Vote)
-			err = dve.VoteB.UnmarshalFromAmino(subData)
+			err = dve.VoteB.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

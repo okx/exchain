@@ -19,7 +19,7 @@ type DecCoin struct {
 	Amount Dec    `json:"amount"`
 }
 
-func (coin *DecCoin) UnmarshalFromAmino(data []byte) error {
+func (coin *DecCoin) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -48,7 +48,7 @@ func (coin *DecCoin) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			coin.Denom = string(subData)
 		case 2:
-			err = coin.Amount.UnmarshalFromAmino(subData)
+			err = coin.Amount.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -195,7 +195,7 @@ func (coin DecCoin) IsValid() bool {
 
 var decCoinBufferPool = amino.NewBufferPool()
 
-func (coin DecCoin) MarshalToAmino() ([]byte, error) {
+func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = decCoinBufferPool.Get()
 	defer decCoinBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
@@ -225,7 +225,7 @@ func (coin DecCoin) MarshalToAmino() ([]byte, error) {
 				return nil, err
 			}
 		case 2:
-			data, err := coin.Amount.MarshalToAmino()
+			data, err := coin.Amount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}

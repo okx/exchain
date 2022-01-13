@@ -36,9 +36,9 @@ func RegisterCodec(cdc *codec.Codec) {
 		config, n, err := UnmarshalChainConfigFromAmino(c, bytes)
 		return *config, n, err
 	})
-	cdc.RegisterConcreteUnmarshaller(MsgEthereumTxName, func(_ *amino.Codec, bytes []byte) (interface{}, int, error) {
+	cdc.RegisterConcreteUnmarshaller(MsgEthereumTxName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgEthereumTx
-		err := msg.UnmarshalFromAmino(bytes)
+		err := msg.UnmarshalFromAmino(c, bytes)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -46,7 +46,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	})
 	cdc.RegisterConcreteUnmarshaller(MsgEthermintName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgEthermint
-		err := msg.UnmarshalFromAmino(bytes)
+		err := msg.UnmarshalFromAmino(c, bytes)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -54,7 +54,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	})
 	cdc.RegisterConcreteUnmarshaller(TxDataName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var tx TxData
-		err := tx.UnmarshalFromAmino(bytes)
+		err := tx.UnmarshalFromAmino(c, bytes)
 		if err != nil {
 			return nil, 0, err
 		}

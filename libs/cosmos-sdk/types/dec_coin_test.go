@@ -513,7 +513,7 @@ func TestDecCoinAmino(t *testing.T) {
 	for i, test := range tests {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
-		actual, err := test.MarshalToAmino()
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -523,7 +523,7 @@ func TestDecCoinAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expect, &dc)
 		require.NoError(t, err)
 		var actualDc DecCoin
-		err = actualDc.UnmarshalFromAmino(expect)
+		err = actualDc.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 		require.EqualValues(t, dc, actualDc)
 
@@ -547,7 +547,7 @@ func BenchmarkDecCoinAmino(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = coin.MarshalToAmino()
+			_, _ = coin.MarshalToAmino(cdc)
 		}
 	})
 }

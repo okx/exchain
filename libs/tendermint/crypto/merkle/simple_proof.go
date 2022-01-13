@@ -32,7 +32,7 @@ type SimpleProof struct {
 	Aunts    [][]byte `json:"aunts"`     // Hashes from leaf's sibling to a root's child.
 }
 
-func (sp *SimpleProof) UnmarshalFromAmino(data []byte) error {
+func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

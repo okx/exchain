@@ -28,7 +28,7 @@ type Part struct {
 	Proof merkle.SimpleProof `json:"proof"`
 }
 
-func (part *Part) UnmarshalFromAmino(data []byte) error {
+func (part *Part) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -65,7 +65,7 @@ func (part *Part) UnmarshalFromAmino(data []byte) error {
 			part.Bytes = make([]byte, dataLen)
 			copy(part.Bytes, subData)
 		case 3:
-			err = part.Proof.UnmarshalFromAmino(subData)
+			err = part.Proof.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -123,7 +123,7 @@ func (psh PartSetHeader) AminoSize() int {
 	return size
 }
 
-func (psh *PartSetHeader) UnmarshalFromAmino(data []byte) error {
+func (psh *PartSetHeader) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

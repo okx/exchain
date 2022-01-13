@@ -50,7 +50,7 @@ type encodableTxData struct {
 	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
 }
 
-func (tx *encodableTxData) UnmarshalFromAmino(data []byte) error {
+func (tx *encodableTxData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -252,9 +252,9 @@ func (td *TxData) UnmarshalAmino(data []byte) error {
 	return nil
 }
 
-func (td *TxData) unmarshalFromAmino(data []byte) error {
+func (td *TxData) unmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var e encodableTxData
-	err := e.UnmarshalFromAmino(data)
+	err := e.UnmarshalFromAmino(cdc, data)
 	if err != nil {
 		return err
 	}
@@ -322,12 +322,12 @@ func (td *TxData) unmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func (td *TxData) UnmarshalFromAmino(data []byte) error {
-	err := td.unmarshalFromAmino(data)
+func (td *TxData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	err := td.unmarshalFromAmino(cdc, data)
 	if err != nil {
 		u64, n, err := amino.DecodeUvarint(data)
 		if err == nil && int(u64) == (len(data)-n) {
-			return td.unmarshalFromAmino(data[n:])
+			return td.unmarshalFromAmino(cdc, data[n:])
 		} else {
 			return err
 		}
