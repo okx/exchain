@@ -41,9 +41,17 @@ func (ctx CLIContext) BroadcastTx(txBytes []byte) (res sdk.TxResponse, err error
 // TODO: Avoid brittle string matching in favor of error matching. This requires
 // a change to Tendermint's RPCError type to allow retrieval or matching against
 // a concrete error type.
-func CheckTendermintError(err error, txBytes []byte, height int64) *sdk.TxResponse {
+func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxResponse {
 	if err == nil {
 		return nil
+	}
+	var height int64
+	info, _ := ctx.Client.BlockchainInfo(0, 0)
+	if info != nil {
+		height = info.LastHeight
+	} else {
+		// default new tx hash
+		height = types.GetMilestoneVenusHeight()
 	}
 
 	errStr := strings.ToLower(err.Error())
@@ -88,7 +96,7 @@ func (ctx CLIContext) BroadcastTxCommit(txBytes []byte) (sdk.TxResponse, error) 
 
 	res, err := node.BroadcastTxCommit(txBytes)
 	if err != nil {
-		if errRes := CheckTendermintError(err, txBytes, ctx.Height); errRes != nil {
+		if errRes := ctx.CheckTendermintError(err, txBytes); errRes != nil {
 			return *errRes, nil
 		}
 
@@ -115,7 +123,7 @@ func (ctx CLIContext) BroadcastTxSync(txBytes []byte) (sdk.TxResponse, error) {
 	}
 
 	res, err := node.BroadcastTxSync(txBytes)
-	if errRes := CheckTendermintError(err, txBytes, ctx.Height); errRes != nil {
+	if errRes := ctx.CheckTendermintError(err, txBytes); errRes != nil {
 		return *errRes, nil
 	}
 
@@ -131,7 +139,7 @@ func (ctx CLIContext) BroadcastTxAsync(txBytes []byte) (sdk.TxResponse, error) {
 	}
 
 	res, err := node.BroadcastTxAsync(txBytes)
-	if errRes := CheckTendermintError(err, txBytes, ctx.Height); errRes != nil {
+	if errRes := ctx.CheckTendermintError(err, txBytes); errRes != nil {
 		return *errRes, nil
 	}
 

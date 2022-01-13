@@ -3,6 +3,8 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 
 	dbm "github.com/tendermint/tm-db"
@@ -289,4 +291,85 @@ func (app *testApp) Commit(abci.RequestCommit) abci.ResponseCommit {
 
 func (app *testApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
 	return
+}
+
+
+
+//----------------------------------------------------------------------------------------------------
+// Execute block without state. TODO: eliminate
+
+// ExecCommitBlock executes and commits a block on the proxyApp without validating or mutating the state.
+// It returns the application root hash (result of abci.Commit).
+func ExecCommitBlock(
+	appConnConsensus proxy.AppConnConsensus,
+	block *types.Block,
+	logger log.Logger,
+	stateDB dbm.DB,
+) ([]byte, error) {
+
+	ctx := &executionTask{
+		logger:   logger,
+		block:    block,
+		db:       stateDB,
+		proxyApp: appConnConsensus,
+	}
+
+	_, err := execBlockOnProxyApp(ctx)
+	if err != nil {
+		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
+		return nil, err
+	}
+	// Commit block, get hash back
+	res, err := appConnConsensus.CommitSync(abci.RequestCommit{})
+	if err != nil {
+		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
+		return nil, err
+	}
+	// ResponseCommit has no error or log, just data
+	return res.Data, nil
+}
+
+func ExecCommitBlockDelta(
+	appConnConsensus proxy.AppConnConsensus,
+	block *types.Block,
+	logger log.Logger,
+	stateDB dbm.DB,
+) (*types.Deltas, []byte, error) {
+	iavl.SetProduceDelta(true)
+	types.UploadDelta = true
+	deltas := &types.Deltas{Height: block.Height, Version: types.DeltaVersion}
+
+	ctx := &executionTask{
+		logger: logger,
+		block: block,
+		db: stateDB,
+		proxyApp: appConnConsensus,
+	}
+
+	abciResponses, err := execBlockOnProxyApp(ctx)
+	if err != nil {
+		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
+		return nil, nil, err
+	}
+	abciResponsesBytes, err := types.Json.Marshal(abciResponses)
+	if err != nil {
+		return nil, nil, err
+	}
+	deltas.Payload.ABCIRsp = abciResponsesBytes
+
+	// Commit block, get hash back
+	res, err := appConnConsensus.CommitSync(abci.RequestCommit{})
+	if err != nil {
+		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
+		return nil, nil, err
+	}
+	if res.Deltas != nil {
+		deltas.Payload.DeltasBytes = res.Deltas.DeltasByte
+		if wd, err := getWatchDataFunc(); err == nil {
+			deltas.Payload.WatchBytes = wd
+		}
+	}
+
+	// ResponseCommit has no error or log, just data
+	return deltas, res.Data, nil
 }
