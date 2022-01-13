@@ -24,17 +24,17 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	var h modeHandler
 	switch mode {
 	case runTxModeCheck:
-		h = &modeHandlerCheck {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeReCheck:
-		h = &modeHandlerRecheck {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeDeliver:
-		h = &modeHandlerDeliver {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
-		h = &modeHandlerSimulate {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeDeliverInAsync:
-		h = &modeHandlerDeliverInAsync {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
 	default:
-		h = &modeHandlerBase {mode: mode, app: app,}
+		h = &modeHandlerBase{mode: mode, app: app}
 	}
 
 	return h
@@ -42,7 +42,7 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 
 type modeHandlerBase struct {
 	mode runTxMode
-	app *BaseApp
+	app  *BaseApp
 }
 
 type modeHandlerDeliverInAsync struct {
@@ -99,9 +99,10 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 }
 
 // noop
-func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error){return}
-func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error){return}
-func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
+func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error)  { return }
+func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error)    { return }
+func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error) { return }
+
 //==========================================================================
 // 3. handleRunMsg
 
@@ -109,7 +110,7 @@ func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
 // (m *modeHandlerRecheck)
 // (m *modeHandlerCheck)
 // (m *modeHandlerSimulate)
-func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
+func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 
@@ -126,13 +127,9 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
 // 4. handleDeferGasConsumed
 func (m *modeHandlerBase) handleDeferGasConsumed(*runTxInfo) {}
 
-
 //====================================================================
 // 5. handleDeferRefund
 func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
-
-
-
 
 //===========================================================================================
 // other members
@@ -143,7 +140,7 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	}
 }
 
-func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (error) {
+func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) error {
 
 	if err != nil {
 		if tmtypes.HigherThanMercury(info.ctx.BlockHeight()) {
@@ -155,7 +152,6 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 	return err
 }
 
-
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 	if m.mode != runTxModeCheck {
 		return
@@ -163,6 +159,7 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 
 	exTxInfo := m.app.GetTxInfo(info.ctx, info.tx)
 	exTxInfo.SenderNonce = info.accountNonce
+	exTxInfo.ReplaceTx = info.ctx.ReplaceTx()
 
 	data, err := json.Marshal(exTxInfo)
 	if err == nil {
@@ -217,5 +214,3 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 //
 //	return
 //}
-
-

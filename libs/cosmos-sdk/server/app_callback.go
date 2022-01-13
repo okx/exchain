@@ -3,7 +3,6 @@ package server
 import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // the struct used to passing from the application layer to current server node layer
@@ -18,7 +17,6 @@ type ServerConfigCallback func(*cfg.Config)
 
 // AppCallback carry some callback functions will be callabck by cosmos or tendermint
 type AppCallback struct {
-	MempoolTxSignatureCallback       mempool.PostCheckAndSignFunc
 	MempoolTxSignatureNodeKeysSetter MempoolTxSignatureNodeKeysSetter
 	ServerConfigCallback             ServerConfigCallback
 }

@@ -299,7 +299,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
-		node.InjectMempoolSignedCallback(appCallback.MempoolTxSignatureCallback),
 	)
 	if err != nil {
 		return nil, err

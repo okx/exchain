@@ -53,10 +53,9 @@ type CListMempool struct {
 
 	// Exclusive mutex for Update method to prevent concurrent execution of
 	// CheckTx or ReapMaxBytesMaxGas(ReapMaxTxs) methods.
-	updateMtx  sync.RWMutex
-	preCheck   PreCheckFunc
-	postCheck  PostCheckFunc
-	postSigned PostCheckAndSignFunc
+	updateMtx sync.RWMutex
+	preCheck  PreCheckFunc
+	postCheck PostCheckFunc
 
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
@@ -155,8 +154,9 @@ func (mem *CListMempool) SetLogger(l log.Logger) {
 	mem.logger = l
 }
 
+/// TODO： remove it
 func (mem *CListMempool) SetPostCheckSigenFunc(f PostCheckAndSignFunc) {
-	mem.postSigned = f
+	// mem.postSigned = f
 }
 
 // WithPreCheck sets a filter for the mempool to reject a tx if f(tx) returns
@@ -603,13 +603,8 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
-			if mem.postSigned != nil {
-				tx, err := mem.postSigned(memTx.tx, r)
-				if err != nil {
-					mem.logger.Error("Try to sign the TX", txID(memTx.tx, mem.height), err)
-				} else {
-					memTx.tx = tx
-				}
+			if len(exTxInfo.ReplaceTx) > 0 {
+				memTx.tx = exTxInfo.ReplaceTx // to replace the tx from application
 			}
 
 			var err error
@@ -1134,6 +1129,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
+	ReplaceTx   []byte   `json:"replace_tx"`
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {

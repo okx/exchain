@@ -261,11 +261,6 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-// GetTxCarriedData implement the sdk.Tx interface
-func (tx StdTx) GetTxCarriedData() []byte {
-	return nil
-}
-
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum

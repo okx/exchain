@@ -50,11 +50,6 @@ type Tx interface {
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
-
-	// Return the data carried by multi type Tx
-	// StdTx, EthereumTx
-	// the return value is format with tlv, see more details in the libs/tendermint/libs/tlv
-	GetTxCarriedData() []byte
 }
 
 //__________________________________________________________

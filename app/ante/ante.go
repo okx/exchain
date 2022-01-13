@@ -37,18 +37,37 @@ func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
 		origin := tx
+		nodePriv, nodePub := getCurrentNodeKey()
 		switch wrapped := tx.(type) {
 		case auth.StdTx:
-			anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+			{
+				anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+				wrapped, err := signNoWrappedTx(origin, app.StdTransaction, ctx.TxBytes(), nodePriv, nodePub)
+				if err == nil {
+					message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
+					if err == nil {
+						ctx = ctx.WithReplaceTx(message)
+					}
+				}
+			}
 		case evmtypes.MsgEthereumTx:
-			anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+			{
+				anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+				wrapped, err := signNoWrappedTx(origin, app.EthereumTransaction, ctx.TxBytes(), nodePriv, nodePub)
+				if err == nil {
+					message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
+					if err == nil {
+						ctx = ctx.WithReplaceTx(message)
+					}
+				}
+			}
 		case app.WrappedTx:
 			{
 				if !wrapped.IsSigned() {
 					origin = wrapped.GetOriginTx()
 					break
 				}
-				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx())
+				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx()) // FIXME: should remove it ？
 				if err != nil {
 					origin = wrapped.GetOriginTx()
 					break
@@ -56,6 +75,17 @@ func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper
 				confident, e := VerifyConfidentTx(message, wrapped.Signature, wrapped.NodeKey)
 				if e != nil {
 					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
+				}
+				if !confident {
+					priv, pub := getCurrentNodeKey()
+					serialized, err := priv.Sign(message)
+					if err == nil {
+						wrapped = wrapped.WithSignature(serialized, pub.Bytes())
+						message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
+						if err == nil {
+							ctx = ctx.WithReplaceTx(message)
+						}
+					}
 				}
 				switch wrapped.Type {
 				case app.EthereumTransaction:

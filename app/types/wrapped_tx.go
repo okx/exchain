@@ -75,10 +75,3 @@ func (tx WrappedTx) GetGasPrice() *big.Int {
 func (tx WrappedTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return tx.Inner.GetTxFnSignatureInfo()
 }
-
-// Return the data carried by multi type Tx
-// StdTx, EthereumTx
-// the return value is format with tlv, see more details in the libs/tendermint/libs/tlv
-func (tx WrappedTx) GetTxCarriedData() []byte {
-	return tx.Extra
-}

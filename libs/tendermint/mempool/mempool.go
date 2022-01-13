@@ -96,9 +96,6 @@ type Mempool interface {
 	SetAccountRetriever(retriever AccountRetriever)
 
 	SetTxInfoParser(parser TxInfoParser)
-
-	// SetPostCheckSigenFunc set the call back from the application
-	SetPostCheckSigenFunc(f PostCheckAndSignFunc)
 }
 
 //--------------------------------------------------------------------------------

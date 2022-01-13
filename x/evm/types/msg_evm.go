@@ -493,8 +493,3 @@ func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	methodId := msg.Data.Payload[0:4]
 	return append(recipient, methodId...), 0
 }
-
-// GetTxCarriedData implement the sdk.Tx interface
-func (msg MsgEthereumTx) GetTxCarriedData() []byte {
-	return nil
-}

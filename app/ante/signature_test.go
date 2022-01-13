@@ -48,24 +48,6 @@ func (suite *AnteTestSuite) TestWrappedTxSignatureRecover() {
 	suite.Require().Equal(true, confident)
 }
 
-func (suite *AnteTestSuite) TestSignatureCallback() {
-	setConfidentKeyListWithCurrent(suite)
-	tx, err := buildTestTx(suite)
-	suite.Require().NoError(err)
-	message, err := suite.app.Codec().MarshalBinaryLengthPrefixed(tx)
-	suite.Require().NoError(err)
-	signatue, err := suite.nodePriv.Sign(message)
-	suite.Require().NoError(err)
-	wrapped, err := NewWrappedTx(tx, signatue, suite.nodePub.Bytes())
-	suite.Require().NoError(err)
-	callback := ante.CheckedTxSignedFunc(suite.app.Codec())
-	wrappedTx, err := suite.app.Codec().MarshalBinaryLengthPrefixed(wrapped)
-	suite.Require().NoError(err)
-	callbacked, err := callback(tmtypes.Tx(wrappedTx), nil) // because of the inner type assertion failed ????
-	suite.Require().NoError(err)
-	suite.Require().Equal(wrappedTx, []byte(callbacked))
-}
-
 func (suite *AnteTestSuite) TestSkipWrappedSignaturePhase() {
 	setConfidentKeyList(suite, true)
 	tx, err := buildTestTx(suite)

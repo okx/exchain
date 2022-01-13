@@ -597,10 +597,6 @@ func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx txTest) GetTxCarriedData() []byte {
-	return nil
-}
-
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"

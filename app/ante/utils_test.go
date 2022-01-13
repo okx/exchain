@@ -168,7 +168,7 @@ func NewWrappedTx(tx sdk.Tx, signature, key []byte) (sdk.Tx, error) {
 	default:
 		return nil, fmt.Errorf("invalid tx type :%T", tx)
 	}
-	return &okexchain.WrappedTx{
+	return okexchain.WrappedTx{
 		Inner:     tx,
 		Extra:     []byte{},
 		Signature: signature,

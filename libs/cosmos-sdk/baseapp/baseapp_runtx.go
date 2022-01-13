@@ -21,9 +21,10 @@ type runTxInfo struct {
 	startingGas    uint64
 	gInfo          sdk.GasInfo
 
-	result  *sdk.Result
-	txBytes []byte
-	tx      sdk.Tx
+	result    *sdk.Result
+	txBytes   []byte
+	tx        sdk.Tx
+	replaceTx []byte
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
@@ -33,9 +34,13 @@ func (app *BaseApp) runTx(mode runTxMode,
 	var info *runTxInfo
 	info, err = app.runtx(mode, txBytes, tx, height)
 	return info.gInfo, info.result, info.msCacheAnte, err
+}
 
-	//return app.runtx_org(mode, txBytes, tx, height)
+func (app *BaseApp) runTxWithInfo(mode runTxMode,
+	txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 
+	info, err = app.runtx(mode, txBytes, tx, height)
+	return info, err
 }
 
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
@@ -109,6 +114,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	if len(newCtx.ReplaceTx()) > 0 {
+		info.replaceTx = newCtx.ReplaceTx()
+	}
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 	if !newCtx.IsZero() {

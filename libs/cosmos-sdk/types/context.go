@@ -39,6 +39,7 @@ type Context struct {
 	sigCache      SigCache
 	isAsync       bool
 	cache         *Cache
+	replaceTx     []byte // used for the carry the wrapped tx to mempool layer
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -62,9 +63,8 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) Cache() *Cache {
-	return c.cache
-}
+func (c Context) Cache() *Cache               { return c.cache }
+func (c Context) ReplaceTx() []byte           { return c.replaceTx }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -90,6 +90,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
+		replaceTx:    nil,
 	}
 }
 
@@ -201,6 +202,11 @@ func (c Context) WithAccountNonce(nonce uint64) Context {
 
 func (c Context) WithCache(cache *Cache) Context {
 	c.cache = cache
+	return c
+}
+
+func (c Context) WithReplaceTx(tx []byte) Context {
+	c.replaceTx = tx
 	return c
 }
 
