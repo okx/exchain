@@ -3,11 +3,12 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+	"strings"
+
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"math/big"
-	"strings"
 
 	"github.com/tendermint/go-amino"
 
@@ -571,6 +572,33 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
 			}
+			return tx, nil
+		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+	}
+}
+
+//
+func TxDecoderOnlyInQuery(cdc *codec.Codec) sdk.TxDecoder {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		var tx sdk.Tx
+		var err error
+		if len(txBytes) == 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+		}
+
+		var ethTx MsgEthereumTx
+		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+			return ethTx, nil
+		}
+
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
+		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+			return v.(sdk.Tx), nil
+		}
+		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
 			return tx, nil
 		}
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
