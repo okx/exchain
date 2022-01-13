@@ -88,6 +88,26 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
+
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
@@ -99,6 +119,9 @@ type BaseApp struct { // nolint: maligned
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
+	wrappedTxDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.WrapperTx
+
+	wrappedTxEncoder   sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -185,13 +208,28 @@ func NewBaseApp(
 		storeLoader:    DefaultStoreLoader,
 		router:         NewRouter(),
 		queryRouter:    NewQueryRouter(),
-		txDecoder:      txDecoder,
 		fauxMerkleMode: false,
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
+		wrappedTxDecoder:      txDecoder,
 	}
+
+	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
+		tx, err = app.wrappedTxDecoder(txBytes, height...)
+		if err != nil {
+			return
+		}
+
+		stdTx := tx.GetPayloadTx()
+		if stdTx != nil {
+			tx = stdTx
+		}
+		return
+	}
+
+
 	for _, option := range options {
 		option(app)
 	}
