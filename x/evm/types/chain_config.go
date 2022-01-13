@@ -157,7 +157,7 @@ func (cc ChainConfig) Validate() error {
 	return nil
 }
 
-func (config *ChainConfig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (config *ChainConfig) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -186,17 +186,15 @@ func (config *ChainConfig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error
 
 		switch pos {
 		case 1:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.HomesteadBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.HomesteadBlock = integer
 		case 2:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.DAOForkBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.DAOForkBlock = integer
 		case 3:
 			if data[0] != 0 && data[0] != 1 {
 				return fmt.Errorf("invalid DAO fork switch")
@@ -204,67 +202,57 @@ func (config *ChainConfig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error
 			config.DAOForkSupport = data[0] == 1
 			dataLen = 1
 		case 4:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.EIP150Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.EIP150Block = integer
 		case 5:
 			config.EIP150Hash = string(subData)
 		case 6:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.EIP155Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.EIP155Block = integer
 		case 7:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.EIP158Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.EIP158Block = integer
 		case 8:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.ByzantiumBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.ByzantiumBlock = integer
 		case 9:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.ConstantinopleBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.ConstantinopleBlock = integer
 		case 10:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.PetersburgBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.PetersburgBlock = integer
 		case 11:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.IstanbulBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.IstanbulBlock = integer
 		case 12:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.MuirGlacierBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.MuirGlacierBlock = integer
 		case 13:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.YoloV2Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.YoloV2Block = integer
 		case 14:
-			integer, err := sdk.NewIntFromAmino(subData)
+			err = config.EWASMBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			config.EWASMBlock = integer
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}

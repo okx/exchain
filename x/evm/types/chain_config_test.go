@@ -307,5 +307,10 @@ func TestChainConfigAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
+
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		require.NoError(t, err)
+		actualValue = v.(ChainConfig)
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }
