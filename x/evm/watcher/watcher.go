@@ -84,8 +84,8 @@ func (w *Watcher) Enabled() bool {
 }
 
 func (w *Watcher) Enable(sw bool) {
-	// do nothing
-	// TODO: we will enable watcher  dynamically
+	// do nothing for now
+	// we will enable watcher  dynamically
 }
 
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
