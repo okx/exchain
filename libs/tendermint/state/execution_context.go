@@ -86,19 +86,19 @@ func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
 	if pc.fetcher == nil {
 		pc.fetcher = f
 	}
-	//if types.PreRunConsumeDebugEnable {
+	if types.PreRunConsumeDebugEnable {
 		SetTraceHook(func(trace, status int32, cb func()) {
 			executor := "[special | result]"
 			if trace&TRACE_PRERUN_WITH_CACHE >= TRACE_PRERUN_WITH_CACHE {
-				executor = "PRERRUN_WITH_CACHE"
+				executor = "[PRERRUN_WITH_CACHE]"
 			} else if trace&TRACE_DELTA >= TRACE_DELTA {
-				executor = "DELTA"
+				executor = "[DELTA]"
 			} else if trace&TRACE_PRERUN_WITH_NO_CACHE > +TRACE_PRERUN_WITH_NO_CACHE {
-				executor = "TRACE_PRERUN_WITH_NO_CACHE"
+				executor = "[TRACE_PRERUN_WITH_NO_CACHE]"
 			}
 			e.prerunCtx.logger.Info("traceHook", "executor", executor, "trace", trace, "status", status)
 		})
-	//}
+	}
 }
 
 func (pc *prerunContext) checkIndex(height int64) {
