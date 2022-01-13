@@ -57,7 +57,6 @@ type prerunContext struct {
 	logger          log.Logger
 	consumerQ       queue.Queue
 	fetcher         Fetcher
-	lastPruneHeight int64
 	isFastSync      func() bool
 }
 
@@ -153,17 +152,11 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	if pc.isFastSync() {
 		return
 	}
-	pc.logger.Info("receive deltaMsgJob,", "height", v.Delta.Height)
 	delta := v.Delta
 	traceHook(CASE_SPECIAL_DELTA_BEFORE_BEGIN, 0, emptyF)
 
 	// hold the pointer at first
 	curTask := pc.prerunTask
-	// in case of  producer is too faster than consumer
-	if curTask == nil && delta.Height > pc.lastPruneHeight && delta.Height < pc.lastPruneHeight+10 {
-		return
-	}
-
 	if curTask == nil {
 		pc.logger.Info("currentTask is nil,discard current deltaJob")
 		return
@@ -172,19 +165,14 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	curDb := curTask.db
 	app := curTask.proxyApp
 	// best effort: try to avoid  running twice
-	if curBlock.Height > delta.Height || curTask.stopped {
+	if curBlock.Height != delta.Height || curTask.stopped {
 		// ignore
-		return
-	} else if curBlock.Height < delta.Height {
-		if delta.Height > pc.lastPruneHeight+10 {
-			return
-		}
 		return
 	}
 	traceHook(CASE_SPECIAL_DELTA_BEFORE_FINAL_STORE, curTask.status, emptyF)
 
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
-
+	pc.logger.Info("handleDelta,start to consume the delta","height",delta.Height)
 	abciResponses := ABCIResponses{}
 	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
 	curStatus := int32(TASK_BEGIN_DELTA)
@@ -213,28 +201,12 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, func() { execBlockOnProxyAppWithDeltas(app, curBlock, curDb) })
 		curStatus = TASK_BEGIN_PRERUN
 	} else {
-		pc.logger.Info("handleDelta,executeBeginBlock")
 		traceHook(CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, curTask.status, emptyF)
 		execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
 	}
 
 	traceHook(CASE_SPECIAL_DELTA_BEFORE_RACE_END, 0, emptyF)
-	notifyResult(curTask, &abciResponses, err, func() {
-		//  case: delta finished before prerrun
-		pc.logger.Info("waiting  prerun canceled")
-		traceHook(CASE_DELTA_SITUATION_RACE_END_SUCCESS, curTask.status, emptyF)
-		for {
-			select {
-			case _, ok := <-curTask.notifyC:
-				if !ok {
-					pc.logger.Info("prerun canceled successfully")
-					execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
-					traceHook(CASE_DELTA_ENTER_CHAN_RECEIVE_WAIT_PRERRUN_CLOSE_NOTIFY, curTask.status, emptyF)
-					return
-				}
-			}
-		}
-	}, func() {
+	notifyResult(curTask, &abciResponses, err, func() {}, func() {
 		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL, curTask.status, emptyF)
 	}, trc, curStatus, TASK_PRERRUN, TASK_DELTA)
 }
@@ -277,7 +249,7 @@ func store(job *DeltaJob, cache *sync.Map) {
 	}
 }
 
-func (pc *prerunContext) dequeueResult(b *types.Block) (*ABCIResponses, error) {
+func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 	expected := pc.prerunTask
 	for context := range pc.taskResultChan {
 
@@ -296,9 +268,6 @@ func (pc *prerunContext) dequeueResult(b *types.Block) (*ABCIResponses, error) {
 		}
 
 		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
-			if !bytes.Equal(b.Hash(), context.block.Hash()) {
-				panic("asdkjdkdkdk")
-			}
 			return context.result.res, context.result.err
 		} else {
 			// todo
@@ -344,7 +313,7 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(b *types.Block, height int64, fastSync bool) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCIResponses, err error) {
 
 	pc.checkIndex(height)
 	if fastSync {
@@ -355,7 +324,7 @@ func (pc *prerunContext) getPrerunResult(b *types.Block, height int64, fastSync 
 	// 1. prerunTx disabled
 	// 2. we are in fasy-sync: the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 	if pc.prerunTask != nil {
-		res, err = pc.dequeueResult(b)
+		res, err = pc.dequeueResult()
 		pc.prerunTask = nil
 	}
 	return
