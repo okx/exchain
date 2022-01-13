@@ -1,10 +1,17 @@
 package rootmulti
 
 import (
+	"bytes"
 	"fmt"
-	iavltree "github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
+
+	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/stretchr/testify/assert"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -539,6 +546,63 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 	for _, v := range pruneHeights {
 		_, err := ms.CacheMultiStoreWithVersion(v)
 		require.NoError(t, err, "expected no error when loading height, found err: %d", v)
+	}
+}
+func testMultiStoreDelta(t *testing.T) {
+	var db dbm.DB = dbm.NewMemDB()
+	ms := newMultiStoreWithMounts(db, types.PruneNothing)
+	err := ms.LoadLatestVersion()
+	require.Nil(t, err)
+
+	commitID := types.CommitID{}
+	checkStore(t, ms, commitID, commitID)
+
+	k, v := []byte("wind"), []byte("blows")
+	k1, v1 := []byte("key1"), []byte("val1")
+	k2, v2 := []byte("key2"), []byte("val2")
+
+	store1 := ms.getStoreByName("store1").(types.KVStore)
+	store1.Set(k, v)
+	store1.Set(k1, v1)
+	store2 := ms.getStoreByName("store2").(types.KVStore)
+	store2.Set(k2, v2)
+
+	// get deltas
+	tmtypes.UploadDelta = true
+	tmtypes.DownloadDelta = true
+	iavltree.SetProduceDelta(true)
+	cID, _, deltas := ms.Commit(nil, nil)
+	require.Equal(t, int64(1), cID.Version)
+	assert.NotEmpty(t, deltas)
+
+	// use deltas
+	cID, _, deltas2 := ms.Commit(nil, deltas)
+	require.Equal(t, int64(2), cID.Version)
+	require.Equal(t, deltas, deltas2)
+}
+func TestMultiStore_Delta(t *testing.T) {
+	if os.Getenv("SUB_PROCESS") == "1" {
+		testMultiStoreDelta(t)
+		return
+	}
+
+	var outb, errb bytes.Buffer
+	cmd := exec.Command(os.Args[0], "-test.run=TestMultiStore_Delta")
+	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		isFailed := false
+		if strings.Contains(outb.String(), "FAIL:") ||
+			strings.Contains(errb.String(), "FAIL:") {
+			fmt.Print(cmd.Stderr)
+			fmt.Print(cmd.Stdout)
+			isFailed = true
+		}
+		assert.Equal(t, isFailed, false)
+
+		return
 	}
 }
 

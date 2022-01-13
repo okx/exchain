@@ -31,7 +31,7 @@ var (
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
 func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz)
+	tx, err := evmtypes.TxDecoderOnlyInQuery(clientCtx.Codec)(bz)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -142,8 +142,9 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
-		transactionHashes = append(transactionHashes, common.BytesToHash(tx.Hash(int64(blockNumber))))
-		tx, err := NewTransaction(ethTx, common.BytesToHash(tx.Hash(int64(blockNumber))), blockHash, blockNumber, index)
+		txHash := tx.Hash(int64(blockNumber))
+		transactionHashes = append(transactionHashes, common.BytesToHash(txHash))
+		tx, err := NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
 		if err == nil {
 			transactions = append(transactions, tx)
 			index++
@@ -235,7 +236,7 @@ func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *
 // EVM module transactions.
 func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint64 {
 	var gasUsed uint64
-	txDecoder := evmtypes.TxDecoder(cdc)
+	txDecoder := evmtypes.TxDecoderOnlyInQuery(cdc)
 
 	for i := 0; i < idx && i < len(block.Txs); i++ {
 		txi, err := txDecoder(block.Txs[i])

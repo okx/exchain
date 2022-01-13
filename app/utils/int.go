@@ -1,6 +1,10 @@
 package utils
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/tendermint/go-amino"
+)
 
 // MarshalBigInt marshalls big int into text string for consistent encoding
 func MarshalBigInt(i *big.Int) (string, error) {
@@ -24,7 +28,7 @@ func MustMarshalBigInt(i *big.Int) string {
 // UnmarshalBigInt unmarshalls string from *big.Int
 func UnmarshalBigInt(s string) (*big.Int, error) {
 	ret := new(big.Int)
-	err := ret.UnmarshalText([]byte(s))
+	err := ret.UnmarshalText(amino.StrToBytes(s))
 	if err != nil {
 		return nil, err
 	}
