@@ -19,6 +19,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
+	"github.com/okex/exchain/app/rpc/namespaces/debug"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/rpc/namespaces/net"
@@ -34,6 +35,7 @@ const (
 	PersonalNamespace = "personal"
 	NetNamespace      = "net"
 	TxpoolNamespace   = "txpool"
+	DebugNamespace    = "debug"
 
 	apiVersion = "1.0"
 )
@@ -86,6 +88,12 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 			Namespace: TxpoolNamespace,
 			Version:   apiVersion,
 			Service:   txpool.NewAPI(clientCtx, log, ethBackend),
+			Public:    true,
+		},
+		{
+			Namespace: DebugNamespace,
+			Version:   apiVersion,
+			Service:   debug.NewAPI(clientCtx, log, ethBackend),
 			Public:    true,
 		},
 	}

@@ -37,7 +37,7 @@ func (app *BaseApp) runTx(mode runTxMode,
 	//return app.runtx_org(mode, txBytes, tx, height)
 
 }
-func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (*runTxInfo, error) {
+func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, tx sdk.Tx, height int64) (*runTxInfo, error) {
 
 	if info == nil || info.handler == nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "run tx with nil info")
@@ -45,11 +45,16 @@ func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	//init info context
 	err := handler.handleStartHeight(info, height)
 	if err != nil {
 		return info, err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	//info with cache saved in app to load predesessor tx result
+	if mode != runTxModeTrace {
+		//in trace mode,  info ctx cache will not be set to app cache.
+		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	}
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
@@ -79,7 +84,7 @@ func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(AnteHandler, true, mode)
-	if app.anteHandler != nil {
+	if app.anteHandler != nil && mode != runTxModeTrace {
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return info, err
@@ -98,7 +103,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
-	return app.runTxWithInfo(info, mode, txBytes, tx, height)
+	return app.runTxWithInfo(info, mode, tx, height)
 }
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
@@ -117,7 +122,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
-	if !newCtx.IsZero() {
+	if !newCtx.IsZero() && mode != runTxModeTrace {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 		// replaced by the AnteHandler. We want the original multistore, not one
 		// which was cache-wrapped for the AnteHandler.

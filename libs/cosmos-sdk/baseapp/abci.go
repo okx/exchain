@@ -361,17 +361,26 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 			}
 		case "trace":
-			res, err := app.TraceTx(req.Data)
+			tmtx, err := GetABCITx(req.Data)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
+			}
+			tx, err := app.txDecoder(tmtx.Tx)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+			}
+			block, err := GetABCIBlock(tmtx.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
+			}
+			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
-			}
-			simRes := sdk.SimulationResponse{
-				Result: res,
 			}
 			return abci.ResponseQuery{
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+				Value:     codec.Cdc.MustMarshalBinaryBare(res),
 			}
 
 		case "version":

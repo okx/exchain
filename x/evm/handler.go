@@ -147,6 +147,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -264,6 +265,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 	StopTxLog(bam.TransitionDb)
+	if ctx.IsTraceTx() {
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }
 
