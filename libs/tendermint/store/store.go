@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 
 	db "github.com/tendermint/tm-db"
@@ -73,6 +75,8 @@ func (bs *BlockStore) Size() int64 {
 	return bs.height - bs.base + 1
 }
 
+var blockBufferPool = amino.NewBufferPool()
+
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
@@ -81,17 +85,33 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		return nil
 	}
 
+	var bufLen int
 	var block = new(types.Block)
-	buf := []byte{}
+	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
 	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
 		part := bs.LoadBlockPart(height, i)
-		buf = append(buf, part.Bytes...)
+		bufLen += len(part.Bytes)
+		parts = append(parts, part)
 	}
-	err := cdc.UnmarshalBinaryLengthPrefixed(buf, block)
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	buf.Grow(bufLen)
+	for _, part := range parts {
+		buf.Write(part.Bytes)
+	}
+
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(buf.Bytes())
+	if err == nil {
+		err = block.UnmarshalFromAmino(cdc, bz)
+	}
 	if err != nil {
-		// NOTE: The existence of meta should imply the existence of the
-		// block. So, make sure meta is only saved after blocks are saved.
-		panic(errors.Wrap(err, "Error reading block"))
+		block = new(types.Block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+		if err != nil {
+			// NOTE: The existence of meta should imply the existence of the
+			// block. So, make sure meta is only saved after blocks are saved.
+			panic(errors.Wrap(err, "Error reading block"))
+		}
 	}
 	return block
 }
@@ -129,9 +149,13 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	if len(bz) == 0 {
 		return nil
 	}
-	err = cdc.UnmarshalBinaryBare(bz, part)
+	err = part.UnmarshalFromAmino(bz)
 	if err != nil {
-		panic(errors.Wrap(err, "Error reading block part"))
+		part = new(types.Part)
+		err = cdc.UnmarshalBinaryBare(bz, part)
+		if err != nil {
+			panic(errors.Wrap(err, "Error reading block part"))
+		}
 	}
 	return part
 }

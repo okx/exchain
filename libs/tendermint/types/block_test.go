@@ -734,3 +734,295 @@ func TestCommitProtoBuf(t *testing.T) {
 		}
 	}
 }
+
+var blockIDTestCases = []BlockID{
+	{},
+	{Hash: []byte{}},
+	{[]byte("hashhashhashhashhashhash"), PartSetHeader{}},
+	{[]byte("hashhashhashhashhashhash"), PartSetHeader{Total: 1, Hash: []byte("part_set_hash")}},
+}
+
+func TestBlockIDAmino(t *testing.T) {
+	for _, tc := range blockIDTestCases {
+		bz, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+
+		var tc2 BlockID
+		err = cdc.UnmarshalBinaryBare(bz, &tc2)
+		require.NoError(t, err)
+
+		var tc3 BlockID
+		err = tc3.UnmarshalFromAmino(bz)
+		require.NoError(t, err)
+
+		require.EqualValues(t, tc2, tc3)
+		require.EqualValues(t, len(bz), tc.AminoSize())
+	}
+}
+
+var headerAminoTestCases = []Header{
+	{},
+	{Version: version.Consensus{Block: 1, App: 1}},
+	{ChainID: "ChainID"},
+	{Height: 1},
+	{Height: math.MaxInt64},
+	{Height: math.MinInt64},
+	{Time: time.Now()},
+	{LastBlockID: BlockID{[]byte("Hash"), PartSetHeader{1, []byte("Hash")}}},
+	{LastCommitHash: []byte("LastCommitHash")},
+	{DataHash: []byte("DataHash")},
+	{ValidatorsHash: []byte("ValidatorsHash")},
+	{NextValidatorsHash: []byte("NextValidatorsHash")},
+	{ConsensusHash: []byte("ConsensusHash")},
+	{AppHash: []byte("AppHash")},
+	{LastResultsHash: []byte("LastResultsHash")},
+	{EvidenceHash: []byte("EvidenceHash")},
+	{ProposerAddress: []byte("ProposerAddress")},
+}
+
+func TestHeaderAmino(t *testing.T) {
+	for _, header := range headerAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(header)
+		require.NoError(t, err)
+
+		var expectValue Header
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Header
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkHeaderAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(headerAminoTestCases))
+	for i, header := range headerAminoTestCases {
+		data, err := cdc.MarshalBinaryBare(header)
+		require.NoError(b, err)
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var header Header
+				err := cdc.UnmarshalBinaryBare(data, &header)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var header Header
+				err := header.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
+
+var dataAminoTestCases = []Data{
+	{},
+	{Txs: []Tx{}},
+	{Txs: []Tx{{}}},
+	{Txs: []Tx{nil}},
+	{Txs: []Tx{{}, []byte("tx1"), []byte("tx2"), nil}},
+	{hash: []byte("hash")},
+}
+
+func TestDataAmino(t *testing.T) {
+	for _, d := range dataAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(d)
+		require.NoError(t, err)
+
+		var expectValue Data
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Data
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+var commitSigAminoTestCases = []CommitSig{
+	{},
+	{125, []byte("ValidatorAddress"), time.Now(), []byte("Signature")},
+	{math.MaxUint8, []byte(""), time.Now(), []byte("")},
+}
+
+func TestCommitSigAmino(t *testing.T) {
+	for _, cs := range commitSigAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(cs)
+		require.NoError(t, err)
+
+		var expectValue CommitSig
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue CommitSig
+		err = actualValue.UnmarshalFromAmino(expectData)
+
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+var commitAminoTestCases = []Commit{
+	{},
+	{
+		Height:     123456,
+		Round:      10,
+		BlockID:    BlockID{Hash: []byte("hash"), PartsHeader: PartSetHeader{Total: 123, Hash: []byte("hash")}},
+		Signatures: commitSigAminoTestCases,
+	},
+	{
+		Height:     math.MaxInt64,
+		Round:      math.MaxInt,
+		Signatures: []CommitSig{},
+	},
+	{
+		Height: math.MinInt64,
+		Round:  math.MinInt,
+	},
+}
+
+func TestCommitAmino(t *testing.T) {
+	for _, commit := range commitAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(commit)
+		require.NoError(t, err)
+
+		var expectValue Commit
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Commit
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func TestEvidenceDataAmino(t *testing.T) {
+	evidenceDataAminoTestCases := []EvidenceData{
+		{},
+		{[]Evidence{}, []byte("hash")},
+		{Evidence: []Evidence{nil, nil}},
+		{
+			Evidence: []Evidence{
+				nil,
+				&DuplicateVoteEvidence{VoteA: nil},
+				MockRandomEvidence{},
+				MockEvidence{},
+			},
+		},
+	}
+	for _, evi := range evidenceDataAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(evi)
+		require.NoError(t, err)
+
+		var expectValue EvidenceData
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue EvidenceData
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+var blockAminoTestCases = []Block{
+	{},
+	{
+		Header: Header{LastBlockID: BlockID{[]byte("Hash"), PartSetHeader{1, []byte("Hash")}}},
+		Data:   Data{Txs: []Tx{{}, []byte("tx1"), []byte("tx2"), nil}},
+		Evidence: EvidenceData{
+			Evidence: []Evidence{
+				&DuplicateVoteEvidence{VoteA: &Vote{
+					0, 12345, 123,
+					BlockID{[]byte("hash"), PartSetHeader{8, []byte("hash")}},
+					time.Now(),
+					[]byte("ValidatorAddress"),
+					23,
+					[]byte("Signature"),
+				}},
+			},
+		},
+		LastCommit: &Commit{
+			Height:     123456,
+			Round:      10,
+			BlockID:    BlockID{Hash: []byte("hash"), PartsHeader: PartSetHeader{Total: 123, Hash: []byte("hash")}},
+			Signatures: commitSigAminoTestCases,
+		},
+	},
+	{
+		LastCommit: &Commit{},
+	},
+}
+
+func TestBlockAmino(t *testing.T) {
+	for _, block := range blockAminoTestCases {
+		expectData, err := cdc.MarshalBinaryBare(block)
+		require.NoError(t, err)
+
+		var expectValue Block
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue Block
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkBlockAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(blockAminoTestCases))
+	for i, block := range blockAminoTestCases {
+		data, err := cdc.MarshalBinaryBare(block)
+		require.NoError(b, err)
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var block Block
+				err := cdc.UnmarshalBinaryBare(d, &block)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, d := range testData {
+				var block Block
+				err := block.UnmarshalFromAmino(cdc, d)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
