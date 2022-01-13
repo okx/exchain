@@ -6,6 +6,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+	dbm "github.com/tendermint/tm-db"
 	"reflect"
 	"testing"
 	"time"
@@ -135,5 +139,102 @@ func TestDeltaContext_upload(t *testing.T) {
 				t.Errorf("upload() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// --------------------------------------------------------------------------------------
+
+func produceBlock() ([]*types.Block, dbm.DB) {
+	state, stateDB, _ := makeState(2, 2)
+	prevHash := state.LastBlockID.Hash
+	prevParts := types.PartSetHeader{}
+	prevBlockID := types.BlockID{Hash: prevHash, PartsHeader: prevParts}
+	var (
+		now        = tmtime.Now()
+		commitSig0 = types.NewCommitSigForBlock(
+			[]byte("Signature1"),
+			state.Validators.Validators[0].Address,
+			now)
+		commitSig1 = types.NewCommitSigForBlock(
+			[]byte("Signature2"),
+			state.Validators.Validators[1].Address,
+			now)
+		absentSig = types.NewCommitSigAbsent()
+	)
+
+	testCases := []struct {
+		desc                     string
+		lastCommitSigs           []types.CommitSig
+		expectedAbsentValidators []int
+	}{
+		{"none absent", []types.CommitSig{commitSig0, commitSig1}, []int{}},
+		{"one absent", []types.CommitSig{commitSig0, absentSig}, []int{1}},
+		{"multiple absent", []types.CommitSig{absentSig, absentSig}, []int{0, 1}},
+	}
+	blocks := make([]*types.Block, len(testCases))
+	for i, tc := range testCases {
+		lastCommit := types.NewCommit(1, 0, prevBlockID, tc.lastCommitSigs)
+		blocks[i], _ = state.MakeBlock(2, makeTxs(2), lastCommit, nil, state.Validators.GetProposer().Address)
+	}
+
+	return blocks, stateDB
+}
+
+func produceAbciRsp() *ABCIResponses {
+	proxyApp := newTestApp()
+	proxyApp.Start()
+	defer proxyApp.Stop()
+
+	blocks, stateDB := produceBlock()
+	ctx := &executionTask{
+		logger: log.TestingLogger(),
+		block: blocks[0],
+		db: stateDB,
+		proxyApp: proxyApp.Consensus(),
+	}
+
+	abciResponses, _ := execBlockOnProxyApp(ctx)
+	return abciResponses
+}
+
+func TestProduceDelta(t *testing.T) {
+	proxyApp := newTestApp()
+	err := proxyApp.Start()
+	require.Nil(t, err)
+	defer proxyApp.Stop()
+
+	blocks, stateDB := produceBlock()
+	for _, block := range blocks {
+		deltas, _, err := ExecCommitBlockDelta(proxyApp.Consensus(), block, log.TestingLogger(), stateDB)
+		require.Nil(t, err)
+		require.NotNil(t, deltas)
+	}
+}
+
+func BenchmarkMarshalJson(b *testing.B) {
+	abciResponses := produceAbciRsp()
+
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		types.Json.Marshal(abciResponses)
+	}
+}
+
+func BenchmarkMarshalAmino(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	var cdc = amino.NewCodec()
+
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		cdc.MarshalBinaryBare(abciResponses)
+	}
+}
+
+func BenchmarkMarshalCustom(b *testing.B) {
+	abciResponses := produceAbciRsp()
+
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		abciResponses.MarshalToAmino()
 	}
 }
