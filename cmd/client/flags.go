@@ -24,11 +24,20 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
-	cmd.Flags().String(rpc.FlagNacosTmrpcUrls, "", "Stream plugin`s nacos server urls for discovery service of tendermint rpc")
+	// register application rpc to nacos
+	cmd.Flags().String(rpc.FlagRestApplicationName, "", "rest application name in  nacos")
+	cmd.Flags().MarkHidden(rpc.FlagRestApplicationName)
+	cmd.Flags().String(rpc.FlagRestNacosUrls, "", "nacos server urls for discovery service of rest api")
+	cmd.Flags().MarkHidden(rpc.FlagRestNacosUrls)
+	cmd.Flags().String(rpc.FlagRestNacosNamespaceId, "", "nacos namepace id for discovery service of rest api")
+	cmd.Flags().MarkHidden(rpc.FlagRestNacosNamespaceId)
+	cmd.Flags().String(rpc.FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
+	// register tendermint rpc to nacos
+	cmd.Flags().String(rpc.FlagNacosTmrpcUrls, "", "nacos server urls for discovery service of tendermint rpc")
 	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcUrls)
-	cmd.Flags().String(rpc.FlagNacosTmrpcNamespaceID, "", "Stream plugin`s nacos namepace id for discovery service of tendermint rpc")
+	cmd.Flags().String(rpc.FlagNacosTmrpcNamespaceID, "", "nacos namepace id for discovery service of tendermint rpc")
 	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcNamespaceID)
-	cmd.Flags().String(rpc.FlagNacosTmrpcAppName, "", "Stream plugin`s tendermint rpc name in eureka or nacos")
+	cmd.Flags().String(rpc.FlagNacosTmrpcAppName, "", " tendermint rpc name in nacos")
 	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcAppName)
 	cmd.Flags().String(rpc.FlagRpcExternalAddr, "127.0.0.1:26657", "Set the rpc-server external ip and port, when it is launched by Docker (default \"127.0.0.1:26657\")")
 

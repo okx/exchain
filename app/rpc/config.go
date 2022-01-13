@@ -38,6 +38,10 @@ const (
 	FlagNacosTmrpcNamespaceID = "rpc.tmrpc_nacos_namespace_id"
 	FlagNacosTmrpcAppName     = "rpc.tmrpc_application_name"
 	FlagRpcExternalAddr       = "rpc.external_laddr"
+	FlagRestApplicationName   = "rest.application_name"
+	FlagRestNacosUrls         = "rest.nacos_urls"
+	FlagRestNacosNamespaceId  = "rest.nacos_namespace_id"
+	FlagExternalListenAddr    = "rest.external_laddr"
 
 	MetricsNamespace = "x"
 	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
@@ -143,10 +147,10 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 }
 
 func registerNacos(logger log.Logger) {
-	nacosUrls := viper.GetString(cmserver.FlagRestNacosUrls)
-	nacosNamespaceId := viper.GetString(cmserver.FlagRestNacosNamespaceId)
-	applicationName := viper.GetString(cmserver.FlagRestApplicationName)
-	externalAddr := viper.GetString(cmserver.FlagExternalListenAddr)
+	nacosUrls := viper.GetString(FlagRestNacosUrls)
+	nacosNamespaceId := viper.GetString(FlagRestNacosNamespaceId)
+	applicationName := viper.GetString(FlagRestApplicationName)
+	externalAddr := viper.GetString(FlagExternalListenAddr)
 
 	// start nacos client for registering restful service
 	if nacosUrls != "" {

@@ -17,21 +17,16 @@ import (
 
 // exchain full-node start flags
 const (
-	FlagListenAddr           = "rest.laddr"
-	FlagExternalListenAddr   = "rest.external_laddr"
-	FlagUlockKey             = "rest.unlock_key"
-	FlagUlockKeyHome         = "rest.unlock_key_home"
-	FlagRestPathPrefix       = "rest.path_prefix"
-	FlagCORS                 = "cors"
-	FlagMaxOpenConnections   = "max-open"
-	FlagHookstartInProcess   = "startInProcess"
-	FlagWebsocket            = "wsport"
-	FlagWsMaxConnections     = "ws.max_connections"
-	FlagWsSubChannelLength   = "ws.sub_channel_length"
-	FlagEnableBackend        = "rest.enable_backend"
-	FlagRestApplicationName  = "rest.application_name"
-	FlagRestNacosUrls        = "rest.nacos_urls"
-	FlagRestNacosNamespaceId = "rest.nacos_namespace_id"
+	FlagListenAddr         = "rest.laddr"
+	FlagUlockKey           = "rest.unlock_key"
+	FlagUlockKeyHome       = "rest.unlock_key_home"
+	FlagRestPathPrefix     = "rest.path_prefix"
+	FlagCORS               = "cors"
+	FlagMaxOpenConnections = "max-open"
+	FlagHookstartInProcess = "startInProcess"
+	FlagWebsocket          = "wsport"
+	FlagWsMaxConnections   = "ws.max_connections"
+	FlagWsSubChannelLength = "ws.sub_channel_length"
 )
 
 //module hook
@@ -151,18 +146,11 @@ func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
-	cmd.Flags().String(FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
 	cmd.Flags().String(FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
-	cmd.Flags().String(FlagRestApplicationName, "", "Stream plugin`s rest application name in eureka or nacos")
-	cmd.Flags().MarkHidden(FlagRestApplicationName)
-	cmd.Flags().String(FlagRestNacosUrls, "", "Stream plugin`s nacos server urls for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagRestNacosUrls)
-	cmd.Flags().String(FlagRestNacosNamespaceId, "", "Stream plugin`s nacos namepace id for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagRestNacosNamespaceId)
 	return cmd
 }
 
