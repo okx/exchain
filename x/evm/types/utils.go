@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"strings"
+
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -533,15 +536,59 @@ func DecodeResultData(in []byte) (ResultData, error) {
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 1 {
+			return nil, fmt.Errorf("to many height parameters")
+		}
 		var tx sdk.Tx
 		var err error
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
 
-		// TODO: Is there a better way to Decode RLP-encoded MsgEthereumTx?
-		// Try to decode as MsgEthereumTx through RLP
+		var height int64
+		if len(heights) == 1 {
+			height = heights[0]
+		} else {
+			height = global.GetGlobalHeight()
+		}
+
+		if types.HigherThanVenus(height) {
+			// Try to decode as MsgEthereumTx through RLP
+			var ethTx MsgEthereumTx
+			if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
+				return ethTx, nil
+			}
+		}
+
+		// sdk.Tx is an interface. The concrete message types
+		// are registered by MakeTxCodec
+		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
+		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+			if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+			}
+			return v.(sdk.Tx), nil
+		}
+		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
+			if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+			}
+			return tx, nil
+		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+	}
+}
+
+//
+func TxDecoderOnlyInQuery(cdc *codec.Codec) sdk.TxDecoder {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		var tx sdk.Tx
+		var err error
+		if len(txBytes) == 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
+		}
+
 		var ethTx MsgEthereumTx
 		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
 			return ethTx, nil
