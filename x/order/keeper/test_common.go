@@ -16,11 +16,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/params"
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/params"
+	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/dex"
@@ -121,7 +121,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 
 	// token keeper
 	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper.Subspace(token.DefaultParamspace),
-		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, true, accountKeeper)
+		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, accountKeeper)
 
 	// dex keeper
 	paramsSubspace := paramsKeeper.Subspace(dex.DefaultParamspace)
@@ -130,7 +130,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	// order keeper
 	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, dexKeeper,
 		paramsKeeper.Subspace(types.DefaultParamspace), auth.FeeCollectorName, keyOrder,
-		cdc, true, monitor.NopOrderMetrics())
+		cdc, monitor.NopOrderMetrics())
 
 	defaultParams := types.DefaultTestParams()
 	orderKeeper.SetParams(ctx, &defaultParams)

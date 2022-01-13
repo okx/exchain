@@ -157,8 +157,6 @@ func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
-	cmd.Flags().Bool(FlagEnableBackend, false, "Enable the node's backend plugin")
-	cmd.Flags().MarkHidden(FlagEnableBackend)
 	cmd.Flags().String(FlagRestApplicationName, "", "Stream plugin`s rest application name in eureka or nacos")
 	cmd.Flags().MarkHidden(FlagRestApplicationName)
 	cmd.Flags().String(FlagRestNacosUrls, "", "Stream plugin`s nacos server urls for discovery service of rest api")

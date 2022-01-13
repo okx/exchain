@@ -13,10 +13,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	"github.com/okex/exchain/x/staking/types"
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/x/staking/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/dex"
@@ -92,7 +92,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.keyToken,
 		mockApp.keyLock,
 		mockApp.Cdc,
-		true, mockApp.AccountKeeper)
+		mockApp.AccountKeeper)
 
 	mockApp.dexKeeper = dex.NewKeeper(
 		auth.FeeCollectorName,
@@ -113,7 +113,6 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		auth.FeeCollectorName,
 		mockApp.keyOrder,
 		mockApp.Cdc,
-		true,
 		monitor.NopOrderMetrics())
 
 	mockApp.Router().AddRoute(RouterKey, NewOrderHandler(mockApp.orderKeeper))

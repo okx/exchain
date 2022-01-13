@@ -31,8 +31,6 @@ type Keeper struct {
 
 	cdc *codec.Codec // The wire codec for binary encoding/decoding.
 
-	enableBackend bool // whether open backend plugin
-
 	// cache data in memory to avoid marshal/unmarshal too frequently
 	// reset cache data in BeginBlock
 	cache *Cache
@@ -40,7 +38,7 @@ type Keeper struct {
 
 // NewKeeper creates a new token keeper
 func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
-	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool, ak types.AccountKeeper) Keeper {
+	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, ak types.AccountKeeper) Keeper {
 
 	k := Keeper{
 		bankKeeper:       bankKeeper,
@@ -51,7 +49,6 @@ func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
 		tokenStoreKey:    tokenStoreKey,
 		lockStoreKey:     lockStoreKey,
 		cdc:              cdc,
-		enableBackend:    enableBackend,
 		cache:            NewCache(),
 	}
 	return k
@@ -359,16 +356,15 @@ func (k Keeper) GetFeeDetailList() []*FeeDetail {
 
 // nolint
 func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.SysCoins, feeType string, receiver string) {
-	if k.enableBackend {
-		feeDetail := &FeeDetail{
-			Address:   from,
-			Fee:       fee.String(),
-			FeeType:   feeType,
-			Timestamp: ctx.BlockHeader().Time.Unix(),
-			Receiver:  receiver,
-		}
-		k.cache.addFeeDetail(feeDetail)
+	feeDetail := &FeeDetail{
+		Address:   from,
+		Fee:       fee.String(),
+		FeeType:   feeType,
+		Timestamp: ctx.BlockHeader().Time.Unix(),
+		Receiver:  receiver,
 	}
+	k.cache.addFeeDetail(feeDetail)
+
 }
 
 func (k Keeper) getNumKeys(ctx sdk.Context) (tokenStoreKeyNum, lockStoreKeyNum int64) {

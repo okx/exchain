@@ -34,9 +34,8 @@ type Keeper struct {
 	// Unexposed key to access name store from sdk.Context
 	orderStoreKey sdk.StoreKey
 
-	cdc           *codec.Codec // The wire codec for binary encoding/decoding.
-	enableBackend bool         // whether open backend plugin
-	metric        *monitor.OrderMetric
+	cdc    *codec.Codec // The wire codec for binary encoding/decoding.
+	metric *monitor.OrderMetric
 
 	// cache data in memory to avoid marshal/unmarshal too frequently
 	// reset cache data in BeginBlock
@@ -47,25 +46,19 @@ type Keeper struct {
 // NewKeeper creates new instances of the nameservice Keeper
 func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper DexKeeper,
 	paramSpace params.Subspace, feeCollectorName string, ordersStoreKey sdk.StoreKey,
-	cdc *codec.Codec,
-	enableBackend bool, metrics *monitor.OrderMetric) Keeper {
+	cdc *codec.Codec, metrics *monitor.OrderMetric) Keeper {
 
 	return Keeper{
-		metric: metrics,
-
-		enableBackend:    enableBackend,
+		metric:           metrics,
 		feeCollectorName: feeCollectorName,
-
-		tokenKeeper:  tokenKeeper,
-		supplyKeeper: supplyKeeper,
-		dexKeeper:    dexKeeper,
-		paramSpace:   paramSpace.WithKeyTable(types.ParamKeyTable()),
-
-		orderStoreKey: ordersStoreKey,
-
-		cdc:       cdc,
-		cache:     NewCache(),
-		diskCache: newDiskCache(),
+		tokenKeeper:      tokenKeeper,
+		supplyKeeper:     supplyKeeper,
+		dexKeeper:        dexKeeper,
+		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
+		orderStoreKey:    ordersStoreKey,
+		cdc:              cdc,
+		cache:            NewCache(),
+		diskCache:        newDiskCache(),
 	}
 }
 
@@ -326,17 +319,12 @@ func (k Keeper) GetUpdatedOrderIDs() []string {
 
 // GetTxHandlerMsgResult: be careful, only call by backend module, other module should never use it!
 func (k Keeper) GetTxHandlerMsgResult() []bitset.BitSet {
-	if !k.enableBackend {
-		return nil
-	}
 	return k.cache.toggleCopyTxHandlerMsgResult()
 }
 
 // nolint
 func (k Keeper) addUpdatedOrderID(orderID string) {
-	if k.enableBackend {
-		k.cache.addUpdatedOrderID(orderID)
-	}
+	k.cache.addUpdatedOrderID(orderID)
 }
 
 // GetLastClosedOrderIDs gets closed order ids in last block
@@ -358,9 +346,7 @@ func (k Keeper) GetBlockMatchResult() *types.BlockMatchResult {
 
 // nolint
 func (k Keeper) SetBlockMatchResult(result *types.BlockMatchResult) {
-	if k.enableBackend {
-		k.cache.setBlockMatchResult(result)
-	}
+	k.cache.setBlockMatchResult(result)
 }
 
 // LockCoins locks coins from the specified address,
@@ -541,7 +527,5 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 
 // nolint
 func (k Keeper) AddTxHandlerMsgResult(resultSet bitset.BitSet) {
-	if k.enableBackend {
-		k.cache.addTxHandlerMsgResult(resultSet)
-	}
+	k.cache.addTxHandlerMsgResult(resultSet)
 }

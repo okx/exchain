@@ -9,10 +9,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -71,7 +71,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 		keyToken,
 		keyLock,
 		cdc,
-		true, accountKeeper)
+		accountKeeper)
 	tk.SetParams(ctx, types.DefaultParams())
 
 	return ctx, tk, keyParams, []byte("testToken")

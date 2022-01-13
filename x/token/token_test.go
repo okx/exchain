@@ -15,13 +15,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 var mockBlockHeight int64 = -1
@@ -88,7 +88,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		true, mapp.AccountKeeper)
+		mapp.AccountKeeper)
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -172,7 +172,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		true, mockDexApp.AccountKeeper)
+		mockDexApp.AccountKeeper)
 
 	// for staking/distr rollback to cosmos-sdk
 	//store.NewKVStoreKey(staking.DelegatorPoolKey),

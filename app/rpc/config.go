@@ -143,14 +143,13 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 }
 
 func registerNacos(logger log.Logger) {
-	enableBackend := viper.GetBool(cmserver.FlagEnableBackend)
 	nacosUrls := viper.GetString(cmserver.FlagRestNacosUrls)
 	nacosNamespaceId := viper.GetString(cmserver.FlagRestNacosNamespaceId)
 	applicationName := viper.GetString(cmserver.FlagRestApplicationName)
 	externalAddr := viper.GetString(cmserver.FlagExternalListenAddr)
 
 	// start nacos client for registering restful service
-	if enableBackend && nacosUrls != "" {
+	if nacosUrls != "" {
 		nacos.StartNacosClient(logger, nacosUrls, nacosNamespaceId, applicationName, externalAddr)
 	}
 

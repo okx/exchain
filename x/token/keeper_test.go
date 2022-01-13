@@ -7,8 +7,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/token/types"
@@ -72,7 +72,6 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
-	keeper.enableBackend = true
 
 	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
 	require.Nil(t, err)

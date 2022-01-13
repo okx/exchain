@@ -14,11 +14,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/params"
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/params"
+	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/common"
@@ -111,7 +111,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 	// token keeper
 	tokenKeepr := token.NewKeeper(bankKeeper,
 		paramsKeeper.Subspace(token.DefaultParamspace), auth.FeeCollectorName, supplyKeeper,
-		keyToken, keyLock, cdc, true, accountKeeper)
+		keyToken, keyLock, cdc, accountKeeper)
 
 	paramsSubspace := paramsKeeper.Subspace(types.DefaultParamspace)
 

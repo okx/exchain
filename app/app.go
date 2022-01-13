@@ -205,8 +205,6 @@ func NewOKExChainApp(
 		iavl.SetLogFunc(logFunc)
 		logStartingFlags(logger)
 	})
-	// get config
-	isEnableBackend := viper.GetBool(server.FlagEnableBackend)
 
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
@@ -291,16 +289,14 @@ func NewOKExChainApp(
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
-		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, isEnableBackend, &app.AccountKeeper)
+		keys[token.StoreKey], keys[token.KeyLock], app.cdc, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, isEnableBackend, orderMetrics,
-	)
+		app.keys[order.OrderStoreKey], app.cdc, orderMetrics)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
