@@ -22,12 +22,6 @@ const (
 	ConsensusTestcase = "consensus-testcase"
 )
 
-func init() {
-	once.Do(func() {
-		roleAction = make(map[string]*action)
-	})
-}
-
 type round struct {
 	Round           int64
 	PreVote         map[string]bool // true vote nil, false default vote
@@ -50,6 +44,7 @@ type action struct {
 	recvBlock        bool // true not received proposed block, false actual received
 	disconnect       int  // int => control consensus reactor sleep time
 }
+
 
 func LoadTestCase(log log.Logger) {
 	confFilePath := viper.GetString(ConsensusTestcase)
@@ -91,6 +86,13 @@ func LoadTestCase(log log.Logger) {
 			}
 		}
 	}
+}
+
+func IsEnableTest() bool {
+	return enableRoleTest
+}
+func EnableRoleTest(b bool) {
+	enableRoleTest = b
 }
 
 func PrevoteNil(height int64, round int) bool {

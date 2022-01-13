@@ -1,8 +1,12 @@
 package consensus
 
 import (
+	bytes2 "bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmpubsub "github.com/okex/exchain/libs/tendermint/libs/pubsub"
 	"os"
 	"path"
 	"runtime"
@@ -232,6 +236,7 @@ func (m *mockEvidencePool) IsCommitted(types.Evidence) bool { return false }
 
 // Ensure a testnet makes blocks when there are txs
 func TestReactorCreatesBlockWhenEmptyBlocksFalse(t *testing.T) {
+	localTest()
 	N := 4
 	css, cleanup := randConsensusNet(N, "consensus_reactor_test", newMockTickerFunc(true), newCounter,
 		func(c *cfg.Config) {
@@ -241,15 +246,187 @@ func TestReactorCreatesBlockWhenEmptyBlocksFalse(t *testing.T) {
 	reactors, blocksSubs, eventBuses := startConsensusNet(t, css, N)
 	defer stopConsensusNet(log.TestingLogger(), reactors, eventBuses)
 
-	// send a tx
-	if err := assertMempool(css[3].txNotifier).CheckTx([]byte{1, 2, 3}, nil, mempl.TxInfo{}); err != nil {
-		t.Error(err)
+	f := func(data []byte) {
+		p := css[0].GetState().Validators.GetProposer()
+		index := 0
+		for i := 0; i < len(css); i++ {
+			k, _ := css[i].privValidator.GetPubKey()
+			if p.PubKey.Equals(k) {
+				index = i
+				break
+			}
+		}
+		// send a tx
+		if err := assertMempool(css[index].txNotifier).CheckTx(data, nil, mempl.TxInfo{}); err != nil {
+			t.Error(err)
+		}
+		// wait till everyone makes the first new block
+		timeoutWaitGroup(t, N, func(j int) {
+			<-blocksSubs[j].Out()
+		}, css)
+	}
+	f([]byte{1, 2, 3})
+	f([]byte{4, 5, 6})
+}
+
+func TestResetProposalBlock(t *testing.T) {
+	localTest()
+	oneHeightPreRunCount := 0 // except 2
+	N := 4
+	css, cleanup := randConsensusNet(N, "consensus_reactor_test", newMockTickerFunc(true), newCounter,
+		func(c *cfg.Config) {
+			c.Consensus.CreateEmptyBlocks = false
+		})
+	defer cleanup()
+
+	blockBHexBytes, _ := hex.DecodeString("0aaf020a02080a120f74656e6465726d696e745f746573741802220c0888a9868f0610b0c9af95032a480a20d0fb69f398456529d5a9fe05551984997ee7c2347d857678dcd538f3ded36965122408011220e4bf838131a30d85d1d26d54e653aa48943d619cf3b3ceda870a4d7b565117fe322090cc57a68da8797fc4a9230e76056d0cb4db5e6515ea59fa5afdb826ea81e59d3a20e6a75f9df009d7fed203c3a641be78bae896ce01dd084e64e64b511bd678c21a4220c267c03255271c3f5e897bdb59d16694dc0ea60fc34868b39d4cd25a37bd107f4a20c267c03255271c3f5e897bdb59d16694dc0ea60fc34868b39d4cd25a37bd107f5220048091bc7ddc283f77bfbf91d73c44da58c3df8a9cbc867405d8b7f3daada22f7214139eba7c5da73e1b857e7edc754cc3bca3b7e02812050a0304050622f40308011a480a20d0fb69f398456529d5a9fe05551984997ee7c2347d857678dcd538f3ded36965122408011220e4bf838131a30d85d1d26d54e653aa48943d619cf3b3ceda870a4d7b565117fe2268080212141335d2144a4d06dc7e696ed551eed0dc0955b8141a0c0888a9868f0610b0c9af95032240404542d9e9d6f4aaa1668fefeaf7f6fe9dc98c3f6b67c2ae9279ab7ed6dc2bed0f16bd55a85a8f64f277b4f6ba59bc4bfced361171bb485fcd4730f8f2cb5a0c226808021214139eba7c5da73e1b857e7edc754cc3bca3b7e0281a0c0888a9868f0610b0c9af9503224018bc193b527a4cb4d798c8216f7d008fbff165eedab70312fbf5dc3e30743c7eff98c4ce942f3634ecc214891a69600230f6b6b33037299f96675cefa87ced072268080212149911771be341ef93cd0489c0890dc292b399581e1a0c0888a9868f0610b0c9af95032240c45ffdd5e78e70f17383853c2a67684f77aba6ef188630c1dbf309e48842cef719588415f3f46158fe843eef33b38d01e59c7a9cba563ee5904b0ca44e659f0e226808021214cca3e2bc46ac13f8666ebb1fc80bf0c71f3dedfa1a0c0888a9868f0610b0c9af95032240e5633a959fd9aebe7e2dbaa7fc07438c6d76340cf3c5cb2b979d76c04c274efa1a67f2ea1109aea7209501c1e34bc946654af7de2769d965a041bd364fa8cd0c")
+	bb := getBlock(blockBHexBytes)
+	blocksSubs := make([]types.Subscription, 0)
+	for _, v := range css {
+		blocksSub, _ := v.eventBus.Subscribe(context.Background(), testSubscriber, types.EventQueryNewBlock)
+		blocksSubs = append(blocksSubs, blocksSub)
 	}
 
-	// wait till everyone makes the first new block
+	findV := func() int {
+		p := css[0].Validators.GetProposer()
+		for index, vs := range css {
+			pk, _ := vs.privValidator.GetPubKey()
+			if bytes2.Equal(pk.Address(), p.Address) {
+				return index
+			}
+		}
+		panic(-1)
+	}
+	proposalChs := make([]<-chan tmpubsub.Message, len(css))
+	newRoundChs := make([]<-chan tmpubsub.Message, len(css))
+	prerunChs := make([]<-chan tmpubsub.Message, len(css))
+	validBlockEvent := make([]<-chan tmpubsub.Message, len(css))
+	for i := 0; i < len(css); i++ {
+		eventBus := css[i].eventBus
+		proposalChs[i] = subscribe(eventBus, types.EventQueryCompleteProposal)
+		newRoundChs[i] = subscribe(eventBus, types.EventQueryNewRound)
+		prerunChs[i] = subscribe(eventBus, types.EventQueryNewPreRun)
+		validBlockEvent[i] = subscribe(eventBus, types.EventQueryValidBlock)
+	}
+
+	round := 0
+	height := int64(1)
+	for _, v := range css {
+		startTestRound(v, height, round)
+	}
+	ensureNewRound(newRoundChs[0], height, round)
+	ensureNewProposal(proposalChs[0], height, round)
+	rs := css[0].GetRoundState()
+	hash := rs.ProposalBlock.Hash()
+	header := rs.ProposalBlockParts.Header()
+
+	collectVotes(height, round, types.PrecommitType, hash, header, css...)
+	// send blockPart to other nodes
+	bc := make(chan *types.Block, 1)
+	go func() {
+		b := <-bc
+		set := b.MakePartSet(types.BlockPartSizeBytes)
+		for j, vs := range css {
+			if j == 0 {
+				continue
+			}
+			m := &BlockPartMessage{
+				Height: height,
+				Round:  round,
+			}
+			m.Part = set.GetPart(0)
+			vs.peerMsgQueue <- msgInfo{Msg: m}
+		}
+	}()
+	once := sync.Once{}
 	timeoutWaitGroup(t, N, func(j int) {
-		<-blocksSubs[j].Out()
+		blockEvent := <-blocksSubs[j].Out()
+		b := blockEvent.Data().(types.EventDataNewBlock)
+		once.Do(func() {
+			bc <- b.Block
+			bb.LastBlockID = types.BlockID{
+				Hash:        b.Block.Hash(),
+				PartsHeader: b.Block.MakePartSet(types.BlockPartSizeBytes).Header(),
+			}
+		})
 	}, css)
+	// flush
+	for i := 0; i < len(css); i++ {
+		f := func(index int, c <-chan tmpubsub.Message) {
+			for {
+				select {
+				case <-c:
+				default:
+					return
+				}
+			}
+		}
+		f(i, prerunChs[i])
+		f(i, newRoundChs[i])
+		f(i, proposalChs[i])
+		f(i, validBlockEvent[i])
+	}
+	automation.EnableRoleTest(true)
+	// all the previous prerun task will be blocked
+	blockC := make(chan struct{})
+	automation.RegisterActionCallBack(2, 0, func(data ...interface{}) {
+		<-blockC
+	})
+	f := func(index int, height int64, data []byte) {
+		cs1 := css[index]
+		proposalCh := proposalChs[index]
+		assertMempool(cs1.txNotifier).CheckTx(data, nil, mempl.TxInfo{})
+		ensureNewProposal(proposalCh, height, round)
+		rs := cs1.GetRoundState()
+		originHash := rs.ProposalBlock.Hash()
+		// because we dont use switch , so we will just wait one single
+		ensureNewPreRun(prerunChs[index], height, originHash, true)
+		oneHeightPreRunCount++
+
+		blockBHash := bb.Hash()
+		blockBHeader := bb.MakePartSet(types.BlockPartSizeBytes).Header()
+		// then  all nodes vote the blockB
+		logger := log.TestingLogger()
+		logger.Info("vote another block", "hash", hex.EncodeToString(blockBHash), "originHash", hex.EncodeToString(originHash), "index", index)
+
+		sm.IgnoreSmbCheck = true
+		collectVotes(height, round, types.PrecommitType, blockBHash, blockBHeader, css...)
+
+		// it is excepted to see ,nodes reset the proposalBlock because of  wrong commit hash(but actually it is valid block)
+		timeoutWaitGroup(t, N, func(i int) {
+			<-validBlockEvent[i]
+		}, css)
+
+		// send
+		set := bb.MakePartSet(types.BlockPartSizeBytes)
+		for _, vs := range css {
+			m := &BlockPartMessage{
+				Height: height,
+				Round:  round,
+			}
+			m.Part = set.GetPart(0)
+			vs.peerMsgQueue <- msgInfo{Msg: m}
+		}
+		// and then ,we will receive one stop event (which event's hash belongs to previous proposalBlock)
+		ensureNewPreRun(prerunChs[index], height, originHash, false)
+		// after we receive stop event, now we can close blockC to let new task keep going
+		close(blockC)
+
+		// now we will meet new prerun task (blockB proposal)
+		timeoutWaitGroup(t, N, func(j int) {
+			ensureNewPreRun(prerunChs[j], height, blockBHash, true)
+		}, css)
+		oneHeightPreRunCount++
+
+		// wait till everyone makes the  block
+		timeoutWaitGroup(t, N, func(j int) {
+			v := <-blocksSubs[j].Out()
+			b := v.Data().(types.EventDataNewBlock)
+			require.Equal(t, b.Block.Hash(), blockBHash)
+		}, css)
+	}
+	f(findV(), 2, []byte{4, 5, 6})
+	require.Equal(t, 2, oneHeightPreRunCount)
 }
 
 func TestReactorReceiveDoesNotPanicIfAddPeerHasntBeenCalledYet(t *testing.T) {

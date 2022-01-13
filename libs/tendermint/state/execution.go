@@ -263,7 +263,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
-
 	if delta != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
@@ -441,14 +440,14 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	// Run txs of block.
 	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
-		}
-
 		if context != nil && context.stopped {
 			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
 			return nil, fmt.Errorf("Prerun stopped")
+		}
+
+		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
+		if err := proxyAppConn.Error(); err != nil {
+			return nil, err
 		}
 	}
 

@@ -12,34 +12,37 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-
 type executionResult struct {
 	res *ABCIResponses
 	err error
 }
 
 type executionTask struct {
-	height  int64
-	index   int64
-	block   *types.Block
-	stopped bool
-	taskResultChan   chan *executionTask
-	result           *executionResult
-	proxyApp         proxy.AppConnConsensus
-	db               dbm.DB
-	logger           log.Logger
+	height         int64
+	index          int64
+	block          *types.Block
+	stopped        bool
+	taskResultChan chan *executionTask
+	result         *executionResult
+	proxyApp       proxy.AppConnConsensus
+	db             dbm.DB
+	logger         log.Logger
+	eventBus       types.BlockEventPublisher
+	notifyC        chan struct{}
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
 
 	return &executionTask{
-		height:           block.Height,
-		block:            block,
-		db:               blockExec.db,
-		proxyApp:         blockExec.proxyApp,
-		logger:           blockExec.logger,
-		taskResultChan:   blockExec.prerunCtx.taskResultChan,
-		index:            index,
+		height:         block.Height,
+		block:          block,
+		db:             blockExec.db,
+		proxyApp:       blockExec.proxyApp,
+		logger:         blockExec.logger,
+		taskResultChan: blockExec.prerunCtx.taskResultChan,
+		index:          index,
+		eventBus:       blockExec.eventBus,
+		notifyC: make(chan struct{}),
 	}
 }
 
@@ -49,6 +52,7 @@ func (e *executionTask) dump(when string) {
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
+		"blockHash", e.block.Hash(),
 		//"AppHash", e.block.AppHash,
 	)
 }
@@ -57,21 +61,40 @@ func (t *executionTask) stop() {
 	if t.stopped {
 		return
 	}
+	if eventAdapter, ok := t.eventBus.(types.BlockEventPublisherAdapter); ok {
+		eventAdapter.PublishEventPrerun(types.EventDataPreRun{
+			Block:   t.block,
+			NewTask: false,
+		})
+	}
 
+	t.stopped = true
+	// wait until current  task is quit
+	<-t.notifyC
 	//reset deliverState
 	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
+		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
-	t.stopped = true
+
 }
 
-
 func (t *executionTask) run() {
+	defer func() {
+		if t.notifyC != nil {
+			close(t.notifyC)
+		}
+	}()
+
 	t.dump("Start prerun")
+
+	if eventAdapter, ok := t.eventBus.(types.BlockEventPublisherAdapter); ok {
+		eventAdapter.PublishEventPrerun(types.EventDataPreRun{Block: t.block, NewTask: true})
+	}
+
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
 
 	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
+		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
 
 	abciResponses, err := execBlockOnProxyApp(t)
@@ -82,7 +105,7 @@ func (t *executionTask) run() {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
+	automation.PrerunCallBackWithTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")
 	t.taskResultChan <- t
 }

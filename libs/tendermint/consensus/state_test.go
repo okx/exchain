@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/spf13/viper"
 	"testing"
 	"time"
 
@@ -89,7 +90,13 @@ func TestStateProposerSelection0(t *testing.T) {
 		panic(fmt.Sprintf("expected proposer to be validator %d. Got %X", 1, prop.Address))
 	}
 }
-
+func getBlock(bs []byte) *types.Block {
+	b := &types.Block{}
+	if err := b.Unmarshal(bs); nil != err {
+		panic(err)
+	}
+	return b
+}
 // Now let's do it all again, but starting from round 2 instead of 0
 func TestStateProposerSelection2(t *testing.T) {
 	cs1, vss := randState(4) // test needs more work for more than 3 validators
@@ -997,6 +1004,7 @@ func TestProposeValidBlock(t *testing.T) {
 	assert.True(t, bytes.Equal(rs.ProposalBlock.Hash(), rs.ValidBlock.Hash()))
 	assert.True(t, rs.Proposal.POLRound == rs.ValidRound)
 	assert.True(t, bytes.Equal(rs.Proposal.BlockID.Hash, rs.ValidBlock.Hash()))
+
 }
 
 // What we want:
@@ -1661,6 +1669,10 @@ func TestStateOutputVoteStats(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 
+}
+
+func localTest() {
+	viper.Set(EnablePrerunTx, true)
 }
 
 // subscribe subscribes test client to the given query and returns a channel with cap = 1.
