@@ -170,20 +170,6 @@ func NewIntWithDecimal(n int64, dec int) Int {
 	return Int{i}
 }
 
-func NewIntFromAmino(data []byte) (Int, error) {
-	ret := Int{new(big.Int)}
-
-	if err := ret.i.UnmarshalText(data); err != nil {
-		return Int{}, err
-	}
-
-	if ret.i.BitLen() > maxBitLen {
-		return Int{}, fmt.Errorf("integer out of range: %s", string(data))
-	}
-
-	return ret, nil
-}
-
 // ZeroInt returns Int value with zero
 func ZeroInt() Int { return Int{big.NewInt(0)} }
 

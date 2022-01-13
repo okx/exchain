@@ -124,7 +124,7 @@ func (msg MsgEthermint) To() *ethcmn.Address {
 	return &addr
 }
 
-func (msg *MsgEthermint) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (msg *MsgEthermint) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -162,7 +162,7 @@ func (msg *MsgEthermint) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			}
 			dataLen = uint64(n)
 		case 2:
-			msg.Price, err = sdk.NewIntFromAmino(subData)
+			err = msg.Price.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -178,7 +178,10 @@ func (msg *MsgEthermint) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			msg.Recipient = &tmp
 			copy(tmp[:], subData)
 		case 5:
-			msg.Amount, err = sdk.NewIntFromAmino(subData)
+			err = msg.Amount.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
 		case 6:
 			msg.Payload = make([]byte, dataLen)
 			copy(msg.Payload, subData)
