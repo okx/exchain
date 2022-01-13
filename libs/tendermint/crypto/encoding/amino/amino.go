@@ -95,7 +95,7 @@ const typePrefixAndSizeLen = 4 + 1
 
 // UnmarshalPubKeyFromAminoWithTypePrefix decode pubkey from amino bytes,
 // bytes should start with type prefix
-func UnmarshalPubKeyFromAminoWithTypePrefix(data []byte) (crypto.PubKey, error) {
+func UnmarshalPubKeyFromAminoWithTypePrefix(cdc *amino.Codec, data []byte) (crypto.PubKey, error) {
 	if data[0] == 0x00 {
 		return nil, errors.New("unmarshal pubkey with disamb do not implement")
 	}
@@ -143,11 +143,13 @@ func UnmarshalPubKeyFromAminoWithTypePrefix(data []byte) (crypto.PubKey, error) 
 		copy(pubKey[:], data)
 		return pubKey, nil
 	} else {
-		return nil, errors.New("unknown pubkey type")
+		var pubkey crypto.PubKey
+		err := cdc.UnmarshalBinaryBare(data, &pubkey)
+		return pubkey, err
 	}
 }
 
-func MarshalPubKeyToAminoWithTypePrefix(key crypto.PubKey) (data []byte, err error) {
+func MarshalPubKeyToAminoWithTypePrefix(cdc *amino.Codec, key crypto.PubKey) (data []byte, err error) {
 	switch key.(type) {
 	case secp256k1.PubKeySecp256k1:
 		data = make([]byte, 0, secp256k1.PubKeySecp256k1Size+typePrefixAndSizeLen)
@@ -171,5 +173,9 @@ func MarshalPubKeyToAminoWithTypePrefix(key crypto.PubKey) (data []byte, err err
 		data = append(data, keyData[:]...)
 		return data, nil
 	}
-	return nil, errors.New("unknown pubkey type")
+	data, err = cdc.MarshalBinaryBare(key)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

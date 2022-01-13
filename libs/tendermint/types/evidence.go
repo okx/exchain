@@ -261,12 +261,9 @@ func (dve *DuplicateVoteEvidence) UnmarshalFromAmino(cdc *amino.Codec, data []by
 
 		switch pos {
 		case 1:
-			dve.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			dve.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(cdc, subData)
 			if err != nil {
-				err = cdc.UnmarshalBinaryBare(subData, &dve.PubKey)
-				if err != nil {
-					return err
-				}
+				return err
 			}
 		case 2:
 			dve.VoteA = new(Vote)
