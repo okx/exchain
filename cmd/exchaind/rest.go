@@ -58,7 +58,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
-	evmrest.RegisterRoutes(rs.CliCtx, v1Router, true)
+	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -77,7 +77,6 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v2Router)
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
-	evmrest.RegisterRoutes(rs.CliCtx, v2Router, false)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
 }
