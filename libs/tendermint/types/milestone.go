@@ -58,6 +58,13 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
+
+
+// GetMilestoneVenusHeight returns milestoneVenusHeight
+func GetMilestoneVenusHeight() int64 {
+	return milestoneVenusHeight
+}
+
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
 	return MILESTONE_GENESIS_HEIGHT == "2322600"
@@ -78,4 +85,9 @@ func GetVenusHeight() int64 {
 
 func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
+}
+
+// can be used in unit test only
+func UnittestOnlySetMilestoneVenusHeight(height int64) {
+	milestoneVenusHeight = height
 }
