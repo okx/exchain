@@ -54,16 +54,37 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	// ante init logic
 	ante.SetCurrentNodeKeys(suite.nodePub, suite.nodePriv)
+}
 
+func setConfidentKeyList(suite *AnteTestSuite, empty bool) {
+	if empty {
+		serverConfig := cfg.DefaultConfig()
+		serverConfig.Mempool.ConfidentNodeKeys = []string{}
+		ante.SetServerConfigTest(serverConfig)
+		return
+	}
 	confidentKeys := []string{}
 	for i := 0; i < 5; i++ {
 		_, pub := newNodeKeyPair()
 		confidentKeys = append(confidentKeys, hexutil.Encode(pub.Bytes()))
 	}
-
+	suite.Require().NotEmpty(confidentKeys)
 	serverConfig := cfg.DefaultConfig()
 	serverConfig.Mempool.ConfidentNodeKeys = confidentKeys
-	ante.SetServerConfig(serverConfig)
+	ante.SetServerConfigTest(serverConfig)
+}
+
+func setConfidentKeyListWithCurrent(suite *AnteTestSuite) {
+	confidentKeys := []string{}
+	for i := 0; i < 5; i++ {
+		_, pub := newNodeKeyPair()
+		confidentKeys = append(confidentKeys, hexutil.Encode(pub.Bytes()))
+	}
+	confidentKeys = append(confidentKeys, hexutil.Encode(suite.nodePub.Bytes()))
+	suite.Require().NotEmpty(confidentKeys)
+	serverConfig := cfg.DefaultConfig()
+	serverConfig.Mempool.ConfidentNodeKeys = confidentKeys
+	ante.SetServerConfigTest(serverConfig)
 }
 
 func TestAnteTestSuite(t *testing.T) {

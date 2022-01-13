@@ -42,6 +42,9 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_Check
 	// if err then try decode to MsgEthereumCheckedTx
 	// and then if all faild then return origin Tx
 	return func(tx tmtypes.Tx, _ *abci.Response_CheckTx) (tmtypes.Tx, error) {
+		if skipWrapped() {
+			return tx, nil
+		}
 		slice := []byte(tx)
 		t, err := decoder(slice)
 		var wrapped app.WrappedTx
@@ -62,12 +65,12 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_Check
 				{
 					wrapped = t
 					if wrapped.IsSigned() {
-						confident, err := verifyConfidentTx([]byte(tx), wrapped.Signature, wrapped.NodeKey)
+						confident, err := VerifyConfidentTx([]byte(tx), wrapped.Signature, wrapped.NodeKey)
 						if confident && err == nil {
 							return tx, nil
 						}
 					}
-					inner, err := cdc.MarshalBinaryBare(wrapped.Inner)
+					inner, err := cdc.MarshalBinaryLengthPrefixed(wrapped.Inner)
 					if err != nil {
 						return tx, err
 					}
@@ -77,7 +80,7 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_Check
 						return tx, err
 					}
 					wrapped = wrapped.WithSignature(signature, pub.Bytes())
-					slice, err := cdc.MarshalBinaryBare(wrapped)
+					slice, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
 					if err != nil {
 						return tx, err
 					}
@@ -94,7 +97,7 @@ func CheckedTxSignedFunc(cdc *codec.Codec) func(tmtypes.Tx, *abci.Response_Check
 				return tx, err
 			}
 			wrapped = wrapped.WithSignature(signature, pub.Bytes())
-			slice, err := cdc.MarshalBinaryBare(wrapped)
+			slice, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
 			if err != nil {
 				return tx, err
 			}
@@ -118,8 +121,13 @@ func SetServerConfig(cfg *cfg.Config) {
 	})
 }
 
+// SetServerConfigTest only used for test
+func SetServerConfigTest(cfg *cfg.Config) {
+	serverConfig = cfg
+}
+
 // use current config to verify the signature with the tx bytes
-func verifyConfidentTx(message, signature, pub []byte) (confident bool, err error) {
+func VerifyConfidentTx(message, signature, pub []byte) (confident bool, err error) {
 	pubKey := ed25519.PubKeyEd25519{}
 	err = pubKey.UnmarshalFromAmino(pub)
 	if err != nil {
@@ -161,4 +169,8 @@ func getConfidntNodeKeys() []ed25519.PubKeyEd25519 {
 		res = append(res, key)
 	}
 	return res
+}
+
+func skipWrapped() bool {
+	return len(serverConfig.Mempool.ConfidentNodeKeys) <= 0
 }

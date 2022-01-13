@@ -48,24 +48,16 @@ func buildLightStdtxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk t
 		NewAccountSetupDecorator(ak),
 		authante.NewValidateBasicDecorator(),
 		authante.NewConsumeGasForTxSizeDecorator(ak),
-		authante.NewDeductFeeDecorator(ak, sk),
-		authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-		authante.NewSigVerificationDecorator(ak),
 		authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 	)
 }
 
 func buildLightEvmTxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
-		NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-		NewGasLimitDecorator(evmKeeper),
-		NewEthMempoolFeeDecorator(evmKeeper),
-		authante.NewValidateBasicDecorator(),
-		NewEthSigVerificationDecorator(),
+		NewEthSetupContextDecorator(),                     // outermost AnteDecorator. EthSetUpContext must be called first
 		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 		NewAccountVerificationDecorator(ak, evmKeeper),
 		NewNonceVerificationDecorator(ak),
-		NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 		NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 	)
 }

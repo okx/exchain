@@ -48,7 +48,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 					origin = wrapped.GetOriginTx()
 					break
 				}
-				confident, e := verifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
+				confident, e := VerifyConfidentTx(ctx.TxBytes(), wrapped.Signature, wrapped.NodeKey)
 				if e != nil {
 					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
 				}

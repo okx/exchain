@@ -4,10 +4,11 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -39,11 +40,7 @@ var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("00000000000000000000000000000
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgEthereumTx = "ethereum"
-	// TypeMsgEthereumCheckekTx defines the type string of Erhereum checked tx
-	TypeMsgEthereumCheckekTx = "ethereum-checked"
 )
-
-
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
