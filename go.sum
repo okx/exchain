@@ -569,8 +569,8 @@ github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OS
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
-github.com/okex/go-amino v0.15.2-0.20211228034121-f7137497905f h1:pUJzBHyX0eNjPm/PnhKgGsm4+h3XdH5HS6JUkcCX8t4=
-github.com/okex/go-amino v0.15.2-0.20211228034121-f7137497905f/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
+github.com/okex/go-amino v0.15.2-0.20220113070503-618e1d1fb917 h1:ymKzmc5RVWTQ2o72zNxQ/ctO3ZBVjrarfE0gCcJvZ+E=
+github.com/okex/go-amino v0.15.2-0.20220113070503-618e1d1fb917/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
 github.com/okex/go-ethereum v1.10.8-oec2 h1:FBHZgT/R/0FSP1JyNj9y/kVxwqtxSieth6lBRnMHbPQ=
 github.com/okex/go-ethereum v1.10.8-oec2/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
 github.com/okex/tm-db v0.5.2-exchain4 h1:/KoobsRhKD7xFhlMAzep4KVL+gr7SJuKiHCzk4B2Tdc=
