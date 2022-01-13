@@ -54,7 +54,8 @@ func buildLightStdtxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk t
 
 func buildLightEvmTxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
-		NewEthSetupContextDecorator(),                     // outermost AnteDecorator. EthSetUpContext must be called first
+		NewEthSetupContextDecorator(),
+		NewEthSigVerificationDecorator(),                  // outermost AnteDecorator. EthSetUpContext must be called first
 		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 		NewAccountVerificationDecorator(ak, evmKeeper),
 		NewNonceVerificationDecorator(ak),

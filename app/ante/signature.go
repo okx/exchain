@@ -20,6 +20,7 @@ var (
 	currentNodePub     crypto.PubKey
 	currentNodePriv    crypto.PrivKey
 	serverConfig       *cfg.Config
+	effectiveHeight    int64
 )
 
 // CreateAppCallback return the struct carry the callbacks
@@ -50,6 +51,11 @@ func SetServerConfigTest(cfg *cfg.Config) {
 	serverConfig = cfg
 }
 
+// SetWrappedTxEffectiveHeight set the effective height
+func SetWrappedTxEffectiveHeight(height int64) {
+	effectiveHeight = height
+}
+
 // use current config to verify the signature with the tx bytes
 func VerifyConfidentTx(message, signature, pub []byte) (confident bool, err error) {
 	pubKey := ed25519.PubKeyEd25519{}
@@ -76,16 +82,6 @@ func getCurrentNodeKey() (crypto.PrivKey, crypto.PubKey) {
 	return currentNodePriv, currentNodePub
 }
 
-// sign the origin tx to wrapped
-func signNoWrappedTx(tx sdk.Tx, ty uint32, message []byte, priv crypto.PrivKey, pub crypto.PubKey) (wrapped app.WrappedTx, err error) {
-	wrapped = app.NewWrappedTx(tx, ty)
-	signature, err := priv.Sign(message)
-	if err != nil {
-		return
-	}
-	return wrapped.WithSignature(signature, pub.Bytes()), nil
-}
-
 // get the confident keys from the config
 func getConfidntNodeKeys() []ed25519.PubKeyEd25519 {
 	keys, _ := serverConfig.Mempool.GetCondifentNodeKeys()
@@ -105,6 +101,35 @@ func getConfidntNodeKeys() []ed25519.PubKeyEd25519 {
 	return res
 }
 
-func skipWrapped() bool {
-	return len(serverConfig.Mempool.ConfidentNodeKeys) <= 0
+// return if skip the wrapped logic
+func isSkipWrapped(height int64) bool {
+	if height > effectiveHeight {
+		return len(serverConfig.Mempool.ConfidentNodeKeys) <= 0
+	}
+	return false
+}
+
+// wrap current tx return slice
+func wrapCurrentTx(ty uint32, tx sdk.Tx, message []byte, cdc *codec.Codec) (wrapped []byte, err error) {
+	wrappedTx := app.NewWrappedTx(tx, ty)
+	priv, pub := getCurrentNodeKey()
+	signature, err := priv.Sign(message)
+	if err != nil {
+		return
+	}
+	wrappedTx = wrappedTx.WithSignature(signature, pub.Bytes())
+	wrapped, err = cdc.MarshalBinaryLengthPrefixed(wrappedTx)
+	return
+}
+
+func verifyOrGenerate(tx app.WrappedTx, origin []byte) (wrapped app.WrappedTx, confident bool, err error) {
+	wrapped = tx
+	priv, pub := getCurrentNodeKey()
+	confident, err = VerifyConfidentTx(origin, wrapped.Signature, wrapped.NodeKey)
+	if err != nil {
+		return
+	}
+	signature, _ := priv.Sign(origin)
+	wrapped = wrapped.WithSignature(signature, pub.Bytes())
+	return
 }

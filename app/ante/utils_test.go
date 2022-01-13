@@ -54,6 +54,9 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	// ante init logic
 	ante.SetCurrentNodeKeys(suite.nodePub, suite.nodePriv)
+
+	serverConfig := cfg.DefaultConfig()
+	ante.SetServerConfigTest(serverConfig)
 }
 
 func setConfidentKeyList(suite *AnteTestSuite, empty bool) {

@@ -37,54 +37,47 @@ func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
 		origin := tx
-		nodePriv, nodePub := getCurrentNodeKey()
+		confident := false
 		switch wrapped := tx.(type) {
 		case auth.StdTx:
 			{
 				anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-				wrapped, err := signNoWrappedTx(origin, app.StdTransaction, ctx.TxBytes(), nodePriv, nodePub)
-				if err == nil {
-					message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
-					if err == nil {
-						ctx = ctx.WithReplaceTx(message)
+				if !isSkipWrapped(ctx.BlockHeight()) {
+					wrapped, err := wrapCurrentTx(app.StdTransaction, origin, ctx.TxBytes(), cdc)
+					if err != nil {
+						break
 					}
+					ctx = ctx.WithReplaceTx(wrapped)
 				}
 			}
 		case evmtypes.MsgEthereumTx:
 			{
 				anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-				wrapped, err := signNoWrappedTx(origin, app.EthereumTransaction, ctx.TxBytes(), nodePriv, nodePub)
-				if err == nil {
-					message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
-					if err == nil {
-						ctx = ctx.WithReplaceTx(message)
+				if !isSkipWrapped(ctx.BlockHeight()) {
+					wrapped, err := wrapCurrentTx(app.EthereumTransaction, origin, ctx.TxBytes(), cdc)
+					if err != nil {
+						break
 					}
+					ctx = ctx.WithReplaceTx(wrapped)
 				}
 			}
 		case app.WrappedTx:
 			{
-				if !wrapped.IsSigned() {
-					origin = wrapped.GetOriginTx()
-					break
-				}
-				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx()) // FIXME: should remove it ？
+				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx())
+				origin = wrapped.GetOriginTx()
 				if err != nil {
-					origin = wrapped.GetOriginTx()
-					break
+					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction origin tx: %T", tx)
 				}
-				confident, e := VerifyConfidentTx(message, wrapped.Signature, wrapped.NodeKey)
-				if e != nil {
-					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
-				}
-				if !confident {
-					priv, pub := getCurrentNodeKey()
-					serialized, err := priv.Sign(message)
-					if err == nil {
-						wrapped = wrapped.WithSignature(serialized, pub.Bytes())
-						message, err := cdc.MarshalBinaryLengthPrefixed(wrapped)
-						if err == nil {
-							ctx = ctx.WithReplaceTx(message)
-						}
+				if isSkipWrapped(ctx.BlockHeight()) {
+					ctx = ctx.WithReplaceTx(message)
+				} else {
+					wrapped, confident, err := verifyOrGenerate(wrapped, message)
+					if err != nil {
+						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
+					}
+					if !confident {
+						serialized, _ := cdc.MarshalBinaryLengthPrefixed(wrapped)
+						ctx = ctx.WithReplaceTx(serialized)
 					}
 				}
 				switch wrapped.Type {
@@ -93,19 +86,18 @@ func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper
 						if confident {
 							anteHandler = buildLightEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 						} else {
-							anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+							anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 						}
 					}
 				case app.StdTransaction:
 					if confident {
 						anteHandler = buildLightStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 					} else {
-						anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
+						anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
 					}
 				default:
 					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 				}
-
 			}
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
