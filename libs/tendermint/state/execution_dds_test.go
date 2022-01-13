@@ -205,7 +205,7 @@ func TestProduceDelta(t *testing.T) {
 
 	blocks, stateDB := produceBlock()
 	for _, block := range blocks {
-		deltas, _, err := ExecCommitBlockDelta(proxyApp.Consensus(), block, log.TestingLogger(), stateDB)
+		deltas, _, err := execCommitBlockDelta(proxyApp.Consensus(), block, log.TestingLogger(), stateDB)
 		require.Nil(t, err)
 		require.NotNil(t, deltas)
 	}

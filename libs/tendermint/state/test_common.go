@@ -329,7 +329,7 @@ func ExecCommitBlock(
 	return res.Data, nil
 }
 
-func ExecCommitBlockDelta(
+func execCommitBlockDelta(
 	appConnConsensus proxy.AppConnConsensus,
 	block *types.Block,
 	logger log.Logger,

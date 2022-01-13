@@ -417,4 +417,3 @@ func TestEndBlockValidatorUpdatesResultingInEmptySet(t *testing.T) {
 	assert.NotEmpty(t, state.NextValidators.Validators)
 
 }
-
