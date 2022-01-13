@@ -86,7 +86,7 @@ func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
 	if pc.fetcher == nil {
 		pc.fetcher = f
 	}
-	if types.PreRunConsumeDebugEnable {
+	//if types.PreRunConsumeDebugEnable {
 		SetTraceHook(func(trace, status int32, cb func()) {
 			executor := "[special | result]"
 			if trace&TRACE_PRERUN_WITH_CACHE >= TRACE_PRERUN_WITH_CACHE {
@@ -98,7 +98,7 @@ func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
 			}
 			e.prerunCtx.logger.Info("traceHook", "executor", executor, "trace", trace, "status", status)
 		})
-	}
+	//}
 }
 
 func (pc *prerunContext) checkIndex(height int64) {
@@ -213,7 +213,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, func() { execBlockOnProxyAppWithDeltas(app, curBlock, curDb) })
 		curStatus = TASK_BEGIN_PRERUN
 	} else {
-		//
+		pc.logger.Info("handleDelta,executeBeginBlock")
 		traceHook(CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, curTask.status, emptyF)
 		execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
 	}
@@ -228,6 +228,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 			case _, ok := <-curTask.notifyC:
 				if !ok {
 					pc.logger.Info("prerun canceled successfully")
+					execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
 					traceHook(CASE_DELTA_ENTER_CHAN_RECEIVE_WAIT_PRERRUN_CLOSE_NOTIFY, curTask.status, emptyF)
 					return
 				}

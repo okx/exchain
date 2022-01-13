@@ -379,7 +379,11 @@ func (dc *DeltaContext) downloadRoutine() {
 		info.statistics(targetHeight, err, mrh)
 		if err == nil {
 			dc.logger.Info("download data.and notify")
-			dc.producerQ.Push(&DeltaJob{Delta: delta})
+			go func() {
+				time.Sleep(time.Second*1)
+				dc.producerQ.Push(&DeltaJob{Delta: delta})
+			}()
+			//dc.producerQ.Push(&DeltaJob{Delta: delta})
 			dc.dataMap.insert(targetHeight, delta, mrh)
 			targetHeight++
 		}

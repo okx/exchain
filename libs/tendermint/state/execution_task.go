@@ -5,6 +5,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"sync/atomic"
+	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
@@ -121,9 +122,8 @@ func (t *executionTask) run() {
 			})
 			return
 		}
-
+		time.Sleep(time.Second*3)
 		traceHook(CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, t.status, emptyF)
-
 		abciResponses, err = execBlockOnProxyApp(t)
 		if nil == err {
 			curStatus = TASK_BEGIN_PRERUN
