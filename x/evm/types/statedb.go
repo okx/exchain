@@ -1130,6 +1130,10 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 // SetError remembers the first non-nil error it is called with.
 func (csdb *CommitStateDB) SetError(err error) {
+	if err != nil {
+		csdb.Logger().Debug("<CommitStateDB.SetError>", "error", err)
+	}
+
 	if csdb.dbErr == nil {
 		csdb.dbErr = err
 	}

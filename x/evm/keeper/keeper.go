@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -184,7 +183,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+	return ctx.Logger().With("module", types.ModuleName)
 }
 
 // ----------------------------------------------------------------------------

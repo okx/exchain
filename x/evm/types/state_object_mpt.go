@@ -84,6 +84,8 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 		var err error
 		so.trie, err = db.OpenStorageTrie(so.addrHash, so.stateRoot)
 		if err != nil {
+			so.setError(fmt.Errorf("failed to open storage trie: %v for addr: %s", err, so.account.EthAddress().String()))
+
 			so.trie, _ = db.OpenStorageTrie(so.addrHash, ethcmn.Hash{})
 			so.setError(fmt.Errorf("can't create storage trie: %v", err))
 		}
@@ -203,16 +205,13 @@ func (so *stateObject) SetStorage(storage map[ethcmn.Hash]ethcmn.Hash) {
 	// debugging and the `fake` storage won't be committed to database.
 }
 
-func (so *stateObject) UpdateAccInfo() {
+func (so *stateObject) UpdateAccInfo() error {
 	accProto := so.stateDB.accountKeeper.GetAccount(so.stateDB.ctx, so.account.Address)
 	if accProto != nil {
-		ethAccount, ok := accProto.(*types.EthAccount)
-		if !ok {
-			return
+		if ethAccount, ok := accProto.(*types.EthAccount); ok {
+			so.account = ethAccount
+			return nil
 		}
-
-		// only need to update these field
-		so.account.Coins = ethAccount.Coins
-		so.account.Sequence = ethAccount.Sequence
 	}
+	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
 }

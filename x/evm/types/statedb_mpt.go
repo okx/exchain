@@ -7,11 +7,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, error) {
@@ -42,7 +42,7 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 
 	if codeWriter.ValueSize() > 0 {
 		if err := codeWriter.Write(); err != nil {
-			log.Crit("Failed to commit dirty codes", "error", err)
+			csdb.SetError(fmt.Errorf("failed to commit dirty codes: %s", err.Error()))
 		}
 	}
 
@@ -130,8 +130,11 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 	// Prefer live objects if any is available
 	if obj := csdb.stateObjects[addr]; obj != nil {
 		if _, ok := csdb.updatedAccount[addr]; ok {
-			obj.UpdateAccInfo()
 			delete(csdb.updatedAccount, addr)
+			if err := obj.UpdateAccInfo(); err != nil {
+				csdb.SetError(err)
+				return nil
+			}
 		}
 		return obj
 	}
@@ -223,4 +226,8 @@ func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([
 	}
 	err := addrTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
 	return proof, err
+}
+
+func (csdb *CommitStateDB) Logger() log.Logger {
+	return csdb.ctx.Logger().With("module", ModuleName)
 }

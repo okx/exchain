@@ -104,9 +104,9 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 
 				recentMptRoot := k.GetMptRootHash(recent)
 				if recentMptRoot == (ethcmn.Hash{}) {
-					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "recent", recent)
+					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "block", recent)
 				} else {
-					k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "root", recentMptRoot)
+					k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "trieHash", recentMptRoot)
 					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
 					}
@@ -132,6 +132,7 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 			panic("fail to commit mpt data: " + err.Error())
 		}
 		k.SetLatestStoredBlockHeight(uint64(curHeight))
+		k.Logger(ctx).Info("sync push data to db", "block", curHeight, "trieHash", curMptRoot)
 	} else {
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
@@ -160,12 +161,13 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 			if chRoot == (ethcmn.Hash{}) {
 				k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
 			} else {
-				k.SetLatestStoredBlockHeight(uint64(chosen))
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
 				if err := triedb.Commit(chRoot, true, nil); err != nil {
 					panic("fail to commit mpt data: " + err.Error())
 				}
+				k.SetLatestStoredBlockHeight(uint64(chosen))
+				k.Logger(ctx).Info("async push data to db", "block", chosen, "trieHash", chRoot)
 			}
 
 			// Garbage collect anything below our required write retention
