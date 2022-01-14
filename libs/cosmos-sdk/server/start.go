@@ -162,6 +162,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(tmtypes.FlagRedisDB, 0, "delta db num")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
