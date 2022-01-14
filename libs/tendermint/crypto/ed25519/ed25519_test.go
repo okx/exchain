@@ -27,4 +27,9 @@ func TestSignAndValidateEd25519(t *testing.T) {
 	sig[7] ^= byte(0x01)
 
 	assert.False(t, pubKey.VerifyBytes(msg, sig))
+
+	bytes := pubKey.Bytes()
+	var recoverPubKey ed25519.PubKeyEd25519
+	recoverPubKey.UnmarshalFromAmino(bytes)
+	assert.Equal(t, bytes, recoverPubKey.Bytes())
 }

@@ -22,6 +22,7 @@ const (
 	FlagRedisAuth = "delta-redis-auth"
 	// expire unit: second
 	FlagRedisExpire = "delta-redis-expire"
+	FlagRedisDB     = "delta-redis-db"
 	FlagFastQuery   = "fast-query"
 
 	// do not apply delta if version does not match
@@ -116,7 +117,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Height:       d.Height,
 		Version:      d.Version,
 		CompressType: d.CompressType,
-		MetadataHash:  payloadHash,
+		MetadataHash: payloadHash,
 		From:         d.From,
 	}
 
