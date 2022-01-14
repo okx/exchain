@@ -6,7 +6,6 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/x/evm/types"
@@ -191,11 +190,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	// for unmarshalling every time.
 	var storageRoot ethcmn.Hash
 	root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		_, content, _, err := rlp.Split(leaf)
-		if err != nil {
-			k.EvmStateDb.SetError(err)
-		}
-		storageRoot.SetBytes(content)
+		storageRoot.SetBytes(leaf)
 		if storageRoot != types.EmptyRootHash {
 			k.db.TrieDB().Reference(storageRoot, parent)
 		}

@@ -32,7 +32,6 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 			if err := obj.CommitTrie(csdb.db); err != nil {
 				return ethcmn.Hash{}, err
 			}
-			csdb.UpdateAccountStorageInfo(obj)
 		}
 	}
 
@@ -79,8 +78,13 @@ func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
 	addr := so.Address()
 
 	// Encoding []byte cannot fail, ok to ignore the error.
-	data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(so.stateRoot.Bytes()))
-	csdb.SetError(csdb.trie.TryUpdate(addr[:], data))
+	data, err := rlp.EncodeToBytes(so.stateRoot.Bytes())
+	if err != nil {
+		csdb.SetError(fmt.Errorf("encode state root (%x) error: %v", so.stateRoot.String(), err))
+	}
+	if err := csdb.trie.TryUpdate(addr[:], data); err != nil {
+		csdb.SetError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
+	}
 }
 
 func (csdb *CommitStateDB) DeleteAccountStorageInfo(so *stateObject) {
@@ -174,11 +178,7 @@ func (csdb *CommitStateDB) loadContractStorageRoot(addr ethcmn.Address) (ethcmn.
 		// means the account is a normal account, not a contract account
 		storageRoot = types.EmptyRootHash
 	} else {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
-			return types.EmptyRootHash, err
-		}
-		storageRoot.SetBytes(content)
+		storageRoot.SetBytes(enc)
 	}
 
 	return storageRoot, nil

@@ -275,7 +275,7 @@ func (so *stateObject) setNonce(nonce uint64) {
 // setError remembers the first non-nil error it is called with.
 func (so *stateObject) setError(err error) {
 	if err != nil {
-		so.stateDB.Logger().Debug("<stateObject.setError>", "error", err)
+		so.stateDB.Logger().Debug("stateObject", "error", err)
 	}
 	if so.dbErr == nil {
 		so.dbErr = err

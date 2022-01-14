@@ -855,6 +855,11 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 			csdb.Watcher.SaveAccount(so.account, false)
 		}
 	}
+
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		csdb.UpdateAccountStorageInfo(so)
+	}
+
 	return nil
 }
 
@@ -1131,7 +1136,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 // SetError remembers the first non-nil error it is called with.
 func (csdb *CommitStateDB) SetError(err error) {
 	if err != nil {
-		csdb.Logger().Debug("<CommitStateDB.SetError>", "error", err)
+		csdb.Logger().Debug("CommitStateDB", "error", err)
 	}
 
 	if csdb.dbErr == nil {
