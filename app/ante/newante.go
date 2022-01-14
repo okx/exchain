@@ -8,8 +8,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"sync"
-
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 var logger anteLogger
@@ -72,18 +70,17 @@ func NewAnteHandler4Wtx(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 			NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 		)
 
-		switch txType := tx.(type) {
-		case auth.StdTx:
-			logger.Info("ante auth.StdTx")
+		switch tx.GetType() {
+		case sdk.StdTxType:
+			logger.Info("ante StdTx")
 			anteHandler = stdTxAnteHandler
-		case evmtypes.MsgEthereumTx:
+		case sdk.EvmTxType:
 			logger.Info("ante MsgEthereumTx")
-
 			anteHandler = evmTxAnteHandler
-		case auth.WrappedTx:
-			logger.Info("ante auth.WrappedTx")
+		case sdk.WrappedTxType:
+			logger.Info("ante WrappedTx")
 			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-				return wrappedTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
+				return wrappedTxAnteHandler(ctx, tx, sim, tx.GetPayloadTx(), stdTxAnteHandler, evmTxAnteHandler)
 			}
 		default:
 			logger.Info("invalid transaction type: %T", tx)
@@ -94,31 +91,34 @@ func NewAnteHandler4Wtx(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 	}
 }
 
-func wrappedTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func wrappedTxAnteHandler(ctx sdk.Context, wtx sdk.Tx, sim bool,
+	payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
-	var payloadAnteHandler sdk.AnteHandler
-	logger.Info("ante wrappedTxAnteHandler")
-
-	switch payloadTx.(type) {
-	case auth.StdTx:
-		payloadAnteHandler = stdTxAnteHandler
-	case evmtypes.MsgEthereumTx:
-		payloadAnteHandler = evmTxAnteHandler
-	default:
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid payload transaction type: %T", payloadTx)
-	}
-
+	// 1. try wrapped tx AnteHandler
 	wtxAnteHandler := sdk.ChainAnteDecorators(
 		authante.NewNodeSignatureDecorator(logger.Logger),
 	)
 
-	newCtx, err = wtxAnteHandler(ctx, tx, sim)
-	if err != nil {
-		logger.Info("Wrapped tx anteHandler failed", "err", err)
-		newCtx, err = payloadAnteHandler(newCtx, payloadTx, sim)
-		logger.Info("Payload tx anteHandler", "err", err)
+	newCtx, err = wtxAnteHandler(ctx, wtx, sim)
+	if err == nil {
+		return
 	}
 
-	return newCtx, err
+	logger.Info("Wrapped tx anteHandler failed", "err", err)
+
+	// 2. try payload tx AnteHandler
+	var payloadAnteHandler sdk.AnteHandler
+	switch payloadTx.GetType() {
+	case sdk.StdTxType:
+		payloadAnteHandler = stdTxAnteHandler
+	case sdk.EvmTxType:
+		payloadAnteHandler = evmTxAnteHandler
+	default:
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid payload transaction type: %T", payloadTx)
+	}
+	newCtx, err = payloadAnteHandler(newCtx, payloadTx, sim)
+	logger.Info("Payload tx anteHandler", "err", err)
+
+	return
 }
 
