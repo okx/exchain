@@ -71,7 +71,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 		keyToken,
 		keyLock,
 		cdc,
-		accountKeeper)
+		true, accountKeeper)
 	tk.SetParams(ctx, types.DefaultParams())
 
 	return ctx, tk, keyParams, []byte("testToken")

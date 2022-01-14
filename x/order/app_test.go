@@ -92,7 +92,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.keyToken,
 		mockApp.keyLock,
 		mockApp.Cdc,
-		mockApp.AccountKeeper)
+		true, mockApp.AccountKeeper)
 
 	mockApp.dexKeeper = dex.NewKeeper(
 		auth.FeeCollectorName,
@@ -113,6 +113,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		auth.FeeCollectorName,
 		mockApp.keyOrder,
 		mockApp.Cdc,
+		true,
 		monitor.NopOrderMetrics())
 
 	mockApp.Router().AddRoute(RouterKey, NewOrderHandler(mockApp.orderKeeper))

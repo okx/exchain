@@ -72,7 +72,7 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
-
+	keeper.enableBackend = true
 	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
 	require.Nil(t, err)
 

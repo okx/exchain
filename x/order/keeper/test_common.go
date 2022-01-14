@@ -121,7 +121,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 
 	// token keeper
 	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper.Subspace(token.DefaultParamspace),
-		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, accountKeeper)
+		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, true, accountKeeper)
 
 	// dex keeper
 	paramsSubspace := paramsKeeper.Subspace(dex.DefaultParamspace)
@@ -130,7 +130,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	// order keeper
 	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, dexKeeper,
 		paramsKeeper.Subspace(types.DefaultParamspace), auth.FeeCollectorName, keyOrder,
-		cdc, monitor.NopOrderMetrics())
+		cdc, true, monitor.NopOrderMetrics())
 
 	defaultParams := types.DefaultTestParams()
 	orderKeeper.SetParams(ctx, &defaultParams)

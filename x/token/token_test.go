@@ -88,7 +88,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		mapp.AccountKeeper)
+		true, mapp.AccountKeeper)
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -172,7 +172,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		mockDexApp.AccountKeeper)
+		true, mockDexApp.AccountKeeper)
 
 	// for staking/distr rollback to cosmos-sdk
 	//store.NewKVStoreKey(staking.DelegatorPoolKey),
