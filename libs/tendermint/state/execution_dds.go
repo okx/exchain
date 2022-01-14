@@ -396,8 +396,8 @@ func (dc *DeltaContext) downloadRoutine() {
 			//	time.Sleep(time.Second*1)
 			//	dc.producerQ.Push(&DeltaJob{Delta: delta})
 			//}()
-			dc.producerQ.Push(&DeltaJob{Delta: delta})
 			dc.dataMap.insert(targetHeight, delta, mrh)
+			dc.producerQ.Push(&DeltaJob{Delta: delta})
 			targetHeight++
 		}
 	}

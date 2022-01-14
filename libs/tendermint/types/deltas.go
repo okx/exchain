@@ -26,16 +26,13 @@ const (
 
 	// do not apply delta if version does not match
 	DeltaVersion = 4
-
-	FlagPrerunConsumeLogEnable="log-prerun"
 )
 
 var (
-	FastQuery     = false
-	DownloadDelta = false
-	UploadDelta   = false
-	PreRun        = false
-	PreRunConsumeDebugEnable=false
+	FastQuery                = false
+	DownloadDelta            = false
+	UploadDelta              = false
+	PreRun                   = false
 )
 
 type DeltasMessage struct {

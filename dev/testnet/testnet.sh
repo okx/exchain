@@ -19,7 +19,8 @@ source oec.profile
 PRERUN=false
 DOWNLOAD_DELTA="--download-delta=false"
 UPLOAD_DELTA="--upload-delta=false"
-while getopts "isn:b:p:c:Smxkdu:" opt; do
+FAST_QUERY="--fast-query=false"
+while getopts "isn:b:p:c:Smxkfdu:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -68,6 +69,10 @@ while getopts "isn:b:p:c:Smxkdu:" opt; do
   u)
     echo "DOWNLOAD_DELTA=$OPTARG"
     UPLOAD_DELTA="--upload-delta=true"
+    ;;
+  f)
+    echo "FAST_QUERY=$OPTARG"
+    FAST_QUERY="--fast-query=true"
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -153,8 +158,8 @@ run() {
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
     --enable-preruntx=$PRERUN \
-    --log-prerun=false \
     ${DOWNLOAD_DELTA} \
+    ${FAST_QUERY} \
     ${UPLOAD_DELTA} \
     --consensus-role=v$index \
     ${Test_CASE} \

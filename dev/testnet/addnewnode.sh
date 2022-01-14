@@ -10,7 +10,8 @@ set -m
 set -x # activate debugging
 
 PRERUN=false
-while getopts "i:n:p:r:s:b:dux" opt; do
+FAST_QUERY="--fast-query=false"
+while getopts "i:n:p:r:s:b:dfux" opt; do
   case $opt in
     i)
       echo "IP=$OPTARG"
@@ -47,6 +48,10 @@ while getopts "i:n:p:r:s:b:dux" opt; do
     b)
       echo "BIN_NAME=$OPTARG"
       BIN_NAME=$OPTARG
+      ;;
+    f)
+      echo "FAST_QUERY=$OPTARG"
+      FAST_QUERY="--fast-query=true"
       ;;
     \?)
       echo "Invalid option: -$OPTARG"
@@ -153,6 +158,7 @@ start() {
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
     --enable-preruntx=${PRERUN} \
+    ${FAST_QUERY} \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"

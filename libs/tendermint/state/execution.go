@@ -110,6 +110,9 @@ func (blockExec *BlockExecutor) init() {
 		dataM *deltaMap
 	)
 	if types.PreRun && types.DownloadDelta {
+		if !types.FastQuery {
+			panic("if prerun and download are enabled ,fast-query must be enabled as well")
+		}
 		q = queue.NewLinkedBlockQueue()
 	} else {
 		q = queue.NewNonOpQueue()
@@ -301,7 +304,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 	var abciResponses *ABCIResponses
 	var err error
 	// if prerrunTx with download enable ,prerrun#consume will  try to execute execBlockOnProxyAppWithDeltas automatically
-	if delta != nil  &&  (blockExec.isFastSync||!blockExec.prerunCtx.prerunTx){
+	if delta != nil && (blockExec.isFastSync || !blockExec.prerunCtx.prerunTx) {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
@@ -472,34 +475,28 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		ByzantineValidators: byzVals,
 	})
 
-	// notify the delta routine,if exists
-	notify := func(err error) {
-		if context.notifyC != nil {
-			context.notifyC <- err
-		}
-	}
-
 	if err != nil {
-		notify(err)
 		logger.Error("Error in proxyAppConn.BeginBlock", "err", err)
 		return nil, err
 	}
-	notify(nil)
 
 	// Run txs of block.
 	for count, tx := range block.Txs {
+		if context!=nil{
+			// stop
+			if context.status > 0 && context.status&TaskBeginByDelta >= TaskBeginByDelta {
+				// we were forced to be canceld ,next we will close notifyC to notify consumer go on
+				return nil, err_delta_invoked
+			}
+			if  context.stopped {
+				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+				return nil, fmt.Errorf("Prerun stopped")
+			}
+		}
+
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
-		}
-		// stop
-		if context.status > 0 && context.status&TASK_DELTA >= TASK_DELTA {
-			// close notifyC to notify consumer go on
-			return nil, err_delta_invoked
-		}
-		if context != nil && context.stopped {
-			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
-			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
 

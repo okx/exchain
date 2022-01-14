@@ -14,7 +14,7 @@ rm redis.log
 
 nohup redis-server > redis.log &
 #
-./testnet.sh -s -i -n 4 -d -x
+./testnet.sh -s -i -n 4 -d -x -f
 #
 sleep 1
 echo "add one producer node "
@@ -24,7 +24,7 @@ echo "add one more producer node"
 
 echo "wait 5 seconds ,and we will try to catch up as fast as we can"
 sleep 5
-./addnewnode.sh -n 6 -d -x
+./addnewnode.sh -n 6 -u -x
 
 
 #killbyname redis-server

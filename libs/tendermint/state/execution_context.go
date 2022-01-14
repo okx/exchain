@@ -7,27 +7,26 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"sync"
 	"sync/atomic"
 )
 
-var (
-	traceHook func(trace, status int32, cb func()) = func(_, _ int32, _ func()) {}
-	emptyF    func()
-)
-
-func SetTraceHook(f func(trace, status int32, cb func())) {
-	traceHook = f
-}
-
-type Fetcher interface {
-	Fetch(height int64) (*types.Deltas, int64)
+type IAcquire interface {
+	acquire(height int64) (*types.Deltas, int64)
 }
 
 type DeltaJob struct {
 	Delta *types.Deltas
 	Cb    func(h int64)
 }
+
+const (
+	TaskBeginByDelta                 = 1 << 0
+	TaskBeginByPrerunWithNoCache     = 1 << 1
+	TaskBeginByPrerunWithCacheExists = 1 << 2
+
+	TaskEndByDelta  = 1 << 3
+	TaskEndByPrerun = 1 << 4
+)
 
 type PreRunContextOption func(ctx *prerunContext)
 
@@ -37,9 +36,9 @@ func PreRunContextWithQueue(q queue.Queue) PreRunContextOption {
 	}
 }
 
-func PreRunContextWithFetcher(deltaMap Fetcher) PreRunContextOption {
+func PreRunContextWithFetcher(deltaMap IAcquire) PreRunContextOption {
 	return func(ctx *prerunContext) {
-		ctx.fetcher = deltaMap
+		ctx.acquire = deltaMap
 	}
 }
 
@@ -50,14 +49,14 @@ func PreRunWithFastSyncCheck(f func() bool) PreRunContextOption {
 }
 
 type prerunContext struct {
-	prerunTx        bool
-	taskChan        chan *executionTask
-	taskResultChan  chan *executionTask
-	prerunTask      *executionTask
-	logger          log.Logger
-	consumerQ       queue.Queue
-	fetcher         Fetcher
-	isFastSync      func() bool
+	prerunTx       bool
+	taskChan       chan *executionTask
+	taskResultChan chan *executionTask
+	prerunTask     *executionTask
+	logger         log.Logger
+	consumerQ      queue.Queue
+	acquire        IAcquire
+	isFastSync     func() bool
 }
 
 func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunContext {
@@ -73,7 +72,7 @@ func newPrerunContex(logger log.Logger, ops ...PreRunContextOption) *prerunConte
 	return ret
 }
 
-func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
+func (pc *prerunContext) init(f IAcquire, q queue.Queue, e *BlockExecutor) {
 	if pc.consumerQ == nil {
 		pc.consumerQ = q
 	}
@@ -82,21 +81,8 @@ func (pc *prerunContext) init(f Fetcher, q queue.Queue, e *BlockExecutor) {
 			return e.isFastSync
 		}
 	}
-	if pc.fetcher == nil {
-		pc.fetcher = f
-	}
-	if types.PreRunConsumeDebugEnable {
-		SetTraceHook(func(trace, status int32, cb func()) {
-			executor := "[special | result]"
-			if trace&TRACE_PRERUN_WITH_CACHE >= TRACE_PRERUN_WITH_CACHE {
-				executor = "[PRERRUN_WITH_CACHE]"
-			} else if trace&TRACE_DELTA >= TRACE_DELTA {
-				executor = "[DELTA]"
-			} else if trace&TRACE_PRERUN_WITH_NO_CACHE > +TRACE_PRERUN_WITH_NO_CACHE {
-				executor = "[TRACE_PRERUN_WITH_NO_CACHE]"
-			}
-			e.prerunCtx.logger.Info("traceHook", "executor", executor, "trace", trace, "status", status)
-		})
+	if pc.acquire == nil {
+		pc.acquire = f
 	}
 }
 
@@ -153,12 +139,10 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		return
 	}
 	delta := v.Delta
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_BEGIN, 0, emptyF)
 
 	// hold the pointer at first
 	curTask := pc.prerunTask
 	if curTask == nil {
-		pc.logger.Info("currentTask is nil,discard current deltaJob")
 		return
 	}
 	curBlock := curTask.block
@@ -166,86 +150,91 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	app := curTask.proxyApp
 	// best effort: try to avoid  running twice
 	if curBlock.Height != delta.Height || curTask.stopped {
+		curTask.dump(fmt.Sprintf("delta: discard current delta,deltaHeight=%d", delta.Height))
 		// ignore
 		return
 	}
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_FINAL_STORE, curTask.status, emptyF)
-
-	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
-	pc.logger.Info("handleDelta,start to consume the delta","height",delta.Height)
-	abciResponses := ABCIResponses{}
-	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
-	curStatus := int32(TASK_BEGIN_DELTA)
-	if !atomic.CompareAndSwapInt32(&curTask.status, 0, TASK_BEGIN_DELTA) {
-		loadStatus := atomic.LoadInt32(&curTask.status)
-		if loadStatus&TASK_BEGIN_DELTA_EXISTS >= TASK_BEGIN_DELTA_EXISTS {
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_DELTA_ALREADY_EXISTS_IN_CACHE_BY_PRERRUN, loadStatus, emptyF)
-			pc.logger.Info("currentTask has been execute by prerun_cache,discard", "height", curBlock.Height)
-			return
-		}
-		// edge case 2 ,prerrun already finished the task
-		if loadStatus&TASK_PRERRUN >= TASK_PRERRUN {
-			pc.logger.Info("currentTask has been executed by prerun,discard", "height", curBlock.Height)
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_FOR_TASK_FINISHED_BY_PRERRUN, loadStatus, emptyF)
-			return
-		}
-
-		// which means prerrun routine get the lock ,wait it until prerrun finish the beginblock
-		// and we have to make sure ,it returns success
-		v := <-curTask.notifyC
-		if v != nil {
-			traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, emptyF)
-			pc.logger.Error("prerrun run the task faield", "err", v)
-			return
-		}
-		traceHook(CASE_DELTA_SITUATION_BEGIN_BLOCK_FAILED_AND_NOTIFIED_BY_PRERRUN, loadStatus, func() { execBlockOnProxyAppWithDeltas(app, curBlock, curDb) })
-		curStatus = TASK_BEGIN_PRERUN
-	} else {
-		traceHook(CASE_DELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, curTask.status, emptyF)
-		execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
+	if !delta.Validate(curBlock.Height) {
+		curTask.dump(fmt.Sprintf("delta, curent delta is invalid,height=%d", v.Delta.Height))
+		return
 	}
 
-	traceHook(CASE_SPECIAL_DELTA_BEFORE_RACE_END, 0, emptyF)
-	notifyResult(curTask, &abciResponses, err, func() {}, func() {
-		traceHook(CASE_DELTA_SITUATION_RACE_END_FAIL, curTask.status, emptyF)
-	}, trc, curStatus, TASK_PRERRUN, TASK_DELTA)
+	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
+	abciResponses := ABCIResponses{}
+	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
+
+	if !atomic.CompareAndSwapInt32(&curTask.status, 0, TaskBeginByDelta) {
+		loadStatus := atomic.LoadInt32(&curTask.status)
+		// case1: task executed by prerun_with_cache(maybe not done yet,but we dont care)
+		if loadStatus&TaskBeginByPrerunWithCacheExists >= TaskBeginByPrerunWithCacheExists {
+			curTask.dump("current task has been execute by prerun_delta_cache,discard")
+			return
+		}
+
+		// case2: task was finished by prerun(at this time)
+		if loadStatus&TaskEndByPrerun >= TaskEndByPrerun {
+			curTask.dump("current task has been executed by prerun,discard")
+			return
+		}
+		curTask.dump("delta is waitting prerun to be canceld or finished")
+
+		// which means prerrun routine is running,we will execute again if the task hasnt done yet(delta's priority > prerun's property)
+		// before we execute beginBlock ,we have to cancel prerun at first(and we have to wait,because deliverTx will affect deliverState)
+		// and we cant  guarantee 'prerun' is done with endBlock(havent notify result yet)  or it is still running deliverTx
+		// so we have to use cas instead of using  StoreInt32
+		// note: we dont care about cas result(cas is just try to cancel the deliverTx step)
+		atomic.CompareAndSwapInt32(&curTask.status, loadStatus, TaskBeginByDelta)
+		<-curTask.notifyC
+		// which means :
+		// prerun is quit(but we dont know the task is done or canceld)
+		// note: if prerun is done ,we cant execute beginBlock again ,because if the function `dequeueResult`
+		// 		 is executed ,and immediately we call beginBlock again before BlockExecutor#commit `data will reset`
+		//		 so we have to check again with current staus
+		if atomic.LoadInt32(&curTask.status)&TaskEndByPrerun >= TaskEndByPrerun {
+			curTask.dump("current task has been executed by prerun,discard")
+			return
+		}
+		// case3 prerun is canceled,so we can handle it again
+	} else {
+		// case: 2 blocks ,see executionTask#stop
+		defer func() {
+			if nil != curTask.notifyC {
+				close(curTask.notifyC)
+			}
+		}()
+	}
+
+	// we run here
+	// means
+	// prerun is quit:
+	//			1. prerun donest execute at all
+	//			2. prerun canceled
+	curTask.dump("start beginBlock by delta ")
+	// execute again
+	execBlockOnProxyAppWithDeltas(app, curBlock, curDb)
+
+	notifyResult(curTask, &abciResponses, err, TaskBeginByDelta|TaskEndByDelta, trc)
 }
 func notifyResult(curTask *executionTask,
 	abciResponses *ABCIResponses,
 	err error,
-	hook func(),
-	elseH func(),
-	trc *trace.Tracer,
-	currentStatus int32,
-	invalidStatus,
-	deltaStatus int32) {
-	if !atomic.CompareAndSwapInt32(&curTask.status, currentStatus, currentStatus|deltaStatus) {
-		return
+	lastStatus int32,
+	trc *trace.Tracer) {
+
+	// before we end the task ,we update the status at first
+	atomic.StoreInt32(&curTask.status, lastStatus)
+
+	if !curTask.stopped {
+		curTask.result = &executionResult{res: abciResponses, err: err}
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
 
-	currentStatus = curTask.status
-	if currentStatus&invalidStatus >= invalidStatus {
-		//curTask.status &^= deltaStatus
-		panic("programa error")
-	}
-
-	curTask.result = &executionResult{res: abciResponses, err: err}
-	// finally we can try to cancel the prerun if we have to
-	hook()
 	select {
 	case curTask.taskResultChan <- curTask:
-		traceHook(RESULT_TRAEC, currentStatus, emptyF)
-		curTask.dump(fmt.Sprintf("curTaskFinished,deltaStatus=%d,currentTaskStatus=%d", deltaStatus,curTask.status))
-		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
+		curTask.dump(fmt.Sprintf("current task finished, final task status=%d", lastStatus))
 	default:
-		panic("programa error")
-	}
-}
-
-func store(job *DeltaJob, cache *sync.Map) {
-	cache.Store(job.Delta.Height, job.Delta)
-	if nil != job.Cb {
-		job.Cb(job.Delta.Height)
+		// edge case : 2 blocks ,we cant let it panic
+		// panic("program error")
 	}
 }
 
@@ -301,11 +290,10 @@ func (pc *prerunContext) stopPrerun(height int64) (index int64) {
 }
 
 func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Block) {
-
 	stoppedIndex := pc.stopPrerun(block.Height)
 	stoppedIndex++
 
-	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.fetcher)
+	pc.prerunTask = newExecutionTask(blockExec, block, stoppedIndex, pc.acquire)
 
 	pc.prerunTask.dump("Notify prerun")
 

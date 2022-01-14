@@ -7,15 +7,15 @@ import (
 )
 
 type deltaMap struct {
-	mtx          sync.RWMutex
-	cacheMap     map[int64]*list.Element
-	cacheList   *list.List
-	mrh          int64
+	mtx       sync.RWMutex
+	cacheMap  map[int64]*list.Element
+	cacheList *list.List
+	mrh       int64
 }
 
 func newDataMap() *deltaMap {
-	return &deltaMap {
-		cacheMap: make(map[int64]*list.Element),
+	return &deltaMap{
+		cacheMap:  make(map[int64]*list.Element),
 		cacheList: list.New(),
 	}
 }
@@ -52,7 +52,7 @@ func (m *deltaMap) fetch(height int64) (*types.Deltas, int64) {
 	return nil, m.mrh
 }
 
-func (m *deltaMap) Fetch(height int64) (*types.Deltas, int64){
+func (m *deltaMap) acquire(height int64) (*types.Deltas, int64) {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 
@@ -92,5 +92,3 @@ func (m *deltaMap) info() (int, int) {
 	defer m.mtx.Unlock()
 	return len(m.cacheMap), m.cacheList.Len()
 }
-
-

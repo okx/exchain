@@ -30,13 +30,13 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 
-	fetcher Fetcher
-	notifyC  chan error
+	acquire IAcquire
+	notifyC chan struct{}
 	// why: atomic is better, if we use mutex ,we have to define more variables
 	status int32
 }
 
-func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64, c Fetcher) *executionTask {
+func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64, c IAcquire) *executionTask {
 
 	return &executionTask{
 		height:         block.Height,
@@ -46,8 +46,8 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64,
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		fetcher:       c,
-		notifyC:        make(chan error, 1),
+		acquire:        c,
+		notifyC:        make(chan struct{}),
 	}
 }
 
@@ -67,11 +67,12 @@ func (t *executionTask) stop() {
 		return
 	}
 
+	t.stopped = true
+	<-t.notifyC
 	//reset deliverState
 	if t.height != 1 {
 		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
-	t.stopped = true
 }
 
 func (t *executionTask) run() {
@@ -86,59 +87,46 @@ func (t *executionTask) run() {
 		err           error
 	)
 
-	t.dump("Start prerun")
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
 
 	if t.height != 1 {
 		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
-	curStatus := int32(TASK_BEGIN_PRERUN)
-	traceHook(CASE_SPECIAL_BEFORE_LOAD_CACHE, t.status, emptyF)
-	deltas, _ := t.fetcher.Fetch(t.block.Height)
-	traceHook(CASE_SPECIAL_AFTER_LOAD_CACHE, t.status, emptyF)
+	deltas, _ := t.acquire.acquire(t.block.Height)
+
+	beginStatus := int32(TaskBeginByPrerunWithCacheExists)
+	if deltas != nil && !deltas.Validate(t.block.Height) {
+		t.dump(fmt.Sprintf("invalid delta,height=%d", t.block.Height))
+		deltas = nil
+	}
+
 	if deltas != nil {
-		t.logger.Info("currentCacheDelta is not nil", "h", deltas.Height, "currentBlockHash", t.block.Hash())
-		if !atomic.CompareAndSwapInt32(&t.status, 0, TASK_BEGIN_DELTA_EXISTS) {
+		t.dump("start beginBlock by  prerun_cache_delta")
+		if !atomic.CompareAndSwapInt32(&t.status, 0, TaskBeginByPrerunWithCacheExists) {
 			// case delta running
-			traceHook(CASE_PRERRUNDELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED, t.status, emptyF)
-			t.logger.Info("prerun discard,because delta is running")
+			t.dump("prerun discard,because delta is running")
 			return
 		}
-		traceHook(CASE_PRERRUNDELTA_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, t.status, emptyF)
-		curStatus = TASK_BEGIN_DELTA_EXISTS
 		// delta  already downloaded
 		execBlockOnProxyAppWithDeltas(t.proxyApp, t.block, t.db)
 		resp := ABCIResponses{}
 		err = types.Json.Unmarshal(deltas.ABCIRsp(), &resp)
 		abciResponses = &resp
 	} else {
-		t.logger.Info("currentCacheDelta is  nil,so prerun try to execute", "currentBlockHash", t.block.Hash())
-		if !atomic.CompareAndSwapInt32(&t.status, 0, TASK_BEGIN_PRERUN) {
-			// edge case ,execute twice
+		t.dump("start beginBlock by prerun")
+		if !atomic.CompareAndSwapInt32(&t.status, 0, TaskBeginByPrerunWithNoCache) {
 			// case: delta get the beginBlock lock
-			traceHook(CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_FAILED, t.status, func() {
-				// execute again
-				execBlockOnProxyAppWithDeltas(t.proxyApp, t.block, t.db)
-			})
 			return
 		}
-
-		traceHook(CASE_PRERUN_SITUATION_GET_BEGIN_BLOCK_LOCK_SUCCESS, t.status, emptyF)
+		beginStatus = TaskBeginByPrerunWithNoCache
 		abciResponses, err = execBlockOnProxyApp(t)
-		if nil == err {
-			curStatus = TASK_BEGIN_PRERUN
-		} else if err == err_delta_invoked {
+		if nil != err && err == err_delta_invoked {
 			// just finish
-			traceHook(CASE_PRERRUN_CANCELED_BY_DELTA, t.status, emptyF)
 			return
 		}
 	}
-	traceHook(CASE_SPECIAL_PRERUN_BEFORE_RACE_END, 0, emptyF)
-	notifyResult(t, abciResponses, err, func() {
-		traceHook(CASE_PRERRUN_SITUATION_RACE_END_SUCCESS, t.status, emptyF)
-	}, func() {
-		traceHook(CASE_PRERRUN_SITUATION_RACE_END_FAIL, t.status, emptyF)
-	}, trc, curStatus, TASK_DELTA, TASK_PRERRUN)
+
+	notifyResult(t, abciResponses, err, beginStatus|TaskEndByPrerun, trc)
 }
 
 //========================================================
