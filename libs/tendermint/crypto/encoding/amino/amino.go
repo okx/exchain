@@ -92,61 +92,69 @@ var typePubKeyEd25519Prefix = []byte{0x16, 0x24, 0xde, 0x64}
 var typePubKeySr25519Prefix = []byte{0x0d, 0xfb, 0x10, 0x05}
 
 const typePrefixAndSizeLen = 4 + 1
+const aminoTypePrefix = 4
+
+// unmarshalPubKeyFromAminoFast does a fast path for amino decodes.
+func unmarshalPubKeyFromAminoFast(data []byte) (crypto.PubKey, error) {
+	if len(data) < aminoTypePrefix {
+		return nil, errors.New("pubkey raw data size error")
+	}
+	if data[0] == 0x00 {
+		return nil, errors.New("unmarshal pubkey with disamb do not implement")
+	}
+
+	prefix := data[0:aminoTypePrefix]
+	data = data[aminoTypePrefix:]
+
+	if bytes.Compare(typePubKeySecp256k1Prefix, prefix) == 0 {
+		sub, err := amino.DecodeByteSliceWithoutCopy(&data)
+		if err != nil {
+			return nil, err
+		}
+		if len(sub) != secp256k1.PubKeySecp256k1Size && len(data) != 0 {
+			return nil, errors.New("pubkey secp256k1 size error")
+		}
+		pubKey := secp256k1.PubKeySecp256k1{}
+		copy(pubKey[:], sub)
+		return pubKey, nil
+	} else if bytes.Compare(typePubKeyEd25519Prefix, prefix) == 0 {
+		sub, err := amino.DecodeByteSliceWithoutCopy(&data)
+		if err != nil {
+			return nil, err
+		}
+		if len(sub) != ed25519.PubKeyEd25519Size && len(data) != 0 {
+			return nil, errors.New("pubkey ed25519 size error")
+		}
+		pubKey := ed25519.PubKeyEd25519{}
+		copy(pubKey[:], sub)
+		return pubKey, nil
+	} else if bytes.Compare(typePubKeySr25519Prefix, prefix) == 0 {
+		sub, err := amino.DecodeByteSliceWithoutCopy(&data)
+		if err != nil {
+			return nil, err
+		}
+		if len(sub) != sr25519.PubKeySr25519Size && len(data) != 0 {
+			return nil, errors.New("pubkey sr25519 size error")
+		}
+		pubKey := sr25519.PubKeySr25519{}
+		copy(pubKey[:], sub)
+		return pubKey, nil
+	} else {
+		return nil, errors.New("unmarshal pubkey with unknown type")
+	}
+}
 
 // UnmarshalPubKeyFromAminoWithTypePrefix decode pubkey from amino bytes,
 // bytes should start with type prefix
 func UnmarshalPubKeyFromAminoWithTypePrefix(cdc *amino.Codec, data []byte) (crypto.PubKey, error) {
-	if data[0] == 0x00 {
-		return nil, errors.New("unmarshal pubkey with disamb do not implement")
+	var pubkey crypto.PubKey
+	var err error
+	pubkey, err = unmarshalPubKeyFromAminoFast(data)
+	if err != nil {
+		pubkey = nil
+		err = cdc.UnmarshalBinaryBare(data, &pubkey)
 	}
-	if len(data) < typePrefixAndSizeLen {
-		return nil, errors.New("pubkey raw data size error")
-	}
-
-	prefix := data[0:4]
-	size := data[4]
-
-	if size == 0 {
-		return nil, nil
-	}
-	if len(data) == typePrefixAndSizeLen {
-		return nil, errors.New("pubkey raw data size error")
-	}
-	if size&0x80 == 0x80 {
-		return nil, errors.New("pubkey amino data size should use one byte")
-	}
-
-	data = data[typePrefixAndSizeLen:]
-
-	if len(data) < int(size) {
-		return nil, errors.New("pubkey raw data size error")
-	}
-	if bytes.Compare(typePubKeySecp256k1Prefix, prefix) == 0 {
-		if size != secp256k1.PubKeySecp256k1Size {
-			return nil, errors.New("pubkey secp256k1 size error")
-		}
-		pubKey := secp256k1.PubKeySecp256k1{}
-		copy(pubKey[:], data)
-		return pubKey, nil
-	} else if bytes.Compare(typePubKeyEd25519Prefix, prefix) == 0 {
-		if size != ed25519.PubKeyEd25519Size {
-			return nil, errors.New("pubkey ed25519 size error")
-		}
-		pubKey := ed25519.PubKeyEd25519{}
-		copy(pubKey[:], data)
-		return pubKey, nil
-	} else if bytes.Compare(typePubKeySr25519Prefix, prefix) == 0 {
-		if size != sr25519.PubKeySr25519Size {
-			return nil, errors.New("pubkey sr25519 size error")
-		}
-		pubKey := sr25519.PubKeySr25519{}
-		copy(pubKey[:], data)
-		return pubKey, nil
-	} else {
-		var pubkey crypto.PubKey
-		err := cdc.UnmarshalBinaryBare(data, &pubkey)
-		return pubkey, err
-	}
+	return pubkey, err
 }
 
 func MarshalPubKeyToAminoWithTypePrefix(cdc *amino.Codec, key crypto.PubKey) (data []byte, err error) {

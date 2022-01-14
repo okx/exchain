@@ -67,7 +67,7 @@ func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			dataLen = uint64(n)
 		case 2:
 			var n int
-			sp.Index, n, err = amino.DecodeIntFromUvarint(data)
+			sp.Index, n, err = amino.DecodeInt(data)
 			if err != nil {
 				return err
 			}
