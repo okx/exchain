@@ -27,6 +27,8 @@ func buildTestTx(suite *AnteTestSuite) (sdk.Tx, error) {
 	return newTestEthTx(suite.ctx, ethMsg, priv1)
 }
 
+func (suite *AnteTestSuite) TestSignaturePlainAlgo() {}
+
 func (suite *AnteTestSuite) TestWrappedTxSignatureRecover() {
 	setConfidentKeyListWithCurrent(suite)
 	tx, err := buildTestTx(suite)

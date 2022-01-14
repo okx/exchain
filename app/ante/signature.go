@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
@@ -109,27 +110,163 @@ func isSkipWrapped(height int64) bool {
 	return false
 }
 
-// wrap current tx return slice
-func wrapCurrentTx(ty uint32, tx sdk.Tx, message []byte, cdc *codec.Codec) (wrapped []byte, err error) {
-	wrappedTx := app.NewWrappedTx(tx, ty)
-	priv, pub := getCurrentNodeKey()
-	signature, err := priv.Sign(message)
-	if err != nil {
-		return
-	}
-	wrappedTx = wrappedTx.WithSignature(signature, pub.Bytes())
-	wrapped, err = cdc.MarshalBinaryLengthPrefixed(wrappedTx)
-	return
+// StdTxSignatureWrapperDecorator for replacing the wrapped tx with current tx
+type StdTxSignatureWrapperDecorator struct {
+	cdc *codec.Codec
 }
 
-func verifyOrGenerate(tx app.WrappedTx, origin []byte) (wrapped app.WrappedTx, confident bool, err error) {
-	wrapped = tx
-	priv, pub := getCurrentNodeKey()
-	confident, err = VerifyConfidentTx(origin, wrapped.Signature, wrapped.NodeKey)
-	if err != nil {
-		return
+func NewStdTxSignatureWrapperDecorator(cdc *codec.Codec) StdTxSignatureWrapperDecorator {
+	return StdTxSignatureWrapperDecorator{
+		cdc: cdc,
 	}
-	signature, _ := priv.Sign(origin)
-	wrapped = wrapped.WithSignature(signature, pub.Bytes())
-	return
+}
+
+func (decorator StdTxSignatureWrapperDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	if !isSkipWrapped(ctx.BlockHeight()) {
+		wrapped := app.NewWrappedTx(tx, app.StdTransaction)
+		priv, pub := getCurrentNodeKey()
+		signature, err := priv.Sign(ctx.TxBytes())
+		if err != nil {
+			return next(ctx, tx, simulate)
+		}
+		wrapped = wrapped.WithSignature(signature, pub.Bytes())
+		result, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrapped)
+		if err != nil {
+			return next(ctx, tx, simulate)
+		}
+		ctx = ctx.WithReplaceTx(result)
+		return next(ctx, tx, simulate)
+	}
+	return next(ctx, tx, simulate)
+}
+
+// EthereumTxSignatureWrapperDecorator for replacing the wrapped tx with current tx
+type EthereumTxSignatureWrapperDecorator struct {
+	cdc *codec.Codec
+}
+
+func NewEthereumTxSignatureWrapperDecorator(cdc *codec.Codec) EthereumTxSignatureWrapperDecorator {
+	return EthereumTxSignatureWrapperDecorator{
+		cdc: cdc,
+	}
+}
+
+func (decorator EthereumTxSignatureWrapperDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	if !isSkipWrapped(ctx.BlockHeight()) {
+		wrapped := app.NewWrappedTx(tx, app.EthereumTransaction)
+		priv, pub := getCurrentNodeKey()
+		signature, err := priv.Sign(ctx.TxBytes())
+		if err != nil {
+			return next(ctx, tx, simulate)
+		}
+		wrapped = wrapped.WithSignature(signature, pub.Bytes())
+		result, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrapped)
+		if err != nil {
+			return next(ctx, tx, simulate)
+		}
+		ctx = ctx.WithReplaceTx(result)
+		return next(ctx, tx, simulate)
+	}
+	return next(ctx, tx, simulate)
+}
+
+// AnonymousDecorator used to wrapp raw ante handler to decorator
+type AnonymousDecorator struct {
+	handler sdk.AnteHandler
+}
+
+func NewAnonymousDecorator(handler sdk.AnteHandler) AnonymousDecorator {
+	return AnonymousDecorator{
+		handler: handler,
+	}
+}
+
+func (decorator AnonymousDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	netCtx, err := decorator.handler(ctx, tx, simulate)
+	if err != nil {
+		return netCtx, err
+	}
+	return next(netCtx, tx, simulate)
+}
+
+// WrappedTxVerifyDecorator verify the wrapped tx
+// this antehandler should raise before derive decorator
+type WrappedTxVerifyDecorator struct {
+	cdc              *codec.Codec
+	confidentHandler sdk.AnteHandler
+	commonHandler    sdk.AnteHandler
+}
+
+func NewWrappedTxVerifyDecorator(cdc *codec.Codec, confidentHandler, commonAnteHandler sdk.AnteHandler) WrappedTxVerifyDecorator {
+	return WrappedTxVerifyDecorator{
+		cdc:              cdc,
+		confidentHandler: confidentHandler,
+		commonHandler:    commonAnteHandler,
+	}
+}
+
+func (decorator WrappedTxVerifyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	defaultChain := NewAnonymousDecorator(next)
+	handler := sdk.ChainAnteDecorators(NewAnonymousDecorator(decorator.commonHandler), defaultChain)
+	wrappedTx, ok := tx.(app.WrappedTx)
+	if !ok {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+	}
+	if isSkipWrapped(ctx.BlockHeight()) {
+		//return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "don't support wrapped tx currenly: %T", tx)
+		return handler(ctx, wrappedTx.GetOriginTx(), simulate) // SKIP ?
+	}
+
+	message, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrappedTx.GetOriginTx())
+	if err != nil {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid wrapped origin tx: %v", wrappedTx.GetOriginTx())
+	}
+
+	confident, err := VerifyConfidentTx(message, wrappedTx.Signature, wrappedTx.NodeKey)
+	if err != nil {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid wrapped signature : %v", wrappedTx)
+	}
+	ctx = ctx.WithConfident(confident, wrappedTx.Type)
+	origin := wrappedTx.GetOriginTx() // extract the origin tx to pass in the next chain
+	if confident {
+		handler = sdk.ChainAnteDecorators(NewAnonymousDecorator(decorator.confidentHandler), defaultChain)
+	}
+
+	return handler(ctx, origin, simulate)
+}
+
+// WrappedTxDeriveFromOriginDecorator as the final ante handler to wrap the origin tx or
+// no confident tx to wrapped tx
+type WrappedTxDeriveFromOriginDecorator struct {
+	cdc *codec.Codec
+}
+
+func NewWrappedTxDeriveFromOriginDecorator(cdc *codec.Codec) WrappedTxDeriveFromOriginDecorator {
+	return WrappedTxDeriveFromOriginDecorator{
+		cdc: cdc,
+	}
+}
+
+func (decorator WrappedTxDeriveFromOriginDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	// NOTE: now this tx is the origin tx
+	if ctx.Confident() {
+		// verified
+		newCtx = ctx.WithReplaceTx(nil) // keep safe
+		return next(newCtx, tx, simulate)
+	} else {
+		if !isSkipWrapped(ctx.BlockHeight()) {
+			wrappedTx := app.NewWrappedTx(tx, ctx.OriginTxType())
+			priv, pub := getCurrentNodeKey()
+			message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(tx)
+			signature, err := priv.Sign(message)
+			if err == nil {
+				wrappedTx.Signature = signature
+				wrappedTx.NodeKey = pub.Bytes()
+				message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(wrappedTx)
+				newCtx = ctx.WithReplaceTx(message)
+				return next(newCtx, tx, simulate)
+			}
+		}
+		return next(ctx, tx, simulate)
+	}
 }

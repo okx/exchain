@@ -40,6 +40,8 @@ type Context struct {
 	isAsync       bool
 	cache         *Cache
 	replaceTx     []byte // used for the carry the wrapped tx to mempool layer
+	confident     bool
+	originTxType  uint32 // carry the origin tx type
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -65,6 +67,8 @@ func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) Cache() *Cache               { return c.cache }
 func (c Context) ReplaceTx() []byte           { return c.replaceTx }
+func (c Context) Confident() bool             { return c.confident }
+func (c Context) OriginTxType() uint32        { return c.originTxType }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -207,6 +211,12 @@ func (c Context) WithCache(cache *Cache) Context {
 
 func (c Context) WithReplaceTx(tx []byte) Context {
 	c.replaceTx = tx
+	return c
+}
+
+func (c Context) WithConfident(confident bool, ty uint32) Context {
+	c.confident = confident
+	c.originTxType = ty
 	return c
 }
 

@@ -36,73 +36,72 @@ func NewAnteHandler(cdc *codec.Codec, ak auth.AccountKeeper, evmKeeper EVMKeeper
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		origin := tx
-		confident := false
 		switch wrapped := tx.(type) {
 		case auth.StdTx:
 			{
-				anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-				if !isSkipWrapped(ctx.BlockHeight()) {
-					wrapped, err := wrapCurrentTx(app.StdTransaction, origin, ctx.TxBytes(), cdc)
-					if err != nil {
-						break
-					}
-					ctx = ctx.WithReplaceTx(wrapped)
-				}
+				anteHandler = sdk.ChainAnteDecorators(
+					authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+					NewAccountSetupDecorator(ak),
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+					authante.NewMempoolFeeDecorator(),
+					authante.NewValidateBasicDecorator(),
+					authante.NewValidateMemoDecorator(ak),
+					authante.NewConsumeGasForTxSizeDecorator(ak),
+					authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+					authante.NewValidateSigCountDecorator(ak),
+					authante.NewDeductFeeDecorator(ak, sk),
+					authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+					authante.NewSigVerificationDecorator(ak),
+					authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+					NewValidateMsgHandlerDecorator(validateMsgHandler),
+					NewWrappedTxDeriveFromOriginDecorator(cdc), // add the final wrapper
+				)
 			}
 		case evmtypes.MsgEthereumTx:
 			{
-				anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-				if !isSkipWrapped(ctx.BlockHeight()) {
-					wrapped, err := wrapCurrentTx(app.EthereumTransaction, origin, ctx.TxBytes(), cdc)
-					if err != nil {
-						break
-					}
-					ctx = ctx.WithReplaceTx(wrapped)
-				}
+				anteHandler = sdk.ChainAnteDecorators(
+					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+					NewGasLimitDecorator(evmKeeper),
+					NewEthMempoolFeeDecorator(evmKeeper),
+					authante.NewValidateBasicDecorator(),
+					NewEthSigVerificationDecorator(),
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+					NewAccountVerificationDecorator(ak, evmKeeper),
+					NewNonceVerificationDecorator(ak),
+					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+					NewIncrementSenderSequenceDecorator(ak),    // innermost AnteDecorator.
+					NewWrappedTxDeriveFromOriginDecorator(cdc), // add the final wrapper
+				)
 			}
 		case app.WrappedTx:
 			{
-				message, err := cdc.MarshalBinaryLengthPrefixed(wrapped.GetOriginTx())
-				origin = wrapped.GetOriginTx()
-				if err != nil {
-					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction origin tx: %T", tx)
-				}
-				if isSkipWrapped(ctx.BlockHeight()) {
-					ctx = ctx.WithReplaceTx(message)
-				} else {
-					wrapped, confident, err := verifyOrGenerate(wrapped, message)
-					if err != nil {
-						return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction signature: %T", tx)
-					}
-					if !confident {
-						serialized, _ := cdc.MarshalBinaryLengthPrefixed(wrapped)
-						ctx = ctx.WithReplaceTx(serialized)
-					}
-				}
 				switch wrapped.Type {
 				case app.EthereumTransaction:
-					{
-						if confident {
-							anteHandler = buildLightEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-						} else {
-							anteHandler = buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-						}
-					}
+					anteHandler = sdk.ChainAnteDecorators(
+						NewWrappedTxVerifyDecorator(
+							cdc,
+							buildLightEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler),
+							buildOriginEvmTxAnteHandler(ak, evmKeeper, sk, validateMsgHandler),
+						),
+						NewWrappedTxDeriveFromOriginDecorator(cdc), // add the final wrapper
+					)
 				case app.StdTransaction:
-					if confident {
-						anteHandler = buildLightStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-					} else {
-						anteHandler = buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler)
-					}
+					anteHandler = sdk.ChainAnteDecorators(
+						NewWrappedTxVerifyDecorator(
+							cdc,
+							buildLightStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler),
+							buildOriginStdtxAnteHandler(ak, evmKeeper, sk, validateMsgHandler),
+						),
+						NewWrappedTxDeriveFromOriginDecorator(cdc), // add the final wrapper
+					)
 				default:
-					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+					return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type in wrapped tx: %T", tx)
 				}
 			}
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
-		return anteHandler(ctx, origin, sim)
+		return anteHandler(ctx, tx, sim)
 	}
 }
 
