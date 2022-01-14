@@ -64,8 +64,8 @@ func GetWatchLruSize() int {
 	return watcherLruSize
 }
 
-func newWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64),  firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+func newWatcher(log log.Logger) *Watcher {
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64),  firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{},log: log}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }

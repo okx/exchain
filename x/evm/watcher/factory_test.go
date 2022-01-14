@@ -65,7 +65,7 @@ func TestWatcherType(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.base.name, func(t *testing.T) {
 			c.base.f()
-			w := NewWatcher()
+			w := NewWatcher(nil)
 			require.IsType(t, c.exceptType, w)
 		})
 	}

@@ -101,7 +101,7 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	for i, b := range wd.Batches {
 		keys[i] = b.Key
 	}
-	w.app.EvmKeeper.Watcher.CheckWatchDB(keys, "producer--test")
+	w.app.EvmKeeper.Watcher.(*watcher.Watcher).CheckWatchDB(keys, "producer--test")
 }
 
 func testWatchData(t *testing.T, w *WatcherTestSt) {

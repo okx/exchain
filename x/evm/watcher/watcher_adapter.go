@@ -48,7 +48,7 @@ type IWatcher interface {
 	CommitCodeHashToDb(hash []byte, code []byte)
 	Reset()
 	Commit()
-	CommitWatchData()
+	CommitWatchData(data WatchData)
 	GetWatchData() ([]byte, error)
 	UseWatchData(wdByte []byte)
 
@@ -245,10 +245,10 @@ func (c *concurrentWatcher) Commit() {
 	c.w.Commit()
 }
 
-func (c *concurrentWatcher) CommitWatchData() {
+func (c *concurrentWatcher) CommitWatchData(data WatchData) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	c.w.CommitWatchData()
+	c.w.CommitWatchData(data)
 }
 
 func (c *concurrentWatcher) GetWatchData() ([]byte, error) {
@@ -353,7 +353,7 @@ func (d *disableWatcher) Reset() {}
 
 func (d *disableWatcher) Commit() {}
 
-func (d *disableWatcher) CommitWatchData() {}
+func (d *disableWatcher) CommitWatchData(data WatchData) {}
 
 func (d *disableWatcher) GetWatchData() ([]byte, error) { return d.w.GetWatchData() }
 
