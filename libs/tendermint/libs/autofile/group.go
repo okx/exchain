@@ -160,7 +160,7 @@ func (g *Group) Close() {
 	g.FlushAndSync()
 
 	g.mtx.Lock()
-	_ = g.Head.closeFile()
+	_ = g.Head.Close()
 	g.mtx.Unlock()
 }
 
