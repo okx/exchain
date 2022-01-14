@@ -83,7 +83,7 @@ func NewAnteHandler4Wtx(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 		case auth.WrappedTx:
 			logger.Info("ante auth.WrappedTx")
 			anteHandler = func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-				return checkTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
+				return wrappedTxAnteHandler(ctx, tx, sim, txType.Tx, stdTxAnteHandler, evmTxAnteHandler)
 			}
 		default:
 			logger.Info("invalid transaction type: %T", tx)
@@ -94,10 +94,10 @@ func NewAnteHandler4Wtx(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 	}
 }
 
-func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func wrappedTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
 	var payloadAnteHandler sdk.AnteHandler
-	logger.Info("ante checkTxAnteHandler")
+	logger.Info("ante wrappedTxAnteHandler")
 
 	switch payloadTx.(type) {
 	case auth.StdTx:
@@ -108,11 +108,11 @@ func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, 
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid payload transaction type: %T", payloadTx)
 	}
 
-	chkTxAnteHandler := sdk.ChainAnteDecorators(
+	wtxAnteHandler := sdk.ChainAnteDecorators(
 		authante.NewNodeSignatureDecorator(logger.Logger),
 	)
 
-	newCtx, err = chkTxAnteHandler(ctx, tx, sim)
+	newCtx, err = wtxAnteHandler(ctx, tx, sim)
 	if err != nil {
 		logger.Info("Wrapped tx anteHandler failed", "err", err)
 		newCtx, err = payloadAnteHandler(newCtx, payloadTx, sim)

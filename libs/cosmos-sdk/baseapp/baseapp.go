@@ -118,8 +118,16 @@ type BaseApp struct { // nolint: maligned
 	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
-	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
-	wrappedTxDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.WrapperTx
+
+	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
+	txDecoder   sdk.TxDecoder
+
+	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
+	// 1. a WrappedTx
+	// 2. an StdTx
+	// 3. a MsgEthereumTx
+	// depends on how []byte is marshalled
+	wrappedTxDecoder   sdk.TxDecoder
 
 	wrappedTxEncoder   sdk.WrappedTxEncoder
 
