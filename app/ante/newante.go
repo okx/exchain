@@ -114,7 +114,9 @@ func checkTxAnteHandler(ctx sdk.Context, tx sdk.Tx, sim bool, payloadTx sdk.Tx, 
 
 	newCtx, err = chkTxAnteHandler(ctx, tx, sim)
 	if err != nil {
-		newCtx, err = payloadAnteHandler(ctx, payloadTx, sim)
+		logger.Info("Wrapped tx anteHandler failed", "err", err)
+		newCtx, err = payloadAnteHandler(newCtx, payloadTx, sim)
+		logger.Info("Payload tx anteHandler", "err", err)
 	}
 
 	return newCtx, err

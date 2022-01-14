@@ -19,12 +19,12 @@ func NewNodeSignatureDecorator(l log.Logger) NodeSignatureDecorator {
 
 func (n NodeSignatureDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// load whitelist and verify the signature
-	res := 1
+	res := -1
 	// -1 for failure, 1 for success
-	ctx = ctx.WithVerifyResult(res)
+	ctx = ctx.WithNodeSigVerifyResult(res)
 
 	defer n.logger.Info("NodeSignatureDecorator AnteHandle",
-		"VerifyResult", ctx.VerifyResult(),
+		"NodeSigVerifyResult", ctx.NodeSigVerifyResult(),
 		"tx-type", fmt.Sprintf("%T", tx),
 		)
 

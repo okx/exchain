@@ -18,9 +18,7 @@ type RawWrappedTx struct {
 
 type WrappedTx struct {
 	sdk.Tx
-	Metadata  []byte
-	Signature []byte
-	NodeKey   []byte
+	*RawWrappedTx
 }
 
 func (msg WrappedTx) String() string {
@@ -76,11 +74,9 @@ func DecodeWrappedTx(txbytes []byte, payloadDecoder sdk.TxDecoder, heights ...in
 		return nil, err
 	}
 
-	tx := WrappedTx{
+	tx := WrappedTx {
 		Tx: payloadTx,
-		NodeKey: raw.NodeKey,
-		Metadata: raw.Metadata,
-		Signature: raw.Signature,
+		RawWrappedTx: raw,
 	}
 	return tx, err
 }

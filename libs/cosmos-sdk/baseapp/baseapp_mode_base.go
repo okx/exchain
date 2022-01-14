@@ -163,7 +163,7 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 	if !enableWrappedTx {
 		return
 	}
-	if info.verifyResult > 0 {
+	if info.nodeSigVerifyResult > 0 {
 		return
 	}
 

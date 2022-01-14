@@ -39,7 +39,7 @@ type Context struct {
 	sigCache      SigCache
 	isAsync       bool
 	cache         *Cache
-	verifyResult  int
+	nodeSigVerifyResult  int
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -63,7 +63,7 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) VerifyResult() int           { return c.verifyResult }
+func (c Context) NodeSigVerifyResult() int           { return c.nodeSigVerifyResult }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -259,8 +259,8 @@ func (c Context) WithSigCache(cache SigCache) Context {
 	return c
 }
 
-func (c Context) WithVerifyResult(verifyResult int) Context {
-	c.verifyResult = verifyResult
+func (c Context) WithNodeSigVerifyResult(r int) Context {
+	c.nodeSigVerifyResult = r
 	return c
 }
 

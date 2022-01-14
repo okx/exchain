@@ -19,7 +19,7 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
-	verifyResult   int
+	nodeSigVerifyResult   int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -116,11 +116,11 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
-	info.verifyResult = newCtx.VerifyResult()
+	info.nodeSigVerifyResult = newCtx.NodeSigVerifyResult()
 	app.logger.Debug("anteHandler finished",
 		"mode", mode,
 		"type", info.tx.GetType(),
-		"verifyResult", info.verifyResult,
+		"nodeSigVerifyResult", info.nodeSigVerifyResult,
 		"err", err,
 		"tx", info.tx,
 		"payloadtx", info.tx.GetPayloadTx())
