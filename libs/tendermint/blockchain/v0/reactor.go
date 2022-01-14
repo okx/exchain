@@ -244,13 +244,6 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		bcR.setIsSyncing(false)
 	}()
 
-	bcR.pool.SetHeight(bcR.store.Height() + 1)
-	bcR.pool.Stop()
-	bcR.pool.Reset()
-	bcR.pool.Start()
-
-	blocksSynced := uint64(0)
-
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
 		conState, err := conR.SwitchToFastSync()
@@ -259,6 +252,13 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		}
 	}
 	chainID := bcR.curState.ChainID
+
+	bcR.pool.SetHeight(bcR.curState.LastBlockHeight + 1)
+	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.pool.Start()
+
+	blocksSynced := uint64(0)
 
 	lastHundred := time.Now()
 	lastRate := 0.0
