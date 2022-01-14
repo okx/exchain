@@ -29,8 +29,11 @@ type WrappedTx struct {
 // NewWrappedTx create a new wrapped transaction with tx and type
 func NewWrappedTx(tx sdk.Tx, ty uint32) WrappedTx {
 	return WrappedTx{
-		Inner: tx,
-		Type:  ty,
+		Inner:     tx,
+		Type:      ty,
+		Extra:     []byte{},
+		Signature: []byte{},
+		NodeKey:   []byte{},
 	}
 }
 

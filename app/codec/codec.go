@@ -27,6 +27,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
 	// register the codec
+	// FIXME: should couple all the registry to one file to keep clear
 	cdc.RegisterConcrete(&ethermint.WrappedTx{}, "wrapped-tx", nil)
 
 	return cdc

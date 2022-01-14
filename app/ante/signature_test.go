@@ -1,9 +1,11 @@
 package ante_test
 
 import (
+	"fmt"
 	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ante "github.com/okex/exchain/app/ante"
 	app "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -48,21 +50,37 @@ func (suite *AnteTestSuite) TestWrappedTxSignatureRecover() {
 	suite.Require().Equal(true, confident)
 }
 
+func (suite *AnteTestSuite) TestVerifyConfident() {
+	setConfidentKeyListWithCurrent(suite)
+	fmt.Println(hexutil.Encode(suite.nodePub.Bytes()))
+	priv, pub := newNodeKeyPair()
+	message := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}
+	badSig, _ := priv.Sign(message)
+	confident, err := ante.VerifyConfidentTx(message, badSig, pub.Bytes())
+	suite.Require().NoError(err)
+	suite.Require().False(confident)
+
+	wellSig, _ := suite.nodePriv.Sign(message)
+	confident, err = ante.VerifyConfidentTx(message, wellSig, suite.nodePriv.Bytes())
+	suite.Require().NoError(err)
+	suite.Require().True(confident)
+}
+
 func (suite *AnteTestSuite) TestSkipWrappedSignaturePhase() {
 	setConfidentKeyList(suite, true)
 	ante.SetWrappedTxEffectiveHeight(1000)
 	tx, err := buildTestTx(suite)
 	suite.Require().NoError(err)
-	message, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	message, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(tx) // evmTx
 	signature, _ := suite.nodePriv.Sign(message)
 	wrapped, _ := NewWrappedTx(tx, signature, suite.nodePub.Bytes())
 	newCtx, err := suite.anteHandler(suite.ctx, wrapped, false)
 	suite.Require().NoError(err)
-	suite.Require().Equal(message, newCtx.ReplaceTx())
+	suite.Require().Nil(newCtx.ReplaceTx()) // MarshalBinaryLengthPrefixed
 }
 
-func (suite *AnteTestSuite) TestWrappedEtherrumTx() {
-	setConfidentKeyList(suite, true)
+func (suite *AnteTestSuite) TestWrappedEthereumTx() {
+	setConfidentKeyListWithCurrent(suite)
 	ante.SetWrappedTxEffectiveHeight(1)
 	tx, err := buildTestTx(suite)
 	suite.Require().NoError(err)

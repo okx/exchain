@@ -107,67 +107,7 @@ func isSkipWrapped(height int64) bool {
 	if height > effectiveHeight {
 		return len(serverConfig.Mempool.ConfidentNodeKeys) <= 0
 	}
-	return false
-}
-
-// StdTxSignatureWrapperDecorator for replacing the wrapped tx with current tx
-type StdTxSignatureWrapperDecorator struct {
-	cdc *codec.Codec
-}
-
-func NewStdTxSignatureWrapperDecorator(cdc *codec.Codec) StdTxSignatureWrapperDecorator {
-	return StdTxSignatureWrapperDecorator{
-		cdc: cdc,
-	}
-}
-
-func (decorator StdTxSignatureWrapperDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	if !isSkipWrapped(ctx.BlockHeight()) {
-		wrapped := app.NewWrappedTx(tx, app.StdTransaction)
-		priv, pub := getCurrentNodeKey()
-		signature, err := priv.Sign(ctx.TxBytes())
-		if err != nil {
-			return next(ctx, tx, simulate)
-		}
-		wrapped = wrapped.WithSignature(signature, pub.Bytes())
-		result, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrapped)
-		if err != nil {
-			return next(ctx, tx, simulate)
-		}
-		ctx = ctx.WithReplaceTx(result)
-		return next(ctx, tx, simulate)
-	}
-	return next(ctx, tx, simulate)
-}
-
-// EthereumTxSignatureWrapperDecorator for replacing the wrapped tx with current tx
-type EthereumTxSignatureWrapperDecorator struct {
-	cdc *codec.Codec
-}
-
-func NewEthereumTxSignatureWrapperDecorator(cdc *codec.Codec) EthereumTxSignatureWrapperDecorator {
-	return EthereumTxSignatureWrapperDecorator{
-		cdc: cdc,
-	}
-}
-
-func (decorator EthereumTxSignatureWrapperDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	if !isSkipWrapped(ctx.BlockHeight()) {
-		wrapped := app.NewWrappedTx(tx, app.EthereumTransaction)
-		priv, pub := getCurrentNodeKey()
-		signature, err := priv.Sign(ctx.TxBytes())
-		if err != nil {
-			return next(ctx, tx, simulate)
-		}
-		wrapped = wrapped.WithSignature(signature, pub.Bytes())
-		result, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrapped)
-		if err != nil {
-			return next(ctx, tx, simulate)
-		}
-		ctx = ctx.WithReplaceTx(result)
-		return next(ctx, tx, simulate)
-	}
-	return next(ctx, tx, simulate)
+	return true
 }
 
 // AnonymousDecorator used to wrapp raw ante handler to decorator
@@ -214,7 +154,7 @@ func (decorator WrappedTxVerifyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx,
 	}
 	if isSkipWrapped(ctx.BlockHeight()) {
 		//return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "don't support wrapped tx currenly: %T", tx)
-		return handler(ctx, wrappedTx.GetOriginTx(), simulate) // SKIP ?
+		return handler(ctx, wrappedTx.GetOriginTx(), simulate) //FIXME: SKIP ?
 	}
 
 	message, err := decorator.cdc.MarshalBinaryLengthPrefixed(wrappedTx.GetOriginTx())
@@ -248,7 +188,7 @@ func NewWrappedTxDeriveFromOriginDecorator(cdc *codec.Codec) WrappedTxDeriveFrom
 }
 
 func (decorator WrappedTxDeriveFromOriginDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	// NOTE: now this tx is the origin tx
+	// NOTE: now this tx is the origin tx evmTx or stdTx
 	if ctx.Confident() {
 		// verified
 		newCtx = ctx.WithReplaceTx(nil) // keep safe
@@ -260,8 +200,7 @@ func (decorator WrappedTxDeriveFromOriginDecorator) AnteHandle(ctx sdk.Context, 
 			message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(tx)
 			signature, err := priv.Sign(message)
 			if err == nil {
-				wrappedTx.Signature = signature
-				wrappedTx.NodeKey = pub.Bytes()
+				wrappedTx = wrappedTx.WithSignature(signature, pub.Bytes())
 				message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(wrappedTx)
 				newCtx = ctx.WithReplaceTx(message)
 				return next(newCtx, tx, simulate)
