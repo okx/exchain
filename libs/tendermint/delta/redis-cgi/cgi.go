@@ -41,7 +41,7 @@ func NewRedisClient(url, auth string, ttl time.Duration, db int, l log.Logger) *
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: auth, // no password set
-		DB:       db,    // use default DB
+		DB:       1,    // use select DB
 	})
 	return &RedisClient{rdb, ttl, l}
 }
