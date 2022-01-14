@@ -16,7 +16,7 @@ const (
 func getRedisClient(t *testing.T) *RedisClient {
 	s := miniredis.RunT(t)
 	logger := log.TestingLogger()
-	ss := NewRedisClient(s.Addr(), "", time.Minute, logger)
+	ss := NewRedisClient(s.Addr(), "", time.Minute, 0, logger)
 	return ss
 }
 

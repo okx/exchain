@@ -93,7 +93,11 @@ func (dc *DeltaContext) init() {
 		url := viper.GetString(types.FlagRedisUrl)
 		auth := viper.GetString(types.FlagRedisAuth)
 		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
-		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
+		dbNum := viper.GetInt(types.FlagRedisDB)
+		if dbNum < 0 || dbNum > 15 {
+			panic("delta-redis-db only support 0~15")
+		}
+		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dbNum, dc.logger)
 		dc.logger.Info("Init delta broker", "url", url)
 	}
 
