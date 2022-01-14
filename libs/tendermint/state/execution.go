@@ -703,37 +703,3 @@ func fireEvents(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
 }
-
-//----------------------------------------------------------------------------------------------------
-// Execute block without state. TODO: eliminate
-
-// ExecCommitBlock executes and commits a block on the proxyApp without validating or mutating the state.
-// It returns the application root hash (result of abci.Commit).
-func ExecCommitBlock(
-	appConnConsensus proxy.AppConnConsensus,
-	block *types.Block,
-	logger log.Logger,
-	stateDB dbm.DB,
-) ([]byte, error) {
-
-	ctx := &executionTask{
-		logger:   logger,
-		block:    block,
-		db:       stateDB,
-		proxyApp: appConnConsensus,
-	}
-
-	_, err := execBlockOnProxyApp(ctx)
-	if err != nil {
-		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
-		return nil, err
-	}
-	// Commit block, get hash back
-	res, err := appConnConsensus.CommitSync(abci.RequestCommit{})
-	if err != nil {
-		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
-		return nil, err
-	}
-	// ResponseCommit has no error or log, just data
-	return res.Data, nil
-}
