@@ -5,8 +5,8 @@ import (
 	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	ocdc "github.com/okex/exchain/libs/codec"
 	"math/big"
 	"sort"
 	"sync"
@@ -587,7 +587,7 @@ func (mem *CListMempool) resCbFirstTime(
 			memTx.senders.Store(peerID, true)
 
 			var exTxInfo ExTxInfo
-			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
+			if err := ocdc.Decode(r.CheckTx.Data, &exTxInfo); err != nil {
 				mem.cache.Remove(tx)
 				mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
 				return

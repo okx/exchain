@@ -1,8 +1,8 @@
 package baseapp
 
 import (
-	"encoding/json"
 	"fmt"
+	ocdc "github.com/okex/exchain/libs/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -195,58 +195,10 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 
 	m.addExTxInfo(info, &exTxInfo)
 
-	data, err := json.Marshal(exTxInfo)
+	data, err := ocdc.Encode(exTxInfo)
 	if err == nil {
 		info.result.Data = data
 	}
 }
-
-//func (m *modeHandlerBase) handleRunMsg_org(info *runTxInfo) (err error) {
-//	app := m.app
-//	mode := m.mode
-//	msCacheAnte := info.msCacheAnte
-//	msCache := info.msCache
-//
-//	if mode == runTxModeDeliverInAsync {
-//		info.msCache = msCacheAnte.CacheMultiStore()
-//		info.runMsgCtx = info.ctx.WithMultiStore(msCache)
-//	} else {
-//		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
-//	}
-//	msCache = info.msCache
-//
-//	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
-//	if err == nil && (mode == runTxModeDeliver) {
-//		msCache.Write()
-//	}
-//
-//	info.runMsgFinished = true
-//
-//	if mode == runTxModeCheck {
-//		exTxInfo := app.GetTxInfo(info.ctx, info.tx)
-//		exTxInfo.SenderNonce = info.accountNonce
-//
-//		data, err := json.Marshal(exTxInfo)
-//		if err == nil {
-//			info.result.Data = data
-//		}
-//	}
-//
-//	if err != nil {
-//		if sdk.HigherThanMercury(info.ctx.BlockHeight()) {
-//			codeSpace, code, info := sdkerrors.ABCIInfo(err, app.trace)
-//			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
-//		}
-//		msCache = nil
-//	}
-//
-//	if mode == runTxModeDeliverInAsync {
-//		if msCache != nil {
-//			msCache.Write()
-//		}
-//	}
-//
-//	return
-//}
 
 

@@ -75,11 +75,11 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		//----------------------------------------------
 		//----------------------------------------------
 		// 0. try sdk.WrappedTx
-		//if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
-		//	return
-		//} else {
-		//	dumpErr(txBytes, "DecodeWrappedTx", err)
-		//}
+		if tx, err = authtypes.DecodeWrappedTx(txBytes, payloadDecoder, heights...); err == nil {
+			return
+		} else {
+			dumpErr(txBytes, "DecodeWrappedTx", err)
+		}
 
 		tx, err = payloadDecoder(txBytes, heights...)
 		return
