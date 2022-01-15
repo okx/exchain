@@ -1,8 +1,8 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
-	ocdc "github.com/okex/exchain/libs/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -195,10 +195,11 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 
 	m.addExTxInfo(info, &exTxInfo)
 
-	data, err := ocdc.Encode(exTxInfo)
+	data, err := json.Marshal(exTxInfo)
 	if err == nil {
 		info.result.Data = data
 	}
 }
+
 
 
