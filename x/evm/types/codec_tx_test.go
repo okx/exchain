@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
@@ -25,21 +27,35 @@ const (
 	rawAminoEnc encodeMode = iota
 	rlpEnc
 	exAminoEnc
+	jsonEnc
 )
 
 var (
 	rawEthMsgName = "raw/eth_tx"
 	exEthMsgName  = "exchain/eth_tx"
+	testPrivKey   = "52692529cc36735d4ee1084846f4f5ef8916d0f823b0a0e834c8a4ece30c45e4"
 )
 
 func generateTestTx(n int) MsgEthereumTx {
+	// new evm message
 	nonce := uint64(0)
-	to := common.HexToAddress("0x5E7BA03cf5394c3731242164b294a968d9D937F2")
+	to := common.HexToAddress("0x5E7BA03cf5394c3731242164b294a968d9D937F1")
 	amount := new(big.Int).SetUint64(100)
 	gasLimit := uint64(21000)
 	gasPrice, _ := new(big.Int).SetString("1000000", 10)
 	data := strings.Repeat("1234567890", n)
-	return NewMsgEthereumTx(nonce, &to, amount, gasLimit, gasPrice, []byte(data))
+	msg := NewMsgEthereumTx(nonce, &to, amount, gasLimit, gasPrice, []byte(data))
+
+	//signature
+	key, err := crypto.HexToECDSA(testPrivKey)
+	if err != nil {
+		panic(err)
+	}
+	msg.Sign(new(big.Int).SetInt64(3), key)
+	if err != nil {
+		panic(err)
+	}
+	return msg
 }
 
 func newTestEncoder(mode encodeMode) encoder {
@@ -50,6 +66,8 @@ func newTestEncoder(mode encodeMode) encoder {
 		return newRlpEncoder()
 	case exAminoEnc:
 		return newExAminoEncoder()
+	case jsonEnc:
+		return newJsonEncoder()
 	default:
 	}
 	panic("unknow encoder")
@@ -82,14 +100,9 @@ func newRlpEncoder() *rlpEncoder {
 	return &rlpEncoder{}
 }
 
-func (re *rlpEncoder) encodeTx(tx sdk.Tx) ([]byte, error) {
-	return rlp.EncodeToBytes(tx)
-}
-
-func (re *rlpEncoder) decodeTx(b []byte, tx interface{}) error {
-	return rlp.DecodeBytes(b, tx)
-}
-func (re *rlpEncoder) name() string { return "rlp " }
+func (re *rlpEncoder) encodeTx(tx sdk.Tx) ([]byte, error)      { return rlp.EncodeToBytes(tx) }
+func (re *rlpEncoder) decodeTx(b []byte, tx interface{}) error { return rlp.DecodeBytes(b, tx) }
+func (re *rlpEncoder) name() string                            { return "rlp " }
 
 type exAminoEncoder struct {
 	cdc *amino.Codec
@@ -120,10 +133,18 @@ func (ee *exAminoEncoder) decodeTx(b []byte, tx interface{}) error {
 }
 func (ee *exAminoEncoder) name() string { return "exchain-amino" }
 
+type jsonEncoder struct{}
+
+func newJsonEncoder() *jsonEncoder                              { return &jsonEncoder{} }
+func (je *jsonEncoder) encodeTx(tx sdk.Tx) ([]byte, error)      { return types.Json.Marshal(tx) }
+func (je *jsonEncoder) decodeTx(b []byte, tx interface{}) error { return types.Json.Unmarshal(b, tx) }
+func (je *jsonEncoder) name() string                            { return "json" }
+
 func TestEncoder(t *testing.T) {
-	testEncoder(t, newTestEncoder(rawAminoEnc)) //test go-amino
-	testEncoder(t, newTestEncoder(rlpEnc))      //test ethereum-rlp
-	testEncoder(t, newTestEncoder(exAminoEnc))  //test exchain-amino
+	testEncoder(t, newTestEncoder(rawAminoEnc)) // test go-amino
+	testEncoder(t, newTestEncoder(rlpEnc))      // test ethereum-rlp
+	testEncoder(t, newTestEncoder(exAminoEnc))  // test exchain-amino
+	testEncoder(t, newTestEncoder(jsonEnc))     // test exchain-json
 }
 func testEncoder(t *testing.T, enc encoder) {
 	// encode
@@ -139,6 +160,7 @@ func testEncoder(t *testing.T, enc encoder) {
 func BenchmarkRawAminoEncodeTx(b *testing.B) { benchmarkEncodeTx(b, newTestEncoder(rawAminoEnc)) }
 func BenchmarkRlpEncodeTx(b *testing.B)      { benchmarkEncodeTx(b, newTestEncoder(rlpEnc)) }
 func BenchmarkExAminoEncodeTx(b *testing.B)  { benchmarkEncodeTx(b, newTestEncoder(exAminoEnc)) }
+func BenchmarkJsonEncodeTx(b *testing.B)     { benchmarkEncodeTx(b, newTestEncoder(jsonEnc)) }
 
 func benchmarkEncodeTx(b *testing.B, enc encoder) {
 	tx := generateTestTx(1)
@@ -152,6 +174,7 @@ func benchmarkEncodeTx(b *testing.B, enc encoder) {
 func BenchmarkRawAminoDecodeTx(b *testing.B) { benchmarkDecodeTx(b, newTestEncoder(rawAminoEnc)) }
 func BenchmarkRlpDecodeTx(b *testing.B)      { benchmarkDecodeTx(b, newTestEncoder(rlpEnc)) }
 func BenchmarkExDecodeTx(b *testing.B)       { benchmarkDecodeTx(b, newTestEncoder(exAminoEnc)) }
+func BenchmarkJsonDecodeTx(b *testing.B)     { benchmarkDecodeTx(b, newTestEncoder(jsonEnc)) }
 
 func benchmarkDecodeTx(b *testing.B, enc encoder) {
 	tx := generateTestTx(1)
