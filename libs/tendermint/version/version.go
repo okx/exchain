@@ -1,5 +1,11 @@
 package version
 
+import (
+	"fmt"
+
+	"github.com/tendermint/go-amino"
+)
+
 var (
 	// GitCommit is the current HEAD set using ldflags.
 	GitCommit string
@@ -64,4 +70,55 @@ type App struct {
 type Consensus struct {
 	Block Protocol `json:"block"`
 	App   Protocol `json:"app"`
+}
+
+func (c Consensus) AminoSize() int {
+	var size int
+	if c.Block != 0 {
+		size += 1 + amino.UvarintSize(uint64(c.Block))
+	}
+	if c.App != 0 {
+		size += 1 + amino.UvarintSize(uint64(c.App))
+	}
+	return size
+}
+
+func (c *Consensus) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType != amino.Typ3_Varint {
+			return fmt.Errorf("expected Varint, got %v", aminoType)
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			c.Block = Protocol(uvint)
+			dataLen = uint64(n)
+		case 2:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			c.App = Protocol(uvint)
+			dataLen = uint64(n)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }

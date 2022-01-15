@@ -93,7 +93,11 @@ func (dc *DeltaContext) init() {
 		url := viper.GetString(types.FlagRedisUrl)
 		auth := viper.GetString(types.FlagRedisAuth)
 		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
-		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
+		dbNum := viper.GetInt(types.FlagRedisDB)
+		if dbNum < 0 || dbNum > 15 {
+			panic("delta-redis-db only support 0~15")
+		}
+		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dbNum, dc.logger)
 		dc.logger.Info("Init delta broker", "url", url)
 	}
 
@@ -187,10 +191,13 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		return
 	}
 
-	wd, err := getWatchDataFunc()
-	if err != nil {
-		dc.logger.Error("Failed to get watch data", "height", height, "error", err)
-		return
+	var wd []byte
+	if types.FastQuery {
+		wd, err = getWatchDataFunc()
+		if err != nil {
+			dc.logger.Error("Failed to get watch data", "height", height, "error", err)
+			return
+		}
 	}
 
 	delta4Upload := &types.Deltas {
@@ -215,8 +222,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	}
 	dc.missed += txnum
 	locked := dc.deltaBroker.GetLocker()
-	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height,
-		"locked", locked,)
+	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height, "locked", locked)
 
 	if !locked {
 		return
@@ -237,6 +243,17 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 }
 
 func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) bool {
+	if deltas == nil {
+		dc.logger.Error("Failed to upload nil delta")
+		return false
+	}
+
+	if deltas.Size() == 0 {
+		dc.logger.Error("Failed to upload empty delta",
+			"target-height", deltas.Height,
+			"mrh", mrh)
+		return false
+	}
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -268,7 +285,7 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 		"upload", t3.Sub(t2),
 		"missed", dc.missed,
 		"uploaded", dc.hit,
-		"deltas", deltas,)
+		"deltas", deltas)
 	return true
 }
 
@@ -436,7 +453,7 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 		"calcHash", delta.HashElapsed(),
 		"uncompress", delta.CompressOrUncompressElapsed(),
 		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
-		"delta", delta,)
+		"delta", delta)
 
 	return nil, delta, latestHeight
 }

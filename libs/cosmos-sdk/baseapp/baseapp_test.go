@@ -595,6 +595,12 @@ func (tx txTest) GetGasPrice() *big.Int {
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
+func (tx txTest) GetPayloadTx() sdk.Tx {
+	return nil
+}
+func (tx txTest) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
 
 const (
 	routeMsgCounter  = "msgCounter"

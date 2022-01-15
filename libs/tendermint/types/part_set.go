@@ -6,6 +6,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -24,6 +26,54 @@ type Part struct {
 	Index int                `json:"index"`
 	Bytes tmbytes.HexBytes   `json:"bytes"`
 	Proof merkle.SimpleProof `json:"proof"`
+}
+
+func (part *Part) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			uvint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			part.Index = int(uvint)
+			dataLen = uint64(n)
+		case 2:
+			part.Bytes = make([]byte, dataLen)
+			copy(part.Bytes, subData)
+		case 3:
+			err = part.Proof.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // ValidateBasic performs basic validation.
@@ -60,6 +110,59 @@ func (part *Part) StringIndented(indent string) string {
 type PartSetHeader struct {
 	Total int              `json:"total"`
 	Hash  tmbytes.HexBytes `json:"hash"`
+}
+
+func (psh PartSetHeader) AminoSize() int {
+	var size int
+	if psh.Total != 0 {
+		size += 1 + amino.UvarintSize(uint64(psh.Total))
+	}
+	if len(psh.Hash) != 0 {
+		size += 1 + amino.UvarintSize(uint64(len(psh.Hash))) + len(psh.Hash)
+	}
+	return size
+}
+
+func (psh *PartSetHeader) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			psh.Total = int(uvint)
+			dataLen = uint64(n)
+		case 2:
+			psh.Hash = make([]byte, dataLen)
+			copy(psh.Hash, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func (psh PartSetHeader) String() string {
