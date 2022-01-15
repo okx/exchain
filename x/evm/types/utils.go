@@ -535,7 +535,7 @@ func DecodeResultData(in []byte) (ResultData, error) {
 
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+func TxDecoderOrg(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
 			return nil, fmt.Errorf("to many height parameters")
