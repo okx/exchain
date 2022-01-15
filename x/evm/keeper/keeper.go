@@ -62,6 +62,8 @@ type Keeper struct {
 
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
+
+	FlatDB *types.FlatStore
 }
 
 // NewKeeper generates new evm module keeper
@@ -103,6 +105,8 @@ func NewKeeper(
 		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
+
+		FlatDB: types.InstanceOfFlatStore(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -134,6 +138,8 @@ func NewSimulateKeeper(
 		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
+
+		FlatDB: types.InstanceOfFlatStore(),
 	}
 
 	k.OpenTrie()
@@ -165,6 +171,8 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 
 		DB:   k.db,
 		Trie: k.rootTrie,
+
+		FlatDB: k.FlatDB,
 	}
 }
 
@@ -178,6 +186,8 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 
 		DB:   k.db,
 		Trie: k.rootTrie,
+
+		FlatDB: k.FlatDB,
 	}
 }
 

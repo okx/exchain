@@ -46,6 +46,8 @@ type CommitStateDBParams struct {
 
 	DB ethstate.Database
 	Trie ethstate.Trie
+
+	FlatDB *FlatStore
 }
 
 type Watcher interface {
@@ -129,6 +131,8 @@ type CommitStateDB struct {
 	cdc *codec.Codec
 
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
+
+	FlatDB *FlatStore
 }
 
 type StoreProxy interface {
@@ -178,6 +182,8 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
+
+		FlatDB: csdbParams.FlatDB,
 	}
 
 	return csdb

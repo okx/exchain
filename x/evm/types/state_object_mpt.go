@@ -44,21 +44,30 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Ha
 	var (
 		enc []byte
 		err error
+		value ethcmn.Hash
 	)
 
-	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
+	//if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
+	//	so.setError(err)
+	//	return ethcmn.Hash{}
+	//}
+	//
+	//var value ethcmn.Hash
+	//if len(enc) > 0 {
+	//	_, content, _, err := rlp.Split(enc)
+	//	if err != nil {
+	//		so.setError(err)
+	//	}
+	//	value.SetBytes(content)
+	//}
+
+	prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
+	if enc, err = so.stateDB.FlatDB.Get(prefixKey.Bytes()); err != nil {
 		so.setError(err)
 		return ethcmn.Hash{}
 	}
+	value.SetBytes(enc)
 
-	var value ethcmn.Hash
-	if len(enc) > 0 {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
-			so.setError(err)
-		}
-		value.SetBytes(content)
-	}
 	so.originStorage[key] = value
 	return value
 }
@@ -120,13 +129,15 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		var v []byte
+		prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
+			so.stateDB.FlatDB.Delete(prefixKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ = rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
+			so.stateDB.FlatDB.Set(prefixKey.Bytes(), value.Bytes())
 		}
 	}
 
@@ -214,4 +225,12 @@ func (so *stateObject) UpdateAccInfo() error {
 		}
 	}
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
+}
+
+func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+	return ethcmn.BytesToHash(compositeKey)
 }

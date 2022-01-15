@@ -99,13 +99,13 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 	var (
 		enc []byte
 		err error
+		value ethcmn.Hash
 	)
 
 	if enc, err = csdb.StorageTrie(addr).TryGet(key.Bytes()); err != nil {
 		return ethcmn.Hash{}
 	}
 
-	var value ethcmn.Hash
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
@@ -113,6 +113,12 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		}
 		value.SetBytes(content)
 	}
+
+	//prefixKey := AssembleCompositeKey(addr.Bytes(), key.Bytes())
+	//if enc, err = csdb.FlatDB.Get(prefixKey[:]); err != nil {
+	//	return ethcmn.Hash{}
+	//}
+	//value.SetBytes(enc)
 
 	return value
 }
