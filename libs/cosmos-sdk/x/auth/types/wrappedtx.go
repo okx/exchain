@@ -34,10 +34,13 @@ func (wtx WrappedTx) GetPayloadTx() sdk.Tx {
 	return wtx.Tx
 }
 
+func (wtx WrappedTx) GetPayloadTxBytes() []byte {
+	return wtx.Payload
+}
+
 func (tx WrappedTx) GetType() sdk.TransactionType {
 	return sdk.WrappedTxType
 }
-
 
 func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, txType sdk.TransactionType) ([]byte, error) {
 

@@ -56,6 +56,8 @@ type Tx interface {
 
 	// 0 for StdTxType, 1 for wrapped tx, 2 for evm tx
 	GetType() TransactionType
+
+	GetPayloadTxBytes() []byte
 }
 
 //__________________________________________________________
