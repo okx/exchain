@@ -112,7 +112,9 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 				break
 			}
 		}
-		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		if err != nil {
+			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
 		return
 	}
 }

@@ -167,7 +167,7 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 		return
 	}
 
-	if  m.app.wrappedTxEncoder == nil {
+	if m.app.wrappedTxEncoder == nil {
 		return
 	}
 

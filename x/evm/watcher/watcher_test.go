@@ -189,7 +189,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	}
 }
 
-func TestMsgEthermint(t *testing.T) {
+func TestMsgEthermintByWatcher(t *testing.T) {
 	var (
 		tx   types.MsgEthermint
 		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
