@@ -9,9 +9,9 @@ import (
 type OCDC_TYPE int
 
 const (
-	RLP  OCDC_TYPE = 0
-	JSON OCDC_TYPE = 1
-	AMINO OCDC_TYPE = 2
+	RLP  OCDC_TYPE = iota
+	JSON
+	AMINO
 )
 
 var (

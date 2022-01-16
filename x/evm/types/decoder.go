@@ -108,7 +108,7 @@ func payloadTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		for _, decoder := range decoders {
 			tx, err = decoder(cdc, txBytes, height)
 			if err == nil {
-				return
+				break
 			}
 		}
 		err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
@@ -122,7 +122,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 	// bypass height checking in case of a negative number
 	if height >= 0 {
 		if !types.HigherThanVenus(height) {
-			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "lower than Venus")
+			err = fmt.Errorf("lower than Venus")
 			return
 		}
 	}
@@ -166,7 +166,7 @@ func sanityCheck(tx sdk.Tx, height int64) (output sdk.Tx, err error) {
 	if height >= 0 {
 		if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
 			output = nil
-			err = sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
+			err = fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
 		}
 	}
 	return
