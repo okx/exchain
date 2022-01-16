@@ -61,7 +61,7 @@ func (suite *AnteTestSuite) TestVerifyConfident() {
 	suite.Require().False(confident)
 
 	wellSig, _ := suite.nodePriv.Sign(message)
-	confident, err = ante.VerifyConfidentTx(message, wellSig, suite.nodePriv.Bytes())
+	confident, err = ante.VerifyConfidentTx(message, wellSig, suite.nodePub.Bytes())
 	suite.Require().NoError(err)
 	suite.Require().True(confident)
 }
@@ -94,18 +94,31 @@ func (suite *AnteTestSuite) TestWrappedEthereumTx() {
 	suite.Require().Equal(message, newCtx.ReplaceTx())
 }
 
-func (suite *AnteTestSuite) TestGenerateBad() {
-	// use another node key to signature and verify with current
+func (suite *AnteTestSuite) TestConfidentWrappedTx() {
+	setConfidentKeyListWithCurrent(suite)
+	ante.SetWrappedTxEffectiveHeight(1)
+	tx, err := buildTestTx(suite)
+	suite.Require().NoError(err)
+	message, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	suite.ctx = suite.ctx.WithTxBytes(message)
+	signature, _ := suite.nodePriv.Sign(message)
+	wrapped, _ := NewWrappedTx(tx, signature, suite.nodePub.Bytes())
+	newCtx, err := suite.anteHandler(suite.ctx, wrapped, false)
+	suite.Require().NoError(err)
+	suite.Require().Nil(newCtx.ReplaceTx())
 }
 
-func (suite *AnteTestSuite) TestGenerateNoWrapper() {
-	// confident node signature verify and return true
-}
-
-func (suite *AnteTestSuite) TestLightAnteEvm() {
-	// test light evm tx ante
-}
-
-func (suite *AnteTestSuite) TestLightAnteStd() {
-	// test light std tx ante
+func (suite *AnteTestSuite) TestConfidentSkippedWrappedTx() {
+	setConfidentKeyListWithCurrent(suite)
+	ante.SetWrappedTxEffectiveHeight(1000)
+	tx, err := buildTestTx(suite)
+	suite.Require().NoError(err)
+	message, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	suite.ctx = suite.ctx.WithTxBytes(message)
+	signature, _ := suite.nodePriv.Sign(message)
+	wrapped, _ := NewWrappedTx(tx, signature, suite.nodePub.Bytes())
+	newCtx, err := suite.anteHandler(suite.ctx, wrapped, false)
+	suite.Require().NoError(err)
+	suite.Require().Nil(newCtx.ReplaceTx())
+	suite.Require().False(newCtx.Confident())
 }

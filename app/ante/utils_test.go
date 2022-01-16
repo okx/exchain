@@ -53,7 +53,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.nodePriv, suite.nodePub = newNodeKeyPair()
 
 	// ante init logic
-	ante.SetCurrentNodeKeys(suite.nodePub, suite.nodePriv)
+	ante.SetCurrentNodeKeysTest(suite.nodePub, suite.nodePriv) // every time unit test  could call this function
 
 	serverConfig := cfg.DefaultConfig()
 	ante.SetServerConfigTest(serverConfig)

@@ -40,6 +40,12 @@ func SetCurrentNodeKeys(pub crypto.PubKey, priv crypto.PrivKey) {
 	})
 }
 
+// SetCurrentNodeKeysTest for unit test
+func SetCurrentNodeKeysTest(pub crypto.PubKey, priv crypto.PrivKey) {
+	currentNodePriv = priv
+	currentNodePub = pub
+}
+
 // SetServerConfig use the callback to set the server config reference
 func SetServerConfig(cfg *cfg.Config) {
 	serverConfigOnce.Do(func() {
@@ -197,7 +203,7 @@ func (decorator WrappedTxDeriveFromOriginDecorator) AnteHandle(ctx sdk.Context, 
 		if !isSkipWrapped(ctx.BlockHeight()) {
 			wrappedTx := app.NewWrappedTx(tx, ctx.OriginTxType())
 			priv, pub := getCurrentNodeKey()
-			message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(tx)
+			message, _ := decorator.cdc.MarshalBinaryLengthPrefixed(tx) // FIXME: maybe the TxBytes() more effective ?
 			signature, err := priv.Sign(message)
 			if err == nil {
 				wrappedTx = wrappedTx.WithSignature(signature, pub.Bytes())
