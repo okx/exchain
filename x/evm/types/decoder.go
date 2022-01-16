@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+const IGNORE_HEIGHT_CHECKING = -1
 var logger decoderLogger
 var loggerOnce sync.Once
 func SetLogger(l log.Logger) {

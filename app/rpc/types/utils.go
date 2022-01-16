@@ -31,7 +31,7 @@ var (
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
 func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, -1)
+	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -239,7 +239,7 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 	txDecoder := evmtypes.TxDecoder(cdc)
 
 	for i := 0; i < idx && i < len(block.Txs); i++ {
-		txi, err := txDecoder(block.Txs[i], -1)
+		txi, err := txDecoder(block.Txs[i], evmtypes.IGNORE_HEIGHT_CHECKING)
 		if err != nil {
 			continue
 		}
