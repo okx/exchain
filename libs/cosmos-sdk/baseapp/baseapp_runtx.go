@@ -164,12 +164,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 	//app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
 
-	//just for asynchronous deliver tx
-	if app.parallelTxManage.isAsyncDeliverTx {
-		go app.asyncDeliverTx(req, tx)
-		return abci.ResponseDeliverTx{}
-	}
-
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
@@ -215,9 +209,17 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 
-	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
+	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
+
+	tx, err := app.txDecoder(txWithIndex[:len(txWithIndex)-txIndexLen])
+	if err != nil {
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		app.parallelTxManage.workgroup.Push(asyncExe)
+		return
+	}
+
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
@@ -225,7 +227,7 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
+	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
