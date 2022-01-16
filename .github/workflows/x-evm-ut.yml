@@ -47,16 +47,8 @@ jobs:
           included_packages=("./x/evm")
           serial_exec_packages=("./app")
           norace_exec_packages=("./x/evm")
-          thread_num=1
-          mkfifo tmp
-          exec 9<>tmp
-          for ((i=0;i<$thread_num;i++))
-          do
-              echo -ne "\n" 1>&9
-          done
           for pkg in ${included_packages[@]}; do
           {
-            read -u 9
             package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
             echo "${package_lines[@]}"
             cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
@@ -73,12 +65,9 @@ jobs:
               RACE=
             fi
             echo ${RACE}
-            go test -mod=readonly -timeout 8m ${RACE} ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
-            echo -ne "\n" 1>&9
-          }&
+            go test -mod=readonly -timeout 8m ${RACE} ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} #| tee "/tmp/logs/$id-$RANDOM.log"
+          }
           done
-          wait
-          rm tmp
           echo "--> Gather coverage:"
           ls /tmp/workspace/profiles/
           echo "mode: atomic" > coverage.txt
