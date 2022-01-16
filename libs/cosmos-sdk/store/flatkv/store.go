@@ -17,7 +17,7 @@ const (
 // Store wraps app_flat_kv.db for read performance.
 type Store struct {
 	db         dbm.DB
-	cache      map[string][]byte
+	cache      *Cache
 	readTime   int64
 	writeTime  int64
 	readCount  int64
@@ -28,7 +28,7 @@ type Store struct {
 func NewStore(db dbm.DB) *Store {
 	return &Store{
 		db:         db,
-		cache:      make(map[string][]byte),
+		cache:      newCache(),
 		readTime:   0,
 		writeTime:  0,
 		readCount:  0,
@@ -44,7 +44,7 @@ func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
 	}
-	if cacheVal, ok := st.getCache(key); ok {
+	if cacheVal, ok := st.cache.get(key); ok {
 		return cacheVal
 	}
 	ts := time.Now()
@@ -61,14 +61,14 @@ func (st *Store) Set(key, value []byte) {
 	if !st.enable {
 		return
 	}
-	st.addCache(key, value)
+	st.cache.add(key, value)
 }
 
 func (st *Store) Has(key []byte) bool {
 	if !st.enable {
 		return false
 	}
-	if _, ok := st.getCache(key); ok {
+	if _, ok := st.cache.get(key); ok {
 		return true
 	}
 	st.addDBReadCount()
@@ -86,7 +86,7 @@ func (st *Store) Delete(key []byte) {
 	st.db.Delete(key)
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
-	st.deleteCache(key)
+	st.cache.delete(key)
 }
 
 func (st *Store) Commit(version int64) {
@@ -97,7 +97,8 @@ func (st *Store) Commit(version int64) {
 	// commit to flat kv db
 	batch := st.db.NewBatch()
 	defer batch.Close()
-	for key, value := range st.cache {
+	cache := st.cache.copy()
+	for key, value := range cache {
 		batch.Set([]byte(key), value)
 	}
 	st.setLatestVersion(batch, version)
@@ -105,7 +106,7 @@ func (st *Store) Commit(version int64) {
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
 	// clear cache
-	st.cache = make(map[string][]byte)
+	st.cache.reset()
 }
 
 func (st *Store) ResetCount() {
@@ -176,22 +177,6 @@ func (st *Store) addDBWriteCount() {
 
 func (st *Store) resetDBWriteCount() {
 	atomic.StoreInt64(&st.writeCount, 0)
-}
-
-func (st *Store) getCache(key []byte) (value []byte, ok bool) {
-	strKey := string(key)
-	value, ok = st.cache[strKey]
-	return
-}
-
-func (st *Store) addCache(key, value []byte) {
-	strKey := string(key)
-	st.cache[strKey] = value
-}
-
-func (st *Store) deleteCache(key []byte) {
-	strKey := string(key)
-	delete(st.cache, strKey)
 }
 
 func (st *Store) GetLatestVersion() int64 {
