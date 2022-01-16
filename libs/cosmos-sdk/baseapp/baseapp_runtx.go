@@ -158,9 +158,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	tx, err := app.txDecoder(req.Tx)
+	tx, err := app.wrappedTxDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+	}
+	if tx.GetType() == sdk.WrappedTxType {
+		tx = tx.GetPayloadTx()
+		req.Tx = tx.GetPayloadTxBytes()
 	}
 	//app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
 

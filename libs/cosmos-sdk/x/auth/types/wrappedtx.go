@@ -1,8 +1,8 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
+	ocdc "github.com/okex/exchain/libs/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 var (
@@ -34,17 +34,20 @@ func (wtx WrappedTx) GetPayloadTx() sdk.Tx {
 	return wtx.Tx
 }
 
+func (wtx WrappedTx) GetPayloadTxBytes() []byte {
+	return wtx.Payload
+}
+
 func (tx WrappedTx) GetType() sdk.TransactionType {
 	return sdk.WrappedTxType
 }
-
 
 func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, txType sdk.TransactionType) ([]byte, error) {
 
 	payload := txbytes
 	if txType == sdk.WrappedTxType {
 		raw := &RawWrappedTx{}
-		err := json.Unmarshal(txbytes, raw)
+		err := ocdc.Decode(txbytes, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -58,13 +61,13 @@ func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, txType sdk.TransactionT
 		Metadata: info.Metadata,
 	}
 
-	return json.Marshal(wrapped)
+	return ocdc.Encode(wrapped)
 }
 
 func DecodeWrappedTx(txbytes []byte, payloadDecoder sdk.TxDecoder, heights ...int64) (sdk.Tx, error) {
 
 	raw := &RawWrappedTx{}
-	err := json.Unmarshal(txbytes, raw)
+	err := ocdc.Decode(txbytes, raw)
 	if err != nil {
 		return nil, err
 	}
