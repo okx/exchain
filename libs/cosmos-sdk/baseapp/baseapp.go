@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -21,6 +22,7 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
@@ -195,6 +197,8 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
+
+	nodekey *p2p.NodeKey
 }
 
 type recordHandle func(string)
@@ -1086,3 +1090,46 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
+
+func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
+	app.nodekey = k
+
+	hexpub := hexutil.Encode(app.nodekey.PubKey().Bytes())
+	app.logger.Info("SetNodeKey",
+		"from", from,
+		"PrivKey", hexutil.Encode(app.nodekey.PrivKey.Bytes()),
+		"PubKey", hexpub,
+		"id", app.nodekey.ID(),
+	)
+
+	//bytes := hexutil.MustDecode(hexpub)
+	//var recoverPubKey ed25519.PubKeyEd25519
+	//recoverPubKey.UnmarshalFromAmino(bytes)
+	//
+	//
+	//app.logger.Info("SetNodeKey",
+	//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
+	//)
+	//
+	//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+	//PubKey := "0x1624de6420d134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+	//
+	//
+	//priv := genPrivkey(PrivKey)
+	//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
+	//fmt.Printf("%s\n", 	PubKey)
+}
+
+//
+//func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
+//	secert, _ := hexutil.Decode(hex)
+//	//require.NoError(t, err)
+//	return ed25519.GenPrivKeyFromSecret(secert)
+//}
+//
+//func genPubkey(hex string) ed25519.PubKeyEd25519 {
+//	bytes := hexutil.MustDecode(hex)
+//	var recoverPubKey ed25519.PubKeyEd25519
+//	recoverPubKey.UnmarshalFromAmino(bytes)
+//	return recoverPubKey
+//}

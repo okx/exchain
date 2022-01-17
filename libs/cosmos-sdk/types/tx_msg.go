@@ -95,7 +95,7 @@ type ExTxInfo struct {
 	Signature []byte  `json:"signature"` // signature for payload+metadata
 	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
 }
-type WrappedTxEncoder func(txBytes []byte, info *ExTxInfo, txtype TransactionType) ([]byte, error)
+type WrappedTxEncoder func(payload []byte, info *ExTxInfo) ([]byte, error)
 
 //__________________________________________________________
 
