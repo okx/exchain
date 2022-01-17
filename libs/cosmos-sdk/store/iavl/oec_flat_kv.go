@@ -80,7 +80,7 @@ func (st *Store) ValidateFlatVersion() error {
 	treeVersion := st.tree.Version()
 	flatVersion := st.flatKVStore.GetLatestVersion()
 	if flatVersion != 0 && flatVersion != treeVersion {
-		return fmt.Errorf("the version of flat db(%d) does not match the version of iavl tree(%d), you may delete flat.db and restart node",
+		return fmt.Errorf("the version of flat db(%d) does not match the version of iavl tree(%d), you can delete flat.db and restart node",
 			flatVersion, treeVersion)
 	}
 	return nil
