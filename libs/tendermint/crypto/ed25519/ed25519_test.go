@@ -1,6 +1,7 @@
 package ed25519_test
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,3 +34,12 @@ func TestSignAndValidateEd25519(t *testing.T) {
 	recoverPubKey.UnmarshalFromAmino(bytes)
 	assert.Equal(t, bytes, recoverPubKey.Bytes())
 }
+
+
+func genPubkey(hex string) ed25519.PubKeyEd25519 {
+	bytes := hexutil.MustDecode(hex)
+	var recoverPubKey ed25519.PubKeyEd25519
+	recoverPubKey.UnmarshalFromAmino(bytes)
+	return recoverPubKey
+}
+

@@ -45,7 +45,7 @@ func main() {
 	
 	for _, k := range privKey {
 		test := func(key string) {
-			testFunc(key, time.Millisecond*500)
+			testFunc(key, time.Millisecond*5000)
 		}
 		go writeRoutine(test, k)
 	}

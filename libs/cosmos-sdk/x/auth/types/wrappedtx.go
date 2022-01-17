@@ -42,17 +42,7 @@ func (tx WrappedTx) GetType() sdk.TransactionType {
 	return sdk.WrappedTxType
 }
 
-func EncodeWrappedTx(txbytes []byte, info *sdk.ExTxInfo, txType sdk.TransactionType) ([]byte, error) {
-
-	payload := txbytes
-	if txType == sdk.WrappedTxType {
-		raw := &RawWrappedTx{}
-		err := ocdc.Decode(txbytes, raw)
-		if err != nil {
-			return nil, err
-		}
-		payload = raw.Payload
-	}
+func EncodeWrappedTx(payload []byte, info *sdk.ExTxInfo) ([]byte, error) {
 
 	wrapped := &RawWrappedTx{
 		Payload: payload,

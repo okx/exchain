@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -158,7 +159,7 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 
 func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
 
-	enableWrappedTx := false
+	enableWrappedTx := m.app.enableWtx
 	//enableWrappedTx = true
 	if !enableWrappedTx {
 		return
@@ -166,23 +167,39 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 	if info.nodeSigVerifyResult > 0 {
 		return
 	}
-
 	if m.app.wrappedTxEncoder == nil {
+		return
+	}
+
+	payloadBytes := info.txBytes
+	if info.tx.GetType() == sdk.WrappedTxType {
+		payloadBytes = info.tx.GetPayloadTxBytes()
+		if payloadBytes == nil {
+			panic("Invalid Wrapped Tx")
+		}
+	}
+
+	signature, err := m.app.nodekey.PrivKey.Sign(payloadBytes)
+	if err != nil {
+		m.app.logger.Error("Failed to sign payload tx", "err", err)
 		return
 	}
 
 	exInfo := &sdk.ExTxInfo{
 		Metadata:  []byte("dummy Metadata"),
-		Signature: []byte("dummy Signature"),
-		NodeKey:   []byte("dummy NodeKey"),
+		Signature: signature,
+		NodeKey:   m.app.nodekey.PubKey().Bytes(),
 	}
-
-	data, err := m.app.wrappedTxEncoder(info.txBytes, exInfo, info.tx.GetType())
+	data, err := m.app.wrappedTxEncoder(payloadBytes, exInfo)
 	if err == nil {
 		exTxInfo.WrappedTx = data
-		m.app.logger.Info("add ExTxInfo", "exInfo", exInfo)
+		m.app.logger.Info("add ExTxInfo",
+			"payload txhash", txhash(payloadBytes),
+			"wrapped txhash", txhash(data),
+			"pubkey", hexutil.Encode(m.app.nodekey.PubKey().Bytes()),
+			"exInfo", exInfo,
+			)
 	}
-
 }
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {

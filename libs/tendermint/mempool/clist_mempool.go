@@ -1109,8 +1109,9 @@ func (nopTxCache) Remove(types.Tx)    {}
 //--------------------------------------------------------------------------------
 
 // txKey is the fixed length array sha256 hash used as the key in maps.
-func txKey(tx types.Tx) [sha256.Size]byte {
-	return sha256.Sum256(tx)
+func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
+	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+	return
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
@@ -1124,7 +1125,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
-	WrappedTx   []byte   `json:"wrapped_tx"`  // sdk.WrappedTx
+	WrappedTx   []byte   `json:"wrapped_tx"` // sdk.WrappedTx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {
