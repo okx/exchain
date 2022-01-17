@@ -1,12 +1,13 @@
 package types
 
 import (
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	dbm "github.com/tendermint/tm-db"
 )
@@ -26,7 +27,8 @@ func wrongTestIndexer_ProcessSection(t *testing.T) {
 		mock.SetBlockBloom(sdk.Context{}, int64(i), ethtypes.Bloom{})
 	}
 
-	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), nil)
+	bf := []*KV{}
+	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), &bf)
 
 	require.Equal(t, uint64(2), indexer.StoredSection())
 	require.Equal(t, uint64(2), indexer.GetValidSections())

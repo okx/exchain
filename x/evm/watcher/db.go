@@ -36,6 +36,16 @@ func InstanceOfWatchStore() *WatchStore {
 	return gWatchStore
 }
 
+//for ut new watch store not instance
+func NewTestWatchStore() *WatchStore {
+
+	if IsWatcherEnabled() {
+		gWatchStore = &WatchStore{db: initDb()}
+	}
+
+	return gWatchStore
+}
+
 func initDb() dbm.DB {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, WatchDbDir)
