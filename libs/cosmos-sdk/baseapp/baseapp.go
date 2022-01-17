@@ -200,6 +200,7 @@ type BaseApp struct { // nolint: maligned
 	blockCache *sdk.Cache
 
 	nodekey *p2p.NodeKey
+	enableWtx bool
 }
 
 type recordHandle func(string)
@@ -227,6 +228,7 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		wrappedTxDecoder:      txDecoder,
+		enableWtx:             viper.GetBool(abci.FlagEnableWrappedTx),
 	}
 
 	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
