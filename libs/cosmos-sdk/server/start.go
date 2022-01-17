@@ -4,10 +4,6 @@ package server
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
 
@@ -15,14 +11,19 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -193,6 +194,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
