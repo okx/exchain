@@ -134,6 +134,11 @@ const PubKeyEd25519Size = 32
 // PubKeyEd25519 implements crypto.PubKey for the Ed25519 signature scheme.
 type PubKeyEd25519 [PubKeyEd25519Size]byte
 
+// UnmarshalFromAmino to unmarshal the bytes to pubkey type
+func (pub *PubKeyEd25519) UnmarshalFromAmino(bytes []byte) error {
+	return cdc.UnmarshalBinaryBare(bytes, pub)
+}
+
 // Address is the SHA256-20 of the raw pubkey bytes.
 func (pubKey PubKeyEd25519) Address() crypto.Address {
 	return crypto.Address(tmhash.SumTruncated(pubKey[:]))

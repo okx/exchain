@@ -33,6 +33,13 @@ type StdTx struct {
 	Memo       string         `json:"memo" yaml:"memo"`
 }
 
+func (tx StdTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
+func (tx StdTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -261,6 +268,7 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
+
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
@@ -430,18 +438,16 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 
 func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
-		//if !types.HigherThanVenus(height) {
-		//	return nil, fmt.Errorf("lower than Venus")
-		//}
-		return rlp.EncodeToBytes(tx)
+		return EthereumTxEncode(tx)
 	}
 }
 
-func EthereumTxDecode(b []byte, tx interface{}) error {
-	//if !types.HigherThanVenus(height) {
-	//	return fmt.Errorf("lower than Venus")
-	//}
 
+func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
+	return rlp.EncodeToBytes(tx)
+}
+
+func EthereumTxDecode(b []byte, tx interface{}) error {
 	return rlp.DecodeBytes(b, tx)
 }
 

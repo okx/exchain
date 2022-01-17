@@ -11,15 +11,15 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/okex/exchain/libs/system"
-
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -87,6 +87,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(types.FlagRedisDB, 0, "delta db num")
 
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
@@ -117,6 +118,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	return cmd
 }
