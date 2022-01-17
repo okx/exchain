@@ -602,6 +602,10 @@ func (tx txTest) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }
 
+func (wtx txTest) GetPayloadTxBytes() []byte {
+	return nil
+}
+
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"

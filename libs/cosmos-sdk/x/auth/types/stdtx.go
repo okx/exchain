@@ -37,6 +37,9 @@ func (tx StdTx) GetPayloadTx() sdk.Tx {
 	return nil
 }
 
+func (wtx StdTx) GetPayloadTxBytes() []byte {
+	return nil
+}
 func (tx StdTx) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }

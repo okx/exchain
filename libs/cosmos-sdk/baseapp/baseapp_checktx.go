@@ -19,6 +19,16 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
 
+	app.logger.Info("(app *BaseApp) CheckTx",
+		"wrapped-tx-hash", txhash(req.Tx),
+	)
+
+	if tx.GetType() == sdk.WrappedTxType {
+		app.logger.Info("(app *BaseApp) CheckTx",
+			"payload-tx-hash", txhash(tx.GetPayloadTxBytes()),
+		)
+	}
+
 	//app.logger.Info("(app *BaseApp) CheckTx", "payload", tx.GetPayloadTx())
 	var mode runTxMode
 
