@@ -333,28 +333,46 @@ func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
 	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
-	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
-	_ = msg.Sign(big.NewInt(3), priv.ToECDSA())
+	msg := NewMsgEthereumTx(123456, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
+	_ = msg.Sign(big.NewInt(66), priv.ToECDSA())
 
 	raw, _ := cdc.MarshalBinaryBare(msg)
+	rlpRaw, err := rlp.EncodeToBytes(&msg)
+	require.NoError(b, err)
 	b.ResetTimer()
-	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
-		var msg2 MsgEthereumTx
-		err := cdc.UnmarshalBinaryBare(raw, &msg2)
-		if err != nil {
-			b.Fatal(err)
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var msg2 MsgEthereumTx
+			err := cdc.UnmarshalBinaryBare(raw, &msg2)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 
-	b.Run("unmarshaller", func(b *testing.B) {
-		var msg3 MsgEthereumTx
-		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
-		if err != nil {
-			b.Fatal(err)
+	b.Run("unmarshaler", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var msg3 MsgEthereumTx
+			v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
+			if err != nil {
+				b.Fatal(err)
+			}
+			msg3 = v.(MsgEthereumTx)
 		}
-		msg3 = v.(MsgEthereumTx)
+	})
+
+	b.Run("rlp", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var msg MsgEthereumTx
+			err = rlp.DecodeBytes(rlpRaw, &msg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
 	})
 }
 
