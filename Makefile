@@ -9,7 +9,7 @@ GithubTop=github.com
 
 
 
-Version=v1.1.4.1
+Version=v1.1.4.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
