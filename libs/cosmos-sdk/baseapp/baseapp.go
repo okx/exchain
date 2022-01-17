@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -1096,35 +1095,36 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
 	app.nodekey = k
-
-	hexpub := hexutil.Encode(app.nodekey.PrivKey.PubKey().Bytes())
-	hexpriv := hexutil.Encode(app.nodekey.PrivKey.Bytes())
+	hexPub := hexutil.Encode(app.nodekey.PrivKey.PubKey().Bytes())
+	hexPriv := hexutil.Encode(app.nodekey.PrivKey.Bytes())
 	app.logger.Info("SetNodeKey",
+		//"PrivKey", hexPriv,
+		"PubKey", hexPub,
 		"from", from,
-		"PrivKey", hexpriv,
 		"id", app.nodekey.ID(),
 	)
-	app.logger.Info("SetNodeKey",
-		"PubKey", hexpub,
-	)
+	_ = hexPriv
+}
 
-	bytes := hexutil.MustDecode(hexpub)
-	var recoverPubKey ed25519.PubKeyEd25519
-	recoverPubKey.UnmarshalFromAmino(bytes)
 
-	app.logger.Info("SetNodeKey",
-		"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
-	)
-
-	rprivkey := genPrivkey(hexpriv)
-
-	rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
-	rhexpriv := hexutil.Encode(rprivkey.Bytes())
-
-	app.logger.Info("recover NodeKey",
-		"PrivKey", rhexpriv,
-		"PubKey", rhexpub,
-	)
+	//
+	//bytes := hexutil.MustDecode(hexpub)
+	//var recoverPubKey ed25519.PubKeyEd25519
+	//recoverPubKey.UnmarshalFromAmino(bytes)
+	//
+	//app.logger.Info("SetNodeKey",
+	//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
+	//)
+	//
+	//rprivkey := genPrivkey(hexpriv)
+	//
+	//rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
+	//rhexpriv := hexutil.Encode(rprivkey.Bytes())
+	//
+	//app.logger.Info("recover NodeKey",
+	//	"PrivKey", rhexpriv,
+	//	"PubKey", rhexpub,
+	//)
 
 	//
 	//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
@@ -1134,27 +1134,13 @@ func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
 	//priv := genPrivkey(PrivKey)
 	//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
 	//fmt.Printf("%s\n", 	PubKey)
-}
-
-
-func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
-	secert, err := hexutil.Decode(hex)
-	if err != nil {
-		panic(err)
-	}
-	return ed25519.GenPrivKeyFromSecret(secert)
-}
-
-//
-//func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
-//	secert, _ := hexutil.Decode(hex)
-//	//require.NoError(t, err)
-//	return ed25519.GenPrivKeyFromSecret(secert)
 //}
 //
-//func genPubkey(hex string) ed25519.PubKeyEd25519 {
-//	bytes := hexutil.MustDecode(hex)
-//	var recoverPubKey ed25519.PubKeyEd25519
-//	recoverPubKey.UnmarshalFromAmino(bytes)
-//	return recoverPubKey
+//
+//func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
+//	secert, err := hexutil.Decode(hex)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return ed25519.GenPrivKeyFromSecret(secert)
 //}
