@@ -368,10 +368,10 @@ func TestResetProposalBlock(t *testing.T) {
 	}
 	automation.EnableRoleTest(true)
 	// all the previous prerun task will be blocked
-	blockC := make(chan struct{})
-	automation.RegisterActionCallBack(2, 0, func(data ...interface{}) {
-		<-blockC
-	})
+	//blockC := make(chan struct{})
+	//automation.RegisterActionCallBack(2, 0, func(data ...interface{}) {
+	//	<-blockC
+	//})
 	f := func(index int, height int64, data []byte) {
 		cs1 := css[index]
 		proposalCh := proposalChs[index]
@@ -407,10 +407,6 @@ func TestResetProposalBlock(t *testing.T) {
 			m.Part = set.GetPart(0)
 			vs.peerMsgQueue <- msgInfo{Msg: m}
 		}
-		// and then ,we will receive one stop event (which event's hash belongs to previous proposalBlock)
-		ensureNewPreRun(prerunChs[index], height, originHash, false)
-		// after we receive stop event, now we can close blockC to let new task keep going
-		close(blockC)
 
 		// now we will meet new prerun task (blockB proposal)
 		timeoutWaitGroup(t, N, func(j int) {

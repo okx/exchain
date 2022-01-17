@@ -62,12 +62,6 @@ func (t *executionTask) stop() {
 	if t.stopped {
 		return
 	}
-	if eventAdapter, ok := t.eventBus.(types.BlockEventPublisherAdapter); ok {
-		eventAdapter.PublishEventPrerun(types.EventDataPreRun{
-			Block:   t.block,
-			NewTask: false,
-		})
-	}
 
 	t.stopped = true
 
