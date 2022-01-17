@@ -23,6 +23,8 @@ const (
 	EventPendingTx           = "PendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 
+	EventNewPreRun = "NewPreRun"
+
 	// Internal consensus events.
 	// These are used for testing the consensus state machine.
 	// They can also be used to build real-time consensus visualizers.
@@ -59,6 +61,7 @@ func RegisterEventDatas(cdc *amino.Codec) {
 	cdc.RegisterConcrete(EventDataVote{}, "tendermint/event/Vote", nil)
 	cdc.RegisterConcrete(EventDataValidatorSetUpdates{}, "tendermint/event/ValidatorSetUpdates", nil)
 	cdc.RegisterConcrete(EventDataString(""), "tendermint/event/ProposalString", nil)
+	cdc.RegisterConcrete(EventDataPreRun{}, "tendermint/event/NewPreRun", nil)
 }
 
 // Most event messages are basic types (a block, a transaction)
@@ -122,6 +125,12 @@ type EventDataValidatorSetUpdates struct {
 	ValidatorUpdates []*Validator `json:"validator_updates"`
 }
 
+type EventDataPreRun struct {
+	Block *Block
+	// false: means ,this task is going to  stop
+	NewTask bool
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PUBSUB
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,6 +162,7 @@ var (
 	EventQueryValidatorSetUpdates = QueryForEvent(EventValidatorSetUpdates)
 	EventQueryValidBlock          = QueryForEvent(EventValidBlock)
 	EventQueryVote                = QueryForEvent(EventVote)
+	EventQueryNewPreRun           = QueryForEvent(EventNewPreRun)
 )
 
 func EventQueryTxFor(tx Tx, height int64) tmpubsub.Query {
@@ -175,4 +185,9 @@ type BlockEventPublisher interface {
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
+}
+
+type BlockEventPublisherAdapter interface {
+	BlockEventPublisher
+	PublishEventPrerun(run EventDataPreRun) error
 }

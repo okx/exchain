@@ -255,7 +255,6 @@ func NewPartSetFromData(data []byte, partSize int) *PartSet {
 		count:         total,
 	}
 }
-
 // Returns an empty PartSet ready to be populated.
 func NewPartSetFromHeader(header PartSetHeader) *PartSet {
 	return &PartSet{

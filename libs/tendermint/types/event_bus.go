@@ -229,6 +229,9 @@ func (b *EventBus) PublishEventLock(data EventDataRoundState) error {
 func (b *EventBus) PublishEventValidatorSetUpdates(data EventDataValidatorSetUpdates) error {
 	return b.Publish(EventValidatorSetUpdates, data)
 }
+func(b *EventBus)PublishEventPrerun(data EventDataPreRun)error{
+	return b.Publish(EventNewPreRun,data)
+}
 
 //-----------------------------------------------------------------------------
 type NopEventBus struct{}

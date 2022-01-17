@@ -1157,7 +1157,6 @@ func (cs *State) enterPrevote(height int64, round int) {
 
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
 	if automation.PrevoteNil(height, round) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
@@ -1773,6 +1772,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 
 	added, err = cs.ProposalBlockParts.AddPart(part)
+
 	if err != nil {
 		return added, err
 	}

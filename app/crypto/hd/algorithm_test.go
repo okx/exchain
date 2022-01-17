@@ -78,7 +78,6 @@ func TestKeyring(t *testing.T) {
 	info, err := kr.Get("foo")
 	require.Error(t, err)
 	require.Nil(t, info)
-
 	mockIn.Reset("password\npassword\n")
 	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, ethermint.BIP44HDPath, EthSecp256k1, "")
 	require.NoError(t, err)

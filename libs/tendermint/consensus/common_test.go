@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -253,6 +254,31 @@ func signAddVotes(
 	addVotes(to, votes...)
 }
 
+func collectVotes(h int64, round int, voteType types.SignedMsgType, hash []byte, header types.PartSetHeader, css ...*State) {
+	votes := make([]*types.Vote, 0)
+	for index, cs := range css {
+		pubKey, err := cs.privValidator.GetPubKey()
+		if err != nil {
+			panic(err)
+		}
+		vote := &types.Vote{
+			ValidatorIndex:   index,
+			ValidatorAddress: pubKey.Address(),
+			Height:           h,
+			Round:            round,
+			Timestamp:        tmtime.Now(),
+			Type:             voteType,
+			BlockID:          types.BlockID{Hash: hash, PartsHeader: header},
+		}
+		cs.privValidator.SignVote(config.ChainID(), vote)
+		votes = append(votes, vote)
+	}
+	// note:we dont care about sending  votes to the node that signed by himself
+	for _, cs := range css {
+		addVotes(cs, votes...)
+	}
+}
+
 func validatePrevote(t *testing.T, cs *State, round int, privVal *validatorStub, blockHash []byte) {
 	prevotes := cs.Votes.Prevotes(round)
 	pubKey, err := privVal.GetPubKey()
@@ -446,7 +472,6 @@ func randState(nValidators int) (*State, []*validatorStub) {
 	vss := make([]*validatorStub, nValidators)
 
 	cs := newState(state, privVals[0], counter.NewApplication(true))
-
 	for i := 0; i < nValidators; i++ {
 		vss[i] = newValidatorStub(privVals[i], i)
 	}
@@ -565,7 +590,27 @@ func ensureNewValidBlock(validBlockCh <-chan tmpubsub.Message, height int64, rou
 	ensureNewEvent(validBlockCh, height, round, ensureTimeout,
 		"Timeout expired while waiting for NewValidBlock event")
 }
-
+func ensureNewPreRun(prerun <-chan tmpubsub.Message, height int64, hash []byte,isNewTask bool) {
+	select {
+	case <-time.After(ensureTimeout):
+		panic("Timeout expired while waiting for NewBlock event")
+	case msg := <-prerun:
+		blockEvent, ok := msg.Data().(types.EventDataPreRun)
+		if !ok {
+			panic(fmt.Sprintf("expected a EventDataNewPreRun, got %T. Wrong subscription channel?",
+				msg.Data()))
+		}
+		if blockEvent.Block.Height != height {
+			panic(fmt.Sprintf("expected height %v, got %v", height, blockEvent.Block.Height))
+		}
+		if !bytes.Equal(blockEvent.Block.Hash(), hash) {
+			panic(fmt.Sprintf("wrong hash,excepted hash %s, got %s",hex.EncodeToString(hash),hex.EncodeToString(blockEvent.Block.Hash())))
+		}
+		if blockEvent.NewTask!=isNewTask{
+			panic(fmt.Sprintf("wrong flag,excepted  %v, got %v",isNewTask,blockEvent.NewTask))
+		}
+	}
+}
 func ensureNewBlock(blockCh <-chan tmpubsub.Message, height int64) {
 	select {
 	case <-time.After(ensureTimeout):
@@ -702,7 +747,6 @@ func randConsensusNet(nValidators int, testName string, tickerFunc func() Timeou
 		app := appFunc()
 		vals := types.TM2PB.ValidatorUpdates(state.Validators)
 		app.InitChain(abci.RequestInitChain{Validators: vals})
-
 		css[i] = newStateWithConfigAndBlockStore(thisConfig, state, privVals[i], app, stateDB)
 		css[i].SetTimeoutTicker(tickerFunc())
 		css[i].SetLogger(logger.With("validator", i, "module", "consensus"))
