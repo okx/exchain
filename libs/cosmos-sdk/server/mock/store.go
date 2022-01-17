@@ -118,6 +118,22 @@ func (ms multiStore) GetNodeReadCount() int {
 func (ms multiStore) ResetCount() {
 }
 
+func (ms multiStore) GetFlatKVReadTime() int {
+	return 0
+}
+
+func (ms multiStore) GetFlatKVWriteTime() int {
+	return 0
+}
+
+func (ms multiStore) GetFlatKVReadCount() int {
+	return 0
+}
+
+func (ms multiStore) GetFlatKVWriteCount() int {
+	return 0
+}
+
 var _ sdk.KVStore = kvStore{}
 
 type kvStore struct {
