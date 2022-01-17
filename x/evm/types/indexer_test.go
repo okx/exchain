@@ -11,7 +11,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-func wrongTestIndexer_ProcessSection(t *testing.T) {
+func TestIndexer_ProcessSection(t *testing.T) {
 	db := dbm.NewMemDB()
 	enableBloomFilter = true
 	InitIndexer(db)
