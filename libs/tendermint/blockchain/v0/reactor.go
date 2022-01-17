@@ -372,6 +372,8 @@ FOR_LOOP:
 				bcR.curState, _, err = bcR.blockExec.ApplyBlock(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
+					// The block can't be committed, do we need to delete it from store db?
+					bcR.store.DeleteBlocksFromTop(first.Height-1)
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++
