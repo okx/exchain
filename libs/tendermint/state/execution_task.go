@@ -57,6 +57,7 @@ func (e *executionTask) dump(when string) {
 	)
 }
 
+
 func (t *executionTask) stop() {
 	if t.stopped {
 		return
@@ -69,13 +70,19 @@ func (t *executionTask) stop() {
 	}
 
 	t.stopped = true
-	// wait until current  task is quit
-	<-t.notifyC
+
+	t.waitUntilTaskFinishedOrCanceled()
+
 	//reset deliverState
 	if t.height != 1 {
 		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
 
+}
+
+// wait until current  task is quit
+func(t *executionTask)waitUntilTaskFinishedOrCanceled(){
+	<-t.notifyC
 }
 
 func (t *executionTask) run() {
