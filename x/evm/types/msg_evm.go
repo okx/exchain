@@ -54,6 +54,9 @@ func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
 	return nil
 }
 
+func (wtx MsgEthereumTx) GetPayloadTxBytes() []byte {
+	return nil
+}
 func (tx MsgEthereumTx) GetType() sdk.TransactionType {
 	return sdk.EvmTxType
 }

@@ -90,7 +90,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		}
 	}
 
-	tx, err := evmtypes.TxDecoderOnlyInQuery(cliCtx.Codec)(resTx.Tx)
+	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
