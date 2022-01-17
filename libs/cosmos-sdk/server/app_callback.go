@@ -8,15 +8,18 @@ import (
 // the struct used to passing from the application layer to current server node layer
 // for server layer to callback these functions
 
-// MempoolTxSignatureNodeKeysSetter will be called by server side
-// before create a new tendermint node to set the current node
-type MempoolTxSignatureNodeKeysSetter func(crypto.PubKey, crypto.PrivKey)
-
 // ServerConfigCallback used to callback the config reference
 type ServerConfigCallback func(*cfg.Config)
 
+// ConfidentKeysSetter set the confident keys set
+type ConfidentKeysSetter func(pubs []string)
+
+// CurrentP2PNodeKeySetter set current node p2p node
+type CurrentP2PNodeKeySetter func(crypto.PrivKey, crypto.PubKey)
+
 // AppCallback carry some callback functions will be callabck by cosmos or tendermint
 type AppCallback struct {
-	MempoolTxSignatureNodeKeysSetter MempoolTxSignatureNodeKeysSetter
-	ServerConfigCallback             ServerConfigCallback
+	ServerConfigCallback    ServerConfigCallback
+	ConfidentKeysSetter     ConfidentKeysSetter
+	CurrentP2PNodeKeySetter CurrentP2PNodeKeySetter
 }

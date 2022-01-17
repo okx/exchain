@@ -2,6 +2,7 @@ package ante_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,7 +63,7 @@ func (suite *AnteTestSuite) SetupTest() {
 func setConfidentKeyList(suite *AnteTestSuite, empty bool) {
 	if empty {
 		serverConfig := cfg.DefaultConfig()
-		serverConfig.Mempool.ConfidentNodeKeys = []string{}
+		serverConfig.BaseConfig.ConfidentKeys = ""
 		ante.SetServerConfigTest(serverConfig)
 		return
 	}
@@ -73,7 +74,7 @@ func setConfidentKeyList(suite *AnteTestSuite, empty bool) {
 	}
 	suite.Require().NotEmpty(confidentKeys)
 	serverConfig := cfg.DefaultConfig()
-	serverConfig.Mempool.ConfidentNodeKeys = confidentKeys
+	serverConfig.BaseConfig.ConfidentKeys = strings.Join(confidentKeys, ",")
 	ante.SetServerConfigTest(serverConfig)
 }
 
@@ -86,7 +87,7 @@ func setConfidentKeyListWithCurrent(suite *AnteTestSuite) {
 	confidentKeys = append(confidentKeys, hexutil.Encode(suite.nodePub.Bytes()))
 	suite.Require().NotEmpty(confidentKeys)
 	serverConfig := cfg.DefaultConfig()
-	serverConfig.Mempool.ConfidentNodeKeys = confidentKeys
+	serverConfig.BaseConfig.ConfidentKeys = strings.Join(confidentKeys, ",")
 	ante.SetServerConfigTest(serverConfig)
 }
 

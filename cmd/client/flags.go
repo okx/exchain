@@ -97,4 +97,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+
+	cmd.Flags().String(config.FlagConfidentNodeKyes, "", "set the confident node keys")
 }

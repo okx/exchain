@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -231,6 +232,9 @@ type BaseConfig struct { //nolint: maligned
 
 	// Logging stdout
 	LogStdout bool `mapstructure:"log_stdout"`
+
+	// ConfidentKeys set the confident keys to open the wrapped tx
+	ConfidentKeys string `mapstructure:"confident_keys"`
 }
 
 // DefaultBaseConfig returns a default base configuration for a Tendermint node
@@ -253,6 +257,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogFile:            defaultLogFile,
 		LogStdout:          true,
 		ProfListenAddress:  "localhost:6060",
+		ConfidentKeys:      "",
 	}
 }
 
@@ -294,6 +299,13 @@ func (cfg BaseConfig) NodeKeyFile() string {
 // DBDir returns the full path to the database directory
 func (cfg BaseConfig) DBDir() string {
 	return rootify(cfg.DBPath, cfg.RootDir)
+}
+
+func (cfg BaseConfig) GetConfidentKeys() []string {
+	if len(cfg.ConfidentKeys) > 0 {
+		return strings.Split(cfg.ConfidentKeys, ",")
+	}
+	return []string{}
 }
 
 // ValidateBasic performs basic validation (checking param bounds, etc.) and
@@ -664,26 +676,25 @@ func DefaultFuzzConnConfig() *FuzzConnConfig {
 
 // MempoolConfig defines the configuration options for the Tendermint mempool
 type MempoolConfig struct {
-	RootDir                    string   `mapstructure:"home"`
-	Sealed                     bool     `mapstructure:"sealed"`
-	Recheck                    bool     `mapstructure:"recheck"`
-	Broadcast                  bool     `mapstructure:"broadcast"`
-	WalPath                    string   `mapstructure:"wal_dir"`
-	Size                       int      `mapstructure:"size"`
-	MaxTxsBytes                int64    `mapstructure:"max_txs_bytes"`
-	CacheSize                  int      `mapstructure:"cache_size"`
-	MaxTxBytes                 int      `mapstructure:"max_tx_bytes"`
-	MaxTxNumPerBlock           int64    `mapstructure:"max_tx_num_per_block"`
-	MaxGasUsedPerBlock         int64    `mapstructure:"max_gas_used_per_block"`
-	SortTxByGp                 bool     `mapstructure:"sort_tx_by_gp"`
-	ForceRecheckGap            int64    `mapstructure:"force_recheck_gap"`
-	TxPriceBump                uint64   `mapstructure:"tx_price_bump"`
-	EnablePendingPool          bool     `mapstructure:"enable_pending_pool"`
-	PendingPoolSize            int      `mapstructure:"pending_pool_size"`
-	PendingPoolPeriod          int      `mapstructure:"pending_pool_period"`
-	PendingPoolReserveBlocks   int      `mapstructure:"pending_pool_reserve_blocks"`
-	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
-	ConfidentNodeKeys          []string `mapstructure:"confident_node_keys"`
+	RootDir                    string `mapstructure:"home"`
+	Sealed                     bool   `mapstructure:"sealed"`
+	Recheck                    bool   `mapstructure:"recheck"`
+	Broadcast                  bool   `mapstructure:"broadcast"`
+	WalPath                    string `mapstructure:"wal_dir"`
+	Size                       int    `mapstructure:"size"`
+	MaxTxsBytes                int64  `mapstructure:"max_txs_bytes"`
+	CacheSize                  int    `mapstructure:"cache_size"`
+	MaxTxBytes                 int    `mapstructure:"max_tx_bytes"`
+	MaxTxNumPerBlock           int64  `mapstructure:"max_tx_num_per_block"`
+	MaxGasUsedPerBlock         int64  `mapstructure:"max_gas_used_per_block"`
+	SortTxByGp                 bool   `mapstructure:"sort_tx_by_gp"`
+	ForceRecheckGap            int64  `mapstructure:"force_recheck_gap"`
+	TxPriceBump                uint64 `mapstructure:"tx_price_bump"`
+	EnablePendingPool          bool   `mapstructure:"enable_pending_pool"`
+	PendingPoolSize            int    `mapstructure:"pending_pool_size"`
+	PendingPoolPeriod          int    `mapstructure:"pending_pool_period"`
+	PendingPoolReserveBlocks   int    `mapstructure:"pending_pool_reserve_blocks"`
+	PendingPoolMaxTxPerAddress int    `mapstructure:"pending_pool_max_tx_per_address"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -707,7 +718,6 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolPeriod:          3,
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
-		ConfidentNodeKeys:          []string{},
 	}
 }
 
@@ -726,16 +736,6 @@ func (cfg *MempoolConfig) WalDir() string {
 // WalEnabled returns true if the WAL is enabled.
 func (cfg *MempoolConfig) WalEnabled() bool {
 	return cfg.WalPath != ""
-}
-
-// GetConfidentNodeKeys first use the DynamicConfig to get secondly backup to
-// the config file
-func (cfg *MempoolConfig) GetCondifentNodeKeys() ([]string, bool) {
-	keys := DynamicConfig.GetConfidentNodeKeys()
-	if len(keys) == 0 {
-		keys = cfg.ConfidentNodeKeys
-	}
-	return keys, len(keys) > 0
 }
 
 // ValidateBasic performs basic validation (checking param bounds, etc.) and

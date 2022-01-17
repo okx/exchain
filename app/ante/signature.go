@@ -27,13 +27,13 @@ var (
 // CreateAppCallback return the struct carry the callbacks
 func CreateAppCallback(cdc *codec.Codec) server.AppCallback {
 	return server.AppCallback{
-		MempoolTxSignatureNodeKeysSetter: SetCurrentNodeKeys,
-		ServerConfigCallback:             SetServerConfig,
+		CurrentP2PNodeKeySetter: SetCurrentNodeKeys,
+		ServerConfigCallback:    SetServerConfig,
 	}
 }
 
 // SetCurrentNodeKeys used in the BaseApp to set the node keys
-func SetCurrentNodeKeys(pub crypto.PubKey, priv crypto.PrivKey) {
+func SetCurrentNodeKeys(priv crypto.PrivKey, pub crypto.PubKey) {
 	currentNodeKeyOnce.Do(func() {
 		currentNodePriv = priv
 		currentNodePub = pub
@@ -91,7 +91,7 @@ func getCurrentNodeKey() (crypto.PrivKey, crypto.PubKey) {
 
 // get the confident keys from the config
 func getConfidntNodeKeys() []ed25519.PubKeyEd25519 {
-	keys, _ := serverConfig.Mempool.GetCondifentNodeKeys()
+	keys := serverConfig.BaseConfig.GetConfidentKeys()
 	res := []ed25519.PubKeyEd25519{}
 	for _, v := range keys {
 		slice, e := hexutil.Decode(v)
@@ -111,7 +111,7 @@ func getConfidntNodeKeys() []ed25519.PubKeyEd25519 {
 // return if skip the wrapped logic
 func isSkipWrapped(height int64) bool {
 	if height > effectiveHeight {
-		return len(serverConfig.Mempool.ConfidentNodeKeys) <= 0
+		return len(serverConfig.BaseConfig.GetConfidentKeys()) <= 0
 	}
 	return true
 }

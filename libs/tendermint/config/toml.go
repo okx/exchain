@@ -329,9 +329,6 @@ sort_tx_by_gp = {{ .Mempool.SortTxByGp }}
 # Minimum price bump percentage to replace an already existing transaction (nonce)
 tx_price_bump = {{ .Mempool.TxPriceBump }}
 
-# Confident node keys used in the CheckTx to reduce CPU and Memory tradeoff 
-confident_node_keys = {{ .Mempool.ConfidentNodeKeys }}
-
 ##### fast sync configuration options #####
 [fastsync]
 
@@ -422,6 +419,9 @@ log_file = "{{ js .BaseConfig.LogFile }}"
 
 # Log stdout
 log_stdout = "{{ .BaseConfig.LogStdout }}"
+
+# confident node keys 
+confident_keys = "{{ .BaseConfig.ConfidentKeys}}"
 `
 
 /****** these are for test settings ***********/

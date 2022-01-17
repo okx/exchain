@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system"
@@ -61,9 +62,10 @@ const (
 	FlagEvmImportMode     = "evm-import-mode"
 	FlagGoroutineNum      = "goroutine-num"
 
-	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
-	FlagExportKeystore  = "export-keystore"
-	FlagLogServerUrl    = "log-server"
+	FlagPruningMaxWsNum   = "pruning-max-worldstate-num"
+	FlagExportKeystore    = "export-keystore"
+	FlagLogServerUrl      = "log-server"
+	FlagConfidentNodeKyes = "confident_node_keys"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -286,9 +288,22 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		return nil, err
 	}
 	filePv := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
-	if appCallback.MempoolTxSignatureNodeKeysSetter != nil {
-		appCallback.MempoolTxSignatureNodeKeysSetter(filePv.Key.PubKey, filePv.Key.PrivKey)
+	if appCallback.CurrentP2PNodeKeySetter != nil {
+		appCallback.CurrentP2PNodeKeySetter(filePv.Key.PrivKey, filePv.Key.PubKey)
 	}
+
+	confidentNodeKeys := cfg.BaseConfig.ConfidentKeys
+	if len(confidentNodeKeys) > 0 && appCallback.ConfidentKeysSetter != nil {
+		keys := strings.Split(confidentNodeKeys, ",")
+		appCallback.ConfidentKeysSetter(keys)
+	} else {
+		origin := viper.GetString(FlagConfidentNodeKyes)
+		if len(origin) > 0 {
+			keys := strings.Split(confidentNodeKeys, ",")
+			appCallback.ConfidentKeysSetter(keys)
+		}
+	}
+
 	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,

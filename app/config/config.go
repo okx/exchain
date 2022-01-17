@@ -67,10 +67,10 @@ const (
 	FlagMempoolFlush           = "mempool.flush"
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
-	FlagConfidentNodeKeys      = "mempool.confident_node_keys"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
+	FlagConfidentNodeKyes      = "confident_node_keys"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -130,7 +130,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
-	c.SetConfidentNodeKeys(viper.GetString(FlagConfidentNodeKeys))
+	c.SetConfidentNodeKeys(viper.GetString(FlagConfidentNodeKyes))
 }
 
 func resolveConfidentNodeKyesString(plain string) []string {
@@ -218,7 +218,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
-	case FlagConfidentNodeKeys:
+	case FlagConfidentNodeKyes:
 		r, ok := value.(string)
 		if !ok {
 			return
