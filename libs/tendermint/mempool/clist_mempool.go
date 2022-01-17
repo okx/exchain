@@ -598,6 +598,10 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
+			if exTxInfo.WrappedTx != nil {
+				memTx.tx = exTxInfo.WrappedTx
+			}
+
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx, exTxInfo)
@@ -1120,6 +1124,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
+	WrappedTx   []byte   `json:"wrapped_tx"`  // sdk.WrappedTx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {
