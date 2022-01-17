@@ -3,10 +3,10 @@ package pendingtx
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -49,7 +49,7 @@ func (w *Watcher) Start() {
 					w.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
 					continue
 				}
-				txHash := common.BytesToHash(data.Tx.Hash())
+				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
 				w.logger.Debug("receive tx from mempool", "txHash=", txHash.String())
 
 				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx)

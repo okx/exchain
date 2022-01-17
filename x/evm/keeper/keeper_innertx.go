@@ -20,3 +20,6 @@ func (k *Keeper) AddInnerTx(...interface{}) {}
 
 // AddContract add erc20 contract
 func (k *Keeper) AddContract(...interface{}) {}
+
+func (k *Keeper) UpdateInnerTx(...interface{}) {
+}

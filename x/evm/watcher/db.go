@@ -14,6 +14,7 @@ const (
 	FlagFastQuery    = "fast-query"
 	FlagFastQueryLru = "fast-lru"
 	FlagDBBackend    = "db_backend"
+	FlagCheckWd      = "check_watchdb"
 
 	WatchDbDir  = "data"
 	WatchDBName = "watch"
@@ -71,4 +72,13 @@ func (w WatchStore) Has(key []byte) bool {
 		return false
 	}
 	return res
+}
+
+func (w WatchStore) Iterator(start, end []byte) dbm.Iterator {
+	it, err := w.db.Iterator(start, end)
+	if err != nil {
+		log.Println("watchdb error: " + err.Error())
+		return nil
+	}
+	return it
 }

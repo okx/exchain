@@ -98,17 +98,7 @@ jobs:
         continue-on-error: true
       - name: Go Test mempool Retry again on failure
         id: second-attempt
-        if: steps.first_attempt.outcome != 'success'
-        run: go test -count=1 ./libs/tendermint/mempool/...
-        continue-on-error: true
-      - name: Go Test mempool Retry again on failure
-        id: third-attempt
-        if: steps.second-attempt.outcome != 'success'
-        run: go test -count=1 ./libs/tendermint/mempool/...
-        continue-on-error: true
-      - name: Go Test mempool Retry again on failure
-        id: fourth-attempt
-        if: steps.third-attempt.outcome != 'success'
+        if: steps.first-attempt.outcome != 'success'
         run: go test -count=1 ./libs/tendermint/mempool/...
 
   test_abci_apps:
@@ -117,6 +107,8 @@ jobs:
     needs: Build
     steps:
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - name: Set GOBIN
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
@@ -135,6 +127,8 @@ jobs:
     needs: Build
     steps:
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - name: Set GOBIN
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV

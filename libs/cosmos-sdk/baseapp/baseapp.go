@@ -19,7 +19,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
@@ -89,6 +88,26 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
+
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
@@ -99,7 +118,18 @@ type BaseApp struct { // nolint: maligned
 	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
-	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
+
+	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
+	txDecoder   sdk.TxDecoder
+
+	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
+	// 1. a WrappedTx
+	// 2. an StdTx
+	// 3. a MsgEthereumTx
+	// depends on how []byte is marshalled
+	wrappedTxDecoder   sdk.TxDecoder
+
+	wrappedTxEncoder   sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -186,13 +216,28 @@ func NewBaseApp(
 		storeLoader:    DefaultStoreLoader,
 		router:         NewRouter(),
 		queryRouter:    NewQueryRouter(),
-		txDecoder:      txDecoder,
 		fauxMerkleMode: false,
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
+		wrappedTxDecoder:      txDecoder,
 	}
+
+	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
+		tx, err = app.wrappedTxDecoder(txBytes, height...)
+		if err != nil {
+			return
+		}
+
+		stdTx := tx.GetPayloadTx()
+		if stdTx != nil {
+			tx = stdTx
+		}
+		return
+	}
+
+
 	for _, option := range options {
 		option(app)
 	}
@@ -667,7 +712,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmhash.Sum(txBytes)),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -906,7 +951,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 	}
 
 	if err != nil {
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMercury(ctx.BlockHeight()) {
 			codeSpace, code, info := sdkerrors.ABCIInfo(err, app.trace)
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
@@ -1041,4 +1086,3 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-

@@ -343,7 +343,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(tx.Hash(mem.height)), r.CheckTx.GasWanted, gasUsed))
 			r.CheckTx.GasWanted = gasUsed
 		}
 	}
@@ -424,7 +424,7 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
 	mem.bcTxsMap.Store(txKey(memTx.tx), ele)
 
 	e := mem.txs.AddTxWithExInfo(memTx, info.Sender, info.GasPrice, info.Nonce)
-	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx), e)
+	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx, memTx.height), e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -446,7 +446,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx, info ExTxInfo) error {
 	e := mem.txs.PushBack(memTx)
 	e.Address = info.Sender
 
-	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx), e)
+	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx, memTx.height), e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -511,7 +511,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx, exTxInfo ExTxInfo) error
 	}
 
 	// add tx to PendingPool
-	if err := mem.pendingPool.validate(exTxInfo.Sender, memTx.tx); err != nil {
+	if err := mem.pendingPool.validate(exTxInfo.Sender, memTx.tx, memTx.height); err != nil {
 		return err
 	}
 	pendingTx := &PendingTx{
@@ -544,7 +544,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		mem.logger.Info("Added good transaction",
-			"tx", txID(mempoolTx.tx),
+			"tx", txID(mempoolTx.tx, mempoolTx.height),
 			"height", mempoolTx.height,
 			"total", mem.Size(),
 		)
@@ -598,6 +598,10 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
+			if exTxInfo.WrappedTx != nil {
+				memTx.tx = exTxInfo.WrappedTx
+			}
+
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx, exTxInfo)
@@ -607,7 +611,7 @@ func (mem *CListMempool) resCbFirstTime(
 
 			if err == nil {
 				mem.logger.Info("Added good transaction",
-					"tx", txID(tx),
+					"tx", txID(tx, mem.height),
 					"res", r,
 					"height", memTx.height,
 					"total", mem.Size(),
@@ -616,7 +620,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+					"tx", txID(tx, mem.height), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
@@ -627,7 +631,7 @@ func (mem *CListMempool) resCbFirstTime(
 		} else {
 			// ignore bad transaction
 			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+				"tx", txID(tx, mem.height), "peerID", peerP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
@@ -660,7 +664,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			// Good, nothing to do.
 		} else {
 			// Tx became invalidated due to newly committed block.
-			mem.logger.Info("Tx is no longer valid", "tx", txID(tx), "res", r, "err", postCheckErr)
+			mem.logger.Info("Tx is no longer valid", "tx", txID(tx, memTx.height), "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.removeTx(tx, mem.recheckCursor, true)
 		}
@@ -857,7 +861,7 @@ func (mem *CListMempool) Update(
 		addressNonce[addr] = nonce
 
 		if mem.pendingPool != nil {
-			mem.pendingPool.removeTxByHash(txID(tx))
+			mem.pendingPool.removeTxByHash(txID(tx, height))
 		}
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
@@ -1110,8 +1114,8 @@ func txKey(tx types.Tx) [sha256.Size]byte {
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
-func txID(tx []byte) string {
-	return fmt.Sprintf("%X", types.Tx(tx).Hash())
+func txID(tx []byte, height int64) string {
+	return fmt.Sprintf("%X", types.Tx(tx).Hash(height))
 }
 
 //--------------------------------------------------------------------------------
@@ -1120,6 +1124,7 @@ type ExTxInfo struct {
 	SenderNonce uint64   `json:"sender_nonce"`
 	GasPrice    *big.Int `json:"gas_price"`
 	Nonce       uint64   `json:"nonce"`
+	WrappedTx   []byte   `json:"wrapped_tx"`  // sdk.WrappedTx
 }
 
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {

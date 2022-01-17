@@ -1,14 +1,15 @@
 package mempool
 
 import (
+	"sync"
+
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"sync"
 )
 
 type AddressRecord struct {
-	mtx    sync.RWMutex
+	mtx   sync.RWMutex
 	items map[string]map[string]*clist.CElement // Address -> (txHash -> *CElement)
 }
 
@@ -27,7 +28,7 @@ func (ar *AddressRecord) AddItem(address string, txHash string, cElement *clist.
 	ar.items[address][txHash] = cElement
 }
 
-func (ar *AddressRecord) GetItem (address string) (map[string]*clist.CElement, bool) {
+func (ar *AddressRecord) GetItem(address string) (map[string]*clist.CElement, bool) {
 	ar.mtx.RLock()
 	defer ar.mtx.RUnlock()
 	item, isExist := ar.items[address]
@@ -45,7 +46,8 @@ func (ar *AddressRecord) DeleteItem(e *clist.CElement) {
 	ar.mtx.Lock()
 	defer ar.mtx.Unlock()
 	if userMap, ok := ar.items[e.Address]; ok {
-		txHash := txID(e.Value.(*mempoolTx).tx)
+		memTx := e.Value.(*mempoolTx)
+		txHash := txID(memTx.tx, memTx.height)
 		if _, ok = userMap[txHash]; ok {
 			delete(userMap, txHash)
 		}

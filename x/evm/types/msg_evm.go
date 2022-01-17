@@ -4,16 +4,15 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync/atomic"
 
 	"github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -25,7 +24,6 @@ import (
 )
 
 var (
-	_ sdk.Msg    = MsgEthermint{}
 	_ sdk.Msg    = MsgEthereumTx{}
 	_ sdk.Tx     = MsgEthereumTx{}
 	_ ante.FeeTx = MsgEthereumTx{}
@@ -39,156 +37,9 @@ var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("00000000000000000000000000000
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgEthereumTx = "ethereum"
-	// TypeMsgEthermint defines the type string of Ethermint message
-	TypeMsgEthermint = "ethermint"
 )
 
-// MsgEthermint implements a cosmos equivalent structure for Ethereum transactions
-type MsgEthermint struct {
-	AccountNonce uint64          `json:"nonce"`
-	Price        sdk.Int         `json:"gasPrice"`
-	GasLimit     uint64          `json:"gas"`
-	Recipient    *sdk.AccAddress `json:"to" rlp:"nil"` // nil means contract creation
-	Amount       sdk.Int         `json:"value"`
-	Payload      []byte          `json:"input"`
 
-	// From address (formerly derived from signature)
-	From sdk.AccAddress `json:"from"`
-}
-
-// NewMsgEthermint returns a reference to a new Ethermint transaction
-func NewMsgEthermint(
-	nonce uint64, to *sdk.AccAddress, amount sdk.Int,
-	gasLimit uint64, gasPrice sdk.Int, payload []byte, from sdk.AccAddress,
-) MsgEthermint {
-	return MsgEthermint{
-		AccountNonce: nonce,
-		Price:        gasPrice,
-		GasLimit:     gasLimit,
-		Recipient:    to,
-		Amount:       amount,
-		Payload:      payload,
-		From:         from,
-	}
-}
-
-func (msg MsgEthermint) String() string {
-	return fmt.Sprintf("nonce=%d gasPrice=%s gasLimit=%d recipient=%s amount=%s data=0x%x from=%s",
-		msg.AccountNonce, msg.Price, msg.GasLimit, msg.Recipient, msg.Amount, msg.Payload, msg.From)
-}
-
-// Route should return the name of the module
-func (msg MsgEthermint) Route() string { return RouterKey }
-
-// Type returns the action of the message
-func (msg MsgEthermint) Type() string { return TypeMsgEthermint }
-
-// GetSignBytes encodes the message for signing
-func (msg MsgEthermint) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
-}
-
-// ValidateBasic runs stateless checks on the message
-func (msg MsgEthermint) ValidateBasic() error {
-	if msg.Price.IsZero() {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
-	}
-
-	if msg.Price.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be negative %s", msg.Price)
-	}
-
-	// Amount can be 0
-	if msg.Amount.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "amount cannot be negative %s", msg.Amount)
-	}
-
-	return nil
-}
-
-// GetSigners defines whose signature is required
-func (msg MsgEthermint) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.From}
-}
-
-// To returns the recipient address of the transaction. It returns nil if the
-// transaction is a contract creation.
-func (msg MsgEthermint) To() *ethcmn.Address {
-	if msg.Recipient == nil {
-		return nil
-	}
-
-	addr := ethcmn.BytesToAddress(msg.Recipient.Bytes())
-	return &addr
-}
-
-func (msg *MsgEthermint) UnmarshalFromAmino(data []byte) error {
-	var dataLen uint64 = 0
-	var subData []byte
-
-	for {
-		data = data[dataLen:]
-		if len(data) == 0 {
-			break
-		}
-
-		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
-		if err != nil {
-			return err
-		}
-		data = data[1:]
-
-		if pbType == amino.Typ3_ByteLength {
-			var n int
-			dataLen, n, err = amino.DecodeUvarint(data)
-			if err != nil {
-				return err
-			}
-			data = data[n:]
-			if len(data) < int(dataLen) {
-				return fmt.Errorf("invalid tx data")
-			}
-			subData = data[:dataLen]
-		}
-
-		switch pos {
-		case 1:
-			var n int
-			msg.AccountNonce, n, err = amino.DecodeUvarint(data)
-			if err != nil {
-				return err
-			}
-			dataLen = uint64(n)
-		case 2:
-			msg.Price, err = sdk.NewIntFromAmino(subData)
-			if err != nil {
-				return err
-			}
-		case 3:
-			var n int
-			msg.GasLimit, n, err = amino.DecodeUvarint(data)
-			if err != nil {
-				return err
-			}
-			dataLen = uint64(n)
-		case 4:
-			tmp := make(sdk.AccAddress, dataLen)
-			msg.Recipient = &tmp
-			copy(tmp[:], subData)
-		case 5:
-			msg.Amount, err = sdk.NewIntFromAmino(subData)
-		case 6:
-			msg.Payload = make([]byte, dataLen)
-			copy(msg.Payload, subData)
-		case 7:
-			msg.From = make([]byte, dataLen)
-			copy(msg.From, subData)
-		default:
-			return fmt.Errorf("unexpect feild num %d", pos)
-		}
-	}
-	return nil
-}
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
@@ -199,6 +50,13 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
+func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
+func (tx MsgEthereumTx) GetType() sdk.TransactionType {
+	return sdk.EvmTxType
+}
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
@@ -315,11 +173,6 @@ func (msg MsgEthereumTx) To() *ethcmn.Address {
 	return msg.Data.Recipient
 }
 
-// GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
-func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
-	return []sdk.Msg{msg}
-}
-
 // GetSigners returns the expected signers for an Ethereum transaction message.
 // For such a message, there should exist only a single 'signer'.
 //
@@ -432,7 +285,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
-		if sdk.HigherThanMercury(height) {
+		if tmtypes.HigherThanMercury(height) {
 			return nil, errors.New("deprecated support for homestead Signer")
 		}
 
@@ -552,36 +405,6 @@ func deriveChainID(v *big.Int) *big.Int {
 	return v.Div(v, big.NewInt(2))
 }
 
-// Return tx sender and gas price
-func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	exTxInfo := mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    msg.Data.AccountNonce,
-	}
-
-	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return exTxInfo
-	}
-
-	// Verify signature and retrieve sender address
-	fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-	if err != nil {
-		return exTxInfo
-	}
-
-	from := fromSigCache.GetFrom()
-	exTxInfo.Sender = from.String()
-	exTxInfo.GasPrice = msg.Data.Price
-
-	return exTxInfo
-}
-
-// GetGasPrice return gas price
-func (msg MsgEthereumTx) GetGasPrice() *big.Int {
-	return msg.Data.Price
-}
 
 func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 	var dataLen uint64 = 0
@@ -623,21 +446,4 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 		}
 	}
 	return nil
-}
-
-func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
-	// deploy contract case
-	if msg.Data.Recipient == nil {
-		return DefaultDeployContractFnSignature, len(msg.Data.Payload)
-	}
-
-	// most case is transfer token
-	if len(msg.Data.Payload) < 4 {
-		return DefaultSendCoinFnSignature, 0
-	}
-
-	// call contract case (some times will together with transfer token case)
-	recipient := msg.Data.Recipient.Bytes()
-	methodId := msg.Data.Payload[0:4]
-	return append(recipient, methodId...), 0
 }

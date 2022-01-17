@@ -57,10 +57,10 @@ func TestIndexerServiceIndexesBlocks(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// check the result
-	res, err := txIndexer.Get(types.Tx("foo").Hash())
+	res, err := txIndexer.Get(types.Tx("foo").Hash(txResult1.Height))
 	assert.NoError(t, err)
 	assert.Equal(t, txResult1, res)
-	res, err = txIndexer.Get(types.Tx("bar").Hash())
+	res, err = txIndexer.Get(types.Tx("bar").Hash(txResult2.Height))
 	assert.NoError(t, err)
 	assert.Equal(t, txResult2, res)
 }

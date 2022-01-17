@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-	yaml "gopkg.in/yaml.v2"
-
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/tendermint/go-amino"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -34,6 +33,13 @@ type StdTx struct {
 	Memo       string         `json:"memo" yaml:"memo"`
 }
 
+func (tx StdTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
+
+func (tx StdTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -262,6 +268,7 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
+
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
@@ -401,7 +408,10 @@ type StdSignature struct {
 
 // DefaultTxDecoder logic for standard transaction decoding
 func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 0 {
+			return nil, fmt.Errorf("too many height parameters")
+		}
 		var tx = StdTx{}
 
 		if len(txBytes) == 0 {
@@ -424,6 +434,21 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
 		return cdc.MarshalBinaryLengthPrefixed(tx)
 	}
+}
+
+func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
+	return func(tx sdk.Tx) ([]byte, error) {
+		return EthereumTxEncode(tx)
+	}
+}
+
+
+func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
+	return rlp.EncodeToBytes(tx)
+}
+
+func EthereumTxDecode(b []byte, tx interface{}) error {
+	return rlp.DecodeBytes(b, tx)
 }
 
 // MarshalYAML returns the YAML representation of the signature.

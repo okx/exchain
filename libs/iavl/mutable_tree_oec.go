@@ -178,8 +178,9 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.committedHeightMap[version] = true
 		tree.committedHeightQueue.PushBack(version)
 	}
-	tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
-
+	if len(versionSlice) > 0 {
+		tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
+	}
 }
 
 func (tree *MutableTree) StopTree() {

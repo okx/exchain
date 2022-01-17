@@ -595,6 +595,12 @@ func (tx txTest) GetGasPrice() *big.Int {
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
+func (tx txTest) GetPayloadTx() sdk.Tx {
+	return nil
+}
+func (tx txTest) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
 
 const (
 	routeMsgCounter  = "msgCounter"
@@ -662,7 +668,7 @@ func (msg msgCounter2) ValidateBasic() error {
 
 // amino decode
 func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 		var tx txTest
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")

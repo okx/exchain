@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -235,6 +235,10 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error) {
+	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return nil, err
+	}
 	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
 	if err != nil {
 		return nil, err
@@ -249,7 +253,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -277,6 +281,10 @@ func (b *EthermintBackend) UserPendingTransactionsCnt(address string) (int, erro
 }
 
 func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error) {
+	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return nil, err
+	}
 	result, err := b.clientCtx.Client.UserUnconfirmedTxs(address, limit)
 	if err != nil {
 		return nil, err
@@ -290,7 +298,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -312,6 +320,10 @@ func (b *EthermintBackend) PendingAddressList() ([]string, error) {
 // PendingTransactions returns the transaction that is in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return nil, err
+	}
 	pendingTx, err := b.clientCtx.Client.GetUnconfirmedTxByHash(target)
 	if err != nil {
 		return nil, err
@@ -321,7 +333,7 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash()), common.Hash{}, 0, 0)
+	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +360,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, tx := range block.Block.Txs {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
+		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
 		if err != nil {
 			continue
 		}

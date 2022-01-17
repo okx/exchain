@@ -2,10 +2,17 @@ package types
 
 import (
 	"bytes"
+	"math"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	ctest "github.com/okex/exchain/libs/tendermint/libs/test"
 )
@@ -23,6 +30,25 @@ func randInt(low, high int) int {
 	return low + off
 }
 
+func TestTx_Hash(t *testing.T) {
+	tx := Tx("Hello, world!")
+	oldHeight := GetMilestoneVenusHeight()
+	defer UnittestOnlySetMilestoneVenusHeight(oldHeight)
+	for _, c := range []struct {
+		curHeight   int64
+		venusHeight int64
+		expected    []byte
+	}{
+		{999, 0, tmhash.Sum(tx)},
+		{999, 1000, tmhash.Sum(tx)},
+		{1000, 1000, etherhash.Sum(tx)},
+		{1500, 1000, etherhash.Sum(tx)},
+	} {
+		UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
+		assert.Equal(t, c.expected, tx.Hash(c.curHeight))
+	}
+}
+
 func TestTxIndex(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		txs := makeTxs(15, 60)
@@ -37,15 +63,16 @@ func TestTxIndex(t *testing.T) {
 }
 
 func TestTxIndexByHash(t *testing.T) {
+	var height int64
 	for i := 0; i < 20; i++ {
 		txs := makeTxs(15, 60)
 		for j := 0; j < len(txs); j++ {
 			tx := txs[j]
-			idx := txs.IndexByHash(tx.Hash())
+			idx := txs.IndexByHash(tx.Hash(height), height)
 			assert.Equal(t, j, idx)
 		}
-		assert.Equal(t, -1, txs.IndexByHash(nil))
-		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash()))
+		assert.Equal(t, -1, txs.IndexByHash(nil, height))
+		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash(height), height))
 	}
 }
 
@@ -63,18 +90,18 @@ func TestValidTxProof(t *testing.T) {
 
 	for h, tc := range cases {
 		txs := tc.txs
-		root := txs.Hash()
+		root := txs.Hash(0)
 		// make sure valid proof for every tx
 		for i := range txs {
 			tx := []byte(txs[i])
-			proof := txs.Proof(i)
+			proof := txs.Proof(i, 0)
 			assert.Equal(t, i, proof.Proof.Index, "%d: %d", h, i)
 			assert.Equal(t, len(txs), proof.Proof.Total, "%d: %d", h, i)
 			assert.EqualValues(t, root, proof.RootHash, "%d: %d", h, i)
 			assert.EqualValues(t, tx, proof.Data, "%d: %d", h, i)
-			assert.EqualValues(t, txs[i].Hash(), proof.Leaf(), "%d: %d", h, i)
-			assert.Nil(t, proof.Validate(root), "%d: %d", h, i)
-			assert.NotNil(t, proof.Validate([]byte("foobar")), "%d: %d", h, i)
+			assert.EqualValues(t, txs[i].Hash(0), proof.Leaf(0), "%d: %d", h, i)
+			assert.Nil(t, proof.Validate(root, 0), "%d: %d", h, i)
+			assert.NotNil(t, proof.Validate([]byte("foobar"), 0), "%d: %d", h, i)
 
 			// read-write must also work
 			var p2 TxProof
@@ -82,7 +109,7 @@ func TestValidTxProof(t *testing.T) {
 			assert.Nil(t, err)
 			err = cdc.UnmarshalBinaryLengthPrefixed(bin, &p2)
 			if assert.Nil(t, err, "%d: %d: %+v", h, i, err) {
-				assert.Nil(t, p2.Validate(root), "%d: %d", h, i)
+				assert.Nil(t, p2.Validate(root, 0), "%d: %d", h, i)
 			}
 		}
 	}
@@ -155,12 +182,12 @@ func TestComputeAminoOverhead(t *testing.T) {
 func testTxProofUnchangable(t *testing.T) {
 	// make some proof
 	txs := makeTxs(randInt(2, 100), randInt(16, 128))
-	root := txs.Hash()
+	root := txs.Hash(0)
 	i := randInt(0, len(txs)-1)
-	proof := txs.Proof(i)
+	proof := txs.Proof(i, 0)
 
 	// make sure it is valid to start with
-	assert.Nil(t, proof.Validate(root))
+	assert.Nil(t, proof.Validate(root, 0))
 	bin, err := cdc.MarshalBinaryLengthPrefixed(proof)
 	assert.Nil(t, err)
 
@@ -178,7 +205,7 @@ func assertBadProof(t *testing.T, root []byte, bad []byte, good TxProof) {
 	var proof TxProof
 	err := cdc.UnmarshalBinaryLengthPrefixed(bad, &proof)
 	if err == nil {
-		err = proof.Validate(root)
+		err = proof.Validate(root, 0)
 		if err == nil {
 			// XXX Fix simple merkle proofs so the following is *not* OK.
 			// This can happen if we have a slightly different total (where the
@@ -187,4 +214,65 @@ func assertBadProof(t *testing.T, root []byte, bad []byte, good TxProof) {
 			assert.NotEqual(t, proof.Proof.Total, good.Proof.Total, "bad: %#v\ngood: %#v", proof, good)
 		}
 	}
+}
+
+var txResultTestCases = []TxResult{
+	{},
+	{Tx: []byte{}},
+	{123, 123, []byte("tx bytes"), types.ResponseDeliverTx{Code: 123, Data: []byte("this is data"), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: []types.Event{}, Codespace: "sssdasf"}},
+	{Height: math.MaxInt64, Index: math.MaxUint32},
+	{Height: math.MinInt64, Index: 0},
+	{Height: -1, Index: 0},
+}
+
+func TestTxResultAmino(t *testing.T) {
+	for _, txResult := range txResultTestCases {
+		expectData, err := cdc.MarshalBinaryBare(txResult)
+		require.NoError(t, err)
+
+		var expectValue TxResult
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue TxResult
+		err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func BenchmarkTxResultAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(txResultTestCases))
+	for i, res := range txResultTestCases {
+		expectData, err := cdc.MarshalBinaryBare(res)
+		require.NoError(b, err)
+		testData[i] = expectData
+	}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var res TxResult
+				err := cdc.UnmarshalBinaryBare(data, &res)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var res TxResult
+				err := res.UnmarshalFromAmino(data)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
