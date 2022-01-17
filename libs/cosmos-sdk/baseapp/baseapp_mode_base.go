@@ -194,6 +194,8 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 	if err == nil {
 		exTxInfo.WrappedTx = data
 		m.app.logger.Info("add ExTxInfo",
+			"payload txhash", txhash(payloadBytes),
+			"wrapped txhash", txhash(data),
 			"pubkey", hexutil.Encode(m.app.nodekey.PubKey().Bytes()),
 			"exInfo", exInfo,
 			)

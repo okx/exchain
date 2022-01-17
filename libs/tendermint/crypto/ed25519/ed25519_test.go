@@ -40,13 +40,15 @@ func TestWTx2(t *testing.T) {
 
 }
 
-func genPrivkey(t *testing.T, hex string) ed25519.PrivKeyEd25519 {
+func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
 	secert, err := hexutil.Decode(hex)
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 	return ed25519.GenPrivKeyFromSecret(secert)
 }
 
-func genPubkey(t *testing.T, hex string) ed25519.PubKeyEd25519 {
+func genPubkey(hex string) ed25519.PubKeyEd25519 {
 	bytes := hexutil.MustDecode(hex)
 	var recoverPubKey ed25519.PubKeyEd25519
 	recoverPubKey.UnmarshalFromAmino(bytes)
