@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-// nolint
+// build the origin tx ante handlers
 func buildOriginStdtxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
 		authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
@@ -27,6 +27,7 @@ func buildOriginStdtxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk 
 	)
 }
 
+// build the origin evm tx ante handlers
 func buildOriginEvmTxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
 		NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
@@ -42,23 +43,29 @@ func buildOriginEvmTxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk 
 	)
 }
 
+// when at the wrapped tx mode
+// should use this function to build a light ante handlers chain
+// only check the account nonce and transaction gas
 func buildLightStdtxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
-		authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+		authante.NewSetUpContextDecorator(),
 		NewAccountSetupDecorator(ak),
+		authante.NewSetPubKeyDecorator(ak),
 		authante.NewValidateBasicDecorator(),
-		authante.NewConsumeGasForTxSizeDecorator(ak),
-		authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+		authante.NewSigVerificationDecorator(ak),
+		authante.NewIncrementSequenceDecorator(ak),
 	)
 }
 
+// when at the wrapped tx mode
+// should use this function to build a light ante handlers chain
+// only check the account nonce and transaction gas
 func buildLightEvmTxAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
 	return sdk.ChainAnteDecorators(
 		NewEthSetupContextDecorator(),
-		NewEthSigVerificationDecorator(),                  // outermost AnteDecorator. EthSetUpContext must be called first
-		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+		NewEthSigVerificationDecorator(),
 		NewAccountVerificationDecorator(ak, evmKeeper),
 		NewNonceVerificationDecorator(ak),
-		NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+		NewIncrementSenderSequenceDecorator(ak),
 	)
 }

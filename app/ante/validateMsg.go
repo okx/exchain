@@ -2,10 +2,11 @@ package ante
 
 import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-
+// ValidateMsgHandler will validate the msg in the transaction
+// to keep the msgs in the transaction is valid
 type ValidateMsgHandler func(ctx sdk.Context, msgs []sdk.Msg) error
 
-type ValidateMsgHandlerDecorator struct{
+type ValidateMsgHandlerDecorator struct {
 	validateMsgHandler ValidateMsgHandler
 }
 
@@ -21,7 +22,6 @@ func (vmhd ValidateMsgHandlerDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 			return ctx, err
 		}
 	}
-
 
 	return next(ctx, tx, simulate)
 }
