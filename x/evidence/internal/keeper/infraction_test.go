@@ -39,7 +39,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
-		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt.Sub(amt))),
 	)
 
 	// handle a signature to set signing info
@@ -80,7 +80,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	suite.populateValidators(ctx)
 
 	power := sdk.NewIntFromUint64(10000)
-	stakingParams := suite.app.StakingKeeper.GetParams(ctx)
+	//stakingParams := suite.app.StakingKeeper.GetParams(ctx)
 	amt := power
 	operatorAddr, val := valAddresses[0], pubkeys[0]
 
@@ -93,7 +93,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
-		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt.Sub(amt))),
 	)
 
 	evidence := types.Equivocation{
