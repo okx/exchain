@@ -119,7 +119,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	err = delDirtyAccount(wd, w)
 	require.Nil(t, err)
 
-	store := watcher.NewTestWatchStore()
+	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	checkWD(wd, w)
 	flushDB(store)
@@ -137,6 +137,8 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	require.NotEmpty(t, pHash)
 	require.NotEmpty(t, cHash)
 	require.Equal(t, pHash, cHash)
+
+	flushDB(store)
 }
 
 func TestHandleMsgEthereumTx(t *testing.T) {
