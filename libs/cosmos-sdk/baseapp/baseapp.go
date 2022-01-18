@@ -622,8 +622,8 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx = ctx.WithIsReCheckTx(true)
 	}
 
-	if mode == runTxModeReCheck {
-		ctx = ctx.WithIsReCheckTx(true)
+	if mode == runTxModeWrappedCheck {
+		ctx = ctx.WithIsWrappedCheckTx(true)
 	}
 
 	if mode == runTxModeSimulate {
