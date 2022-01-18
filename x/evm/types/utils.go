@@ -3,9 +3,11 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -644,4 +646,41 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+var ethAddrStringPool = &sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 32)
+	},
+}
+
+type EthAddressStringer ethcmn.Address
+
+func (address EthAddressStringer) String() string {
+	var buf [len(address)*2 + 2]byte
+	copy(buf[:2], "0x")
+	hex.Encode(buf[2:], address[:])
+
+	// compute checksum
+	sha := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(sha)
+	sha.Reset()
+	sha.Write(buf[2:])
+
+	hash := ethAddrStringPool.Get().([]byte)
+	defer ethAddrStringPool.Put(hash)
+	sha.Read(hash)
+
+	for i := 2; i < len(buf); i++ {
+		hashByte := hash[(i-2)/2]
+		if i%2 == 0 {
+			hashByte = hashByte >> 4
+		} else {
+			hashByte &= 0xf
+		}
+		if buf[i] > '9' && hashByte > 7 {
+			buf[i] -= 32
+		}
+	}
+	return amino.BytesToStr(buf[:])
 }
