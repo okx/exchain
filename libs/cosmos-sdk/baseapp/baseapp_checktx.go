@@ -39,6 +39,9 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	case req.Type == abci.CheckTxType_Recheck:
 		mode = runTxModeReCheck
 
+	case req.Type == abci.CheckTxType_WrappedCheck:
+		mode = runTxModeWrappedCheck
+
 	default:
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}

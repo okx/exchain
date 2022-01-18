@@ -35,6 +35,7 @@ const (
 	runTxModeSimulate                        // Simulate a transaction
 	runTxModeDeliver                         // Deliver a transaction
 	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
+	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
@@ -620,6 +621,11 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeReCheck {
 		ctx = ctx.WithIsReCheckTx(true)
 	}
+
+	if mode == runTxModeReCheck {
+		ctx = ctx.WithIsReCheckTx(true)
+	}
+
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}

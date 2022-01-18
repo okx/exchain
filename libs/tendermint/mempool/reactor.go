@@ -171,17 +171,25 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	memR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
-	switch msg := msg.(type) {
-	case *TxMessage:
-		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src)}
+	checkTx := func(tx types.Tx, isWrappedTx bool) {
+		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src), IsWrappedTx: isWrappedTx}
 		if src != nil {
 			txInfo.SenderP2PID = src.ID()
 		}
-		err := memR.mempool.CheckTx(msg.Tx, nil, txInfo)
+		err := memR.mempool.CheckTx(tx, nil, txInfo)
 		if err != nil {
-			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx, memR.mempool.height), "err", err)
+			memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.height), "err", err)
 		}
+	}
+
+	switch msg := msg.(type) {
+	case *TxMessage:
+		checkTx(msg.Tx, false)
 		// broadcasting happens from go routines per peer
+	case *WrappedTxMessage:
+		// 1. verify signature from node key
+		// 2. handle msg.TxMessage.Tx
+		checkTx(msg.Tx, true)
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 	}
@@ -242,8 +250,11 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
 			// send memTx
-			msg := &TxMessage{Tx: memTx.tx}
-			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
+			msg := TxMessage{Tx: memTx.tx}
+			// prepare TrustedSig and TrustedPub
+			var trustedSig, trustedPub []byte
+			wrappedTxMsg := &WrappedTxMessage{TxMessage: msg, TrustedSig: trustedSig, TrustedPub: trustedPub}
+			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(wrappedTxMsg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -271,6 +282,7 @@ type Message interface{}
 func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
+	cdc.RegisterConcrete(&WrappedTxMessage{}, "tendermint/mempool/WrappedTxMessage", nil)
 }
 
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
@@ -298,4 +310,12 @@ func (m *TxMessage) String() string {
 // account for amino overhead of TxMessage
 func calcMaxMsgSize(maxTxSize int) int {
 	return maxTxSize + aminoOverheadForTxMessage
+}
+
+type WrappedTxMessage struct {
+	// Payload
+	TxMessage
+	Metadata   []byte
+	TrustedSig []byte
+	TrustedPub []byte
 }

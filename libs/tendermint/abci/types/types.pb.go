@@ -40,8 +40,9 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type CheckTxType int32
 
 const (
-	CheckTxType_New     CheckTxType = 0
-	CheckTxType_Recheck CheckTxType = 1
+	CheckTxType_New          CheckTxType = 0
+	CheckTxType_Recheck      CheckTxType = 1
+	CheckTxType_WrappedCheck CheckTxType = 2
 )
 
 var CheckTxType_name = map[int32]string{
