@@ -237,6 +237,7 @@ func (bs *BlockStore) deleteBatch(height int64, deleteFromTop bool) (uint64, err
 
 		err := batch.WriteSync()
 		if err != nil {
+			batch.Close()
 			return fmt.Errorf("failed to delete to height %v, delete from top %t: %w", height, deleteFromTop, err)
 		}
 		batch.Close()
