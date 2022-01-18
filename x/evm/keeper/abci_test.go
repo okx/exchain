@@ -73,7 +73,7 @@ func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	store.Set(types.GetContractBlockedListMemberKey(suite.address.Bytes()), []byte(""))
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
-	suite.app.EvmKeeper.Watcher.Commit()
+	suite.app.Commit(abci.RequestCommit{})
 	time.Sleep(time.Millisecond)
 	querier := watcher.NewQuerier()
 	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
