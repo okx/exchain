@@ -322,3 +322,20 @@ func BenchmarkDecodeResultData(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkEthAddressStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = addr.String()
+		}
+	})
+	b.Run("oec stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthAddressStringer(addr).String()
+		}
+	})
+}
