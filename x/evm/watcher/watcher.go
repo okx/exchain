@@ -39,6 +39,7 @@ type Watcher struct {
 	log           log.Logger
 	// for state delta transfering in network
 	watchData *WatchData
+	wm        *watchMap
 }
 
 var (
@@ -64,7 +65,16 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{
+		store:         InstanceOfWatchStore(),
+		cumulativeGas: make(map[uint64]uint64),
+		sw:            IsWatcherEnabled(),
+		firstUse:      true,
+		delayEraseKey: make([][]byte, 0),
+		watchData:     &WatchData{},
+		wm:            newWatchMap(),
+		log:           logger,
+	}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -357,12 +367,7 @@ func (w *Watcher) Commit() {
 	batch := w.batch
 	go w.commitBatch(batch)
 
-	// get centerBatch for sending to DataCenter
-	ddsBatch := make([]*Batch, len(batch))
-	for i, b := range batch {
-		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
-	}
-	w.watchData.Batches = ddsBatch
+	w.setMap(batch)
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -440,9 +445,18 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
-func (w *Watcher) GetWatchData() ([]byte, error) {
-	value := w.watchData
-	value.DelayEraseKey = w.delayEraseKey
+func (w *Watcher) setMap(batch []WatchMessage) {
+	ddsBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
+		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+	}
+	w.watchData.Batches = ddsBatch
+	w.watchData.DelayEraseKey = w.delayEraseKey
+	w.wm.set(int64(w.height), *w.watchData)
+}
+
+func (w *Watcher) GetWatchData(height int64) ([]byte, error) {
+	value := w.wm.fetch(height)
 	valueByte, err := itjs.Marshal(value)
 	if err != nil {
 		return nil, err

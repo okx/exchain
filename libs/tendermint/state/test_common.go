@@ -365,7 +365,7 @@ func execCommitBlockDelta(
 	}
 	if res.Deltas != nil {
 		deltas.Payload.DeltasBytes = res.Deltas.DeltasByte
-		if wd, err := getWatchDataFunc(); err == nil {
+		if wd, err := getWatchDataFunc(block.Height); err == nil {
 			deltas.Payload.WatchBytes = wd
 		}
 	}
