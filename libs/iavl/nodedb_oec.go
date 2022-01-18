@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/go-errors/errors"
 
 	"sync"
@@ -360,7 +362,7 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 					ndb.saveNodeToPrePersistCache(n)
 					n.leftNode = nil
 					n.rightNode = nil
-					savedNodes[hex.EncodeToString(n.hash)] = n
+					savedNodes[amino.HexEncodeToString(n.hash)] = n
 				}
 			}
 		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)

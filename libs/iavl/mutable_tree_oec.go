@@ -7,6 +7,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/iavl/trace"
 
 	dbm "github.com/tendermint/tm-db"
@@ -278,7 +280,7 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
 				tree.commitOrphans[string(node.hash)] = node.version
-				tree.deltas.CommitOrphansDelta[hex.EncodeToString(node.hash)] = node.version
+				tree.deltas.CommitOrphansDelta[amino.HexEncodeToString(node.hash)] = node.version
 			}
 		}
 
