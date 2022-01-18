@@ -1,18 +1,17 @@
 package types
 
 import (
-	"testing"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/stretchr/testify/require"
+	"testing"
 
 	dbm "github.com/tendermint/tm-db"
 )
 
-func wrongTestIndexer_ProcessSection(t *testing.T) {
+func TestIndexer_ProcessSection(t *testing.T) {
 	db := dbm.NewMemDB()
 	enableBloomFilter = true
 	InitIndexer(db)
