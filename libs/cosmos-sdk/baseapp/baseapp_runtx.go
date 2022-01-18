@@ -224,9 +224,16 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, tx sdk.Tx) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
+	tx, err := app.txDecoder(txWithIndex[:len(txWithIndex)-txIndexLen])
+	if err != nil {
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		app.parallelTxManage.workgroup.Push(asyncExe)
+		return
+	}
+
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
