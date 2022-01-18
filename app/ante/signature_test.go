@@ -122,3 +122,22 @@ func (suite *AnteTestSuite) TestConfidentSkippedWrappedTx() {
 	suite.Require().Nil(newCtx.ReplaceTx())
 	suite.Require().False(newCtx.Confident())
 }
+
+func (suite *AnteTestSuite) TestUnbelievedWrappedTx() {
+	upriv, upub := newNodeKeyPair()
+	setConfidentKeyListWithCurrent(suite)
+	ante.SetWrappedTxEffectiveHeight(1)
+	tx, err := buildTestTx(suite)
+	suite.Require().NoError(err)
+	message, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	suite.ctx = suite.ctx.WithTxBytes(message)
+	signature, _ := upriv.Sign(message)
+	wrapped, _ := NewWrappedTx(tx, signature, upub.Bytes())
+	newCtx, err := suite.anteHandler(suite.ctx, wrapped, false)
+	suite.Require().NoError(err)
+
+	confidentSig, _ := suite.nodePriv.Sign(message)
+	confident, _ := NewWrappedTx(tx, confidentSig, suite.nodePub.Bytes())
+	confidentSlice, _ := suite.app.Codec().MarshalBinaryLengthPrefixed(confident)
+	suite.Require().Equal(confidentSlice, newCtx.ReplaceTx())
+}
