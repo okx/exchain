@@ -95,7 +95,7 @@ func (i *Indexer) IsProcessing() bool {
 	return atomic.LoadUint32(&i.processing) == 1
 }
 
-func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64, bloomData *[]*KV) {
+func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64, bloomData *[]*tmtypes.KV) {
 	if atomic.SwapUint32(&i.processing, 1) == 1 {
 		ctx.Logger().Error("matcher is already running")
 		return
@@ -186,11 +186,11 @@ func (i *Indexer) setValidSections(sections uint64) {
 }
 
 // setBloomData put SectionHead and ValidSections into watcher.bloomData
-func (i *Indexer) setBloomData(bloomData *[]*KV, section uint64, hash common.Hash) {
+func (i *Indexer) setBloomData(bloomData *[]*tmtypes.KV, section uint64, hash common.Hash) {
 	var data [8]byte
 	binary.BigEndian.PutUint64(data[:], section)
-	*bloomData = append(*bloomData, &KV{Key: append([]byte("shead"), data[:]...), Value: hash.Bytes()})
-	*bloomData = append(*bloomData, &KV{Key: []byte("count"), Value: data[:]})
+	*bloomData = append(*bloomData, &tmtypes.KV{Key: append([]byte("shead"), data[:]...), Value: hash.Bytes()})
+	*bloomData = append(*bloomData, &tmtypes.KV{Key: []byte("count"), Value: data[:]})
 }
 
 // GetValidSections reads the number of valid sections from the index database

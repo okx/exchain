@@ -99,9 +99,9 @@ func (b *bloomIndexer) Process(hash common.Hash, height uint64, bloom types.Bloo
 
 // Commit implements core.ChainIndexerBackend, finalizing the bloom section and
 // writing it out into the database.
-func (b *bloomIndexer) Commit() ([]*KV, error) {
+func (b *bloomIndexer) Commit() ([]*tmtypes.KV, error) {
 	batch := b.db.NewBatch()
-	bloomData := make([]*KV, types.BloomBitLength)
+	bloomData := make([]*tmtypes.KV, types.BloomBitLength)
 	for i := 0; i < types.BloomBitLength; i++ {
 		bits, err := b.gen.Bitset(uint(i))
 		if err != nil {
@@ -109,7 +109,7 @@ func (b *bloomIndexer) Commit() ([]*KV, error) {
 		}
 		value := bitutil.CompressBytes(bits)
 		WriteBloomBits(batch, uint(i), b.section, b.head, value)
-		bloomData[i] = &KV{Key: bloomBitsKey(uint(i), b.section, b.head), Value: value}
+		bloomData[i] = &tmtypes.KV{Key: bloomBitsKey(uint(i), b.section, b.head), Value: value}
 	}
 	return bloomData, batch.Write()
 }

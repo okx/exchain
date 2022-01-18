@@ -5,6 +5,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sync"
 
@@ -38,7 +39,7 @@ type Watcher struct {
 	delayEraseKey [][]byte
 	log           log.Logger
 	// for state delta transfering in network
-	watchData *WatchData
+	watchData *tmtypes.WatchData
 }
 
 var (
@@ -64,7 +65,15 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{
+		store: InstanceOfWatchStore(),
+		cumulativeGas: make(map[uint64]uint64),
+		sw: IsWatcherEnabled(),
+		firstUse: true,
+		delayEraseKey: make([][]byte, 0),
+		watchData: &tmtypes.WatchData{},
+		log: logger,
+	}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -98,7 +107,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.blockTxs = []common.Hash{}
 
 	// ResetTransferWatchData
-	w.watchData = &WatchData{}
+	w.watchData = &tmtypes.WatchData{}
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -187,7 +196,7 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
+	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr.Bytes())
 }
 
 func (w *Watcher) ExecuteDelayEraseKey() {
@@ -358,14 +367,14 @@ func (w *Watcher) Commit() {
 	go w.commitBatch(batch)
 
 	// get centerBatch for sending to DataCenter
-	ddsBatch := make([]*Batch, len(batch))
+	ddsBatch := make([]*tmtypes.Batch, len(batch))
 	for i, b := range batch {
-		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+		ddsBatch[i] = &tmtypes.Batch{Key: b.GetKey(), Value: []byte(b.GetValue()), TypeValue: b.GetType()}
 	}
 	w.watchData.Batches = ddsBatch
 }
 
-func (w *Watcher) CommitWatchData(data WatchData) {
+func (w *Watcher) CommitWatchData(data tmtypes.WatchData) {
 	if data.Size() == 0 {
 		return
 	}
@@ -411,7 +420,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 }
 
-func (w *Watcher) commitCenterBatch(batch []*Batch) {
+func (w *Watcher) commitCenterBatch(batch []*tmtypes.Batch) {
 	for _, b := range batch {
 		w.store.Set(b.Key, b.Value)
 		if b.TypeValue == TypeState {
@@ -420,9 +429,9 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 	}
 }
 
-func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
+func (w *Watcher) delDirtyAccount(accounts [][]byte) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account))
 	}
 }
 
@@ -432,25 +441,20 @@ func (w *Watcher) delDirtyList(list [][]byte) {
 	}
 }
 
-func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
+func (w *Watcher) commitBloomData(bloomData []*tmtypes.KV) {
 	db := evmtypes.GetIndexer().GetDB()
 	for _, bd := range bloomData {
 		db.Set(bd.Key, bd.Value)
 	}
 }
 
-func (w *Watcher) GetWatchData() ([]byte, error) {
-	value := w.watchData
-	value.DelayEraseKey = w.delayEraseKey
-	valueByte, err := itjs.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-	return valueByte, nil
+func (w *Watcher) GetWatchData() tmtypes.WatchData {
+	w.watchData.DelayEraseKey = w.delayEraseKey
+	return *w.watchData
 }
 
 func (w *Watcher) UseWatchData(wdByte []byte) {
-	wd := WatchData{}
+	wd := tmtypes.WatchData{}
 	if len(wdByte) > 0 {
 		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
 			return
@@ -465,7 +469,7 @@ func (w *Watcher) SetWatchDataFunc() {
 	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
 }
 
-func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
+func (w *Watcher) GetBloomDataPoint() *[]*tmtypes.KV {
 	return &w.watchData.BloomData
 }
 

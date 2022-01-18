@@ -365,9 +365,12 @@ func execCommitBlockDelta(
 	}
 	if res.Deltas != nil {
 		deltas.Payload.DeltasBytes = res.Deltas.DeltasByte
-		if wd, err := getWatchDataFunc(); err == nil {
-			deltas.Payload.WatchBytes = wd
+		wd := getWatchDataFunc()
+		wdBytes, err := types.Json.Marshal(wd)
+		if err != nil {
+			return nil, nil, err
 		}
+		deltas.Payload.WatchBytes = wdBytes
 	}
 
 	// ResponseCommit has no error or log, just data

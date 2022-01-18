@@ -190,3 +190,28 @@ func (dds *Deltas) Validate(height int64) bool {
 	}
 	return true
 }
+
+// ------------------------------------------------------------------------
+
+type KV struct {
+	Key   []byte `json:"key"`
+	Value []byte `json:"value"`
+}
+
+type Batch struct {
+	Key       []byte `json:"key"`
+	Value     []byte `json:"value"`
+	TypeValue uint32 `json:"type_value"`
+}
+
+type WatchData struct {
+	DirtyAccount  [][]byte `json:"dirty_account"`
+	Batches       []*Batch          `json:"batches"`
+	DelayEraseKey [][]byte          `json:"delay_erase_key"`
+	BloomData     []*KV       `json:"bloom_data"`
+	DirtyList     [][]byte          `json:"dirty_list"`
+}
+
+func (w *WatchData) Size() int {
+	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
+}
