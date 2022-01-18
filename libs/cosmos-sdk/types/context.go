@@ -40,6 +40,7 @@ type Context struct {
 	isAsync       bool
 	cache         *Cache
 	nodeSigVerifyResult  int
+	NodekeyWhitelist     map[string][]byte
 }
 
 // Proposed rename, not done to avoid API breakage
