@@ -66,18 +66,17 @@ func (t *executionTask) stop() {
 	if t.stopped {
 		return
 	}
-
-	t.stopped = true
-	<-t.notifyC
 	//reset deliverState
 	if t.height != 1 {
 		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 	}
+	t.stopped = true
 }
 
 func (t *executionTask) run() {
+	needClose := true
 	defer func() {
-		if nil != t.notifyC {
+		if nil != t.notifyC && needClose {
 			close(t.notifyC)
 		}
 	}()
@@ -86,12 +85,8 @@ func (t *executionTask) run() {
 		abciResponses *ABCIResponses
 		err           error
 	)
-
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
 
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
 	deltas, _ := t.acquire.acquire(t.block.Height)
 
 	beginStatus := int32(TaskBeginByPrerunWithCacheExists)
@@ -99,11 +94,11 @@ func (t *executionTask) run() {
 		t.dump(fmt.Sprintf("invalid delta,height=%d", t.block.Height))
 		deltas = nil
 	}
-
 	if deltas != nil {
 		t.dump("start beginBlock by  prerun_cache_delta")
 		if !atomic.CompareAndSwapInt32(&t.status, 0, TaskBeginByPrerunWithCacheExists) {
 			// case delta running
+			needClose=false
 			t.dump("prerun discard,because delta is running")
 			return
 		}
@@ -116,7 +111,11 @@ func (t *executionTask) run() {
 		t.dump("start beginBlock by prerun")
 		if !atomic.CompareAndSwapInt32(&t.status, 0, TaskBeginByPrerunWithNoCache) {
 			// case: delta get the beginBlock lock
+			needClose=false
 			return
+		}
+		if t.height != 1 {
+			t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
 		}
 		beginStatus = TaskBeginByPrerunWithNoCache
 		abciResponses, err = execBlockOnProxyApp(t)

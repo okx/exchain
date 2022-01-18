@@ -36,7 +36,7 @@ func PreRunContextWithQueue(q queue.Queue) PreRunContextOption {
 	}
 }
 
-func PreRunContextWithFetcher(deltaMap IAcquire) PreRunContextOption {
+func PreRunContextWithAcquire(deltaMap IAcquire) PreRunContextOption {
 	return func(ctx *prerunContext) {
 		ctx.acquire = deltaMap
 	}
@@ -140,6 +140,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	}
 	delta := v.Delta
 
+
 	// hold the pointer at first
 	curTask := pc.prerunTask
 	if curTask == nil {
@@ -162,7 +163,6 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", curTask.index))
 	abciResponses := ABCIResponses{}
 	err := types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
-
 	if !atomic.CompareAndSwapInt32(&curTask.status, 0, TaskBeginByDelta) {
 		loadStatus := atomic.LoadInt32(&curTask.status)
 		// case1: task executed by prerun_with_cache(maybe not done yet,but we dont care)
@@ -196,7 +196,6 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		}
 		// case3 prerun is canceled,so we can handle it again
 	} else {
-		// case: 2 blocks ,see executionTask#stop
 		defer func() {
 			if nil != curTask.notifyC {
 				close(curTask.notifyC)

@@ -121,7 +121,7 @@ func (blockExec *BlockExecutor) init() {
 
 	if blockExec.prerunCtx == nil {
 		blockExec.prerunCtx = newPrerunContex(blockExec.logger, PreRunContextWithQueue(q),
-			PreRunContextWithFetcher(dataM), PreRunWithFastSyncCheck(func() bool { return blockExec.isFastSync }))
+			PreRunContextWithAcquire(dataM), PreRunWithFastSyncCheck(func() bool { return blockExec.isFastSync }))
 	}
 	if blockExec.deltaContext == nil {
 		blockExec.deltaContext = newDeltaContext(blockExec.logger, DeltaContextWithQueue(q), DeltaContextWithDataMap(dataM))
