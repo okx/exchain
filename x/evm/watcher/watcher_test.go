@@ -113,7 +113,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Second * 1)
 
 	// get WatchData
-	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
+	wd, err := w.app.EvmKeeper.Watcher.GetWatchData(0)
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 	err = delDirtyAccount(wd, w)
