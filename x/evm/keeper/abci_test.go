@@ -1,17 +1,18 @@
 package keeper_test
 
 import (
+	"math/big"
+	"os"
+	"time"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"math/big"
-	"os"
-	"time"
 )
 
 func (suite *KeeperTestSuite) TestBeginBlock() {
@@ -72,6 +73,7 @@ func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	store.Set(types.GetContractBlockedListMemberKey(suite.address.Bytes()), []byte(""))
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
+	suite.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Millisecond)
 	querier := watcher.NewQuerier()
 	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
