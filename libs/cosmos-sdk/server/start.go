@@ -179,6 +179,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagEnableWrappedTx, false, "Wrapped tx")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
@@ -363,6 +364,10 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
+	}
+
+	if keeper, ok := app.(p2p.NodeKeyUser); ok {
+		keeper.SetNodeKey(cfg.NodeKeyFile(), nodeKey)
 	}
 
 	// run forever (the node will not be returned)

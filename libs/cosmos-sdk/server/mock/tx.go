@@ -62,6 +62,9 @@ func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
+func (wtx kvstoreTx) GetPayloadTxBytes() []byte {
+	return nil
+}
 func (tx kvstoreTx) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }
