@@ -1424,6 +1424,8 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
 			cs.ProposalBlock = nil
+			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
+				"origin", cs.ProposalBlockParts.Hash(), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
@@ -1980,6 +1982,8 @@ func (cs *State) addVote(
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
+					cs.Logger.Info("proposalBlockPart reset ,because of mismatch hash,",
+						"origin", cs.ProposalBlockParts.Hash(), "after", blockID.Hash)
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
