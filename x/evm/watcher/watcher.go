@@ -5,6 +5,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sync"
 
@@ -367,7 +368,9 @@ func (w *Watcher) Commit() {
 	batch := w.batch
 	go w.commitBatch(batch)
 
-	w.setMap(batch)
+	if tmtypes.UploadDelta {
+		w.setMap(batch)
+	}
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -452,7 +455,7 @@ func (w *Watcher) setMap(batch []WatchMessage) {
 	}
 	w.watchData.Batches = ddsBatch
 	w.watchData.DelayEraseKey = w.delayEraseKey
-	w.wm.set(int64(w.height), *w.watchData)
+	w.wm.set(int64(w.height), w.watchData)
 }
 
 func (w *Watcher) GetWatchData(height int64) ([]byte, error) {
