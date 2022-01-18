@@ -11,6 +11,7 @@ import (
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoenc "github.com/okex/exchain/libs/tendermint/crypto/encoding"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
@@ -19,6 +20,8 @@ import (
 const (
 	// MaxEvidenceBytes is a maximum size of any evidence (including amino overhead).
 	MaxEvidenceBytes int64 = 484
+
+	DuplicateVoteEvidenceName = "tendermint/DuplicateVoteEvidence"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -183,7 +186,16 @@ func EvidenceFromProto(evidence *tmproto.Evidence) (Evidence, error) {
 
 func RegisterEvidences(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Evidence)(nil), nil)
-	cdc.RegisterConcrete(&DuplicateVoteEvidence{}, "tendermint/DuplicateVoteEvidence", nil)
+	cdc.RegisterConcrete(&DuplicateVoteEvidence{}, DuplicateVoteEvidenceName, nil)
+
+	cdc.RegisterConcreteUnmarshaller(DuplicateVoteEvidenceName, func(codec *amino.Codec, data []byte) (interface{}, int, error) {
+		var dve DuplicateVoteEvidence
+		err := dve.UnmarshalFromAmino(codec, data)
+		if err != nil {
+			return nil, 0, err
+		}
+		return &dve, len(data), nil
+	})
 }
 
 func RegisterMockEvidences(cdc *amino.Codec) {
@@ -214,6 +226,65 @@ type DuplicateVoteEvidence struct {
 	PubKey crypto.PubKey
 	VoteA  *Vote
 	VoteB  *Vote
+}
+
+func (dve *DuplicateVoteEvidence) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		} else {
+			return fmt.Errorf("unexpect pb type %d", pbType)
+		}
+
+		switch pos {
+		case 1:
+			dve.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			if err != nil {
+				err = cdc.UnmarshalBinaryBare(subData, &dve.PubKey)
+				if err != nil {
+					return err
+				}
+			}
+		case 2:
+			dve.VoteA = new(Vote)
+			err = dve.VoteA.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 3:
+			dve.VoteB = new(Vote)
+			err = dve.VoteB.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 var _ Evidence = &DuplicateVoteEvidence{}

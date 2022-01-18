@@ -7,6 +7,7 @@ const (
 	FlagCloseMutex            = "close-mutex"
 	FlagDisableABCIQueryMutex = "disable-abci-query-mutex"
 	FlagDisableCheckTx        = "disable-checktx"
+	FlagEnableWrappedTx       = "enable-wtx"
 )
 
 func GetDisableABCIQueryMutex() bool {
