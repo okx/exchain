@@ -248,7 +248,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, sender.String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, types.EthAddressStringer(sender).String()),
 		),
 	})
 
@@ -256,7 +256,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeEthereumTx,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
+				sdk.NewAttribute(types.AttributeKeyRecipient, types.EthAddressStringer(*msg.Data.Recipient).String()),
 			),
 		)
 	}

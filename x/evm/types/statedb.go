@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
@@ -1175,7 +1176,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 	// otherwise, attempt to fetch the account from the account mapper
 	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 	if acc == nil {
-		csdb.setError(fmt.Errorf("no account found for address: %s", addr.String()))
+		csdb.setError(fmt.Errorf("no account found for address: %s", EthAddressStringer(addr).String()))
 		return nil
 	}
 
@@ -1359,7 +1360,7 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
 			if err != nil {
 				return err
 			}
@@ -1378,9 +1379,9 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
 			if err != nil {
-				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
+				return ErrBlockedContractMethodIsNotExist(contractList[i].Address, err)
 			}
 			bc.BlockMethods = result
 			//if block contract method delete empty then remove contract from blocklist.
@@ -1394,7 +1395,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedContractMethodIsNotExist(contractList[i].Address,ErrorContractMethodBlockedIsNotExist)
+			return ErrBlockedContractMethodIsNotExist(contractList[i].Address, ErrorContractMethodBlockedIsNotExist)
 		}
 	}
 	return nil
