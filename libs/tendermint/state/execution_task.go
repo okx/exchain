@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
@@ -27,7 +28,7 @@ type executionTask struct {
 	proxyApp       proxy.AppConnConsensus
 	db             dbm.DB
 	logger         log.Logger
-	blockHash      []byte
+	blockHash      string
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -40,7 +41,7 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
 	}
-	ret.blockHash=block.Hash()
+	ret.blockHash=hex.EncodeToString(block.Hash())
 
 	return ret
 }

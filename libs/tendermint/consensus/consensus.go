@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
@@ -1425,7 +1426,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			// Set up ProposalBlockParts and keep waiting.
 			cs.ProposalBlock = nil
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
-				"origin", cs.ProposalBlockParts.Hash(), "after", blockID.Hash)
+				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
@@ -1982,8 +1983,8 @@ func (cs *State) addVote(
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
-					cs.Logger.Info("proposalBlockPart reset ,because of mismatch hash,",
-						"origin", cs.ProposalBlockParts.Hash(), "after", blockID.Hash)
+					cs.Logger.Info("addVote proposalBlockPart reset ,because of mismatch hash,",
+						"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
