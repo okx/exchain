@@ -160,7 +160,9 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (er
 func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
 
 	enableWrappedTx := m.app.enableWtx
-	//enableWrappedTx = true
+
+	// disable WrappedTx for dev branch
+	enableWrappedTx = false
 	if !enableWrappedTx {
 		return
 	}

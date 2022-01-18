@@ -11,7 +11,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-func wrongTestIndexer_ProcessSection(t *testing.T) {
+func TestIndexer_ProcessSection(t *testing.T) {
 	db := dbm.NewMemDB()
 	enableBloomFilter = true
 	InitIndexer(db)
@@ -26,7 +26,8 @@ func wrongTestIndexer_ProcessSection(t *testing.T) {
 		mock.SetBlockBloom(sdk.Context{}, int64(i), ethtypes.Bloom{})
 	}
 
-	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), nil)
+	bf := []*KV{}
+	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), &bf)
 
 	require.Equal(t, uint64(2), indexer.StoredSection())
 	require.Equal(t, uint64(2), indexer.GetValidSections())

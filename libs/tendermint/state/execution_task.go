@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -30,6 +31,7 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 
+	blockHash      string
 	acquire IAcquire
 	notifyC chan struct{}
 	// why: atomic is better, if we use mutex ,we have to define more variables
@@ -37,8 +39,7 @@ type executionTask struct {
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64, c IAcquire) *executionTask {
-
-	return &executionTask{
+	ret:=&executionTask{
 		height:         block.Height,
 		block:          block,
 		db:             blockExec.db,
@@ -49,6 +50,9 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64,
 		acquire:        c,
 		notifyC:        make(chan struct{}),
 	}
+	ret.blockHash=hex.EncodeToString(block.Hash())
+
+	return ret
 }
 
 func (e *executionTask) dump(when string) {
@@ -57,7 +61,7 @@ func (e *executionTask) dump(when string) {
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
-		"hash", e.block.Hash(),
+		"blockHash", e.blockHash,
 		//"AppHash", e.block.AppHash,
 	)
 }
