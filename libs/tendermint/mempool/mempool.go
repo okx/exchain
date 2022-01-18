@@ -119,6 +119,9 @@ type TxInfo struct {
 	SenderP2PID p2p.ID
 
 	IsWrappedTx bool
+	Metadata    []byte
+	TrustedSig  []byte
+	TrustedPub  []byte
 }
 
 //--------------------------------------------------------------------------------

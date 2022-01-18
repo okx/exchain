@@ -22,7 +22,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -351,7 +350,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			r.CheckTx.GasWanted = gasUsed
 		}
 	}
-	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
+	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
 	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
@@ -388,8 +387,7 @@ func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
 // Used in CheckTx to record PeerID who sent us the tx.
 func (mem *CListMempool) reqResCb(
 	tx []byte,
-	peerID uint16,
-	peerP2PID p2p.ID,
+	txInfo TxInfo,
 	externalCb func(*abci.Response),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
@@ -398,7 +396,7 @@ func (mem *CListMempool) reqResCb(
 			panic("recheck cursor is not nil in reqResCb")
 		}
 
-		mem.resCbFirstTime(tx, peerID, peerP2PID, res)
+		mem.resCbFirstTime(tx, txInfo, res)
 
 		// update metrics
 		mem.metrics.Size.Set(float64(mem.Size()))
@@ -564,8 +562,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 // handled by the resCbRecheck callback.
 func (mem *CListMempool) resCbFirstTime(
 	tx []byte,
-	peerID uint16,
-	peerP2PID p2p.ID,
+	txInfo TxInfo,
 	res *abci.Response,
 ) {
 	switch r := res.Value.(type) {
@@ -584,11 +581,15 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 			memTx := &mempoolTx{
-				height:    mem.height,
-				gasWanted: r.CheckTx.GasWanted,
-				tx:        tx,
+				height:      mem.height,
+				gasWanted:   r.CheckTx.GasWanted,
+				tx:          tx,
+				isWrappedTx: txInfo.IsWrappedTx,
+				metadata:    txInfo.Metadata,
+				trustedSig:  txInfo.TrustedSig,
+				trustedPub:  txInfo.TrustedPub,
 			}
-			memTx.senders.Store(peerID, true)
+			memTx.senders.Store(txInfo.SenderID, true)
 
 			var exTxInfo ExTxInfo
 			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
@@ -624,7 +625,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txID(tx, mem.height), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+					"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
@@ -635,7 +636,7 @@ func (mem *CListMempool) resCbFirstTime(
 		} else {
 			// ignore bad transaction
 			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx, mem.height), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+				"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
@@ -1016,6 +1017,11 @@ type mempoolTx struct {
 	height    int64    // height that this tx had been validated in
 	gasWanted int64    // amount of gas this tx states it will require
 	tx        types.Tx //
+
+	isWrappedTx bool
+	metadata    []byte
+	trustedSig  []byte
+	trustedPub  []byte
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool

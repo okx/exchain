@@ -171,8 +171,14 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	memR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
-	checkTx := func(tx types.Tx, isWrappedTx bool) {
-		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src), IsWrappedTx: isWrappedTx}
+	checkTx := func(tx types.Tx, isWrappedTx bool, wrappedData ...[]byte) {
+		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src)}
+		if isWrappedTx && len(wrappedData) == 3 {
+			txInfo.Metadata = wrappedData[0]
+			txInfo.TrustedSig = wrappedData[1]
+			txInfo.TrustedPub = wrappedData[2]
+			txInfo.IsWrappedTx = isWrappedTx
+		}
 		if src != nil {
 			txInfo.SenderP2PID = src.ID()
 		}
@@ -189,7 +195,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case *WrappedTxMessage:
 		// 1. verify signature from node key
 		// 2. handle msg.TxMessage.Tx
-		checkTx(msg.Tx, true)
+		checkTx(msg.Tx, true, msg.Metadata, msg.TrustedSig, msg.TrustedPub)
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 	}
@@ -250,11 +256,13 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
 			// send memTx
-			msg := TxMessage{Tx: memTx.tx}
+			msg := &TxMessage{Tx: memTx.tx}
 			// prepare TrustedSig and TrustedPub
-			var trustedSig, trustedPub []byte
-			wrappedTxMsg := &WrappedTxMessage{TxMessage: msg, TrustedSig: trustedSig, TrustedPub: trustedPub}
-			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(wrappedTxMsg))
+			var txMsg Message = msg
+			if memTx.isWrappedTx {
+				txMsg = &WrappedTxMessage{TxMessage: msg, Metadata: memTx.metadata, TrustedSig: memTx.trustedSig, TrustedPub: memTx.trustedPub}
+			}
+			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(txMsg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -314,7 +322,7 @@ func calcMaxMsgSize(maxTxSize int) int {
 
 type WrappedTxMessage struct {
 	// Payload
-	TxMessage
+	*TxMessage
 	Metadata   []byte
 	TrustedSig []byte
 	TrustedPub []byte
