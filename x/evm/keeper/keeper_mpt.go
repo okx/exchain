@@ -186,16 +186,18 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 
-	// The onleaf func is called _serially_, so we can reuse the same account
-	// for unmarshalling every time.
-	var storageRoot ethcmn.Hash
-	root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != types.EmptyRootHash {
-			k.db.TrieDB().Reference(storageRoot, parent)
-		}
+	if !types2.EnableFlatDB {
+		// The onleaf func is called _serially_, so we can reuse the same account
+		// for unmarshalling every time.
+		var storageRoot ethcmn.Hash
+		root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+			storageRoot.SetBytes(leaf)
+			if storageRoot != types.EmptyRootHash {
+				k.db.TrieDB().Reference(storageRoot, parent)
+			}
 
-		return nil
-	})
-	k.SetMptRootHash(uint64(ctx.BlockHeight()), root)
+			return nil
+		})
+		k.SetMptRootHash(uint64(ctx.BlockHeight()), root)
+	}
 }

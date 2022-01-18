@@ -463,7 +463,11 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 		so.originStorage[key] = state.Value
 		return state.Value
 	} else {
-		return so.GetCommittedStateMpt(db, key)
+		if EnableFlatDB {
+			return so.GetCommittedStateFlatDB(key)
+		} else {
+			return so.GetCommittedStateMpt(db, key)
+		}
 	}
 }
 
@@ -498,7 +502,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 		return newStateObj
 	} else {
-		return so.deepCopyMpt(db)
+		if EnableFlatDB {
+			return so.deepCopyFlatDB(db)
+		} else {
+			return so.deepCopyMpt(db)
+		}
 	}
 }
 

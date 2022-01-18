@@ -47,26 +47,18 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Ha
 		value ethcmn.Hash
 	)
 
-	//if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
-	//	so.setError(err)
-	//	return ethcmn.Hash{}
-	//}
-	//
-	//var value ethcmn.Hash
-	//if len(enc) > 0 {
-	//	_, content, _, err := rlp.Split(enc)
-	//	if err != nil {
-	//		so.setError(err)
-	//	}
-	//	value.SetBytes(content)
-	//}
-
-	prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.stateDB.FlatDB.Get(prefixKey.Bytes()); err != nil {
+	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
 		so.setError(err)
 		return ethcmn.Hash{}
 	}
-	value.SetBytes(enc)
+
+	if len(enc) > 0 {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
+			so.setError(err)
+		}
+		value.SetBytes(content)
+	}
 
 	so.originStorage[key] = value
 	return value
@@ -129,15 +121,12 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
-			so.stateDB.FlatDB.Delete(prefixKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
-			so.stateDB.FlatDB.Set(prefixKey.Bytes(), value.Bytes())
 		}
 	}
 
@@ -227,10 +216,91 @@ func (so *stateObject) UpdateAccInfo() error {
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
 }
 
-func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
-	compositeKey := make([]byte, len(prefix)+len(key))
+func (so *stateObject) GetCommittedStateFlatDB(key ethcmn.Hash) ethcmn.Hash {
+	// If the fake storage is set, only lookup the state here(in the debugging mode)
+	if so.fakeStorage != nil {
+		return so.fakeStorage[key]
+	}
+	// If we have a pending write or clean cached, return that
+	if value, pending := so.pendingStorage[key]; pending {
+		return value
+	}
+	if value, cached := so.originStorage[key]; cached {
+		return value
+	}
 
-	copy(compositeKey, prefix)
-	copy(compositeKey[len(prefix):], key)
+	var (
+		enc []byte
+		err error
+		value ethcmn.Hash
+	)
+
+	prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
+	if enc, err = so.stateDB.FlatDB.Get(prefixKey.Bytes()); err != nil || enc == nil {
+		so.setError(err)
+		return ethcmn.Hash{}
+	}
+	value.SetBytes(enc)
+
+	so.originStorage[key] = value
+	return value
+}
+
+func (so *stateObject) commitStateToFlatDB() {
+	// Make sure all dirty slots are finalized into the pending storage area
+	so.finalise(false) // Don't prefetch any more, pull directly if need be
+	if len(so.pendingStorage) == 0 {
+		return
+	}
+
+	//batch := so.stateDB.FlatDB.db.NewBatch()
+	batch := so.stateDB.FlatDB.NewBatch()
+	for key, value := range so.pendingStorage {
+		// Skip noop changes, persist actual changes
+		if value == so.originStorage[key] {
+			continue
+		}
+		so.originStorage[key] = value
+
+		prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
+		if (value == ethcmn.Hash{}) {
+			batch.Delete(prefixKey.Bytes())
+			//so.stateDB.FlatDB.Delete(prefixKey.Bytes())
+		} else {
+			batch.Set(prefixKey.Bytes(), value.Bytes())
+			//so.stateDB.FlatDB.Set(prefixKey.Bytes(), value.Bytes())
+		}
+	}
+	batch.Write()
+	batch.Close()
+
+	if len(so.pendingStorage) > 0 {
+		so.pendingStorage = make(ethstate.Storage)
+	}
+
+	return
+}
+
+func (so *stateObject) deepCopyFlatDB(db *CommitStateDB) *stateObject {
+	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
+	newStateObj := newStateObject(db, acc, so.stateRoot)
+
+	newStateObj.code = so.code
+	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
+	newStateObj.originStorage = so.originStorage.Copy()
+	newStateObj.pendingStorage = so.pendingStorage.Copy()
+	newStateObj.suicided = so.suicided
+	newStateObj.dirtyCode = so.dirtyCode
+	newStateObj.deleted = so.deleted
+
+	return newStateObj
+}
+
+func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
+	compositeKey := make([]byte, (len(prefix)+len(key))/2)
+
+	copy(compositeKey, prefix[:len(prefix)/2])
+	copy(compositeKey[len(prefix)/2:], key[len(key)/2:])
+	//return Keccak256HashWithCache(compositeKey)
 	return ethcmn.BytesToHash(compositeKey)
 }

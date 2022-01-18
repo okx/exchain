@@ -655,7 +655,11 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, key ethcmn.Hash) e
 
 		return ethcmn.BytesToHash(data)
 	} else {
-		return csdb.GetStateByKeyMpt(addr, key)
+		if EnableFlatDB {
+			return csdb.GetStateByKeyFlatDB(addr, key)
+		} else {
+			return csdb.GetStateByKeyMpt(addr, key)
+		}
 	}
 }
 
@@ -812,7 +816,11 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		// to pull useful data from disk.
 		for addr := range csdb.stateObjectsPending {
 			if obj := csdb.stateObjects[addr]; !obj.deleted {
-				obj.updateRoot(csdb.db)
+				if EnableFlatDB {
+					obj.commitStateToFlatDB()
+				} else {
+					obj.updateRoot(csdb.db)
+				}
 			}
 		}
 	}
@@ -862,7 +870,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) && !EnableFlatDB{
 		csdb.UpdateAccountStorageInfo(so)
 	}
 
@@ -874,7 +882,7 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) && !EnableFlatDB{
 		csdb.DeleteAccountStorageInfo(so)
 	}
 }
@@ -1101,7 +1109,11 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 
 		return nil
 	} else {
-		return csdb.ForEachStorageMpt(so, cb)
+		if EnableFlatDB {
+			return csdb.ForEachStorageFlat(so, cb)
+		} else {
+			return csdb.ForEachStorageMpt(so, cb)
+		}
 	}
 }
 

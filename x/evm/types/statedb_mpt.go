@@ -28,9 +28,11 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 				obj.dirtyCode = false
 			}
 
-			// Write any storage changes in the state object to its storage trie
-			if err := obj.CommitTrie(csdb.db); err != nil {
-				return ethcmn.Hash{}, err
+			if !EnableFlatDB {
+				// Write any storage changes in the state object to its storage trie
+				if err := obj.CommitTrie(csdb.db); err != nil {
+					return ethcmn.Hash{}, err
+				}
 			}
 		}
 	}
@@ -114,12 +116,6 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		value.SetBytes(content)
 	}
 
-	//prefixKey := AssembleCompositeKey(addr.Bytes(), key.Bytes())
-	//if enc, err = csdb.FlatDB.Get(prefixKey[:]); err != nil {
-	//	return ethcmn.Hash{}
-	//}
-	//value.SetBytes(enc)
-
 	return value
 }
 
@@ -157,7 +153,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 	}
 
 	storageRoot := types.EmptyRootHash
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) && !EnableFlatDB {
 		root, err := csdb.loadContractStorageRoot(addr)
 		if err != nil {
 			csdb.SetError(err)
@@ -236,4 +232,47 @@ func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([
 
 func (csdb *CommitStateDB) Logger() log.Logger {
 	return csdb.ctx.Logger().With("module", ModuleName)
+}
+
+func (csdb *CommitStateDB) GetStateByKeyFlatDB(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
+	var (
+		enc []byte
+		err error
+		value ethcmn.Hash
+	)
+
+	prefixKey := AssembleCompositeKey(addr.Bytes(), key.Bytes())
+	if enc, err = csdb.FlatDB.Get(prefixKey.Bytes()); err != nil || enc == nil {
+		csdb.Logger().Debug("fail to get state by key","err", err)
+		return ethcmn.Hash{}
+	}
+	value.SetBytes(enc)
+
+	return value
+}
+
+func (csdb *CommitStateDB) ForEachStorageFlat(so *stateObject, cb func(key, value ethcmn.Hash) (stop bool)) error {
+	prefixKey := so.Address().Bytes()
+	lenPrefixKey := len(prefixKey)
+	itr := csdb.FlatDB.Iterator(prefixKey, nil)
+
+	for itr.Valid() {
+		realKey := ethcmn.BytesToHash(itr.Key()[lenPrefixKey:])
+		if value, dirty := so.dirtyStorage[realKey]; dirty {
+			if !cb(realKey, value) {
+				return nil
+			}
+			continue
+		}
+
+		if len(itr.Value()) > 0 {
+			if !cb(realKey, ethcmn.BytesToHash(itr.Value())) {
+				return nil
+			}
+		}
+
+		itr.Next()
+	}
+
+	return nil
 }
