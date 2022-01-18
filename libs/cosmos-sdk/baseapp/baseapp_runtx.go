@@ -2,24 +2,26 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 )
 
 type runTxInfo struct {
-	handler        modeHandler
-	gasWanted      uint64
-	ctx            sdk.Context
-	runMsgCtx      sdk.Context
-	msCache        sdk.CacheMultiStore
-	msCacheAnte    sdk.CacheMultiStore
-	accountNonce   uint64
-	runMsgFinished bool
-	startingGas    uint64
-	gInfo          sdk.GasInfo
-	nodeSigVerifyResult   int
+	handler             modeHandler
+	gasWanted           uint64
+	ctx                 sdk.Context
+	runMsgCtx           sdk.Context
+	msCache             sdk.CacheMultiStore
+	msCacheAnte         sdk.CacheMultiStore
+	accountNonce        uint64
+	runMsgFinished      bool
+	startingGas         uint64
+	gInfo               sdk.GasInfo
+	nodeSigVerifyResult int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -33,9 +35,6 @@ func (app *BaseApp) runTx(mode runTxMode,
 	var info *runTxInfo
 	info, err = app.runtx(mode, txBytes, tx, height)
 	return info.gInfo, info.result, info.msCacheAnte, err
-
-	//return app.runtx_org(mode, txBytes, tx, height)
-
 }
 
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
@@ -57,7 +56,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -75,12 +73,10 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 	app.pin(ValTxMsgs, false, mode)
-
 
 	app.pin(AnteHandler, true, mode)
 	if app.anteHandler != nil {
@@ -97,7 +93,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	return info, err
 }
-
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
@@ -155,14 +150,30 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	return nil
 }
 
+func txhash(txbytes []byte) string {
+	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
+	ethHash := common.BytesToHash(txHash)
+	return ethHash.String()
+}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	tx, err := app.txDecoder(req.Tx)
+	tx, err := app.wrappedTxDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
-	//app.logger.Info("(app *BaseApp) DeliverTx", "payload", tx.GetPayloadTx())
+
+	app.logger.Info("(app *BaseApp) DeliverT",
+		"wrapped-tx-hash", txhash(req.Tx),
+	)
+
+	if tx.GetType() == sdk.WrappedTxType {
+		req.Tx = tx.GetPayloadTxBytes()
+		tx = tx.GetPayloadTx()
+		app.logger.Info("(app *BaseApp) DeliverTx",
+			"payload-tx-hash", txhash(req.Tx),
+		)
+	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
@@ -177,7 +188,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -209,17 +219,9 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, tx sdk.Tx) {
 
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
-
-	tx, err := app.txDecoder(txWithIndex[:len(txWithIndex)-txIndexLen])
-	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
-		app.parallelTxManage.workgroup.Push(asyncExe)
-		return
-	}
-
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)

@@ -16,12 +16,17 @@ set -m
 set -x # activate debugging
 
 source oec.profile
+WRAPPEDTX=false
 PRERUN=false
-while getopts "isn:b:p:c:Smxk:" opt; do
+while getopts "isn:b:p:c:Smxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
     OKCHAIN_INIT=1
+    ;;
+  w)
+    echo "WRAPPEDTX=$OPTARG"
+    WRAPPEDTX=true
     ;;
   x)
     echo "PRERUN=$OPTARG"
@@ -129,6 +134,7 @@ run() {
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
     --enable-dynamic-gp=false \
+    --enable-wtx=${WRAPPEDTX} \
     --p2p.pex=false \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \

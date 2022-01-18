@@ -31,7 +31,7 @@ var (
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
 func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := evmtypes.TxDecoderOnlyInQuery(clientCtx.Codec)(bz)
+	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -236,10 +236,10 @@ func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *
 // EVM module transactions.
 func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint64 {
 	var gasUsed uint64
-	txDecoder := evmtypes.TxDecoderOnlyInQuery(cdc)
+	txDecoder := evmtypes.TxDecoder(cdc)
 
 	for i := 0; i < idx && i < len(block.Txs); i++ {
-		txi, err := txDecoder(block.Txs[i])
+		txi, err := txDecoder(block.Txs[i], evmtypes.IGNORE_HEIGHT_CHECKING)
 		if err != nil {
 			continue
 		}
