@@ -215,3 +215,7 @@ type WatchData struct {
 func (w *WatchData) Size() int {
 	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
 }
+
+func (w *WatchData) Marshal() ([]byte, error) {
+	return cdc.MarshalBinaryBare(w)
+}

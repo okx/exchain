@@ -1,6 +1,7 @@
 package watcher_test
 
 import (
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -84,19 +85,15 @@ func flushDB(db *watcher.WatchStore) {
 	}
 }
 
-func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {
-		return err
-	}
+func delDirtyAccount(wd tmtypes.WatchData) error {
 	for _, account := range wd.DirtyAccount {
-		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
+		watcher.InstanceOfWatchStore().Delete(watcher.GetMsgAccountKey(account))
 	}
 	return nil
 }
 
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
-	wd := watcher.WatchData{}
+	wd := tmtypes.WatchData{}
 	if err := json.Unmarshal(wdBytes, &wd); err != nil {
 		return
 	}
@@ -113,19 +110,20 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Second * 1)
 
 	// get WatchData
-	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
+	wd := w.app.EvmKeeper.Watcher.GetWatchData()
+	err := delDirtyAccount(wd)
+	wdBytes, err := json.Marshal(wd)
 	require.Nil(t, err)
-	require.NotEmpty(t, wd)
-	err = delDirtyAccount(wd, w)
+	require.NotEmpty(t, wdBytes)
 	require.Nil(t, err)
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
-	checkWD(wd, w)
+	checkWD(wdBytes, w)
 	flushDB(store)
 
 	// use WatchData
-	w.app.EvmKeeper.Watcher.UseWatchData(wd)
+	w.app.EvmKeeper.Watcher.UseWatchData(wdBytes)
 	time.Sleep(time.Second * 1)
 
 	cWd := getDBKV(store)
