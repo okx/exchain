@@ -1,6 +1,7 @@
 package ante
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -27,6 +28,20 @@ func (n NodeSignatureDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var ok bool
 	if wtx, ok = tx.(authtypes.WrappedTx); !ok {
 		return ctx, fmt.Errorf("Invalid WrappedTx")
+	}
+
+	inWhitelist := false
+	if ctx.NodekeyWhitelist != nil {
+		for _, v := range ctx.NodekeyWhitelist {
+			if bytes.Compare(v, wtx.NodeKey) == 0 {
+				inWhitelist = true
+				break
+			}
+		}
+	}
+
+	if !inWhitelist {
+		return ctx, fmt.Errorf("The pubkey of wtx is not in the node key whitelist")
 	}
 
 	var pubKey ed25519.PubKeyEd25519
