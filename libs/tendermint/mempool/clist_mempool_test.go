@@ -643,27 +643,27 @@ func TestAddAndSortTx(t *testing.T) {
 		Tx   *mempoolTx
 		Info ExTxInfo
 	}{
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, ExTxInfo{"18", 0, big.NewInt(3780), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, ExTxInfo{"6", 0, big.NewInt(5853), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, ExTxInfo{"7", 0, big.NewInt(8315), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, ExTxInfo{"10", 0, big.NewInt(9526), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, ExTxInfo{"15", 0, big.NewInt(9140), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, ExTxInfo{"9", 0, big.NewInt(9227), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, ExTxInfo{"3", 0, big.NewInt(761), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, ExTxInfo{"18", 0, big.NewInt(9740), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, ExTxInfo{"1", 0, big.NewInt(6574), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, ExTxInfo{"8", 0, big.NewInt(9656), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, ExTxInfo{"12", 0, big.NewInt(6554), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, ExTxInfo{"16", 0, big.NewInt(5609), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, ExTxInfo{"6", 0, big.NewInt(2791), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, ExTxInfo{"18", 0, big.NewInt(2698), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, ExTxInfo{"1", 0, big.NewInt(6925), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, ExTxInfo{"3", 0, big.NewInt(3171), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, ExTxInfo{"1", 0, big.NewInt(2965), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, ExTxInfo{"19", 0, big.NewInt(2484), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, ExTxInfo{"13", 0, big.NewInt(9722), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, ExTxInfo{"7", 0, big.NewInt(4236), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("21")}, ExTxInfo{"18", 0, big.NewInt(1780), 0}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, newExTxInfo("18", 0, big.NewInt(3780), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, newExTxInfo("6", 0, big.NewInt(5853), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, newExTxInfo("7", 0, big.NewInt(8315), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, newExTxInfo("10", 0, big.NewInt(9526), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, newExTxInfo("15", 0, big.NewInt(9140), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, newExTxInfo("9", 0, big.NewInt(9227), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, newExTxInfo("3", 0, big.NewInt(761), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, newExTxInfo("18", 0, big.NewInt(9740), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, newExTxInfo("1", 0, big.NewInt(6574), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, newExTxInfo("8", 0, big.NewInt(9656), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, newExTxInfo("12", 0, big.NewInt(6554), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, newExTxInfo("16", 0, big.NewInt(5609), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, newExTxInfo("6", 0, big.NewInt(2791), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, newExTxInfo("18", 0, big.NewInt(2698), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, newExTxInfo("1", 0, big.NewInt(6925), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, newExTxInfo("3", 0, big.NewInt(3171), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, newExTxInfo("1", 0, big.NewInt(2965), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, newExTxInfo("19", 0, big.NewInt(2484), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, newExTxInfo("13", 0, big.NewInt(9722), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, newExTxInfo("7", 0, big.NewInt(4236), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("21")}, newExTxInfo("18", 0, big.NewInt(1780), 0)},
 	}
 
 	for _, exInfo := range testCases {
@@ -733,12 +733,12 @@ func TestReplaceTx(t *testing.T) {
 		Tx   *mempoolTx
 		Info ExTxInfo
 	}{
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10000")}, ExTxInfo{"1", 0, big.NewInt(9740), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001")}, ExTxInfo{"1", 0, big.NewInt(5853), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002")}, ExTxInfo{"1", 0, big.NewInt(8315), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10003")}, ExTxInfo{"1", 0, big.NewInt(9526), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10004")}, ExTxInfo{"1", 0, big.NewInt(9140), 4}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002")}, ExTxInfo{"1", 0, big.NewInt(9227), 2}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10000")}, newExTxInfo("1", 0, big.NewInt(9740), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001")}, newExTxInfo("1", 0, big.NewInt(5853), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002")}, newExTxInfo("1", 0, big.NewInt(8315), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10003")}, newExTxInfo("1", 0, big.NewInt(9526), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10004")}, newExTxInfo("1", 0, big.NewInt(9140), 4)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002")}, newExTxInfo("1", 0, big.NewInt(9227), 2)},
 	}
 
 	for _, exInfo := range testCases {
@@ -773,31 +773,34 @@ func TestReapUserTxs(t *testing.T) {
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+
+
+
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	testCases := []struct {
 		Tx   *mempoolTx
 		Info ExTxInfo
 	}{
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, ExTxInfo{"18", 0, big.NewInt(9740), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, ExTxInfo{"6", 0, big.NewInt(5853), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, ExTxInfo{"7", 0, big.NewInt(8315), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, ExTxInfo{"10", 0, big.NewInt(9526), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, ExTxInfo{"15", 0, big.NewInt(9140), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, ExTxInfo{"9", 0, big.NewInt(9227), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, ExTxInfo{"3", 0, big.NewInt(761), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, ExTxInfo{"18", 0, big.NewInt(3780), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, ExTxInfo{"1", 0, big.NewInt(6574), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, ExTxInfo{"8", 0, big.NewInt(9656), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, ExTxInfo{"12", 0, big.NewInt(6554), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, ExTxInfo{"16", 0, big.NewInt(5609), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, ExTxInfo{"6", 0, big.NewInt(2791), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, ExTxInfo{"18", 0, big.NewInt(2698), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, ExTxInfo{"1", 0, big.NewInt(6925), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, ExTxInfo{"3", 0, big.NewInt(3171), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, ExTxInfo{"1", 0, big.NewInt(2965), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, ExTxInfo{"19", 0, big.NewInt(2484), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, ExTxInfo{"13", 0, big.NewInt(9722), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, ExTxInfo{"7", 0, big.NewInt(4236), 1}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, newExTxInfo("18", 0, big.NewInt(9740), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, newExTxInfo("6", 0, big.NewInt(5853), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, newExTxInfo("7", 0, big.NewInt(8315), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, newExTxInfo("10", 0, big.NewInt(9526), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, newExTxInfo("15", 0, big.NewInt(9140), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, newExTxInfo("9", 0, big.NewInt(9227), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, newExTxInfo("3", 0, big.NewInt(761), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, newExTxInfo("18", 0, big.NewInt(3780), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, newExTxInfo("1", 0, big.NewInt(6574), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, newExTxInfo("8", 0, big.NewInt(9656), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, newExTxInfo("12", 0, big.NewInt(6554), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, newExTxInfo("16", 0, big.NewInt(5609), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, newExTxInfo("6", 0, big.NewInt(2791), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, newExTxInfo("18", 0, big.NewInt(2698), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, newExTxInfo("1", 0, big.NewInt(6925), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, newExTxInfo("3", 0, big.NewInt(3171), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, newExTxInfo("1", 0, big.NewInt(2965), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, newExTxInfo("19", 0, big.NewInt(2484), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, newExTxInfo("13", 0, big.NewInt(9722), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, newExTxInfo("7", 0, big.NewInt(4236), 1)},
 	}
 
 	for _, exInfo := range testCases {
@@ -927,28 +930,29 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 		Info ExTxInfo
 	}
 
+
 	testCases := []Case{
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, ExTxInfo{"1", 0, big.NewInt(3780), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, ExTxInfo{"1", 0, big.NewInt(3245), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, ExTxInfo{"1", 0, big.NewInt(5315), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, ExTxInfo{"1", 0, big.NewInt(4526), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, ExTxInfo{"1", 0, big.NewInt(2140), 4}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, ExTxInfo{"1", 0, big.NewInt(4227), 5}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, ExTxInfo{"2", 0, big.NewInt(2161), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, ExTxInfo{"2", 0, big.NewInt(5740), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, ExTxInfo{"2", 0, big.NewInt(6574), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, ExTxInfo{"2", 0, big.NewInt(9630), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, ExTxInfo{"2", 0, big.NewInt(6554), 4}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, ExTxInfo{"2", 0, big.NewInt(5609), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, ExTxInfo{"3", 0, big.NewInt(2791), 0}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, ExTxInfo{"3", 0, big.NewInt(2698), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, ExTxInfo{"2", 0, big.NewInt(6925), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, ExTxInfo{"1", 0, big.NewInt(4171), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, ExTxInfo{"1", 0, big.NewInt(2965), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, ExTxInfo{"3", 0, big.NewInt(2484), 2}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, ExTxInfo{"3", 0, big.NewInt(9722), 1}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, ExTxInfo{"2", 0, big.NewInt(4236), 3}},
-		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("21")}, ExTxInfo{"1", 0, big.NewInt(8780), 4}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, newExTxInfo("1", 0, big.NewInt(3780), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, newExTxInfo("1", 0, big.NewInt(3245), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3")}, newExTxInfo("1", 0, big.NewInt(5315), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4")}, newExTxInfo("1", 0, big.NewInt(4526), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5")}, newExTxInfo("1", 0, big.NewInt(2140), 4)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6")}, newExTxInfo("1", 0, big.NewInt(4227), 5)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("7")}, newExTxInfo("2", 0, big.NewInt(2161), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("8")}, newExTxInfo("2", 0, big.NewInt(5740), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("9")}, newExTxInfo("2", 0, big.NewInt(6574), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("10")}, newExTxInfo("2", 0, big.NewInt(9630), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("11")}, newExTxInfo("2", 0, big.NewInt(6554), 4)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("12")}, newExTxInfo("2", 0, big.NewInt(5609), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("13")}, newExTxInfo("3", 0, big.NewInt(2791), 0)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("14")}, newExTxInfo("3", 0, big.NewInt(2698), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("15")}, newExTxInfo("2", 0, big.NewInt(6925), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("16")}, newExTxInfo("1", 0, big.NewInt(4171), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("17")}, newExTxInfo("1", 0, big.NewInt(2965), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("18")}, newExTxInfo("3", 0, big.NewInt(2484), 2)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("19")}, newExTxInfo("3", 0, big.NewInt(9722), 1)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("20")}, newExTxInfo("2", 0, big.NewInt(4236), 3)},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("21")}, newExTxInfo("1", 0, big.NewInt(8780), 4)},
 	}
 
 	var wait sync.WaitGroup
@@ -961,4 +965,18 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	}
 
 	wait.Wait()
+}
+
+
+func newExTxInfo(Sender string,
+	SenderNonce uint64,
+	GasPrice *big.Int,
+	Nonce uint64, ) ExTxInfo {
+
+	return ExTxInfo {
+		Sender: Sender,
+		SenderNonce: SenderNonce,
+		GasPrice: GasPrice,
+		Nonce: Nonce,
+	}
 }

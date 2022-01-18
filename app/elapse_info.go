@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"strings"
 	"sync"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -16,15 +17,17 @@ var (
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
+		trace.FlatKV,
 		trace.DeliverTxs,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
+		trace.FlatKV,
 		trace.DeliverTxs,
 		trace.Round,
 		trace.CommitRound,

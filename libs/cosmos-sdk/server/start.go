@@ -16,6 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -163,6 +164,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(tmtypes.FlagRedisDB, 0, "delta db num")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressType, 0, "delta compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
@@ -178,6 +180,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagEnableWrappedTx, false, "Wrapped tx")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
@@ -192,6 +195,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -362,6 +366,10 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
+	}
+
+	if keeper, ok := app.(p2p.NodeKeyUser); ok {
+		keeper.SetNodeKey(cfg.NodeKeyFile(), nodeKey)
 	}
 
 	// run forever (the node will not be returned)
