@@ -19,7 +19,7 @@ var (
 	o    sync.Once
 )
 
-func GetOnceFlag() bool {
+func getOnceFlag() bool {
 	o.Do(func() {
 		flag = viper.GetBool(flagStr)
 	})
@@ -28,12 +28,12 @@ func GetOnceFlag() bool {
 
 func testTmp1(t *testing.T) {
 	viper.Set(flagStr, true)
-	v := GetOnceFlag()
+	v := getOnceFlag()
 	assert.True(t, v, "tmp1")
 }
 func testTmp2(t *testing.T) {
 	viper.Set(flagStr, false)
-	v := GetOnceFlag()
+	v := getOnceFlag()
 	assert.False(t, v, "tmp2")
 }
 func TestSubProcess(t *testing.T) {
