@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -12,34 +11,33 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-
 type executionResult struct {
 	res *ABCIResponses
 	err error
 }
 
 type executionTask struct {
-	height  int64
-	index   int64
-	block   *types.Block
-	stopped bool
-	taskResultChan   chan *executionTask
-	result           *executionResult
-	proxyApp         proxy.AppConnConsensus
-	db               dbm.DB
-	logger           log.Logger
+	height         int64
+	index          int64
+	block          *types.Block
+	stopped        bool
+	taskResultChan chan *executionTask
+	result         *executionResult
+	proxyApp       proxy.AppConnConsensus
+	db             dbm.DB
+	logger         log.Logger
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
 
 	return &executionTask{
-		height:           block.Height,
-		block:            block,
-		db:               blockExec.db,
-		proxyApp:         blockExec.proxyApp,
-		logger:           blockExec.logger,
-		taskResultChan:   blockExec.prerunCtx.taskResultChan,
-		index:            index,
+		height:         block.Height,
+		block:          block,
+		db:             blockExec.db,
+		proxyApp:       blockExec.proxyApp,
+		logger:         blockExec.logger,
+		taskResultChan: blockExec.prerunCtx.taskResultChan,
+		index:          index,
 	}
 }
 
@@ -58,21 +56,12 @@ func (t *executionTask) stop() {
 		return
 	}
 
-	//reset deliverState
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
-	}
 	t.stopped = true
 }
-
 
 func (t *executionTask) run() {
 	t.dump("Start prerun")
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
-
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState",})
-	}
 
 	abciResponses, err := execBlockOnProxyApp(t)
 
@@ -96,5 +85,8 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
+	if block.Height == 1+types.GetStartBlockHeight() {
+		return
+	}
 	blockExec.prerunCtx.notifyPrerun(blockExec, block)
 }
