@@ -177,6 +177,21 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 	}
 }
 
+func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewDelAccMsg(account)
+	if wMsg != nil {
+		if isDirectly {
+			w.batch = append(w.batch, wMsg)
+		} else {
+			w.staleBatch = append(w.staleBatch, wMsg)
+		}
+
+	}
+}
+
 func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
@@ -397,9 +412,13 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
-		w.store.Set(key, value)
-		if typeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(key), value)
+		if typeValue == TypeDelete {
+			w.store.Delete(key)
+		} else {
+			w.store.Set(key, value)
+			if typeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(key), value)
+			}
 		}
 	}
 
@@ -414,9 +433,13 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
 	for _, b := range batch {
-		w.store.Set(b.Key, b.Value)
-		if b.TypeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		if b.TypeValue == TypeDelete {
+			w.store.Delete(b.Key)
+		} else {
+			w.store.Set(b.Key, b.Value)
+			if b.TypeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+			}
 		}
 	}
 }
