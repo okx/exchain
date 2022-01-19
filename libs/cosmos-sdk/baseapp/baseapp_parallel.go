@@ -127,7 +127,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
 			if s.anteErr != nil {
-				txReps[txIndex] = nil
+				txReps[txIndex].ms = nil
 			}
 
 			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
