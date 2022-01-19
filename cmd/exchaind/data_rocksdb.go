@@ -53,26 +53,25 @@ func LtoR(name, fromDir, toDir string) {
 		panic(err)
 	}
 
-	keySize := iter.Key().Size()
-
-	valueSize := iter.Value().Size()
-
-	if valueSize < mid {
-		smaleCounter++
-	}
-
-	if valueSize > mid && valueSize < large {
-		midCounter++
-	}
-
-	if valueSize > large {
-		largeCounter++
-	}
-
 	for ; iter.Valid(); iter.Next() {
 		bdb.Set(iter.Key(), iter.Value())
+		keySize := iter.Key().Size()
+
+		valueSize := iter.Value().Size()
+
+		if valueSize < mid {
+			smaleCounter++
+		}
+
+		if valueSize > mid && valueSize < large {
+			midCounter++
+		}
+
+		if valueSize > large {
+			largeCounter++
+		}
+		pairCounter++
 	}
-	pairCounter++
 
 	iter.Close()
 	log.Printf("convert %s(rocksdb => badgerdb) end.\n", name)
