@@ -500,7 +500,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		suite.stateDB.WithContext(suite.ctx).Finalise(tc.deleteObjs)
+		suite.stateDB.WithContext(suite.ctx).IntermediateRoot(tc.deleteObjs)
 
 		if !tc.expPass {
 			hash := suite.stateDB.WithContext(suite.ctx).GetCommittedState(suite.address, ethcmn.BytesToHash([]byte("key")))
@@ -517,8 +517,6 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 
 		suite.Require().NotNil(acc, tc.name)
 	}
-
-	suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
 }
 
 func (suite *KeeperTestSuite) TestCommitStateDB_GetCommittedState() {
@@ -588,7 +586,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // reset
 			tc.malleate()
-			suite.stateDB.WithContext(suite.ctx).Finalise(false)
+			suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
 
 			err := suite.stateDB.WithContext(suite.ctx).ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)

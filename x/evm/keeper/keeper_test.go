@@ -148,8 +148,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
-	err := suite.stateDB.WithContext(suite.ctx).Finalise(false)
-	suite.Require().NoError(err, "failed to finalise evm state")
+	suite.stateDB.WithContext(suite.ctx).Finalise(false)
 
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")

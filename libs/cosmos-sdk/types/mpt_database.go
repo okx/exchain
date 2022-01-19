@@ -6,6 +6,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/leveldb"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/trie"
 	//"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
@@ -23,18 +24,6 @@ var (
 	TrieDirtyDisabled      = false
 	TrieCacheSize     uint = 2048 // MB
 )
-
-func init() {
-	dbCreator := func(name string, dir string) (ethdb.KeyValueStore, error) {
-		return NewMptLevelDB(name, dir)
-	}
-	registerDBCreator(GoLevelDBBackend, dbCreator, false)
-}
-
-func NewMptLevelDB(name string, dir string) (ethdb.KeyValueStore, error) {
-	file := filepath.Join(dir, name+".db")
-	return leveldb.New(file, 128, 1024, EvmSpace, false)
-}
 
 const (
 	EvmDataDir = "data"
@@ -70,6 +59,24 @@ func InstanceOfEvmStore(homeDir string) ethstate.Database {
 	return gEvmMptDatabase
 }
 
+func CreateKvDB(name string, backend BackendType, dir string) (ethdb.KeyValueStore, error) {
+	dbCreator, ok := backends[backend]
+	if !ok {
+		keys := make([]string, len(backends))
+		i := 0
+		for k := range backends {
+			keys[i] = string(k)
+			i++
+		}
+		panic(fmt.Sprintf("Unknown db_backend %s, expected either %s", backend, strings.Join(keys, " or ")))
+	}
+
+	return dbCreator(name, dir)
+}
+
+//------------------------------------------
+//
+//------------------------------------------
 type BackendType string
 
 // These are valid backend types.
@@ -85,6 +92,10 @@ const (
 	//   - requires gcc
 	//   - use rocksdb build tag (go build -tags rocksdb)
 	RocksDBBackend BackendType = "rocksdb"
+
+	// MemDBBackend represents in-memory key value store, which is mostly used
+	// for testing.
+	MemDBBackend BackendType = "memdb"
 )
 
 type dbCreator func(name string, dir string) (ethdb.KeyValueStore, error)
@@ -99,17 +110,27 @@ func registerDBCreator(backend BackendType, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
-func CreateKvDB(name string, backend BackendType, dir string) (ethdb.KeyValueStore, error) {
-	dbCreator, ok := backends[backend]
-	if !ok {
-		keys := make([]string, len(backends))
-		i := 0
-		for k := range backends {
-			keys[i] = string(k)
-			i++
-		}
-		panic(fmt.Sprintf("Unknown db_backend %s, expected either %s", backend, strings.Join(keys, " or ")))
+//------------------------------------------
+//	Register memdb and leveldb
+//------------------------------------------
+func init() {
+	levelDBCreator := func(name string, dir string) (ethdb.KeyValueStore, error) {
+		return NewMptLevelDB(name, dir)
 	}
 
-	return dbCreator(name, dir)
+	memDBCreator := func(name string, dir string) (ethdb.KeyValueStore, error) {
+		return NewMptMemDB(name, dir)
+	}
+
+	registerDBCreator(GoLevelDBBackend, levelDBCreator, false)
+	registerDBCreator(MemDBBackend, memDBCreator, false)
+}
+
+func NewMptLevelDB(name string, dir string) (ethdb.KeyValueStore, error) {
+	file := filepath.Join(dir, name+".db")
+	return leveldb.New(file, 128, 1024, EvmSpace, false)
+}
+
+func NewMptMemDB(name string, dir string) (ethdb.KeyValueStore, error) {
+	return memorydb.New(), nil
 }
