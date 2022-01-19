@@ -91,7 +91,7 @@ func TestLoadVersion(t *testing.T) {
 	db := dbm.NewMemDB()
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil, pruningOpt)
-
+	app.InitChain(abci.RequestInitChain{})
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
 	app.MountStores(capKey)
@@ -836,7 +836,6 @@ func TestDeliverTx(t *testing.T) {
 	}
 
 	app := setupBaseApp(t, anteOpt, routerOpt)
-	app.InitChain(abci.RequestInitChain{})
 
 	// Create same codec used in txDecoder
 	codec := codec.New()

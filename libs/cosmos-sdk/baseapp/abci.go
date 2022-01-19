@@ -121,6 +121,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		panic(err)
 	}
 
+	app.setDeliverState(req.Header)
+
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
@@ -132,12 +134,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		}
 		app.setDeliverState(req.Header)
 	} else {
-
-		// for TestDeliverTx only
-		if app.deliverState == nil {
-			initHeader := abci.Header{ChainID: req.Header.ChainID}
-			app.setDeliverState(initHeader)
-		}
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
 		app.deliverState.ctx = app.deliverState.ctx.
