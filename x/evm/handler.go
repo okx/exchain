@@ -169,12 +169,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog(bam.SaveTx)
 
 	defer func() {
-
+		pm := k.GenerateCSDBParams()
+		infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+		sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
-			pm := k.GenerateCSDBParams()
-			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 			//fix sender's balance in watcher with refund fees
 			gasConsumed := ctx.GasMeter().GasConsumed()
 			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
@@ -187,11 +186,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		if e := recover(); e != nil {
 			k.Watcher.Reset()
+			// delete account which is already in Watcher.batch
+			k.Watcher.AddDelAccMsg(sendAcc, true)
 			panic(e)
 		}
 		if !st.Simulate {
 			if err != nil {
 				k.Watcher.Reset()
+				// delete account which is already in Watcher.batch
+				k.Watcher.AddDelAccMsg(sendAcc, true)
 			} else {
 				//save state and account data into batch
 				k.Watcher.Finalize()
