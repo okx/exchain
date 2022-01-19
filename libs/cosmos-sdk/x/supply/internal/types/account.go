@@ -40,22 +40,22 @@ type ModuleAccount struct {
 
 func (acc *ModuleAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
-	var read int
 
 	for {
 		data = data[dataLen:]
-		read += int(dataLen)
 
 		if len(data) <= 0 {
 			break
 		}
 
-		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		if err != nil {
 			return err
 		}
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid type byte: %v", pbType)
+		}
 		data = data[1:]
-		read += 1
 
 		var n int
 		dataLen, n, err = amino.DecodeUvarint(data)
@@ -64,7 +64,9 @@ func (acc *ModuleAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 		}
 
 		data = data[n:]
-		read += n
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid data length: %v", dataLen)
+		}
 		subData := data[:dataLen]
 
 		switch pos {
@@ -95,81 +97,41 @@ var moduleAccountBufferPool = amino.NewBufferPool()
 func (acc ModuleAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = moduleAccountBufferPool.Get()
 	defer moduleAccountBufferPool.Put(buf)
-	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
-	for pos := 1; pos < 4; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err := buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
-
+	var err error
+	for pos := 1; pos <= 3; pos++ {
 		switch pos {
 		case 1:
 			if acc.BaseAccount == nil {
-				noWrite = true
 				break
 			}
 			data, err := acc.BaseAccount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, 1<<3|2)
 			if err != nil {
 				return nil, err
 			}
 		case 2:
 			if acc.Name == "" {
-				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, uint64(len(acc.Name)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.WriteString(acc.Name)
+			err = amino.EncodeStringWithKeyToBuffer(buf, acc.Name, 2<<3|2)
 			if err != nil {
 				return nil, err
 			}
 		case 3:
-			permsLen := len(acc.Permissions)
-			if permsLen == 0 {
-				noWrite = true
+			if len(acc.Permissions) == 0 {
 				break
 			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(acc.Permissions[0])))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.WriteString(acc.Permissions[0])
-			if err != nil {
-				return nil, err
-			}
-
-			for i := 1; i < permsLen; i++ {
-				err := buf.WriteByte(fieldKeysType[pos-1])
-				if err != nil {
-					return nil, err
-				}
-				perm := acc.Permissions[i]
-				err = amino.EncodeUvarintToBuffer(buf, uint64(len(perm)))
-				if err != nil {
-					return nil, err
-				}
-				_, err = buf.WriteString(perm)
+			for _, perm := range acc.Permissions {
+				err = amino.EncodeStringWithKeyToBuffer(buf, perm, 3<<3|2)
 				if err != nil {
 					return nil, err
 				}
 			}
 		default:
 			panic("unreachable")
-		}
-		if noWrite {
-			buf.Truncate(lBeforeKey)
 		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil

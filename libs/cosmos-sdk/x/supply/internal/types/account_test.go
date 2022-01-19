@@ -133,7 +133,7 @@ func TestModuleAccountAmino(t *testing.T) {
 				1,
 				1,
 			),
-			"name",
+			"name1",
 			[]string{"perm1", "perm2"},
 		},
 		{
@@ -144,30 +144,16 @@ func TestModuleAccountAmino(t *testing.T) {
 				9098,
 				1000,
 			),
-			"name",
-			[]string{"perm1", "perm2"},
+			"name2",
+			[]string{"perm1", "perm2", "perm3"},
 		},
 		{
-			authtypes.NewBaseAccount(
-				nil,
-				nil,
-				nil,
-				0,
-				0,
-			),
+			&authtypes.BaseAccount{},
 			"",
 			[]string{""},
 		},
 		{
-			authtypes.NewBaseAccount(
-				nil,
-				nil,
-				nil,
-				0,
-				0,
-			),
-			"",
-			nil,
+			Permissions: []string{},
 		},
 	}
 
