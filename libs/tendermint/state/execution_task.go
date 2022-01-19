@@ -70,10 +70,6 @@ func (t *executionTask) stop() {
 	if t.stopped {
 		return
 	}
-	//reset deliverState
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
 	t.stopped = true
 }
 
@@ -141,5 +137,8 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
+	if block.Height == 1+types.GetStartBlockHeight() {
+		return
+	}
 	blockExec.prerunCtx.notifyPrerun(blockExec, block)
 }

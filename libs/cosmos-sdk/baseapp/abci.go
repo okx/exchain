@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
 	"strings"
@@ -86,14 +87,6 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
-	case "ResetDeliverState":
-		// reset deliver state
-
-		// Reset the DeliverTx state. If this is the first block, it should
-		// already be initialized in InitChain. Otherwise app.deliverState will be
-		// nil, since it is reset on Commit.
-		// init chain will set deliverstate without blockHeight
-		app.deliverState = nil
 	default:
 		// do nothing
 	}
@@ -131,9 +124,20 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
-	if app.deliverState == nil {
+	if req.Header.Height > 1+tmtypes.GetStartBlockHeight() {
+		if app.deliverState != nil {
+			app.logger.Info(
+				"deliverState was not reset by BaseApp.Commit due to the previous prerun task being stopped",
+				"height", req.Header.Height)
+		}
 		app.setDeliverState(req.Header)
 	} else {
+
+		// for TestDeliverTx only
+		if app.deliverState == nil {
+			initHeader := abci.Header{ChainID: req.Header.ChainID}
+			app.setDeliverState(initHeader)
+		}
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
 		app.deliverState.ctx = app.deliverState.ctx.
@@ -257,6 +261,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Commit. Use the header from this latest block.
 	app.setCheckState(header)
 
+	app.logger.Info("deliverState reset by BaseApp.Commit", "height", header.Height)
 	// empty/reset the deliver state
 	app.deliverState = nil
 
