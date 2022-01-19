@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"container/list"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -516,4 +517,28 @@ func (ndb *nodeDB) syncUnCacheNode(hash []byte) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	ndb.uncacheNode(hash)
+}
+
+// orphanKeyFast generates key for an orphan node,
+// result must be equal to orphanKeyFormat.Key(toVersion, fromVersion, hash)
+func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
+	key := make([]byte, orphanKeyFormat.length)
+	key[0] = orphanKeyFormat.prefix
+	n := 1
+	if orphanKeyFormat.layout[0] != int64Size {
+		panic("unexpected layout")
+	}
+	binary.BigEndian.PutUint64(key[n:n+int64Size], uint64(toVersion))
+	n += int64Size
+	if orphanKeyFormat.layout[1] != int64Size {
+		panic("unexpected layout")
+	}
+	binary.BigEndian.PutUint64(key[n:n+int64Size], uint64(fromVersion))
+	n += int64Size
+	hashLen := orphanKeyFormat.layout[2]
+	if hashLen < len(hash) {
+		panic("hash is too long")
+	}
+	copy(key[n+hashLen-len(hash):n+hashLen], hash)
+	return key
 }

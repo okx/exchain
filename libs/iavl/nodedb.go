@@ -437,7 +437,9 @@ func (ndb *nodeDB) nodeKey(hash []byte) []byte {
 }
 
 func (ndb *nodeDB) orphanKey(fromVersion, toVersion int64, hash []byte) []byte {
-	return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// we use orphanKeyFast to replace orphanKeyFormat.Key(toVersion, fromVersion, hash) for performance
+	return orphanKeyFast(fromVersion, toVersion, hash)
 }
 
 func (ndb *nodeDB) rootKey(version int64) []byte {
