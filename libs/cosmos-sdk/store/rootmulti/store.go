@@ -29,10 +29,10 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
-	latestVersionKey = "s/latest"
-	pruneHeightsKey  = "s/pruneheights"
-	versionsKey      = "s/versions"
-	commitInfoKeyFmt = "s/%d" // s/<version>
+	latestVersionKey      = "s/latest"
+	pruneHeightsKey       = "s/pruneheights"
+	versionsKey           = "s/versions"
+	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
 )
 
@@ -279,8 +279,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, " +
-			"need to prune them with command " +
+		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
+			"need to prune them with command "+
 			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
@@ -300,7 +300,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 	needReset := false
 	var newPh []int64
 	for _, h := range ph {
-		if _, ok := roots[h] ;ok {
+		if _, ok := roots[h]; ok {
 			newPh = append(newPh, h)
 		} else {
 			needReset = true
@@ -864,14 +864,14 @@ func getLatestVersion(db dbm.DB) int64 {
 
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-//	storeInfos := make([]storeInfo, 0, len(storeMap))
+	//	storeInfos := make([]storeInfo, 0, len(storeMap))
 	var storeInfos []storeInfo
 	appliedDeltas := map[string]*iavltree.TreeDelta{}
 	returnedDeltas := map[string]iavltree.TreeDelta{}
 
 	var err error
 	if tmtypes.DownloadDelta && len(deltas) != 0 {
-		err = itjs.Unmarshal(deltas, &appliedDeltas)
+		appliedDeltas, err = UnmarshalAppliedDeltaFromAmino(deltas)
 		if err != nil {
 			panic(err)
 		}
@@ -892,7 +892,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}
 
 	if tmtypes.UploadDelta {
-		deltas, err = itjs.Marshal(returnedDeltas)
+		deltas, err = MarshalAppliedDeltaToAmino(returnedDeltas)
 		if err != nil {
 			panic(err)
 		}
