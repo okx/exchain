@@ -23,12 +23,27 @@ func init() {
 func LtoR(name, fromDir, toDir string) {
 	log.Printf("convert %s(rocksdb => badgerdb) start...\n", name)
 
+	pairCounter := 0
+
+	smaleCounter := 0
+
+	midCounter := 0
+
+	largeCounter := 0
+
+	smale := 128
+
+	mid := 1024
+
+	large := 16384
+
 	rdb, err := dbm.NewRocksDB(name, fromDir)
 	if err != nil {
 		panic(err)
 	}
 
 	bdb, err := dbm.NewBadgerDB(name, toDir)
+
 	if err != nil {
 		panic(err)
 	}
@@ -38,11 +53,33 @@ func LtoR(name, fromDir, toDir string) {
 		panic(err)
 	}
 
+	keySize := iter.Key().Size()
+
+	valueSize := iter.Value().Size()
+
+	if valueSize < mid {
+		smaleCounter++
+	}
+
+	if valueSize > mid && valueSize < large {
+		midCounter++
+	}
+
+	if valueSize > large {
+		largeCounter++
+	}
+
 	for ; iter.Valid(); iter.Next() {
 		bdb.Set(iter.Key(), iter.Value())
 	}
+	pairCounter++
+
 	iter.Close()
 	log.Printf("convert %s(rocksdb => badgerdb) end.\n", name)
+	log.Printf("pairs %s", pairCounter)
+	log.Printf("smale  %s", smaleCounter)
+	log.Printf("mid %s", midCounter)
+	log.Printf("large %s", largeCounter)
 
 	//log.Printf("compact %s start...\n", name)
 	////bdb.DB()(gorocksdb.Range{})
