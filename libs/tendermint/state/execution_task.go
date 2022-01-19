@@ -90,7 +90,7 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
-	if block.Height == 1 {
+	if block.Height == 1+types.GetStartBlockHeight() {
 		return
 	}
 	blockExec.prerunCtx.notifyPrerun(blockExec, block)

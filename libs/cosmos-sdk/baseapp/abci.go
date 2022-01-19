@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
 	"strings"
@@ -123,7 +124,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
-	if req.Header.Height > 1 {
+	if req.Header.Height > 1+tmtypes.GetStartBlockHeight() {
 		if app.deliverState != nil {
 			app.logger.Info(
 				"deliverState was not reset by BaseApp.Commit due to the previous prerun task being stopped",
