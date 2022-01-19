@@ -125,7 +125,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// nil, since it is reset on Commit.
 	if req.Header.Height > 1 {
 		if app.deliverState != nil {
-			app.logger.Info("deliverState was not reset by BaseApp.Commit",
+			app.logger.Info(
+				"deliverState was not reset by BaseApp.Commit due to the previous prerun task being stopped",
 				"height", req.Header.Height)
 		}
 		app.setDeliverState(req.Header)
