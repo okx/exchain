@@ -2,9 +2,11 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 )
 
@@ -19,6 +21,7 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
+	nodeSigVerifyResult   int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -32,9 +35,6 @@ func (app *BaseApp) runTx(mode runTxMode,
 	var info *runTxInfo
 	info, err = app.runtx(mode, txBytes, tx, height)
 	return info.gInfo, info.result, info.msCacheAnte, err
-
-	//return app.runtx_org(mode, txBytes, tx, height)
-
 }
 
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
@@ -98,7 +98,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 }
 
 
-func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	var anteCtx sdk.Context
 
@@ -111,9 +111,19 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
+	info.nodeSigVerifyResult = newCtx.NodeSigVerifyResult()
+	app.logger.Debug("anteHandler finished",
+		"mode", mode,
+		"type", info.tx.GetType(),
+		"nodeSigVerifyResult", info.nodeSigVerifyResult,
+		"err", err,
+		"tx", info.tx,
+		"payloadtx", info.tx.GetPayloadTx())
+
 	if !newCtx.IsZero() {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 		// replaced by the AnteHandler. We want the original multistore, not one
@@ -144,17 +154,34 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	return nil
 }
 
+func txhash(txbytes []byte) string {
+	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
+	ethHash := common.BytesToHash(txHash)
+	return ethHash.String()
+}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	tx, err := app.txDecoder(req.Tx)
+	tx, err := app.wrappedTxDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
+	app.logger.Info("(app *BaseApp) DeliverT",
+		"wrapped-tx-hash", txhash(req.Tx),
+	)
+
+	if tx.GetType() == sdk.WrappedTxType {
+		req.Tx = tx.GetPayloadTxBytes()
+		tx = tx.GetPayloadTx()
+		app.logger.Info("(app *BaseApp) DeliverTx",
+			"payload-tx-hash", txhash(req.Tx),
+		)
+	}
+
 	//just for asynchronous deliver tx
 	if app.parallelTxManage.isAsyncDeliverTx {
-		go app.asyncDeliverTx(req, tx)
+		go app.asyncDeliverTx(req.Tx, tx)
 		return abci.ResponseDeliverTx{}
 	}
 
@@ -203,9 +230,9 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
+func (app *BaseApp) asyncDeliverTx(txbytes []byte, tx sdk.Tx) {
 
-	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
+	txStatus := app.parallelTxManage.txStatus[string(txbytes)]
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
@@ -213,7 +240,7 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
+	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txbytes, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
