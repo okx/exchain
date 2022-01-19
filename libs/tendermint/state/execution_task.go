@@ -1,8 +1,8 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -27,13 +27,11 @@ type executionTask struct {
 	proxyApp       proxy.AppConnConsensus
 	db             dbm.DB
 	logger         log.Logger
-	eventBus       types.BlockEventPublisher
-	notifyC        chan struct{}
+	blockHash      string
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
-
-	return &executionTask{
+	ret:=&executionTask{
 		height:         block.Height,
 		block:          block,
 		db:             blockExec.db,
@@ -41,9 +39,10 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		eventBus:       blockExec.eventBus,
-		notifyC: make(chan struct{}),
 	}
+	ret.blockHash=hex.EncodeToString(block.Hash())
+
+	return ret
 }
 
 func (e *executionTask) dump(when string) {
@@ -52,11 +51,10 @@ func (e *executionTask) dump(when string) {
 		"stopped", e.stopped,
 		"Height", e.block.Height,
 		"index", e.index,
-		"blockHash", e.block.Hash(),
+		"blockHash", e.blockHash,
 		//"AppHash", e.block.AppHash,
 	)
 }
-
 
 func (t *executionTask) stop() {
 	if t.stopped {
@@ -64,39 +62,11 @@ func (t *executionTask) stop() {
 	}
 
 	t.stopped = true
-
-	t.waitUntilTaskFinishedOrCanceled()
-
-	//reset deliverState
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
-
-}
-
-// wait until current  task is quit
-func(t *executionTask)waitUntilTaskFinishedOrCanceled(){
-	<-t.notifyC
 }
 
 func (t *executionTask) run() {
-	defer func() {
-		if t.notifyC != nil {
-			close(t.notifyC)
-		}
-	}()
-
 	t.dump("Start prerun")
-
-	if eventAdapter, ok := t.eventBus.(types.BlockEventPublisherAdapter); ok {
-		eventAdapter.PublishEventPrerun(types.EventDataPreRun{Block: t.block, NewTask: true})
-	}
-
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
-
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
 
 	abciResponses, err := execBlockOnProxyApp(t)
 
@@ -106,7 +76,7 @@ func (t *executionTask) run() {
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
-	automation.PrerunCallBackWithTimeOut(t.block.Height, int(t.index)-1)
+	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")
 	t.taskResultChan <- t
 }
@@ -120,5 +90,8 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
+	if block.Height == 1+types.GetStartBlockHeight() {
+		return
+	}
 	blockExec.prerunCtx.notifyPrerun(blockExec, block)
 }

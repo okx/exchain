@@ -18,6 +18,9 @@ type ID string
 // TODO: support other length addresses ?
 const IDByteLength = crypto.AddressSize
 
+type NodeKeyUser interface {
+	SetNodeKey(string, *NodeKey)
+}
 //------------------------------------------------------------------------------
 // Persistent peer ID
 // TODO: encrypt on disk
