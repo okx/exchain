@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -22,5 +24,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(app.FlagStartHeight, 0, "Set the start block height for repair")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	return cmd
 }

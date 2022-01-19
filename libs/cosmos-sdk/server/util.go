@@ -115,7 +115,6 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		}
 	}
 
-	config.SetNodeHome(rootDir)
 	appConfigFilePath := filepath.Join(rootDir, "config/exchaind.toml")
 	if _, err := os.Stat(appConfigFilePath); os.IsNotExist(err) {
 		appConf, _ := config.ParseConfig()
@@ -136,7 +135,7 @@ func AddCommands(
 	registerRouters func(rs *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context) error,
-	subFunc func(logger log.Logger)log.Subscriber) {
+	subFunc func(logger log.Logger) log.Subscriber) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 	rootCmd.PersistentFlags().String("log_file", ctx.Config.LogFile, "Log file")

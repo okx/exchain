@@ -9,10 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/tendermint/go-amino"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -20,9 +16,6 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 )
@@ -532,82 +525,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
-// ----------------------------------------------------------------------------
-// Auxiliary
-
-// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
-		if len(heights) > 1 {
-			return nil, fmt.Errorf("to many height parameters")
-		}
-		var tx sdk.Tx
-		var err error
-		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
-		}
-
-		var height int64
-		if len(heights) == 1 {
-			height = heights[0]
-		} else {
-			height = global.GetGlobalHeight()
-		}
-
-		if types.HigherThanVenus(height) {
-			// Try to decode as MsgEthereumTx through RLP
-			var ethTx MsgEthereumTx
-			if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-				return ethTx, nil
-			}
-		}
-
-		// sdk.Tx is an interface. The concrete message types
-		// are registered by MakeTxCodec
-		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
-			if _, ok := v.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
-				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
-			}
-			return v.(sdk.Tx), nil
-		}
-		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
-			if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
-				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "amino decode is not allowed for MsgEthereumTx")
-			}
-			return tx, nil
-		}
-		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-	}
-}
-
-//
-func TxDecoderOnlyInQuery(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
-		var tx sdk.Tx
-		var err error
-		if len(txBytes) == 0 {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
-		}
-
-		var ethTx MsgEthereumTx
-		if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-			return ethTx, nil
-		}
-
-		// sdk.Tx is an interface. The concrete message types
-		// are registered by MakeTxCodec
-		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		if v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
-			return v.(sdk.Tx), nil
-		}
-		if err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err == nil {
-			return tx, nil
-		}
-		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-	}
-}
 
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.

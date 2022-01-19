@@ -55,8 +55,18 @@ func (tx kvstoreTx) ValidateBasic() error {
 	return nil
 }
 
+func (tx kvstoreTx) GetPayloadTx() sdk.Tx {
+	return nil
+}
 func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
 	return nil
+}
+
+func (wtx kvstoreTx) GetPayloadTxBytes() []byte {
+	return nil
+}
+func (tx kvstoreTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
 }
 
 func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
