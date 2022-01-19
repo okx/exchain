@@ -3,7 +3,6 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -62,20 +61,12 @@ func (t *executionTask) stop() {
 		return
 	}
 
-	//reset deliverState
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
 	t.stopped = true
 }
 
 func (t *executionTask) run() {
 	t.dump("Start prerun")
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
-
-	if t.height != 1 {
-		t.proxyApp.SetOptionSync(abci.RequestSetOption{Key: "ResetDeliverState"})
-	}
 
 	abciResponses, err := execBlockOnProxyApp(t)
 
@@ -99,5 +90,8 @@ func (blockExec *BlockExecutor) InitPrerun() {
 }
 
 func (blockExec *BlockExecutor) NotifyPrerun(block *types.Block) {
+	if block.Height == 1+types.GetStartBlockHeight() {
+		return
+	}
 	blockExec.prerunCtx.notifyPrerun(blockExec, block)
 }
