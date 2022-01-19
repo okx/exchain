@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/VictoriaMetrics/fastcache"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
@@ -48,6 +49,7 @@ type CommitStateDBParams struct {
 	Trie ethstate.Trie
 
 	FlatDB *FlatStore
+	StateCache *fastcache.Cache
 }
 
 type Watcher interface {
@@ -133,6 +135,7 @@ type CommitStateDB struct {
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
 
 	FlatDB *FlatStore
+	StateCache *fastcache.Cache
 }
 
 type StoreProxy interface {
@@ -184,6 +187,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
 
 		FlatDB: csdbParams.FlatDB,
+		StateCache: csdbParams.StateCache,
 	}
 
 	return csdb

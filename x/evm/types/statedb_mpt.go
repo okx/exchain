@@ -104,16 +104,21 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		value ethcmn.Hash
 	)
 
-	if enc, err = csdb.StorageTrie(addr).TryGet(key.Bytes()); err != nil {
-		return ethcmn.Hash{}
-	}
-
-	if len(enc) > 0 {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
+	prefixKey := AssembleCompositeKey(addr.Bytes(), key.Bytes())
+	if enc = csdb.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
+		value.SetBytes(enc)
+	} else {
+		if enc, err = csdb.StorageTrie(addr).TryGet(key.Bytes()); err != nil {
 			return ethcmn.Hash{}
 		}
-		value.SetBytes(content)
+
+		if len(enc) > 0 {
+			_, content, _, err := rlp.Split(enc)
+			if err != nil {
+				return ethcmn.Hash{}
+			}
+			value.SetBytes(content)
+		}
 	}
 
 	return value

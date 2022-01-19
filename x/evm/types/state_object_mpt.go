@@ -47,17 +47,22 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Ha
 		value ethcmn.Hash
 	)
 
-	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
-		so.setError(err)
-		return ethcmn.Hash{}
-	}
-
-	if len(enc) > 0 {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
+	prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
+	if enc = so.stateDB.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
+		value.SetBytes(enc)
+	} else {
+		if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
 			so.setError(err)
+			return ethcmn.Hash{}
 		}
-		value.SetBytes(content)
+
+		if len(enc) > 0 {
+			_, content, _, err := rlp.Split(enc)
+			if err != nil {
+				so.setError(err)
+			}
+			value.SetBytes(content)
+		}
 	}
 
 	so.originStorage[key] = value
@@ -121,12 +126,15 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
+		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
+			so.stateDB.StateCache.Del(prefixKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
+			so.stateDB.StateCache.Set(prefixKey.Bytes(), value.Bytes())
 		}
 	}
 

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -64,6 +65,7 @@ type Keeper struct {
 	UpdatedAccount []ethcmn.Address
 
 	FlatDB *types.FlatStore
+	StateCache *fastcache.Cache
 }
 
 // NewKeeper generates new evm module keeper
@@ -107,6 +109,7 @@ func NewKeeper(
 		UpdatedAccount: make([]ethcmn.Address, 0),
 
 		FlatDB: types.InstanceOfFlatStore(),
+		StateCache: fastcache.New(2 * 1024 * 1024 * 1024),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -140,6 +143,7 @@ func NewSimulateKeeper(
 		UpdatedAccount: make([]ethcmn.Address, 0),
 
 		FlatDB: types.InstanceOfFlatStore(),
+		StateCache: fastcache.New(2 * 1024 * 1024 * 1024),
 	}
 
 	k.OpenTrie()
@@ -173,6 +177,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Trie: k.rootTrie,
 
 		FlatDB: k.FlatDB,
+		StateCache: k.StateCache,
 	}
 }
 
@@ -188,6 +193,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Trie: k.rootTrie,
 
 		FlatDB: k.FlatDB,
+		StateCache: k.StateCache,
 	}
 }
 

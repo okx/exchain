@@ -12,7 +12,7 @@ import (
 
 var gFlatStore *FlatStore = nil
 var flatOnce sync.Once
-var EnableFlatDB = true
+var EnableFlatDB = false
 
 const (
 	FlagDBBackend = "db_backend"
@@ -44,8 +44,6 @@ func initFlatDb() dbm.DB {
 	if backend == "" {
 		backend = string(dbm.GoLevelDBBackend)
 	}
-
-	backend = string(dbm.MemDBBackend)
 
 	return dbm.NewDB(FlatDBName, dbm.BackendType(backend), dbPath)
 }
