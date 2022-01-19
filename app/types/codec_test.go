@@ -34,6 +34,7 @@ func TestEthAccountAmino(t *testing.T) {
 	addr := sdk.AccAddress(pubKey.Address())
 
 	accounts := []EthAccount{
+		{},
 		{
 			auth.NewBaseAccount(
 				addr,
@@ -64,7 +65,6 @@ func TestEthAccountAmino(t *testing.T) {
 			),
 			ethcrypto.Keccak256(nil),
 		},
-		{},
 		{
 			BaseAccount: &auth.BaseAccount{},
 		},
@@ -91,9 +91,20 @@ func TestEthAccountAmino(t *testing.T) {
 
 		require.EqualValues(t, accountFromAmino, accountFromUnmarshaller)
 
+		var ethAccount EthAccount
+		err = ethAccount.UnmarshalFromAmino(cdc, data[4:])
+		require.NoError(t, err)
+		require.EqualValues(t, accountFromAmino, &ethAccount)
+
 		dataFromMarshaller, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromMarshaller)
+
+		dataFromMarshaller, err = ethAccount.MarshalToAmino(cdc)
+		if dataFromMarshaller == nil {
+			dataFromMarshaller = []byte{}
+		}
+		require.Equal(t, data[4:], dataFromMarshaller)
 	}
 }
 

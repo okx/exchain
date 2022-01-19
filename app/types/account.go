@@ -39,22 +39,23 @@ type EthAccount struct {
 
 func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
-	var read int
 
 	for {
 		data = data[dataLen:]
-		read += int(dataLen)
 
 		if len(data) <= 0 {
 			break
 		}
 
-		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		if err != nil {
 			return err
 		}
+		// all EthAccount fields are (2)
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid pbType: %v", pbType)
+		}
 		data = data[1:]
-		read += 1
 
 		var n int
 		dataLen, n, err = amino.DecodeUvarint(data)
@@ -63,7 +64,9 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 
 		data = data[n:]
-		read += n
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("not enough data for field %d", pos)
+		}
 		subData := data[:dataLen]
 
 		switch pos {
