@@ -60,18 +60,6 @@ func BlockExecutorWithMetrics(metrics *Metrics) BlockExecutorOption {
 	}
 }
 
-func BlockExecutorWithPreRunContext(ops ...PreRunContextOption) BlockExecutorOption {
-	return func(blockExec *BlockExecutor) {
-		blockExec.prerunCtx = newPrerunContex(blockExec.logger, ops...)
-	}
-}
-
-func BlockExecutorWithDeltaContext(ops ...DeltaContextOption) BlockExecutorOption {
-	return func(blockExec *BlockExecutor) {
-		blockExec.deltaContext = newDeltaContext(blockExec.logger, ops...)
-	}
-}
-
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
 func NewBlockExecutor(
@@ -482,6 +470,12 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	// Run txs of block.
 	for count, tx := range block.Txs {
+		//time.Sleep(time.Millisecond*time.Duration(rand.Int31n(2000)))
+		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
+		if err := proxyAppConn.Error(); err != nil {
+			return nil, err
+		}
+
 		if context!=nil{
 			// stop
 			if context.status > 0 && context.status&TaskBeginByDelta >= TaskBeginByDelta {
@@ -492,11 +486,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
 				return nil, fmt.Errorf("Prerun stopped")
 			}
-		}
-
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
 		}
 	}
 

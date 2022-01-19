@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/queue"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -130,7 +131,7 @@ func (pc *prerunContext) handleMsg(msg interface{}) {
 	case *DeltaJob:
 		pc.handleDeltaMsg(v)
 	default:
-		panic("programa error")
+		panic("program error")
 	}
 }
 
@@ -140,8 +141,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 	}
 	delta := v.Delta
 
-
-	// hold the pointer at first
+	// hold the pointer at first(cpu case)
 	curTask := pc.prerunTask
 	if curTask == nil {
 		return
@@ -178,9 +178,9 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		}
 		curTask.dump("delta is waitting prerun to be canceld or finished")
 
-		// which means prerrun routine is running,we will execute again if the task hasnt done yet(delta's priority > prerun's property)
+		// which means prerrun routine is running,we will execute again if the task hasnt done yet(delta's priority > prerun's priority)
 		// before we execute beginBlock ,we have to cancel prerun at first(and we have to wait,because deliverTx will affect deliverState)
-		// and we cant  guarantee 'prerun' is done with endBlock(havent notify result yet)  or it is still running deliverTx
+		// and we cant  ensure 'prerun' is done with endBlock(havent notify result yet)  or it is still running deliverTx
 		// so we have to use cas instead of using  StoreInt32
 		// note: we dont care about cas result(cas is just try to cancel the deliverTx step)
 		atomic.CompareAndSwapInt32(&curTask.status, loadStatus, TaskBeginByDelta)
@@ -188,7 +188,7 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		// which means :
 		// prerun is quit(but we dont know the task is done or canceld)
 		// note: if prerun is done ,we cant execute beginBlock again ,because if the function `dequeueResult`
-		// 		 is executed ,and immediately we call beginBlock again before BlockExecutor#commit `data will reset`
+		// 		 is executed ,and  we call beginBlock immediately  before BlockExecutor#commit:`data will reset`
 		//		 so we have to check again with current staus
 		if atomic.LoadInt32(&curTask.status)&TaskEndByPrerun >= TaskEndByPrerun {
 			curTask.dump("current task has been executed by prerun,discard")
@@ -196,17 +196,16 @@ func (pc *prerunContext) handleDeltaMsg(v *DeltaJob) {
 		}
 		// case3 prerun is canceled,so we can handle it again
 	} else {
-		defer func() {
-			if nil != curTask.notifyC {
-				close(curTask.notifyC)
-			}
-		}()
+		//defer func() {
+		//	if nil != curTask.notifyC {
+		//		close(curTask.notifyC)
+		//	}
+		//}()
 	}
-
-	// we run here
+	// we were here
 	// means
 	// prerun is quit:
-	//			1. prerun donest execute at all
+	//			1. prerun doesnt execute at all
 	//			2. prerun canceled
 	curTask.dump("start beginBlock by delta ")
 	// execute again
@@ -228,12 +227,15 @@ func notifyResult(curTask *executionTask,
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
 	}
 
+	automation.PrerunTimeOut(curTask.block.Height, int(curTask.index)-1)
 	select {
 	case curTask.taskResultChan <- curTask:
 		curTask.dump(fmt.Sprintf("current task finished, final task status=%d", lastStatus))
+		// now ,the new task can execute safelly(same height)
+		if curTask.stopC!=nil{
+			close(curTask.stopC)
+		}
 	default:
-		// edge case : 2 blocks ,we cant let it panic
-		// panic("program error")
 	}
 }
 
