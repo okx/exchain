@@ -92,6 +92,34 @@ func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
 	return ndb.db.Get(k)
 }
 
+func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
+	k := ndb.nodeKey(hash)
+	ts := time.Now()
+	defer func() {
+		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
+	}()
+	ndb.addDBReadCount()
+
+	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte, err error) (interface{}, error) {
+		if err != nil {
+			panic(fmt.Sprintf("can't get node %X: %v", hash, err))
+		}
+		if buf == nil {
+			panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
+		}
+
+		node, err := MakeNode(buf)
+		if err != nil {
+			panic(fmt.Sprintf("Error reading Node. bytes: %x, error: %v", buf, err))
+		}
+		return node, nil
+	})
+	if err != nil {
+		panic(fmt.Sprintf("can't make node %X: %v", hash, err))
+	}
+	return v.(*Node)
+}
+
 func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
