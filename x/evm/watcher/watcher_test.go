@@ -1,6 +1,7 @@
 package watcher_test
 
 import (
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -53,6 +54,7 @@ func setupTest() *WatcherTestSt {
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
+	tmtypes.UploadDelta = true
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
