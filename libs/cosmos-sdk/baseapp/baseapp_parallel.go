@@ -125,10 +125,10 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		txReps[execRes.GetCounter()] = execRes
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
-			if s.anteErr != nil {
-				txReps[txIndex].ms = nil
-			}
 			res := txReps[txIndex]
+			if s.anteErr != nil {
+				res.ms = nil
+			}
 
 			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
