@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/logevents"
 	"io"
+
+	"github.com/okex/exchain/app/logevents"
 
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -63,7 +64,6 @@ func main() {
 
 	ctx := server.NewDefaultContext()
 
-
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
@@ -91,8 +91,8 @@ func main() {
 		exportAppCmd(ctx),
 		iaviewerCmd(cdc),
 		subscribeCmd(cdc),
+		extractNodeKey(ctx),
 	)
-
 
 	subFunc := func(logger log.Logger) log.Subscriber {
 		return logevents.NewProvider(logger)
