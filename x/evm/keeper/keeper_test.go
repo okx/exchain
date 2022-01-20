@@ -148,7 +148,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
-	suite.stateDB.WithContext(suite.ctx).Finalise(false)
+	suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
 
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")

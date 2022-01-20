@@ -119,7 +119,7 @@ func (suite *KeeperTestSuite) TestStateDB_Error() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_Database() {
-	suite.Require().Nil(suite.stateDB.WithContext(suite.ctx).Database())
+	suite.Require().NotNil(suite.stateDB.WithContext(suite.ctx).Database())
 }
 
 func (suite *KeeperTestSuite) TestStateDB_State() {
@@ -586,7 +586,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // reset
 			tc.malleate()
-			suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
+			suite.stateDB.WithContext(suite.ctx).Commit(false)
 
 			err := suite.stateDB.WithContext(suite.ctx).ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
@@ -609,5 +609,5 @@ func (suite *KeeperTestSuite) TestStorageTrie() {
 	}
 
 	trie := suite.stateDB.WithContext(suite.ctx).StorageTrie(suite.address)
-	suite.Require().Equal(nil, trie, "Ethermint does not use a direct storage trie.")
+	suite.Require().NotNil(trie, "Ethermint now use a direct storage trie.")
 }

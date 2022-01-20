@@ -949,6 +949,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	// init contracts for test environment
 	suite.deployInterdependentContracts()
+	suite.app.EndBlock(abci.RequestEndBlock{Height: 1})
 }
 
 // deployInterdependentContracts deploys two contracts that Contract1 will be invoked by Contract2
@@ -1243,6 +1244,8 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
+
 			// set contract code
 			suite.stateDB.CreateAccount(callEthAcc)
 			suite.stateDB.CreateAccount(blockedEthAcc)
@@ -1263,7 +1266,6 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 				suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 			}
 
-			suite.stateDB.Finalise(true)
 			suite.stateDB.Commit(true)
 
 			// nonce here could be any value

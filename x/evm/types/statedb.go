@@ -44,7 +44,7 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB ethstate.Database
+	DB   ethstate.Database
 	Trie ethstate.Trie
 }
 
@@ -122,7 +122,7 @@ type CommitStateDB struct {
 	// mutex for state deep copying
 	lock sync.Mutex
 
-	params *Params
+	params    *Params
 	codeCache map[ethcmn.Address]CacheCode
 	dbAdapter DbAdapter
 
@@ -157,7 +157,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
-		db: csdbParams.DB,
+		db:   csdbParams.DB,
 		trie: csdbParams.Trie,
 
 		storeKey:      csdbParams.StoreKey,
@@ -166,6 +166,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
+		cdc:           csdbParams.Cdc,
 
 		stateObjects:        make(map[ethcmn.Address]*stateObject),
 		stateObjectsPending: make(map[ethcmn.Address]struct{}),
@@ -1315,7 +1316,7 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
 			if err != nil {
 				return err
 			}
@@ -1334,9 +1335,9 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
 			if err != nil {
-				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
+				return ErrBlockedContractMethodIsNotExist(contractList[i].Address, err)
 			}
 			bc.BlockMethods = result
 			//if block contract method delete empty then remove contract from blocklist.
@@ -1350,7 +1351,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedContractMethodIsNotExist(contractList[i].Address,ErrorContractMethodBlockedIsNotExist)
+			return ErrBlockedContractMethodIsNotExist(contractList[i].Address, ErrorContractMethodBlockedIsNotExist)
 		}
 	}
 	return nil

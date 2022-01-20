@@ -183,7 +183,7 @@ func (suite *StateDBTestSuite) TestStateDB_Error() {
 }
 
 func (suite *StateDBTestSuite) TestStateDB_Database() {
-	suite.Require().Nil(suite.stateDB.Database())
+	suite.Require().NotNil(suite.stateDB.Database())
 }
 
 func (suite *StateDBTestSuite) TestStateDB_State() {
@@ -295,6 +295,7 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		suite.Require().NoError(err, tc.name)
 		suite.Require().Empty(dbLogs, tc.name)
 
+		suite.stateDB.Prepare(hash, ethcmn.BytesToHash([]byte("bhash")), 1)
 		suite.stateDB.AddLog(&tc.log)
 		newLogs, err := suite.stateDB.GetLogs(hash)
 		suite.Require().Nil(err)
@@ -574,7 +575,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_Finalize() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		suite.stateDB.Finalise(tc.deleteObjs)
+		suite.stateDB.IntermediateRoot(tc.deleteObjs)
 
 		if !tc.expPass {
 			hash := suite.stateDB.GetCommittedState(suite.address, ethcmn.BytesToHash([]byte("key")))
@@ -659,7 +660,7 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // reset
 			tc.malleate()
-			suite.stateDB.Finalise(false)
+			suite.stateDB.Commit(false)
 
 			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
