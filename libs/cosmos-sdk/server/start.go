@@ -4,12 +4,12 @@ package server
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -296,8 +296,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	if err != nil {
 		return nil, err
 	}
-
-	global.SetGlobalHeight(tmNode.ConsensusState().Height)
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
