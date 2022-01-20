@@ -45,6 +45,7 @@ var (
 const (
 	TypeOthers = uint32(1)
 	TypeState  = uint32(2)
+	TypeDelete = uint32(3)
 )
 
 type WatchMessage interface {
@@ -399,6 +400,28 @@ func (msgAccount *MsgAccount) GetKey() []byte {
 
 func (msgAccount *MsgAccount) GetValue() string {
 	return msgAccount.accountValue
+}
+
+type DelAccMsg struct {
+	addr []byte
+}
+
+func NewDelAccMsg(acc auth.Account) *DelAccMsg {
+	return &DelAccMsg{
+		addr: acc.GetAddress().Bytes(),
+	}
+}
+
+func (delAcc *DelAccMsg) GetType() uint32 {
+	return TypeDelete
+}
+
+func (delAcc *DelAccMsg) GetKey() []byte {
+	return GetMsgAccountKey(delAcc.addr)
+}
+
+func (delAcc *DelAccMsg) GetValue() string {
+	return ""
 }
 
 type MsgState struct {

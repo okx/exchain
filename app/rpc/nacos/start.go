@@ -2,19 +2,20 @@ package nacos
 
 import (
 	"fmt"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/exchain/x/stream/common/utils"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // StartNacosClient start nacos client and register rest service in nacos
 func StartNacosClient(logger log.Logger, urls string, namespace string, name string, externalAddr string) {
-	ip, port, err := utils.ResolveIPAndPort(externalAddr)
+	ip, port, err := ResolveIPAndPort(externalAddr)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve %s error: %s", externalAddr, err.Error()))
 		return
@@ -60,4 +61,33 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 		return
 	}
 	logger.Info("register application instance in nacos successfully")
+}
+
+func ResolveIPAndPort(addr string) (string, int, error) {
+	laddr := strings.Split(addr, ":")
+	ip := laddr[0]
+	if ip == "127.0.0.1" {
+		return GetLocalIP(), 26659, nil
+	}
+	port, err := strconv.Atoi(laddr[1])
+	if err != nil {
+		return "", 0, err
+	}
+	return ip, port, nil
+}
+
+// GetLocalIP get local ip
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
 }

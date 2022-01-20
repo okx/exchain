@@ -115,7 +115,6 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		}
 	}
 
-	config.SetNodeHome(rootDir)
 	appConfigFilePath := filepath.Join(rootDir, "config/exchaind.toml")
 	if _, err := os.Stat(appConfigFilePath); os.IsNotExist(err) {
 		appConf, _ := config.ParseConfig()

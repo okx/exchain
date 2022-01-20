@@ -2,7 +2,7 @@
 # > docker build -t exchain .
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind init mynode
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind start
-FROM golang:alpine AS build-env
+FROM golang:1.17.2-alpine AS build-env
 
 # Install minimum necessary dependencies, remove packages
 RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
@@ -13,8 +13,10 @@ WORKDIR /go/src/github.com/okex/exchain
 # Add source files
 COPY . .
 
+ENV GO111MODULE=on \
+    GOPROXY=http://goproxy.cn
 # Build OKExChain
-RUN GOPROXY=http://goproxy.cn make install
+RUN make install
 
 # Final image
 FROM alpine:edge
