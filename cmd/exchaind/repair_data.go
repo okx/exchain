@@ -22,5 +22,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(app.FlagStartHeight, 0, "Set the start block height for repair")
+	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	return cmd
 }

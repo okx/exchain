@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
@@ -38,7 +39,7 @@ type BlockExecutor struct {
 	mempool mempl.Mempool
 	evpool  EvidencePool
 
-	logger log.Logger
+	logger  log.Logger
 	metrics *Metrics
 	isAsync bool
 
@@ -49,7 +50,6 @@ type BlockExecutor struct {
 
 	isFastSync bool
 }
-
 
 type BlockExecutorOption func(executor *BlockExecutor)
 
@@ -70,16 +70,16 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:             db,
-		proxyApp:       proxyApp,
-		eventBus:       types.NopEventBus{},
-		mempool:        mempool,
-		evpool:         evpool,
-		logger:         logger,
-		metrics:        NopMetrics(),
-		isAsync:        viper.GetBool(FlagParalleledTx),
-		prerunCtx:      newPrerunContex(logger),
-		deltaContext:   newDeltaContext(logger),
+		db:           db,
+		proxyApp:     proxyApp,
+		eventBus:     types.NopEventBus{},
+		mempool:      mempool,
+		evpool:       evpool,
+		logger:       logger,
+		metrics:      NopMetrics(),
+		isAsync:      viper.GetBool(FlagParalleledTx),
+		prerunCtx:    newPrerunContex(logger),
+		deltaContext: newDeltaContext(logger),
 	}
 
 	for _, option := range options {
@@ -142,6 +142,12 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 // Validation does not mutate state, but does require historical information from the stateDB,
 // ie. to verify evidence from a validator at an old height.
 func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) error {
+	if !bytes.Equal(block.AppHash, state.AppHash) {
+		return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v",
+			state.AppHash,
+			block.AppHash,
+		)
+	}
 	if IgnoreSmbCheck {
 		// debug only
 		return nil
@@ -298,6 +304,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 
 	return abciResponses, err
 }
+
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
 // It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
@@ -664,9 +671,9 @@ func ExecCommitBlock(
 ) ([]byte, error) {
 
 	ctx := &executionTask{
-		logger: logger,
-		block: block,
-		db: stateDB,
+		logger:   logger,
+		block:    block,
+		db:       stateDB,
 		proxyApp: appConnConsensus,
 	}
 
@@ -684,4 +691,3 @@ func ExecCommitBlock(
 	// ResponseCommit has no error or log, just data
 	return res.Data, nil
 }
-
