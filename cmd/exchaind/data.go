@@ -23,13 +23,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/ammswap"
@@ -68,6 +68,7 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		pruningCmd(ctx),
 		queryCmd(ctx),
 		dbConvertCmd(ctx),
+		dataStatistics(ctx),
 	)
 
 	return cmd
@@ -168,7 +169,6 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 
 	return cmd
 }
-
 
 func clearPruneHeightsCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -291,6 +291,39 @@ func dbConvertCmd(ctx *server.Context) *cobra.Command {
 				panic("Execute Command failed:" + err.Error())
 			}
 
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func dataStatistics(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "statistic",
+		Short: "statistic data from rocksdb",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			// {home}/data/*
+			fromDir := ctx.Config.DBDir()
+
+			fromFs, err := ioutil.ReadDir(fromDir)
+			if err != nil {
+				return err
+			}
+			for _, f := range fromFs {
+				str := strings.Split(f.Name(), ".")
+				if f.IsDir() && len(str) == 2 && str[1] == "db" {
+					wg.Add(1)
+					go func(name, fromDir string) {
+						defer wg.Done()
+						Statistic(name, fromDir)
+					}(str[0], fromDir)
+				}
+			}
+			wg.Wait()
 			return nil
 		},
 	}
