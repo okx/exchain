@@ -11,7 +11,7 @@ import (
 
 func Statistic(name, fromDir string) {
 
-	log.Printf("statistics started")
+	log.Printf("%s statistics started", name)
 
 	pairCounter := 0
 
@@ -61,5 +61,5 @@ func Statistic(name, fromDir string) {
 
 	iter.Close()
 
-	log.Printf("%s pairs count:%s, small value count:%s, mid value count:%s, large value count:%s", name, pairCounter, smallCounter, midCounter, largeCounter)
+	log.Printf("%s file pairs count:%v, small value count:%v, mid value count:%v, large value count:%v", name, pairCounter, smallCounter, midCounter, largeCounter)
 }
