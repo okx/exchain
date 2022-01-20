@@ -21,22 +21,20 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:info,iavl:debug,*:error,state:info,provider:info
+    LOG_LEVEL=main:info,state:info,evm:info
 
     exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
-      --consensus.timeout_commit 5000ms \
+      --consensus.timeout_commit 3000ms \
       --enable-dynamic-gp=false \
       --enable-preruntx=false \
-      --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
-      --iavl-commit-interval-height 1000 \
-      --iavl-output-modules evm=1,acc=0 \
+      --mempool.max_tx_num_per_block=600 \
+      --trie-dirty-disabled=true \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
-      --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
 
 # --iavl-commit-interval-height \
@@ -65,7 +63,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install VenusHeight=1)
+(cd .. && make install VenusHeight=0)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
@@ -83,9 +81,9 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
 exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y
 
-exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
+exchaincli keys add --recover admin17 -m "plunge silk glide glass curve cycle snack garbage obscure express decade dirt" -y
 
-exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
+exchaincli keys add --recover admin18 -m "lazy cupboard wealth canoe pumpkin gasp play dash antenna monitor material village" -y
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 exchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER

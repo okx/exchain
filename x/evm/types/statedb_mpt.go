@@ -247,7 +247,7 @@ func (csdb *CommitStateDB) GetStateByKeyFlatDB(addr ethcmn.Address, key ethcmn.H
 	)
 
 	prefixKey := AssembleCompositeKey(addr.Bytes(), key.Bytes())
-	if enc, err = csdb.FlatDB.Get(prefixKey.Bytes()); err != nil || enc == nil {
+	if enc, err = csdb.FlatDB.Get(prefixKey.Bytes()); err != nil || len(enc) == 0 {
 		csdb.Logger().Debug("fail to get state by key","err", err)
 		return ethcmn.Hash{}
 	}

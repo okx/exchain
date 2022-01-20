@@ -244,7 +244,7 @@ func (so *stateObject) GetCommittedStateFlatDB(key ethcmn.Hash) ethcmn.Hash {
 	)
 
 	prefixKey := AssembleCompositeKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.stateDB.FlatDB.Get(prefixKey.Bytes()); err != nil || enc == nil {
+	if enc, err = so.stateDB.FlatDB.Get(prefixKey.Bytes()); err != nil || len(enc) == 0 {
 		so.setError(err)
 		return ethcmn.Hash{}
 	}
