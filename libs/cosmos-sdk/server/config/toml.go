@@ -33,48 +33,6 @@ halt-time = {{ .BaseConfig.HaltTime }}
 
 # InterBlockCache enables inter-block caching.
 inter-block-cache = {{ .BaseConfig.InterBlockCache }}
-
-##### backend configuration options #####
-[backend]
-enable_backend = "{{ .BackendConfig.EnableBackend }}"
-enable_mkt_compute = "{{ .BackendConfig.EnableMktCompute }}"
-log_sql = "{{ .BackendConfig.LogSQL }}"
-clean_ups_kept_days = "{{ .BackendConfig.CleanUpsKeptDays }}"
-clean_ups_time = "{{ .BackendConfig.CleanUpsTime }}"
-[backend.orm_engine]
-engine_type = "{{ .BackendConfig.OrmEngine.EngineType }}"
-connect_str = "{{ js .BackendConfig.OrmEngine.ConnectStr }}"
-[stream]
-engine = "{{ .StreamConfig.Engine }}"
-klines_query_connect = "{{ .StreamConfig.KlineQueryConnect }}"
-
-worker_id = "{{ .StreamConfig.WorkerId }}"
-redis_scheduler = "{{ .StreamConfig.RedisScheduler }}"
-redis_lock = "{{ .StreamConfig.RedisLock }}"
-local_lock_dir = "{{ js .StreamConfig.LocalLockDir }}"
-cache_queue_capacity = "{{ .StreamConfig.CacheQueueCapacity }}"
-
-market_topic = "{{ .StreamConfig.MarketTopic }}"
-market_partition = "{{ .StreamConfig.MarketPartition }}"
-
-market_service_enable = "{{ .StreamConfig.MarketServiceEnable }}"
-market_nacos_urls = "{{ .StreamConfig.MarketNacosUrls }}"
-market_nacos_namespace_id = "{{ .StreamConfig.MarketNacosNamespaceId }}"
-market_nacos_clusters = "{{ .StreamConfig.MarketNacosClusters }}"
-market_nacos_service_name = "{{ .StreamConfig.MarketNacosServiceName }}"
-market_nacos_group_name = "{{ .StreamConfig.MarketNacosGroupName }}"
-
-market_eureka_name = "{{ .StreamConfig.MarketEurekaName }}"
-eureka_server_url = "{{ .StreamConfig.EurekaServerUrl }}"
-
-rest_application_name = "{{ .StreamConfig.RestApplicationName }}"
-rest_nacos_urls = "{{ .StreamConfig.RestNacosUrls }}"
-rest_nacos_namespace_id = "{{ .StreamConfig.RestNacosNamespaceId }}"
-
-pushservice_pulsar_public_topic = "{{ .StreamConfig.PushservicePulsarPublicTopic }}"
-pushservice_pulsar_private_topic = "{{ .StreamConfig.PushservicePulsarPrivateTopic }}"
-pushservice_pulsar_depth_topic = "{{ .StreamConfig.PushservicePulsarDepthTopic }}"
-redis_require_pass = "{{ .StreamConfig.RedisRequirePass }}"
 `
 
 var configTemplate *template.Template
