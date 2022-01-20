@@ -3,7 +3,6 @@ package iavl
 import (
 	"bytes"
 	"container/list"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
@@ -227,7 +226,7 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }

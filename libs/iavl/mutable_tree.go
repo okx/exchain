@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -598,7 +600,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
 			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()
 		}
@@ -836,13 +838,13 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 	// sync state delta from other node
 	// TODO: handle magic number
 	if node.leftHash != nil {
-		key := hex.EncodeToString(node.leftHash)
+		key := string(node.leftHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.leftHash = tree.SaveBranch(batch, tree.savedNodes[key])
 		}
 	}
 	if node.rightHash != nil {
-		key := hex.EncodeToString(node.rightHash)
+		key := string(node.rightHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.rightHash = tree.SaveBranch(batch, tree.savedNodes[key])
 		}
@@ -862,7 +864,7 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	tree.savedNodes[hex.EncodeToString(node.hash)] = node
+	tree.savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -882,8 +884,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 
 		// set tree.commitOrphans
 		for k, v := range delta.CommitOrphansDelta {
-			hash, _ := hex.DecodeString(k)
-			tree.commitOrphans[string(hash)] = v
+			tree.commitOrphans[k] = v
 		}
 	}
 }
