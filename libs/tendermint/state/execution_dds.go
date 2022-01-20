@@ -194,10 +194,10 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 	var wd []byte
 	if types.FastQuery {
 		wd, err = wdFunc()
-	}
-	if err != nil {
-		dc.logger.Error("Failed to get watch data", "height", height, "error", err)
-		return
+		if err != nil {
+			dc.logger.Error("Failed to get watch data", "height", height, "error", err)
+			return
+		}
 	}
 
 	delta4Upload := &types.Deltas {
