@@ -42,9 +42,9 @@ func Statistic(name, fromDir string) {
 	}
 
 	for ; iter.Valid(); iter.Next() {
-		keySize := iter.Key().Size()
+		keySize := len(iter.Key())
 
-		valueSize := iter.Value().Size()
+		valueSize := len(iter.Value())
 
 		pairCounter++
 
