@@ -64,7 +64,7 @@ func Statistic(name, fromDir string) {
 	iter.Close()
 
 	log.Printf("pairs count: %s", pairCounter)
-	log.Printf("small count: %s", smaleCounter)
+	log.Printf("small count: %s", smallCounter)
 	log.Printf("mid count: %s", midCounter)
 	log.Printf("large count: %s", largeCounter)
 }
