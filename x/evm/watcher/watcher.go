@@ -73,7 +73,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		firstUse:      true,
 		delayEraseKey: make([][]byte, 0),
 		watchData:     &WatchData{},
-		wm:            newWatchMap(),
+		wm:            newDataMap(),
 		log:           logger,
 	}
 	checkWd = viper.GetBool(FlagCheckWd)
@@ -478,11 +478,11 @@ func (w *Watcher) setMap(batch []WatchMessage) {
 	}
 	w.watchData.Batches = ddsBatch
 	w.watchData.DelayEraseKey = w.delayEraseKey
-	w.wm.set(int64(w.height), w.watchData)
+	w.wm.insert(int64(w.height), w.watchData, int64(w.height))
 }
 
 func (w *Watcher) GetWatchData(height int64) ([]byte, error) {
-	value := w.wm.fetch(height)
+	value, _ := w.wm.fetch(height)
 	valueByte, err := itjs.Marshal(value)
 	if err != nil {
 		return nil, err
