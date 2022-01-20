@@ -2,11 +2,18 @@ package rootmulti
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"log"
+	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/spf13/viper"
+
+	jsoniter "github.com/json-iterator/go"
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,10 +36,10 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
-	latestVersionKey = "s/latest"
-	pruneHeightsKey  = "s/pruneheights"
-	versionsKey      = "s/versions"
-	commitInfoKeyFmt = "s/%d" // s/<version>
+	latestVersionKey      = "s/latest"
+	pruneHeightsKey       = "s/pruneheights"
+	versionsKey           = "s/versions"
+	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
 )
 
@@ -41,6 +48,7 @@ const (
 // the CommitMultiStore interface.
 type Store struct {
 	db             dbm.DB
+	flatKVDB       dbm.DB
 	lastCommitInfo commitInfo
 	pruningOpts    types.PruningOptions
 	storesParams   map[types.StoreKey]storeParams
@@ -68,8 +76,13 @@ var (
 // a store is created, KVStores must be mounted and finally LoadLatestVersion or
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
+	var flatKVDB dbm.DB
+	if viper.GetBool(flatkv.FlagEnable) {
+		flatKVDB = newFlatKVDB()
+	}
 	return &Store{
 		db:           db,
+		flatKVDB:     flatKVDB,
 		pruningOpts:  types.PruneNothing,
 		storesParams: make(map[types.StoreKey]storeParams),
 		stores:       make(map[types.StoreKey]types.CommitKVStore),
@@ -77,6 +90,17 @@ func NewStore(db dbm.DB) *Store {
 		pruneHeights: make([]int64, 0),
 		versions:     make([]int64, 0),
 	}
+}
+
+func newFlatKVDB() dbm.DB {
+	rootDir := viper.GetString("home")
+	dataDir := filepath.Join(rootDir, "data")
+	var err error
+	flatKVDB, err := sdk.NewLevelDB("flat", dataDir)
+	if err != nil {
+		panic(err)
+	}
+	return flatKVDB
 }
 
 // SetPruning sets the pruning strategy on the root store and all the sub-stores.
@@ -279,8 +303,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
-		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, " +
-			"need to prune them with command " +
+		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
+			"need to prune them with command "+
 			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
@@ -300,7 +324,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 	needReset := false
 	var newPh []int64
 	for _, h := range ph {
-		if _, ok := roots[h] ;ok {
+		if _, ok := roots[h]; ok {
 			newPh = append(newPh, h)
 		} else {
 			needReset = true
@@ -682,11 +706,15 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 	case types.StoreTypeIAVL:
 		var store types.CommitKVStore
 		var err error
-
+		prefix := "s/k:" + params.key.Name() + "/"
+		var prefixDB dbm.DB
+		if rs.flatKVDB != nil {
+			prefixDB = dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
+		}
 		if params.initialVersion == 0 {
-			store, err = iavl.LoadStore(db, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
+			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {
-			store, err = iavl.LoadStoreWithInitialVersion(db, id, rs.lazyLoading, params.initialVersion)
+			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, params.initialVersion)
 		}
 
 		if err != nil {
@@ -766,6 +794,38 @@ func (rs *Store) ResetCount() {
 	for _, store := range rs.stores {
 		store.ResetCount()
 	}
+}
+
+func (rs *Store) GetFlatKVReadTime() int {
+	rt := 0
+	for _, store := range rs.stores {
+		rt += store.GetFlatKVReadTime()
+	}
+	return rt
+}
+
+func (rs *Store) GetFlatKVWriteTime() int {
+	wt := 0
+	for _, store := range rs.stores {
+		wt += store.GetFlatKVWriteTime()
+	}
+	return wt
+}
+
+func (rs *Store) GetFlatKVReadCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetFlatKVReadCount()
+	}
+	return count
+}
+
+func (rs *Store) GetFlatKVWriteCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetFlatKVWriteCount()
+	}
+	return count
 }
 
 //----------------------------------------
@@ -864,7 +924,7 @@ func getLatestVersion(db dbm.DB) int64 {
 
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-//	storeInfos := make([]storeInfo, 0, len(storeMap))
+	//	storeInfos := make([]storeInfo, 0, len(storeMap))
 	var storeInfos []storeInfo
 	appliedDeltas := map[string]*iavltree.TreeDelta{}
 	returnedDeltas := map[string]iavltree.TreeDelta{}

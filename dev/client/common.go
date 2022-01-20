@@ -283,9 +283,8 @@ func deployContract(client *ethclient.Client, fromAddress common.Address,
 	for err == nil {
 		sleep(blockTime)
 		receipt, err = client.TransactionReceipt(context.Background(), hash)
+		fmt.Printf("TransactionReceipt retry: %d, err: %s, tx hash<%s>\n", retry, err, hash.String())
 		if err != nil {
-			fmt.Printf("TransactionReceipt retry: %d, err: %s, tx hash<%s>\n",
-				retry, err, hash.String())
 			retry++
 			if retry > 10 {
 				return err

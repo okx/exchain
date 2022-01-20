@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 
 	"github.com/spf13/viper"
 )
+
+var _ tmconfig.IDynamicConfig = &OecConfig{}
+var _ iavlconfig.IDynamicConfig = &OecConfig{}
 
 type OecConfig struct {
 	// mempool.recheck
@@ -27,6 +31,8 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
+	// confident node keys
+	confidentNodeKeys []string
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -61,6 +67,7 @@ const (
 	FlagMempoolFlush           = "mempool.flush"
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
+	FlagConfidentNodeKeys      = "mempool.confident_node_keys"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
@@ -123,6 +130,14 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetConfidentNodeKeys(viper.GetString(FlagConfidentNodeKeys))
+}
+
+func resolveConfidentNodeKyesString(plain string) []string {
+	if len(plain) == 0 {
+		return []string{}
+	}
+	return strings.Split(plain, ",")
 }
 
 func (c *OecConfig) loadFromApollo() bool {
@@ -203,6 +218,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
+	case FlagConfidentNodeKeys:
+		r, ok := value.(string)
+		if !ok {
+			return
+		}
+		c.SetConfidentNodeKeys(r)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -304,6 +325,13 @@ func (c *OecConfig) GetMempoolFlush() bool {
 }
 func (c *OecConfig) SetMempoolFlush(value bool) {
 	c.mempoolFlush = value
+}
+
+func (c *OecConfig) GetConfidentNodeKeys() []string {
+	return c.confidentNodeKeys
+}
+func (c *OecConfig) SetConfidentNodeKeys(value string) {
+	c.confidentNodeKeys = resolveConfidentNodeKyesString(value)
 }
 
 func (c *OecConfig) GetMaxTxNumPerBlock() int64 {

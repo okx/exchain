@@ -57,7 +57,6 @@ var (
 	// ErrEmptyAddressBlockedContract returns an error if the contract method is empty
 	ErrEmptyAddressBlockedContract = sdkerrors.Register(ModuleName, 19, "Empty address in contract method blocked list is not allowed")
 
-
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"
@@ -65,6 +64,10 @@ var (
 	ErrorContractMethodBlockedIsNotExist = errors.New("it's not exist in contract method blocked list")
 )
 
+const (
+	CodeGetChainHeightFailed   uint32 = 62004
+	CodeGetBlockTxHashesFailed uint32 = 62005
+)
 
 // ErrOversizeAddrList returns an error when the length of address list in the proposal is larger than the max limitation
 func ErrOversizeAddrList(length int) sdk.EnvelopedErr {
@@ -97,14 +100,13 @@ func ErrCallBlockedContract(descriptor string) sdk.EnvelopedErr {
 	}
 }
 
-
 // ErrBlockedContractMethodIsNotExist returns an error when the blocked contract method is not exist
-func ErrBlockedContractMethodIsNotExist(address sdk.Address,err error) sdk.EnvelopedErr {
+func ErrBlockedContractMethodIsNotExist(address sdk.Address, err error) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			20,
-			fmt.Sprintf("Delete contract(%s) method failed: %s",address,err.Error()),
+			fmt.Sprintf("Delete contract(%s) method failed: %s", address, err.Error()),
 		),
 	}
 }

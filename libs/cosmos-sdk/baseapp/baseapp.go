@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -21,6 +22,7 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
@@ -88,6 +90,26 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
+
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
@@ -98,7 +120,18 @@ type BaseApp struct { // nolint: maligned
 	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
-	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
+
+	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
+	txDecoder   sdk.TxDecoder
+
+	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
+	// 1. a WrappedTx
+	// 2. an StdTx
+	// 3. a MsgEthereumTx
+	// depends on how []byte is marshalled
+	wrappedTxDecoder   sdk.TxDecoder
+
+	wrappedTxEncoder   sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -164,6 +197,9 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
+
+	nodekey *p2p.NodeKey
+	enableWtx bool
 }
 
 type recordHandle func(string)
@@ -185,13 +221,29 @@ func NewBaseApp(
 		storeLoader:    DefaultStoreLoader,
 		router:         NewRouter(),
 		queryRouter:    NewQueryRouter(),
-		txDecoder:      txDecoder,
 		fauxMerkleMode: false,
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
+		wrappedTxDecoder:      txDecoder,
+		enableWtx:             viper.GetBool(abci.FlagEnableWrappedTx),
 	}
+
+	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
+		tx, err = app.wrappedTxDecoder(txBytes, height...)
+		if err != nil {
+			return
+		}
+
+		stdTx := tx.GetPayloadTx()
+		if stdTx != nil {
+			tx = stdTx
+		}
+		return
+	}
+
+
 	for _, option := range options {
 		option(app)
 	}
@@ -1040,3 +1092,55 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
+
+func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
+	app.nodekey = k
+	hexPub := hexutil.Encode(app.nodekey.PrivKey.PubKey().Bytes())
+	hexPriv := hexutil.Encode(app.nodekey.PrivKey.Bytes())
+	app.logger.Info("SetNodeKey",
+		//"PrivKey", hexPriv,
+		"PubKey", hexPub,
+		"from", from,
+		"id", app.nodekey.ID(),
+	)
+	_ = hexPriv
+}
+
+
+	//
+	//bytes := hexutil.MustDecode(hexpub)
+	//var recoverPubKey ed25519.PubKeyEd25519
+	//recoverPubKey.UnmarshalFromAmino(bytes)
+	//
+	//app.logger.Info("SetNodeKey",
+	//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
+	//)
+	//
+	//rprivkey := genPrivkey(hexpriv)
+	//
+	//rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
+	//rhexpriv := hexutil.Encode(rprivkey.Bytes())
+	//
+	//app.logger.Info("recover NodeKey",
+	//	"PrivKey", rhexpriv,
+	//	"PubKey", rhexpub,
+	//)
+
+	//
+	//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+	//PubKey := "0x1624de6420d134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+	//
+	//
+	//priv := genPrivkey(PrivKey)
+	//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
+	//fmt.Printf("%s\n", 	PubKey)
+//}
+//
+//
+//func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
+//	secert, err := hexutil.Decode(hex)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return ed25519.GenPrivKeyFromSecret(secert)
+//}

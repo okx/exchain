@@ -4,10 +4,6 @@ package server
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"os"
 	"runtime/pprof"
 
@@ -15,14 +11,18 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -178,6 +178,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagEnableWrappedTx, false, "Wrapped tx")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
@@ -192,6 +193,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -210,7 +212,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
 	registerRestServerFlags(cmd)
 	registerAppFlagFn(cmd)
-	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
 	cmd.AddCommand(nodeModeCmd(ctx))
@@ -298,8 +299,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		return nil, err
 	}
 
-	global.SetGlobalHeight(tmNode.ConsensusState().Height)
-
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
 		Value: tmNode.ConsensusState().GetState().ChainID,
@@ -362,6 +361,10 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
+	}
+
+	if keeper, ok := app.(p2p.NodeKeyUser); ok {
+		keeper.SetNodeKey(cfg.NodeKeyFile(), nodeKey)
 	}
 
 	// run forever (the node will not be returned)

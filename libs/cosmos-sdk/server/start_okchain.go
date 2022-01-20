@@ -11,7 +11,6 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +18,6 @@ import (
 // exchain full-node start flags
 const (
 	FlagListenAddr         = "rest.laddr"
-	FlagExternalListenAddr = "rest.external_laddr"
 	FlagUlockKey           = "rest.unlock_key"
 	FlagUlockKeyHome       = "rest.unlock_key_home"
 	FlagRestPathPrefix     = "rest.path_prefix"
@@ -29,49 +27,6 @@ const (
 	FlagWebsocket          = "wsport"
 	FlagWsMaxConnections   = "ws.max_connections"
 	FlagWsSubChannelLength = "ws.sub_channel_length"
-
-	// plugin flags
-	FlagBackendEnableBackend       = "backend.enable_backend"
-	FlagBackendEnableMktCompute    = "backend.enable_mkt_compute"
-	FlagBackendLogSQL              = "backend.log_sql"
-	FlagBackendCleanUpsTime        = "backend.clean_ups_time"
-	FlagBacekendOrmEngineType      = "backend.orm_engine.engine_type"
-	FlagBackendOrmEngineConnectStr = "backend.orm_engine.connect_str"
-
-	FlagStreamEngine                        = "stream.engine"
-	FlagStreamKlineQueryConnect             = "stream.klines_query_connect"
-	FlagStreamWorkerId                      = "stream.worker_id"
-	FlagStreamRedisScheduler                = "stream.redis_scheduler"
-	FlagStreamRedisLock                     = "stream.redis_lock"
-	FlagStreamLocalLockDir                  = "stream.local_lock_dir"
-	FlagStreamCacheQueueCapacity            = "stream.cache_queue_capacity"
-	FlagStreamMarketTopic                   = "stream.market_topic"
-	FlagStreamMarketPartition               = "stream.market_partition"
-	FlagStreamMarketServiceEnable           = "stream.market_service_enable"
-	FlagStreamMarketNacosUrls               = "stream.market_nacos_urls"
-	FlagStreamMarketNacosNamespaceId        = "stream.market_nacos_namespace_id"
-	FlagStreamMarketNacosClusters           = "stream.market_nacos_clusters"
-	FlagStreamMarketNacosServiceName        = "stream.market_nacos_service_name"
-	FlagStreamMarketNacosGroupName          = "stream.market_nacos_group_name"
-	FlagStreamMarketEurekaName              = "stream.market_eureka_name"
-	FlagStreamEurekaServerUrl               = "stream.eureka_server_url"
-	FlagStreamRestApplicationName           = "stream.rest_application_name"
-	FlagStreamRestNacosUrls                 = "stream.rest_nacos_urls"
-	FlagStreamRestNacosNamespaceId          = "stream.rest_nacos_namespace_id"
-	FlagStreamPushservicePulsarPublicTopic  = "stream.pushservice_pulsar_public_topic"
-	FlagStreamPushservicePulsarPrivateTopic = "stream.pushservice_pulsar_private_topic"
-	FlagStreamPushservicePulsarDepthTopic   = "stream.pushservice_pulsar_depth_topic"
-	FlagStreamRedisRequirePass              = "stream.redis_require_pass"
-)
-
-const (
-	// 3 seconds for default timeout commit
-	defaultTimeoutCommit = 3
-)
-
-var (
-	backendConf = config.DefaultConfig().BackendConfig
-	streamConf  = config.DefaultConfig().StreamConfig
 )
 
 //module hook
@@ -191,90 +146,11 @@ func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
-	cmd.Flags().String(FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
 	cmd.Flags().String(FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
-	return cmd
-}
-
-// registerExChainPluginFlags registers the flags required for rest server
-func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().Bool(FlagBackendEnableBackend, backendConf.EnableBackend, "Enable the node's backend plugin")
-	cmd.Flags().MarkHidden(FlagBackendEnableBackend)
-	cmd.Flags().Bool(FlagBackendEnableMktCompute, backendConf.EnableMktCompute, "Enable kline and ticker calculating")
-	cmd.Flags().MarkHidden(FlagBackendEnableMktCompute)
-	cmd.Flags().Bool(FlagBackendLogSQL, backendConf.LogSQL, "Enable backend plugin logging sql feature")
-	cmd.Flags().MarkHidden(FlagBackendLogSQL)
-	cmd.Flags().String(FlagBackendCleanUpsTime, backendConf.CleanUpsTime, "Backend plugin`s time of cleaning up kline data")
-	cmd.Flags().MarkHidden(FlagBackendCleanUpsTime)
-	cmd.Flags().String(FlagBacekendOrmEngineType, backendConf.OrmEngine.EngineType, "Backend plugin`s db (mysql or sqlite3)")
-	cmd.Flags().MarkHidden(FlagBacekendOrmEngineType)
-	cmd.Flags().String(FlagBackendOrmEngineConnectStr, backendConf.OrmEngine.ConnectStr, "Backend plugin`s db connect address")
-	cmd.Flags().MarkHidden(FlagBackendOrmEngineConnectStr)
-
-	cmd.Flags().String(FlagStreamEngine, streamConf.Engine, "Stream plugin`s engine config")
-	cmd.Flags().MarkHidden(FlagStreamEngine)
-	cmd.Flags().String(FlagStreamKlineQueryConnect, streamConf.KlineQueryConnect, "Stream plugin`s kiline query connect url")
-	cmd.Flags().MarkHidden(FlagStreamKlineQueryConnect)
-
-	// distr-lock flags
-	cmd.Flags().String(FlagStreamWorkerId, streamConf.WorkerId, "Stream plugin`s worker id")
-	cmd.Flags().MarkHidden(FlagStreamWorkerId)
-	cmd.Flags().String(FlagStreamRedisScheduler, streamConf.RedisScheduler, "Stream plugin`s redis url for scheduler job")
-	cmd.Flags().MarkHidden(FlagStreamRedisScheduler)
-	cmd.Flags().String(FlagStreamRedisLock, streamConf.RedisLock, "Stream plugin`s redis url for distributed lock")
-	cmd.Flags().MarkHidden(FlagStreamRedisLock)
-	cmd.Flags().String(FlagStreamLocalLockDir, streamConf.LocalLockDir, "Stream plugin`s local lock dir")
-	cmd.Flags().MarkHidden(FlagStreamLocalLockDir)
-	cmd.Flags().Int(FlagStreamCacheQueueCapacity, streamConf.CacheQueueCapacity, "Stream plugin`s cache queue capacity config")
-	cmd.Flags().MarkHidden(FlagStreamCacheQueueCapacity)
-
-	// kafka/pulsar service flags
-	cmd.Flags().String(FlagStreamMarketTopic, streamConf.MarketTopic, "Stream plugin`s pulsar/kafka topic for market quotation")
-	cmd.Flags().MarkHidden(FlagStreamMarketTopic)
-	cmd.Flags().Int(FlagStreamMarketPartition, streamConf.MarketPartition, "Stream plugin`s pulsar/kafka partition for market quotation")
-	cmd.Flags().MarkHidden(FlagStreamMarketPartition)
-
-	// market service flags for nacos config
-	cmd.Flags().Bool(FlagStreamMarketServiceEnable, streamConf.MarketServiceEnable, "Stream plugin`s market service enable config")
-	cmd.Flags().MarkHidden(FlagStreamMarketServiceEnable)
-	cmd.Flags().String(FlagStreamMarketNacosUrls, streamConf.MarketNacosUrls, "Stream plugin`s nacos server urls for getting market service info")
-	cmd.Flags().MarkHidden(FlagStreamMarketNacosUrls)
-	cmd.Flags().String(FlagStreamMarketNacosNamespaceId, streamConf.MarketNacosNamespaceId, "Stream plugin`s nacos name space id for getting market service info")
-	cmd.Flags().MarkHidden(FlagStreamMarketNacosNamespaceId)
-	cmd.Flags().StringArray(FlagStreamMarketNacosClusters, streamConf.MarketNacosClusters, "Stream plugin`s nacos clusters array list for getting market service info")
-	cmd.Flags().MarkHidden(FlagStreamMarketNacosClusters)
-	cmd.Flags().String(FlagStreamMarketNacosServiceName, streamConf.MarketNacosServiceName, "Stream plugin`s nacos service name for getting market service info")
-	cmd.Flags().MarkHidden(FlagStreamMarketNacosServiceName)
-	cmd.Flags().String(FlagStreamMarketNacosGroupName, streamConf.MarketNacosGroupName, "Stream plugin`s nacos group name for getting market service info")
-	cmd.Flags().MarkHidden(FlagStreamMarketNacosGroupName)
-
-	// market service flags for eureka config
-	cmd.Flags().String(FlagStreamMarketEurekaName, streamConf.MarketEurekaName, "Stream plugin`s market service name in eureka")
-	cmd.Flags().MarkHidden(FlagStreamMarketEurekaName)
-	cmd.Flags().String(FlagStreamEurekaServerUrl, streamConf.EurekaServerUrl, "Eureka server url for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagStreamEurekaServerUrl)
-
-	// restful service flags
-	cmd.Flags().String(FlagStreamRestApplicationName, streamConf.RestApplicationName, "Stream plugin`s rest application name in eureka or nacos")
-	cmd.Flags().MarkHidden(FlagStreamRestApplicationName)
-	cmd.Flags().String(FlagStreamRestNacosUrls, streamConf.RestNacosUrls, "Stream plugin`s nacos server urls for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagStreamRestNacosUrls)
-	cmd.Flags().String(FlagStreamRestNacosNamespaceId, streamConf.RestNacosNamespaceId, "Stream plugin`s nacos namepace id for discovery service of rest api")
-	cmd.Flags().MarkHidden(FlagStreamRestNacosNamespaceId)
-
-	// push service flags
-	cmd.Flags().String(FlagStreamPushservicePulsarPublicTopic, streamConf.PushservicePulsarPublicTopic, "Stream plugin`s pulsar public topic of push service")
-	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarPublicTopic)
-	cmd.Flags().String(FlagStreamPushservicePulsarPrivateTopic, streamConf.PushservicePulsarPrivateTopic, "Stream plugin`s pulsar private topic of push service")
-	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarPrivateTopic)
-	cmd.Flags().String(FlagStreamPushservicePulsarDepthTopic, streamConf.PushservicePulsarDepthTopic, "Stream plugin`s pulsar depth topic of push service")
-	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarDepthTopic)
-	cmd.Flags().String(FlagStreamRedisRequirePass, streamConf.RedisRequirePass, "Stream plugin`s redis require pass")
-	cmd.Flags().MarkHidden(FlagStreamRedisRequirePass)
 	return cmd
 }
 
