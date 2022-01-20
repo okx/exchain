@@ -213,7 +213,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
 	registerRestServerFlags(cmd)
 	registerAppFlagFn(cmd)
-	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
 	cmd.AddCommand(nodeModeCmd(ctx))
