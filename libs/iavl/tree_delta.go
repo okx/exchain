@@ -262,7 +262,7 @@ func (cod *commitOrphansDelta) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeInt64ToBuffer(&buf, cod.commitValue)
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(cod.commitValue))
 			if err != nil {
 				return nil, err
 			}
@@ -302,12 +302,12 @@ func (cod *commitOrphansDelta) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			cod.key = string(subData)
 		case 2:
-			value, n, err := amino.DecodeInt64(data)
+			value, n, err := amino.DecodeUvarint(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			cod.commitValue = value
+			cod.commitValue = int64(value)
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}

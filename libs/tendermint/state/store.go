@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/tendermint/go-amino"
-
-	dbm "github.com/tendermint/tm-db"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
@@ -189,6 +188,59 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (arz ABCIResponses) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			resDeliverTx := new(abci.ResponseDeliverTx)
+			err := resDeliverTx.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			arz.DeliverTxs = append(arz.DeliverTxs, resDeliverTx)
+
+		case 2:
+			err := arz.EndBlock.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		case 3:
+			err := arz.BeginBlock.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // PruneStates deletes states between the given heights (including from, excluding to). It is not

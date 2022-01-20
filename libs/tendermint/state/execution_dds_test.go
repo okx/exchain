@@ -187,9 +187,9 @@ func produceAbciRsp() *ABCIResponses {
 
 	blocks, stateDB := produceBlock()
 	ctx := &executionTask{
-		logger: log.TestingLogger(),
-		block: blocks[0],
-		db: stateDB,
+		logger:   log.TestingLogger(),
+		block:    blocks[0],
+		db:       stateDB,
 		proxyApp: proxyApp.Consensus(),
 	}
 

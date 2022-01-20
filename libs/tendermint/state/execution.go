@@ -268,7 +268,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
+		err = abciResponses.UnmarshalFromAmino(delta.ABCIRsp())
 		if err != nil {
 			return nil, err
 		}

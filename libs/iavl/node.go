@@ -103,7 +103,7 @@ func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeInt64ToBuffer(&buf, nj.Version)
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Version))
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +115,7 @@ func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeInt64ToBuffer(&buf, nj.Size)
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Size))
 			if err != nil {
 				return nil, err
 			}
@@ -127,7 +127,7 @@ func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeInt8(&buf, nj.Height)
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Height))
 			if err != nil {
 				return nil, err
 			}
@@ -206,26 +206,26 @@ func (nj *NodeJson) UnmarshalFromAmino(data []byte) error {
 			nj.RightHash = make([]byte, len(subData))
 			copy(nj.RightHash, subData)
 		case 6:
-			value, n, err := amino.DecodeInt64(data)
+			value, n, err := amino.DecodeUvarint(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			nj.Version = value
+			nj.Version = int64(value)
 		case 7:
-			value, n, err := amino.DecodeInt64(data)
+			value, n, err := amino.DecodeUvarint(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			nj.Size = value
+			nj.Size = int64(value)
 		case 8:
-			value, n, err := amino.DecodeInt8(data)
+			value, n, err := amino.DecodeUvarint(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			nj.Height = value
+			nj.Height = int8(value)
 		case 9:
 			if data[0] != 0 && data[0] != 1 {
 				return fmt.Errorf("invalid Persisted")
