@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime/debug"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -91,7 +92,6 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
-
 func (m runTxMode) String() (res string) {
 	switch m {
 	case runTxModeCheck:
@@ -104,6 +104,8 @@ func (m runTxMode) String() (res string) {
 		res = "ModeDeliver"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
+	case runTxModeWrappedCheck:
+		res = "ModeWrappedCheck"
 	default:
 		res = "Unknown"
 	}
@@ -123,16 +125,16 @@ type BaseApp struct { // nolint: maligned
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 
 	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
-	txDecoder   sdk.TxDecoder
+	txDecoder sdk.TxDecoder
 
 	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
 	// 1. a WrappedTx
 	// 2. an StdTx
 	// 3. a MsgEthereumTx
 	// depends on how []byte is marshalled
-	wrappedTxDecoder   sdk.TxDecoder
+	wrappedTxDecoder sdk.TxDecoder
 
-	wrappedTxEncoder   sdk.WrappedTxEncoder
+	wrappedTxEncoder sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -199,7 +201,7 @@ type BaseApp struct { // nolint: maligned
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
 
-	nodekey *p2p.NodeKey
+	nodekey   *p2p.NodeKey
 	enableWtx bool
 }
 
@@ -227,8 +229,8 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		wrappedTxDecoder:      txDecoder,
-		enableWtx:             viper.GetBool(abci.FlagEnableWrappedTx),
+		wrappedTxDecoder: txDecoder,
+		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
 	}
 
 	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
@@ -243,7 +245,6 @@ func NewBaseApp(
 		}
 		return
 	}
-
 
 	for _, option := range options {
 		option(app)
@@ -1112,34 +1113,33 @@ func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
 	_ = hexPriv
 }
 
+//
+//bytes := hexutil.MustDecode(hexpub)
+//var recoverPubKey ed25519.PubKeyEd25519
+//recoverPubKey.UnmarshalFromAmino(bytes)
+//
+//app.logger.Info("SetNodeKey",
+//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
+//)
+//
+//rprivkey := genPrivkey(hexpriv)
+//
+//rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
+//rhexpriv := hexutil.Encode(rprivkey.Bytes())
+//
+//app.logger.Info("recover NodeKey",
+//	"PrivKey", rhexpriv,
+//	"PubKey", rhexpub,
+//)
 
-	//
-	//bytes := hexutil.MustDecode(hexpub)
-	//var recoverPubKey ed25519.PubKeyEd25519
-	//recoverPubKey.UnmarshalFromAmino(bytes)
-	//
-	//app.logger.Info("SetNodeKey",
-	//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
-	//)
-	//
-	//rprivkey := genPrivkey(hexpriv)
-	//
-	//rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
-	//rhexpriv := hexutil.Encode(rprivkey.Bytes())
-	//
-	//app.logger.Info("recover NodeKey",
-	//	"PrivKey", rhexpriv,
-	//	"PubKey", rhexpub,
-	//)
-
-	//
-	//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
-	//PubKey := "0x1624de6420d134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
-	//
-	//
-	//priv := genPrivkey(PrivKey)
-	//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
-	//fmt.Printf("%s\n", 	PubKey)
+//
+//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+//PubKey := "0x1624de6420d134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
+//
+//
+//priv := genPrivkey(PrivKey)
+//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
+//fmt.Printf("%s\n", 	PubKey)
 //}
 //
 //

@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -33,6 +35,15 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
+		fmt.Println("into AnteHandler...", "IsWrappedCheckTx:", ctx.IsWrappedCheckTx())
+		if ctx.IsWrappedCheckTx() {
+			if _, ok := tx.(evmtypes.MsgEthereumTx); ok {
+				// check nonce for MsgEthereumTx
+				return sdk.ChainAnteDecorators(NewNonceVerificationDecorator(ak), NewIncrementSenderSequenceDecorator(ak))(ctx, tx, sim)
+			}
+			// check nothing for StdTx
+			return ctx, nil
+		}
 		var anteHandler sdk.AnteHandler
 		switch tx.(type) {
 		case auth.StdTx:

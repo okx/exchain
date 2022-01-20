@@ -2,12 +2,13 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"runtime/debug"
 )
 
 type runTxInfo struct {
@@ -21,7 +22,6 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
-	nodeSigVerifyResult   int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -56,7 +56,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -74,14 +73,13 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-
 	app.pin(AnteHandler, true, mode)
+
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
@@ -96,7 +94,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	return info, err
 }
-
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
@@ -115,11 +112,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
-	info.nodeSigVerifyResult = newCtx.NodeSigVerifyResult()
 	app.logger.Debug("anteHandler finished",
 		"mode", mode,
 		"type", info.tx.GetType(),
-		"nodeSigVerifyResult", info.nodeSigVerifyResult,
 		"err", err,
 		"tx", info.tx,
 		"payloadtx", info.tx.GetPayloadTx())
@@ -198,7 +193,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through

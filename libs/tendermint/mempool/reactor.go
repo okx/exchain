@@ -38,6 +38,11 @@ type Reactor struct {
 	config  *cfg.MempoolConfig
 	mempool *CListMempool
 	ids     *mempoolIDs
+	nodeKey *p2p.NodeKey
+}
+
+func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
+	memR.nodeKey = key
 }
 
 type mempoolIDs struct {
@@ -171,31 +176,18 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	memR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
-	checkTx := func(tx types.Tx, isWrappedTx bool, wrappedData ...[]byte) {
+	switch msg := msg.(type) {
+	case *TxMessage:
 		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src)}
-		if isWrappedTx && len(wrappedData) == 3 {
-			txInfo.Metadata = wrappedData[0]
-			txInfo.TrustedSig = wrappedData[1]
-			txInfo.TrustedPub = wrappedData[2]
-			txInfo.IsWrappedTx = isWrappedTx
-		}
 		if src != nil {
 			txInfo.SenderP2PID = src.ID()
 		}
-		err := memR.mempool.CheckTx(tx, nil, txInfo)
+		// msg.Tx can be tx or wtx
+		err := memR.mempool.CheckTx(msg.Tx, nil, txInfo)
 		if err != nil {
-			memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.height), "err", err)
+			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx, memR.mempool.height), "err", err)
 		}
-	}
-
-	switch msg := msg.(type) {
-	case *TxMessage:
-		checkTx(msg.Tx, false)
 		// broadcasting happens from go routines per peer
-	case *WrappedTxMessage:
-		// 1. verify signature from node key
-		// 2. handle msg.TxMessage.Tx
-		checkTx(msg.Tx, true, msg.Metadata, msg.TrustedSig, msg.TrustedPub)
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 	}
@@ -257,12 +249,15 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		if _, ok := memTx.senders.Load(peerID); !ok {
 			// send memTx
 			msg := &TxMessage{Tx: memTx.tx}
-			// prepare TrustedSig and TrustedPub
-			var txMsg Message = msg
-			if memTx.isWrappedTx {
-				txMsg = &WrappedTxMessage{TxMessage: msg, Metadata: memTx.metadata, TrustedSig: memTx.trustedSig, TrustedPub: memTx.trustedPub}
+			if wtx := memR.mempool.cache.Get(msg.Tx); wtx != nil {
+				msg.Tx = wtx
+			} else if memR.isConfidentNode() {
+				wtx := memR.toWrappedTx(memTx.tx)
+				raw, _ := cdc.MarshalBinaryBare(&wtx)
+				msg.Tx = raw
 			}
-			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(txMsg))
+
+			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -290,7 +285,7 @@ type Message interface{}
 func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
-	cdc.RegisterConcrete(&WrappedTxMessage{}, "tendermint/mempool/WrappedTxMessage", nil)
+	cdc.RegisterConcrete(&WrappedTx{}, "tendermint/mempool/WrappedTx", nil)
 }
 
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
@@ -320,10 +315,31 @@ func calcMaxMsgSize(maxTxSize int) int {
 	return maxTxSize + aminoOverheadForTxMessage
 }
 
-type WrappedTxMessage struct {
-	// Payload
-	*TxMessage
-	Metadata   []byte
-	TrustedSig []byte
-	TrustedPub []byte
+type WrappedTx struct {
+	Payload   []byte `json:"payload"`   // std tx or evm tx
+	Metadata  []byte `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+
+func (w *WrappedTx) Verify(whitelist map[string]struct{}) bool {
+	// TODO: check if in the whitelist
+	pub := p2p.BytesToPubKey(w.NodeKey)
+	return pub.VerifyBytes(append(w.Payload, w.Metadata...), w.Signature)
+}
+
+func (memR *Reactor) isConfidentNode() bool {
+	//TODO
+	return true
+}
+
+func (memR *Reactor) toWrappedTx(tx types.Tx) WrappedTx {
+	wtx := WrappedTx{
+		Payload:  tx,
+		Metadata: nil,
+		NodeKey:  memR.nodeKey.PubKey().Bytes(),
+	}
+	sig, _ := memR.nodeKey.PrivKey.Sign(append(wtx.Payload, wtx.Metadata...))
+	wtx.Signature = sig
+	return wtx
 }

@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/pkg/errors"
 
@@ -74,6 +75,7 @@ type CListMempool struct {
 
 	// Keep a cache of already-seen txs.
 	// This reduces the pressure on the proxyApp.
+	// Save wtx as value if occurs or save nil as value
 	cache txCache
 
 	eventBus types.TxEventPublisher
@@ -91,6 +93,8 @@ type CListMempool struct {
 
 	txInfoparser TxInfoParser
 	checkCnt     int64
+
+	nodeKeyWhitelist map[string]struct{}
 }
 
 var _ Mempool = &CListMempool{}
@@ -106,19 +110,23 @@ func NewCListMempool(
 	options ...CListMempoolOption,
 ) *CListMempool {
 	mempool := &CListMempool{
-		config:        config,
-		proxyAppConn:  proxyAppConn,
-		txs:           clist.New(),
-		bcTxsList:     clist.New(),
-		height:        height,
-		recheckCursor: nil,
-		recheckEnd:    nil,
-		eventBus:      types.NopEventBus{},
-		logger:        log.NewNopLogger(),
-		metrics:       NopMetrics(),
+		config:           config,
+		proxyAppConn:     proxyAppConn,
+		txs:              clist.New(),
+		bcTxsList:        clist.New(),
+		height:           height,
+		recheckCursor:    nil,
+		recheckEnd:       nil,
+		eventBus:         types.NopEventBus{},
+		logger:           log.NewNopLogger(),
+		metrics:          NopMetrics(),
+		nodeKeyWhitelist: make(map[string]struct{}),
+	}
+	for _, nodeKey := range config.NodeKeyWhitelist {
+		mempool.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	if config.CacheSize > 0 {
-		mempool.cache = newMapTxCache(config.CacheSize)
+		mempool.cache = newLruCache(config.CacheSize)
 	} else {
 		mempool.cache = nopTxCache{}
 	}
@@ -267,6 +275,26 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	fmt.Println("into checkTx...")
+	var wtx WrappedTx
+	var rawWtx types.Tx
+	if len(txInfo.SenderP2PID) != 0 {
+		// from p2p
+		if err := cdc.UnmarshalBinaryBare(tx, &wtx); err == nil {
+			fmt.Println("not from rpc...")
+			if !wtx.Verify(mem.nodeKeyWhitelist) {
+				return fmt.Errorf("wrong wtx signature")
+			}
+			fmt.Println("good wtx signature")
+			rawWtx = tx
+			tx = wtx.Payload
+			fmt.Println("UnmarshalBinaryBare wtx... over")
+		}
+	} else {
+		// from rpc
+		fmt.Println("from rpc...")
+	}
+
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -278,7 +306,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 	// CACHE
-	if !mem.cache.Push(tx) {
+	if mem.cache.Contains(tx) {
+		if len(rawWtx) != 0 && mem.cache.Get(tx) == nil {
+			mem.cache.Add(tx, rawWtx)
+		}
 		return ErrTxInCache
 	}
 
@@ -339,7 +370,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	var checkType abci.CheckTxType
-	if txInfo.IsWrappedTx {
+	if len(rawWtx) != 0 {
 		checkType = abci.CheckTxType_WrappedCheck
 	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: checkType})
@@ -581,13 +612,9 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 			memTx := &mempoolTx{
-				height:      mem.height,
-				gasWanted:   r.CheckTx.GasWanted,
-				tx:          tx,
-				isWrappedTx: txInfo.IsWrappedTx,
-				metadata:    txInfo.Metadata,
-				trustedSig:  txInfo.TrustedSig,
-				trustedPub:  txInfo.TrustedPub,
+				height:    mem.height,
+				gasWanted: r.CheckTx.GasWanted,
+				tx:        tx,
 			}
 			memTx.senders.Store(txInfo.SenderID, true)
 
@@ -601,10 +628,6 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
-			}
-
-			if exTxInfo.WrappedTx != nil {
-				memTx.tx = exTxInfo.WrappedTx
 			}
 
 			var err error
@@ -830,7 +853,9 @@ func (mem *CListMempool) Update(
 			// add gas used with valid committed tx
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
-			_ = mem.cache.Push(tx)
+			if !mem.cache.Contains(tx) {
+				_ = mem.cache.Add(tx, nil)
+			}
 		} else {
 			// Allow invalid transactions to be resubmitted.
 			mem.cache.Remove(tx)
@@ -1018,11 +1043,6 @@ type mempoolTx struct {
 	gasWanted int64    // amount of gas this tx states it will require
 	tx        types.Tx //
 
-	isWrappedTx bool
-	metadata    []byte
-	trustedSig  []byte
-	trustedPub  []byte
-
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
 	senders sync.Map
@@ -1037,84 +1057,65 @@ func (memTx *mempoolTx) Height() int64 {
 
 type txCache interface {
 	Reset()
-	Push(tx types.Tx) bool
+	Add(tx, wtx types.Tx) (existed bool)
+	Contains(tx types.Tx) bool
+	Get(tx types.Tx) types.Tx
 	Remove(tx types.Tx)
 }
 
-// mapTxCache maintains a LRU cache of transactions. This only stores the hash
-// of the tx, due to memory concerns.
-type mapTxCache struct {
-	mtx      sync.Mutex
-	size     int
-	cacheMap map[[sha256.Size]byte]*list.Element
-	list     *list.List
+var _ txCache = (*lruCache)(nil)
+
+type lruCache struct {
+	lru *lru.Cache
 }
 
-var _ txCache = (*mapTxCache)(nil)
-
-// newMapTxCache returns a new mapTxCache.
-func newMapTxCache(cacheSize int) *mapTxCache {
-	return &mapTxCache{
-		size:     cacheSize,
-		cacheMap: make(map[[sha256.Size]byte]*list.Element, cacheSize),
-		list:     list.New(),
-	}
+func newLruCache(size int) *lruCache {
+	cache, _ := lru.New(size)
+	return &lruCache{lru: cache}
 }
 
-// Reset resets the cache to an empty state.
-func (cache *mapTxCache) Reset() {
-	cache.mtx.Lock()
-	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
-	cache.list.Init()
-	cache.mtx.Unlock()
+func (l *lruCache) Reset() {
+	l.lru.Purge()
 }
 
-// Push adds the given tx to the cache and returns true. It returns
-// false if tx is already in the cache.
-func (cache *mapTxCache) Push(tx types.Tx) bool {
-	cache.mtx.Lock()
-	defer cache.mtx.Unlock()
-
-	// Use the tx hash in the cache
-	txHash := txKey(tx)
-	if moved, exists := cache.cacheMap[txHash]; exists {
-		cache.list.MoveToBack(moved)
-		return false
-	}
-
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
-		poppedTxHash := popped.Value.([sha256.Size]byte)
-		delete(cache.cacheMap, poppedTxHash)
-		if popped != nil {
-			cache.list.Remove(popped)
-		}
-	}
-	e := cache.list.PushBack(txHash)
-	cache.cacheMap[txHash] = e
-	return true
+func (l *lruCache) Add(tx, wtx types.Tx) bool {
+	exist, _ := l.lru.ContainsOrAdd(stringHash(tx), wtx)
+	return exist
 }
 
-// Remove removes the given tx from the cache.
-func (cache *mapTxCache) Remove(tx types.Tx) {
-	cache.mtx.Lock()
-	txHash := txKey(tx)
-	popped := cache.cacheMap[txHash]
-	delete(cache.cacheMap, txHash)
-	if popped != nil {
-		cache.list.Remove(popped)
-	}
+func (l *lruCache) Contains(tx types.Tx) bool {
+	return l.lru.Contains(stringHash(tx))
+}
 
-	cache.mtx.Unlock()
+func (l *lruCache) Get(tx types.Tx) types.Tx {
+	value, ok := l.lru.Get(stringHash(tx))
+	if !ok {
+		return nil
+	}
+	wtx, ok := value.(types.Tx)
+	if !ok {
+		return nil
+	}
+	return wtx
+}
+
+func (l *lruCache) Remove(tx types.Tx) {
+	l.lru.Remove(stringHash(tx))
+}
+
+func stringHash(tx types.Tx) string {
+	return string(tx.Hash(types.GetVenusHeight()))
 }
 
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()             {}
-func (nopTxCache) Push(types.Tx) bool { return true }
-func (nopTxCache) Remove(types.Tx)    {}
+func (nopTxCache) Reset()                      {}
+func (nopTxCache) Add(types.Tx, types.Tx) bool { return false }
+func (nopTxCache) Contains(types.Tx) bool      { return false }
+func (nopTxCache) Get(types.Tx) types.Tx       { return nil }
+func (nopTxCache) Remove(types.Tx)             {}
 
 //--------------------------------------------------------------------------------
 

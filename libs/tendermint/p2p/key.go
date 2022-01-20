@@ -21,6 +21,7 @@ const IDByteLength = crypto.AddressSize
 type NodeKeyUser interface {
 	SetNodeKey(string, *NodeKey)
 }
+
 //------------------------------------------------------------------------------
 // Persistent peer ID
 // TODO: encrypt on disk
@@ -45,6 +46,15 @@ func (nodeKey *NodeKey) PubKey() crypto.PubKey {
 // It's the hex-encoding of the pubKey.Address().
 func PubKeyToID(pubKey crypto.PubKey) ID {
 	return ID(hex.EncodeToString(pubKey.Address()))
+}
+
+// BytesToPubKey returns the PubKey corresponding to the given ID.
+func BytesToPubKey(b []byte) crypto.PubKey {
+	var pub crypto.PubKey
+	if err := cdc.UnmarshalBinaryBare(b, &pub); err != nil {
+		return nil
+	}
+	return pub
 }
 
 // LoadOrGenNodeKey attempts to load the NodeKey from the given filePath.

@@ -21,27 +21,25 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx                 context.Context
-	ms                  MultiStore
-	header              abci.Header
-	chainID             string
-	txBytes             []byte
-	logger              log.Logger
-	voteInfo            []abci.VoteInfo
-	gasMeter            GasMeter
-	blockGasMeter       GasMeter
-	checkTx             bool
-	recheckTx           bool // if recheckTx == true, then checkTx must also be true
-	wrappedCheckTx      bool
-	minGasPrice         DecCoins
-	consParams          *abci.ConsensusParams
-	eventManager        *EventManager
-	accountNonce        uint64
-	sigCache            SigCache
-	isAsync             bool
-	cache               *Cache
-	nodeSigVerifyResult int
-	NodekeyWhitelist    map[string][]byte
+	ctx            context.Context
+	ms             MultiStore
+	header         abci.Header
+	chainID        string
+	txBytes        []byte
+	logger         log.Logger
+	voteInfo       []abci.VoteInfo
+	gasMeter       GasMeter
+	blockGasMeter  GasMeter
+	checkTx        bool
+	recheckTx      bool // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
+	minGasPrice    DecCoins
+	consParams     *abci.ConsensusParams
+	eventManager   *EventManager
+	accountNonce   uint64
+	sigCache       SigCache
+	isAsync        bool
+	cache          *Cache
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -66,7 +64,6 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) NodeSigVerifyResult() int    { return c.nodeSigVerifyResult }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -269,11 +266,6 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 // WithSigCache set sigCache.
 func (c Context) WithSigCache(cache SigCache) Context {
 	c.sigCache = cache
-	return c
-}
-
-func (c Context) WithNodeSigVerifyResult(r int) Context {
-	c.nodeSigVerifyResult = r
 	return c
 }
 
