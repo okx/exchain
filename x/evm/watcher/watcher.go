@@ -467,7 +467,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 
-	return func() ([]byte, error){
+	return func() ([]byte, error) {
 		valueByte, err := itjs.Marshal(value)
 		if err != nil {
 			return nil, err
