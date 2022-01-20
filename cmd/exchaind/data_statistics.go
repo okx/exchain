@@ -42,8 +42,6 @@ func Statistic(name, fromDir string) {
 	}
 
 	for ; iter.Valid(); iter.Next() {
-		keySize := len(iter.Key())
-
 		valueSize := len(iter.Value())
 
 		pairCounter++
@@ -64,7 +62,7 @@ func Statistic(name, fromDir string) {
 	iter.Close()
 
 	log.Printf("pairs count: %s", pairCounter)
-	log.Printf("small count: %s", smallCounter)
-	log.Printf("mid count: %s", midCounter)
-	log.Printf("large count: %s", largeCounter)
+	log.Printf("value small count: %s", smallCounter)
+	log.Printf("value mid count: %s", midCounter)
+	log.Printf("value large count: %s", largeCounter)
 }
