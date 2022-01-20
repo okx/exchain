@@ -143,9 +143,10 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 // ie. to verify evidence from a validator at an old height.
 func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) error {
 	if !bytes.Equal(block.AppHash, state.AppHash) {
-		return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v",
+		return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v Height:%d",
 			state.AppHash,
 			block.AppHash,
+			block.Height,
 		)
 	}
 	if IgnoreSmbCheck {
