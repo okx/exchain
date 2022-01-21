@@ -530,10 +530,7 @@ func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	if len(prefix)+len(key) == ethcmn.AddressLength+ethcmn.HashLength {
 		p := addressKeyBytesPool.Get().(*[ethcmn.AddressLength + ethcmn.HashLength]byte)
 		defer addressKeyBytesPool.Put(p)
-		compositeKey = (*p)[:]
-		if len(compositeKey) != ethcmn.AddressLength+ethcmn.HashLength {
-			panic("data get from pool is not the right size")
-		}
+		compositeKey = p[:]
 	} else {
 		compositeKey = make([]byte, len(prefix)+len(key))
 	}
