@@ -2,10 +2,12 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -24,12 +26,13 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	staleBatch    []WatchMessage
+	store      *WatchStore
+	height     uint64
+	blockHash  common.Hash
+	header     types.Header
+	batch      []WatchMessage
+	staleBatch []WatchMessage
+
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
@@ -39,6 +42,8 @@ type Watcher struct {
 	log           log.Logger
 	// for state delta transfering in network
 	watchData *WatchData
+
+	regionKeySet map[cacheNameSpace]map[string]int
 }
 
 var (
@@ -64,7 +69,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger, regionKeySet: make(map[cacheNameSpace]map[string]int)}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -89,6 +94,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
+
 	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
@@ -96,6 +102,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.regionKeySet = make(map[cacheNameSpace]map[string]int)
 
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
@@ -166,15 +173,35 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 	if !w.Enabled() {
 		return
 	}
+
 	wMsg := NewMsgAccount(account)
-	if wMsg != nil {
+	if wMsg == nil {
+		return
+	}
+	regionId := regionAccountDirectly
+	if !isDirectly {
+		regionId = regionAccountIndirectly
+	}
+	key := wMsg.GetKey()
+	uniqueKey := buildKey(key)
+
+	w.appendOrSwap(regionId, uniqueKey, func() int {
+		index := -1
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
+			index = len(w.batch) - 1
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
+			index = len(w.staleBatch) - 1
 		}
-
-	}
+		return index
+	}, func(index int) {
+		if isDirectly {
+			w.batch[index] = wMsg
+		} else {
+			w.staleBatch[index] = wMsg
+		}
+	})
 }
 
 func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
@@ -188,7 +215,6 @@ func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
-
 	}
 }
 
@@ -196,13 +222,23 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
-	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
-	w.delayEraseKey = append(w.delayEraseKey, key)
+	storeKey := GetMsgAccountKey(addr.Bytes())
+	key := append(prefixRpcDb, storeKey...)
+	uniqueKey := buildKey(storeKey)
+
+	w.store.Delete(storeKey)
+	w.appendOrSwap(regionDelayEraseKey, uniqueKey, func() int {
+		w.delayEraseKey = append(w.delayEraseKey, key)
+		return len(w.delayEraseKey) - 1
+	}, func(index int) {})
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
+	key := buildKey(GetMsgAccountKey(addr.Bytes()))
+	w.appendOrSwap(regionDirtyAccount, key, func() int {
+		w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
+		return len(w.watchData.DirtyAccount) - 1
+	}, func(index int) {})
 }
 
 func (w *Watcher) ExecuteDelayEraseKey() {
@@ -212,6 +248,7 @@ func (w *Watcher) ExecuteDelayEraseKey() {
 	if len(w.delayEraseKey) <= 0 {
 		return
 	}
+
 	for _, k := range w.delayEraseKey {
 		w.store.Delete(k)
 	}
@@ -361,7 +398,16 @@ func (w *Watcher) Reset() {
 	if !w.Enabled() {
 		return
 	}
+
+	w.flushUselessCacheRegion(regionAccountIndirectly)
+
 	w.staleBatch = []WatchMessage{}
+}
+
+func (w *Watcher) flushUselessCacheRegion(regionIds ...cacheNameSpace) {
+	for _, id := range regionIds {
+		delete(w.regionKeySet, id)
+	}
 }
 
 func (w *Watcher) Commit() {
@@ -446,7 +492,10 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		addr := *account
+		w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+		key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
+		w.delayEraseKey = append(w.delayEraseKey, key)
 	}
 }
 
@@ -509,4 +558,30 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	}
 
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+// f: if data is not exists, replace: means data already exists
+// if panic: `index out of range` or  `map concurrent read write`: race condition
+func (w *Watcher) appendOrSwap(regionId cacheNameSpace, key string, f func() int, replace func(index int)) {
+	region := w.regionKeySet[regionId]
+	if region == nil {
+		region = make(map[string]int)
+		w.regionKeySet[regionId] = region
+	}
+	originIndex, exist := region[key]
+	if !exist {
+		region[key] = f()
+	} else {
+		replace(originIndex)
+	}
+}
+
+// helper[0]: prefix
+// helper[1]...: data
+func buildKey(helper ...interface{}) string {
+	str := "%v-"
+	if len(helper) > 1 {
+		str += strings.Repeat("%v-", len(helper)-1)
+	}
+	return fmt.Sprintf(str, helper...)
 }

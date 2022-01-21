@@ -21,6 +21,7 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 )
 
+type cacheNameSpace byte
 var (
 	prefixTx           = []byte{0x01}
 	prefixBlock        = []byte{0x02}
@@ -40,8 +41,15 @@ var (
 
 	TransactionSuccess = uint32(1)
 	TransactionFailed  = uint32(0)
-)
 
+
+)
+const (
+	regionDirtyAccount cacheNameSpace=iota
+	regionDelayEraseKey
+	regionAccountDirectly
+	regionAccountIndirectly	// accountMsg
+)
 const (
 	TypeOthers = uint32(1)
 	TypeState  = uint32(2)

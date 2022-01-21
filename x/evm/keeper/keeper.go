@@ -123,6 +123,13 @@ func (k Keeper) OnAccountUpdated(acc auth.Account) {
 	k.Watcher.DeleteAccount(account)
 }
 
+func (k Keeper) OnAccountUpdatedWithCtx(ctx sdk.Context, acc auth.Account) {
+	if ctx.IsCheckTx() || ctx.IsReCheckTx() {
+		return
+	}
+	k.OnAccountUpdated(acc)
+}
+
 // Logger returns a module-specific logger.
 func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
