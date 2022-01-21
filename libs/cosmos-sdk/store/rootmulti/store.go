@@ -962,13 +962,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		returnedDeltas[key.Name()] = reDelta
 	}
 
-	//if tmtypes.UploadDelta {
-	//	deltas, err = itjs.Marshal(returnedDeltas)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}
-
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
