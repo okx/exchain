@@ -35,7 +35,7 @@ var (
 
 	addressKeyBytesPool = &sync.Pool{
 		New: func() interface{} {
-			return make([]byte, ethcmn.AddressLength+ethcmn.HashLength)
+			return &[ethcmn.AddressLength + ethcmn.HashLength]byte{}
 		},
 	}
 )
@@ -528,11 +528,9 @@ func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 
 	var compositeKey []byte
 	if len(prefix)+len(key) == ethcmn.AddressLength+ethcmn.HashLength {
-		compositeKey = addressKeyBytesPool.Get().([]byte)
-		defer addressKeyBytesPool.Put(compositeKey)
-		if len(compositeKey) != ethcmn.AddressLength+ethcmn.HashLength {
-			panic("data get from pool is not the right size")
-		}
+		p := addressKeyBytesPool.Get().(*[ethcmn.AddressLength + ethcmn.HashLength]byte)
+		defer addressKeyBytesPool.Put(p)
+		compositeKey = p[:]
 	} else {
 		compositeKey = make([]byte, len(prefix)+len(key))
 	}
