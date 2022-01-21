@@ -2,26 +2,21 @@ package watcher
 
 import (
 	"encoding/hex"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
 
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
-
-var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
 	store         *WatchStore
@@ -466,7 +461,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 func (w *Watcher) GetWatchData() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
-	valueByte, err := itjs.Marshal(value)
+	valueByte, err := value.MarshalToAmino()
 	if err != nil {
 		return nil, err
 	}
@@ -474,14 +469,14 @@ func (w *Watcher) GetWatchData() ([]byte, error) {
 }
 
 func (w *Watcher) UseWatchData(wdByte []byte) {
-	wd := WatchData{}
+	wd := new(WatchData)
 	if len(wdByte) > 0 {
-		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+		if err := wd.UnmarshalFromAmino(wdByte); err != nil {
 			return
 		}
 	}
 
-	go w.CommitWatchData(wd)
+	go w.CommitWatchData(*wd)
 }
 
 func (w *Watcher) SetWatchDataFunc() {

@@ -23,6 +23,87 @@ type KV struct {
 	Value []byte `json:"value"`
 }
 
+// MarshalToAmino encode KV data to amino bytes
+func (k *KV) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
+	for pos := 1; pos <= 2; pos++ {
+		switch pos {
+		case 1:
+			if len(k.Key) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, k.Key)
+			if err != nil {
+				return nil, err
+			}
+
+		case 2:
+			if len(k.Value) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, k.Value)
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (k *KV) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			k.Key = make([]byte, len(subData))
+			copy(k.Key, subData)
+
+		case 2:
+			k.Value = make([]byte, len(subData))
+			copy(k.Value, subData)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := ethsecp256k1.GenerateKey()
@@ -522,7 +603,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	}
 	return data, nil
 }
-
 
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.

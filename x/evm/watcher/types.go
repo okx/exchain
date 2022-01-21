@@ -1,24 +1,25 @@
 package watcher
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
+	"fmt"
 	"math/big"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -69,6 +70,106 @@ type Batch struct {
 	TypeValue uint32 `json:"type_value"`
 }
 
+func (b *Batch) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3 << 3}
+	for pos := 1; pos <= 3; pos++ {
+		switch pos {
+		case 1:
+			if len(b.Key) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, b.Key)
+			if err != nil {
+				return nil, err
+			}
+
+		case 2:
+			if len(b.Value) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, b.Value)
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			if b.TypeValue == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(b.TypeValue))
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (b *Batch) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			b.Key = make([]byte, len(subData))
+			copy(b.Key, subData)
+
+		case 2:
+			b.Value = make([]byte, len(subData))
+			copy(b.Value, subData)
+
+		case 3:
+			tv, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			b.TypeValue = uint32(tv)
+			dataLen = uint64(n)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 type WatchData struct {
 	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
 	Batches       []*Batch          `json:"batches"`
@@ -79,6 +180,170 @@ type WatchData struct {
 
 func (w *WatchData) Size() int {
 	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
+}
+func (w *WatchData) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
+	for pos := 1; pos <= 5; pos++ {
+		switch pos {
+		case 1:
+			if len(w.DirtyAccount) == 0 {
+				break
+			}
+			for i := 0; i < len(w.DirtyAccount); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, w.DirtyAccount[i].Bytes())
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 2:
+			if len(w.Batches) == 0 {
+				break
+			}
+			for i := 0; i < len(w.Batches); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				data, err := w.Batches[i].MarshalToAmino()
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 3:
+			if len(w.DelayEraseKey) == 0 {
+				break
+			}
+			// encode a slice one by one
+			for i := 0; i < len(w.DelayEraseKey); i++ {
+				if len(w.DelayEraseKey[i]) == 0 {
+					continue
+				}
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, w.DelayEraseKey[i])
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 4:
+			if len(w.BloomData) == 0 {
+				break
+			}
+			for i := 0; i < len(w.BloomData); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				data, err := w.BloomData[i].MarshalToAmino()
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 5:
+			if len(w.DirtyList) == 0 {
+				break
+			}
+			// encode a slice one by one
+			for i := 0; i < len(w.DirtyList); i++ {
+				if len(w.DirtyList[i]) == 0 {
+					continue
+				}
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, w.DirtyList[i])
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (w *WatchData) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			// copy subData to new memory and use it as sdk.AccAddress type
+			accAddr := make([]byte, len(subData))
+			copy(accAddr, subData)
+			acc := sdk.AccAddress(accAddr)
+			w.DirtyAccount = append(w.DirtyAccount, &acc)
+
+		case 2:
+			bat := new(Batch)
+			err := bat.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			w.Batches = append(w.Batches, bat)
+
+		case 3:
+			delayEraseKey := make([]byte, len(subData))
+			copy(delayEraseKey, subData)
+			w.DelayEraseKey = append(w.DelayEraseKey, delayEraseKey)
+
+		case 4:
+			kv := new(types.KV)
+			err := kv.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			w.BloomData = append(w.BloomData, kv)
+
+		case 5:
+			dirtyList := make([]byte, len(subData))
+			copy(dirtyList, subData)
+			w.DirtyList = append(w.DirtyList, dirtyList)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
