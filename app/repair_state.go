@@ -141,6 +141,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	stateCopy := state.Copy()
+	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
@@ -152,6 +153,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
+		ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy)) //todo: delete
 		// use stateCopy to correct the repaired state
 		if state.LastBlockHeight == stateCopy.LastBlockHeight {
 			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
@@ -160,6 +162,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			state.Validators = stateCopy.Validators.Copy()
 			state.NextValidators = state.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
+			ctx.Logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state)) //todo: delete
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
