@@ -153,16 +153,14 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
-		ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy)) //todo: delete
 		// use stateCopy to correct the repaired state
 		if state.LastBlockHeight == stateCopy.LastBlockHeight {
 			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
 			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
 			state.LastValidators = stateCopy.LastValidators.Copy()
 			state.Validators = stateCopy.Validators.Copy()
-			state.NextValidators = state.NextValidators.Copy()
+			state.NextValidators = stateCopy.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
-			ctx.Logger.Debug("SaveStateCopy", "state", fmt.Sprintf("%+v", state)) //todo: delete
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
