@@ -237,7 +237,7 @@ func newCommitOrphansDelta(key string, commitValue int64) *commitOrphansDelta {
 func (cod *commitOrphansDelta) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	//key type list
-	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
+	fieldKeysType := [2]byte{1<<3 | 2, 2 << 3}
 
 	for pos := 1; pos <= 2; pos++ {
 		switch pos {
