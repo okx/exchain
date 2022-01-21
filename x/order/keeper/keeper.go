@@ -47,25 +47,20 @@ type Keeper struct {
 // NewKeeper creates new instances of the nameservice Keeper
 func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper DexKeeper,
 	paramSpace params.Subspace, feeCollectorName string, ordersStoreKey sdk.StoreKey,
-	cdc *codec.Codec,
-	enableBackend bool, metrics *monitor.OrderMetric) Keeper {
+	cdc *codec.Codec, enableBackend bool, metrics *monitor.OrderMetric) Keeper {
 
 	return Keeper{
-		metric: metrics,
-
+		metric:           metrics,
 		enableBackend:    enableBackend,
 		feeCollectorName: feeCollectorName,
-
-		tokenKeeper:  tokenKeeper,
-		supplyKeeper: supplyKeeper,
-		dexKeeper:    dexKeeper,
-		paramSpace:   paramSpace.WithKeyTable(types.ParamKeyTable()),
-
-		orderStoreKey: ordersStoreKey,
-
-		cdc:       cdc,
-		cache:     NewCache(),
-		diskCache: newDiskCache(),
+		tokenKeeper:      tokenKeeper,
+		supplyKeeper:     supplyKeeper,
+		dexKeeper:        dexKeeper,
+		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
+		orderStoreKey:    ordersStoreKey,
+		cdc:              cdc,
+		cache:            NewCache(),
+		diskCache:        newDiskCache(),
 	}
 }
 
