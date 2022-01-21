@@ -101,6 +101,12 @@ init() {
     --mnemonic=${HARDCODED_MNEMONIC}
 }
 
+# extract p2p node key with the specificed work home path 
+# @usage VALUE=`extract_node_key $1`
+extract_node_key(){
+    exchaind extract-node-key hex --home $1 | sed -r 's/Node Public Key: //; s/\n//g'
+}
+
 run() {
 
   index=$1

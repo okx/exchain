@@ -1,17 +1,19 @@
 package ante
 
 import (
+	"sync"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"sync"
 )
 
 var logger anteLogger
 var loggerOnce sync.Once
+
 func SetLogger(l log.Logger) {
 	loggerOnce.Do(func() {
 		logger.Logger = l.With("module", "ante")
@@ -121,4 +123,3 @@ func wrappedTxAnteHandler(ctx sdk.Context, wtx sdk.Tx, sim bool,
 
 	return
 }
-
