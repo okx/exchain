@@ -428,10 +428,11 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
+func (rs *Store) Commit(_ *iavltree.TreeDelta, inputDeltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
+	var outputDeltas []byte
+	rs.lastCommitInfo, outputDeltas = commitStores(version, rs.stores, inputDeltas)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -472,7 +473,7 @@ func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, i
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
-	}, iavltree.TreeDelta{}, deltas
+	}, iavltree.TreeDelta{}, outputDeltas
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
