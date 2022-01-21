@@ -243,11 +243,12 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) &&
 			!strings.Contains(err.Error(), sdkerrors.ErrInvalidSequence.Error()) {
 			// tx has err, and err is not mempoolfull, the tx should be dropped
-			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
-				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+			err = fmt.Errorf("broadcast failed and tx dropped. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
+				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
 			pool.dropTxs(i+1, address)
 		} else {
-			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+			err = fmt.Errorf("broadcast failed. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
+				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
 			pool.dropTxs(i, address)
 		}
 		pool.logger.Error(err.Error())

@@ -21,7 +21,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -213,7 +212,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
 	registerRestServerFlags(cmd)
 	registerAppFlagFn(cmd)
-	registerExChainPluginFlags(cmd)
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
 	cmd.AddCommand(nodeModeCmd(ctx))
@@ -300,8 +298,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	if err != nil {
 		return nil, err
 	}
-
-	global.SetGlobalHeight(tmNode.ConsensusState().Height)
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
