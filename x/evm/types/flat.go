@@ -12,7 +12,7 @@ import (
 
 var gFlatStore *FlatStore = nil
 var flatOnce sync.Once
-var EnableFlatDB = true
+var EnableFlatDB = false
 
 const (
 	FlagDBBackend = "db_backend"

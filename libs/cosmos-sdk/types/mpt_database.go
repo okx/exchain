@@ -21,7 +21,7 @@ var (
 	initOnce sync.Once
 
 	TrieDirtyDisabled      = false
-	TrieCacheSize     uint = 2048 // MB
+	TrieCacheSize     uint = 1024 // MB
 )
 
 func init() {
@@ -33,7 +33,7 @@ func init() {
 
 func NewMptLevelDB(name string, dir string) (ethdb.KeyValueStore, error) {
 	file := filepath.Join(dir, name+".db")
-	return leveldb.New(file, 128, 1024, EvmSpace, false)
+	return leveldb.New(file, 1024, 2048, EvmSpace, false)
 }
 
 const (
