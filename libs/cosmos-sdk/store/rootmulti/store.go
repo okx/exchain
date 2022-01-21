@@ -18,7 +18,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
@@ -703,7 +702,8 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return store, err
 
 	case types.StoreTypeDB:
-		return commitDBStoreAdapter{Store: dbadapter.Store{DB: db}}, nil
+		//return commitDBStoreAdapter{Store: dbadapter.Store{DB: db}}, nil
+		return NewCommitDBStore(db), nil
 
 	case types.StoreTypeTransient:
 		_, ok := key.(*types.TransientStoreKey)
@@ -1173,7 +1173,7 @@ func (rs *Store) StopStore() {
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
-			panic("unexpected db store")
+			// panic("unexpected db store")
 		case types.StoreTypeMulti:
 			panic("unexpected multi store")
 		case types.StoreTypeTransient:

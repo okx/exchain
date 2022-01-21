@@ -288,7 +288,11 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 		switch key.(type) {
 		case *sdk.KVStoreKey:
 			if !app.fauxMerkleMode {
-				app.MountStore(key, sdk.StoreTypeIAVL)
+				if key.Name() == "acc" {
+					app.MountStore(key, sdk.StoreTypeDB)
+				} else {
+					app.MountStore(key, sdk.StoreTypeIAVL)
+				}
 			} else {
 				// StoreTypeDB doesn't do anything upon commit, and it doesn't
 				// retain history, but it's useful for faster simulation.
@@ -307,9 +311,13 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
 // multistore.
 func (app *BaseApp) MountKVStores(keys map[string]*sdk.KVStoreKey) {
-	for _, key := range keys {
+	for name, key := range keys {
 		if !app.fauxMerkleMode {
-			app.MountStore(key, sdk.StoreTypeIAVL)
+			if name == "acc" {
+				app.MountStore(key, sdk.StoreTypeDB)
+			} else {
+				app.MountStore(key, sdk.StoreTypeIAVL)
+			}
 		} else {
 			// StoreTypeDB doesn't do anything upon commit, and it doesn't
 			// retain history, but it's useful for faster simulation.
