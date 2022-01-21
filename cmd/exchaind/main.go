@@ -91,7 +91,6 @@ func main() {
 		exportAppCmd(ctx),
 		iaviewerCmd(cdc),
 		subscribeCmd(cdc),
-		extractNodeKey(ctx),
 	)
 
 	subFunc := func(logger log.Logger) log.Subscriber {
