@@ -1,19 +1,15 @@
 package ante
 
 import (
-	"fmt"
-
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 func init() {
@@ -35,7 +31,6 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
-		fmt.Println("into AnteHandler...", "IsWrappedCheckTx:", ctx.IsWrappedCheckTx())
 		if ctx.IsWrappedCheckTx() {
 			if _, ok := tx.(evmtypes.MsgEthereumTx); ok {
 				// check nonce for MsgEthereumTx

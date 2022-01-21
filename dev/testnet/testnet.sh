@@ -116,10 +116,12 @@ run() {
       sed -i "" 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
       sed -i "" 's/"enable_create": false/"enable_create": true/' cache/node${index}/exchaind/config/genesis.json
       sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' cache/node${index}/exchaind/config/genesis.json
+      #sed -i "" 's/node_key_whitelist.*/node_key_whitelist = ["00323d59a5ce412d58dbeb79450775aa78cde477", "850502b4ecd570f1d13fd63e6c6ca96ae8f7f947", "91f41250223bc59203cae5f6a75d6df30653b8cf", "dc50439a015454d53ebb8407393c45c7120f057e"]/' cache/node${index}/exchaind/config/config.toml
   else
       sed -i 's/"enable_call": false/"enable_call": true/' cache/node${index}/exchaind/config/genesis.json
       sed -i 's/"enable_create": false/"enable_create": true/' cache/node${index}/exchaind/config/genesis.json
       sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' cache/node${index}/exchaind/config/genesis.json
+      #sed -i 's/node_key_whitelist.*/node_key_whitelist = ["00323d59a5ce412d58dbeb79450775aa78cde477", "850502b4ecd570f1d13fd63e6c6ca96ae8f7f947", "91f41250223bc59203cae5f6a75d6df30653b8cf", "dc50439a015454d53ebb8407393c45c7120f057e"]/' cache/node${index}/exchaind/config/config.toml
   fi
 
   exchaind add-genesis-account 0xbbE4733d85bc2b90682147779DA49caB38C0aA1F 900000000okt --home cache/node${index}/exchaind

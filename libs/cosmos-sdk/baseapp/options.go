@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	dbm "github.com/tendermint/tm-db"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // File for storing in-package BaseApp optional functions,

@@ -2,8 +2,9 @@ package ante
 
 import (
 	"fmt"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
@@ -139,10 +140,6 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
-	if ctx.IsWrappedCheckTx() {
-		// for example
-		return next(newCtx, msgEthTx, simulate)
 	}
 
 	// parse the chainID from a string to a base-10 integer

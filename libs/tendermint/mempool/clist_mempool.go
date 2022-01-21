@@ -13,9 +13,6 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-
-	"github.com/pkg/errors"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -26,6 +23,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
 )
 
 type TxInfoParser interface {
@@ -93,8 +91,6 @@ type CListMempool struct {
 
 	txInfoparser TxInfoParser
 	checkCnt     int64
-
-	nodeKeyWhitelist map[string]struct{}
 }
 
 var _ Mempool = &CListMempool{}
@@ -110,20 +106,16 @@ func NewCListMempool(
 	options ...CListMempoolOption,
 ) *CListMempool {
 	mempool := &CListMempool{
-		config:           config,
-		proxyAppConn:     proxyAppConn,
-		txs:              clist.New(),
-		bcTxsList:        clist.New(),
-		height:           height,
-		recheckCursor:    nil,
-		recheckEnd:       nil,
-		eventBus:         types.NopEventBus{},
-		logger:           log.NewNopLogger(),
-		metrics:          NopMetrics(),
-		nodeKeyWhitelist: make(map[string]struct{}),
-	}
-	for _, nodeKey := range config.NodeKeyWhitelist {
-		mempool.nodeKeyWhitelist[nodeKey] = struct{}{}
+		config:        config,
+		proxyAppConn:  proxyAppConn,
+		txs:           clist.New(),
+		bcTxsList:     clist.New(),
+		height:        height,
+		recheckCursor: nil,
+		recheckEnd:    nil,
+		eventBus:      types.NopEventBus{},
+		logger:        log.NewNopLogger(),
+		metrics:       NopMetrics(),
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newLruCache(config.CacheSize)
@@ -275,25 +267,6 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	fmt.Println("into checkTx...")
-	var wtx WrappedTx
-	var rawWtx types.Tx
-	if len(txInfo.SenderP2PID) != 0 {
-		// from p2p
-		if err := cdc.UnmarshalBinaryBare(tx, &wtx); err == nil {
-			fmt.Println("not from rpc...")
-			if !wtx.Verify(mem.nodeKeyWhitelist) {
-				return fmt.Errorf("wrong wtx signature")
-			}
-			fmt.Println("good wtx signature")
-			rawWtx = tx
-			tx = wtx.Payload
-			fmt.Println("UnmarshalBinaryBare wtx... over")
-		}
-	} else {
-		// from rpc
-		fmt.Println("from rpc...")
-	}
 
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
@@ -307,8 +280,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// CACHE
 	if mem.cache.Contains(tx) {
-		if len(rawWtx) != 0 && mem.cache.Get(tx) == nil {
-			mem.cache.Add(tx, rawWtx)
+		if len(txInfo.wtx) != 0 && mem.cache.Get(tx) == nil {
+			mem.cache.Add(tx, txInfo.wtx)
 		}
 		return ErrTxInCache
 	}
@@ -370,7 +343,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	var checkType abci.CheckTxType
-	if len(rawWtx) != 0 {
+	if len(txInfo.wtx) != 0 {
 		checkType = abci.CheckTxType_WrappedCheck
 	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: checkType})

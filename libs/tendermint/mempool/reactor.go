@@ -7,13 +7,14 @@ import (
 	"sync"
 	"time"
 
-	amino "github.com/tendermint/go-amino"
-
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -35,10 +36,12 @@ const (
 // peers you received it from.
 type Reactor struct {
 	p2p.BaseReactor
-	config  *cfg.MempoolConfig
-	mempool *CListMempool
-	ids     *mempoolIDs
-	nodeKey *p2p.NodeKey
+	config           *cfg.MempoolConfig
+	mempool          *CListMempool
+	ids              *mempoolIDs
+	nodeKey          *p2p.NodeKey
+	nodeKeyWhitelist map[string]struct{}
+	enableWtx        bool
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -111,9 +114,14 @@ func newMempoolIDs() *mempoolIDs {
 // NewReactor returns a new Reactor with the given config and mempool.
 func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR := &Reactor{
-		config:  config,
-		mempool: mempool,
-		ids:     newMempoolIDs(),
+		config:           config,
+		mempool:          mempool,
+		ids:              newMempoolIDs(),
+		nodeKeyWhitelist: make(map[string]struct{}),
+		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
+	}
+	for _, nodeKey := range config.NodeKeyWhitelist {
+		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	return memR
@@ -183,6 +191,16 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			txInfo.SenderP2PID = src.ID()
 		}
 		// msg.Tx can be tx or wtx
+		var wtx WrappedTx
+		if err := cdc.UnmarshalBinaryBare(msg.Tx, &wtx); err == nil {
+			if !memR.verify(&wtx) {
+				memR.Logger.Error(fmt.Sprintf("invalid wtx"))
+				return
+			}
+			txInfo.wtx = msg.Tx
+			msg.Tx = wtx.Payload
+		}
+
 		err := memR.mempool.CheckTx(msg.Tx, nil, txInfo)
 		if err != nil {
 			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx, memR.mempool.height), "err", err)
@@ -251,9 +269,9 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			msg := &TxMessage{Tx: memTx.tx}
 			if wtx := memR.mempool.cache.Get(msg.Tx); wtx != nil {
 				msg.Tx = wtx
-			} else if memR.isConfidentNode() {
-				wtx := memR.toWrappedTx(memTx.tx)
-				raw, _ := cdc.MarshalBinaryBare(&wtx)
+			} else if memR.enableWtx {
+				wtx := memR.wrapTx(memTx.tx)
+				raw, _ := cdc.MarshalBinaryBare(wtx)
 				msg.Tx = raw
 			}
 
@@ -317,24 +335,21 @@ func calcMaxMsgSize(maxTxSize int) int {
 
 type WrappedTx struct {
 	Payload   []byte `json:"payload"`   // std tx or evm tx
-	Metadata  []byte `json:"metadata"`  // customized message from the node who signs the tx
+	Metadata  []byte `json:"metadata"`  // customized message from the node who signs the tx, not used yet
 	Signature []byte `json:"signature"` // signature for payload+metadata
 	NodeKey   []byte `json:"nodeKey"`   // pub key of the node who signs the tx
 }
 
-func (w *WrappedTx) Verify(whitelist map[string]struct{}) bool {
-	// TODO: check if in the whitelist
-	pub := p2p.BytesToPubKey(w.NodeKey)
-	return pub.VerifyBytes(append(w.Payload, w.Metadata...), w.Signature)
+func (memR *Reactor) verify(wtx *WrappedTx) bool {
+	pub := p2p.BytesToPubKey(wtx.NodeKey)
+	if _, ok := memR.nodeKeyWhitelist[string(p2p.PubKeyToID(pub))]; !ok {
+		return false
+	}
+	return pub.VerifyBytes(append(wtx.Payload, wtx.Metadata...), wtx.Signature)
 }
 
-func (memR *Reactor) isConfidentNode() bool {
-	//TODO
-	return true
-}
-
-func (memR *Reactor) toWrappedTx(tx types.Tx) WrappedTx {
-	wtx := WrappedTx{
+func (memR *Reactor) wrapTx(tx types.Tx) *WrappedTx {
+	wtx := &WrappedTx{
 		Payload:  tx,
 		Metadata: nil,
 		NodeKey:  memR.nodeKey.PubKey().Bytes(),

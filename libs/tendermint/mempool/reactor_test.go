@@ -8,9 +8,6 @@ import (
 
 	"github.com/fortytw2/leaktest"
 	"github.com/go-kit/kit/log/term"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -18,6 +15,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p/mock"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 type peerState struct {
