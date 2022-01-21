@@ -19,7 +19,7 @@ type Store interface { //nolint
 
 // something that can persist to disk
 type Committer interface {
-	Commit(*iavl.TreeDelta, []byte) (CommitID, iavl.TreeDelta, []byte)
+	CommitterCommit(*iavl.TreeDelta, []byte) (CommitID, iavl.TreeDelta, []byte)
 	LastCommitID() CommitID
 
 	// TODO: Deprecate after 0.38.5

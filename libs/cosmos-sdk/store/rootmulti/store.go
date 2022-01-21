@@ -428,7 +428,7 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) Commit(_ *iavltree.TreeDelta, inputDeltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
+func (rs *Store) CommitterCommit(_ *iavltree.TreeDelta, inputDeltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
 	var outputDeltas []byte
@@ -924,22 +924,22 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-	//	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
+	inputDeltaBytes []byte) (ci commitInfo, outputDeltaBytes []byte) {
 	var storeInfos []storeInfo
 	appliedDeltas := map[string]*iavltree.TreeDelta{}
-	returnedDeltas := map[string]iavltree.TreeDelta{}
+	outputDeltas := map[string]iavltree.TreeDelta{}
 
 	var err error
-	if tmtypes.DownloadDelta && len(deltas) != 0 {
-		err = itjs.Unmarshal(deltas, &appliedDeltas)
+	if tmtypes.DownloadDelta && len(inputDeltaBytes) != 0 {
+		err = itjs.Unmarshal(inputDeltaBytes, &appliedDeltas)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	for key, store := range storeMap {
-		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], deltas)
+		commitID, reDelta, _ := store.CommitterCommit(appliedDeltas[key.Name()], inputDeltaBytes)
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
@@ -949,20 +949,19 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
-		returnedDeltas[key.Name()] = reDelta
+		outputDeltas[key.Name()] = reDelta
 	}
 
 	if tmtypes.UploadDelta {
-		deltas, err = itjs.Marshal(returnedDeltas)
+		outputDeltaBytes, err = itjs.Marshal(outputDeltas)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	return commitInfo{
-		Version:    version,
-		StoreInfos: storeInfos,
-	}, deltas
+	ci.Version = version
+	ci.StoreInfos = storeInfos
+	return
 }
 
 // Gets commitInfo from disk.
