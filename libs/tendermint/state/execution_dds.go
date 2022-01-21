@@ -36,11 +36,16 @@ func (m identityMapType) increase(from string, num int64) {
 var (
 	getWatchDataFunc func() func() ([]byte, error)
 	applyWatchDataFunc func(data []byte)
+	getStateDeltaFunc func() map[string]iavl.TreeDelta
 )
 
 func SetWatchDataFunc(g func()func() ([]byte, error), u func([]byte))  {
 	getWatchDataFunc = g
 	applyWatchDataFunc = u
+}
+
+func SetStateDeltaFunc(g func() map[string]iavl.TreeDelta) {
+	getStateDeltaFunc = g
 }
 
 type DeltaContext struct {
@@ -175,14 +180,15 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		if !isFastSync {
 			wdFunc := getWatchDataFunc()
-			go dc.uploadData(height, abciResponses, res, wdFunc)
+			deltas := getStateDeltaFunc()
+			go dc.uploadData(height, abciResponses, deltas, wdFunc)
 		} else {
 			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
 		}
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte, wdFunc func() ([]byte, error)) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltas map[string]iavl.TreeDelta, wdFunc func() ([]byte, error)) {
 	var abciResponsesBytes []byte
 	var err error
 	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
@@ -200,10 +206,16 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		}
 	}
 
+	deltaBytes, err := types.Json.Marshal(deltas)
+	if err != nil {
+		panic(err)
+	}
+
+
 	delta4Upload := &types.Deltas {
 		Payload: types.DeltaPayload{
 			ABCIRsp:     abciResponsesBytes,
-			DeltasBytes: res,
+			DeltasBytes: deltaBytes,
 			WatchBytes:  wd,
 		},
 		Height:      height,

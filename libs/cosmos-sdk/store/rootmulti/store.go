@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/state"
 	"io"
 	"log"
 	"path/filepath"
@@ -64,6 +65,8 @@ type Store struct {
 	interBlockCache types.MultiStorePersistentCache
 
 	logger tmlog.Logger
+
+	returenDeltas map[string]iavltree.TreeDelta
 }
 
 var (
@@ -80,16 +83,20 @@ func NewStore(db dbm.DB) *Store {
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
 	}
-	return &Store{
-		db:           db,
-		flatKVDB:     flatKVDB,
-		pruningOpts:  types.PruneNothing,
-		storesParams: make(map[types.StoreKey]storeParams),
-		stores:       make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:   make(map[string]types.StoreKey),
-		pruneHeights: make([]int64, 0),
-		versions:     make([]int64, 0),
+	s := &Store{
+		db:            db,
+		flatKVDB:      flatKVDB,
+		pruningOpts:   types.PruneNothing,
+		storesParams:  make(map[types.StoreKey]storeParams),
+		stores:        make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:    make(map[string]types.StoreKey),
+		pruneHeights:  make([]int64, 0),
+		versions:      make([]int64, 0),
+		returenDeltas: make(map[string]iavltree.TreeDelta),
 	}
+	state.SetStateDeltaFunc(s.getStateDelta)
+
+	return s
 }
 
 func newFlatKVDB() dbm.DB {
@@ -431,7 +438,7 @@ func (rs *Store) LastCommitID() types.CommitID {
 func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
+	rs.lastCommitInfo, rs.returenDeltas = commitStores(version, rs.stores, deltas)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -473,6 +480,10 @@ func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, i
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
 	}, iavltree.TreeDelta{}, deltas
+}
+
+func (rs *Store) getStateDelta() map[string]iavltree.TreeDelta {
+	return rs.returenDeltas
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -923,7 +934,7 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, map[string]iavltree.TreeDelta) {
 	//	storeInfos := make([]storeInfo, 0, len(storeMap))
 	var storeInfos []storeInfo
 	appliedDeltas := map[string]*iavltree.TreeDelta{}
@@ -951,17 +962,17 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		returnedDeltas[key.Name()] = reDelta
 	}
 
-	if tmtypes.UploadDelta {
-		deltas, err = itjs.Marshal(returnedDeltas)
-		if err != nil {
-			panic(err)
-		}
-	}
+	//if tmtypes.UploadDelta {
+	//	deltas, err = itjs.Marshal(returnedDeltas)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}
 
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
-	}, deltas
+	}, returnedDeltas
 }
 
 // Gets commitInfo from disk.
