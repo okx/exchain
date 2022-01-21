@@ -226,16 +226,19 @@ func (arz ABCIResponses) UnmarshalFromAmino(data []byte) error {
 			arz.DeliverTxs = append(arz.DeliverTxs, resDeliverTx)
 
 		case 2:
-			err := arz.EndBlock.UnmarshalFromAmino(subData)
+			eBlock := new(abci.ResponseEndBlock)
+			err := eBlock.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			arz.EndBlock = eBlock
 		case 3:
-			err := arz.BeginBlock.UnmarshalFromAmino(subData)
+			bBlock := new(abci.ResponseBeginBlock)
+			err := bBlock.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
-
+			arz.BeginBlock = bBlock
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}

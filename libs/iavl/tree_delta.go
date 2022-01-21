@@ -213,10 +213,12 @@ func (nd *nodesDelta) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			nd.key = string(subData)
 		case 2:
-			err := nd.nodeData.UnmarshalFromAmino(subData)
+			nodeData := new(NodeJson)
+			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			nd.nodeData = nodeData
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}

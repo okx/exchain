@@ -85,8 +85,8 @@ func flushDB(db *watcher.WatchStore) {
 }
 
 func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+	wd := new(watcher.WatchData)
+	if err := wd.UnmarshalFromAmino(wdBytes); err != nil {
 		return err
 	}
 	for _, account := range wd.DirtyAccount {
@@ -96,8 +96,8 @@ func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 }
 
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
-	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+	wd := new(watcher.WatchData)
+	if err := wd.UnmarshalFromAmino(wdBytes); err != nil {
 		return
 	}
 	keys := make([][]byte, len(wd.Batches))

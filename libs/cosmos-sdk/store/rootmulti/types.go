@@ -159,10 +159,16 @@ func (ad *appliedDelta) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			ad.key = string(subData)
 		case 2:
-			err := ad.appliedTree.UnmarshalFromAmino(subData)
+			appliedData := &iavl.TreeDelta{
+				NodesDelta:         make(map[string]*iavl.NodeJson),
+				OrphansDelta:       make([]*iavl.NodeJson, 0),
+				CommitOrphansDelta: make(map[string]int64),
+			}
+			err := appliedData.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			ad.appliedTree = appliedData
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)

@@ -821,20 +821,26 @@ func (cp *ConsensusParams) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			err := cp.Block.UnmarshalFromAmino(subData)
+			bParams := new(BlockParams)
+			err := bParams.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			cp.Block = bParams
 		case 2:
-			err := cp.Evidence.UnmarshalFromAmino(subData)
+			eParams := new(EvidenceParams)
+			err := eParams.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			cp.Evidence = eParams
 		case 3:
-			err := cp.Validator.UnmarshalFromAmino(subData)
+			vp := new(ValidatorParams)
+			err := vp.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			cp.Validator = vp
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -946,10 +952,12 @@ func (eb *ResponseEndBlock) UnmarshalFromAmino(data []byte) error {
 			}
 			eb.ValidatorUpdates = append(eb.ValidatorUpdates, vu)
 		case 2:
-			err := eb.ConsensusParamUpdates.UnmarshalFromAmino(subData)
+			consParam := new(ConsensusParams)
+			err := consParam.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
+			eb.ConsensusParamUpdates = consParam
 		case 3:
 			var event Event
 			err = event.UnmarshalFromAmino(subData)
