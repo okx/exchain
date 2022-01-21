@@ -162,7 +162,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			state.Validators = stateCopy.Validators.Copy()
 			state.NextValidators = state.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
-			ctx.Logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state)) //todo: delete
+			ctx.Logger.Debug("SaveStateCopy", "state", fmt.Sprintf("%+v", state)) //todo: delete
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
