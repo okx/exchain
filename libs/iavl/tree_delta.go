@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
+	"sort"
 )
 
 // TreeDelta is the delta for applying on new version tree
@@ -20,15 +21,20 @@ func (td *TreeDelta) MarshalToAmino() ([]byte, error) {
 	for pos := 1; pos <= 3; pos++ {
 		switch pos {
 		case 1:
-			if len(td.NodesDelta) == 0 {
-				break
+			//sort keys
+			keys := []string{}
+			for k := range td.NodesDelta {
+				keys = append(keys, k)
 			}
-			for k, v := range td.NodesDelta {
+			sort.Strings(keys)
+
+			//encode data after it is sorted
+			for _, k := range keys {
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				data, err := newNodesDelta(k, v).MarshalToAmino()
+				data, err := newNodesDelta(k, td.NodesDelta[k]).MarshalToAmino()
 				if err != nil {
 					return nil, err
 				}

@@ -3,6 +3,7 @@ package rootmulti
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/pkg/errors"
@@ -17,14 +18,24 @@ func MarshalAppliedDeltaToAmino(appliedData map[string]iavl.TreeDelta) ([]byte, 
 		return buf.Bytes(), nil
 	}
 
+	// map is unsorted, so when the data isn't changed, we
+	// must order it as the same way.
+	keys := make([]string, 0)
+	for k, _ := range appliedData {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	// encode a pair of data one by one
-	for k, v := range appliedData {
+	for _, k := range keys {
 		err := buf.WriteByte(fieldKeysType)
 		if err != nil {
 			return nil, err
 		}
-		// map must convert to struct before it marshal
-		data, err := newAppliedDelta(k, &v).MarshalToAmino()
+		// map must copy to new struct before it marshal
+		td := new(iavl.TreeDelta)
+		*td = appliedData[k]
+		data, err := newAppliedDelta(k, td).MarshalToAmino()
 		if err != nil {
 			return nil, err
 		}
@@ -37,10 +48,13 @@ func MarshalAppliedDeltaToAmino(appliedData map[string]iavl.TreeDelta) ([]byte, 
 
 	return buf.Bytes(), nil
 }
+
+// UnmarshalAppliedDeltaFromAmino decode bytes to map[string]*iavl.TreeDelta in amino format.
 func UnmarshalAppliedDeltaFromAmino(data []byte) (map[string]*iavl.TreeDelta, error) {
 	var dataLen uint64 = 0
 	var subData []byte
-	appliedList := make(map[string]*iavl.TreeDelta)
+	appliedData := map[string]*iavl.TreeDelta{}
+
 	for {
 		data = data[dataLen:]
 		if len(data) == 0 {
@@ -48,7 +62,7 @@ func UnmarshalAppliedDeltaFromAmino(data []byte) (map[string]*iavl.TreeDelta, er
 		}
 		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		if err != nil {
-			return appliedList, err
+			return map[string]*iavl.TreeDelta{}, err
 		}
 		data = data[1:]
 
@@ -58,25 +72,33 @@ func UnmarshalAppliedDeltaFromAmino(data []byte) (map[string]*iavl.TreeDelta, er
 
 			data = data[n:]
 			if len(data) < int(dataLen) {
-				return appliedList, errors.New("not enough data")
+				return map[string]*iavl.TreeDelta{}, errors.New("not enough data")
 			}
 			subData = data[:dataLen]
 		}
 
 		switch pos {
 		case 1:
-			appliedData := new(appliedDelta)
-			err := appliedData.UnmarshalFromAmino(subData)
+			ad := new(appliedDelta)
+			err := ad.UnmarshalFromAmino(subData)
 			if err != nil {
-				return nil, err
+				return map[string]*iavl.TreeDelta{}, err
 			}
-			appliedList[appliedData.key] = appliedData.appliedTree
+			// if tree is empty, it must be initialized
+			if ad.appliedTree == nil {
+				ad.appliedTree = &iavl.TreeDelta{
+					NodesDelta:         map[string]*iavl.NodeJson{},
+					OrphansDelta:       make([]*iavl.NodeJson, 0),
+					CommitOrphansDelta: map[string]int64{},
+				}
+			}
+			appliedData[ad.key] = ad.appliedTree
 
 		default:
-			return nil, fmt.Errorf("unexpect feild num %d", pos)
+			return map[string]*iavl.TreeDelta{}, fmt.Errorf("unexpect feild num %d", pos)
 		}
 	}
-	return appliedList, nil
+	return appliedData, nil
 }
 
 // appliedDelta convert map[string]*iavl.TreeDelta to struct
@@ -160,9 +182,9 @@ func (ad *appliedDelta) UnmarshalFromAmino(data []byte) error {
 			ad.key = string(subData)
 		case 2:
 			appliedData := &iavl.TreeDelta{
-				NodesDelta:         make(map[string]*iavl.NodeJson),
-				OrphansDelta:       make([]*iavl.NodeJson, 0),
-				CommitOrphansDelta: make(map[string]int64),
+				NodesDelta:         map[string]*iavl.NodeJson{},
+				OrphansDelta:       []*iavl.NodeJson{},
+				CommitOrphansDelta: map[string]int64{},
 			}
 			err := appliedData.UnmarshalFromAmino(subData)
 			if err != nil {

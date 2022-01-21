@@ -1,7 +1,6 @@
 package iavl
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 
@@ -48,22 +47,48 @@ func testTreeDelta(t *testing.T) {
 	assert.NotEqual(t, emptyDelta, tdata)
 }
 
-type encodeFunc func(data interface{}) ([]byte, error)
+type encoder interface {
+	name() string
+	encodeFunc(iavltree.TreeDelta) ([]byte, error)
+	decodeFunc([]byte) (iavltree.TreeDelta, error)
+}
 
-func aminoEncDelta(data interface{}) ([]byte, error) {
-	td, ok := data.(iavltree.TreeDelta)
-	if !ok {
-		return nil, fmt.Errorf("no supported this type")
+type aminoEncoder struct{}
+
+func newAmino() *aminoEncoder         { return &aminoEncoder{} }
+func (ae *aminoEncoder) name() string { return "amino" }
+func (ae *aminoEncoder) encodeFunc(data iavltree.TreeDelta) ([]byte, error) {
+	return data.MarshalToAmino()
+}
+func (ae *aminoEncoder) decodeFunc(data []byte) (iavltree.TreeDelta, error) {
+	td := iavltree.TreeDelta{
+		NodesDelta:         map[string]*iavltree.NodeJson{},
+		OrphansDelta:       make([]*iavltree.NodeJson, 0),
+		CommitOrphansDelta: map[string]int64{},
 	}
-	return td.MarshalToAmino()
+	err := td.UnmarshalFromAmino(data)
+	return td, err
 }
 
-//test different encode function to handle delta
-func TestEncodeDelta(t *testing.T) {
-	testEncodeDelta(t, "amino", aminoEncDelta)
+// different encode function to handle delta
+func TestEncodeTreeDelta(t *testing.T) {
+	testEncodeTreeDelta(t, newAmino())
 }
-func testEncodeDelta(t *testing.T, name string, encFunc encodeFunc) {
+func testEncodeTreeDelta(t *testing.T, enc encoder) {
 	_, delta := newTestTreeDelta()
-	_, err := encFunc(delta)
-	require.NoError(t, err, name)
+	_, err := enc.encodeFunc(delta)
+	require.NoError(t, err, enc.name())
+}
+
+// decode data after it is marshaled to bytes, and the result is same before
+func TestDecodeTreeDelta(t *testing.T) {
+	testDecodeTreeDelta(t, newAmino())
+}
+func testDecodeTreeDelta(t *testing.T, enc encoder) {
+	_, delta1 := newTestTreeDelta()
+	data, err := enc.encodeFunc(delta1)
+
+	delta2, err := enc.decodeFunc(data)
+	require.NoError(t, err, enc.name())
+	assert.EqualValues(t, delta1, delta2, enc.name())
 }
