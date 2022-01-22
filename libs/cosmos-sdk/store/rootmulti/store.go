@@ -428,7 +428,7 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) CommitterCommit(_ *iavltree.TreeDelta, inputDeltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
+func (rs *Store) Commit(_ *iavltree.TreeDelta, inputDeltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
 	var outputDeltas []byte
@@ -939,7 +939,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}
 
 	for key, store := range storeMap {
-		commitID, reDelta, _ := store.CommitterCommit(appliedDeltas[key.Name()], inputDeltaBytes)
+		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], inputDeltaBytes) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
