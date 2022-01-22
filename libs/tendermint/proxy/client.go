@@ -3,8 +3,6 @@ package proxy
 import (
 	"sync"
 
-	"github.com/pkg/errors"
-
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/example/counter"
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
@@ -44,21 +42,9 @@ type remoteClientCreator struct {
 	mustConnect bool
 }
 
-func NewRemoteClientCreator(addr, transport string, mustConnect bool) ClientCreator {
-	return &remoteClientCreator{
-		addr:        addr,
-		transport:   transport,
-		mustConnect: mustConnect,
-	}
-}
 
-func (r *remoteClientCreator) NewABCIClient() (abcicli.Client, error) {
-	remoteApp, err := abcicli.NewClient(r.addr, r.transport, r.mustConnect)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to connect to proxy")
-	}
-	return remoteApp, nil
-}
+
+
 
 //-----------------------------------------------------------------
 // default
@@ -75,8 +61,7 @@ func DefaultClientCreator(addr, transport, dbDir string) ClientCreator {
 		return NewLocalClientCreator(kvstore.NewPersistentKVStoreApplication(dbDir))
 	case "noop":
 		return NewLocalClientCreator(types.NewBaseApplication())
-	default:
-		mustConnect := false // loop retrying
-		return NewRemoteClientCreator(addr, transport, mustConnect)
 	}
+
+	return NewLocalClientCreator(types.NewBaseApplication())
 }
