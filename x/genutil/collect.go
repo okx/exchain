@@ -40,7 +40,6 @@ func GenAppStateFromConfig(cdc *codec.Codec, config *cfg.Config,
 
 	var nodeKeyWhiteList []string
 	for _, nodeAddr := range strings.Split(persistentPeers, ",") {
-		fmt.Println("nodeAddr:", nodeAddr)
 		nodeKey := strings.Split(nodeAddr, "@")[0]
 		nodeKeyWhiteList = append(nodeKeyWhiteList, nodeKey)
 	}
