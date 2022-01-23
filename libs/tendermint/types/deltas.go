@@ -44,11 +44,6 @@ type DeltasMessage struct {
 	From         string `json:"from"`
 }
 
-type DeltaPayload struct {
-	ABCIRsp     []byte
-	DeltasBytes []byte
-	WatchBytes  []byte
-}
 
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
