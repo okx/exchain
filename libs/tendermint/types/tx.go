@@ -144,9 +144,15 @@ func (txResult *TxResult) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data length: %d", dataLen)
+			}
 			subData = data[:dataLen]
 		}
 
@@ -155,12 +161,18 @@ func (txResult *TxResult) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			txResult.Height = int64(uvint)
 			dataLen = uint64(n)
 		case 2:
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			txResult.Index = uint32(uvint)
 			dataLen = uint64(n)
 		case 3:

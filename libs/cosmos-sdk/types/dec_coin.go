@@ -38,9 +38,15 @@ func (coin *DecCoin) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
 			subData = data[:dataLen]
 		}
 
@@ -199,28 +205,12 @@ func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = decCoinBufferPool.Get()
 	defer decCoinBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
-		if err != nil {
-			return nil, err
-		}
-		err = buf.WriteByte(posByte)
-		if err != nil {
-			return nil, err
-		}
-
 		switch pos {
 		case 1:
 			if coin.Denom == "" {
-				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, uint64(len(coin.Denom)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.WriteString(coin.Denom)
+			err := amino.EncodeStringWithKeyToBuffer(buf, coin.Denom, 1<<3|2)
 			if err != nil {
 				return nil, err
 			}
@@ -229,19 +219,12 @@ func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, 2<<3|2)
 			if err != nil {
 				return nil, err
 			}
 		default:
 			panic("unreachable")
-		}
-		if noWrite {
-			buf.Truncate(lBeforeKey)
 		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil

@@ -75,7 +75,7 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			}
 			acc.Coins = append(acc.Coins, coin)
 		case 3:
-			acc.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(cdc, subData)
+			acc.PubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -134,7 +134,7 @@ func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 			if acc.PubKey == nil {
 				break
 			}
-			data, err := cryptoamino.MarshalPubKeyToAminoWithTypePrefix(cdc, acc.PubKey)
+			data, err := cryptoamino.MarshalPubKeyToAmino(cdc, acc.PubKey)
 			if err != nil {
 				return nil, err
 			}

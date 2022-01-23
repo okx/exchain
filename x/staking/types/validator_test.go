@@ -144,7 +144,7 @@ func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	assert.Equal(t, validator, *got)
 }
 
-func TestValidatorUnmarshalFromAmino(t *testing.T) {
+func TestValidatorAmino(t *testing.T) {
 	common.InitConfig()
 	validator := NewValidator(valAddr1, pk1, Description{"test1", "test2", "test3", "test4"}, DefaultMinSelfDelegation)
 	validator.Jailed = true

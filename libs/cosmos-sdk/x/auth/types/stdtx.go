@@ -509,7 +509,7 @@ func (ss *StdSignature) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 
 		switch pos {
 		case 1:
-			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(cdc, subData)
+			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

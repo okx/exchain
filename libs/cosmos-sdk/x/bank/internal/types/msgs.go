@@ -74,6 +74,7 @@ func (msg *MsgSend) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 		data = data[1:]
 
+		// pb types of all fields are byteLength(2)
 		if pbType != amino.Typ3_ByteLength {
 			return fmt.Errorf("invalid pbType: %v in MsgSend", pbType)
 		}

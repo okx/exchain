@@ -2,17 +2,18 @@ package state
 
 import (
 	"encoding/hex"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 	dbm "github.com/tendermint/tm-db"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
@@ -187,9 +188,9 @@ func produceAbciRsp() *ABCIResponses {
 
 	blocks, stateDB := produceBlock()
 	ctx := &executionTask{
-		logger: log.TestingLogger(),
-		block: blocks[0],
-		db: stateDB,
+		logger:   log.TestingLogger(),
+		block:    blocks[0],
+		db:       stateDB,
 		proxyApp: proxyApp.Consensus(),
 	}
 
@@ -235,6 +236,6 @@ func BenchmarkMarshalCustom(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		abciResponses.MarshalToAmino()
+		abciResponses.MarshalToAmino(ModuleCodec)
 	}
 }

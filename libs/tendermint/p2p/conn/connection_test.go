@@ -549,6 +549,7 @@ func TestPacketAmino(t *testing.T) {
 		PacketMsg{0, 0, []byte{}},
 		PacketMsg{225, 225, []byte{}},
 		PacketMsg{0x7f, 45, []byte{0x12, 0x34, 0x56, 0x78}},
+		PacketMsg{math.MaxUint8, math.MaxUint8, []byte{0x12, 0x34, 0x56, 0x78}},
 	}
 
 	for _, packet := range packets {

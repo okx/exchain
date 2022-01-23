@@ -91,9 +91,15 @@ func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return nil, fmt.Errorf("invalid data length: %d", dataLen)
+			}
 			subData = data[:dataLen]
 		}
 
@@ -320,9 +326,15 @@ func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		data = data[1:]
 
 		var n int
-		dataLen, n, _ = amino.DecodeUvarint(data)
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
 
 		data = data[n:]
+		if len(data) < int(dataLen) {
+			return errors.New("invalid data len")
+		}
 		subData = data[:dataLen]
 
 		switch pos {
@@ -344,7 +356,7 @@ func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 				log, err = UnmarshalEthLogFromAmino(subData)
 			}
 			if err != nil {
-				return nil
+				return err
 			}
 			rd.Logs = append(rd.Logs, log)
 		case 4:

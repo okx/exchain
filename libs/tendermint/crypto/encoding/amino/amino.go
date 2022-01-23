@@ -144,9 +144,9 @@ func unmarshalPubKeyFromAminoFast(data []byte) (crypto.PubKey, error) {
 	}
 }
 
-// UnmarshalPubKeyFromAminoWithTypePrefix decode pubkey from amino bytes,
+// UnmarshalPubKeyFromAmino decode pubkey from amino bytes,
 // bytes should start with type prefix
-func UnmarshalPubKeyFromAminoWithTypePrefix(cdc *amino.Codec, data []byte) (crypto.PubKey, error) {
+func UnmarshalPubKeyFromAmino(cdc *amino.Codec, data []byte) (crypto.PubKey, error) {
 	var pubkey crypto.PubKey
 	var err error
 	pubkey, err = unmarshalPubKeyFromAminoFast(data)
@@ -157,7 +157,7 @@ func UnmarshalPubKeyFromAminoWithTypePrefix(cdc *amino.Codec, data []byte) (cryp
 	return pubkey, err
 }
 
-func MarshalPubKeyToAminoWithTypePrefix(cdc *amino.Codec, key crypto.PubKey) (data []byte, err error) {
+func MarshalPubKeyToAmino(cdc *amino.Codec, key crypto.PubKey) (data []byte, err error) {
 	switch key.(type) {
 	case secp256k1.PubKeySecp256k1:
 		data = make([]byte, 0, secp256k1.PubKeySecp256k1Size+typePrefixAndSizeLen)

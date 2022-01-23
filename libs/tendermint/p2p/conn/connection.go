@@ -1038,11 +1038,7 @@ func (mp PacketMsg) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 			if len(mp.Bytes) == 0 {
 				break
 			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(buf, mp.Bytes)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, mp.Bytes, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
@@ -1072,9 +1068,15 @@ func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("invalid data len")
+			}
 			subData = data[:dataLen]
 		}
 
@@ -1082,14 +1084,14 @@ func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		case 1:
 			vari, n, err := amino.DecodeUvarint(data)
 			if err != nil {
-				return nil
+				return err
 			}
 			mp.ChannelID = byte(vari)
 			dataLen = uint64(n)
 		case 2:
 			vari, n, err := amino.DecodeUvarint(data)
 			if err != nil {
-				return nil
+				return err
 			}
 			mp.EOF = byte(vari)
 			dataLen = uint64(n)

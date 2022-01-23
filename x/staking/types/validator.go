@@ -314,7 +314,7 @@ func (v *Validator) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			v.OperatorAddress = make([]byte, dataLen)
 			copy(v.OperatorAddress, subData)
 		case 2:
-			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(cdc, subData)
+			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -507,7 +508,7 @@ func TestDecCoinAmino(t *testing.T) {
 		{"test", Dec{}},
 		{"test", amount},
 		{"test", Dec{big.NewInt(100000)}},
-		{"", Dec{big.NewInt(100000)}},
+		{"", Dec{big.NewInt(math.MinInt64)}},
 	}
 
 	for i, test := range tests {
