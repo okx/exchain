@@ -216,6 +216,7 @@ run() {
     --consensus-role=v$index \
     ${Test_CASE} \
     --mempool.node_key_whitelist=${confident_list} \
+    --trace=true
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \    --consensus-testcase case12.json \
