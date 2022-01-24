@@ -23,7 +23,7 @@ type extraDataForTx struct {
 
 // txByteWithIndex = txByte + index
 
-func txByteWithIndex(txByte []byte, txIndex int) []byte {
+func getTxByteWithIndex(txByte []byte, txIndex int) []byte {
 	bs := make([]byte, txIndexLen)
 	binary.LittleEndian.PutUint32(bs, uint32(txIndex))
 	return append(txByte, bs...)
@@ -63,7 +63,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
-		txWithIndex = append(txWithIndex, txByteWithIndex(v, index))
+		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
 	}
 	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
