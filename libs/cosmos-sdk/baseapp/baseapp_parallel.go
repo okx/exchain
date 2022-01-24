@@ -21,10 +21,17 @@ type extraDataForTx struct {
 	signCache sdk.SigCache
 }
 
-func calTxByteWithIndex(txByte []byte, txIndex int) []byte {
+// txByteWithIndex = txByte + index
+
+func txByteWithIndex(txByte []byte, txIndex int) []byte {
 	bs := make([]byte, txIndexLen)
 	binary.LittleEndian.PutUint32(bs, uint32(txIndex))
 	return append(txByte, bs...)
+}
+
+func getRealTxByte(txByteWithIndex []byte) []byte {
+	return txByteWithIndex[:len(txByteWithIndex)-txIndexLen]
+
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
@@ -56,7 +63,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
-		txWithIndex = append(txWithIndex, calTxByteWithIndex(v, index))
+		txWithIndex = append(txWithIndex, txByteWithIndex(v, index))
 	}
 	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
@@ -184,7 +191,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		if err := app.parallelTxManage.txStatus[v].anteErr; err != nil {
 			errMsg = err.Error()
 		}
-		txExecStats = append(txExecStats, []string{v[:len(v)-txIndexLen], errMsg})
+		txExecStats = append(txExecStats, []string{string(getRealTxByte([]byte(v))), errMsg})
 	}
 	app.parallelTxManage.clear()
 	return app.logFix(txExecStats)
@@ -195,7 +202,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 func (app *BaseApp) deliverTxWithCache(txByte []byte) *executeResult {
 	txStatus := app.parallelTxManage.txStatus[string(txByte)]
 
-	tx, err := app.txDecoder(txByte[:len(txByte)-txIndexLen])
+	tx, err := app.txDecoder(getRealTxByte(txByte))
 	if err != nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
 		return asyncExe

@@ -227,7 +227,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
-	tx, err := app.txDecoder(txWithIndex[:len(txWithIndex)-txIndexLen])
+	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
 	if err != nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
