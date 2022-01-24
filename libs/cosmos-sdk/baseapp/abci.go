@@ -243,7 +243,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	input, ok := req.DeltaMap.(iavl.TreeDeltaMap)
 	if !ok {
-		panic("")
+		input = iavl.TreeDeltaMap{}
 	}
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
