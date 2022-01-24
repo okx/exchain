@@ -13,19 +13,7 @@ import (
 	amino "github.com/tendermint/go-amino"
 )
 
-// NodeJson provide json Marshal of Node.
-type NodeJson struct {
-	Key          []byte `json:"key"`
-	Value        []byte `json:"value"`
-	Hash         []byte `json:"hash"`
-	LeftHash     []byte `json:"left_hash"`
-	RightHash    []byte `json:"right_hash"`
-	Version      int64  `json:"version"`
-	Size         int64  `json:"size"`
-	Height       int8   `json:"height"`
-	Persisted    bool   `json:"persisted"`
-	prePersisted bool   `json:"pre_persisted"`
-}
+
 
 func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer

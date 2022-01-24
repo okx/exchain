@@ -143,7 +143,7 @@ func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) 
 }
 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
-	abciResponses *ABCIResponses, res []byte, isFastSync bool) {
+	abciResponses *ABCIResponses, deltaMap interface{}, isFastSync bool) {
 
 	// delta consumer
 	if dc.downloadDelta {
@@ -172,14 +172,19 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		if !isFastSync {
 			wdFunc := getWatchDataFunc()
-			go dc.uploadData(height, abciResponses, res, wdFunc)
+			go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
 		} else {
 			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
 		}
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte, wdFunc func() ([]byte, error)) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
+	if abciResponses == nil || deltaMap == nil {
+		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
+		return
+	}
+
 	var abciResponsesBytes []byte
 	var err error
 	abciResponsesBytes, err = abciResponses.MarshalToAmino()
@@ -197,10 +202,16 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		}
 	}
 
-	delta4Upload := &types.Deltas{
+	deltaBytes, err := types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
+	if err != nil {
+		dc.logger.Error("Failed to marshal delta map", "height", height, "error", err)
+		return
+	}
+
+	delta4Upload := &types.Deltas {
 		Payload: types.DeltaPayload{
 			ABCIRsp:     abciResponsesBytes,
-			DeltasBytes: res,
+			DeltasBytes: deltaBytes,
 			WatchBytes:  wd,
 		},
 		Height:       height,
@@ -210,10 +221,14 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		From:         dc.identity,
 	}
 
-	dc.uploadRoutine(delta4Upload, float64(len(abciResponses.DeliverTxs)))
+	//deltaInfo := &DeltaInfo{
+	//	abciResponses: abciResponses,
+	//}
+
+	dc.uploadRoutine(delta4Upload, nil, float64(len(abciResponses.DeliverTxs)))
 }
 
-func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, _ *DeltaInfo, txnum float64) {
 	if deltas == nil {
 		return
 	}
@@ -228,7 +243,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	defer dc.deltaBroker.ReleaseLocker()
 
 	upload := func(mrh int64) bool {
-		return dc.upload(deltas, txnum, mrh)
+		return dc.upload(deltas, nil, txnum, mrh)
 	}
 	reset, mrh, err := dc.deltaBroker.ResetMostRecentHeightAfterUpload(deltas.Height, upload)
 	if !reset {
@@ -239,7 +254,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 	}
 }
 
-func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) bool {
+func (dc *DeltaContext) upload(deltas *types.Deltas, _ *DeltaInfo, txnum float64, mrh int64) bool {
 	if deltas == nil {
 		dc.logger.Error("Failed to upload nil delta")
 		return false
@@ -251,6 +266,15 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 			"mrh", mrh)
 		return false
 	}
+	//var err error
+	//deltas.Payload, err = info.dataInfo2Bytes() // DeltaInfo2
+	//if err != nil {
+	//	dc.logger.Error("Failed convert dataInfo2Bytes",
+	//		"target-height", deltas.Height,
+	//		"mrh", mrh,
+	//		"error", err)
+	//	return false
+	//}
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
@@ -439,6 +463,10 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64) {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err)
 		return err, nil, latestHeight
 	}
+
+	//info := &DeltaInfo{}
+	//err = info.bytes2DeltaInfo(&delta.Payload) // DeltaInfo2
+	//_ = info
 
 	cacheMap, cacheList := dc.dataMap.info()
 	dc.logger.Info("Downloaded delta successfully:",

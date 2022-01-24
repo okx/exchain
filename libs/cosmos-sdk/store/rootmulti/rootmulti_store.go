@@ -427,11 +427,17 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
+func (rs *Store) CommitterCommit(*iavltree.TreeDelta) ( _ types.CommitID, _ *iavltree.TreeDelta) {
+	return
+}
+
 // Implements Committer/CommitStore.
-func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
+func (rs *Store) CommitterCommitMap(treeMap iavltree.TreeDeltaMap) (types.CommitID, iavltree.TreeDeltaMap) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
+
+	var outputTreeMap iavltree.TreeDeltaMap
+	rs.lastCommitInfo, outputTreeMap = commitStores(version, rs.stores, treeMap)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -472,7 +478,7 @@ func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, i
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
-	}, iavltree.TreeDelta{}, deltas
+	}, outputTreeMap
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -923,22 +929,13 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-	//	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
+	appliedDeltas iavltree.TreeDeltaMap) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
-	appliedDeltas := map[string]*iavltree.TreeDelta{}
-	returnedDeltas := map[string]iavltree.TreeDelta{}
-
-	var err error
-	if tmtypes.DownloadDelta && len(deltas) != 0 {
-		appliedDeltas, err = UnmarshalAppliedDeltaFromAmino(deltas)
-		if err != nil {
-			panic(err)
-		}
-	}
+	returnedDeltas := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], deltas)
+		commitID, reDelta:= store.CommitterCommit(appliedDeltas[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
@@ -951,17 +948,10 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		returnedDeltas[key.Name()] = reDelta
 	}
 
-	if tmtypes.UploadDelta {
-		deltas, err = MarshalAppliedDeltaToAmino(returnedDeltas)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
-	}, deltas
+	}, returnedDeltas
 }
 
 // Gets commitInfo from disk.

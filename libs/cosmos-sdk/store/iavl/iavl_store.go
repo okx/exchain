@@ -12,7 +12,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
@@ -135,15 +134,15 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	}, nil
 }
 
-// Commit commits the current store state and returns a CommitID with the new
-// version and hash.
-func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID, iavl.TreeDelta, []byte) {
+func (st *Store) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}
+
+func (st *Store) CommitterCommit(inDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
 	flag := false
-	if tmtypes.DownloadDelta && len(deltas) != 0 {
+	if inDelta != nil {
 		flag = true
 		st.tree.SetDelta(inDelta)
 	}
-	hash, version, delta, err := st.tree.SaveVersion(flag)
+	hash, version, treeDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
 		panic(err)
 	}
@@ -154,8 +153,10 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 	return types.CommitID{
 		Version: version,
 		Hash:    hash,
-	}, delta, nil
+	}, &treeDelta
 }
+
+
 
 // Implements Committer.
 func (st *Store) LastCommitID() types.CommitID {
