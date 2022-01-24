@@ -1,6 +1,11 @@
 package watcher_test
 
 import (
+	"math/big"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	jsoniter "github.com/json-iterator/go"
@@ -17,10 +22,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"strings"
-	"testing"
-	"time"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -85,7 +86,9 @@ func flushDB(db *watcher.WatchStore) {
 
 func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {return err}
+	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+		return err
+	}
 	for _, account := range wd.DirtyAccount {
 		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
 	}
@@ -94,7 +97,9 @@ func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {return}
+	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+		return
+	}
 	keys := make([][]byte, len(wd.Batches))
 	for i, b := range wd.Batches {
 		keys[i] = b.Key
@@ -108,7 +113,8 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Second * 1)
 
 	// get WatchData
-	wd, err := w.app.EvmKeeper.Watcher.GetWatchData()
+	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
+	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
 	err = delDirtyAccount(wd, w)
@@ -132,6 +138,8 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	require.NotEmpty(t, pHash)
 	require.NotEmpty(t, cHash)
 	require.Equal(t, pHash, cHash)
+
+	flushDB(store)
 }
 
 func TestHandleMsgEthereumTx(t *testing.T) {
@@ -189,7 +197,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	}
 }
 
-func TestMsgEthermint(t *testing.T) {
+func TestMsgEthermintByWatcher(t *testing.T) {
 	var (
 		tx   types.MsgEthermint
 		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())

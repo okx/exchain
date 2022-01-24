@@ -6,6 +6,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -34,7 +36,8 @@ var (
 
 // Store Implements types.KVStore and CommitKVStore.
 type Store struct {
-	tree Tree
+	tree        Tree
+	flatKVStore *flatkv.Store
 }
 
 func (st *Store) StopStore() {
@@ -49,14 +52,14 @@ func (st *Store) GetHeights() map[int64][]byte {
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
 // store's version (id) from the provided DB. An error is returned if the version
 // fails to load.
-func LoadStore(db dbm.DB, id types.CommitID, lazyLoading bool, startVersion int64) (types.CommitKVStore, error) {
-	return LoadStoreWithInitialVersion(db, id, lazyLoading, uint64(startVersion))
+func LoadStore(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, startVersion int64) (types.CommitKVStore, error) {
+	return LoadStoreWithInitialVersion(db, flatKVDB, id, lazyLoading, uint64(startVersion))
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
 // to the one given. Internally, it will load the store's version (id) from the
 // provided DB. An error is returned if the version fails to load.
-func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
+func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: initialVersion})
 	if err != nil {
 		return nil, err
@@ -72,9 +75,16 @@ func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool,
 		return nil, err
 	}
 
-	return &Store{
-		tree: tree,
-	}, nil
+	st := &Store{
+		tree:        tree,
+		flatKVStore: flatkv.NewStore(flatKVDB),
+	}
+
+	if err = st.ValidateFlatVersion(); err != nil {
+		return nil, err
+	}
+
+	return st, nil
 }
 
 func GetCommitVersion(db dbm.DB) (int64, error) {
@@ -138,6 +148,9 @@ func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID,
 		panic(err)
 	}
 
+	// commit to flat kv db
+	st.commitFlatKV(version)
+
 	return types.CommitID{
 		Version: version,
 		Hash:    hash,
@@ -182,22 +195,35 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
+	st.setFlatKV(key, value)
 }
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	_, value := st.tree.Get(key)
+	value := st.getFlatKV(key)
+	if value != nil {
+		return value
+	}
+	_, value = st.tree.Get(key)
+	if value != nil {
+		st.setFlatKV(key, value)
+	}
+
 	return value
 }
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
+	if st.hasFlatKV(key) {
+		return true
+	}
 	return st.tree.Has(key)
 }
 
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
+	st.deleteFlatKV(key)
 }
 
 // DeleteVersions deletes a series of versions from the MutableTree. An error
@@ -341,6 +367,7 @@ func (st *Store) GetNodeReadCount() int {
 
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
+	st.resetFlatKVCount()
 }
 
 //----------------------------------------

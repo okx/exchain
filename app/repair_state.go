@@ -8,11 +8,12 @@ import (
 	"os"
 	"path/filepath"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -44,14 +45,21 @@ func (app *repairApp) getLatestVersion() int64 {
 }
 
 func repairStateOnStart(ctx *server.Context) {
+	// set flag
 	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
+	orgEnableFlatKV := viper.GetBool(flatkv.FlagEnable)
 	iavl.EnableAsyncCommit = false
+	viper.Set(flatkv.FlagEnable, false)
+
+	// repair state
 	RepairState(ctx, true)
-	//set original config
+
+	//set original flag
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
+	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	rmLockByDir(dataDir)
@@ -94,15 +102,10 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// load start version
 	startVersion := viper.GetInt64(FlagStartHeight)
 	if startVersion == 0 {
-		latestVersion := repairApp.getLatestVersion()
-		startVersion = latestVersion - 2
+		startVersion = commitVersion - 2
 	}
-	if startVersion == 0 {
+	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")
-	}
-
-	if commitVersion < startVersion {
-		startVersion = commitVersion
 	}
 
 	err = repairApp.LoadStartVersion(startVersion)
@@ -139,6 +142,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	stateCopy := state.Copy()
+	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
@@ -146,6 +150,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	// repair state
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -156,7 +161,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
 			state.LastValidators = stateCopy.LastValidators.Copy()
 			state.Validators = stateCopy.Validators.Copy()
-			state.NextValidators = state.NextValidators.Copy()
+			state.NextValidators = stateCopy.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
