@@ -23,8 +23,8 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-redis/redis/v8 v8.11.4
-	github.com/gogo/protobuf v1.3.1
-	github.com/golang/mock v1.3.1
+	github.com/gogo/protobuf v1.3.2
+	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.5
 	github.com/gorilla/handlers v1.4.2
@@ -32,7 +32,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-buffer-pool v0.0.2
 	github.com/magiconair/properties v1.8.5
 	github.com/mattn/go-isatty v0.0.14
