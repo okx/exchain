@@ -2,11 +2,13 @@ package app
 
 import (
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -17,8 +19,12 @@ import (
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
+	tmnode "github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/okex/exchain/libs/tendermint/state/txindex"
+	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
+	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
@@ -148,9 +154,13 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	var err error
 	// repair state
+	eventBus := types.NewEventBus()
+	err = startEventBusAndIndexerService(ctx.Config, tmnode.DefaultDBProvider, eventBus, ctx.Logger)
+	panicError(err)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	global.SetGlobalHeight(startHeight + 1)
+	blockExec.SetEventBus(eventBus)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -172,6 +182,61 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
+}
+
+func startEventBusAndIndexerService(config *cfg.Config, dbProvider tmnode.DBProvider,
+	eventBus *types.EventBus, logger tmlog.Logger) error {
+	eventBus.SetLogger(logger.With("module", "events"))
+	if err := eventBus.Start(); err != nil {
+		return err
+	}
+	// Transaction indexing
+	var txIndexer txindex.TxIndexer
+	switch config.TxIndex.Indexer {
+	case "kv":
+		store, err := dbProvider(&tmnode.DBContext{ID: "tx_index", Config: config})
+		if err != nil {
+			return err
+		}
+		switch {
+		case config.TxIndex.IndexKeys != "":
+			txIndexer = kv.NewTxIndex(store, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
+		case config.TxIndex.IndexAllKeys:
+			txIndexer = kv.NewTxIndex(store, kv.IndexAllEvents())
+		default:
+			txIndexer = kv.NewTxIndex(store)
+		}
+	default:
+		txIndexer = &null.TxIndex{}
+	}
+
+	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService.SetLogger(logger.With("module", "txindex"))
+	if err := indexerService.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// splitAndTrimEmpty slices s into all subslices separated by sep and returns a
+// slice of the string s with all leading and trailing Unicode code points
+// contained in cutset removed. If sep is empty, SplitAndTrim splits after each
+// UTF-8 sequence. First part is equivalent to strings.SplitN with a count of
+// -1.  also filter out empty strings, only return non-empty strings.
+func splitAndTrimEmpty(s, sep, cutset string) []string {
+	if s == "" {
+		return []string{}
+	}
+
+	spl := strings.Split(s, sep)
+	nonEmptyStrings := make([]string, 0, len(spl))
+	for i := 0; i < len(spl); i++ {
+		element := strings.Trim(spl[i], cutset)
+		if element != "" {
+			nonEmptyStrings = append(nonEmptyStrings, element)
+		}
+	}
+	return nonEmptyStrings
 }
 
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
