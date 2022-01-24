@@ -44,7 +44,11 @@ func (ms multiStore) SetTracer(w io.Writer) sdk.MultiStore {
 	panic("not implemented")
 }
 
-func (ms multiStore) Commit(*iavl.TreeDelta, []byte) (store.CommitID, iavl.TreeDelta, []byte) {
+func (ms multiStore) CommitterCommit(*iavl.TreeDelta) (store.CommitID, *iavl.TreeDelta) {
+	panic("not implemented")
+}
+
+func (ms multiStore) CommitterCommitMap(iavl.TreeDeltaMap) (store.CommitID, iavl.TreeDeltaMap) {
 	panic("not implemented")
 }
 

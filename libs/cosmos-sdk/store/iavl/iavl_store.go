@@ -12,7 +12,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
@@ -133,28 +132,6 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	return &Store{
 		tree: &immutableTree{iTree},
 	}, nil
-}
-
-// Commit commits the current store state and returns a CommitID with the new
-// version and hash.
-func (st *Store) Commit(inDelta *iavl.TreeDelta, deltas []byte) (types.CommitID, iavl.TreeDelta, []byte) { // CommitterCommit
-	flag := false
-	if tmtypes.DownloadDelta && len(deltas) != 0 {
-		flag = true
-		st.tree.SetDelta(inDelta)
-	}
-	hash, version, treeDelta, err := st.tree.SaveVersion(flag)
-	if err != nil {
-		panic(err)
-	}
-
-	// commit to flat kv db
-	st.commitFlatKV(version)
-
-	return types.CommitID{
-		Version: version,
-		Hash:    hash,
-	}, treeDelta, nil
 }
 
 func (st *Store) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}

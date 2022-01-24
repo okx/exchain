@@ -427,11 +427,6 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
-
-func (rs *Store) Commit(*iavltree.TreeDelta, []byte) ( _ types.CommitID, _ iavltree.TreeDelta, _ []byte) {
-	return
-}
-
 func (rs *Store) CommitterCommit(*iavltree.TreeDelta) ( _ types.CommitID, _ *iavltree.TreeDelta) {
 	return
 }
