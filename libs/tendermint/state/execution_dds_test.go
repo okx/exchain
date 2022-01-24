@@ -2,17 +2,18 @@ package state
 
 import (
 	"encoding/hex"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 	dbm "github.com/tendermint/tm-db"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
@@ -236,5 +237,40 @@ func BenchmarkMarshalCustom(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
 		abciResponses.MarshalToAmino()
+	}
+}
+
+func BenchmarkUnmarshalFromJson(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := types.Json.Marshal(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		types.Json.Unmarshal(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromAmino(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	var cdc = amino.NewCodec()
+	data, _ := cdc.MarshalBinaryBare(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		cdc.UnmarshalBinaryBare(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromCustom(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := abciResponses.MarshalToAmino()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		ar.UnmarshalFromAmino(data)
 	}
 }
