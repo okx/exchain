@@ -120,7 +120,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
 	}
-	fmt.Println("NewReactor NodeKeyWhitelist:", config.GetNodeKeyWhitelist())
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
