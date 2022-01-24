@@ -192,6 +192,11 @@ run() {
       done 
   fi 
 
+  binary=exchaind
+  if $MULTIVERSION; then 
+    binary=cache/node${index}/binary/exchaind
+  fi
+
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
