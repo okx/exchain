@@ -286,6 +286,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxInCache
 	}
 
+	// txInfo.wtx can be nil
+	mem.cache.Add(tx, txInfo.wtx)
+
 	var err error
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
@@ -823,7 +826,7 @@ func (mem *CListMempool) Update(
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
 			if !mem.cache.Contains(tx) {
-				_ = mem.cache.Add(tx, nil)
+				mem.cache.Add(tx, nil)
 			}
 		} else {
 			// Allow invalid transactions to be resubmitted.
@@ -1026,7 +1029,7 @@ func (memTx *mempoolTx) Height() int64 {
 
 type txCache interface {
 	Reset()
-	Add(tx types.Tx, value interface{}) (existed bool)
+	Add(tx types.Tx, value interface{})
 	Contains(tx types.Tx) bool
 	Get(tx types.Tx) interface{}
 	Remove(tx types.Tx)
@@ -1047,9 +1050,8 @@ func (l *lruCache) Reset() {
 	l.lru.Purge()
 }
 
-func (l *lruCache) Add(tx types.Tx, value interface{}) bool {
-	exist, _ := l.lru.ContainsOrAdd(stringHash(tx), value)
-	return exist
+func (l *lruCache) Add(tx types.Tx, value interface{}) {
+	_ = l.lru.Add(stringHash(tx), value)
 }
 
 func (l *lruCache) Contains(tx types.Tx) bool {
@@ -1073,11 +1075,11 @@ type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()                         {}
-func (nopTxCache) Add(types.Tx, interface{}) bool { return false }
-func (nopTxCache) Contains(types.Tx) bool         { return false }
-func (nopTxCache) Get(types.Tx) interface{}       { return nil }
-func (nopTxCache) Remove(types.Tx)                {}
+func (nopTxCache) Reset()                    {}
+func (nopTxCache) Add(types.Tx, interface{}) {}
+func (nopTxCache) Contains(types.Tx) bool    { return false }
+func (nopTxCache) Get(types.Tx) interface{}  { return nil }
+func (nopTxCache) Remove(types.Tx)           {}
 
 //--------------------------------------------------------------------------------
 
