@@ -280,7 +280,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// CACHE
 	if mem.cache.Contains(tx) {
-		if len(txInfo.wtx) != 0 && mem.cache.Get(tx) == nil {
+		if txInfo.wtx != nil && mem.cache.Get(tx) == nil {
 			mem.cache.Add(tx, txInfo.wtx)
 		}
 		return ErrTxInCache
@@ -342,11 +342,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
-	var checkType abci.CheckTxType
-	if len(txInfo.wtx) != 0 {
-		checkType = abci.CheckTxType_WrappedCheck
-	}
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: checkType})
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
@@ -1030,9 +1026,9 @@ func (memTx *mempoolTx) Height() int64 {
 
 type txCache interface {
 	Reset()
-	Add(tx, wtx types.Tx) (existed bool)
+	Add(tx types.Tx, value interface{}) (existed bool)
 	Contains(tx types.Tx) bool
-	Get(tx types.Tx) types.Tx
+	Get(tx types.Tx) interface{}
 	Remove(tx types.Tx)
 }
 
@@ -1051,8 +1047,8 @@ func (l *lruCache) Reset() {
 	l.lru.Purge()
 }
 
-func (l *lruCache) Add(tx, wtx types.Tx) bool {
-	exist, _ := l.lru.ContainsOrAdd(stringHash(tx), wtx)
+func (l *lruCache) Add(tx types.Tx, value interface{}) bool {
+	exist, _ := l.lru.ContainsOrAdd(stringHash(tx), value)
 	return exist
 }
 
@@ -1060,16 +1056,9 @@ func (l *lruCache) Contains(tx types.Tx) bool {
 	return l.lru.Contains(stringHash(tx))
 }
 
-func (l *lruCache) Get(tx types.Tx) types.Tx {
-	value, ok := l.lru.Get(stringHash(tx))
-	if !ok {
-		return nil
-	}
-	wtx, ok := value.(types.Tx)
-	if !ok {
-		return nil
-	}
-	return wtx
+func (l *lruCache) Get(tx types.Tx) interface{} {
+	value, _ := l.lru.Get(stringHash(tx))
+	return value
 }
 
 func (l *lruCache) Remove(tx types.Tx) {
@@ -1084,11 +1073,11 @@ type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()                      {}
-func (nopTxCache) Add(types.Tx, types.Tx) bool { return false }
-func (nopTxCache) Contains(types.Tx) bool      { return false }
-func (nopTxCache) Get(types.Tx) types.Tx       { return nil }
-func (nopTxCache) Remove(types.Tx)             {}
+func (nopTxCache) Reset()                         {}
+func (nopTxCache) Add(types.Tx, interface{}) bool { return false }
+func (nopTxCache) Contains(types.Tx) bool         { return false }
+func (nopTxCache) Get(types.Tx) interface{}       { return nil }
+func (nopTxCache) Remove(types.Tx)                {}
 
 //--------------------------------------------------------------------------------
 
