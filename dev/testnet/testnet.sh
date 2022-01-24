@@ -189,7 +189,6 @@ run() {
         case "${CONFIDENT_INDEX[@]}" in  *"$index"*)
           confident_list+=",{${NODE_KEYS[i]}}";; 
         esac
-        
       done 
   fi 
 
