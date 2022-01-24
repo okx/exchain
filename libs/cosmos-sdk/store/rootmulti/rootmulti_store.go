@@ -937,7 +937,7 @@ func getLatestVersion(db dbm.DB) int64 {
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
 	appliedDeltas iavltree.TreeDeltaMap) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
-	returnedDeltas := map[string]*iavltree.TreeDelta{}
+	returnedDeltas := iavltree.TreeDeltaMap{}
 
 	//var err error
 	//if tmtypes.DownloadDelta && len(deltas) != 0 {

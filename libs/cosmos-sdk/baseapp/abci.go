@@ -243,7 +243,14 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	input, ok := req.DeltaMap.(iavl.TreeDeltaMap)
 	if !ok {
-		input = iavl.TreeDeltaMap{}
+		deltas := req.Deltas.DeltasByte
+		var err error
+		if tmtypes.DownloadDelta && len(deltas) != 0 {
+			err = tmtypes.Json.Unmarshal(deltas, &input)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
@@ -284,7 +291,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data:   commitID.Hash,
+		Data:     commitID.Hash,
 		DeltaMap: output,
 	}
 }
