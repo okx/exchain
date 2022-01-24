@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"io"
 	"io/ioutil"
 	"log"
@@ -152,18 +151,38 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	var err error
 	// repair state
-
-	// EventBus and IndexerService must be started before the handshake because
-	// we might need to index the txs of the replayed block as this might not have happened
-	// when the node stopped last time (i.e. the node stopped after it saved the block
-	// but before it indexed the txs, or, endblocker panicked)
-	eventBus, err := createAndStartEventBus(ctx.Logger)
-	panicError(err)
+	eventBus := types.NewEventBus()
+	eventBus.SetLogger(ctx.Logger.With("module", "events"))
+	if err := eventBus.Start(); err != nil {
+		panic(err)
+	}
 	// Transaction indexing
-	_, _, err = createAndStartIndexerService(ctx.Config, tmnode.DefaultDBProvider, eventBus, ctx.Logger)
-	panicError(err)
+	var txIndexer txindex.TxIndexer
+	switch ctx.Config.TxIndex.Indexer {
+	case "kv":
+		store, err := tmnode.DefaultDBProvider(&tmnode.DBContext{ID: "tx_index", Config: ctx.Config})
+		panicError(err)
+		switch {
+		case ctx.Config.TxIndex.IndexKeys != "":
+			txIndexer = kv.NewTxIndex(store, kv.IndexEvents(splitAndTrimEmpty(ctx.Config.TxIndex.IndexKeys, ",", " ")))
+		case ctx.Config.TxIndex.IndexAllKeys:
+			txIndexer = kv.NewTxIndex(store, kv.IndexAllEvents())
+		default:
+			txIndexer = kv.NewTxIndex(store)
+		}
+	default:
+		txIndexer = &null.TxIndex{}
+	}
+
+	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService.SetLogger(ctx.Logger.With("module", "txindex"))
+	if err := indexerService.Start(); err != nil {
+		panic(err)
+	}
+
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+	blockExec.SetEventBus(eventBus)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -185,45 +204,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
-}
-
-func createAndStartEventBus(logger tmlog.Logger) (*types.EventBus, error) {
-	eventBus := types.NewEventBus()
-	eventBus.SetLogger(logger.With("module", "events"))
-	if err := eventBus.Start(); err != nil {
-		return nil, err
-	}
-	return eventBus, nil
-}
-
-func createAndStartIndexerService(config *cfg.Config, dbProvider tmnode.DBProvider,
-	eventBus *types.EventBus, logger tmlog.Logger) (*txindex.IndexerService, txindex.TxIndexer, error) {
-
-	var txIndexer txindex.TxIndexer
-	switch config.TxIndex.Indexer {
-	case "kv":
-		store, err := dbProvider(&tmnode.DBContext{ID: "tx_index", Config: config})
-		if err != nil {
-			return nil, nil, err
-		}
-		switch {
-		case config.TxIndex.IndexKeys != "":
-			txIndexer = kv.NewTxIndex(store, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
-		case config.TxIndex.IndexAllKeys:
-			txIndexer = kv.NewTxIndex(store, kv.IndexAllEvents())
-		default:
-			txIndexer = kv.NewTxIndex(store)
-		}
-	default:
-		txIndexer = &null.TxIndex{}
-	}
-
-	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
-	indexerService.SetLogger(logger.With("module", "txindex"))
-	if err := indexerService.Start(); err != nil {
-		return nil, nil, err
-	}
-	return indexerService, txIndexer, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
