@@ -132,6 +132,9 @@ func TestPubKeyAmino(t *testing.T) {
 			Type: "test",
 			Data: []byte("data"),
 		},
+		{
+			Data: []byte{},
+		},
 	}
 
 	for _, pubkey := range pubkeys {
@@ -150,6 +153,7 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		{
 			PubKey: PubKey{
 				Type: "test",
+				Data: []byte{},
 			},
 		},
 		{
@@ -159,11 +163,14 @@ func TestValidatorUpdateAmino(t *testing.T) {
 			},
 		},
 		{
-			Power: 100,
+			Power: math.MaxInt64,
+		},
+		{
+			Power: math.MinInt64,
 		},
 		{
 			PubKey: PubKey{
-				Type: "test",
+				Type: "",
 				Data: []byte("data"),
 			},
 			Power: 100,
@@ -182,6 +189,7 @@ func TestValidatorUpdateAmino(t *testing.T) {
 
 func TestBlockParamsAmino(t *testing.T) {
 	tests := []BlockParams{
+		{},
 		{
 			MaxBytes: 100,
 			MaxGas:   200,
@@ -189,6 +197,14 @@ func TestBlockParamsAmino(t *testing.T) {
 		{
 			MaxBytes: -100,
 			MaxGas:   -200,
+		},
+		{
+			MaxBytes: math.MaxInt64,
+			MaxGas:   math.MaxInt64,
+		},
+		{
+			MaxBytes: math.MinInt64,
+			MaxGas:   math.MinInt64,
 		},
 	}
 
@@ -204,13 +220,22 @@ func TestBlockParamsAmino(t *testing.T) {
 
 func TestEvidenceParamsAmino(t *testing.T) {
 	tests := []EvidenceParams{
+		{},
 		{
 			MaxAgeNumBlocks: 100,
 			MaxAgeDuration:  1000 * time.Second,
 		},
 		{
 			MaxAgeNumBlocks: -100,
-			MaxAgeDuration:  time.Second,
+			MaxAgeDuration:  time.Hour * 24 * 365,
+		},
+		{
+			MaxAgeNumBlocks: math.MinInt64,
+			MaxAgeDuration:  math.MinInt64,
+		},
+		{
+			MaxAgeNumBlocks: math.MaxInt64,
+			MaxAgeDuration:  math.MaxInt64,
 		},
 	}
 
@@ -237,7 +262,7 @@ func TestValidatorParamsAmino(t *testing.T) {
 			PubKeyTypes: []string{"ed25519"},
 		},
 		{
-			PubKeyTypes: []string{"ed25519", "ed25519"},
+			PubKeyTypes: []string{"ed25519", "ed25519", "", "rsa"},
 		},
 	}
 
@@ -271,7 +296,7 @@ func TestConsensusParamsAmino(t *testing.T) {
 		},
 		{
 			Validator: &ValidatorParams{
-				PubKeyTypes: []string{"ed25519"},
+				PubKeyTypes: []string{"ed25519", "rsa"},
 			},
 		},
 		{

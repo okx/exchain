@@ -41,7 +41,7 @@ func (kvs Pairs) Less(i, j int) bool {
 func (kvs Pairs) Swap(i, j int) { kvs[i], kvs[j] = kvs[j], kvs[i] }
 func (kvs Pairs) Sort()         { sort.Sort(kvs) }
 
-func MarshalPairToAmino(pair Pair) ([]byte, error) {
+func (pair Pair) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	var err error
@@ -99,9 +99,15 @@ func (pair *Pair) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		data = data[1:]
 
 		var n int
-		dataLen, n, _ = amino.DecodeUvarint(data)
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
 
 		data = data[n:]
+		if len(data) < int(dataLen) {
+			return errors.New("invalid data length")
+		}
 		subData = data[:dataLen]
 
 		switch pos {

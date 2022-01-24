@@ -24,7 +24,7 @@ func TestKvPairAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(pair)
 		require.NoError(t, err)
 
-		actual, err := MarshalPairToAmino(pair)
+		actual, err := pair.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -56,7 +56,7 @@ func BenchmarkKvPairAminoMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, pair := range testPairs {
-				_, err := MarshalPairToAmino(pair)
+				_, err := pair.MarshalToAmino(cdc)
 				if err != nil {
 					b.Fatal(err)
 				}
