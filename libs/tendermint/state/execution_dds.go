@@ -458,9 +458,9 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64){
 		return err, nil, latestHeight
 	}
 
-	info := &DeltaInfo{}
-	err = info.bytes2DeltaInfo(&delta.Payload) // DeltaInfo2
-	_ = info
+	//info := &DeltaInfo{}
+	//err = info.bytes2DeltaInfo(&delta.Payload) // DeltaInfo2
+	//_ = info
 
 	cacheMap, cacheList := dc.dataMap.info()
 	dc.logger.Info("Downloaded delta successfully:",
