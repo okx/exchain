@@ -31,47 +31,54 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
-		if ctx.IsWrappedCheckTx() {
-			if _, ok := tx.(evmtypes.MsgEthereumTx); ok {
-				// check nonce for MsgEthereumTx
-				return sdk.ChainAnteDecorators(NewNonceVerificationDecorator(ak), NewIncrementSenderSequenceDecorator(ak))(ctx, tx, sim)
-			}
-			// check nothing for StdTx
-			return ctx, nil
-		}
 		var anteHandler sdk.AnteHandler
 		switch tx.(type) {
 		case auth.StdTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountSetupDecorator(ak),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				authante.NewMempoolFeeDecorator(),
-				authante.NewValidateBasicDecorator(),
-				authante.NewValidateMemoDecorator(ak),
-				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
-				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				authante.NewSigVerificationDecorator(ak),
-				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-				NewValidateMsgHandlerDecorator(validateMsgHandler),
-			)
+			if ctx.IsWrappedCheckTx() {
+				anteHandler = sdk.ChainAnteDecorators(
+					authante.NewIncrementSequenceDecorator(ak),
+				)
+			} else {
+				anteHandler = sdk.ChainAnteDecorators(
+					authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+					NewAccountSetupDecorator(ak),
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+					authante.NewMempoolFeeDecorator(),
+					authante.NewValidateBasicDecorator(),
+					authante.NewValidateMemoDecorator(ak),
+					authante.NewConsumeGasForTxSizeDecorator(ak),
+					authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+					authante.NewValidateSigCountDecorator(ak),
+					authante.NewDeductFeeDecorator(ak, sk),
+					authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+					authante.NewSigVerificationDecorator(ak),
+					authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+					NewValidateMsgHandlerDecorator(validateMsgHandler),
+				)
+			}
 
 		case evmtypes.MsgEthereumTx:
-			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-				NewGasLimitDecorator(evmKeeper),
-				NewEthMempoolFeeDecorator(evmKeeper),
-				authante.NewValidateBasicDecorator(),
-				NewEthSigVerificationDecorator(),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				NewAccountVerificationDecorator(ak, evmKeeper),
-				NewNonceVerificationDecorator(ak),
-				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
-			)
+			if ctx.IsWrappedCheckTx() {
+				anteHandler = sdk.ChainAnteDecorators(
+					NewEthSigVerificationDecorator(),
+					NewNonceVerificationDecorator(ak),
+					NewIncrementSenderSequenceDecorator(ak),
+				)
+			} else {
+				anteHandler = sdk.ChainAnteDecorators(
+					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+					NewGasLimitDecorator(evmKeeper),
+					NewEthMempoolFeeDecorator(evmKeeper),
+					authante.NewValidateBasicDecorator(),
+					NewEthSigVerificationDecorator(),
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+					NewAccountVerificationDecorator(ak, evmKeeper),
+					NewNonceVerificationDecorator(ak),
+					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+				)
+			}
+
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
