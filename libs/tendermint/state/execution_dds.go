@@ -213,14 +213,14 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		From:         dc.identity,
 	}
 
-	deltaInfo := &DeltaInfo{
-		abciResponses: abciResponses,
-	}
+	//deltaInfo := &DeltaInfo{
+	//	abciResponses: abciResponses,
+	//}
 
-	dc.uploadRoutine(delta4Upload, deltaInfo, float64(len(abciResponses.DeliverTxs)))
+	dc.uploadRoutine(delta4Upload, nil, float64(len(abciResponses.DeliverTxs)))
 }
 
-func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, info *DeltaInfo, txnum float64) {
+func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, _ *DeltaInfo, txnum float64) {
 	if deltas == nil {
 		return
 	}
@@ -235,7 +235,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, info *DeltaInfo, txn
 	defer dc.deltaBroker.ReleaseLocker()
 
 	upload := func(mrh int64) bool {
-		return dc.upload(deltas, info, txnum, mrh)
+		return dc.upload(deltas, nil, txnum, mrh)
 	}
 	reset, mrh, err := dc.deltaBroker.ResetMostRecentHeightAfterUpload(deltas.Height, upload)
 	if !reset {
@@ -246,7 +246,7 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, info *DeltaInfo, txn
 	}
 }
 
-func (dc *DeltaContext) upload(deltas *types.Deltas, info *DeltaInfo, txnum float64, mrh int64) bool {
+func (dc *DeltaContext) upload(deltas *types.Deltas, _ *DeltaInfo, txnum float64, mrh int64) bool {
 	if deltas == nil {
 		dc.logger.Error("Failed to upload nil delta")
 		return false
@@ -258,15 +258,15 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, info *DeltaInfo, txnum floa
 			"mrh", mrh)
 		return false
 	}
-	var err error
-	deltas.Payload, err = info.dataInfo2Bytes() // DeltaInfo2
-	if err != nil {
-		dc.logger.Error("Failed convert dataInfo2Bytes",
-			"target-height", deltas.Height,
-			"mrh", mrh,
-			"error", err)
-		return false
-	}
+	//var err error
+	//deltas.Payload, err = info.dataInfo2Bytes() // DeltaInfo2
+	//if err != nil {
+	//	dc.logger.Error("Failed convert dataInfo2Bytes",
+	//		"target-height", deltas.Height,
+	//		"mrh", mrh,
+	//		"error", err)
+	//	return false
+	//}
 
 	// marshal deltas to bytes
 	deltaBytes, err := deltas.Marshal()
