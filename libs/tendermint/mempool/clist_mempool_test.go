@@ -24,12 +24,10 @@ import (
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/counter"
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	abciserver "github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -555,61 +553,7 @@ func TestMempoolTxsBytes(t *testing.T) {
 	}
 }
 
-// This will non-deterministically catch some concurrency failures like
-// https://github.com/tendermint/tendermint/issues/3509
-// TODO: all of the tests should probably also run using the remote proxy app
-// since otherwise we're not actually testing the concurrency of the mempool here!
-func TestMempoolRemoteAppConcurrency(t *testing.T) {
-	sockPath := fmt.Sprintf("unix:///tmp/echo_%v.sock", tmrand.Str(6))
-	app := kvstore.NewApplication()
-	cc, server := newRemoteApp(t, sockPath, app)
-	defer server.Stop()
-	config := cfg.ResetTestRoot("mempool_test")
-	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
-	defer cleanup()
 
-	// generate small number of txs
-	nTxs := 10
-	txLen := 200
-	txs := make([]types.Tx, nTxs)
-	for i := 0; i < nTxs; i++ {
-		txs[i] = tmrand.Bytes(txLen)
-	}
-
-	// simulate a group of peers sending them over and over
-	N := config.Mempool.Size
-	maxPeers := 5
-	for i := 0; i < N; i++ {
-		peerID := mrand.Intn(maxPeers)
-		txNum := mrand.Intn(nTxs)
-		tx := txs[txNum]
-
-		// this will err with ErrTxInCache many times ...
-		mempool.CheckTx(tx, nil, TxInfo{SenderID: uint16(peerID)})
-	}
-	err := mempool.FlushAppConn()
-	require.NoError(t, err)
-}
-
-// caller must close server
-func newRemoteApp(
-	t *testing.T,
-	addr string,
-	app abci.Application,
-) (
-	clientCreator proxy.ClientCreator,
-	server service.Service,
-) {
-	clientCreator = proxy.NewRemoteClientCreator(addr, "socket", true)
-
-	// Start server
-	server = abciserver.NewSocketServer(addr, app)
-	server.SetLogger(log.TestingLogger().With("module", "abci-server"))
-	if err := server.Start(); err != nil {
-		t.Fatalf("Error starting socket server: %v", err.Error())
-	}
-	return clientCreator, server
-}
 func checksumIt(data []byte) string {
 	h := sha256.New()
 	h.Write(data)
