@@ -146,7 +146,7 @@ func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) 
 }
 
 func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
-	abciResponses *ABCIResponses, deltaMap iavl.TreeDeltaMap, isFastSync bool) {
+	abciResponses *ABCIResponses, deltaMap interface{}, isFastSync bool) {
 
 	// delta consumer
 	if dc.downloadDelta {
@@ -182,7 +182,12 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap iavl.TreeDeltaMap, wdFunc func() ([]byte, error)) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
+	if abciResponses == nil || deltaMap == nil {
+		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
+		return
+	}
+
 	var abciResponsesBytes []byte
 	var err error
 	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
@@ -200,7 +205,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 		}
 	}
 
-	deltaBytes, err := types.Json.Marshal(deltaMap)
+	deltaBytes, err := types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
 	if err != nil {
 		dc.logger.Error("Failed to marshal delta map", "height", height, "error", err)
 		return

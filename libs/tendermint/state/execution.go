@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"time"
@@ -256,7 +255,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.DeltaMap.(iavl.TreeDeltaMap), blockExec.isFastSync)
+	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
