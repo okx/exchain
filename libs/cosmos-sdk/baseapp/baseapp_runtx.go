@@ -2,10 +2,12 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"runtime/debug"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 type runTxInfo struct {
@@ -56,7 +58,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -74,12 +75,10 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 	app.pin(ValTxMsgs, false, mode)
-
 
 	app.pin(AnteHandler, true, mode)
 	if app.anteHandler != nil {
@@ -97,9 +96,8 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	return info, err
 }
 
-
-func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
-
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunAnte: Started %v", mempool.TxKey(info.txBytes)))
 	var anteCtx sdk.Context
 
 	// Cache wrap context before AnteHandler call in case it aborts.
@@ -112,6 +110,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunAnte: Checked %v result error is %v", mempool.TxKey(info.txBytes), err))
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 	if !newCtx.IsZero() {
@@ -144,8 +143,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	return nil
 }
 
-
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunTx: Started %v", mempool.TxKey(req.Tx)))
 
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
@@ -159,6 +158,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunTx: Completed %v result error is %v", mempool.TxKey(req.Tx), err))
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
@@ -171,7 +171,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -203,8 +202,8 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
-
+func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx) {
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunTx: Started %v", mempool.TxKey(req.Tx)))
 	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
@@ -214,6 +213,7 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
 
 	var resp abci.ResponseDeliverTx
 	g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
+	app.logger.Info(fmt.Sprintf("WTX: BaseApp: RunTx: Completed %v result error is %v", mempool.TxKey(req.Tx), e))
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
