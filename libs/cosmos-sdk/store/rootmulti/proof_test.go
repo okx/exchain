@@ -19,7 +19,7 @@ func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 	store := iStore.(*iavl.Store)
 	require.Nil(t, err)
 	store.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _ := store.CommitterCommitMap(nil)
+	cid, _ := store.CommitterCommit(nil)
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
