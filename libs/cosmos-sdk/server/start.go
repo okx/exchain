@@ -18,7 +18,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
@@ -39,7 +38,6 @@ import (
 
 // Tendermint full-node start flags
 const (
-	flagWithTendermint     = "with-tendermint"
 	flagAddress            = "address"
 	flagTraceStore         = "trace-store"
 	flagCPUProfile         = "cpu-profile"
@@ -111,10 +109,6 @@ which accepts a path for the resulting pprof file.
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !viper.GetBool(flagWithTendermint) {
-				ctx.Logger.Info("starting ABCI without Tendermint")
-				return startStandAlone(ctx, appCreator)
-			}
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
 
@@ -131,7 +125,6 @@ which accepts a path for the resulting pprof file.
 	}
 
 	// core flags for the ABCI application
-	cmd.Flags().Bool(flagWithTendermint, true, "Run abci app embedded in-process with tendermint")
 	cmd.Flags().String(flagAddress, "tcp://0.0.0.0:26658", "Listen address")
 	cmd.Flags().String(flagTraceStore, "", "Enable KVStore tracing to an output file")
 	cmd.Flags().Bool(FlagTrace, false, "Provide full stack traces for errors in ABCI Log")
@@ -216,46 +209,6 @@ which accepts a path for the resulting pprof file.
 	tcmd.AddNodeFlags(cmd)
 	cmd.AddCommand(nodeModeCmd(ctx))
 	return cmd
-}
-
-func startStandAlone(ctx *Context, appCreator AppCreator) error {
-	addr := viper.GetString(flagAddress)
-	home := viper.GetString("home")
-	traceWriterFile := viper.GetString(flagTraceStore)
-
-	db, err := openDB(home)
-	if err != nil {
-		return err
-	}
-	traceWriter, err := openTraceWriter(traceWriterFile)
-	if err != nil {
-		return err
-	}
-
-	app := appCreator(ctx.Logger, db, traceWriter)
-
-	svr, err := server.NewServer(addr, "socket", app)
-	if err != nil {
-		return fmt.Errorf("error creating listener: %v", err)
-	}
-
-	svr.SetLogger(ctx.Logger.With("module", "abci-server"))
-
-	err = svr.Start()
-	if err != nil {
-		tmos.Exit(err.Error())
-	}
-
-	tmos.TrapSignal(ctx.Logger, func() {
-		// cleanup
-		err = svr.Stop()
-		if err != nil {
-			tmos.Exit(err.Error())
-		}
-	})
-
-	// run forever (the node will not be returned)
-	select {}
 }
 
 func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
