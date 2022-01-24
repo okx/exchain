@@ -4,13 +4,47 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCacheAdd(t *testing.T) {
+	size := 10
+	cache := newLruCache(size)
+	for i := 0; i < 10; i++ {
+		tx := genTestTx(i)
+		require.False(t, cache.Contains(tx))
+		cache.Add(tx, nil)
+		require.True(t, cache.Contains(tx))
+	}
+	require.Equal(t, size, cache.lru.Len())
+
+	tx := genTestTx(5)
+	data := cache.Get(tx)
+	_, ok := data.(*WrappedTx)
+	require.False(t, ok)
+	cache.Add(tx, &WrappedTx{Payload: tx})
+	data = cache.Get(tx)
+	_, ok = data.(*WrappedTx)
+	require.True(t, ok)
+
+	require.True(t, cache.Contains(genTestTx(0)))
+	tx = genTestTx(size + 1)
+	cache.Add(tx, nil)
+	require.True(t, cache.Contains(tx))
+	// tx-0 evicted
+	require.False(t, cache.Contains(genTestTx(0)))
+
+	cache.Reset()
+	require.Equal(t, 0, cache.lru.Len())
+}
+
+func genTestTx(i int) types.Tx {
+	return append([]byte("test-tx-"), byte(i))
+}
 
 func TestCacheRemove(t *testing.T) {
 	cache := newLruCache(100)
