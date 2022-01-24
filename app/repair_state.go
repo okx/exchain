@@ -13,6 +13,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -141,6 +142,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	stateCopy := state.Copy()
+	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
@@ -148,6 +150,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	// repair state
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -158,7 +161,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
 			state.LastValidators = stateCopy.LastValidators.Copy()
 			state.Validators = stateCopy.Validators.Copy()
-			state.NextValidators = state.NextValidators.Copy()
+			state.NextValidators = stateCopy.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
