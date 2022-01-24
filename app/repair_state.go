@@ -159,8 +159,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	panicError(err)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
-	global.SetGlobalHeight(startHeight + 1)
 	blockExec.SetEventBus(eventBus)
+	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
