@@ -203,7 +203,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 	}
 
 	// encode tree delta map
-	deltaBytes, err := iavl.MarshalTreeDeltaMapToAmino(deltaMap.(iavl.TreeDeltaMap))
+	deltaBytes, err := deltaMap.(iavl.TreeDeltaMap).MarshalToAmino()
 	if err != nil {
 		dc.logger.Error("Failed to marshal delta map", "height", height, "error", err)
 		return

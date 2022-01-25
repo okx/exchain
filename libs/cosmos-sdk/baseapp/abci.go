@@ -247,7 +247,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		deltas := req.Deltas.DeltasByte
 		var err error
 		if tmtypes.DownloadDelta && len(deltas) != 0 {
-			input, err = iavl.UnmarshalTreeDeltaMapFromAmino(deltas)
+			err = input.UnmarshalFromAmino(deltas)
 			if err != nil {
 				panic(err)
 			}
