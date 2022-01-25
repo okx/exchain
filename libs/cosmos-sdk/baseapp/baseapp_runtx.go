@@ -162,9 +162,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
-	app.logger.Info("(app *BaseApp) DeliverT",
-		"wrapped-tx-hash", txhash(req.Tx),
-	)
+	//app.logger.Debug("(app *BaseApp) DeliverT",
+	//	"wrapped-tx-hash", txhash(req.Tx),
+	//)
 
 	if tx.GetType() == sdk.WrappedTxType {
 		req.Tx = tx.GetPayloadTxBytes()
@@ -172,12 +172,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		app.logger.Info("(app *BaseApp) DeliverTx",
 			"payload-tx-hash", txhash(req.Tx),
 		)
-	}
-
-	//just for asynchronous deliver tx
-	if app.parallelTxManage.isAsyncDeliverTx {
-		go app.asyncDeliverTx(req.Tx, tx)
-		return abci.ResponseDeliverTx{}
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
@@ -224,9 +218,16 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txbytes []byte, tx sdk.Tx) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 
-	txStatus := app.parallelTxManage.txStatus[string(txbytes)]
+	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
+	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
+	if err != nil {
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		app.parallelTxManage.workgroup.Push(asyncExe)
+		return
+	}
+
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
@@ -234,7 +235,7 @@ func (app *BaseApp) asyncDeliverTx(txbytes []byte, tx sdk.Tx) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txbytes, tx, LatestSimulateTxHeight)
+	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {

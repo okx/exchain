@@ -463,14 +463,17 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
-func (w *Watcher) GetWatchData() ([]byte, error) {
+func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
-	valueByte, err := itjs.Marshal(value)
-	if err != nil {
-		return nil, err
+
+	return func() ([]byte, error) {
+		valueByte, err := itjs.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		return valueByte, nil
 	}
-	return valueByte, nil
 }
 
 func (w *Watcher) UseWatchData(wdByte []byte) {
@@ -485,7 +488,7 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
