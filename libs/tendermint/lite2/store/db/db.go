@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/lite2/store"

@@ -7,7 +7,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

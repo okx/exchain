@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
-	tmdb "github.com/tendermint/tm-db"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
