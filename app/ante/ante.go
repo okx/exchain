@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -9,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
@@ -33,6 +36,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
+		ctx.Logger().Info(fmt.Sprintf("WTX: Tx Struct %v -> %v", mempool.TxKey(ctx.TxBytes()), tx))
 		var anteHandler sdk.AnteHandler
 		switch tx.(type) {
 		case auth.StdTx:
