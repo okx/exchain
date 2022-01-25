@@ -102,10 +102,12 @@ type aminoEncoder struct{}
 
 func (ae *aminoEncoder) name() string { return "amino" }
 func (ae *aminoEncoder) encodeFunc(data iavltree.TreeDeltaMap) ([]byte, error) {
-	return iavltree.MarshalTreeDeltaMapToAmino(data)
+	return data.MarshalToAmino()
 }
 func (ae *aminoEncoder) decodeFunc(data []byte) (iavltree.TreeDeltaMap, error) {
-	return iavltree.UnmarshalTreeDeltaMapFromAmino(data)
+	deltaList := iavltree.TreeDeltaMap{}
+	err := deltaList.UnmarshalFromAmino(data)
+	return deltaList, err
 }
 
 // json encoder
@@ -116,7 +118,7 @@ func (je *jsonEncoder) encodeFunc(data iavltree.TreeDeltaMap) ([]byte, error) {
 	return itjs.Marshal(data)
 }
 func (je *jsonEncoder) decodeFunc(data []byte) (iavltree.TreeDeltaMap, error) {
-	deltaList := map[string]*iavltree.TreeDelta{}
+	deltaList := iavltree.TreeDeltaMap{}
 	err := itjs.Unmarshal(data, &deltaList)
 	return deltaList, err
 }

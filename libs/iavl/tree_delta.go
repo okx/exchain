@@ -10,11 +10,12 @@ import (
 
 type TreeDeltaMap map[string]*TreeDelta
 
-// MarshalTreeDeltaMapToAmino encode map[string]*TreeDelta to []byte in amino format
-func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
+// MarshalToAmino encode to amino bytes
+func (tdm TreeDeltaMap) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := byte(1<<3 | 2)
-	if len(treeDeltaList) == 0 {
+
+	if len(tdm) == 0 {
 		return buf.Bytes(), nil
 	}
 
@@ -27,14 +28,14 @@ func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
 	//sort.Strings(keys)
 
 	// encode a pair of data one by one
-	for k, _ := range treeDeltaList {
+	for k, _ := range tdm {
 		err := buf.WriteByte(fieldKeysType)
 		if err != nil {
 			return nil, err
 		}
 
 		// map must copy to new struct before it marshal
-		data, err := newAppliedDelta(k, treeDeltaList[k]).MarshalToAmino()
+		data, err := newAppliedDelta(k, tdm[k]).MarshalToAmino()
 		if err != nil {
 			return nil, err
 		}
@@ -48,11 +49,10 @@ func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// UnmarshalTreeDeltaMapFromAmino decode bytes to map[string]*TreeDelta in amino format.
-func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
+// UnmarshalFromAmino decode bytes from amino format.
+func (tdm TreeDeltaMap) UnmarshalFromAmino(data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
-	treeDeltaList := map[string]*TreeDelta{}
 
 	for {
 		data = data[dataLen:]
@@ -61,7 +61,7 @@ func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
 		}
 		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		if err != nil {
-			return map[string]*TreeDelta{}, err
+			return err
 		}
 		data = data[1:]
 
@@ -71,7 +71,7 @@ func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
 
 			data = data[n:]
 			if len(data) < int(dataLen) {
-				return map[string]*TreeDelta{}, errors.New("not enough data")
+				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
 		}
@@ -81,15 +81,15 @@ func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
 			ad := new(appliedDelta)
 			err := ad.UnmarshalFromAmino(subData)
 			if err != nil {
-				return map[string]*TreeDelta{}, err
+				return err
 			}
-			treeDeltaList[ad.key] = ad.appliedTree
+			tdm[ad.key] = ad.appliedTree
 
 		default:
-			return map[string]*TreeDelta{}, fmt.Errorf("unexpect feild num %d", pos)
+			return fmt.Errorf("unexpect feild num %d", pos)
 		}
 	}
-	return treeDeltaList, nil
+	return nil
 }
 
 // appliedDelta convert map[string]*iavl.TreeDelta to struct
