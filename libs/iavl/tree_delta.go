@@ -3,12 +3,192 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/tendermint/go-amino"
-	"sort"
 )
 
 type TreeDeltaMap map[string]*TreeDelta
+
+// MarshalTreeDeltaMapToAmino encode map[string]*iavl.TreeDelta to []byte in amino format
+func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := byte(1<<3 | 2)
+	if len(treeDeltaList) == 0 {
+		return buf.Bytes(), nil
+	}
+
+	//// map is unsorted, so when the data isn't changed, we
+	//// must order it as the same way.
+	//keys := make([]string, 0)
+	//for k, _ := range appliedData {
+	//	keys = append(keys, k)
+	//}
+	//sort.Strings(keys)
+
+	// encode a pair of data one by one
+	for k, _ := range treeDeltaList {
+		err := buf.WriteByte(fieldKeysType)
+		if err != nil {
+			return nil, err
+		}
+
+		// map must copy to new struct before it marshal
+		data, err := newAppliedDelta(k, treeDeltaList[k]).MarshalToAmino()
+		if err != nil {
+			return nil, err
+		}
+		// write marshal result to buffer
+		err = amino.EncodeByteSliceToBuffer(&buf, data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.Bytes(), nil
+}
+
+// UnmarshalTreeDeltaMapFromAmino decode bytes to map[string]*iavl.TreeDelta in amino format.
+func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
+	var dataLen uint64 = 0
+	var subData []byte
+	treeDeltaList := map[string]*TreeDelta{}
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return map[string]*TreeDelta{}, err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return map[string]*TreeDelta{}, errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			ad := new(appliedDelta)
+			err := ad.UnmarshalFromAmino(subData)
+			if err != nil {
+				return map[string]*TreeDelta{}, err
+			}
+			treeDeltaList[ad.key] = ad.appliedTree
+
+		default:
+			return map[string]*TreeDelta{}, fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return treeDeltaList, nil
+}
+
+// appliedDelta convert map[string]*iavl.TreeDelta to struct
+type appliedDelta struct {
+	key         string
+	appliedTree *TreeDelta
+}
+
+func newAppliedDelta(key string, treeValue *TreeDelta) *appliedDelta {
+	return &appliedDelta{key: key, appliedTree: treeValue}
+}
+func (ad *appliedDelta) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
+	for pos := 1; pos <= 2; pos++ {
+		switch pos {
+		case 1:
+			if len(ad.key) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+
+			err = amino.EncodeStringToBuffer(&buf, ad.key)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			data, err := ad.appliedTree.MarshalToAmino()
+			if err != nil {
+				return nil, err
+			}
+			if len(data) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, data)
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+func (ad *appliedDelta) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			ad.key = string(subData)
+		case 2:
+			appliedData := &TreeDelta{
+				NodesDelta:         map[string]*NodeJson{},
+				OrphansDelta:       []*NodeJson{},
+				CommitOrphansDelta: map[string]int64{},
+			}
+			err := appliedData.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			ad.appliedTree = appliedData
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
 
 // TreeDelta is the delta for applying on new version tree
 type TreeDelta struct {
@@ -23,15 +203,15 @@ func (td *TreeDelta) MarshalToAmino() ([]byte, error) {
 	for pos := 1; pos <= 3; pos++ {
 		switch pos {
 		case 1:
-			//sort keys
-			keys := []string{}
-			for k := range td.NodesDelta {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
+			////sort keys
+			//keys := []string{}
+			//for k := range td.NodesDelta {
+			//	keys = append(keys, k)
+			//}
+			//sort.Strings(keys)
 
 			//encode data after it is sorted
-			for _, k := range keys {
+			for k, _ := range td.NodesDelta {
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -63,6 +243,13 @@ func (td *TreeDelta) MarshalToAmino() ([]byte, error) {
 				}
 			}
 		case 3:
+			////sort keys
+			//keys := []string{}
+			//for k := range td.NodesDelta {
+			//	keys = append(keys, k)
+			//}
+			//sort.Strings(keys)
+
 			for k, v := range td.CommitOrphansDelta {
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {

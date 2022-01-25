@@ -3,7 +3,6 @@ package rootmulti
 import (
 	"bytes"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math"
 	"os"
 	"os/exec"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	iavltree "github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/assert"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"

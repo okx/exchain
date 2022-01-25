@@ -34,11 +34,11 @@ func (m identityMapType) increase(from string, num int64) {
 }
 
 var (
-	getWatchDataFunc func() func() ([]byte, error)
+	getWatchDataFunc   func() func() ([]byte, error)
 	applyWatchDataFunc func(data []byte)
 )
 
-func SetWatchDataFunc(g func()func() ([]byte, error), u func([]byte))  {
+func SetWatchDataFunc(g func() func() ([]byte, error), u func([]byte)) {
 	getWatchDataFunc = g
 	applyWatchDataFunc = u
 }
@@ -202,13 +202,14 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 		}
 	}
 
-	deltaBytes, err := types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
+	// encode tree delta map
+	deltaBytes, err := iavl.MarshalTreeDeltaMapToAmino(deltaMap.(iavl.TreeDeltaMap))
 	if err != nil {
 		dc.logger.Error("Failed to marshal delta map", "height", height, "error", err)
 		return
 	}
 
-	delta4Upload := &types.Deltas {
+	delta4Upload := &types.Deltas{
 		Payload: types.DeltaPayload{
 			ABCIRsp:     abciResponsesBytes,
 			DeltasBytes: deltaBytes,

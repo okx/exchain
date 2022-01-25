@@ -3,13 +3,14 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -246,7 +247,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		deltas := req.Deltas.DeltasByte
 		var err error
 		if tmtypes.DownloadDelta && len(deltas) != 0 {
-			err = tmtypes.Json.Unmarshal(deltas, &input)
+			input, err = iavl.UnmarshalTreeDeltaMapFromAmino(deltas)
 			if err != nil {
 				panic(err)
 			}
