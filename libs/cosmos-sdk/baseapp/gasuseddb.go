@@ -3,7 +3,7 @@ package baseapp
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
-	db "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
 	"path/filepath"
 	"sync"
 )

@@ -11,10 +11,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	dbm "github.com/tendermint/tm-db"
 )
 
 type EvmFactory struct {

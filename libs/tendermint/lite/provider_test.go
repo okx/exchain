@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	log "github.com/okex/exchain/libs/tendermint/libs/log"
 	lerr "github.com/okex/exchain/libs/tendermint/lite/errors"

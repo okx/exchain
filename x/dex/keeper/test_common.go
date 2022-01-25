@@ -19,7 +19,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/params"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/dex/types"

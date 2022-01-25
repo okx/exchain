@@ -17,7 +17,7 @@ import (
 
 	"sort"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"

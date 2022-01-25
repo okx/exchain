@@ -53,7 +53,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func init() {

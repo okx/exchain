@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/code"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"

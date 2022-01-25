@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func createTestInput(t *testing.T) (sdk.Context, ProtocolKeeper) {

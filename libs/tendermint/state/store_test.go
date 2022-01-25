@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	sm "github.com/okex/exchain/libs/tendermint/state"
