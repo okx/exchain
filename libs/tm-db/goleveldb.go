@@ -3,7 +3,9 @@ package db
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 
+	"github.com/spf13/viper"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -14,19 +16,17 @@ import (
 const (
 	// minCache is the minimum amount of memory in megabytes to allocate to leveldb
 	// read and write caching, split half and half.
-	minCache = 16
+	minCache = 16 * opt.MiB
 
 	// minHandles is the minimum number of files handles to allocate to the open
 	// database files.
 	minHandles = 16
 
-	FlagLevelDBCacheSize   = "leveldb-cache-size"
-	FlagLevelDBHandlersNum = "leveldb-handlers-num"
-)
+	levelDBCacheSize   = "cache_size"
+	levelDBHandlersNum = "handlers_num"
 
-var (
-	LevelDBCacheSize   = 128
-	LevelDBHandlersNum = 1024
+	defaultLevelDBCacheSize   = 128 * opt.MiB
+	defaultLevelDBHandlersNum = 1024
 )
 
 func init() {
@@ -43,18 +43,37 @@ type GoLevelDB struct {
 var _ DB = (*GoLevelDB)(nil)
 
 func NewGoLevelDB(name string, dir string) (*GoLevelDB, error) {
+	params := parseOptParams(viper.GetString(FlagGoLeveldbOpts))
+
+	var err error
 	// Ensure we have some minimal caching and file guarantees
-	if LevelDBCacheSize < minCache {
-		LevelDBCacheSize = minCache
+	cacheSize := defaultLevelDBCacheSize
+	if v, ok := params[levelDBCacheSize]; ok {
+		value, err := toBytes(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", levelDBCacheSize, err))
+		}
+		cacheSize = int(value)
+		if cacheSize < minCache {
+			cacheSize = minCache
+		}
 	}
-	if LevelDBHandlersNum < minHandles {
-		LevelDBHandlersNum = minHandles
+
+	handlersNum := defaultLevelDBHandlersNum
+	if v, ok := params[levelDBHandlersNum]; ok {
+		handlersNum, err = strconv.Atoi(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", levelDBHandlersNum, err))
+		}
+		if handlersNum < minHandles {
+			handlersNum = minHandles
+		}
 	}
 
 	opt := &opt.Options{
-		OpenFilesCacheCapacity: LevelDBHandlersNum,
-		BlockCacheCapacity:     LevelDBCacheSize / 2 * opt.MiB,
-		WriteBuffer:            LevelDBCacheSize / 4 * opt.MiB,
+		OpenFilesCacheCapacity: handlersNum,
+		BlockCacheCapacity:     cacheSize / 2,
+		WriteBuffer:            cacheSize / 4,
 		Filter:                 filter.NewBloomFilter(15),
 		DisableSeeksCompaction: true,
 	}

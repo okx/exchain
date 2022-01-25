@@ -39,7 +39,8 @@ const (
 	// UnknownDBBackend unknown db type
 	UnknownDBBackend BackendType = "unknown"
 
-	FlagRocksdbOpts = "rocksdb.opts"
+	FlagGoLeveldbOpts = "goleveldb.opts"
+	FlagRocksdbOpts   = "rocksdb.opts"
 )
 
 type dbCreator func(name string, dir string) (DB, error)

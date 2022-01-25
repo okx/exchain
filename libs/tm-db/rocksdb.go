@@ -31,11 +31,12 @@ type RocksDB struct {
 var _ DB = (*RocksDB)(nil)
 
 const (
-	BlockSize  = "block_size"
-	BlockCache = "block_cache"
-	Statistics = "statistics"
-	MMAPRead   = "allow_mmap_reads"
-	MMAPWrite  = "allow_mmap_writes"
+	blockSize    = "block_size"
+	blockCache   = "block_cache"
+	statistics   = "statistics"
+	maxOpenFiles = "max_open_files"
+	mmapRead     = "allow_mmap_reads"
+	mmapWrite    = "allow_mmap_writes"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -45,18 +46,18 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	params := parseOptParams(viper.GetString(FlagRocksdbOpts))
 
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
-	if v, ok := params[BlockSize]; ok {
+	if v, ok := params[blockSize]; ok {
 		size, err := toBytes(v)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid options parameter %s: %s", BlockSize, err))
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", blockSize, err))
 		}
 		bbto.SetBlockSize(int(size))
 	}
 	bbto.SetBlockCache(gorocksdb.NewLRUCache(1 << 30))
-	if v, ok := params[BlockCache]; ok {
+	if v, ok := params[blockCache]; ok {
 		cache, err := toBytes(v)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid options parameter %s: %s", BlockCache, err))
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", blockCache, err))
 		}
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
@@ -67,31 +68,40 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
 
-	if v, ok := params[Statistics]; ok {
+	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid options parameter %s: %s", Statistics, err))
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", statistics, err))
 		}
 		if enable {
 			opts.EnableStatistics()
 		}
 	}
 
+	opts.SetMaxOpenFiles(-1)
+	if v, ok := params[maxOpenFiles]; ok {
+		maxOpenFiles, err := strconv.Atoi(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", maxOpenFiles, err))
+		}
+		opts.SetMaxOpenFiles(maxOpenFiles)
+	}
+
 	opts.SetAllowMmapReads(true)
-	if v, ok := params[MMAPRead]; ok {
+	if v, ok := params[mmapRead]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid options parameter %s: %s", MMAPRead, err))
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", mmapRead, err))
 		}
 		if enable {
 			opts.SetAllowMmapReads(enable)
 		}
 	}
 
-	if v, ok := params[MMAPWrite]; ok {
+	if v, ok := params[mmapWrite]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid options parameter %s: %s", MMAPWrite, err))
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", mmapWrite, err))
 		}
 		if enable {
 			opts.SetAllowMmapWrites(enable)
