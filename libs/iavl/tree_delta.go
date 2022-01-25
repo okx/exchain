@@ -10,7 +10,7 @@ import (
 
 type TreeDeltaMap map[string]*TreeDelta
 
-// MarshalTreeDeltaMapToAmino encode map[string]*iavl.TreeDelta to []byte in amino format
+// MarshalTreeDeltaMapToAmino encode map[string]*TreeDelta to []byte in amino format
 func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := byte(1<<3 | 2)
@@ -48,7 +48,7 @@ func MarshalTreeDeltaMapToAmino(treeDeltaList TreeDeltaMap) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// UnmarshalTreeDeltaMapFromAmino decode bytes to map[string]*iavl.TreeDelta in amino format.
+// UnmarshalTreeDeltaMapFromAmino decode bytes to map[string]*TreeDelta in amino format.
 func UnmarshalTreeDeltaMapFromAmino(data []byte) (TreeDeltaMap, error) {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -332,7 +332,7 @@ type nodesDelta struct {
 	nodeData *NodeJson
 }
 
-// newNodesDelta convert map[string]*nodejson to struct, and privode
+// newNodesDelta convert map[string]*nodeJson to struct, and provide
 // methods to marshal/unmarshal data in amino format.
 func newNodesDelta(key string, nodeValue *NodeJson) *nodesDelta {
 	return &nodesDelta{key: key, nodeData: nodeValue}
@@ -426,7 +426,7 @@ type commitOrphansDelta struct {
 	commitValue int64
 }
 
-// newNodesDelta convert map[string]int64 to struct, and privode
+// newNodesDelta convert map[string]int64 to struct, and provide
 // methods to marshal/unmarshal data in amino format.
 func newCommitOrphansDelta(key string, commitValue int64) *commitOrphansDelta {
 	return &commitOrphansDelta{key: key, commitValue: commitValue}
@@ -524,4 +524,223 @@ type NodeJson struct {
 	Height       int8   `json:"height"`
 	Persisted    bool   `json:"persisted"`
 	prePersisted bool   `json:"pre_persisted"`
+}
+
+func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
+	var buf bytes.Buffer
+	fieldKeysType := [10]byte{
+		1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2,
+		6 << 3, 7 << 3, 8 << 3, 9 << 3, 10 << 3,
+	}
+	for pos := 1; pos <= 10; pos++ {
+		switch pos {
+		case 1:
+			if len(nj.Key) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, nj.Key)
+			if err != nil {
+				return nil, err
+			}
+		case 2:
+			if len(nj.Value) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, nj.Value)
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			if len(nj.Hash) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, nj.Hash)
+			if err != nil {
+				return nil, err
+			}
+		case 4:
+			if len(nj.LeftHash) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, nj.LeftHash)
+			if err != nil {
+				return nil, err
+			}
+		case 5:
+			if len(nj.RightHash) == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, nj.RightHash)
+			if err != nil {
+				return nil, err
+			}
+		case 6:
+			if nj.Version == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Version))
+			if err != nil {
+				return nil, err
+			}
+		case 7:
+			if nj.Size == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Size))
+			if err != nil {
+				return nil, err
+			}
+		case 8:
+			if nj.Height == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Height))
+			if err != nil {
+				return nil, err
+			}
+		case 9:
+			if !nj.Persisted {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = buf.WriteByte(1)
+			if err != nil {
+				return nil, err
+			}
+		case 10:
+			if !nj.prePersisted {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = buf.WriteByte(1)
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func (nj *NodeJson) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			nj.Key = make([]byte, len(subData))
+			copy(nj.Key, subData)
+		case 2:
+			nj.Value = make([]byte, len(subData))
+			copy(nj.Value, subData)
+		case 3:
+			nj.Hash = make([]byte, len(subData))
+			copy(nj.Hash, subData)
+		case 4:
+			nj.LeftHash = make([]byte, len(subData))
+			copy(nj.LeftHash, subData)
+		case 5:
+			nj.RightHash = make([]byte, len(subData))
+			copy(nj.RightHash, subData)
+		case 6:
+			value, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			nj.Version = int64(value)
+		case 7:
+			value, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			nj.Size = int64(value)
+		case 8:
+			value, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			nj.Height = int8(value)
+		case 9:
+			if data[0] != 0 && data[0] != 1 {
+				return fmt.Errorf("invalid Persisted")
+			}
+			nj.Persisted = data[0] == 1
+			dataLen = 1
+		case 10:
+			if data[0] != 0 && data[0] != 1 {
+				return fmt.Errorf("invalid prePersisted")
+			}
+			nj.prePersisted = data[0] == 1
+			dataLen = 1
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
