@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+rm -rf workspace/n0/binary
+rm -rf workspace/n1/binary
+rm -rf workspace/n2/binary
+rm -rf workspace/n3/binary
+rm -rf workspace/n4/binary
+
 mkdir -p workspace/n0/binary
 mkdir -p workspace/n1/binary
 mkdir -p workspace/n2/binary
