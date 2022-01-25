@@ -128,7 +128,7 @@ killbyname() {
 init() {
   killbyname ${BIN_NAME}
 
-  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  # (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
 
   rm -rf cache
 
@@ -148,7 +148,7 @@ init() {
 
   for ((index=0; index < ${1}; index++)); do 
     build ${VERSIONS[$index]} $index
-    key=extract_node_key "cache/node${index}/binary/exchaincli" "cache/node${index}/config/node_key.json"
+    key=extract_node_key cache/node${index}/binary/exchaincli "cache/node${index}/config/node_key.json"
     NODE_KEYS+=("${key}")
   done 
 }
