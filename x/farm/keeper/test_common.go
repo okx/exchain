@@ -27,7 +27,7 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/example/counter"

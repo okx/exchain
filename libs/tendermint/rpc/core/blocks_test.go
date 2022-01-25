@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"

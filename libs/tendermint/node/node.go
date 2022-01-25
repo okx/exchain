@@ -18,7 +18,7 @@ import (
 	"github.com/rs/cors"
 
 	amino "github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
