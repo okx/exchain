@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/code"
 	"github.com/okex/exchain/libs/tendermint/abci/types"

@@ -26,7 +26,7 @@ import (
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

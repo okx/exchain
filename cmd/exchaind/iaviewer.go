@@ -14,7 +14,7 @@ import (
 	tokentypes "github.com/okex/exchain/x/token/types"
 	"github.com/spf13/cobra"
 	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"log"
 	"os"
 	"path"
