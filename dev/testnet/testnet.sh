@@ -19,9 +19,6 @@ source oec.profile
 WRAPPEDTX=false
 PRERUN=false
 MULTIVERSION=false
-VERSIONS=()
-NODE_KEYS=()
-CONFIDENT_INDEX=()
 
 while getopts "isn:b:p:c:Smxwk:V:C:" opt; do
   case $opt in
@@ -67,22 +64,7 @@ while getopts "isn:b:p:c:Smxwk:V:C:" opt; do
     ;;
   m)
     echo "HARDCODED_MNEMONIC"
-    HARDCODED_MNEMONIC=true
-    ;;
-  V)
-    echo "MULTIVERSION"
-    if [[ -z $OPTARG ]]; then 
-      MULTIVERSION=false 
-    else 
-      MULTIVERSION=true
-      IFS=','
-      read -ra  VERSIONS <<< "$OPTARG"
-    fi 
-    ;;
-  C)
-    echo "CONFIDENT_INDEX"
-    IFS=','
-    read -ra  CONFIDENT_INDEX <<< "$OPTARG"
+    HARDCODED_MNEMONIC=true 
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -95,27 +77,6 @@ echorun() {
   echo "["$@"]"
   $@
   echo "------------------------------------------------------------------------------------------------"
-}
-
-# extract the node key from the file 
-extract_node_key(){
-    exchaincli=$1
-    file=$2
-    if [[ -z $file ]]; then 
-        echo "node key file should not empty!"
-        exit
-    fi 
-    ${exchaincli} extract-node-key ${file} | sed -r 's/hex: //; s/\n//g'
-}
-
-# build any version of exchain to any dest 
-build() {
-    branch=$1
-    index=$2
-    repo=cache/node${index}/repo
-    mkdir -p cache/node${index}/binary
-    git clone https://github.com/okex/exchain.git -b $branch $repo
-    cd $repo && make build && mv build/* ../binary
 }
 
 killbyname() {
@@ -140,17 +101,6 @@ init() {
     --base-port ${BASE_PORT} \
     --keyring-backend test \
     --mnemonic=${HARDCODED_MNEMONIC}
-
-  if [[ ${#VERSIONS[@]} -ne $1 ]]; then
-      echo "multi version is not specificed enough"
-      exit 1 
-  fi 
-
-  for ((index=0; index < ${1}; index++)); do 
-    build ${VERSIONS[$index]} $index
-    key=extract_node_key cache/node${index}/binary/exchaincli "cache/node${index}/config/node_key.json"
-    NODE_KEYS+=("${key}")
-  done 
 }
 
 run() {
@@ -180,22 +130,6 @@ run() {
   exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
   LOG_LEVEL=main:debug,*:error,consensus:error,state:info,ante:info,txdecoder:info
-  
-  confident_list=""
-  sperator=","
-  if [[ ${#NODE_KEYS[@]} -gt 0 ]]; then
-      confident_list=${NODE_KEYS[0]}
-      for (( i = 1; i < ${#CONFIDENT_INDEX[@]}; i++)); do 
-        case "${CONFIDENT_INDEX[@]}" in  *"$index"*)
-          confident_list+=",{${NODE_KEYS[i]}}";; 
-        esac
-      done 
-  fi 
-
-  binary=exchaind
-  if $MULTIVERSION; then 
-    binary=cache/node${index}/binary/exchaind
-  fi
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \

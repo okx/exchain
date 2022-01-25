@@ -1,0 +1,70 @@
+{
+	"name": "scoffld-configuration",
+	"description": "scoffld local cluster config",
+	"workspace": "/Users/oker/okex/exchain/cmd/toolbox/wtx-test/workspace",
+	"network": {
+		"p2p": 26656,
+		"rpc": 26657,
+		"rest": 8545,
+		"chain_id": "exchain-67",
+		"ip": "127.0.0.1",
+		"seeds": ["n0"],
+		"validators": [
+			"n0",
+			"n1",
+			"n2",
+			"n3",
+			"n4"
+		],
+		"rpcs": [],
+		"whitelist": []
+	},
+	"nodes": [
+		{
+			"name": "n0",
+			"branch": "dev",
+			"executable": "",
+			"server_home": "",
+			"wtx": false,
+			"white": false,
+			"flags": []
+		},
+		{
+			"name": "n1",
+			"branch": "dev",
+			"executable": "",
+			"server_home": "",
+			"wtx": false,
+			"white": false,
+			"flags": []
+		},
+		{
+			"name": "n2",
+			"branch": "dev",
+			"executable": "",
+			"server_home": "",
+			"wtx": false,
+			"white": false,
+			"flags": []
+		},
+		{
+			"name": "n3",
+			"branch": "dev",
+			"executable": "",
+			"server_home": "",
+			"wtx": false,
+			"white": false,
+			"flags": []
+		},
+		{
+			"name": "n4",
+			"branch": "dev",
+			"executable": "",
+			"server_home": "",
+			"wtx": false,
+			"white": false,
+			"flags": []
+		}
+	],
+	"accounts": []
+}

@@ -1,0 +1,67 @@
+# This is a TOML config file.
+# For more information, see https://github.com/toml-lang/toml
+
+##### main base config options #####
+
+# The minimum gas prices a validator is willing to accept for processing a
+# transaction. A transaction's fees must meet the minimum of any denomination
+# specified in this config (e.g. 0.25token1;0.0001token2).
+minimum-gas-prices = "0.000006okt"
+
+# HaltHeight contains a non-zero block height at which a node will gracefully
+# halt and shutdown that can be used to assist upgrades and testing.
+#
+# Note: Commitment of state will be attempted on the corresponding block.
+halt-height = 0
+
+# HaltTime contains a non-zero minimum block time (in Unix seconds) at which
+# a node will gracefully halt and shutdown that can be used to assist upgrades
+# and testing.
+#
+# Note: Commitment of state will be attempted on the corresponding block.
+halt-time = 0
+
+# InterBlockCache enables inter-block caching.
+inter-block-cache = true
+
+##### backend configuration options #####
+[backend]
+enable_backend = "false"
+enable_mkt_compute = "false"
+log_sql = "false"
+clean_ups_kept_days = "map[kline_m1:120 kline_m3:120 kline_m5:120]"
+clean_ups_time = "00:00:00"
+[backend.orm_engine]
+engine_type = "sqlite3"
+connect_str = "/Users/oker/.exchaind/data/sqlite3/backend.sqlite3"
+[stream]
+engine = ""
+klines_query_connect = ""
+
+worker_id = ""
+redis_scheduler = ""
+redis_lock = ""
+local_lock_dir = ""
+cache_queue_capacity = "0"
+
+market_topic = ""
+market_partition = "0"
+
+market_service_enable = "false"
+market_nacos_urls = ""
+market_nacos_namespace_id = ""
+market_nacos_clusters = "[]"
+market_nacos_service_name = ""
+market_nacos_group_name = ""
+
+market_eureka_name = ""
+eureka_server_url = ""
+
+rest_application_name = ""
+rest_nacos_urls = ""
+rest_nacos_namespace_id = ""
+
+pushservice_pulsar_public_topic = ""
+pushservice_pulsar_private_topic = ""
+pushservice_pulsar_depth_topic = ""
+redis_require_pass = ""

@@ -170,7 +170,7 @@ func InitTestnet(
 		genFiles    []string
 	)
 
-	inBuf := bufio.NewReader(cmd.InOrStdin())
+	inBuf := bufio.NewReader(cmd.InOrStdin()) // why need this logic but only nil could hlep this
 	// generate private keys, node IDs, and initial transactions
 	for i := 0; i < numValidators; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
@@ -178,10 +178,10 @@ func InitTestnet(
 		clientDir := filepath.Join(outputDir, nodeDirName, nodeCLIHome)
 		gentxsDir := filepath.Join(outputDir, "gentxs")
 
-		config.SetRoot(nodeDir)
+		config.SetRoot(nodeDir) // node1 node name
 		config.RPC.ListenAddress = "tcp://0.0.0.0:26657"
 
-		if err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm); err != nil {
+		if err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm); err != nil { // path/to/node1/config
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
@@ -191,12 +191,12 @@ func InitTestnet(
 			return err
 		}
 
-		config.Moniker = nodeDirName
+		config.Moniker = nodeDirName // node name
 
 		var ip string
 		var err error
 		port := viper.GetInt(flagBaseport)
-
+		// set ip
 		if isLocal {
 			ip, err = getIP(0, startingIPAddress)
 			port += i * 100
@@ -241,6 +241,7 @@ func InitTestnet(
 		if hasHardcodedMnemonic && i < 4 {
 			mnemonic = mnemonicList[i]
 		}
+		// Generate Key to be kept in th keybase
 		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
