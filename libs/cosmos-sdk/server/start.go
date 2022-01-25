@@ -33,7 +33,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmdb "github.com/tendermint/tm-db"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 // Tendermint full-node start flags

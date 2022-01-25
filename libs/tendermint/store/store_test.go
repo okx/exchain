@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	db "github.com/tendermint/tm-db"
-	dbm "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
