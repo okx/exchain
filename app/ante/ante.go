@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"fmt"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -9,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -32,13 +35,16 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
+		ctx.Logger().Info(fmt.Sprintf("WTX: TX struct: %v -> %v", mempool.TxKey(ctx.TxBytes()), tx))
 		switch tx.(type) {
 		case auth.StdTx:
 			if ctx.IsWrappedCheckTx() {
+				ctx.Logger().Info(fmt.Sprintf("WTX: App: Ante: StdTx: WrappedTx: %v", mempool.TxKey(ctx.TxBytes())))
 				anteHandler = sdk.ChainAnteDecorators(
 					authante.NewIncrementSequenceDecorator(ak),
 				)
 			} else {
+				ctx.Logger().Info(fmt.Sprintf("WTX: App: Ante: StdTx: OriginTx: %v", mempool.TxKey(ctx.TxBytes())))
 				anteHandler = sdk.ChainAnteDecorators(
 					authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 					NewAccountSetupDecorator(ak),
@@ -59,12 +65,14 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 
 		case evmtypes.MsgEthereumTx:
 			if ctx.IsWrappedCheckTx() {
+				ctx.Logger().Info(fmt.Sprintf("WTX: App: Ante: EthereumTx: WrappedTx: %v", mempool.TxKey(ctx.TxBytes())))
 				anteHandler = sdk.ChainAnteDecorators(
 					NewEthSigVerificationDecorator(),
 					NewNonceVerificationDecorator(ak),
 					NewIncrementSenderSequenceDecorator(ak),
 				)
 			} else {
+				ctx.Logger().Info(fmt.Sprintf("WTX: App: Ante: EthereumTx: OriginTx: %v", mempool.TxKey(ctx.TxBytes())))
 				anteHandler = sdk.ChainAnteDecorators(
 					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
 					NewGasLimitDecorator(evmKeeper),

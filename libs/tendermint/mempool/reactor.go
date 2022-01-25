@@ -192,9 +192,11 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	switch msg := msg.(type) {
 	case *TxMessage:
+		memR.BaseReactor.Logger.Info(fmt.Sprintf("WTX: Receive: OriginTx %v", txKey(msg.Tx)))
 		tx = msg.Tx
 
 	case *WtxMessage:
+		memR.BaseReactor.Logger.Info(fmt.Sprintf("WTX: Receive: WrappedTx %v", txKey(msg.Wtx.Payload)))
 		if !msg.Wtx.verify(memR.nodeKeyWhitelist) {
 			memR.Logger.Error(fmt.Sprintf("invalid wtx"))
 			return

@@ -267,7 +267,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-
+	mem.logger.Info(fmt.Sprintf("WTX: Mempool: CheckTx: Started to check %v", txKey(tx)))
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -1085,6 +1085,11 @@ func (nopTxCache) Remove(types.Tx)           {}
 
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
+	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+	return
+}
+
+func TxKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
 	return
 }
