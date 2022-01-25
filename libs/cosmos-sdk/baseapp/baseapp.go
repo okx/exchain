@@ -628,6 +628,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
 			ctx = ctx.WithSigCache(s.signCache)
 		}
+		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
 
 	return ctx
