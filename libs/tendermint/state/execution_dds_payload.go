@@ -2,20 +2,19 @@ package state
 
 import "github.com/okex/exchain/libs/tendermint/types"
 
-var(
+var (
 	unmarshalTreeDeltaMap func([]byte) (interface{}, error)
-	unmarshalWatchData func([]byte) (interface{}, error)
+	unmarshalWatchData    func([]byte) (interface{}, error)
 
 	marshalTreeDeltaMap func(interface{}) ([]byte, error)
-	marshalWatchData func(interface{}) ([]byte, error)
+	marshalWatchData    func(interface{}) ([]byte, error)
 )
 
 type DeltaInfo struct {
 	abciResponses *ABCIResponses
-	treeDeltaMap interface{}
-	watchData interface{}
+	treeDeltaMap  interface{}
+	watchData     interface{}
 }
-
 
 // for upload
 func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
@@ -39,8 +38,7 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 	return pl, err
 }
 
-
-func (dd *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) (error) {
+func (dd *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	var err error
 	err = types.Json.Unmarshal(pl.ABCIRsp, &dd.abciResponses)
 	if err != nil {
@@ -58,7 +56,6 @@ func (dd *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) (error) {
 
 	return err
 }
-
 
 func bytes2DeltaInfo(pl *types.DeltaPayload) (*DeltaInfo, error) {
 	var err error
