@@ -146,13 +146,13 @@ func (db *RocksDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (i
 	key = nonNilBytes(key)
 	res, err := db.db.Get(db.ro, key)
 	if err != nil {
-		return processor(nil, err)
+		return nil, err
 	}
 	defer res.Free()
 	if !res.Exists() {
-		return processor(nil, nil)
+		return processor(nil)
 	}
-	return processor(res.Data(), nil)
+	return processor(res.Data())
 }
 
 // Has implements DB.

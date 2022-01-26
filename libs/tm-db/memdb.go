@@ -77,7 +77,10 @@ func (db *MemDB) Get(key []byte) ([]byte, error) {
 
 func (db *MemDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
 	v, err := db.Get(key)
-	return processor(v, err)
+	if err != nil {
+		return nil, err
+	}
+	return processor(v)
 }
 
 // Has implements DB.
