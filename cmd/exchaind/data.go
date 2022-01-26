@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -40,10 +45,6 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 const (
@@ -242,9 +243,13 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "convert",
-		Short: "Convert oec data from goleveldb to rocksdb",
+		Use:   "convert [db_type]",
+		Short: "Convert oec data from goleveldb/rocksdb to rocksdb/badgerdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 || (args[0] != string(dbm.GoLevelDBBackend) && args[0] != string(dbm.RocksDBBackend)) {
+				return errors.New("invalid parameter [db_type]")
+			}
+
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
@@ -268,7 +273,11 @@ func dbConvertCmd(ctx *server.Context) *cobra.Command {
 					wg.Add(1)
 					go func(name, fromDir, toDir string) {
 						defer wg.Done()
-						ldbToRdb(name, fromDir, toDir)
+						if args[0] == string(dbm.GoLevelDBBackend) {
+							ldbToRdb(name, fromDir, toDir)
+						} else if args[0] == string(dbm.RocksDBBackend) {
+							rdbtoBdb(name, fromDir, toDir)
+						}
 					}(str[0], fromDir, toDir)
 				} else {
 					// cp
