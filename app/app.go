@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-     authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"io"
 	"math/big"
 	"os"
@@ -560,10 +560,6 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 				}
 				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
 			case evmtypes.MsgEthereumTx:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-			case evmtypes.MsgEthermint:
 				if len(msgs) > 1 {
 					return wrongMsgErr
 				}

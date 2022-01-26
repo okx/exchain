@@ -70,11 +70,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgEthereumTx(ctx, k, msg)
 			}
-		case types.MsgEthermint:
-			name = "handleMsgEthermint"
-			handlerFun = func() (*sdk.Result, error) {
-				return handleMsgEthermint(ctx, k, msg)
-			}
+
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
@@ -267,97 +263,5 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 	StopTxLog(bam.TransitionDb)
-	return executionResult.Result, nil
-}
-
-// handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
-func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-
-	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
-		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
-	}
-
-	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return nil, err
-	}
-
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	ethHash := common.BytesToHash(txHash)
-
-	st := types.StateTransition{
-		AccountNonce: msg.AccountNonce,
-		Price:        msg.Price.BigInt(),
-		GasLimit:     msg.GasLimit,
-		Amount:       msg.Amount.BigInt(),
-		Payload:      msg.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
-		ChainID:      chainIDEpoch,
-		TxHash:       &ethHash,
-		Sender:       common.BytesToAddress(msg.From.Bytes()),
-		Simulate:     ctx.IsCheckTx(),
-	}
-
-	if msg.Recipient != nil {
-		to := common.BytesToAddress(msg.Recipient.Bytes())
-		st.Recipient = &to
-	}
-
-	if !st.Simulate {
-		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
-		st.Csdb.SetLogSize(k.LogSize)
-		k.TxCount++
-	}
-
-	config, found := k.GetChainConfig(ctx)
-	if !found {
-		return nil, types.ErrChainConfigNotFound
-	}
-
-	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-
-	if !st.Simulate {
-		if innerTxs != nil {
-			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
-		}
-		if erc20s != nil {
-			k.AddContract(erc20s)
-		}
-	}
-
-	// update block bloom filter
-	if !st.Simulate {
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-		k.LogSize = st.Csdb.GetLogSize()
-	}
-
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeEthermint,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-		),
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
-		),
-	})
-
-	if msg.Recipient != nil {
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeEthermint,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Recipient.String()),
-			),
-		)
-	}
-
-	// set the events to the result
-	executionResult.Result.Events = ctx.EventManager().Events()
 	return executionResult.Result, nil
 }

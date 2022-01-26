@@ -5,7 +5,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -37,8 +36,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		switch tx.(type) {
 		case auth.StdTx:
 			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountSetupDecorator(ak),
+				authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
 				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				authante.NewMempoolFeeDecorator(),
 				authante.NewValidateBasicDecorator(),
@@ -89,46 +87,6 @@ func sigGasConsumer(
 	default:
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
 	}
-}
-
-// AccountSetupDecorator sets an account to state if it's not stored already. This only applies for MsgEthermint.
-type AccountSetupDecorator struct {
-	ak auth.AccountKeeper
-}
-
-// NewAccountSetupDecorator creates a new AccountSetupDecorator instance
-func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
-	return AccountSetupDecorator{
-		ak: ak,
-	}
-}
-
-// AnteHandle sets an account for MsgEthermint (evm) if the sender is registered.
-// NOTE: Since the account is set without any funds, the message execution will
-// fail if the validator requires a minimum fee > 0.
-func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	msgs := tx.GetMsgs()
-	if len(msgs) == 0 {
-		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
-	}
-
-	for _, msg := range msgs {
-		if msgEthermint, ok := msg.(evmtypes.MsgEthermint); ok {
-			setupAccount(asd.ak, ctx, msgEthermint.From)
-		}
-	}
-
-	return next(ctx, tx, simulate)
-}
-
-func setupAccount(ak keeper.AccountKeeper, ctx sdk.Context, addr sdk.AccAddress) {
-	acc := ak.GetAccount(ctx, addr)
-	if acc != nil {
-		return
-	}
-
-	acc = ak.NewAccountWithAddress(ctx, addr)
-	ak.SetAccount(ctx, acc)
 }
 
 // AccountBlockedVerificationDecorator check whether signer is blocked.

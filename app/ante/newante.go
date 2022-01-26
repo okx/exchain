@@ -12,6 +12,7 @@ import (
 
 var logger anteLogger
 var loggerOnce sync.Once
+
 func SetLogger(l log.Logger) {
 	loggerOnce.Do(func() {
 		logger.Logger = l.With("module", "ante")
@@ -41,8 +42,7 @@ func NewAnteHandler4Wtx(ak auth.AccountKeeper, evmKeeper EVMKeeper,
 		var anteHandler sdk.AnteHandler
 
 		stdTxAnteHandler := sdk.ChainAnteDecorators(
-			authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-			NewAccountSetupDecorator(ak),
+			authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
 			NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 			authante.NewMempoolFeeDecorator(),
 			authante.NewValidateBasicDecorator(),
@@ -121,4 +121,3 @@ func wrappedTxAnteHandler(ctx sdk.Context, wtx sdk.Tx, sim bool,
 
 	return
 }
-

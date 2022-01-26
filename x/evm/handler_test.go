@@ -20,7 +20,6 @@ import (
 	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -145,65 +144,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(res)
 				var expectedConsumedGas uint64 = 21000
-				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
-			} else {
-				suite.Require().Error(err)
-				suite.Require().Nil(res)
-			}
-		})
-	}
-}
-
-func (suite *EvmTestSuite) TestMsgEthermint() {
-	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-	)
-
-	testCases := []struct {
-		msg      string
-		malleate func()
-		expPass  bool
-	}{
-		{
-			"passed",
-			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
-				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
-			},
-			true,
-		},
-		{
-			"invalid state transition",
-			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
-			},
-			false,
-		},
-		{
-			"invalid chain ID",
-			func() {
-				suite.ctx = suite.ctx.WithChainID("chainID")
-			},
-			false,
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run("", func() {
-			suite.SetupTest() // reset
-			//nolint
-			tc.malleate()
-			suite.ctx = suite.ctx.WithIsCheckTx(true)
-			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			res, err := suite.handler(suite.ctx, tx)
-
-			//nolint
-			if tc.expPass {
-				suite.Require().NoError(err)
-				suite.Require().NotNil(res)
-				var expectedConsumedGas uint64 = 21064
 				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 			} else {
 				suite.Require().Error(err)

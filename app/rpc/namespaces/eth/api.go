@@ -924,16 +924,16 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// Set destination address for call
-	var toAddr *sdk.AccAddress
+	var toAddr *common.Address
 	if args.To != nil {
-		pTemp := sdk.AccAddress(args.To.Bytes())
+		pTemp := common.BytesToAddress(args.To.Bytes())
 		toAddr = &pTemp
 	}
 
 	var msgs []sdk.Msg
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(nonce, toAddr, sdk.NewIntFromBigInt(value), gas,
-		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
+	msg := evmtypes.NewMsgEthereumTx(nonce, toAddr, big.NewInt(int64(gas)), value.Uint64(), gasPrice, data)
+
 	msgs = append(msgs, msg)
 
 	sim := api.evmFactory.BuildSimulator(api)
@@ -1618,8 +1618,6 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		// NOTE: we have to construct the EVM transaction instead of just casting from the tendermint
 		// transactions because PendingTransactions only checks for MsgEthereumTx messages.
 
-		pendingTo := sdk.AccAddress(pendingTx.To.Bytes())
-		pendingFrom := sdk.AccAddress(pendingTx.From.Bytes())
 		pendingGas, err := hexutil.DecodeUint64(pendingTx.Gas.String())
 		if err != nil {
 			return nil, err
@@ -1634,8 +1632,7 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		pendingData := pendingTx.Input
 		nonce, _ := api.accountNonce(api.clientCtx, pendingTx.From, true)
 
-		msg := evmtypes.NewMsgEthermint(nonce, &pendingTo, sdk.NewIntFromBigInt(pendingValue), pendingGas,
-			sdk.NewIntFromBigInt(pendingGasPrice), pendingData, pendingFrom)
+		msg := evmtypes.NewMsgEthereumTx(nonce, pendingTx.To, pendingValue, pendingGas, pendingGasPrice, pendingData)
 
 		msgs = append(msgs, msg)
 	}
