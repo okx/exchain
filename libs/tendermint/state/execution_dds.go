@@ -35,7 +35,7 @@ func (m identityMapType) increase(from string, num int64) {
 
 var (
 	getWatchDataFunc   func() func() ([]byte, error)
-	applyWatchDataFunc func(data []byte)
+	applyWatchDataFunc func([]byte)
 )
 
 func SetWatchDataFunc(g func() func() ([]byte, error), u func([]byte)) {
@@ -185,40 +185,19 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 		return
 	}
 
-	var abciResponsesBytes []byte
-	var err error
-	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
-	if err != nil {
-		dc.logger.Error("Failed to marshal abci Responses", "height", height, "error", err)
-		return
-	}
-
-	var wd []byte
-	if types.FastQuery {
-		wd, err = wdFunc()
-		if err != nil {
-			dc.logger.Error("Failed to get watch data", "height", height, "error", err)
-			return
-		}
-	}
-
-	deltaBytes, err := types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
-	if err != nil {
-		dc.logger.Error("Failed to marshal delta map", "height", height, "error", err)
-		return
-	}
-
 	delta4Upload := &types.Deltas{
-		Payload: types.DeltaPayload{
-			ABCIRsp:     abciResponsesBytes,
-			DeltasBytes: deltaBytes,
-			WatchBytes:  wd,
-		},
 		Height:       height,
 		Version:      types.DeltaVersion,
 		CompressType: dc.compressType,
 		CompressFlag: dc.compressFlag,
 		From:         dc.identity,
+	}
+
+	var err error
+	info := DeltaInfo{abciResponses: abciResponses, treeDeltaMap: deltaMap, marshalWatchData: wdFunc}
+	delta4Upload.Payload, err = info.dataInfo2Bytes()
+	if err != nil {
+		dc.logger.Error("Failed convert dataInfo2Bytes", "target-height", height, "error", err)
 	}
 
 	dc.uploadRoutine(delta4Upload, float64(len(abciResponses.DeliverTxs)))
@@ -298,12 +277,12 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 }
 
 // get delta from dds
-func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
+func (dc *DeltaContext) prepareStateDelta(height int64) (*types.Deltas, *DeltaInfo) {
 	if !dc.downloadDelta {
-		return
+		return nil, nil
 	}
-	var mrh int64
-	dds, mrh = dc.dataMap.fetch(height)
+
+	dds, deltaInfo, mrh := dc.dataMap.fetch(height)
 
 	atomic.StoreInt64(&dc.lastFetchedHeight, height)
 
@@ -314,14 +293,14 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (dds *types.Deltas) {
 				"expected-height", height,
 				"mrh", mrh,
 				"delta", dds)
-			return nil
+			return nil, nil
 		}
 		succeed = true
 	}
 	dc.logger.Info("Prepare delta", "expected-height", height,
 		"mrh", mrh,
 		"succeed", succeed, "delta", dds)
-	return
+	return dds, deltaInfo
 }
 
 type downloadInfo struct {
@@ -383,8 +362,15 @@ func (dc *DeltaContext) downloadRoutine() {
 
 		err, delta, mrh := dc.download(targetHeight)
 		info.statistics(targetHeight, err, mrh)
+		if err != nil {
+			continue
+		}
+
+		// unmarshal delta bytes to delta info
+		deltaInfo := &DeltaInfo{}
+		err = deltaInfo.bytes2DeltaInfo(&delta.Payload)
 		if err == nil {
-			dc.dataMap.insert(targetHeight, delta, mrh)
+			dc.dataMap.insert(targetHeight, delta, deltaInfo, mrh)
 			targetHeight++
 		}
 	}

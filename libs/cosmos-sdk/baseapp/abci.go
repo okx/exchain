@@ -241,15 +241,12 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
 
-	input, ok := req.DeltaMap.(iavl.TreeDeltaMap)
-	if !ok {
-		deltas := req.Deltas.DeltasByte
-		var err error
-		if tmtypes.DownloadDelta && len(deltas) != 0 {
-			err = tmtypes.Json.Unmarshal(deltas, &input)
-			if err != nil {
-				panic(err)
-			}
+	var input iavl.TreeDeltaMap
+	if tmtypes.DownloadDelta {
+		var ok bool
+		input, ok = req.DeltaMap.(iavl.TreeDeltaMap)
+		if !ok {
+			panic("use TreeDeltaMap failed")
 		}
 	}
 
