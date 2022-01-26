@@ -12,7 +12,7 @@ import (
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
-	tmdb "github.com/tendermint/tm-db"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 
 	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"

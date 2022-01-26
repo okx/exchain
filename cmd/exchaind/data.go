@@ -27,11 +27,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
-	dbm "github.com/tendermint/tm-db"
-
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"

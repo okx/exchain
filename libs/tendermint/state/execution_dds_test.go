@@ -9,7 +9,7 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"reflect"
 	"testing"
 	"time"
