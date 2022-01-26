@@ -2,9 +2,10 @@ package state
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -14,8 +15,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 //-----------------------------------------------------------------------------
@@ -164,7 +165,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc := trace.NewTracer(trace.ApplyBlock)
 	dc := blockExec.deltaContext
 
-	var delta *types.Deltas
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
@@ -181,13 +181,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	delta = dc.prepareStateDelta(block.Height)
+	delta, deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block, delta)
+	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -229,7 +229,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, delta, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
@@ -260,18 +260,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if delta != nil {
+	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = abciResponses.UnmarshalFromAmino(delta.ABCIRsp())
-		if err != nil {
-			return nil, err
-		}
+
+		abciResponses = deltaInfo.abciResponses
 	} else {
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
@@ -309,7 +307,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
-	delta *types.Deltas,
+	deltaInfo *DeltaInfo,
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
@@ -329,15 +327,12 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	abciDelta := &abci.Deltas{}
-	if delta != nil {
-		abciDelta.DeltasByte = delta.DeltasBytes()
-		blockExec.logger.Debug("set abciDelta", "abciDelta", delta)
-	}
-
 	// Commit block, get hash back
-	// todo transfer DeltaMap
-	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{Deltas: abciDelta})
+	var treeDeltaMap interface{}
+	if deltaInfo != nil {
+		treeDeltaMap = deltaInfo.treeDeltaMap
+	}
+	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
 	if err != nil {
 		blockExec.logger.Error(
 			"Client error during proxyAppConn.CommitSync",
