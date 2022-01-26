@@ -187,7 +187,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block, deltaInfo.abciResponses)
+	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -229,7 +229,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo.treeDeltaMap, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
@@ -260,15 +260,15 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, resp *ABCIResponses) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if resp != nil {
+	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		abciResponses = resp
+		abciResponses = deltaInfo.abciResponses
 	} else {
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
@@ -306,7 +306,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, resp *ABCIResponses)
 func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
-	treeDeltaMap iavl.TreeDeltaMap,
+	deltaInfo *DeltaInfo,
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
@@ -326,6 +326,10 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
+	var treeDeltaMap iavl.TreeDeltaMap
+	if deltaInfo != nil {
+		treeDeltaMap = deltaInfo.treeDeltaMap
+	}
 	// Commit block, get hash back
 	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
 	if err != nil {
