@@ -6,31 +6,29 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
+func unmarshalTreeDeltaMap(input []byte) (iavl.TreeDeltaMap, error) {
 	if len(input) == 0 {
-		return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
+		return nil, fmt.Errorf("failed to unmarshal TreeDeltaMap: empty data")
 	}
 	var treeDeltaMap iavl.TreeDeltaMap
 	err := types.Json.Unmarshal(input, &treeDeltaMap)
 	return treeDeltaMap, err
 }
 
-func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
-	return types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
+func marshalTreeDeltaMap(deltaMap iavl.TreeDeltaMap) ([]byte, error) {
+	return types.Json.Marshal(deltaMap)
 }
 
 type DeltaInfo struct {
 	abciResponses *ABCIResponses
-	treeDeltaMap  interface{}
-	watchData     interface{}
+	treeDeltaMap  iavl.TreeDeltaMap
+	//watchData     interface{}
 
 	marshalWatchData    func() ([]byte, error)
 }
 
 // for upload
-func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
-	var err error
-	pl := types.DeltaPayload{}
+func (info *DeltaInfo) dataInfo2Bytes() (pl types.DeltaPayload, err error) {
 	pl.ABCIRsp, err = types.Json.Marshal(info.abciResponses)
 	if err != nil {
 		return pl, err
@@ -49,8 +47,8 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 	return pl, err
 }
 
-func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
-	var err error
+// for download
+func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) (err error) {
 	err = types.Json.Unmarshal(pl.ABCIRsp, &info.abciResponses)
 	if err != nil {
 		return err
@@ -60,6 +58,8 @@ func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	if err != nil {
 		return err
 	}
+
+	// todo unmarshal watchData in download thread
 	//info.watchData, err = unmarshalData(pl.WatchBytes)
 	//if err != nil {
 	//	return err

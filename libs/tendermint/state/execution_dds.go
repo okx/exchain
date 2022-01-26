@@ -163,6 +163,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 			"applied-ratio", dc.hitRatio(), "delta", delta)
 
 		if applied && types.FastQuery {
+			// todo get rid of unmarshalling watchData in applyWatchDataFunc
 			applyWatchDataFunc(delta.WatchBytes())
 		}
 	}
@@ -179,7 +180,8 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses,
+	deltaMap interface{}, wdFunc func() ([]byte, error)) {
 	if abciResponses == nil || deltaMap == nil {
 		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
 		return
@@ -194,7 +196,15 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 	}
 
 	var err error
-	info := DeltaInfo{abciResponses: abciResponses, treeDeltaMap: deltaMap, marshalWatchData: wdFunc}
+	var ok bool
+	info := DeltaInfo{abciResponses: abciResponses, marshalWatchData: wdFunc}
+	info.treeDeltaMap, ok = deltaMap.(iavl.TreeDeltaMap)
+	if !ok {
+		dc.logger.Error("Failed to upload", "height", height,
+			"error", fmt.Errorf("invalid treeDeltaMap"))
+		return
+	}
+
 	delta4Upload.Payload, err = info.dataInfo2Bytes()
 	if err != nil {
 		dc.logger.Error("Failed convert dataInfo2Bytes", "target-height", height, "error", err)
