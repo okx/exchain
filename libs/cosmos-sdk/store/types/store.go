@@ -9,7 +9,7 @@ import (
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstrings "github.com/okex/exchain/libs/tendermint/libs/strings"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 type Store interface { //nolint

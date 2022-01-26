@@ -20,7 +20,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	tmdb "github.com/tendermint/tm-db"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

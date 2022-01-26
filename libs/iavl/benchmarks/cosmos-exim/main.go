@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/iavl"
-	tmdb "github.com/tendermint/tm-db"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 // stores is the list of stores in the CosmosHub database
