@@ -4,6 +4,13 @@ import (
 	"bytes"
 	"fmt"
 
+<<<<<<< HEAD
+=======
+	"github.com/tendermint/go-amino"
+
+	dbm "github.com/okex/exchain/libs/tm-db"
+
+>>>>>>> c7cf196ca4bd2b2e8509841cdca9bd8f6f10d01d
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"

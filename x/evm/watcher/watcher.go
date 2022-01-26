@@ -441,7 +441,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	cmn "github.com/okex/exchain/libs/iavl/common"
-	db "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
 )
 
 var testLevelDB bool

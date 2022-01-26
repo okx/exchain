@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 type EvmFactory struct {

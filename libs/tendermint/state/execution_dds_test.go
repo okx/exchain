@@ -13,7 +13,14 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
+<<<<<<< HEAD
 	dbm "github.com/tendermint/tm-db"
+=======
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"reflect"
+	"testing"
+	"time"
+>>>>>>> c7cf196ca4bd2b2e8509841cdca9bd8f6f10d01d
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
