@@ -60,6 +60,11 @@ func (db *CLevelDB) Get(key []byte) ([]byte, error) {
 	return res, nil
 }
 
+func (db *CLevelDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
+	v, err := db.Get(key)
+	return processor(v, err)
+}
+
 // Has implements DB.
 func (db *CLevelDB) Has(key []byte) (bool, error) {
 	bytes, err := db.Get(key)

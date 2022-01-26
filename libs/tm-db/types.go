@@ -11,6 +11,11 @@ type DB interface {
 	// CONTRACT: key, value readonly []byte
 	Get([]byte) ([]byte, error)
 
+	// GetUnsafeValue fetches the value of the given key, then pass the value and error to the UnsafeValueProcessor
+	// GetUnsafeValue return what the UnsafeValueProcessor returns
+	// CONTRACT: value is readonly and can not be referenced after return
+	GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error)
+
 	// Has checks if a key exists.
 	// CONTRACT: key, value readonly []byte
 	Has(key []byte) (bool, error)
@@ -129,3 +134,7 @@ type Iterator interface {
 	// Close closes the iterator, relasing any allocated resources.
 	Close()
 }
+
+// UnsafeValueProcessor called after DB Get, value and err are the result of DB Get.
+// CONTRACT: value is readonly and can not be referenced after return
+type UnsafeValueProcessor func(value []byte, err error) (interface{}, error)

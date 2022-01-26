@@ -105,6 +105,11 @@ func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 	return res, nil
 }
 
+func (db *GoLevelDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
+	v, err := db.Get(key)
+	return processor(v, err)
+}
+
 // Has implements DB.
 func (db *GoLevelDB) Has(key []byte) (bool, error) {
 	bytes, err := db.Get(key)

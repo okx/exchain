@@ -81,6 +81,26 @@ func (bdb *BoltDB) Get(key []byte) (value []byte, err error) {
 	return
 }
 
+func (bdb *BoltDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (retv interface{}, err error) {
+	key = nonEmptyKey(nonNilBytes(key))
+	var got bool
+	err = bdb.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(bucket)
+		if v := b.Get(key); v != nil {
+			got = true
+			retv, err = processor(v, nil)
+		}
+		return nil
+	})
+	if got {
+		return
+	}
+	if err != nil {
+		ret, err = processor(nil, err)
+	}
+	return
+}
+
 // Has implements DB.
 func (bdb *BoltDB) Has(key []byte) (bool, error) {
 	bytes, err := bdb.Get(key)
