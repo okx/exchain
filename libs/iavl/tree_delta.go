@@ -304,7 +304,7 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 			if err != nil {
 				return err
 			}
-			td.NodesDelta[nodeDelta.key] = nodeDelta.nodeData
+			td.NodesDelta[nodeDelta.Key] = nodeDelta.NodeData
 		case 2:
 			nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
@@ -318,7 +318,7 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 			if err != nil {
 				return err
 			}
-			td.CommitOrphansDelta[commitDelta.key] = commitDelta.commitValue
+			td.CommitOrphansDelta[commitDelta.Key] = commitDelta.CommitValue
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -328,14 +328,14 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 }
 
 type nodesDelta struct {
-	key      string
-	nodeData *NodeJson
+	Key      string
+	NodeData *NodeJson
 }
 
 // newNodesDelta convert map[string]*nodeJson to struct, and provide
 // methods to marshal/unmarshal data in amino format.
 func newNodesDelta(key string, nodeValue *NodeJson) *nodesDelta {
-	return &nodesDelta{key: key, nodeData: nodeValue}
+	return &nodesDelta{Key: key, NodeData: nodeValue}
 }
 func (nd *nodesDelta) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
@@ -343,7 +343,7 @@ func (nd *nodesDelta) MarshalToAmino() ([]byte, error) {
 	for pos := 1; pos <= 2; pos++ {
 		switch pos {
 		case 1:
-			if len(nd.key) == 0 {
+			if len(nd.Key) == 0 {
 				break
 			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
@@ -351,12 +351,12 @@ func (nd *nodesDelta) MarshalToAmino() ([]byte, error) {
 				return nil, err
 			}
 
-			err = amino.EncodeStringToBuffer(&buf, nd.key)
+			err = amino.EncodeStringToBuffer(&buf, nd.Key)
 			if err != nil {
 				return nil, err
 			}
 		case 2:
-			data, err := nd.nodeData.MarshalToAmino()
+			data, err := nd.NodeData.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}
@@ -406,14 +406,14 @@ func (nd *nodesDelta) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			nd.key = string(subData)
+			nd.Key = string(subData)
 		case 2:
 			nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
 			}
-			nd.nodeData = nodeData
+			nd.NodeData = nodeData
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
@@ -422,14 +422,14 @@ func (nd *nodesDelta) UnmarshalFromAmino(data []byte) error {
 }
 
 type commitOrphansDelta struct {
-	key         string
-	commitValue int64
+	Key         string
+	CommitValue int64
 }
 
 // newNodesDelta convert map[string]int64 to struct, and provide
 // methods to marshal/unmarshal data in amino format.
 func newCommitOrphansDelta(key string, commitValue int64) *commitOrphansDelta {
-	return &commitOrphansDelta{key: key, commitValue: commitValue}
+	return &commitOrphansDelta{Key: key, CommitValue: commitValue}
 }
 func (cod *commitOrphansDelta) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
@@ -439,7 +439,7 @@ func (cod *commitOrphansDelta) MarshalToAmino() ([]byte, error) {
 	for pos := 1; pos <= 2; pos++ {
 		switch pos {
 		case 1:
-			if len(cod.key) == 0 {
+			if len(cod.Key) == 0 {
 				break
 			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
@@ -447,19 +447,19 @@ func (cod *commitOrphansDelta) MarshalToAmino() ([]byte, error) {
 				return nil, err
 			}
 
-			err = amino.EncodeStringToBuffer(&buf, cod.key)
+			err = amino.EncodeStringToBuffer(&buf, cod.Key)
 			if err != nil {
 				return nil, err
 			}
 		case 2:
-			if cod.commitValue == 0 {
+			if cod.CommitValue == 0 {
 				break
 			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(&buf, uint64(cod.commitValue))
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(cod.CommitValue))
 			if err != nil {
 				return nil, err
 			}
@@ -497,14 +497,14 @@ func (cod *commitOrphansDelta) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			cod.key = string(subData)
+			cod.Key = string(subData)
 		case 2:
 			value, n, err := amino.DecodeUvarint(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			cod.commitValue = int64(value)
+			cod.CommitValue = int64(value)
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
