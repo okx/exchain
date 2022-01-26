@@ -36,6 +36,8 @@ const (
 	//   - requires gcc
 	//   - use rocksdb build tag (go build -tags rocksdb)
 	RocksDBBackend BackendType = "rocksdb"
+	// BadgerDBBackend badgerdb
+	BadgerDBBackend BackendType = "badgerdb"
 	// UnknownDBBackend unknown db type
 	UnknownDBBackend BackendType = "unknown"
 

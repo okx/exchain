@@ -3,6 +3,7 @@ module github.com/okex/exchain
 go 1.17
 
 require (
+	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/99designs/keyring v1.1.6
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/VictoriaMetrics/fastcache v1.8.0
