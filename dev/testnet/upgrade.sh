@@ -67,13 +67,13 @@ function check_block() {
 
     if [[ $extra_check = "tx" ]] ; then
       # Get new blocks over 100 and those blocks contains tx 
-      if [ `expr $latest_height - $height0` -gt 10 -a $block_contains_tx -gt 20 ] ;then
+      if [ `expr $latest_height - $height0` -gt 100 -a $block_contains_tx -gt 100 ] ;then
         echo "block_contains_tx ,"$block_contains_tx
         is_valid=1
         break
       fi
     else
-      if [ `expr $latest_height - $height0` -gt 10 ] ;then
+      if [ `expr $latest_height - $height0` -gt 100 ] ;then
         is_valid=1
         break
       fi
@@ -224,6 +224,7 @@ function caseopt() {
   case_1 $v1 $v2
   case_2 $v1 $v2
   case_3 $v1 $v2
+  echo "All cases finished!"
 }
 
 
