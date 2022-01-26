@@ -37,8 +37,11 @@ type Watcher struct {
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
+
 	// for state delta transfering in network
 	watchData *WatchData
+
+	jobChan chan func()
 }
 
 var (
@@ -370,7 +373,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go w.commitBatch(batch)
+	w.dispatchJob(func() {w.commitBatch(batch)})
 
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
@@ -396,7 +399,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.delayEraseKey = data.DelayEraseKey
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -446,7 +448,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 
@@ -483,11 +485,13 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 			return
 		}
 	}
+	w.delayEraseKey = wd.DelayEraseKey
 
-	go w.CommitWatchData(wd)
+	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
+	go w.jobRoutine()
 	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UseWatchData)
 }
 
@@ -509,4 +513,32 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	}
 
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+/////////// job
+func (w *Watcher) jobRoutine() {
+	if !w.Enabled() {
+		return
+	}
+
+	w.lazyInitialization()
+
+	for job := range w.jobChan {
+		job()
+	}
+}
+
+func (w *Watcher) lazyInitialization() {
+	// lazy initial:
+	// now we will allocate chan memory
+	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*2)
+}
+
+func (w *Watcher) dispatchJob(f func()) {
+	// if jobRoutine were too slow to write data  to disk
+	// we have to wait
+	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
+	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	w.jobChan <- f
 }
