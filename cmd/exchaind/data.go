@@ -243,7 +243,7 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert oec data from rocksdb to badgerdb",
+		Short: "Convert oec data from goleveldb to rocksdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
@@ -268,7 +268,7 @@ func dbConvertCmd(ctx *server.Context) *cobra.Command {
 					wg.Add(1)
 					go func(name, fromDir, toDir string) {
 						defer wg.Done()
-						LtoR(name, fromDir, toDir)
+						ldbToRdb(name, fromDir, toDir)
 					}(str[0], fromDir, toDir)
 				} else {
 					// cp
