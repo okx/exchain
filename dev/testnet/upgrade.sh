@@ -67,13 +67,13 @@ function check_block() {
 
     if [[ $extra_check = "tx" ]] ; then
       # Get new blocks over 100 and those blocks contains tx 
-      if [ `expr $latest_height - $height0` -gt 100 -a $block_contains_tx -gt 100 ] ;then
+      if [ `expr $latest_height - $height0` -gt 25 -a $block_contains_tx -gt 25 ] ;then
         echo "block_contains_tx ,"$block_contains_tx
         is_valid=1
         break
       fi
     else
-      if [ `expr $latest_height - $height0` -gt 100 ] ;then
+      if [ `expr $latest_height - $height0` -gt 10 ] ;then
         is_valid=1
         break
       fi
