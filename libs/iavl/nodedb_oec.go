@@ -35,13 +35,13 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 
 	if EnableAsyncCommit {
 		ndb.log(IavlDebug, "saving orphan node(size:%d) to OrphanCache", len(orphans))
-		version--
-		atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
-		orphansObj := ndb.heightOrphansMap[version]
+		version-- // version减1的作用?
+		atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans))) // orphans个数累加
+		orphansObj := ndb.heightOrphansMap[version]	 //
 		if orphansObj != nil {
 			orphansObj.orphans = orphans
 		}
-		for _, node := range orphans {
+		for _, node := range orphans {	// 清楚缓存?
 			ndb.orphanNodeCache[string(node.hash)] = node
 			ndb.uncacheNode(node.hash)
 			delete(ndb.prePersistNodeCache, string(node.hash))
@@ -457,6 +457,7 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map
 	}
 }
 
+// 遍历每个高度去查询
 func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
 	for v := ndb.tppVersionList.Back(); v != nil; v = v.Prev() {
 		ver := v.Value.(int64)

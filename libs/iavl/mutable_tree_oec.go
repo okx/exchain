@@ -67,7 +67,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 
 	tree.ndb.SaveOrphans(batch, version, tree.orphans)
-
+	// 只有当version(高度) 超过配置的间隔高度 或者是缓存中的cache 数超过最大值的时候才会触发缓存
+	// 整个ac的作用只是为了提供一个缓存层而已,缓存的话,则有缓存一致性的问题,
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 

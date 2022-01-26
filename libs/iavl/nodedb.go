@@ -110,10 +110,12 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if len(hash) == 0 {
 			panic("nodeDB.GetNode() requires hash")
 		}
+		// 先从pre中查询(这是待实例化的)
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
 			return elem
 		}
 
+		// 然后从tpp 中查询
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
 			return elem
 		}
@@ -123,6 +125,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			ndb.nodeCacheQueue.MoveToBack(elem)
 			return elem.Value.(*Node)
 		}
+		// 说明从 orphanNodeCache 读取,但是已经被删除了
 		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
 			return elem
 		}

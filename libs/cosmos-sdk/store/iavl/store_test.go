@@ -10,11 +10,12 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/stretchr/testify/require"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
@@ -689,4 +690,39 @@ func BenchmarkIAVLIteratorNext(b *testing.B) {
 			iter.Next()
 		}
 	}
+}
+
+func TestStoreConcurrency(t *testing.T) {
+	key := []byte("itsfunny")
+	//value := key
+	db := dbm.NewMemDB()
+	//treeSize := 1000
+	tree, err := iavl.NewMutableTree(db, cacheSize)
+	require.NoError(t, err)
+	for i := 0; i < 10; i++ {
+		go func(index int) {
+			for j := 0; j < 100; j++ {
+				tree.Set(key, []byte{byte(index), byte(j)})
+			}
+		}(i)
+	}
+	for i := 0; i < 10; i++ {
+		go func() {
+
+			index, v := tree.Get(key)
+			fmt.Println(v)
+			fmt.Println(index)
+		}()
+	}
+	index, v := tree.Get(key)
+	fmt.Println(v)
+	fmt.Println(index)
+	time.Sleep(time.Second * 3)
+	//tree.Set(key, value)
+	//run := []rune(string(value))
+	//run[0] = 'a'
+	//index, v := tree.Get(key)
+	//fmt.Println(index)
+	//fmt.Println(string(v))
+	//fmt.Println(string(value))
 }
