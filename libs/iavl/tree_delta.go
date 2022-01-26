@@ -83,7 +83,7 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(data []byte) error {
 			if err != nil {
 				return err
 			}
-			tdm[ad.key] = ad.appliedTree
+			tdm[ad.Key] = ad.AppliedTree
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -94,12 +94,12 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(data []byte) error {
 
 // appliedDelta convert map[string]*iavl.TreeDelta to struct
 type appliedDelta struct {
-	key         string
-	appliedTree *TreeDelta
+	Key         string
+	AppliedTree *TreeDelta
 }
 
 func newAppliedDelta(key string, treeValue *TreeDelta) *appliedDelta {
-	return &appliedDelta{key: key, appliedTree: treeValue}
+	return &appliedDelta{Key: key, AppliedTree: treeValue}
 }
 func (ad *appliedDelta) MarshalToAmino() ([]byte, error) {
 	var buf bytes.Buffer
@@ -107,7 +107,7 @@ func (ad *appliedDelta) MarshalToAmino() ([]byte, error) {
 	for pos := 1; pos <= 2; pos++ {
 		switch pos {
 		case 1:
-			if len(ad.key) == 0 {
+			if len(ad.Key) == 0 {
 				break
 			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
@@ -115,12 +115,12 @@ func (ad *appliedDelta) MarshalToAmino() ([]byte, error) {
 				return nil, err
 			}
 
-			err = amino.EncodeStringToBuffer(&buf, ad.key)
+			err = amino.EncodeStringToBuffer(&buf, ad.Key)
 			if err != nil {
 				return nil, err
 			}
 		case 2:
-			data, err := ad.appliedTree.MarshalToAmino()
+			data, err := ad.AppliedTree.MarshalToAmino()
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +170,7 @@ func (ad *appliedDelta) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			ad.key = string(subData)
+			ad.Key = string(subData)
 		case 2:
 			appliedData := &TreeDelta{
 				NodesDelta:         map[string]*NodeJson{},
@@ -181,7 +181,7 @@ func (ad *appliedDelta) UnmarshalFromAmino(data []byte) error {
 			if err != nil {
 				return err
 			}
-			ad.appliedTree = appliedData
+			ad.AppliedTree = appliedData
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -523,7 +523,7 @@ type NodeJson struct {
 	Size         int64  `json:"size"`
 	Height       int8   `json:"height"`
 	Persisted    bool   `json:"persisted"`
-	prePersisted bool   `json:"pre_persisted"`
+	PrePersisted bool   `json:"pre_persisted"`
 }
 
 func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
@@ -643,7 +643,7 @@ func (nj *NodeJson) MarshalToAmino() ([]byte, error) {
 				return nil, err
 			}
 		case 10:
-			if !nj.prePersisted {
+			if !nj.PrePersisted {
 				break
 			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
@@ -735,7 +735,7 @@ func (nj *NodeJson) UnmarshalFromAmino(data []byte) error {
 			if data[0] != 0 && data[0] != 1 {
 				return fmt.Errorf("invalid prePersisted")
 			}
-			nj.prePersisted = data[0] == 1
+			nj.PrePersisted = data[0] == 1
 			dataLen = 1
 
 		default:

@@ -52,7 +52,7 @@ func NodeToNodeJson(node *Node) *NodeJson {
 	n.Size = node.size
 	n.Height = node.height
 	n.Persisted = node.persisted
-	n.prePersisted = node.prePersisted
+	n.PrePersisted = node.prePersisted
 	return n
 }
 
@@ -71,7 +71,7 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 		size:         nj.Size,
 		height:       nj.Height,
 		persisted:    nj.Persisted,
-		prePersisted: nj.prePersisted,
+		prePersisted: nj.PrePersisted,
 	}
 }
 
