@@ -35,6 +35,14 @@ func (pdb *PrefixDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+func (pdb *PrefixDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (retv interface{}, err error) {
+	pdb.mtx.Lock()
+	defer pdb.mtx.Unlock()
+
+	pkey := pdb.prefixed(key)
+	return pdb.db.GetUnsafeValue(pkey, processor)
+}
+
 // Has implements DB.
 func (pdb *PrefixDB) Has(key []byte) (bool, error) {
 	pdb.mtx.Lock()
