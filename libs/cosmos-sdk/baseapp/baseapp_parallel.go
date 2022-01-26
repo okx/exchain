@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -10,10 +11,27 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
+var (
+	txIndexLen = 4
+)
+
 type extraDataForTx struct {
 	fee       sdk.Coins
 	isEvm     bool
 	signCache sdk.SigCache
+}
+
+// txByteWithIndex = txByte + index
+
+func getTxByteWithIndex(txByte []byte, txIndex int) []byte {
+	bs := make([]byte, txIndexLen)
+	binary.LittleEndian.PutUint32(bs, uint32(txIndex))
+	return append(txByte, bs...)
+}
+
+func getRealTxByte(txByteWithIndex []byte) []byte {
+	return txByteWithIndex[:len(txByteWithIndex)-txIndexLen]
+
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
@@ -24,17 +42,18 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 		index := index
 		txBytes := txBytes
 		go func() {
+			defer wg.Done()
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
-				panic(err)
+				res[index] = &extraDataForTx{}
+				return
 			}
-			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliverInAsync, txBytes), tx)
+			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
 				fee:       coin,
 				isEvm:     isEvm,
 				signCache: s,
 			}
-			wg.Done()
 		}()
 	}
 	wg.Wait()
@@ -42,10 +61,14 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	txWithIndex := make([][]byte, 0)
+	for index, v := range txs {
+		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
+	}
 	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
-	for k, v := range txs {
+	for k := range txs {
 		t := &txStatus{
 			indexInBlock: uint32(k),
 			signCache:    extraData[k].signCache,
@@ -56,14 +79,14 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			evmIndex++
 		}
 
-		vString := string(v)
+		vString := string(txWithIndex[k])
 		app.parallelTxManage.setFee(vString, extraData[k].fee)
 
 		app.parallelTxManage.txStatus[vString] = t
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
 
-	return app.runTxs(txs)
+	return app.runTxs(txWithIndex)
 
 }
 
@@ -78,7 +101,7 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 
 	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(txFee...)
 
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
 		panic(err)
 	}
@@ -110,11 +133,15 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
+
 			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				s.reRun = true
-				res = app.deliverTxWithCache(abci.RequestDeliverTx{Tx: txs[txIndex]})
+				res = app.deliverTxWithCache(txs[txIndex])
 
+			}
+			if s.anteErr != nil {
+				res.ms = nil
 			}
 
 			txRs := res.GetResponse()
@@ -139,7 +166,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	app.parallelTxManage.workgroup.cb = asyncCb
 	for _, tx := range txs {
-		go app.DeliverTx(abci.RequestDeliverTx{Tx: tx})
+		go app.asyncDeliverTx(tx)
 	}
 
 	if len(txs) > 0 {
@@ -164,7 +191,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		if err := app.parallelTxManage.txStatus[v].anteErr; err != nil {
 			errMsg = err.Error()
 		}
-		txExecStats = append(txExecStats, []string{v, errMsg})
+		txExecStats = append(txExecStats, []string{string(getRealTxByte([]byte(v))), errMsg})
 	}
 	app.parallelTxManage.clear()
 	return app.logFix(txExecStats)
@@ -172,17 +199,20 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 
 //we reuse the nonce that changed by the last async call
 //if last ante handler has been failed, we need rerun it ? or not?
-func (app *BaseApp) deliverTxWithCache(req abci.RequestDeliverTx) *executeResult {
-	tx, err := app.txDecoder(req.Tx)
+func (app *BaseApp) deliverTxWithCache(txByte []byte) *executeResult {
+	txStatus := app.parallelTxManage.txStatus[string(txByte)]
+
+	tx, err := app.txDecoder(getRealTxByte(txByte))
 	if err != nil {
-		return nil
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		return asyncExe
 	}
 	var (
 		resp abci.ResponseDeliverTx
 		mode runTxMode
 	)
 	mode = runTxModeDeliverInAsync
-	g, r, m, e := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
+	g, r, m, e := app.runTx(mode, txByte, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
@@ -195,7 +225,6 @@ func (app *BaseApp) deliverTxWithCache(req abci.RequestDeliverTx) *executeResult
 		}
 	}
 
-	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
 	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
 	asyncExe.err = e
 	return asyncExe

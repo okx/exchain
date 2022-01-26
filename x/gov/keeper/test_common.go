@@ -20,7 +20,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
