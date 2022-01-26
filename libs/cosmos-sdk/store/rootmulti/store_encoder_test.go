@@ -5,8 +5,8 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 )
 
 func newTestTreeDeltaMap() iavltree.TreeDeltaMap {

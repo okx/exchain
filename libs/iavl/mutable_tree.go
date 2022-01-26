@@ -8,8 +8,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/pkg/errors"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 )
 
 func SetIgnoreVersionCheck(check bool) {

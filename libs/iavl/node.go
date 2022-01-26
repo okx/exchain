@@ -7,11 +7,18 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/pkg/errors"
 	amino "github.com/tendermint/go-amino"
 )
+
+var NodeJsonPool = sync.Pool{
+	New: func() interface{} {
+		return new(NodeJson)
+	},
+}
 
 // Node represents a node in a Tree.
 type Node struct {
@@ -31,21 +38,22 @@ type Node struct {
 
 // NodeToNodeJson get NodeJson from Node
 func NodeToNodeJson(node *Node) *NodeJson {
+	n := NodeJsonPool.Get().(*NodeJson)
 	if node == nil {
-		return &NodeJson{}
+		return n
 	}
-	return &NodeJson{
-		Key:          node.key,
-		Value:        node.value,
-		Hash:         node.hash,
-		LeftHash:     node.leftHash,
-		RightHash:    node.rightHash,
-		Version:      node.version,
-		Size:         node.size,
-		Height:       node.height,
-		Persisted:    node.persisted,
-		prePersisted: node.prePersisted,
-	}
+
+	n.Key = node.key
+	n.Value = node.value
+	n.Hash = node.hash
+	n.LeftHash = node.leftHash
+	n.RightHash = node.rightHash
+	n.Version = node.version
+	n.Size = node.size
+	n.Height = node.height
+	n.Persisted = node.persisted
+	n.prePersisted = node.prePersisted
+	return n
 }
 
 // NodeJsonToNode get Node from NodeJson
