@@ -183,7 +183,6 @@ set --node-mode=archive to manage the following flags:
 	--disable-checktx-mutex=true
 	--disable-query-mutex=true
 	--enable-bloom-filter=true
-	--fast-lru=10000
 	--iavl-enable-async-commit=true
 	--max-open=20000
 	--cors=*`,
