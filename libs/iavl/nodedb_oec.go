@@ -69,7 +69,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 	}
 	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
 	ndb.heightOrphansMap[version] = orphanObj
-
+	// 清除之前的高度缓存
 	for ndb.heightOrphansCacheQueue.Len() > ndb.heightOrphansCacheSize {
 		orphans := ndb.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)

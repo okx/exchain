@@ -308,6 +308,55 @@ func TestPruningHistoryState(t *testing.T) {
 	require.Equal(t, 0, orphansCount)
 }
 
+func TestPruningWithReadWrite(t *testing.T) {
+	EnableAsyncCommit = true
+	EnablePruningHistoryState = true
+	defer func() {
+		EnableAsyncCommit = false
+		EnablePruningHistoryState = false
+		treeMap.resetMap()
+	}()
+	tree := newTestTree(t, false, 10000, "test")
+	keys, _ := initSetTree(tree)
+	_, k2, _ := keys[0], keys[1], keys[2]
+
+	_, _, _, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+
+	batchSaveVersion(t, tree, int(CommitIntervalHeight))
+
+	v2New := []byte("v22")
+	tree.Set(k2, v2New)
+	_, _, _, err = tree.SaveVersion(false)
+	require.NoError(t, err)
+
+	batchSaveVersion(t, tree, minHistoryStateNum*int(CommitIntervalHeight)-2)
+
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+
+	iTree, err := tree.GetImmutable(CommitIntervalHeight * (minHistoryStateNum - 1))
+	require.NoError(t, err)
+	require.NotNil(t, iTree)
+	_, v := iTree.Get(k2)
+	require.Equal(t, v2New, v)
+
+	iTree, err = tree.GetImmutable(CommitIntervalHeight * 1)
+	require.Error(t, err)
+	require.Nil(t, iTree)
+
+	nodeCount := 0
+	tree.ndb.traverseNodes(func(hash []byte, node *Node) {
+		nodeCount++
+	})
+	require.Equal(t, 5, nodeCount)
+
+	orphansCount := 0
+	tree.ndb.traverseOrphans(func(k, v []byte) {
+		orphansCount++
+	})
+	require.Equal(t, 0, orphansCount)
+}
+
 func batchSaveVersion(t *testing.T, tree *MutableTree, n int) {
 	for i := 0; i < n; i++ {
 		_, _, _, err := tree.SaveVersion(false)
@@ -380,6 +429,8 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 		orphansCount++
 	})
 	require.Equal(t, (minHistoryStateNum-1)*5, orphansCount)
+	_, v := tree.Get(k1)
+	fmt.Println(string(v))
 }
 
 func TestConcurrentQuery(t *testing.T) {
