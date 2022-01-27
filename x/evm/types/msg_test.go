@@ -281,14 +281,11 @@ func TestMarshalAndUnmarshalLogs(t *testing.T) {
 }
 
 func TestMsgString(t *testing.T) {
-	expectedUint64, expectedSDKAddr, expectedInt := uint64(1024), newSdkAddress(), sdk.OneInt()
+	expectedUint64, expectedSDKAddr := uint64(1024), newSdkAddress()
 	expectedPayload, err := hexutil.Decode("0x1234567890abcdef")
 	require.NoError(t, err)
 	expectedOutput := fmt.Sprintf("nonce=1024 gasPrice=1 gasLimit=1024 recipient=%s amount=1 data=0x1234567890abcdef from=%s",
 		expectedSDKAddr, expectedSDKAddr)
-
-	msgEthermint := NewMsgEthermint(expectedUint64, &expectedSDKAddr, expectedInt, expectedUint64, expectedInt, expectedPayload, expectedSDKAddr)
-	require.True(t, strings.EqualFold(msgEthermint.String(), expectedOutput))
 
 	expectedHexAddr := ethcmn.BytesToAddress([]byte{0x01})
 	expectedBigInt := big.NewInt(1024)
