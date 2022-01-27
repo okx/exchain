@@ -78,12 +78,13 @@ function get_white_list() {
 
   case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index}`
 
-  if [[ -z case_document ]]; then 
+  if [[ -z $case_document ]]; then 
     echo ""
-    return 
+  else 
+    echo "--mempool.node_key_whitelist=${NODEKEYS}"
   fi 
 
-  echo "--mempool.node_key_whitelist=${NODEKEYS}"
+  
 }
 
 function get_node_enable_wtx_opts() {
