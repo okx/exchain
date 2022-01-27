@@ -76,7 +76,7 @@ function get_white_list() {
   index=$1
   case_number=$2
 
-  case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index}`
+  case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index}  |  awk '{ gsub(/"/,""); print $0 }'`
 
   if [[ $case_document == "false" ]]; then 
     echo ""
