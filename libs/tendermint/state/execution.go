@@ -471,7 +471,6 @@ func execBlockOnProxyAppWithDeltas(
 		Header:              types.TM2PB.Header(&block.Header),
 		LastCommitInfo:      commitInfo,
 		ByzantineValidators: byzVals,
-		UseDeltas:           true,
 	})
 }
 
