@@ -363,8 +363,13 @@ func execCommitBlockDelta(
 		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
 		return nil, nil, err
 	}
-	if res.Deltas != nil {
-		deltas.Payload.DeltasBytes = res.Deltas.DeltasByte
+
+	if res.DeltaMap != nil {
+		deltaBytes, err := types.Json.Marshal(res.DeltaMap)
+		if err != nil {
+			return nil, nil, err
+		}
+		deltas.Payload.DeltasBytes = deltaBytes
 		wdFunc := getWatchDataFunc()
 		if wd, err := wdFunc(); err == nil {
 			deltas.Payload.WatchBytes = wd

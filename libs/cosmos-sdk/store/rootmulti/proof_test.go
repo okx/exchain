@@ -3,7 +3,6 @@ package rootmulti
 import (
 	"testing"
 
-	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -20,7 +19,7 @@ func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 	store := iStore.(*iavl.Store)
 	require.Nil(t, err)
 	store.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil)
+	cid, _ := store.CommitterCommit(nil)
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -67,7 +66,7 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil)
+	cid, _ := store.CommitterCommitMap(nil)
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -119,7 +118,7 @@ func TestVerifyMultiStoreQueryProofEmptyStore(t *testing.T) {
 
 	store.MountStoreWithDB(iavlStoreKey, types.StoreTypeIAVL, nil)
 	store.LoadVersion(0)
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil) // Commit with empty iavl store.
+	cid, _ := store.CommitterCommitMap(nil) // Commit with empty iavl store.
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -151,7 +150,7 @@ func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil) // Commit with empty iavl store.
+	cid, _ := store.CommitterCommitMap(nil) // Commit with empty iavl store.
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
