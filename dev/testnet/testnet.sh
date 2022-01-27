@@ -18,9 +18,7 @@ set -x # activate debugging
 source oec.profile
 WRAPPEDTX=false
 PRERUN=false
-MULTIVERSION=false
-
-while getopts "isn:b:p:c:Smxwk:V:C:" opt; do
+while getopts "isn:b:p:c:Smxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -64,7 +62,7 @@ while getopts "isn:b:p:c:Smxwk:V:C:" opt; do
     ;;
   m)
     echo "HARDCODED_MNEMONIC"
-    HARDCODED_MNEMONIC=true 
+    HARDCODED_MNEMONIC=true
     ;;
   \?)
     echo "Invalid option: -$OPTARG"
@@ -89,7 +87,7 @@ killbyname() {
 init() {
   killbyname ${BIN_NAME}
 
-  # (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
 
   rm -rf cache
 
@@ -154,14 +152,11 @@ run() {
     --enable-preruntx=$PRERUN \
     --consensus-role=v$index \
     ${Test_CASE} \
-    --mempool.node_key_whitelist=${confident_list} \
-    --trace=true
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \    --consensus-testcase case12.json \
 #     --upload-delta \
 #     --enable-preruntx \
-#     --mempool.node_key_whitelist="nodeKey1,nodeKey2" \
 }
 
 function start() {
