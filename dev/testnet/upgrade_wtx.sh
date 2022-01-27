@@ -32,11 +32,11 @@ WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"yxq/wtx","val3":"yxq
 NODEKEYS=""
 
 ADD_WTHIE_LIST_CASE=()
-ADD_WTHIE_LIST_CASE+=('{"node0":"","node1":"","node2":"","node3":"","node4":""}')
-ADD_WTHIE_LIST_CASE+=('{"node0":"","node1":"","node2":"","node3":"","node4":""}')
-ADD_WTHIE_LIST_CASE+=('{"node0":"","node1":"--mempool.node_key_whitelist","node2":"--mempool.node_key_whitelist","node3":"","node4":"--mempool.node_key_whitelist"}')
-ADD_WTHIE_LIST_CASE+=('{"node0":"","node1":"--mempool.node_key_whitelist","node2":"--mempool.node_key_whitelist","node3":"--mempool.node_key_whitelist","node4":"--mempool.node_key_whitelist"}')
-ADD_WTHIE_LIST_CASE+=('{"node0":"","node1":"--mempool.node_key_whitelist","node2":"--mempool.node_key_whitelist","node3":"","node4":"--mempool.node_key_whitelist"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"false","node2":"false","node3":"false","node4":"false"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"false","node2":"false","node3":"false","node4":"false"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"false","node4":"true"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"true","node4":"true"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"true","node4":"true"}')
 
 
 function killbyname_gracefully() {
@@ -78,13 +78,11 @@ function get_white_list() {
 
   case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index}`
 
-  if [[ $case_document == "" ]]; then 
+  if [[ $case_document == "false" ]]; then 
     echo ""
   else 
     echo "--mempool.node_key_whitelist=${NODEKEYS}"
   fi 
-
-  
 }
 
 function get_node_enable_wtx_opts() {
