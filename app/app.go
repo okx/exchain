@@ -615,7 +615,7 @@ func PreRun(ctx *server.Context) error {
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || sdk.EnableDoubleWrite {
 			return ak.OnStop(ctx)
 		}
 		return nil
@@ -624,7 +624,7 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || sdk.EnableDoubleWrite {
 			ak.PushData2Database(ctx)
 		}
 	}

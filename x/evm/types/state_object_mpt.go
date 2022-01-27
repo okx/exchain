@@ -28,7 +28,7 @@ func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 	return newStateObj
 }
 
-func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Hash) ethcmn.Hash {
+func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	// If the fake storage is set, only lookup the state here(in the debugging mode)
 	if so.fakeStorage != nil {
 		return so.fakeStorage[key]
@@ -42,23 +42,29 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database,  key ethcmn.Ha
 	}
 
 	var (
-		enc []byte
-		err error
+		enc   []byte
+		err   error
+		value ethcmn.Hash
 	)
 
-	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
-		so.setError(err)
-		return ethcmn.Hash{}
+	prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
+	if enc = so.stateDB.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
+		value.SetBytes(enc)
+	} else {
+		if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
+			so.setError(err)
+			return ethcmn.Hash{}
+		}
+
+		if len(enc) > 0 {
+			_, content, _, err := rlp.Split(enc)
+			if err != nil {
+				so.setError(err)
+			}
+			value.SetBytes(content)
+		}
 	}
 
-	var value ethcmn.Hash
-	if len(enc) > 0 {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
-			so.setError(err)
-		}
-		value.SetBytes(content)
-	}
 	so.originStorage[key] = value
 	return value
 }
@@ -120,13 +126,15 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		var v []byte
+		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
+			so.stateDB.StateCache.Del(prefixKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ = rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
+			so.stateDB.StateCache.Set(prefixKey.Bytes(), value.Bytes())
 		}
 	}
 
@@ -214,4 +222,12 @@ func (so *stateObject) UpdateAccInfo() error {
 		}
 	}
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
+}
+
+func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
+	compositeKey := make([]byte, (len(prefix)+len(key))/2)
+
+	copy(compositeKey, prefix[:len(prefix)/2])
+	copy(compositeKey[len(prefix)/2:], key[len(key)/2:])
+	return ethcmn.BytesToHash(compositeKey)
 }

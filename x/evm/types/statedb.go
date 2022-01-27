@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -45,8 +46,9 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB   ethstate.Database
-	Trie ethstate.Trie
+	DB         ethstate.Database
+	Trie       ethstate.Trie
+	StateCache *fastcache.Cache
 }
 
 type Watcher interface {
@@ -73,8 +75,9 @@ type CacheCode struct {
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
 type CommitStateDB struct {
-	db   ethstate.Database
-	trie ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
+	db         ethstate.Database
+	trie       ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
+	StateCache *fastcache.Cache
 
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
@@ -181,6 +184,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
+		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
