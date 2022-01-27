@@ -311,7 +311,7 @@ function wtx_case(){
   build_exchain "v1.1.4.3"
 
   # genesis
-  bash testnet.sh -i 5
+  bash testnet.sh -i -n 5
   
   bash testnet.sh -s -n 5
 
