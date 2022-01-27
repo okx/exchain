@@ -142,6 +142,7 @@ func TestTxProofs(t *testing.T) {
 	require.NoError(err, "%#v", err)
 	cert := lite.NewBaseVerifier(chainID, seed.Height(), seed.Validators)
 
+	time.Sleep(1 * time.Second)
 	// First let's make sure a bogus transaction hash returns a valid non-existence proof.
 	key := types.Tx([]byte("bogus")).Hash(brh)
 	_, err = cl.Tx(key, true)
