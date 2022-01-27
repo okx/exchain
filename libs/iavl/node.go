@@ -14,8 +14,6 @@ import (
 	amino "github.com/tendermint/go-amino"
 )
 
-
-
 // Node represents a node in a Tree.
 type Node struct {
 	key          []byte
@@ -47,7 +45,7 @@ func NodeToNodeJson(node *Node) *NodeJson {
 		Size:         node.size,
 		Height:       node.height,
 		Persisted:    node.persisted,
-		prePersisted: node.prePersisted,
+		PrePersisted: node.prePersisted,
 	}
 }
 
@@ -66,7 +64,7 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 		size:         nj.Size,
 		height:       nj.Height,
 		persisted:    nj.Persisted,
-		prePersisted: nj.prePersisted,
+		prePersisted: nj.PrePersisted,
 	}
 }
 
