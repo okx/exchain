@@ -16,7 +16,11 @@ func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
 }
 
 func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
-	return types.Json.Marshal(deltaMap.(iavl.TreeDeltaMap))
+	dm, ok := deltaMap.(iavl.TreeDeltaMap)
+	if !ok {
+		return nil, fmt.Errorf("failed marshal TreeDeltaMap")
+	}
+	return types.Json.Marshal(dm)
 }
 
 type DeltaInfo struct {
