@@ -308,20 +308,22 @@ function wtx_case(){
   killbyname_gracefully "./client"
 
   # direct build on stable branch 
-  build_exchain "v1.1.4.3"
+  build_exchain "dev"
 
   # genesis
   bash testnet.sh -i -n 5
-  
-  bash testnet.sh -s -n 5
 
   # extract every node keys in global variables  
   node1_key=`exchaincli keys extract-node-key cache/node1/exchaind/config/node_key.json | awk '{print $2}'`
   node4_key=`exchaincli keys extract-node-key cache/node4/exchaind/config/node_key.json | awk '{print $2}'`
 
   NODEKEYS="${node1_key},${node4_key}"
+  echo "--------NODEKEYS: ${NODEKEYS} ---------------------------------"
+  
+  build_exchain "v1.1.4.3"
+  bash testnet.sh -s -n 5
 
-
+  
 
   sleep 10 
 
