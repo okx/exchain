@@ -373,7 +373,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.notifyJob(commitBatchJob{batch: batch})
+	w.dispatchJob(commitBatchJob{batch: batch})
 
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
@@ -487,7 +487,7 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 	}
 	w.delayEraseKey = wd.DelayEraseKey
 
-	w.notifyJob(watchDataCommitJob{watchData: wd})
+	w.dispatchJob(watchDataCommitJob{watchData: wd})
 }
 
 func (w *Watcher) SetWatchDataFunc() {
@@ -535,7 +535,7 @@ func (w *Watcher) lazyInitialization() {
 	w.jobChan = make(chan job, 5*2)
 }
 
-func (w *Watcher) notifyJob(job job) {
+func (w *Watcher) dispatchJob(job job) {
 	// if jobRoutine were too slow to write data  to disk
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
@@ -546,7 +546,7 @@ func (w *Watcher) notifyJob(job job) {
 func (w *Watcher) handleJob(j job) {
 	switch v := j.(type) {
 	case watchDataCommitJob:
-		w.handleWatchCommitJob(v)
+		w.handleWatchDataCommitJob(v)
 	case commitBatchJob:
 		w.handleCommitBatchJob(v)
 	default:
@@ -554,7 +554,7 @@ func (w *Watcher) handleJob(j job) {
 	}
 }
 
-func (w *Watcher) handleWatchCommitJob(j watchDataCommitJob) {
+func (w *Watcher) handleWatchDataCommitJob(j watchDataCommitJob) {
 	w.CommitWatchData(j.watchData)
 }
 

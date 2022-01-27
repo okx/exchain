@@ -145,7 +145,6 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
-    --fast-query=true \
     --append-pid=true \
     ${LOG_SERVER} \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
