@@ -29,6 +29,8 @@ type DeltaInfo struct {
 	watchData     interface{}
 
 	marshalWatchData    func() ([]byte, error)
+
+	from         string
 }
 
 // for upload

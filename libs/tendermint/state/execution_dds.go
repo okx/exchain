@@ -135,34 +135,34 @@ func (dc *DeltaContext) hitRatio() float64 {
 	return dc.hit / (dc.hit + dc.missed)
 }
 
-func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) {
+func (dc *DeltaContext) statistic(applied bool, txnum int, info *DeltaInfo) {
 	if applied {
 		dc.hit += float64(txnum)
-		dc.idMap.increase(delta.From, int64(txnum))
+		dc.idMap.increase(info.from, int64(txnum))
 	} else {
 		dc.missed += float64(txnum)
 	}
 }
 
-func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas, deltaInfo *DeltaInfo,
+func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	abciResponses *ABCIResponses, deltaMap interface{}, isFastSync bool) {
 
 	// delta consumer
 	if dc.downloadDelta {
 
 		applied := false
-		if delta != nil {
+		if deltaInfo != nil {
 			applied = true
 		}
 
-		dc.statistic(applied, len(abciResponses.DeliverTxs), delta)
+		dc.statistic(applied, len(abciResponses.DeliverTxs), deltaInfo)
 
 		trace.GetElapsedInfo().AddInfo(trace.Delta,
 			fmt.Sprintf("applied<%t>, ratio<%.2f>, from<%s>",
 				applied, dc.hitRatio(), dc.idMap))
 
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
-			"applied-ratio", dc.hitRatio(), "delta", delta)
+			"applied-ratio", dc.hitRatio())
 
 		if applied && types.FastQuery {
 			applyWatchDataFunc(deltaInfo.watchData)
@@ -279,9 +279,9 @@ func (dc *DeltaContext) upload(deltas *types.Deltas, txnum float64, mrh int64) b
 }
 
 // get delta from dds
-func (dc *DeltaContext) prepareStateDelta(height int64) (*types.Deltas, *DeltaInfo) {
+func (dc *DeltaContext) prepareStateDelta(height int64) (*DeltaInfo) {
 	if !dc.downloadDelta {
-		return nil, nil
+		return nil
 	}
 
 	dds, deltaInfo, mrh := dc.dataMap.fetch(height)
@@ -295,14 +295,14 @@ func (dc *DeltaContext) prepareStateDelta(height int64) (*types.Deltas, *DeltaIn
 				"expected-height", height,
 				"mrh", mrh,
 				"delta", dds)
-			return nil, nil
+			return nil
 		}
 		succeed = true
 	}
 	dc.logger.Info("Prepare delta", "expected-height", height,
 		"mrh", mrh,
 		"succeed", succeed, "delta", dds)
-	return dds, deltaInfo
+	return deltaInfo
 }
 
 type downloadInfo struct {
@@ -371,6 +371,7 @@ func (dc *DeltaContext) downloadRoutine() {
 		// unmarshal delta bytes to delta info
 		deltaInfo := &DeltaInfo{}
 		err = deltaInfo.bytes2DeltaInfo(&delta.Payload)
+		deltaInfo.from = delta.From
 		if err == nil {
 			dc.dataMap.insert(targetHeight, delta, deltaInfo, mrh)
 			targetHeight++
