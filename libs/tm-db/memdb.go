@@ -75,6 +75,14 @@ func (db *MemDB) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
+func (db *MemDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
+	v, err := db.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return processor(v)
+}
+
 // Has implements DB.
 func (db *MemDB) Has(key []byte) (bool, error) {
 	db.mtx.RLock()
