@@ -3,6 +3,7 @@ package mock
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"math/rand"
 	"os"
 	"sort"
@@ -32,6 +33,7 @@ type App struct {
 	Cdc        *codec.Codec // Cdc is public since the codec is passed into the module anyways
 	KeyMain    *sdk.KVStoreKey
 	KeyAccount *sdk.KVStoreKey
+	KeyAccMpt  *sdk.KVStoreKey
 	KeyParams  *sdk.KVStoreKey
 	TKeyParams *sdk.TransientStoreKey
 
@@ -58,6 +60,7 @@ func NewApp() *App {
 		Cdc:              cdc,
 		KeyMain:          sdk.NewKVStoreKey(bam.MainStoreKey),
 		KeyAccount:       sdk.NewKVStoreKey(auth.StoreKey),
+		KeyAccMpt:        sdk.NewKVStoreKey(mpt.StoreKey),
 		KeyParams:        sdk.NewKVStoreKey("params"),
 		TKeyParams:       sdk.NewTransientStoreKey("transient_params"),
 		TotalCoinsSupply: sdk.NewCoins(),
@@ -69,6 +72,7 @@ func NewApp() *App {
 	app.AccountKeeper = auth.NewAccountKeeper(
 		app.Cdc,
 		app.KeyAccount,
+		app.KeyAccMpt,
 		app.ParamsKeeper.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount,
 	)
@@ -96,7 +100,11 @@ func (app *App) CompleteSetup(newKeys ...sdk.StoreKey) error {
 	for _, key := range newKeys {
 		switch key.(type) {
 		case *sdk.KVStoreKey:
-			app.MountStore(key, sdk.StoreTypeIAVL)
+			if key.Name() == mpt.StoreKey {
+				app.MountStore(key, sdk.StoreTypeMPT)
+			} else {
+				app.MountStore(key, sdk.StoreTypeIAVL)
+			}
 		case *sdk.TransientStoreKey:
 			app.MountStore(key, sdk.StoreTypeTransient)
 		default:

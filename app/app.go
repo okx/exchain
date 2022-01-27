@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
-     authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/mpt"
+	"github.com/okex/exchain/libs/types"
 	"io"
 	"math/big"
 	"os"
@@ -31,6 +33,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -53,7 +56,6 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
-	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func init() {
@@ -224,7 +226,7 @@ func NewOKExChainApp(
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, mpt.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -258,7 +260,7 @@ func NewOKExChainApp(
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		cdc, keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeper(
@@ -615,7 +617,7 @@ func PreRun(ctx *server.Context) error {
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || sdk.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || types.EnableDoubleWrite {
 			return ak.OnStop(ctx)
 		}
 		return nil
@@ -624,7 +626,7 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || sdk.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || types.EnableDoubleWrite {
 			ak.PushData2Database(ctx)
 		}
 	}

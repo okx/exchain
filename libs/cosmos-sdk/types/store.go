@@ -76,6 +76,7 @@ const (
 	StoreTypeDB        = types.StoreTypeDB
 	StoreTypeIAVL      = types.StoreTypeIAVL
 	StoreTypeTransient = types.StoreTypeTransient
+	StoreTypeMPT      = types.StoreTypeMPT
 )
 
 // nolint - reexport

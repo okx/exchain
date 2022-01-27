@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"strconv"
 	"testing"
 	"time"
@@ -91,6 +92,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keyFarm := sdk.NewKVStoreKey(types.StoreKey)
 	tkeyFarm := sdk.NewTransientStoreKey(types.TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -106,6 +108,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	ms.MountStoreWithDB(tkeyFarm, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyFarm, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -140,7 +143,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 
 	// 1.2 init account keeper
-	ak := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	ak := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 
 	// 1.3 init bank keeper
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)

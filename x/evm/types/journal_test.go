@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"testing"
 
@@ -99,6 +100,7 @@ func (suite *JournalTestSuite) SetupTest() {
 // to maintain consistency with the Geth implementation.
 func (suite *JournalTestSuite) setup() {
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	mptKey := sdk.NewKVStoreKey(mpt.StoreKey)
 	supplyKey := sdk.NewKVStoreKey(supply.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -112,6 +114,7 @@ func (suite *JournalTestSuite) setup() {
 
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(mptKey, sdk.StoreTypeMPT, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
@@ -127,7 +130,7 @@ func (suite *JournalTestSuite) setup() {
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
-	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
+	ak := auth.NewAccountKeeper(cdc, authKey, mptKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())

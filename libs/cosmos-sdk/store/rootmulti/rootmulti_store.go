@@ -1,7 +1,9 @@
 package rootmulti
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"io"
 	"log"
 	"path/filepath"
@@ -201,15 +203,19 @@ func (rs *Store) LoadVersion(ver int64) error {
 func (rs *Store) GetCommitVersion() (int64, error) {
 	var minVersion int64 = 1<<63 - 1
 	for _, storeParams := range rs.storesParams {
-		if storeParams.typ != types.StoreTypeIAVL {
-			continue
-		}
-		commitVersion, err := rs.getCommitVersionFromParams(storeParams)
-		if err != nil {
-			return 0, err
-		}
-		if commitVersion < minVersion {
-			minVersion = commitVersion
+		if storeParams.typ == types.StoreTypeIAVL {
+			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
+			if err != nil {
+				return 0, err
+			}
+			if commitVersion < minVersion {
+				minVersion = commitVersion
+			}
+		} else if storeParams.typ == types.StoreTypeMPT {
+			mptHeight := int64(GetLatestStoredMptHeight())
+			if mptHeight < minVersion {
+				minVersion = mptHeight
+			}
 		}
 	}
 	return minVersion, nil
@@ -747,6 +753,9 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 
 		return transient.NewStore(), nil
 
+	case types.StoreTypeMPT:
+		return mpt.NewMptStore(rs.logger, id)
+
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
 	}
@@ -938,6 +947,10 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		commitID, outputDelta:= store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
+			continue
+		}
+
+		if !tmtypes.HigherThanMars(version) && key.Name() == mpt.StoreKey {
 			continue
 		}
 
@@ -1226,6 +1239,9 @@ func (rs *Store) StopStore() {
 			panic("unexpected db store")
 		case types.StoreTypeMulti:
 			panic("unexpected multi store")
+		case types.StoreTypeMPT:
+			s := store.(*mpt.MptStore)
+			s.OnStop()
 		case types.StoreTypeTransient:
 		default:
 		}
@@ -1235,4 +1251,14 @@ func (rs *Store) StopStore() {
 
 func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
+}
+
+// GetLatestStoredMptHeight get latest mpt storage height
+func GetLatestStoredMptHeight() uint64 {
+	db := mpt.InstanceOfMptStore()
+	rst, err := db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
 }

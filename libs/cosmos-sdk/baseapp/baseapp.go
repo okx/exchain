@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/exchain/libs/mpt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -294,7 +295,11 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 		switch key.(type) {
 		case *sdk.KVStoreKey:
 			if !app.fauxMerkleMode {
-				app.MountStore(key, sdk.StoreTypeIAVL)
+				if key.Name() == mpt.StoreKey {
+					app.MountStore(key, sdk.StoreTypeMPT)
+				} else {
+					app.MountStore(key, sdk.StoreTypeIAVL)
+				}
 			} else {
 				// StoreTypeDB doesn't do anything upon commit, and it doesn't
 				// retain history, but it's useful for faster simulation.
@@ -315,7 +320,11 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 func (app *BaseApp) MountKVStores(keys map[string]*sdk.KVStoreKey) {
 	for _, key := range keys {
 		if !app.fauxMerkleMode {
-			app.MountStore(key, sdk.StoreTypeIAVL)
+			if key.Name() == mpt.StoreKey {
+				app.MountStore(key, sdk.StoreTypeMPT)
+			} else {
+				app.MountStore(key, sdk.StoreTypeIAVL)
+			}
 		} else {
 			// StoreTypeDB doesn't do anything upon commit, and it doesn't
 			// retain history, but it's useful for faster simulation.

@@ -5,6 +5,7 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 	"math/big"
@@ -102,7 +103,7 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 
-		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
+		db:             mpt.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(2 * 1024 * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
@@ -134,7 +135,7 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             sdk.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
+		db:             mpt.InstanceOfEvmStore(viper.GetString(flags.FlagHome)),
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(2 * 1024 * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),

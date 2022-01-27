@@ -5,6 +5,7 @@ import (
 	"fmt"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types3 "github.com/okex/exchain/libs/types"
 	"io"
 	"math/big"
 	"sync"
@@ -324,7 +325,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 	}
 
-	if sdk.EnableDoubleWrite {
+	if types3.EnableDoubleWrite {
 		tr := so.getTrie(db)
 		for key, value := range so.pendingStorage {
 			// Skip noop changes, persist actual changes

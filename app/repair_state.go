@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	types2 "github.com/okex/exchain/libs/types"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,8 +28,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -123,11 +124,14 @@ func RepairState(ctx *server.Context, onStart bool) {
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
-	sdk.TrieDirtyDisabled = true
+	rawTrieDirtyDisabledFlag :=  viper.GetBool(types2.FlagTrieDirtyDisabled)
+	types2.TrieDirtyDisabled = true
 	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+
+	types2.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -20,6 +21,8 @@ type AccountKeeper struct {
 	// The (unexposed) key used to access the store from the Context.
 	key sdk.StoreKey
 
+	mptKey sdk.StoreKey
+
 	// The prototypical Account constructor.
 	proto func() exported.Account
 
@@ -35,11 +38,12 @@ type AccountKeeper struct {
 // (binary) encode and decode concrete sdk.Accounts.
 // nolint
 func NewAccountKeeper(
-	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
+	cdc *codec.Codec, key, keyMpt sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
 
 	return AccountKeeper{
 		key:           key,
+		mptKey:        keyMpt,
 		proto:         proto,
 		cdc:           cdc,
 		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
@@ -73,7 +77,12 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
-	store := ctx.KVStore(ak.key)
+	var store sdk.KVStore
+	if types2.HigherThanMars(ctx.BlockHeight()) {
+		store = ctx.KVStore(ak.mptKey)
+	} else {
+		store = ctx.KVStore(ak.key)
+	}
 	bz := store.Get(types.GlobalAccountNumberKey)
 	if bz == nil {
 		// initialize the account numbers

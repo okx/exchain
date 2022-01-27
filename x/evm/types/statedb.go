@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okex/exchain/libs/types"
 	"math/big"
 	"sort"
 	"sync"
@@ -739,7 +740,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		csdb.IntermediateRoot(deleteEmptyObjects)
 
-		if sdk.EnableDoubleWrite {
+		if types2.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 			for addr := range csdb.stateObjectsDirty {
@@ -890,7 +891,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || sdk.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
 		csdb.UpdateAccountStorageInfo(so)
 	}
 
@@ -902,7 +903,7 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || sdk.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
 		csdb.DeleteAccountStorageInfo(so)
 	}
 }

@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/types"
 	"os"
 	"runtime/pprof"
 
@@ -179,7 +180,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
-	cmd.Flags().UintVar(&sdk.TrieCacheSize, sdk.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
