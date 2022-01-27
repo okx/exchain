@@ -56,7 +56,7 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 
 func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	var err error
-	err = info.abciResponses.UnmarshalFromAmino(pl.ABCIRsp)
+	err = info.abciResponses.UnmarshalFromAmino(nil, pl.ABCIRsp)
 	if err != nil {
 		return err
 	}

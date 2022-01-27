@@ -53,7 +53,7 @@ func TestEventAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var value2 Event
-		err = value2.UnmarshalFromAmino(expect)
+		err = value2.UnmarshalFromAmino(nil, expect)
 		require.NoError(t, err)
 
 		require.EqualValues(t, value, value2)
@@ -114,7 +114,7 @@ func BenchmarkEventAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var event Event
-				err := event.UnmarshalFromAmino(data)
+				err := event.UnmarshalFromAmino(nil, data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -323,7 +323,7 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var resp2 ResponseDeliverTx
-		err = resp2.UnmarshalFromAmino(expect)
+		err = resp2.UnmarshalFromAmino(nil, expect)
 		require.NoError(t, err, fmt.Sprintf("error case index %d", i))
 
 		require.EqualValues(t, resp1, resp2)
@@ -382,7 +382,7 @@ func BenchmarkResponseDeliverTxAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var resp ResponseDeliverTx
-				err := resp.UnmarshalFromAmino(data)
+				err := resp.UnmarshalFromAmino(nil, data)
 				if err != nil {
 					b.Fatal(err)
 				}

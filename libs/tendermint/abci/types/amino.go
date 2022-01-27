@@ -48,7 +48,7 @@ func MarshalPubKeyToAmino(pubkey PubKey) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (pub *PubKey) UnmarshalFromAmino(data []byte) error {
+func (pub *PubKey) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -139,7 +139,7 @@ func MarshalValidatorUpdateToAmino(valUpdate ValidatorUpdate) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (vu *ValidatorUpdate) UnmarshalFromAmino(data []byte) error {
+func (vu *ValidatorUpdate) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -167,7 +167,7 @@ func (vu *ValidatorUpdate) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			err := vu.PubKey.UnmarshalFromAmino(subData)
+			err := vu.PubKey.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -228,7 +228,7 @@ func MarshalBlockParamsToAmino(params BlockParams) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (bp *BlockParams) UnmarshalFromAmino(data []byte) error {
+func (bp *BlockParams) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 
 	for {
@@ -308,7 +308,7 @@ func MarshalEvidenceParamsToAmino(params EvidenceParams) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (ep *EvidenceParams) UnmarshalFromAmino(data []byte) error {
+func (ep *EvidenceParams) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 
 	for {
@@ -374,7 +374,7 @@ func MarshalValidatorParamsToAmino(params ValidatorParams) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (vp *ValidatorParams) UnmarshalFromAmino(data []byte) error {
+func (vp *ValidatorParams) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -456,7 +456,7 @@ func MarshalEventToAmino(event Event) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (event *Event) UnmarshalFromAmino(data []byte) error {
+func (event *Event) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -614,7 +614,7 @@ func MarshalResponseDeliverTxToAmino(tx *ResponseDeliverTx) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
+func (tx *ResponseDeliverTx) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -667,7 +667,7 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(data []byte) error {
 			dataLen = uint64(n)
 		case 7:
 			var event Event
-			err = event.UnmarshalFromAmino(subData)
+			err = event.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -705,7 +705,7 @@ func MarshalResponseBeginBlockToAmino(beginBlock *ResponseBeginBlock) ([]byte, e
 	return buf.Bytes(), nil
 }
 
-func (bb *ResponseBeginBlock) UnmarshalFromAmino(data []byte) error {
+func (bb *ResponseBeginBlock) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -733,7 +733,7 @@ func (bb *ResponseBeginBlock) UnmarshalFromAmino(data []byte) error {
 		switch pos {
 		case 1:
 			var event Event
-			err = event.UnmarshalFromAmino(subData)
+			err = event.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -806,7 +806,7 @@ func MarshalConsensusParamsToAmino(params ConsensusParams) (data []byte, err err
 	}
 	return buf.Bytes(), nil
 }
-func (cp *ConsensusParams) UnmarshalFromAmino(data []byte) error {
+func (cp *ConsensusParams) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -834,21 +834,21 @@ func (cp *ConsensusParams) UnmarshalFromAmino(data []byte) error {
 		switch pos {
 		case 1:
 			bParams := new(BlockParams)
-			err := bParams.UnmarshalFromAmino(subData)
+			err := bParams.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			cp.Block = bParams
 		case 2:
 			eParams := new(EvidenceParams)
-			err := eParams.UnmarshalFromAmino(subData)
+			err := eParams.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			cp.Evidence = eParams
 		case 3:
 			vp := new(ValidatorParams)
-			err := vp.UnmarshalFromAmino(subData)
+			err := vp.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -929,7 +929,7 @@ func MarshalResponseEndBlockToAmino(endBlock *ResponseEndBlock) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func (eb *ResponseEndBlock) UnmarshalFromAmino(data []byte) error {
+func (eb *ResponseEndBlock) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -957,21 +957,21 @@ func (eb *ResponseEndBlock) UnmarshalFromAmino(data []byte) error {
 		switch pos {
 		case 1:
 			var vu ValidatorUpdate
-			err := vu.UnmarshalFromAmino(subData)
+			err := vu.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			eb.ValidatorUpdates = append(eb.ValidatorUpdates, vu)
 		case 2:
 			consParam := new(ConsensusParams)
-			err := consParam.UnmarshalFromAmino(subData)
+			err := consParam.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			eb.ConsensusParamUpdates = consParam
 		case 3:
 			var event Event
-			err = event.UnmarshalFromAmino(subData)
+			err = event.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}

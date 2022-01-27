@@ -192,7 +192,7 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (arz *ABCIResponses) UnmarshalFromAmino(data []byte) error {
+func (arz *ABCIResponses) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -221,7 +221,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(data []byte) error {
 		switch pos {
 		case 1:
 			resDeliverTx := &abci.ResponseDeliverTx{Events: []abci.Event{}}
-			err := resDeliverTx.UnmarshalFromAmino(subData)
+			err := resDeliverTx.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -229,7 +229,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(data []byte) error {
 
 		case 2:
 			eBlock := new(abci.ResponseEndBlock)
-			err := eBlock.UnmarshalFromAmino(subData)
+			err := eBlock.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
@@ -237,7 +237,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(data []byte) error {
 
 		case 3:
 			bBlock := new(abci.ResponseBeginBlock)
-			err := bBlock.UnmarshalFromAmino(subData)
+			err := bBlock.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}

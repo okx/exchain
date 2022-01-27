@@ -167,7 +167,7 @@ func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
 			txResult.Tx = make(Tx, dataLen)
 			copy(txResult.Tx, subData)
 		case 4:
-			err = txResult.Result.UnmarshalFromAmino(subData)
+			err = txResult.Result.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
