@@ -212,3 +212,7 @@ func (ms multiStore) SetLogger(log log.Logger) {
 func (ms multiStore) GetCommitVersion() (int64, error) {
 	panic("not implemented")
 }
+
+func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.CommitID, iavl.TreeDeltaMap) {
+	panic("not implemented")
+}
