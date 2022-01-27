@@ -551,5 +551,5 @@ func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlo
 }
 
 func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	return abci.ResponseCommit{Data: mock.appHash, Deltas: &abci.Deltas{}}
+	return abci.ResponseCommit{Data: mock.appHash}
 }

@@ -28,6 +28,12 @@ func (ts *Store) Commit(*iavl.TreeDelta, []byte) (id types.CommitID, _ iavl.Tree
 	return
 }
 
+func (ts *Store) CommitterCommit(*iavl.TreeDelta) (id types.CommitID, _ *iavl.TreeDelta) {
+	ts.Store = dbadapter.Store{DB: dbm.NewMemDB()}
+	return
+}
+func (memDB *Store) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}
+
 // Implements CommitStore
 func (ts *Store) SetPruning(pruning types.PruningOptions) {
 }
