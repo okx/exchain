@@ -373,7 +373,11 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.dispatchJob(commitBatchJob{batch: batch})
+
+	job := func() {
+		w.commitBatch(batch)
+	}
+	w.dispatchJob(job)
 
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
@@ -486,8 +490,10 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 		}
 	}
 	w.delayEraseKey = wd.DelayEraseKey
-
-	w.dispatchJob(watchDataCommitJob{watchData: wd})
+	job := func() {
+		w.CommitWatchData(wd)
+	}
+	w.dispatchJob(job)
 }
 
 func (w *Watcher) SetWatchDataFunc() {
@@ -544,20 +550,6 @@ func (w *Watcher) dispatchJob(job job) {
 }
 
 func (w *Watcher) handleJob(j job) {
-	switch v := j.(type) {
-	case watchDataCommitJob:
-		w.handleWatchDataCommitJob(v)
-	case commitBatchJob:
-		w.handleCommitBatchJob(v)
-	default:
-		panic("program error")
-	}
+	j()
 }
 
-func (w *Watcher) handleWatchDataCommitJob(j watchDataCommitJob) {
-	w.CommitWatchData(j.watchData)
-}
-
-func (w *Watcher) handleCommitBatchJob(j commitBatchJob) {
-	w.commitBatch(j.batch)
-}

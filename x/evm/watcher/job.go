@@ -1,6 +1,6 @@
 package watcher
 
-type job interface{}
+type job func()
 
 type watchDataCommitJob struct {
 	watchData WatchData
