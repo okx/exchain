@@ -147,6 +147,7 @@ start() {
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
     --log_level ${LOG_LEVEL} \
+    --fast-query true \
     --enable-gid \
     --append-pid \
     ${UPLOAD_DELTA} \
