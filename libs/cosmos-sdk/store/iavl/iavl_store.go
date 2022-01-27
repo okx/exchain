@@ -134,8 +134,6 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	}, nil
 }
 
-func (st *Store) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}
-
 func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
 	flag := false
 	if inputDelta != nil {
