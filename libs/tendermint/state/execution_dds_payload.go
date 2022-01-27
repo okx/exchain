@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -11,7 +12,7 @@ func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
 		return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
 	}
 	var treeDeltaMap iavl.TreeDeltaMap
-	err := types.Json.Unmarshal(input, &treeDeltaMap)
+	err := treeDeltaMap.UnmarshalFromAmino(nil, input)
 	return treeDeltaMap, err
 }
 
@@ -20,7 +21,7 @@ func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed marshal TreeDeltaMap")
 	}
-	return types.Json.Marshal(dm)
+	return dm.MarshalToAmino(nil)
 }
 
 type DeltaInfo struct {
@@ -28,7 +29,7 @@ type DeltaInfo struct {
 	treeDeltaMap  interface{}
 	watchData     interface{}
 
-	marshalWatchData    func() ([]byte, error)
+	marshalWatchData func() ([]byte, error)
 }
 
 // for upload
