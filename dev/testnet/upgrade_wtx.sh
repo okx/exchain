@@ -23,6 +23,7 @@ ENABLE_WTX_CASE+=('{"val0":"","val1":"--enable-wtx=true","val2":"--enable-wtx=tr
 # WTX version 
 WTX_VERSIONS=()
 WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"yxq/wtx","val3":"v1.1.4.3","rpc4":"yxq/wtx"}')
+WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"yxq/wtx","val3":"yxq/wtx","rpc4":"yxq/wtx"}')
 WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"v1.1.4.3","val3":"v1.1.4.3","rpc4":"v1.1.4.3"}')
 WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"yxq/wtx","val3":"v1.1.4.3","rpc4":"yxq/wtx"}')
 WTX_VERSIONS+=('{"val0":"v1.1.4.3","val1":"yxq/wtx","val2":"yxq/wtx","val3":"yxq/wtx","rpc4":"yxq/wtx"}')
