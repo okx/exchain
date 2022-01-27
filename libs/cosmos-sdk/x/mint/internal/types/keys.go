@@ -1,7 +1,11 @@
 package types
 
-// MinterKey is used for the keeper store
-var MinterKey = []byte{0x00}
+var (
+	// MinterKey is used for the keeper store
+	MinterKey = []byte{0x00}
+	// TreasuresKey is used for the keeper store
+	TreasuresKey = []byte{0x01}
+)
 
 // nolint
 const (
