@@ -166,7 +166,7 @@ function add_val() {
   wtx_case=${ENABLE_WTX_CASE[$index]}
   enable_wtx=`echo $wtx_case | jq .val${index}`
 
-  white_list_flag=get_white_list $index $case_number
+  white_list_flag=`get_white_list $index $case_number`
 
   if [ $index == 0 ]
   then
@@ -240,9 +240,9 @@ function add_rpc() {
   echo "add a rpc node,"$index
 
   wtx_case=${ENABLE_WTX_CASE[$index]}
-  enable_wtx=`echo $wtx_case | jq .val${index}`
+  enable_wtx=`echo $wtx_case | jq .val${index} | awk '{ gsub(/"/,""); print $0 }'`
 
-  white_list_flag=get_white_list $index $case_number
+  white_list_flag=`get_white_list $index $case_number`
 
   NAME=node${index}
   let p2p_port=${BASE_PORT_PREFIX}+${index}*100+${P2P_PORT_SUFFIX}
