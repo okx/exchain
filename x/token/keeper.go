@@ -40,7 +40,8 @@ type Keeper struct {
 
 // NewKeeper creates a new token keeper
 func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
-	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool, ak types.AccountKeeper) Keeper {
+	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey,
+	cdc *codec.Codec, enableBackend bool, ak types.AccountKeeper) Keeper {
 
 	k := Keeper{
 		bankKeeper:       bankKeeper,

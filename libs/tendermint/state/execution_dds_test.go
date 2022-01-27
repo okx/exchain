@@ -19,13 +19,13 @@ import (
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
 	s := miniredis.RunT(t)
 	logger := log.TestingLogger()
-	ss := redis_cgi.NewRedisClient(s.Addr(), "", time.Minute, logger)
+	ss := redis_cgi.NewRedisClient(s.Addr(), "", time.Minute, 0, logger)
 	return ss
 }
 
 func failRedisClient() *redis_cgi.RedisClient {
 	logger := log.TestingLogger()
-	ss := redis_cgi.NewRedisClient("127.0.0.1:6378", "", time.Minute, logger)
+	ss := redis_cgi.NewRedisClient("127.0.0.1:6378", "", time.Minute, 0, logger)
 	return ss
 }
 

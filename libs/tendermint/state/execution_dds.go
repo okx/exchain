@@ -34,11 +34,11 @@ func (m identityMapType) increase(from string, num int64) {
 }
 
 var (
-	getWatchDataFunc func() ([]byte, error)
+	getWatchDataFunc func() func() ([]byte, error)
 	applyWatchDataFunc func(data []byte)
 )
 
-func SetWatchDataFunc(g func()([]byte, error), u func([]byte))  {
+func SetWatchDataFunc(g func()func() ([]byte, error), u func([]byte))  {
 	getWatchDataFunc = g
 	applyWatchDataFunc = u
 }
@@ -93,7 +93,11 @@ func (dc *DeltaContext) init() {
 		url := viper.GetString(types.FlagRedisUrl)
 		auth := viper.GetString(types.FlagRedisAuth)
 		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
-		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dc.logger)
+		dbNum := viper.GetInt(types.FlagRedisDB)
+		if dbNum < 0 || dbNum > 15 {
+			panic("delta-redis-db only support 0~15")
+		}
+		dc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dbNum, dc.logger)
 		dc.logger.Info("Init delta broker", "url", url)
 	}
 
@@ -170,15 +174,15 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 	if dc.uploadDelta {
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		if !isFastSync {
-			dc.uploadData(height, abciResponses, res)
+			wdFunc := getWatchDataFunc()
+			go dc.uploadData(height, abciResponses, res, wdFunc)
 		} else {
 			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
 		}
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte) {
-
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, res []byte, wdFunc func() ([]byte, error)) {
 	var abciResponsesBytes []byte
 	var err error
 	abciResponsesBytes, err = types.Json.Marshal(abciResponses)
@@ -189,7 +193,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 
 	var wd []byte
 	if types.FastQuery {
-		wd, err = getWatchDataFunc()
+		wd, err = wdFunc()
 		if err != nil {
 			dc.logger.Error("Failed to get watch data", "height", height, "error", err)
 			return
@@ -209,7 +213,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, r
 		From:         dc.identity,
 	}
 
-	go dc.uploadRoutine(delta4Upload, float64(len(abciResponses.DeliverTxs)))
+	dc.uploadRoutine(delta4Upload, float64(len(abciResponses.DeliverTxs)))
 }
 
 func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {

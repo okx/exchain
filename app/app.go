@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+     authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"io"
 	"math/big"
 	"os"
@@ -15,7 +16,6 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -32,10 +32,8 @@ import (
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
-	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
@@ -53,7 +51,6 @@ import (
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
-	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -101,13 +98,9 @@ var (
 		evidence.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
-
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
-		backend.AppModuleBasic{},
-		stream.AppModuleBasic{},
-		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 	)
@@ -123,7 +116,6 @@ var (
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		dex.ModuleName:            nil,
 		order.ModuleName:          nil,
-		backend.ModuleName:        nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
 		farm.YieldFarmingAccount:  nil,
@@ -172,8 +164,6 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
-	BackendKeeper  backend.Keeper
-	StreamKeeper   stream.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -198,7 +188,7 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
-		)
+	)
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
@@ -216,17 +206,13 @@ func NewOKExChainApp(
 		iavl.SetLogFunc(logFunc)
 		logStartingFlags(logger)
 	})
-	// get config
-	appConfig, err := config.ParseConfig()
-	if err != nil {
-		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
-		panic(err)
-	}
 
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+
+	bApp.SetWrappedTxEncoder(authtypes.EncodeWrappedTx)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
@@ -306,26 +292,19 @@ func NewOKExChainApp(
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
-		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, appConfig.BackendConfig.EnableBackend, &app.AccountKeeper)
+		keys[token.StoreKey], keys[token.KeyLock], app.cdc, false, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
-	)
+		app.keys[order.OrderStoreKey], app.cdc, false, orderMetrics)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
-
-	app.StreamKeeper = stream.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.AccountKeeper, &app.SwapKeeper,
-		&app.FarmKeeper, app.cdc, logger, appConfig, streamMetrics)
-	app.BackendKeeper = backend.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.SwapKeeper, &app.FarmKeeper,
-		app.MintKeeper, app.StreamKeeper.GetMarketKeeper(), app.cdc, logger, appConfig.BackendConfig)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -385,8 +364,6 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
-		backend.NewAppModule(app.BackendKeeper),
-		stream.NewAppModule(app.StreamKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 	)
 
@@ -395,7 +372,6 @@ func NewOKExChainApp(
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
 		bank.ModuleName,
-		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -413,8 +389,6 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		order.ModuleName,
 		staking.ModuleName,
-		backend.ModuleName,
-		stream.ModuleName,
 		evm.ModuleName,
 	)
 
@@ -455,11 +429,14 @@ func NewOKExChainApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
+	app.SetAnteHandler(ante.NewAnteHandler4Wtx(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+
+	evmtypes.SetLogger(app.Logger())
+	ante.SetLogger(app.Logger())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -502,7 +479,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 	return app.mm.EndBlock(ctx, req)
 }
-
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {

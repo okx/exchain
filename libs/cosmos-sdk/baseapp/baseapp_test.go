@@ -91,7 +91,7 @@ func TestLoadVersion(t *testing.T) {
 	db := dbm.NewMemDB()
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil, pruningOpt)
-
+	app.InitChain(abci.RequestInitChain{})
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
 	app.MountStores(capKey)
@@ -301,7 +301,7 @@ func TestLoadVersionInvalid(t *testing.T) {
 	db := dbm.NewMemDB()
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil, pruningOpt)
-
+	app.InitChain(abci.RequestInitChain{})
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
 	app.MountStores(capKey)
 	err := app.LoadLatestVersion(capKey)
@@ -341,6 +341,7 @@ func TestLoadVersionPruning(t *testing.T) {
 	db := dbm.NewMemDB()
 	name := t.Name()
 	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app.InitChain(abci.RequestInitChain{})
 
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
@@ -594,6 +595,16 @@ func (tx txTest) GetGasPrice() *big.Int {
 
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
+}
+func (tx txTest) GetPayloadTx() sdk.Tx {
+	return nil
+}
+func (tx txTest) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
+
+func (wtx txTest) GetPayloadTxBytes() []byte {
+	return nil
 }
 
 const (
@@ -876,7 +887,7 @@ func TestMultiMsgDeliverTx(t *testing.T) {
 	}
 
 	app := setupBaseApp(t, anteOpt, routerOpt)
-
+	app.InitChain(abci.RequestInitChain{})
 	// Create same codec used in txDecoder
 	codec := codec.New()
 	registerTestCodec(codec)
@@ -1018,6 +1029,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 	app := setupBaseApp(t, anteOpt, routerOpt)
 
 	header := abci.Header{Height: 1}
+	app.InitChain(abci.RequestInitChain{})
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	// transaction with no messages
@@ -1143,6 +1155,7 @@ func TestTxGasLimits(t *testing.T) {
 	}
 
 	app := setupBaseApp(t, anteOpt, routerOpt)
+	app.InitChain(abci.RequestInitChain{})
 
 	header := abci.Header{Height: 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
