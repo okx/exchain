@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	db "github.com/tendermint/tm-db"
-	dbm "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )

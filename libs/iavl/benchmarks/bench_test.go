@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/iavl"
-	db "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
 )
 
 const historySize = 20

@@ -7,7 +7,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 var _ sdk.MultiStore = multiStore{}

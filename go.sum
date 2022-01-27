@@ -551,8 +551,6 @@ github.com/okex/go-amino v0.15.2-0.20220119151219-6e9990c7d018 h1:DUDMuA7ORPpv1t
 github.com/okex/go-amino v0.15.2-0.20220119151219-6e9990c7d018/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
 github.com/okex/go-ethereum v1.10.8-oec2 h1:FBHZgT/R/0FSP1JyNj9y/kVxwqtxSieth6lBRnMHbPQ=
 github.com/okex/go-ethereum v1.10.8-oec2/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
-github.com/okex/tm-db v0.5.2-oec1 h1:bQOEuebuk4aVXrsxZdYw9DU0WqICsF8I51Vb3ijXdwc=
-github.com/okex/tm-db v0.5.2-oec1/go.mod h1:VrPTx04QJhQ9d8TFUTc2GpPBvBf/U9vIdBIzkjBk7Lk=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=

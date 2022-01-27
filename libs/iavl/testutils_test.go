@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	amino "github.com/tendermint/go-amino"
 	cmn "github.com/okex/exchain/libs/iavl/common"
-	db "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
 )
 
 func randstr(length int) string {

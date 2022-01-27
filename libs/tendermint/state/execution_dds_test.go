@@ -11,9 +11,9 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {

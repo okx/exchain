@@ -6,7 +6,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"

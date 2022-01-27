@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"

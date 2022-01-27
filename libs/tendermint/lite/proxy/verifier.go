@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/lite"
 	lclient "github.com/okex/exchain/libs/tendermint/lite/client"
 	"github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func NewVerifier(

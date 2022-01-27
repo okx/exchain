@@ -59,7 +59,6 @@ require (
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
@@ -149,5 +148,4 @@ replace (
 	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec2
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.2-0.20220119151219-6e9990c7d018
-	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-oec1
 )
