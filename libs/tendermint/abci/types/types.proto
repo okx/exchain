@@ -92,6 +92,7 @@ enum CheckTxType {
 message RequestCheckTx {
   bytes       tx   = 1;
   CheckTxType type = 2;
+  string      from = 3;
 }
 
 message RequestDeliverTx {

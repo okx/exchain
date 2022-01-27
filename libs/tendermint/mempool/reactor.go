@@ -5,10 +5,12 @@ import (
 	"math"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -42,6 +44,8 @@ type Reactor struct {
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
 	enableWtx        bool
+	startTime        time.Time
+	caughtUp         int32 // 0 or 1
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -119,11 +123,13 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
+		startTime:        time.Now(),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
+	go memR.caughtUpRoutine()
 	return memR
 }
 
@@ -195,8 +201,8 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Tx
 
 	case *WtxMessage:
-		if !msg.Wtx.verify(memR.nodeKeyWhitelist) {
-			memR.Logger.Error(fmt.Sprintf("invalid wtx"))
+		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
+			memR.Logger.Error("wtx.verify", "error", err, "txhash", types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height))
 			return
 		}
 		txInfo.wtx = msg.Wtx
@@ -269,15 +275,26 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
 			// send memTx
-			var msg Message = &TxMessage{Tx: memTx.tx}
-			data := memR.mempool.cache.Get(memTx.tx)
-			if wtx, ok := data.(*WrappedTx); ok {
+			var msg Message
+			if memTx.nodeKey != nil && memTx.signature != nil {
 				msg = &WtxMessage{
-					Wtx: wtx,
+					Wtx: &WrappedTx{
+						Payload:   memTx.tx,
+						Signature: memTx.signature,
+						NodeKey:   memTx.nodeKey,
+						From:      memTx.from,
+					},
 				}
-			} else if memR.enableWtx {
-				msg = &WtxMessage{
-					Wtx: memR.wrapTx(memTx.tx),
+			} else if memR.enableWtx && memR.isCaughtUp() {
+				if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
+					msg = &WtxMessage{
+						Wtx: wtx,
+					}
+				}
+
+			} else {
+				msg = &TxMessage{
+					Tx: memTx.tx,
 				}
 			}
 
@@ -351,26 +368,86 @@ func (m *WtxMessage) String() string {
 
 type WrappedTx struct {
 	Payload   []byte `json:"payload"`   // std tx or evm tx
-	Metadata  []byte `json:"metadata"`  // customized message from the node who signs the tx, not used yet
-	Signature []byte `json:"signature"` // signature for payload+metadata
+	Signature []byte `json:"signature"` // signature for payload
 	NodeKey   []byte `json:"nodeKey"`   // pub key of the node who signs the tx
+	From      string `json:"from"`      // from address of evm tx or ""
 }
 
-func (w *WrappedTx) verify(whitelist map[string]struct{}) bool {
+func (wtx *WrappedTx) GetPayload() []byte {
+	if wtx != nil {
+		return wtx.Payload
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetSignature() []byte {
+	if wtx != nil {
+		return wtx.Signature
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetNodeKey() []byte {
+	if wtx != nil {
+		return wtx.NodeKey
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetFrom() string {
+	if wtx != nil {
+		return wtx.From
+	}
+	return ""
+}
+
+func (w *WrappedTx) verify(whitelist map[string]struct{}) error {
 	pub := p2p.BytesToPubKey(w.NodeKey)
 	if _, ok := whitelist[string(p2p.PubKeyToID(pub))]; !ok {
-		return false
+		return fmt.Errorf("node key [%s] not in whitelist", p2p.PubKeyToID(pub))
 	}
-	return pub.VerifyBytes(append(w.Payload, w.Metadata...), w.Signature)
+	if !pub.VerifyBytes(w.Payload, w.Signature) {
+		return fmt.Errorf("invalid signature of wtx")
+	}
+	return nil
 }
 
-func (memR *Reactor) wrapTx(tx types.Tx) *WrappedTx {
+func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
 	wtx := &WrappedTx{
-		Payload:  tx,
-		Metadata: nil,
-		NodeKey:  memR.nodeKey.PubKey().Bytes(),
+		Payload: tx,
+		NodeKey: memR.nodeKey.PubKey().Bytes(),
+		From:    from,
 	}
-	sig, _ := memR.nodeKey.PrivKey.Sign(append(wtx.Payload, wtx.Metadata...))
+	sig, err := memR.nodeKey.PrivKey.Sign(wtx.Payload)
+	if err != nil {
+		return nil, err
+	}
 	wtx.Signature = sig
-	return wtx
+	return wtx, nil
+}
+
+// refer to BlockPool.IsCaughtUp()
+func (memR *Reactor) caughtUpRoutine() {
+	ticker := time.NewTicker(time.Second * 5)
+	for {
+		select {
+		case <-ticker.C:
+			if len(memR.ids.activeIDs) == 0 {
+				atomic.StoreInt32(&memR.caughtUp, 0)
+				break
+			}
+			receivedBlockOrTimedOut := memR.mempool.height > 0 || time.Since(memR.startTime) > 5*time.Second
+			peerMaxHeight := global.GetGlobalMaxPeerHeight()
+			ourChainIsLongestAmongPeers := peerMaxHeight == 0 || memR.mempool.height >= (peerMaxHeight-1)
+			if receivedBlockOrTimedOut && ourChainIsLongestAmongPeers {
+				atomic.StoreInt32(&memR.caughtUp, 1)
+			} else {
+				atomic.StoreInt32(&memR.caughtUp, 1)
+			}
+		}
+	}
+}
+
+func (memR *Reactor) isCaughtUp() bool {
+	return atomic.LoadInt32(&memR.caughtUp) > 0
 }

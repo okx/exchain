@@ -25,6 +25,7 @@ type Context struct {
 	ms             MultiStore
 	header         abci.Header
 	chainID        string
+	from           string
 	txBytes        []byte
 	logger         log.Logger
 	voteInfo       []abci.VoteInfo
@@ -51,6 +52,7 @@ func (c Context) MultiStore() MultiStore      { return c.ms }
 func (c Context) BlockHeight() int64          { return c.header.Height }
 func (c Context) BlockTime() time.Time        { return c.header.Time }
 func (c Context) ChainID() string             { return c.chainID }
+func (c Context) From() string                { return c.from }
 func (c Context) TxBytes() []byte             { return c.txBytes }
 func (c Context) Logger() log.Logger          { return c.logger }
 func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
@@ -138,6 +140,11 @@ func (c Context) WithBlockHeight(height int64) Context {
 
 func (c Context) WithChainID(chainID string) Context {
 	c.chainID = chainID
+	return c
+}
+
+func (c Context) WithFrom(from string) Context {
+	c.from = from
 	return c
 }
 

@@ -29,15 +29,15 @@ type runTxInfo struct {
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
-	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result,
+	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
 	msCacheList sdk.CacheMultiStore, err error) {
 
 	var info *runTxInfo
-	info, err = app.runtx(mode, txBytes, tx, height)
+	info, err = app.runtx(mode, txBytes, tx, height, from...)
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
@@ -50,6 +50,13 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	for _, addr := range from {
+		// cache from if exist
+		if addr != "" {
+			info.ctx = info.ctx.WithFrom(addr)
+			break
+		}
+	}
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {

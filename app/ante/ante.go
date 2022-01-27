@@ -60,7 +60,6 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		case evmtypes.MsgEthereumTx:
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
-					NewEthSigVerificationDecorator(),
 					NewNonceVerificationDecorator(ak),
 					NewIncrementSenderSequenceDecorator(ak),
 				)

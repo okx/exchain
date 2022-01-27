@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"bytes"
+	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -118,7 +118,7 @@ func NewCListMempool(
 		metrics:       NopMetrics(),
 	}
 	if config.CacheSize > 0 {
-		mempool.cache = newLruCache(config.CacheSize)
+		mempool.cache = newMapTxCache(config.CacheSize)
 	} else {
 		mempool.cache = nopTxCache{}
 	}
@@ -279,15 +279,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 	// CACHE
-	if mem.cache.Contains(tx) {
-		if txInfo.wtx != nil && mem.cache.Get(tx) == nil {
-			mem.cache.Add(tx, txInfo.wtx)
-		}
+	// CACHE
+	if !mem.cache.Push(tx) {
 		return ErrTxInCache
 	}
-
-	// txInfo.wtx can be nil
-	mem.cache.Add(tx, txInfo.wtx)
 
 	var err error
 	var gasUsed int64
@@ -345,9 +340,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType})
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
+		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(tx.Hash(mem.height)), r.CheckTx.GasWanted, gasUsed))
 			r.CheckTx.GasWanted = gasUsed
@@ -583,12 +578,6 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Error(err.Error())
 				return
 			}
-			memTx := &mempoolTx{
-				height:    mem.height,
-				gasWanted: r.CheckTx.GasWanted,
-				tx:        tx,
-			}
-			memTx.senders.Store(txInfo.SenderID, true)
 
 			var exTxInfo ExTxInfo
 			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
@@ -601,6 +590,17 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
 			}
+
+			memTx := &mempoolTx{
+				height:    mem.height,
+				gasWanted: r.CheckTx.GasWanted,
+				tx:        tx,
+				nodeKey:   txInfo.wtx.GetNodeKey(),
+				signature: txInfo.wtx.GetSignature(),
+				from:      exTxInfo.Sender,
+			}
+
+			memTx.senders.Store(txInfo.SenderID, true)
 
 			var err error
 			if mem.pendingPool != nil {
@@ -825,9 +825,7 @@ func (mem *CListMempool) Update(
 			// add gas used with valid committed tx
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
-			if !mem.cache.Contains(tx) {
-				mem.cache.Add(tx, nil)
-			}
+			_ = mem.cache.Push(tx)
 		} else {
 			// Allow invalid transactions to be resubmitted.
 			mem.cache.Remove(tx)
@@ -1014,6 +1012,9 @@ type mempoolTx struct {
 	height    int64    // height that this tx had been validated in
 	gasWanted int64    // amount of gas this tx states it will require
 	tx        types.Tx //
+	nodeKey   []byte
+	signature []byte
+	from      string
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1029,60 +1030,86 @@ func (memTx *mempoolTx) Height() int64 {
 
 type txCache interface {
 	Reset()
-	Add(tx types.Tx, value interface{})
-	Contains(tx types.Tx) bool
-	Get(tx types.Tx) interface{}
+	Push(tx types.Tx) bool
 	Remove(tx types.Tx)
 }
 
-var _ txCache = (*lruCache)(nil)
-
-type lruCache struct {
-	lru *lru.Cache
+// mapTxCache maintains a LRU cache of transactions. This only stores the hash
+// of the tx, due to memory concerns.
+type mapTxCache struct {
+	mtx      sync.Mutex
+	size     int
+	cacheMap map[[sha256.Size]byte]*list.Element
+	list     *list.List
 }
 
-func newLruCache(size int) *lruCache {
-	cache, _ := lru.New(size)
-	return &lruCache{lru: cache}
+var _ txCache = (*mapTxCache)(nil)
+
+// newMapTxCache returns a new mapTxCache.
+func newMapTxCache(cacheSize int) *mapTxCache {
+	return &mapTxCache{
+		size:     cacheSize,
+		cacheMap: make(map[[sha256.Size]byte]*list.Element, cacheSize),
+		list:     list.New(),
+	}
 }
 
-func (l *lruCache) Reset() {
-	l.lru.Purge()
+// Reset resets the cache to an empty state.
+func (cache *mapTxCache) Reset() {
+	cache.mtx.Lock()
+	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
+	cache.list.Init()
+	cache.mtx.Unlock()
 }
 
-func (l *lruCache) Add(tx types.Tx, value interface{}) {
-	_ = l.lru.Add(stringHash(tx), value)
+// Push adds the given tx to the cache and returns true. It returns
+// false if tx is already in the cache.
+func (cache *mapTxCache) Push(tx types.Tx) bool {
+	cache.mtx.Lock()
+	defer cache.mtx.Unlock()
+
+	// Use the tx hash in the cache
+	txHash := txKey(tx)
+	if moved, exists := cache.cacheMap[txHash]; exists {
+		cache.list.MoveToBack(moved)
+		return false
+	}
+
+	if cache.list.Len() >= cache.size {
+		popped := cache.list.Front()
+		poppedTxHash := popped.Value.([sha256.Size]byte)
+		delete(cache.cacheMap, poppedTxHash)
+		if popped != nil {
+			cache.list.Remove(popped)
+		}
+	}
+	e := cache.list.PushBack(txHash)
+	cache.cacheMap[txHash] = e
+	return true
 }
 
-func (l *lruCache) Contains(tx types.Tx) bool {
-	return l.lru.Contains(stringHash(tx))
-}
+// Remove removes the given tx from the cache.
+func (cache *mapTxCache) Remove(tx types.Tx) {
+	cache.mtx.Lock()
+	txHash := txKey(tx)
+	popped := cache.cacheMap[txHash]
+	delete(cache.cacheMap, txHash)
+	if popped != nil {
+		cache.list.Remove(popped)
+	}
 
-func (l *lruCache) Get(tx types.Tx) interface{} {
-	value, _ := l.lru.Get(stringHash(tx))
-	return value
-}
-
-func (l *lruCache) Remove(tx types.Tx) {
-	l.lru.Remove(stringHash(tx))
-}
-
-func stringHash(tx types.Tx) string {
-	return string(tx.Hash(types.GetVenusHeight()))
+	cache.mtx.Unlock()
 }
 
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()                    {}
-func (nopTxCache) Add(types.Tx, interface{}) {}
-func (nopTxCache) Contains(types.Tx) bool    { return false }
-func (nopTxCache) Get(types.Tx) interface{}  { return nil }
-func (nopTxCache) Remove(types.Tx)           {}
+func (nopTxCache) Reset()             {}
+func (nopTxCache) Push(types.Tx) bool { return true }
+func (nopTxCache) Remove(types.Tx)    {}
 
 //--------------------------------------------------------------------------------
-
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
