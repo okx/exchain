@@ -20,7 +20,6 @@ type Store interface { //nolint
 // something that can persist to disk
 type Committer interface {
 	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta)        // CommitterCommit
-	CommitterCommitMap(iavl.TreeDeltaMap) (CommitID, iavl.TreeDeltaMap) // CommitterCommit
 
 	LastCommitID() CommitID
 
@@ -151,6 +150,7 @@ type CacheMultiStore interface {
 type CommitMultiStore interface {
 	Committer
 	MultiStore
+	CommitterCommitMap(iavl.TreeDeltaMap) (CommitID, iavl.TreeDeltaMap) // CommitterCommit
 
 	// Mount a store of type using the given db.
 	// If db == nil, the new store will use the CommitMultiStore db.
