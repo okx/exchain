@@ -33,7 +33,7 @@ NODEKEYS=""
 
 ADD_WTHIE_LIST_CASE=()
 ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"false","node2":"false","node3":"false","node4":"false"}')
-ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"false","node3":"false","node4":"false"}')
+ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"false","node2":"false","node3":"false","node4":"false"}')
 ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"false","node4":"true"}')
 ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"true","node4":"true"}')
 ADD_WTHIE_LIST_CASE+=('{"node0":"false","node1":"true","node2":"true","node3":"true","node4":"true"}')
