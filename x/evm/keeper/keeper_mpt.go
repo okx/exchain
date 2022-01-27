@@ -85,30 +85,29 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 // Stop stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt.
 func (k *Keeper) OnStop(ctx sdk.Context) error {
-	// Ensure the state of a recent block is also stored to disk before exiting.
-	// We're writing three different states to catch different restart scenarios:
-	//  - HEAD:     So we don't need to reprocess any blocks in the general case
-	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
-	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !sdk.TrieDirtyDisabled {
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
-		for _, offset := range []uint64{0, 1, TriesInMemory - 1} {
-			if number := uint64(ctx.BlockHeight()); number > offset {
-				recent := number - offset
-				if recent <= oecStartHeight || recent <= k.startHeight {
-					break
+		latestVersion := uint64(ctx.BlockHeight())
+		offset := uint64(TriesInMemory)
+		for ; offset > 0 ; offset-- {
+			if latestVersion > offset {
+				version := latestVersion - offset
+				if version <= oecStartHeight || version <= k.startHeight {
+					continue
 				}
 
-				recentMptRoot := k.GetMptRootHash(recent)
+				recentMptRoot := k.GetMptRootHash(version)
 				if recentMptRoot == (ethcmn.Hash{}) {
-					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "block", recent)
+					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "block", version)
 				} else {
-					k.Logger(ctx).Info("Writing cached state to disk", "block", recent, "trieHash", recentMptRoot)
+					k.Logger(ctx).Info("Writing cached state to disk", "block", version, "trieHash", recentMptRoot)
 					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+						break
 					}
+					k.SetLatestStoredBlockHeight(version)
 				}
 			}
 		}

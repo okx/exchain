@@ -288,7 +288,7 @@ func (so *stateObject) markSuicided() {
 
 // commitState commits all dirty storage to a KVStore and resets
 // the dirty storage slice to the empty state.
-func (so *stateObject) commitState() {
+func (so *stateObject) commitState(db ethstate.Database) {
 	// Make sure all dirty slots are finalized into the pending storage area
 	so.finalise(false) // Don't prefetch any more, pull directly if need be
 	if len(so.pendingStorage) == 0 {
@@ -322,6 +322,26 @@ func (so *stateObject) commitState() {
 				}
 			}
 		}
+	}
+
+	if sdk.EnableDoubleWrite {
+		tr := so.getTrie(db)
+		for key, value := range so.pendingStorage {
+			// Skip noop changes, persist actual changes
+			if value == so.originStorage[key] {
+				continue
+			}
+			so.originStorage[key] = value
+
+			if (value == ethcmn.Hash{}) {
+				so.setError(tr.TryDelete(key[:]))
+			} else {
+				// Encoding []byte cannot fail, ok to ignore the error.
+				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+				so.setError(tr.TryUpdate(key[:], v))
+			}
+		}
+		so.stateRoot = so.trie.Hash()
 	}
 
 	if len(so.pendingStorage) > 0 {

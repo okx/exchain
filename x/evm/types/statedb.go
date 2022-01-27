@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
@@ -734,13 +735,40 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		csdb.IntermediateRoot(deleteEmptyObjects)
 
-		// Commit objects to the trie, measuring the elapsed time
-		for addr := range csdb.stateObjectsDirty {
-			if so := csdb.stateObjects[addr]; !so.deleted {
-				// Write any contract code associated with the state object
-				if so.code != nil && so.dirtyCode {
-					so.commitCode()
-					so.dirtyCode = false
+		if sdk.EnableDoubleWrite {
+			// Commit objects to the trie, measuring the elapsed time
+			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
+			for addr := range csdb.stateObjectsDirty {
+				if obj := csdb.stateObjects[addr]; !obj.deleted {
+					// Write any contract code associated with the state object
+					if obj.code != nil && obj.dirtyCode {
+						obj.commitCode()
+
+						rawdb.WriteCode(codeWriter, ethcmn.BytesToHash(obj.CodeHash()), obj.code)
+						obj.dirtyCode = false
+					}
+
+					// Write any storage changes in the state object to its storage trie
+					if err := obj.CommitTrie(csdb.db); err != nil {
+						return ethcmn.Hash{}, err
+					}
+				}
+			}
+
+			if codeWriter.ValueSize() > 0 {
+				if err := codeWriter.Write(); err != nil {
+					csdb.SetError(fmt.Errorf("failed to commit dirty codes: %s", err.Error()))
+				}
+			}
+		} else {
+			// Commit objects to the trie, measuring the elapsed time
+			for addr := range csdb.stateObjectsDirty {
+				if so := csdb.stateObjects[addr]; !so.deleted {
+					// Write any contract code associated with the state object
+					if so.code != nil && so.dirtyCode {
+						so.commitCode()
+						so.dirtyCode = false
+					}
 				}
 			}
 		}
@@ -797,7 +825,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		for addr := range csdb.stateObjectsPending {
 			if obj := csdb.stateObjects[addr]; !obj.deleted {
-				obj.commitState()
+				obj.commitState(csdb.db)
 			}
 		}
 	} else {
@@ -858,7 +886,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || sdk.EnableDoubleWrite {
 		csdb.UpdateAccountStorageInfo(so)
 	}
 
@@ -870,7 +898,7 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || sdk.EnableDoubleWrite {
 		csdb.DeleteAccountStorageInfo(so)
 	}
 }
