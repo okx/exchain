@@ -108,12 +108,18 @@ func (c *Consensus) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			c.Block = Protocol(uvint)
 			dataLen = uint64(n)
 		case 2:
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			c.App = Protocol(uvint)
 			dataLen = uint64(n)
 		default:

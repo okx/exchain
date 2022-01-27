@@ -831,17 +831,17 @@ func BenchmarkHeaderAminoUnmarshal(b *testing.B) {
 	})
 }
 
-var dataAminoTestCases = []Data{
-	{},
-	{Txs: []Tx{}},
-	{Txs: []Tx{{}}},
-	{Txs: []Tx{nil}},
-	{Txs: []Tx{{}, []byte("tx1"), []byte("tx2"), nil}},
-	{hash: []byte("hash")},
-}
-
 func TestDataAmino(t *testing.T) {
-	for _, d := range dataAminoTestCases {
+	var testCases = []Data{
+		{},
+		{Txs: []Tx{}},
+		{Txs: []Tx{{}}},
+		{Txs: []Tx{nil}},
+		{Txs: []Tx{{}, []byte("tx1"), []byte("tx2"), nil}},
+		{hash: []byte("hash")},
+	}
+
+	for _, d := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(d)
 		require.NoError(t, err)
 

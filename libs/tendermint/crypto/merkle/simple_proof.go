@@ -51,9 +51,15 @@ func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for field")
+			}
 			subData = data[:dataLen]
 		}
 
