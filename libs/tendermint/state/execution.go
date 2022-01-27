@@ -368,10 +368,6 @@ func (blockExec *BlockExecutor) commit(
 		})
 	}
 
-	if res.Deltas == nil {
-		res.Deltas = &abci.Deltas{}
-	}
-
 	return res, res.RetainHeight, err
 }
 
