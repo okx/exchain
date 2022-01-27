@@ -88,7 +88,7 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 func TestDeltaContext_download(t *testing.T) {
 	dc := setupTest(t)
 	deltas := &types.Deltas{Height: 10, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
-	dc.uploadRoutine(deltas, nil, 0)
+	dc.uploadRoutine(deltas, 0)
 
 	tests := []struct {
 		name   string
@@ -136,7 +136,7 @@ func TestDeltaContext_upload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dc.deltaBroker = tt.r
-			if got := dc.upload(tt.deltas, nil, 0, 0); got != tt.want {
+			if got := dc.upload(tt.deltas, 0, 0); got != tt.want {
 				t.Errorf("upload() = %v, want %v", got, tt.want)
 			}
 		})
