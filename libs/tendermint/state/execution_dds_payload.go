@@ -60,10 +60,10 @@ func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	if err != nil {
 		return err
 	}
-	//info.watchData, err = unmarshalData(pl.WatchBytes)
-	//if err != nil {
-	//	return err
-	//}
+	info.watchData, err = unmarshalWatchData(pl.WatchBytes)
+	if err != nil {
+		return err
+	}
 
 	return err
 }
