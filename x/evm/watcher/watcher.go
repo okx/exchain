@@ -3,9 +3,6 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
 
@@ -467,14 +464,13 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	return func() ([]byte, error) {
-	  valueByte, err := value.MarshalToAmino()
+		valueByte, err := value.MarshalToAmino()
 		if err != nil {
 			return nil, err
 		}
 		return valueByte, nil
 	}
 }
-
 
 func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 	if len(wdByte) == 0 {
@@ -483,18 +479,18 @@ func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 	wd := new(WatchData)
 	if len(wdByte) > 0 {
 		if err := wd.UnmarshalFromAmino(wdByte); err != nil {
-			return nil,error
+			return nil, err
 		}
-	return *wd,nil
+	}
+	return *wd, nil
 }
-
 func (w *Watcher) UseWatchData(watchData interface{}) {
 	wd, ok := watchData.(WatchData)
 	if !ok {
 		panic("use watch data failed")
 	}
 
-	go w.CommitWatchData(*wd)
+	go w.CommitWatchData(wd)
 }
 
 func (w *Watcher) SetWatchDataFunc() {
