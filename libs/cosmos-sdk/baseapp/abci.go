@@ -231,9 +231,6 @@ func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	if req.Deltas == nil {
-		req.Deltas = &abci.Deltas{}
-	}
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.

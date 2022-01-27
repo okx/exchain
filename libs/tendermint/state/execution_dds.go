@@ -35,11 +35,13 @@ func (m identityMapType) increase(from string, num int64) {
 
 var (
 	getWatchDataFunc   func() func() ([]byte, error)
-	applyWatchDataFunc func([]byte)
+	unmarshalWatchData func([]byte) (interface{}, error)
+	applyWatchDataFunc func(interface{})
 )
 
-func SetWatchDataFunc(g func() func() ([]byte, error), u func([]byte)) {
+func SetWatchDataFunc(g func() func() ([]byte, error), un func([]byte) (interface{}, error), u func(interface{})) {
 	getWatchDataFunc = g
+	unmarshalWatchData = un
 	applyWatchDataFunc = u
 }
 
@@ -142,7 +144,7 @@ func (dc *DeltaContext) statistic(applied bool, txnum int, delta *types.Deltas) 
 	}
 }
 
-func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
+func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas, deltaInfo *DeltaInfo,
 	abciResponses *ABCIResponses, deltaMap interface{}, isFastSync bool) {
 
 	// delta consumer
@@ -163,7 +165,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas,
 			"applied-ratio", dc.hitRatio(), "delta", delta)
 
 		if applied && types.FastQuery {
-			applyWatchDataFunc(delta.WatchBytes())
+			applyWatchDataFunc(deltaInfo.watchData)
 		}
 	}
 
