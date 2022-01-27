@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
@@ -10,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -230,9 +230,6 @@ func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	if req.Deltas == nil {
-		req.Deltas = &abci.Deltas{}
-	}
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
@@ -240,7 +237,17 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
-	commitID, _, deltas := app.cms.Commit(&iavl.TreeDelta{}, req.Deltas.DeltasByte)
+
+	var input iavl.TreeDeltaMap
+	if tmtypes.DownloadDelta {
+		var ok bool
+		input, ok = req.DeltaMap.(iavl.TreeDeltaMap)
+		if !ok {
+			panic("use TreeDeltaMap failed")
+		}
+	}
+
+	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
@@ -278,8 +285,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data:   commitID.Hash,
-		Deltas: &abci.Deltas{DeltasByte: deltas},
+		Data:     commitID.Hash,
+		DeltaMap: output,
 	}
 }
 

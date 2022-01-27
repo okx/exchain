@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -478,12 +479,21 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	}
 }
 
-func (w *Watcher) UseWatchData(wdByte []byte) {
+func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
+	}
 	wd := WatchData{}
-	if len(wdByte) > 0 {
-		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-			return
-		}
+	if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
+
+func (w *Watcher) UseWatchData(watchData interface{}) {
+	wd, ok := watchData.(WatchData)
+	if !ok {
+		panic("use watch data failed")
 	}
 	w.delayEraseKey = wd.DelayEraseKey
 
@@ -492,7 +502,7 @@ func (w *Watcher) UseWatchData(wdByte []byte) {
 
 func (w *Watcher) SetWatchDataFunc() {
 	go w.jobRoutine()
-	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UseWatchData)
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
