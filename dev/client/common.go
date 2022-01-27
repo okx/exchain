@@ -22,9 +22,13 @@ import (
 	"time"
 )
 
+var (
+	RpcUrl = "http://127.0.0.1:8545"
+)
+
 const (
 	//RpcUrl          = "https://exchaintestrpc.okex.org"
-	RpcUrl        = "http://127.0.0.1:8545"
+
 	ChainId int64 = 67 //  oec
 	//RpcUrl          = "https://exchainrpc.okex.org"
 	//ChainId int64   = 66 //  oec

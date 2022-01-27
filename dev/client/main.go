@@ -25,6 +25,8 @@ const (
 
 func main() {
 	testTypeParam := flag.String("type", "oip20", "choose which test to run")
+	testRpcUrl := flag.String("type", "http://127.0.0.1:8545", "default test rpc url ")
+	RpcUrl = *testRpcUrl
 	flag.Parse()
 
 	privKey := []string{
