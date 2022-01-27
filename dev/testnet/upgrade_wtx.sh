@@ -331,25 +331,25 @@ function wtx_case(){
 
   killbyname_gracefully "cache/node1/exchaind"
   sleep 2
-  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val1`
+  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val1 | awk '{ gsub(/"/,""); print $0 }'`
   build_exchain $version
   add_val 1 $case_number
 
   killbyname_gracefully "cache/node2/exchaind"
   sleep 2
-  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val2`
+  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val2 | awk '{ gsub(/"/,""); print $0 }'`
   build_exchain $version
   add_val 2 $case_number
 
   killbyname_gracefully "cache/node3/exchaind"
   sleep 2
-  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val3`
+  version=`echo ${WTX_VERSIONS[$case_number]} | jq .val3 | awk '{ gsub(/"/,""); print $0 }'`
   build_exchain $version
   add_val 3 $case_number
 
   killbyname_gracefully "cache/node4/exchaind"
   sleep 2
-  version=`echo ${WTX_VERSIONS[$case_number]} | jq .rpc4`
+  version=`echo ${WTX_VERSIONS[$case_number]} | jq .rpc4 | awk '{ gsub(/"/,""); print $0 }'`
   build_exchain $version
   add_val 4 $case_number
 
