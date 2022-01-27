@@ -136,13 +136,13 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 
 func (st *Store) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}
 
-func (st *Store) CommitterCommit(inDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
+func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
 	flag := false
-	if inDelta != nil {
+	if inputDelta != nil {
 		flag = true
-		st.tree.SetDelta(inDelta)
+		st.tree.SetDelta(inputDelta)
 	}
-	hash, version, treeDelta, err := st.tree.SaveVersion(flag)
+	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
 		panic(err)
 	}
@@ -153,7 +153,7 @@ func (st *Store) CommitterCommit(inDelta *iavl.TreeDelta) (types.CommitID, *iavl
 	return types.CommitID{
 		Version: version,
 		Hash:    hash,
-	}, &treeDelta
+	}, &outputDelta
 }
 
 
