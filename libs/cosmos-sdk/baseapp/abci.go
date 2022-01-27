@@ -239,7 +239,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
-	if tmtypes.DownloadDelta {
+	if tmtypes.DownloadDelta && req.DeltaMap != nil {
 		var ok bool
 		input, ok = req.DeltaMap.(iavl.TreeDeltaMap)
 		if !ok {
