@@ -48,10 +48,6 @@ func (ms multiStore) CommitterCommit(*iavl.TreeDelta) (store.CommitID, *iavl.Tre
 	panic("not implemented")
 }
 
-func (ms multiStore) CommitterCommitMap(iavl.TreeDeltaMap) (store.CommitID, iavl.TreeDeltaMap) {
-	panic("not implemented")
-}
-
 func (ms multiStore) LastCommitID() sdk.CommitID {
 	panic("not implemented")
 }
