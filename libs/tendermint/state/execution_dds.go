@@ -182,14 +182,6 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas, deltaI
 }
 
 func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
-	// when upload data finish, release temporary memory
-	defer func() {
-		if deltaMap != nil {
-			tds := deltaMap.(iavl.TreeDeltaMap)
-			tds.PutNodeJsonPool()
-		}
-	}()
-
 	if abciResponses == nil || deltaMap == nil {
 		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
 		return
