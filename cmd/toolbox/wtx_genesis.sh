@@ -4,7 +4,7 @@
 
 WORKSPACE="workspace"
 NUMBER=4
-PREFIX="v"
+PREFIX="n"
 
 for ((index = 1; index < ${NUMBER}; index++)); do 
 

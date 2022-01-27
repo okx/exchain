@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -85,6 +87,7 @@ func StartClusterCommand() *cobra.Command {
 				whitelist = append(whitelist, hexutil.Encode(key.PubKey().Bytes()))
 			}
 
+			// waiting := []*exec.Cmd{}
 			for _, node := range instance.Nodes {
 				flags := []string{}
 				binary := filepath.Join(instance.Workspace, node.Name, "binary", "exchaind")
@@ -127,12 +130,12 @@ func StartClusterCommand() *cobra.Command {
 						"--keyring-backend test",
 					}
 					if node.Wtx {
-						flags = append(flags, "--enable-wtx", "true")
+						flags = append(flags, "--enable-wtx=true")
 						if node.White {
 							flags = append(flags, "--mempool.node_key_whitelist", strings.Join(whitelist, ","))
 						}
 					} else {
-						flags = append(flags, "--enable-wtx", "false")
+						flags = append(flags, "--enable-wtx=false")
 					}
 					flags = append(flags, ">", loggerFile, "2>&1 &")
 				} else {
@@ -170,12 +173,19 @@ func StartClusterCommand() *cobra.Command {
 					}
 					flags = append(flags, ">", loggerFile, "2>&1 &")
 				}
-				cmd.Printf("node cmd : \n nohup %s \n", strings.Join(flags, " "))
-				executable := exec.Command("nohup", flags...)
-				executable.Start()
-				cmd.Printf("node: %s started", node.Name)
-			}
 
+				// executable := exec.Command(flags[0], flags[1:]...)
+				// go executable.Run()
+				nohuppath, lookErr := exec.LookPath("nohup")
+				cmd.Printf("node cmd : \n %s %s \n", nohuppath, strings.Join(flags, " "))
+				if lookErr != nil {
+					cmd.Println(binary)
+					panic(lookErr)
+				}
+				err := syscall.Exec(nohuppath, flags, os.Environ())
+				cmd.Printf("node: %s started %v", node.Name, err)
+			}
+			time.Sleep(5 * time.Second)
 			return nil
 		},
 	}

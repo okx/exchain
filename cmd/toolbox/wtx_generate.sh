@@ -18,6 +18,10 @@ let seedp2pport=${BASE_PORT_PREFIX}+${P2P_PORT_SUFFIX}
 let seedrpcport=${BASE_PORT_PREFIX}+${RPC_PORT_SUFFIX}
 let seedrestport=${seedrpcport}+1
 
+if [ -z ${IP} ]; then
+  IP="127.0.0.1"
+fi
+
 exchaind testnet --v 5 -o workspace -l \
     --chain-id ${CHAIN_ID} \
     --node-dir-prefix n \
