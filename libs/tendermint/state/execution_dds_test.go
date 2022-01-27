@@ -2,17 +2,18 @@ package state
 
 import (
 	"encoding/hex"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
-	dbm "github.com/okex/exchain/libs/tm-db"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
@@ -187,9 +188,9 @@ func produceAbciRsp() *ABCIResponses {
 
 	blocks, stateDB := produceBlock()
 	ctx := &executionTask{
-		logger: log.TestingLogger(),
-		block: blocks[0],
-		db: stateDB,
+		logger:   log.TestingLogger(),
+		block:    blocks[0],
+		db:       stateDB,
 		proxyApp: proxyApp.Consensus(),
 	}
 
@@ -211,6 +212,20 @@ func TestProduceDelta(t *testing.T) {
 	}
 }
 
+func TestAminoDecoder(t *testing.T) { testDecodeABCIResponse(t) }
+func testDecodeABCIResponse(t *testing.T) {
+	abciResponses1 := produceAbciRsp()
+
+	// encode
+	data, err := abciResponses1.MarshalToAmino()
+	require.NoError(t, err)
+
+	//decode
+	abciResponses2 := new(ABCIResponses)
+	err = abciResponses2.UnmarshalFromAmino(data)
+	require.NoError(t, err)
+	require.Equal(t, abciResponses1, abciResponses2)
+}
 func BenchmarkMarshalJson(b *testing.B) {
 	abciResponses := produceAbciRsp()
 
@@ -236,5 +251,40 @@ func BenchmarkMarshalCustom(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
 		abciResponses.MarshalToAmino()
+	}
+}
+
+func BenchmarkUnmarshalFromJson(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := types.Json.Marshal(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		types.Json.Unmarshal(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromAmino(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	var cdc = amino.NewCodec()
+	data, _ := cdc.MarshalBinaryBare(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		cdc.UnmarshalBinaryBare(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromCustom(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := abciResponses.MarshalToAmino()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := new(ABCIResponses)
+		ar.UnmarshalFromAmino(data)
 	}
 }
