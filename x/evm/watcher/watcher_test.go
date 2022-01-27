@@ -14,7 +14,6 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
@@ -188,53 +187,6 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, res)
 				var expectedConsumedGas uint64 = 21000
-				require.EqualValues(t, expectedConsumedGas, w.ctx.GasMeter().GasConsumed())
-			} else {
-				require.Error(t, err)
-				require.Nil(t, res)
-			}
-
-			testWatchData(t, w)
-		})
-	}
-}
-
-func TestMsgEthermintByWatcher(t *testing.T) {
-	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-	)
-	w := setupTest()
-	testCases := []struct {
-		msg      string
-		malleate func()
-		expPass  bool
-	}{
-		{
-			"passed",
-			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
-				w.app.EvmKeeper.SetBalance(w.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
-			},
-			true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
-			w = setupTest() // reset
-			//nolint
-			tc.malleate()
-			w.ctx = w.ctx.WithIsCheckTx(true)
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			res, err := w.handler(w.ctx, tx)
-
-			//nolint
-			if tc.expPass {
-				require.NoError(t, err)
-				require.NotNil(t, res)
-				var expectedConsumedGas uint64 = 21064
 				require.EqualValues(t, expectedConsumedGas, w.ctx.GasMeter().GasConsumed())
 			} else {
 				require.Error(t, err)

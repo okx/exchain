@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-     authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"io"
 	"math/big"
 	"os"
@@ -31,6 +31,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -53,7 +54,6 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
-	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func init() {
@@ -560,10 +560,6 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 				}
 				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
 			case evmtypes.MsgEthereumTx:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-			case evmtypes.MsgEthermint:
 				if len(msgs) > 1 {
 					return wrongMsgErr
 				}
