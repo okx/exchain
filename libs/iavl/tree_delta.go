@@ -92,6 +92,18 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
+// PutNodeJsonPool release temperary memory to pool
+func (tdm TreeDeltaMap) PutNodeJsonPool() {
+	for _, td := range tdm {
+		for _, v := range td.NodesDelta {
+			NodeJsonPool.Put(v)
+		}
+		for _, v := range td.OrphansDelta {
+			NodeJsonPool.Put(v)
+		}
+	}
+}
+
 // appliedDelta convert map[string]*iavl.TreeDelta to struct
 type appliedDelta struct {
 	Key         string
@@ -306,6 +318,7 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 			}
 			td.NodesDelta[nodeDelta.Key] = nodeDelta.NodeData
 		case 2:
+			//nodeData := NodeJsonPool.Get().(*NodeJson)
 			nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {
@@ -408,6 +421,7 @@ func (nd *nodesDelta) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			nd.Key = string(subData)
 		case 2:
+			//nodeData := NodeJsonPool.Get().(*NodeJson)
 			nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {

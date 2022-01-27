@@ -183,14 +183,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 	// when upload data finish, release temporary memory
 	defer func() {
 		tds := deltaMap.(iavl.TreeDeltaMap)
-		for _, td := range tds {
-			for _, v := range td.NodesDelta {
-				iavl.NodeJsonPool.Put(v)
-			}
-			for _, v := range td.OrphansDelta {
-				iavl.NodeJsonPool.Put(v)
-			}
-		}
+		tds.PutNodeJsonPool()
 	}()
 
 	if abciResponses == nil || deltaMap == nil {
