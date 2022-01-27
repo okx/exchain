@@ -4,11 +4,12 @@ import (
 	"crypto/ecdsa"
 	"flag"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type TestType string
@@ -17,8 +18,9 @@ const (
 	abiFile = "./contracts/counter/counter.abi"
 	binFile = "./contracts/counter/counter.bin"
 
-	Oip20Test   = TestType("oip20")
-	CounterTest = TestType("counter")
+	Oip20Test            = TestType("oip20")
+	SingleEthereumTxTest = TestType("single-eth-tx")
+	CounterTest          = TestType("counter")
 )
 
 func main() {
@@ -38,11 +40,15 @@ func main() {
 		fmt.Printf("contract: %s\n", *testTypeParam)
 		testFunc = standardOip20Test
 		break
+	case SingleEthereumTxTest:
+		fmt.Printf("Single transfer tx")
+		testFunc = standardSingleTransferTxTest
+		break
 	default:
 		fmt.Printf("contract: %s\n", CounterTest)
 		testFunc = counterTest
 	}
-	
+
 	for _, k := range privKey {
 		test := func(key string) {
 			testFunc(key, time.Millisecond*5000)
@@ -81,6 +87,16 @@ func counterTest(privKey string, blockTime time.Duration) error {
 		uint256Output(client, counterContract, "getCounter")
 	}
 	return err
+}
+
+func standardSingleTransferTxTest(privKey string, blockTime time.Duration) error {
+	privateKey, sender := initKey(privKey)
+	client, err := ethclient.Dial(RpcUrl)
+	if err != nil {
+		log.Printf("failed to dial: %+v", err)
+	}
+	toAddress := common.HexToAddress("0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0")
+	return transferOKT(client, sender, toAddress, str2bigInt("0.001"), privateKey, 0)
 }
 
 func standardOip20Test(privKey string, blockTime time.Duration) error {

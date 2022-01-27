@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -157,11 +158,12 @@ func transferOKT(client *ethclient.Client,
 	toAddress common.Address,
 	amount *big.Int,
 	privateKey *ecdsa.PrivateKey,
-	sleep time.Duration) {
+	sleep time.Duration) error {
 	// 0. get the value of nonce, based on address
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		log.Fatalf("failed to fetch the value of nonce from network: %+v", err)
+		return err
 	}
 
 	// 0.5 get the gasPrice
@@ -185,17 +187,21 @@ func transferOKT(client *ethclient.Client,
 	signedTx, err := types.SignTx(unsignedTx, types.NewEIP155Signer(big.NewInt(ChainId)), privateKey)
 	if err != nil {
 		log.Fatalf("failed to sign the unsignedTx offline: %+v", err)
+		return err
 	}
 
 	// 3. send rawTx
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
 
 	if sleep > 0 {
 		time.Sleep(time.Second * sleep)
 	}
+
+	return nil
 }
 
 func sleep(second time.Duration) {
@@ -334,7 +340,6 @@ func send(client *ethclient.Client, to, privKey string) {
 	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
 }
 
-
 func transferOip(client *ethclient.Client, oip20 *Oip20,
 	sender common.Address, auth *bind.TransactOpts, toAddress common.Address) (nonce uint64, err error) {
 	transferAmount := str2bigInt("100000")
@@ -350,7 +355,6 @@ func transferOip(client *ethclient.Client, oip20 *Oip20,
 	}
 	return
 }
-
 
 func deployOip(client *ethclient.Client, sender common.Address,
 	privateKey *ecdsa.PrivateKey) (oip20 *Oip20, auth *bind.TransactOpts, err error) {
