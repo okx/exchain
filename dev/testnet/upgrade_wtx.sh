@@ -76,9 +76,9 @@ function get_white_list() {
   index=$1
   case_number=$2
 
-  case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index} | awk '{ gsub(/"/,""); print $0 }'`
+  case_document=`echo ${ADD_WTHIE_LIST_CASE[$index]} | jq .node${index}`
 
-  if [[ -z $case_document ]]; then 
+  if [[ $case_document == "" ]]; then 
     echo ""
   else 
     echo "--mempool.node_key_whitelist=${NODEKEYS}"
