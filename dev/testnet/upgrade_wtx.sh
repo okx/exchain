@@ -163,8 +163,8 @@ function add_val() {
   case_number=$2
   LOG_LEVEL=main:info,*:error,consensus:error,state:info,provider:info
 
-  wtx_case=${ENABLE_WTX_CASE[$index]}
-  enable_wtx=`echo $wtx_case | jq .val${index}`
+  wtx_case=${ENABLE_WTX_CASE[$case_number]}
+  enable_wtx=`echo $wtx_case | jq .val${index} | awk '{ gsub(/"/,""); print $0 }'`
 
   white_list_flag=`get_white_list $index $case_number`
 
