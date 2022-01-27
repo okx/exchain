@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/iavl"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 
@@ -316,6 +318,11 @@ func (blockExec *BlockExecutor) commit(
 		// Forced flushing mempool
 		if cfg.DynamicConfig.GetMempoolFlush() {
 			blockExec.mempool.Flush()
+		}
+		// release pool memory
+		if deltaInfo.treeDeltaMap != nil {
+			tds := deltaInfo.treeDeltaMap.(iavl.TreeDeltaMap)
+			tds.PutNodeJsonPool()
 		}
 	}()
 

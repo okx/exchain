@@ -318,8 +318,8 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 			}
 			td.NodesDelta[nodeDelta.Key] = nodeDelta.NodeData
 		case 2:
-			//nodeData := NodeJsonPool.Get().(*NodeJson)
-			nodeData := new(NodeJson)
+			nodeData := NodeJsonPool.Get().(*NodeJson)
+			//nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
@@ -421,8 +421,8 @@ func (nd *nodesDelta) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			nd.Key = string(subData)
 		case 2:
-			//nodeData := NodeJsonPool.Get().(*NodeJson)
-			nodeData := new(NodeJson)
+			nodeData := NodeJsonPool.Get().(*NodeJson)
+			//nodeData := new(NodeJson)
 			err := nodeData.UnmarshalFromAmino(subData)
 			if err != nil {
 				return err
