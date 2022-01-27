@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -446,7 +447,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 
@@ -476,19 +477,28 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	}
 }
 
-func (w *Watcher) UseWatchData(wdByte []byte) {
+func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
+	}
 	wd := WatchData{}
-	if len(wdByte) > 0 {
-		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-			return
-		}
+	if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
+
+func (w *Watcher) UseWatchData(watchData interface{}) {
+	wd, ok := watchData.(WatchData)
+	if !ok {
+		panic("use watch data failed")
 	}
 
 	go w.CommitWatchData(wd)
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UseWatchData)
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
