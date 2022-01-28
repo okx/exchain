@@ -32,7 +32,7 @@ type SimpleProof struct {
 	Aunts    [][]byte `json:"aunts"`     // Hashes from leaf's sibling to a root's child.
 }
 
-func (sp *SimpleProof) UnmarshalFromAmino(data []byte) error {
+func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -51,9 +51,15 @@ func (sp *SimpleProof) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for field")
+			}
 			subData = data[:dataLen]
 		}
 
@@ -67,7 +73,7 @@ func (sp *SimpleProof) UnmarshalFromAmino(data []byte) error {
 			dataLen = uint64(n)
 		case 2:
 			var n int
-			sp.Index, n, err = amino.DecodeIntFromUvarint(data)
+			sp.Index, n, err = amino.DecodeInt(data)
 			if err != nil {
 				return err
 			}
