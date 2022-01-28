@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -480,9 +481,9 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 }
 
 func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
-	//if len(wdByte) == 0 {
-	//	return nil, fmt.Errorf("failed unmarshal watch data: empty data")
-	//}
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
+	}
 	wd := WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdByte); err != nil {
 		return nil, err

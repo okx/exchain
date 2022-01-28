@@ -8,9 +8,9 @@ import (
 )
 
 func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
-	//if len(input) == 0 {
-	//	return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
-	//}
+	if len(input) == 0 {
+		return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
+	}
 	treeDeltaMap := iavl.TreeDeltaMap{}
 	err := treeDeltaMap.UnmarshalFromAmino(nil, input)
 	return treeDeltaMap, err
