@@ -85,7 +85,7 @@ func flushDB(db *watcher.WatchStore) {
 }
 
 func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := new(watcher.WatchData)
+	wd := watcher.WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 }
 
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
-	wd := new(watcher.WatchData)
+	wd := watcher.WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
 		return
 	}
