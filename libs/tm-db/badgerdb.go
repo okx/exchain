@@ -47,10 +47,10 @@ func NewBadgerDBWithOptions(opts badger.Options) (*BadgerDB, error) {
 	return &BadgerDB{db: db}, nil
 }
 
-func (b *BadgerDB) Get(key []byte) ([]byte, error) {
+func (db *BadgerDB) Get(key []byte) ([]byte, error) {
 	key = nonNilBytes(key)
 	var val []byte
-	err := b.db.View(func(txn *badger.Txn) error {
+	err := db.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if err == badger.ErrKeyNotFound {
 			return nil
@@ -66,10 +66,18 @@ func (b *BadgerDB) Get(key []byte) ([]byte, error) {
 	return val, err
 }
 
-func (b *BadgerDB) Has(key []byte) (bool, error) {
+func (db *BadgerDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
+	v, err := db.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return processor(v)
+}
+
+func (db *BadgerDB) Has(key []byte) (bool, error) {
 	key = nonNilBytes(key)
 	var found bool
-	err := b.db.View(func(txn *badger.Txn) error {
+	err := db.db.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(key)
 		if err != nil && err != badger.ErrKeyNotFound {
 			return err
@@ -80,66 +88,66 @@ func (b *BadgerDB) Has(key []byte) (bool, error) {
 	return found, err
 }
 
-func (b *BadgerDB) Set(key, value []byte) error {
+func (db *BadgerDB) Set(key, value []byte) error {
 	key = nonNilBytes(key)
 	value = nonNilBytes(value)
-	return b.db.Update(func(txn *badger.Txn) error {
+	return db.db.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, value)
 	})
 }
 
-func (b *BadgerDB) SetSync(key, value []byte) error {
-	err := b.Set(key, value)
+func (db *BadgerDB) SetSync(key, value []byte) error {
+	err := db.Set(key, value)
 	if err != nil {
 		return err
 	}
-	return b.db.Sync()
+	return db.db.Sync()
 }
 
-func (b *BadgerDB) Delete(key []byte) error {
+func (db *BadgerDB) Delete(key []byte) error {
 	key = nonNilBytes(key)
-	return b.db.Update(func(txn *badger.Txn) error {
+	return db.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
 }
 
-func (b *BadgerDB) DeleteSync(key []byte) error {
-	err := b.Delete(key)
+func (db *BadgerDB) DeleteSync(key []byte) error {
+	err := db.Delete(key)
 	if err != nil {
 		return err
 	}
-	return b.db.Sync()
+	return db.db.Sync()
 }
 
 func (db *BadgerDB) DB() *badger.DB {
 	return db.db
 }
 
-func (b *BadgerDB) Close() error {
-	return b.db.Close()
+func (db *BadgerDB) Close() error {
+	return db.db.Close()
 }
 
-func (b *BadgerDB) Print() error {
+func (db *BadgerDB) Print() error {
 	return nil
 }
 
-func (b *BadgerDB) Stats() map[string]string {
+func (db *BadgerDB) Stats() map[string]string {
 	return nil
 }
 
-func (b *BadgerDB) NewBatch() Batch {
-	return newBadgerDBBatch(b.db)
+func (db *BadgerDB) NewBatch() Batch {
+	return newBadgerDBBatch(db.db)
 }
 
-func (b *BadgerDB) Iterator(start, end []byte) (Iterator, error) {
+func (db *BadgerDB) Iterator(start, end []byte) (Iterator, error) {
 	opts := badger.DefaultIteratorOptions
-	txn := b.db.NewTransaction(false)
+	txn := db.db.NewTransaction(false)
 	return newBadgerDBIterator(txn, start, end, opts), nil
 }
 
-func (b *BadgerDB) ReverseIterator(start, end []byte) (Iterator, error) {
+func (db *BadgerDB) ReverseIterator(start, end []byte) (Iterator, error) {
 	opts := badger.DefaultIteratorOptions
 	opts.Reverse = true
-	txn := b.db.NewTransaction(false)
+	txn := db.db.NewTransaction(false)
 	return newBadgerDBIterator(txn, end, start, opts), nil
 }
