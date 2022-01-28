@@ -326,7 +326,7 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			w.DirtyAccount = append(w.DirtyAccount, &acc)
 
 		case 2:
-			bat := new(Batch)
+			bat := &Batch{}
 			err := bat.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
@@ -339,7 +339,7 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			w.DelayEraseKey = append(w.DelayEraseKey, delayEraseKey)
 
 		case 4:
-			kv := new(types.KV)
+			kv := &types.KV{}
 			err := kv.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err

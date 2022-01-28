@@ -287,7 +287,7 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 			}
 			td.NodesDelta[ni.Key] = ni.NodeValue
 		case 2:
-			nodeData := new(NodeJson)
+			nodeData := &NodeJson{}
 			err := nodeData.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err

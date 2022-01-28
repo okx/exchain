@@ -484,11 +484,11 @@ func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 	if len(wdByte) == 0 {
 		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
 	}
-	wd := new(WatchData)
+	wd := WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdByte); err != nil {
 		return nil, err
 	}
-	return *wd, nil
+	return wd, nil
 }
 
 func (w *Watcher) UseWatchData(watchData interface{}) {

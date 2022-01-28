@@ -221,8 +221,8 @@ func testDecodeABCIResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	//decode
-	abciResponses2 := new(ABCIResponses)
-	err = abciResponses2.UnmarshalFromAmino(data)
+	abciResponses2 := &ABCIResponses{}
+	err = abciResponses2.UnmarshalFromAmino(nil, data)
 	require.NoError(t, err)
 	require.Equal(t, abciResponses1, abciResponses2)
 }
@@ -261,7 +261,7 @@ func BenchmarkUnmarshalFromJson(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		ar := new(ABCIResponses)
+		ar := &ABCIResponses{}
 		types.Json.Unmarshal(data, ar)
 	}
 }
@@ -273,7 +273,7 @@ func BenchmarkUnmarshalFromAmino(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		ar := new(ABCIResponses)
+		ar := &ABCIResponses{}
 		cdc.UnmarshalBinaryBare(data, ar)
 	}
 }
@@ -284,7 +284,7 @@ func BenchmarkUnmarshalFromCustom(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		ar := new(ABCIResponses)
-		ar.UnmarshalFromAmino(data)
+		ar := &ABCIResponses{}
+		ar.UnmarshalFromAmino(nil, data)
 	}
 }

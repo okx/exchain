@@ -228,7 +228,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 			arz.DeliverTxs = append(arz.DeliverTxs, resDeliverTx)
 
 		case 2:
-			eBlock := new(abci.ResponseEndBlock)
+			eBlock := &abci.ResponseEndBlock{}
 			err := eBlock.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
@@ -236,7 +236,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 			arz.EndBlock = eBlock
 
 		case 3:
-			bBlock := new(abci.ResponseBeginBlock)
+			bBlock := &abci.ResponseBeginBlock{}
 			err := bBlock.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err

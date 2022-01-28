@@ -732,7 +732,7 @@ func (bb *ResponseBeginBlock) UnmarshalFromAmino(_ *amino.Codec, data []byte) er
 
 		switch pos {
 		case 1:
-			var event Event
+			event := Event{}
 			err = event.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
@@ -833,21 +833,21 @@ func (cp *ConsensusParams) UnmarshalFromAmino(_ *amino.Codec, data []byte) error
 
 		switch pos {
 		case 1:
-			bParams := new(BlockParams)
+			bParams := &BlockParams{}
 			err := bParams.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			cp.Block = bParams
 		case 2:
-			eParams := new(EvidenceParams)
+			eParams := &EvidenceParams{}
 			err := eParams.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			cp.Evidence = eParams
 		case 3:
-			vp := new(ValidatorParams)
+			vp := &ValidatorParams{}
 			err := vp.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
@@ -956,14 +956,14 @@ func (eb *ResponseEndBlock) UnmarshalFromAmino(_ *amino.Codec, data []byte) erro
 
 		switch pos {
 		case 1:
-			var vu ValidatorUpdate
+			vu := ValidatorUpdate{}
 			err := vu.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
 			}
 			eb.ValidatorUpdates = append(eb.ValidatorUpdates, vu)
 		case 2:
-			consParam := new(ConsensusParams)
+			consParam := &ConsensusParams{}
 			err := consParam.UnmarshalFromAmino(nil, subData)
 			if err != nil {
 				return err
