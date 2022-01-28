@@ -6,14 +6,19 @@ import (
 
 	"github.com/pkg/errors"
 
-	db "github.com/tendermint/tm-db"
-	"github.com/tendermint/tm-db/remotedb/grpcdb"
-	protodb "github.com/tendermint/tm-db/remotedb/proto"
+	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/libs/tm-db/remotedb/grpcdb"
+	protodb "github.com/okex/exchain/libs/tm-db/remotedb/proto"
 )
 
 type RemoteDB struct {
 	ctx context.Context
 	dc  protodb.DBClient
+}
+
+func (rd *RemoteDB) GetUnsafeValue(key []byte, processor db.UnsafeValueProcessor) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewRemoteDB(serverAddr string, serverKey string) (*RemoteDB, error) {
