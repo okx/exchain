@@ -21,8 +21,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/pkg/errors"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
@@ -427,11 +427,17 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
+func (rs *Store) CommitterCommit(*iavltree.TreeDelta) ( _ types.CommitID, _ *iavltree.TreeDelta) {
+	return
+}
+
 // Implements Committer/CommitStore.
-func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, iavltree.TreeDelta, []byte) {
+func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.CommitID, iavltree.TreeDeltaMap) {
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
-	rs.lastCommitInfo, deltas = commitStores(version, rs.stores, deltas)
+
+	var outputDeltaMap iavltree.TreeDeltaMap
+	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -472,7 +478,7 @@ func (rs *Store) Commit(_ *iavltree.TreeDelta, deltas []byte) (types.CommitID, i
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
-	}, iavltree.TreeDelta{}, deltas
+	}, outputDeltaMap
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -923,22 +929,13 @@ func getLatestVersion(db dbm.DB) int64 {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore, deltas []byte) (commitInfo, []byte) {
-	//	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
+	inputDeltaMap iavltree.TreeDeltaMap) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
-	appliedDeltas := map[string]*iavltree.TreeDelta{}
-	returnedDeltas := map[string]iavltree.TreeDelta{}
-
-	var err error
-	if tmtypes.DownloadDelta && len(deltas) != 0 {
-		err = itjs.Unmarshal(deltas, &appliedDeltas)
-		if err != nil {
-			panic(err)
-		}
-	}
+	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		commitID, reDelta, _ := store.Commit(appliedDeltas[key.Name()], deltas)
+		commitID, outputDelta:= store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
@@ -948,20 +945,13 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
-		returnedDeltas[key.Name()] = reDelta
-	}
-
-	if tmtypes.UploadDelta {
-		deltas, err = itjs.Marshal(returnedDeltas)
-		if err != nil {
-			panic(err)
-		}
+		outputDeltaMap[key.Name()] = outputDelta
 	}
 
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
-	}, deltas
+	}, outputDeltaMap
 }
 
 // Gets commitInfo from disk.
