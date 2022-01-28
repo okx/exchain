@@ -97,10 +97,7 @@ func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 	}()
 	ndb.addDBReadCount()
 
-	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte, err error) (interface{}, error) {
-		if err != nil {
-			panic(fmt.Sprintf("can't get node %X: %v", hash, err))
-		}
+	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte) (interface{}, error) {
 		if buf == nil {
 			panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
 		}
@@ -111,9 +108,11 @@ func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 		}
 		return node, nil
 	})
+
 	if err != nil {
-		panic(fmt.Sprintf("can't make node %X: %v", hash, err))
+		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
 	}
+
 	return v.(*Node)
 }
 
