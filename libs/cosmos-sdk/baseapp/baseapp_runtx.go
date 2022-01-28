@@ -2,26 +2,27 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"runtime/debug"
 )
 
 type runTxInfo struct {
-	handler        modeHandler
-	gasWanted      uint64
-	ctx            sdk.Context
-	runMsgCtx      sdk.Context
-	msCache        sdk.CacheMultiStore
-	msCacheAnte    sdk.CacheMultiStore
-	accountNonce   uint64
-	runMsgFinished bool
-	startingGas    uint64
-	gInfo          sdk.GasInfo
-	nodeSigVerifyResult   int
+	handler             modeHandler
+	gasWanted           uint64
+	ctx                 sdk.Context
+	runMsgCtx           sdk.Context
+	msCache             sdk.CacheMultiStore
+	msCacheAnte         sdk.CacheMultiStore
+	accountNonce        uint64
+	runMsgFinished      bool
+	startingGas         uint64
+	gInfo               sdk.GasInfo
+	nodeSigVerifyResult int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -36,26 +37,35 @@ func (app *BaseApp) runTx(mode runTxMode,
 	info, err = app.runtx(mode, txBytes, tx, height)
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
-
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
+	err = app.runtxWithInfo(info, mode, txBytes, tx, height)
+	return
+}
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
-		return info, err
+		return err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	//info with cache saved in app to load predesessor tx state
+	if mode != runTxModeTrace {
+		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
+		//to prevent modifying the deliver state
+		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
+		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	}
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
-		return info, err
+		return err
 	}
-
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -74,18 +84,16 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		return info, err
+		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
-
 
 	app.pin(AnteHandler, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			return info, err
+			return err
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -93,10 +101,8 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	app.pin(RunMsgs, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsgs, false, mode)
-
-	return info, err
+	return err
 }
-
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
@@ -192,7 +198,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through

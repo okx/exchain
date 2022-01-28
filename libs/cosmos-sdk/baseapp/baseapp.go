@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime/debug"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -24,6 +25,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -35,6 +37,7 @@ const (
 	runTxModeSimulate                        // Simulate a transaction
 	runTxModeDeliver                         // Deliver a transaction
 	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
+	runTxModeTrace                           // Trace a transaction
 
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
@@ -90,7 +93,6 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
-
 func (m runTxMode) String() (res string) {
 	switch m {
 	case runTxModeCheck:
@@ -122,16 +124,16 @@ type BaseApp struct { // nolint: maligned
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 
 	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
-	txDecoder   sdk.TxDecoder
+	txDecoder sdk.TxDecoder
 
 	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
 	// 1. a WrappedTx
 	// 2. an StdTx
 	// 3. a MsgEthereumTx
 	// depends on how []byte is marshalled
-	wrappedTxDecoder   sdk.TxDecoder
+	wrappedTxDecoder sdk.TxDecoder
 
-	wrappedTxEncoder   sdk.WrappedTxEncoder
+	wrappedTxEncoder sdk.WrappedTxEncoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -198,7 +200,7 @@ type BaseApp struct { // nolint: maligned
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
 
-	nodekey *p2p.NodeKey
+	nodekey   *p2p.NodeKey
 	enableWtx bool
 }
 
@@ -226,8 +228,8 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		wrappedTxDecoder:      txDecoder,
-		enableWtx:             viper.GetBool(abci.FlagEnableWrappedTx),
+		wrappedTxDecoder: txDecoder,
+		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
 	}
 
 	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
@@ -242,7 +244,6 @@ func NewBaseApp(
 		}
 		return
 	}
-
 
 	for _, option := range options {
 		option(app)
@@ -535,6 +536,20 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	}
 }
 
+// setTraceState sets the BaseApp's traceState with a cache-wrapped multi-store
+// (i.e. a CacheMultiStore) and a new Context with the cache-wrapped multi-store,
+// and provided header. It is set at the start of trace tx
+func (app *BaseApp) newTraceState(header abci.Header, height int64) (*state, error) {
+	ms, err := app.cms.CacheMultiStoreWithVersion(height)
+	if err != nil {
+		return nil, err
+	}
+	return &state{
+		ms:  ms,
+		ctx: sdk.NewContext(ms, header, false, app.logger),
+	}, nil
+}
+
 // setConsensusParams memoizes the consensus params.
 func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
@@ -660,24 +675,48 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	return ctx, nil
 }
-
-func GetABCIHeader(height int64) (abci.Header, error) {
+func GetABCITx(hash []byte) (*ctypes.ResultTx, error) {
 	laddr := viper.GetString("rpc.laddr")
 	splits := strings.Split(laddr, ":")
 	if len(splits) < 2 {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
 	}
 
 	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
 	if err != nil {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
+	}
+
+	tx, err := rpcCli.Tx(hash, false)
+	if err != nil {
+		return nil, fmt.Errorf("get ABCI tx failed!")
+	}
+
+	return tx, nil
+}
+func GetABCIBlock(height int64) (*ctypes.ResultBlock, error) {
+	laddr := viper.GetString("rpc.laddr")
+	splits := strings.Split(laddr, ":")
+	if len(splits) < 2 {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+
+	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
+	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
 	}
 
 	block, err := rpcCli.Block(&height)
 	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+	return block, nil
+}
+func GetABCIHeader(height int64) (abci.Header, error) {
+	block, err := GetABCIBlock(height)
+	if err != nil {
 		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
 	}
-
 	return blockHeaderToABCIHeader(block.Block.Header), nil
 }
 
@@ -1106,42 +1145,3 @@ func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
 	)
 	_ = hexPriv
 }
-
-
-	//
-	//bytes := hexutil.MustDecode(hexpub)
-	//var recoverPubKey ed25519.PubKeyEd25519
-	//recoverPubKey.UnmarshalFromAmino(bytes)
-	//
-	//app.logger.Info("SetNodeKey",
-	//	"recoverPubKey", hexutil.Encode(recoverPubKey.Bytes()),
-	//)
-	//
-	//rprivkey := genPrivkey(hexpriv)
-	//
-	//rhexpub := hexutil.Encode(rprivkey.PubKey().Bytes())
-	//rhexpriv := hexutil.Encode(rprivkey.Bytes())
-	//
-	//app.logger.Info("recover NodeKey",
-	//	"PrivKey", rhexpriv,
-	//	"PubKey", rhexpub,
-	//)
-
-	//
-	//PrivKey := "0xa3288910402de16907e788ccb9f3ed48ad6cca3198dd92334dd710b89ec19988b8d48d5f0fd134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
-	//PubKey := "0x1624de6420d134f5e36c5fdcf28ebe3b7ae039ace09d0198513f7d03500a2b4dc0465aff31"
-	//
-	//
-	//priv := genPrivkey(PrivKey)
-	//fmt.Printf("%s\n", 	hexutil.Encode(priv.PubKey().Bytes()))
-	//fmt.Printf("%s\n", 	PubKey)
-//}
-//
-//
-//func genPrivkey(hex string) ed25519.PrivKeyEd25519 {
-//	secert, err := hexutil.Decode(hex)
-//	if err != nil {
-//		panic(err)
-//	}
-//	return ed25519.GenPrivKeyFromSecret(secert)
-//}

@@ -21,26 +21,28 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx           context.Context
-	ms            MultiStore
-	header        abci.Header
-	chainID       string
-	txBytes       []byte
-	logger        log.Logger
-	voteInfo      []abci.VoteInfo
-	gasMeter      GasMeter
-	blockGasMeter GasMeter
-	checkTx       bool
-	recheckTx     bool // if recheckTx == true, then checkTx must also be true
-	minGasPrice   DecCoins
-	consParams    *abci.ConsensusParams
-	eventManager  *EventManager
-	accountNonce  uint64
-	sigCache      SigCache
-	isAsync       bool
-	cache         *Cache
-	nodeSigVerifyResult  int
-	NodekeyWhitelist     map[string][]byte
+	ctx                 context.Context
+	ms                  MultiStore
+	header              abci.Header
+	chainID             string
+	txBytes             []byte
+	logger              log.Logger
+	voteInfo            []abci.VoteInfo
+	gasMeter            GasMeter
+	blockGasMeter       GasMeter
+	checkTx             bool
+	recheckTx           bool // if recheckTx == true, then checkTx must also be true
+	traceTx             bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog          bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	minGasPrice         DecCoins
+	consParams          *abci.ConsensusParams
+	eventManager        *EventManager
+	accountNonce        uint64
+	sigCache            SigCache
+	isAsync             bool
+	cache               *Cache
+	nodeSigVerifyResult int
+	NodekeyWhitelist    map[string][]byte
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -59,12 +61,14 @@ func (c Context) GasMeter() GasMeter          { return c.gasMeter }
 func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c Context) IsTraceTx() bool             { return c.traceTx }
+func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) NodeSigVerifyResult() int           { return c.nodeSigVerifyResult }
+func (c Context) NodeSigVerifyResult() int    { return c.nodeSigVerifyResult }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -181,7 +185,20 @@ func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
 	c.recheckTx = isRecheckTx
 	return c
 }
-
+func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
+	if isTraceTxLog {
+		c.checkTx = true
+	}
+	c.traceTxLog = isTraceTxLog
+	return c
+}
+func (c Context) WithIsTraceTx(isTraceTx bool) Context {
+	if isTraceTx {
+		c.checkTx = true
+	}
+	c.traceTx = isTraceTx
+	return c
+}
 func (c Context) WithMinGasPrices(gasPrices DecCoins) Context {
 	c.minGasPrice = gasPrices
 	return c

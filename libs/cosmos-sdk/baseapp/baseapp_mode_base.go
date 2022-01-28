@@ -3,9 +3,11 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mempool"
@@ -26,17 +28,19 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	var h modeHandler
 	switch mode {
 	case runTxModeCheck:
-		h = &modeHandlerCheck {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeReCheck:
-		h = &modeHandlerRecheck {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
+	case runTxModeTrace:
+		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case runTxModeDeliver:
-		h = &modeHandlerDeliver {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
-		h = &modeHandlerSimulate {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeDeliverInAsync:
-		h = &modeHandlerDeliverInAsync {&modeHandlerBase {mode: mode, app: app,}}
+		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
 	default:
-		h = &modeHandlerBase {mode: mode, app: app,}
+		h = &modeHandlerBase{mode: mode, app: app}
 	}
 
 	return h
@@ -44,7 +48,7 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 
 type modeHandlerBase struct {
 	mode runTxMode
-	app *BaseApp
+	app  *BaseApp
 }
 
 type modeHandlerDeliverInAsync struct {
@@ -64,6 +68,11 @@ type modeHandlerRecheck struct {
 
 type modeHandlerSimulate struct {
 	*modeHandlerBase
+}
+
+//modeHandlerTrace derived from modeHandlerDeliver
+type modeHandlerTrace struct {
+	*modeHandlerDeliver
 }
 
 func (m *modeHandlerBase) getMode() runTxMode {
@@ -101,9 +110,10 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 }
 
 // noop
-func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error){return}
-func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error){return}
-func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
+func (m *modeHandlerRecheck) handleGasConsumed(*runTxInfo) (err error)  { return }
+func (m *modeHandlerCheck) handleGasConsumed(*runTxInfo) (err error)    { return }
+func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error) { return }
+
 //==========================================================================
 // 3. handleRunMsg
 
@@ -111,7 +121,7 @@ func (m *modeHandlerSimulate) handleGasConsumed(*runTxInfo) (err error){return}
 // (m *modeHandlerRecheck)
 // (m *modeHandlerCheck)
 // (m *modeHandlerSimulate)
-func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
+func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 
@@ -128,13 +138,9 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error){
 // 4. handleDeferGasConsumed
 func (m *modeHandlerBase) handleDeferGasConsumed(*runTxInfo) {}
 
-
 //====================================================================
 // 5. handleDeferRefund
 func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
-
-
-
 
 //===========================================================================================
 // other members
@@ -145,7 +151,7 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	}
 }
 
-func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) (error) {
+func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) error {
 
 	if err != nil {
 		if tmtypes.HigherThanMercury(info.ctx.BlockHeight()) {
@@ -200,7 +206,7 @@ func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInf
 			"wrapped txhash", txhash(data),
 			"pubkey", hexutil.Encode(m.app.nodekey.PubKey().Bytes()),
 			"exInfo", exInfo,
-			)
+		)
 	}
 }
 
@@ -219,6 +225,3 @@ func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
 		info.result.Data = data
 	}
 }
-
-
-
