@@ -139,6 +139,9 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(arz.DeliverTxs); i++ {
+				if arz.DeliverTxs[i] == nil {
+					continue
+				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err

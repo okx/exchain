@@ -202,6 +202,9 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(w.DirtyAccount); i++ {
+				if w.DirtyAccount[i] == nil {
+					continue
+				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -216,6 +219,9 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(w.Batches); i++ {
+				if w.Batches[i] == nil {
+					continue
+				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -252,6 +258,9 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(w.BloomData); i++ {
+				if w.BloomData[i] == nil {
+					continue
+				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err

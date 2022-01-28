@@ -115,6 +115,9 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
+			if ti.TreeValue == nil {
+				break
+			}
 			data, err := ti.TreeValue.MarshalToAmino(nil)
 			if err != nil {
 				return nil, err
@@ -215,6 +218,9 @@ func (td *TreeDelta) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 
 		case 2:
 			for _, v := range td.OrphansDelta {
+				if v == nil {
+					continue
+				}
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -335,6 +341,9 @@ func (ni *NodeJsonMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
+			if ni.NodeValue == nil {
+				break
+			}
 			data, err := ni.NodeValue.MarshalToAmino(nil)
 			if err != nil {
 				return nil, err
