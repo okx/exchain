@@ -2,8 +2,9 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"math/big"
+
+	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // Transactions messages must fulfill the Msg
@@ -49,15 +50,52 @@ type Tx interface {
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
+
+	// none nil for wrapped tx type, nil for other tx type
+	GetPayloadTx() Tx
+
+	// 0 for StdTxType, 1 for wrapped tx, 2 for evm tx
+	GetType() TransactionType
+
+	GetPayloadTxBytes() []byte
 }
 
 //__________________________________________________________
 
+type TransactionType int
+const (
+	StdTxType       TransactionType = 0
+	WrappedTxType   TransactionType = 1
+	EvmTxType       TransactionType = 2
+	UnknownType     TransactionType = 3
+)
+
+func (t TransactionType) String() (res string) {
+	switch t {
+	case StdTxType:
+		res = "StdTx"
+	case WrappedTxType:
+		res = "WrappedTx"
+	case EvmTxType:
+		res = "EvmTx"
+	default:
+		res = "Unknown"
+	}
+	return res
+}
+//__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
 
 // TxEncoder marshals transaction to bytes
 type TxEncoder func(tx Tx) ([]byte, error)
+
+type ExTxInfo struct {
+	Metadata  []byte  `json:"metadata"`  // customized message from the node who signs the tx
+	Signature []byte  `json:"signature"` // signature for payload+metadata
+	NodeKey   []byte  `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+type WrappedTxEncoder func(payload []byte, info *ExTxInfo) ([]byte, error)
 
 //__________________________________________________________
 

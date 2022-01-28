@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	tiavl "github.com/okex/exchain/libs/iavl"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // copied from iavl/store_test.go

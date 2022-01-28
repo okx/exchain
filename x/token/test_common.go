@@ -9,11 +9,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // CreateParam create okexchain parm for test

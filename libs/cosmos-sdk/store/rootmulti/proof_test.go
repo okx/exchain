@@ -3,10 +3,9 @@ package rootmulti
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	iavltree "github.com/okex/exchain/libs/iavl"
-	dbm "github.com/tendermint/tm-db"
+	"github.com/stretchr/testify/require"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -15,11 +14,12 @@ import (
 func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 	// Create main tree for testing.
 	db := dbm.NewMemDB()
-	iStore, err := iavl.LoadStore(db, types.CommitID{}, false, 0)
+	flatKvDB := dbm.NewMemDB()
+	iStore, err := iavl.LoadStore(db, flatKvDB, types.CommitID{}, false, 0)
 	store := iStore.(*iavl.Store)
 	require.Nil(t, err)
 	store.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil)
+	cid, _ := store.CommitterCommit(nil)
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -66,7 +66,7 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil)
+	cid, _ := store.CommitterCommitMap(nil)
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -118,7 +118,7 @@ func TestVerifyMultiStoreQueryProofEmptyStore(t *testing.T) {
 
 	store.MountStoreWithDB(iavlStoreKey, types.StoreTypeIAVL, nil)
 	store.LoadVersion(0)
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil) // Commit with empty iavl store.
+	cid, _ := store.CommitterCommitMap(nil) // Commit with empty iavl store.
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{
@@ -150,7 +150,7 @@ func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
-	cid, _, _ := store.Commit(&iavltree.TreeDelta{}, nil) // Commit with empty iavl store.
+	cid, _ := store.CommitterCommitMap(nil) // Commit with empty iavl store.
 
 	// Get Proof
 	res := store.Query(abci.RequestQuery{

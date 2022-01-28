@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -37,8 +38,11 @@ type Watcher struct {
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
+
 	// for state delta transfering in network
 	watchData *WatchData
+
+	jobChan chan func()
 }
 
 var (
@@ -167,6 +171,21 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 		return
 	}
 	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		if isDirectly {
+			w.batch = append(w.batch, wMsg)
+		} else {
+			w.staleBatch = append(w.staleBatch, wMsg)
+		}
+
+	}
+}
+
+func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewDelAccMsg(account)
 	if wMsg != nil {
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
@@ -355,7 +374,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go w.commitBatch(batch)
+	w.dispatchJob(func() {w.commitBatch(batch)})
 
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
@@ -381,7 +400,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.delayEraseKey = data.DelayEraseKey
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -397,9 +415,13 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
-		w.store.Set(key, value)
-		if typeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(key), value)
+		if typeValue == TypeDelete {
+			w.store.Delete(key)
+		} else {
+			w.store.Set(key, value)
+			if typeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(key), value)
+			}
 		}
 	}
 
@@ -414,16 +436,20 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
 	for _, b := range batch {
-		w.store.Set(b.Key, b.Value)
-		if b.TypeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		if b.TypeValue == TypeDelete {
+			w.store.Delete(b.Key)
+		} else {
+			w.store.Set(b.Key, b.Value)
+			if b.TypeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+			}
 		}
 	}
 }
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 
@@ -440,29 +466,43 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
-func (w *Watcher) GetWatchData() ([]byte, error) {
+func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
-	valueByte, err := itjs.Marshal(value)
-	if err != nil {
-		return nil, err
+
+	return func() ([]byte, error) {
+		valueByte, err := itjs.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		return valueByte, nil
 	}
-	return valueByte, nil
 }
 
-func (w *Watcher) UseWatchData(wdByte []byte) {
-	wd := WatchData{}
-	if len(wdByte) > 0 {
-		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-			return
-		}
+func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
 	}
+	wd := WatchData{}
+	if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
 
-	go w.CommitWatchData(wd)
+func (w *Watcher) UseWatchData(watchData interface{}) {
+	wd, ok := watchData.(WatchData)
+	if !ok {
+		panic("use watch data failed")
+	}
+	w.delayEraseKey = wd.DelayEraseKey
+
+	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	tmstate.SetWatchDataFunc(w.GetWatchData, w.UseWatchData)
+	go w.jobRoutine()
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
@@ -483,4 +523,32 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	}
 
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+/////////// job
+func (w *Watcher) jobRoutine() {
+	if !w.Enabled() {
+		return
+	}
+
+	w.lazyInitialization()
+
+	for job := range w.jobChan {
+		job()
+	}
+}
+
+func (w *Watcher) lazyInitialization() {
+	// lazy initial:
+	// now we will allocate chan memory
+	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*2)
+}
+
+func (w *Watcher) dispatchJob(f func()) {
+	// if jobRoutine were too slow to write data  to disk
+	// we have to wait
+	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
+	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	w.jobChan <- f
 }

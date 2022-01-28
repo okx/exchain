@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -145,6 +145,10 @@ func (app *BaseApp) SetFauxMerkleMode() {
 // CommitMultiStore.
 func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
 	app.cms.SetTracer(w)
+}
+
+func (app *BaseApp) SetWrappedTxEncoder(f sdk.WrappedTxEncoder) {
+	app.wrappedTxEncoder = f
 }
 
 // SetStoreLoader allows us to customize the rootMultiStore initialization.

@@ -17,7 +17,7 @@ import (
 
 	"sort"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -1143,6 +1143,18 @@ func (bs *mockBlockStore) PruneBlocks(height int64) (uint64, error) {
 	}
 	bs.base = height
 	return pruned, nil
+}
+
+// DeleteBlocksFromTop removes block down to (but not including) a height. It returns number of blocks deleted.
+func (bs *mockBlockStore) DeleteBlocksFromTop(height int64) (uint64, error) {
+	deleted := uint64(0)
+	top := bs.Height()
+	for i := top; i > height; i-- {
+		bs.chain[i] = nil
+		bs.commits[i] = nil
+		deleted++
+	}
+	return deleted, nil
 }
 
 //---------------------------------------

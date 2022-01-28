@@ -6,7 +6,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
@@ -418,7 +418,7 @@ func loadValidatorsInfo(db dbm.DB, height int64) *ValidatorsInfo {
 // signing. It should be called from s.Save(), right before the state itself is
 // persisted.
 func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *types.ValidatorSet) {
-	if lastHeightChanged > height {
+	if !IgnoreSmbCheck && lastHeightChanged > height {
 		panic("LastHeightChanged cannot be greater than ValidatorsInfo height")
 	}
 	valInfo := &ValidatorsInfo{

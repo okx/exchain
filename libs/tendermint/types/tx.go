@@ -125,6 +125,59 @@ type TxResult struct {
 	Result abci.ResponseDeliverTx `json:"result"`
 }
 
+func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			txResult.Height = int64(uvint)
+			dataLen = uint64(n)
+		case 2:
+			var n int
+			var uvint uint64
+			uvint, n, err = amino.DecodeUvarint(data)
+			txResult.Index = uint32(uvint)
+			dataLen = uint64(n)
+		case 3:
+			txResult.Tx = make(Tx, dataLen)
+			copy(txResult.Tx, subData)
+		case 4:
+			err = txResult.Result.UnmarshalFromAmino(subData)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // ComputeAminoOverhead calculates the overhead for amino encoding a transaction.
 // The overhead consists of varint encoding the field number and the wire type
 // (= length-delimited = 2), and another varint encoding the length of the

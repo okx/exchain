@@ -24,6 +24,13 @@ func (cdsa commitDBStoreAdapter) Commit(*iavl.TreeDelta, []byte) (types.CommitID
 	}, iavl.TreeDelta{}, nil
 }
 
+func (cdsa commitDBStoreAdapter) CommitterCommit(*iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) {
+	return types.CommitID{
+		Version: -1,
+		Hash:    commithash,
+	}, &iavl.TreeDelta{}
+}
+
 func (cdsa commitDBStoreAdapter) LastCommitID() types.CommitID {
 	return types.CommitID{
 		Version: -1,
@@ -40,3 +47,8 @@ func (cdsa commitDBStoreAdapter) GetDBReadCount() int   { return 0 }
 func (cdsa commitDBStoreAdapter) GetNodeReadCount() int { return 0 }
 
 func (cdsa commitDBStoreAdapter) ResetCount() {}
+
+func (cdsa commitDBStoreAdapter) GetFlatKVReadTime() int   { return 0 }
+func (cdsa commitDBStoreAdapter) GetFlatKVWriteTime() int  { return 0 }
+func (cdsa commitDBStoreAdapter) GetFlatKVReadCount() int  { return 0 }
+func (cdsa commitDBStoreAdapter) GetFlatKVWriteCount() int { return 0 }
