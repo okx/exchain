@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/go-errors/errors"
@@ -349,7 +348,7 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }

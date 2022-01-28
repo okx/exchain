@@ -872,7 +872,8 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 	if delta != nil {
 		for k, v := range delta.NodesDelta {
-			tree.savedNodes[k] = NodeJsonToNode(v)
+			kb, _ := hex.DecodeString(k)
+			tree.savedNodes[amino.BytesToStr(kb)] = NodeJsonToNode(v)
 		}
 
 		// set tree.orphans
@@ -891,7 +892,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 
 func (tree *MutableTree) GetDelta() {
 	for k, v := range tree.savedNodes {
-		tree.deltas.NodesDelta[k] = NodeToNodeJson(v)
+		tree.deltas.NodesDelta[amino.HexEncodeToString(amino.StrToBytes(k))] = NodeToNodeJson(v)
 	}
 
 	orphans := make([]*NodeJson, len(tree.orphans))

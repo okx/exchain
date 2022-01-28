@@ -356,6 +356,8 @@ func TestVoteAmino(t *testing.T) {
 		expectData, err := cdc.MarshalBinaryBare(vote)
 		require.NoError(t, err)
 
+		require.Equal(t, len(expectData), vote.AminoSize(cdc))
+
 		var expectValue Vote
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)

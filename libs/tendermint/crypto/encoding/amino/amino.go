@@ -173,3 +173,15 @@ func MarshalPubKeyToAminoWithTypePrefix(key crypto.PubKey) (data []byte, err err
 	}
 	return nil, errors.New("unknown pubkey type")
 }
+
+func PubKeyAminoSize(pubKey crypto.PubKey, cdc *amino.Codec) int {
+	if sizer, ok := pubKey.(amino.Sizer); ok {
+		return 4 + sizer.AminoSize(cdc)
+	} else {
+		encdoedPubKey, err := cdc.MarshalBinaryBare(pubKey)
+		if err != nil {
+			panic(err)
+		}
+		return len(encdoedPubKey)
+	}
+}

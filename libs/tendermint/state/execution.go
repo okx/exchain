@@ -2,9 +2,12 @@ package state
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"time"
+	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -168,7 +171,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
-		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -350,8 +353,8 @@ func (blockExec *BlockExecutor) commit(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
-		"appHash", fmt.Sprintf("%X", res.Data),
-		"blockLen", block.Size(),
+		"appHash", amino.BytesHexStringer(res.Data),
+		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
 	// Update mempool.
