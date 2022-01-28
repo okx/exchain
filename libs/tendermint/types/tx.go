@@ -125,7 +125,7 @@ type TxResult struct {
 	Result abci.ResponseDeliverTx `json:"result"`
 }
 
-func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
+func (txResult *TxResult) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -144,9 +144,15 @@ func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data length: %d", dataLen)
+			}
 			subData = data[:dataLen]
 		}
 
@@ -155,19 +161,25 @@ func (txResult *TxResult) UnmarshalFromAmino(data []byte) error {
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			txResult.Height = int64(uvint)
 			dataLen = uint64(n)
 		case 2:
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			txResult.Index = uint32(uvint)
 			dataLen = uint64(n)
 		case 3:
 			txResult.Tx = make(Tx, dataLen)
 			copy(txResult.Tx, subData)
 		case 4:
-			err = txResult.Result.UnmarshalFromAmino(nil, subData)
+			err = txResult.Result.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

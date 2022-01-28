@@ -217,7 +217,7 @@ func testDecodeABCIResponse(t *testing.T) {
 	abciResponses1 := produceAbciRsp()
 
 	// encode
-	data, err := abciResponses1.MarshalToAmino()
+	data, err := abciResponses1.MarshalToAmino(cdc)
 	require.NoError(t, err)
 
 	//decode
@@ -250,7 +250,7 @@ func BenchmarkMarshalCustom(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		abciResponses.MarshalToAmino()
+		abciResponses.MarshalToAmino(ModuleCodec)
 	}
 }
 
@@ -279,7 +279,7 @@ func BenchmarkUnmarshalFromAmino(b *testing.B) {
 }
 func BenchmarkUnmarshalFromCustom(b *testing.B) {
 	abciResponses := produceAbciRsp()
-	data, _ := abciResponses.MarshalToAmino()
+	data, _ := abciResponses.MarshalToAmino(cdc)
 
 	b.ReportAllocs()
 	b.ResetTimer()
