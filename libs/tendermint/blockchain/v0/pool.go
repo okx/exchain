@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/global"
 	flow "github.com/okex/exchain/libs/tendermint/libs/flowrate"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
@@ -324,7 +323,6 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 
 	if height > pool.maxPeerHeight {
 		pool.maxPeerHeight = height
-		global.SetGlobalMaxPeerHeight(height)
 	}
 
 	// compute how many peers' height is greater than height

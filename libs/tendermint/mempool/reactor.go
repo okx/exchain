@@ -5,12 +5,10 @@ import (
 	"math"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -44,8 +42,6 @@ type Reactor struct {
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
 	enableWtx        bool
-	startTime        time.Time
-	caughtUp         int32 // 0 or 1
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -123,13 +119,11 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
-		startTime:        time.Now(),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
-	go memR.caughtUpRoutine()
 	return memR
 }
 
@@ -285,7 +279,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						From:      memTx.from,
 					},
 				}
-			} else if memR.enableWtx && memR.isCaughtUp() {
+			} else if memR.enableWtx {
 				if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
 					msg = &WtxMessage{
 						Wtx: wtx,
@@ -424,30 +418,4 @@ func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
 	}
 	wtx.Signature = sig
 	return wtx, nil
-}
-
-// refer to BlockPool.IsCaughtUp()
-func (memR *Reactor) caughtUpRoutine() {
-	ticker := time.NewTicker(time.Second * 5)
-	for {
-		select {
-		case <-ticker.C:
-			if len(memR.ids.activeIDs) == 0 {
-				atomic.StoreInt32(&memR.caughtUp, 0)
-				break
-			}
-			receivedBlockOrTimedOut := memR.mempool.height > 0 || time.Since(memR.startTime) > 5*time.Second
-			peerMaxHeight := global.GetGlobalMaxPeerHeight()
-			ourChainIsLongestAmongPeers := peerMaxHeight == 0 || memR.mempool.height >= (peerMaxHeight-1)
-			if receivedBlockOrTimedOut && ourChainIsLongestAmongPeers {
-				atomic.StoreInt32(&memR.caughtUp, 1)
-			} else {
-				atomic.StoreInt32(&memR.caughtUp, 1)
-			}
-		}
-	}
-}
-
-func (memR *Reactor) isCaughtUp() bool {
-	return atomic.LoadInt32(&memR.caughtUp) > 0
 }
