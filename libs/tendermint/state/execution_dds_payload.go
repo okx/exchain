@@ -36,7 +36,7 @@ type DeltaInfo struct {
 func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 	var err error
 	pl := types.DeltaPayload{}
-	pl.ABCIRsp, err = info.abciResponses.MarshalToAmino()
+	pl.ABCIRsp, err = info.abciResponses.MarshalToAmino(cdc)
 	if err != nil {
 		return pl, err
 	}
