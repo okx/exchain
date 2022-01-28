@@ -99,7 +99,7 @@ function check_block() {
 }
 
 function check_block_all() {
-  echo "Check all node block"
+  echo "Check all nodes generate block"
   check_block val0
   check_block val1
   check_block val2
@@ -109,9 +109,8 @@ function check_block_all() {
 }
 
 function send_tx() {
-  echo "start sending tx ..."
-  # (cd ../client/ && bash run.sh > /dev/null 2>&1 &)
-  (cd ../client/ && bash run.sh > ./newrun.log 2>&1 &)
+  echo "Start sending tx ..."
+  (cd ../client/ && bash run.sh > /dev/null 2>&1 &)
 }
 
 function start_node() {
@@ -172,7 +171,6 @@ function add_rpc() {
   echo "add rpc >>> "$node_name
   
   seed_addr=$(exchaind tendermint show-node-id --home cache/node0/exchaind)@${IP}:${seedp2pport}
-  echo $seed_addr
 
   exchaind_opts="--p2p.seeds ${seed_addr} "
   start_node $index $node_name $exchaind_opts
@@ -193,8 +191,18 @@ function case_prepare() {
   bash addnewnode.sh -n 5
 }
 
+function clean_in_the_end() {
+  echo "Clean after running cases ..."
+  killbyname_gracefully ${BIN_NAME}
+  killbyname_gracefully "run.sh"
+  killbyname_gracefully "./client"
+
+  rm -rf ./cache
+  echo "Clean finished!"
+}
+
 function caseopt() {
-  echo "caseopt()"
+  echo "Perform caseopt()"
   version1=$1
   version2=$2
 
@@ -202,8 +210,9 @@ function caseopt() {
   case_2 $version1 $version2
   case_3 $version1 $version2
   echo "All cases finished!"
-}
 
+  clean_in_the_end
+}
 
 function case_1() {
   # Upgrade 1 rpc node , then upgrade 1 validator node.
