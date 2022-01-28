@@ -6,9 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	db "github.com/tendermint/tm-db"
-	"github.com/tendermint/tm-db/remotedb/grpcdb"
-	protodb "github.com/tendermint/tm-db/remotedb/proto"
+	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/libs/tm-db/remotedb/grpcdb"
+	protodb "github.com/okex/exchain/libs/tm-db/remotedb/proto"
 )
 
 type RemoteDB struct {

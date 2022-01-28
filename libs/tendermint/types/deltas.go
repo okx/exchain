@@ -26,7 +26,7 @@ const (
 	FlagFastQuery   = "fast-query"
 
 	// do not apply delta if version does not match
-	DeltaVersion = 4
+	DeltaVersion = 5
 )
 
 var (

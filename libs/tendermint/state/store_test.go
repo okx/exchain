@@ -198,6 +198,7 @@ func TestABCIResponsesAmino(t *testing.T) {
 		{
 			[]*abci.ResponseDeliverTx{
 				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
 			},
 			&abci.ResponseEndBlock{
 				ValidatorUpdates: []abci.ValidatorUpdate{
@@ -234,7 +235,7 @@ func TestABCIResponsesAmino(t *testing.T) {
 		expect, err := sm.ModuleCodec.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := resp.MarshalToAmino()
+		actual, err := resp.MarshalToAmino(sm.ModuleCodec)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 	}
@@ -286,7 +287,7 @@ func BenchmarkABCIResponsesMarshalAmino(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = resp.MarshalToAmino()
+			_, _ = resp.MarshalToAmino(sm.ModuleCodec)
 		}
 	})
 }

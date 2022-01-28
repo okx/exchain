@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -507,13 +508,13 @@ func TestDecCoinAmino(t *testing.T) {
 		{"test", Dec{}},
 		{"test", amount},
 		{"test", Dec{big.NewInt(100000)}},
-		{"", Dec{big.NewInt(100000)}},
+		{"", Dec{big.NewInt(math.MinInt64)}},
 	}
 
 	for i, test := range tests {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
-		actual, err := test.MarshalToAmino()
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -522,7 +523,8 @@ func TestDecCoinAmino(t *testing.T) {
 		var dc DecCoin
 		err = cdc.UnmarshalBinaryBare(expect, &dc)
 		require.NoError(t, err)
-		actualDc, err := UnmarshalCoinFromAmino(expect)
+		var actualDc DecCoin
+		err = actualDc.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 		require.EqualValues(t, dc, actualDc)
 
@@ -546,7 +548,7 @@ func BenchmarkDecCoinAmino(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = coin.MarshalToAmino()
+			_, _ = coin.MarshalToAmino(cdc)
 		}
 	})
 }
