@@ -2,9 +2,12 @@ package state
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"time"
+	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -350,8 +353,8 @@ func (blockExec *BlockExecutor) commit(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
-		"appHash", fmt.Sprintf("%X", res.Data),
-		"blockLen", block.Size(),
+		"appHash", amino.BytesHexStringer(res.Data),
+		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.Size()) }),
 	)
 
 	// Update mempool.
