@@ -55,6 +55,9 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 }
 
 func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
+	if pl == nil {
+		return fmt.Errorf("Failed bytes to delta info: empty delta payload. ")
+	}
 	var err error
 	ar := &ABCIResponses{}
 	err = ar.UnmarshalFromAmino(nil, pl.ABCIRsp)
