@@ -2,9 +2,9 @@ package types
 
 import (
 	"fmt"
-
 	"gopkg.in/yaml.v2"
 
+	"encoding/json"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/okex/exchain/x/params"
 )
@@ -75,6 +75,49 @@ func DefaultParams() Params {
 func (p Params) String() string {
 	out, _ := yaml.Marshal(p)
 	return string(out)
+}
+
+func (p Params) MarshalJSON() ([]byte, error) {
+	alias := &struct {
+		EnableCreate                      bool   `json:"enable_create"`
+		EnableCall                        bool   `json:"enable_call"`
+		ExtraEIPs                         []int  `json:"extra_eips"`
+		EnableContractDeploymentWhitelist bool   `json:"enable_contract_deployment_whitelist"`
+		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
+		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
+	}{
+		p.EnableCreate,
+		p.EnableCall,
+		p.ExtraEIPs,
+		p.EnableContractDeploymentWhitelist,
+		p.EnableContractBlockedList,
+		p.MaxGasLimitPerTx,
+	}
+	
+	return json.Marshal(alias)
+}
+
+func (p *Params) UnmarshalJSON(input []byte) error {
+	alias := &struct {
+		EnableCreate                      bool   `json:"enable_create"`
+		EnableCall                        bool   `json:"enable_call"`
+		ExtraEIPs                         []int  `json:"extra_eips"`
+		EnableContractDeploymentWhitelist bool   `json:"enable_contract_deployment_whitelist"`
+		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
+		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
+	}{}
+	if err := json.Unmarshal(input, &alias); err != nil {
+		return err
+	}
+
+	p.EnableCreate = alias.EnableCreate
+	p.EnableCall = alias.EnableCall
+	p.ExtraEIPs = alias.ExtraEIPs
+	p.EnableContractDeploymentWhitelist = alias.EnableContractDeploymentWhitelist
+	p.EnableContractBlockedList = alias.EnableContractBlockedList
+	p.MaxGasLimitPerTx = alias.MaxGasLimitPerTx
+
+	return nil
 }
 
 // ParamSetPairs returns the parameter set pairs.
