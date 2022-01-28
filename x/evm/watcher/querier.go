@@ -410,7 +410,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 		return nil, errNotFound
 	}
 	var params evmtypes.Params
-	e = json.Unmarshal(b, &params)
+	e = params.UnmarshalJSON(b)
 	if e != nil {
 		return nil, e
 	}
