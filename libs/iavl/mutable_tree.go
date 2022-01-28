@@ -11,7 +11,7 @@ import (
 	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func SetIgnoreVersionCheck(check bool) {

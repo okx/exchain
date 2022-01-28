@@ -8,7 +8,7 @@ import (
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

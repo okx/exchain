@@ -26,7 +26,7 @@ import (
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
@@ -628,6 +628,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
 			ctx = ctx.WithSigCache(s.signCache)
 		}
+		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
 
 	return ctx

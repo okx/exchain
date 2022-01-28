@@ -10,7 +10,7 @@ import (
 	"unsafe"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"

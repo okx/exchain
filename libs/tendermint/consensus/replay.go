@@ -13,7 +13,7 @@ import (
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	//auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -551,5 +551,5 @@ func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlo
 }
 
 func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	return abci.ResponseCommit{Data: mock.appHash, Deltas: &abci.Deltas{}}
+	return abci.ResponseCommit{Data: mock.appHash}
 }
