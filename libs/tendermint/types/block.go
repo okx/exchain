@@ -48,7 +48,7 @@ type Block struct {
 	LastCommit *Commit      `json:"last_commit"`
 }
 
-func (b Block) AminoSize(cdc *amino.Codec) int {
+func (b *Block) AminoSize(cdc *amino.Codec) int {
 	var size = 0
 
 	headerSize := b.Header.AminoSize(cdc)
@@ -253,6 +253,19 @@ func (b *Block) Size() int {
 		return 0
 	}
 	return len(bz)
+}
+
+// TODO : Replace the original logic of Size with the logic of FastSize
+
+// FastSize returns size of the block in bytes. and more efficient than Size().
+// But we can't make sure it's completely correct yet, when we're done testing, we'll replace Size with FastSize
+func (b *Block) FastSize() (size int) {
+	defer func() {
+		if r := recover(); r != nil {
+			size = 0
+		}
+	}()
+	return b.AminoSize(cdc)
 }
 
 // String returns a string representation of the block

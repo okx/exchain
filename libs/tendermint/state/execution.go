@@ -171,7 +171,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
-		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -354,7 +354,7 @@ func (blockExec *BlockExecutor) commit(
 		"height", block.Height,
 		"txs", len(block.Txs),
 		"appHash", amino.BytesHexStringer(res.Data),
-		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.Size()) }),
+		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
 	// Update mempool.
