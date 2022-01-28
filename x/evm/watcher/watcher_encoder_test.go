@@ -19,7 +19,7 @@ func newTestWatchData() *watcher.WatchData {
 	wd, _ := wdFunc()
 
 	// unmarshal to raw watch data
-	data := new(watcher.WatchData)
+	data := &watcher.WatchData{}
 	data.UnmarshalFromAmino(nil, wd)
 	return data
 }
@@ -34,7 +34,7 @@ func TestWatchDataEncoder(t *testing.T) {
 	require.NoError(t, err)
 
 	// unmarshal to raw watch data
-	data := new(watcher.WatchData)
+	data := &watcher.WatchData{}
 	err = data.UnmarshalFromAmino(nil, wd)
 	require.NoError(t, err)
 }
@@ -92,7 +92,7 @@ func (ae *aminoEncoder) encodeFunc(data *watcher.WatchData) ([]byte, error) {
 	return data.MarshalToAmino(nil)
 }
 func (ae *aminoEncoder) decodeFunc(data []byte) (*watcher.WatchData, error) {
-	wd := new(watcher.WatchData)
+	wd := &watcher.WatchData{}
 	err := wd.UnmarshalFromAmino(nil, data)
 	return wd, err
 }
@@ -105,7 +105,7 @@ func (je *jsonEncoder) encodeFunc(data *watcher.WatchData) ([]byte, error) {
 	return json.Marshal(data)
 }
 func (je *jsonEncoder) decodeFunc(data []byte) (*watcher.WatchData, error) {
-	wd := new(watcher.WatchData)
+	wd := &watcher.WatchData{}
 	err := json.Unmarshal(data, wd)
 	return wd, err
 }
