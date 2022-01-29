@@ -59,7 +59,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		}
 	}
 
-	gInfo, result, _, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
+	gInfo, result, _, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight, req.From)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}

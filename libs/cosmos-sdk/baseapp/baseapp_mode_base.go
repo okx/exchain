@@ -155,7 +155,7 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) err
 }
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
-	if m.mode != runTxModeCheck {
+	if m.mode != runTxModeCheck && m.mode != runTxModeWrappedCheck {
 		return
 	}
 

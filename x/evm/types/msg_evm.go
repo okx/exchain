@@ -8,20 +8,16 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -47,6 +43,11 @@ type MsgEthereumTx struct {
 	// caches
 	size atomic.Value
 	from atomic.Value
+}
+
+func (tx *MsgEthereumTx) SetFrom(addr string) {
+	// only cache from but not signer
+	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
 }
 
 func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {

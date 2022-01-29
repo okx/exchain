@@ -40,7 +40,7 @@ func BenchmarkCheckTx(b *testing.B) {
 }
 
 func BenchmarkCacheInsertTime(b *testing.B) {
-	cache := newLruCache(b.N)
+	cache := newMapTxCache(b.N)
 	txs := make([][]byte, b.N)
 	for i := 0; i < b.N; i++ {
 		txs[i] = make([]byte, 8)
@@ -48,19 +48,19 @@ func BenchmarkCacheInsertTime(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cache.Add(txs[i], nil)
+		cache.Push(txs[i])
 	}
 }
 
 // This benchmark is probably skewed, since we actually will be removing
 // txs in parallel, which may cause some overhead due to mutex locking.
 func BenchmarkCacheRemoveTime(b *testing.B) {
-	cache := newLruCache(b.N)
+	cache := newMapTxCache(b.N)
 	txs := make([][]byte, b.N)
 	for i := 0; i < b.N; i++ {
 		txs[i] = make([]byte, 8)
 		binary.BigEndian.PutUint64(txs[i], uint64(i))
-		cache.Add(txs[i], nil)
+		cache.Push(txs[i])
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

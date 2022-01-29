@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
@@ -11,43 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCacheAdd(t *testing.T) {
-	size := 10
-	cache := newLruCache(size)
-	for i := 0; i < 10; i++ {
-		tx := genTestTx(i)
-		require.False(t, cache.Contains(tx))
-		cache.Add(tx, nil)
-		require.True(t, cache.Contains(tx))
-	}
-	require.Equal(t, size, cache.lru.Len())
-
-	tx := genTestTx(5)
-	data := cache.Get(tx)
-	_, ok := data.(*WrappedTx)
-	require.False(t, ok)
-	cache.Add(tx, &WrappedTx{Payload: tx})
-	data = cache.Get(tx)
-	_, ok = data.(*WrappedTx)
-	require.True(t, ok)
-
-	require.True(t, cache.Contains(genTestTx(0)))
-	tx = genTestTx(size + 1)
-	cache.Add(tx, nil)
-	require.True(t, cache.Contains(tx))
-	// tx-0 evicted
-	require.False(t, cache.Contains(genTestTx(0)))
-
-	cache.Reset()
-	require.Equal(t, 0, cache.lru.Len())
-}
-
-func genTestTx(i int) types.Tx {
-	return append([]byte("test-tx-"), byte(i))
-}
-
 func TestCacheRemove(t *testing.T) {
-	cache := newLruCache(100)
+	cache := newMapTxCache(100)
 	numTxs := 10
 	txs := make([][]byte, numTxs)
 	for i := 0; i < numTxs; i++ {
@@ -55,12 +21,16 @@ func TestCacheRemove(t *testing.T) {
 		txBytes := make([]byte, 32)
 		rand.Read(txBytes) // nolint: gosec
 		txs[i] = txBytes
-		cache.Add(txBytes, nil)
-		require.Equal(t, i+1, cache.lru.Len())
+		cache.Push(txBytes)
+		// make sure its added to both the linked list and the map
+		require.Equal(t, i+1, len(cache.cacheMap))
+		require.Equal(t, i+1, cache.list.Len())
 	}
 	for i := 0; i < numTxs; i++ {
 		cache.Remove(txs[i])
-		require.Equal(t, numTxs-(i+1), cache.lru.Len())
+		// make sure its removed from both the map and the linked list
+		require.Equal(t, numTxs-(i+1), len(cache.cacheMap))
+		require.Equal(t, numTxs-(i+1), cache.list.Len())
 	}
 }
 
@@ -89,7 +59,6 @@ func TestCacheAfterUpdate(t *testing.T) {
 			tx := types.Tx{byte(i)}
 			err := mempool.CheckTx(tx, nil, TxInfo{})
 			require.NoError(t, err)
-			require.True(t, mempool.cache.Contains(tx))
 		}
 
 		updateTxs := []types.Tx{}
@@ -104,13 +73,29 @@ func TestCacheAfterUpdate(t *testing.T) {
 			_ = mempool.CheckTx(tx, nil, TxInfo{})
 		}
 
-		for _, v := range tc.txsInCache {
-			tx := types.Tx{byte(v)}
-			require.True(t, mempool.cache.Contains(tx))
-		}
+		cache := mempool.cache.(*mapTxCache)
+		node := cache.list.Front()
+		counter := 0
+		for node != nil {
+			require.NotEqual(t, len(tc.txsInCache), counter,
+				"cache larger than expected on testcase %d", tcIndex)
 
-		cache := mempool.cache.(*lruCache)
-		require.Equal(t, len(tc.txsInCache), cache.lru.Len())
+			nodeVal := node.Value.([sha256.Size]byte)
+			expectedBz := sha256.Sum256([]byte{byte(tc.txsInCache[len(tc.txsInCache)-counter-1])})
+			// Reference for reading the errors:
+			// >>> sha256('\x00').hexdigest()
+			// '6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d'
+			// >>> sha256('\x01').hexdigest()
+			// '4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a'
+			// >>> sha256('\x02').hexdigest()
+			// 'dbc1b4c900ffe48d575b5da5c638040125f65db0fe3e24494b76ea986457d986'
+
+			require.Equal(t, expectedBz, nodeVal, "Equality failed on index %d, tc %d", counter, tcIndex)
+			counter++
+			node = node.Next()
+		}
+		require.Equal(t, len(tc.txsInCache), counter,
+			"cache smaller than expected on testcase %d", tcIndex)
 		mempool.Flush()
 	}
 }
