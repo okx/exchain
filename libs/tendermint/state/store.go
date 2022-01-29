@@ -216,7 +216,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 
 		case 2:
 			eBlock := &abci.ResponseEndBlock{}
-			if len(subData) == 0 {
+			if len(subData) != 0 {
 				err := eBlock.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -226,7 +226,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 
 		case 3:
 			bBlock := &abci.ResponseBeginBlock{}
-			if len(subData) == 0 {
+			if len(subData) != 0 {
 				err := bBlock.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err

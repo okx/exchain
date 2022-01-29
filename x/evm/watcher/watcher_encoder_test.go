@@ -1,7 +1,6 @@
 package watcher_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -26,26 +25,7 @@ func newTestWatchData() *watcher.WatchData {
 
 func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
 func testTreeDeltaAmino(t *testing.T) {
-	for i, tdm := range testTreeDeltaMap {
-		// each tree delta
-		for _, td := range tdm {
-			expect, err := cdc.MarshalBinaryBare(td)
-			require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-			actual, err := td.MarshalToAmino(cdc)
-			require.NoError(t, err, fmt.Sprintf("num %v", i))
-			require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
-
-			var expectValue TreeDelta
-			err = cdc.UnmarshalBinaryBare(expect, &expectValue)
-			require.NoError(t, err, fmt.Sprintf("num %v", i))
-
-			var actualValue TreeDelta
-			err = actualValue.UnmarshalFromAmino(cdc, expect)
-			require.NoError(t, err, fmt.Sprintf("num %v", i))
-			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
-		}
-	}
 }
 
 func TestWatchDataEncoder(t *testing.T) {
