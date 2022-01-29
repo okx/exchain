@@ -3,6 +3,7 @@ package simulation
 import (
 	"encoding/binary"
 	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/keeper"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -33,6 +34,7 @@ type QueryOnChainProxy interface {
 	GetAccount(address common.Address) (*types.EthAccount, error)
 	GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error)
 	GetCodeByHash(hash common.Hash) (hexutil.Bytes, error)
+	GetSimulateKeeper() *keeper.Keeper
 }
 
 // AccountKeeper defines the expected account keeper interface

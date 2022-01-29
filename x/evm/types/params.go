@@ -93,7 +93,7 @@ func (p Params) MarshalJSON() ([]byte, error) {
 		p.EnableContractBlockedList,
 		p.MaxGasLimitPerTx,
 	}
-	
+
 	return json.Marshal(alias)
 }
 
@@ -106,7 +106,7 @@ func (p *Params) UnmarshalJSON(input []byte) error {
 		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
 		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
 	}{}
-	if err := json.Unmarshal(input, &alias); err != nil {
+	if err := json.Unmarshal(input, alias); err != nil {
 		return err
 	}
 

@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/keeper"
 	"math/big"
 	"strconv"
 	"sync"
@@ -41,6 +44,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -71,6 +75,8 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
+	simulateKeeper *keeper.Keeper
+	cdc            *codec.Codec
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -97,6 +103,10 @@ func NewAPI(
 		watcherBackend: watcher.NewWatcher(log),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
+	module := evm.AppModuleBasic{}
+	api.cdc = codec.New()
+	module.RegisterCodec(api.cdc)
+	api.simulateKeeper = evm.NewSimulateKeeper(api.cdc, sdk.NewKVStoreKey(evm.StoreKey), simulation.NewSubspaceProxy(), simulation.NewAccountKeeperProxy(api), simulation.SupplyKeeperProxy{}, simulation.NewBankKeeperProxy(), simulation.NewInternalDba(api), tmlog.NewNopLogger())
 
 	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
@@ -146,6 +156,10 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 // ClientCtx returns the Cosmos SDK client context.
 func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
+}
+
+func (api *PublicEthereumAPI) GetSimulateKeeper() *keeper.Keeper {
+	return api.simulateKeeper
 }
 
 // GetKeys returns the Cosmos SDK client context.
