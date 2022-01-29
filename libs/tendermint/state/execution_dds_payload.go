@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -10,8 +11,8 @@ func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
 	if len(input) == 0 {
 		return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
 	}
-	var treeDeltaMap iavl.TreeDeltaMap
-	err := types.Json.Unmarshal(input, &treeDeltaMap)
+	treeDeltaMap := iavl.TreeDeltaMap{}
+	err := treeDeltaMap.UnmarshalFromAmino(nil, input)
 	return treeDeltaMap, err
 }
 
@@ -20,7 +21,7 @@ func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed marshal TreeDeltaMap")
 	}
-	return types.Json.Marshal(dm)
+	return dm.MarshalToAmino(nil)
 }
 
 type DeltaInfo struct {
@@ -28,14 +29,14 @@ type DeltaInfo struct {
 	treeDeltaMap  interface{}
 	watchData     interface{}
 
-	marshalWatchData    func() ([]byte, error)
+	marshalWatchData func() ([]byte, error)
 }
 
 // for upload
 func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 	var err error
 	pl := types.DeltaPayload{}
-	pl.ABCIRsp, err = types.Json.Marshal(info.abciResponses)
+	pl.ABCIRsp, err = info.abciResponses.MarshalToAmino(cdc)
 	if err != nil {
 		return pl, err
 	}
@@ -54,11 +55,16 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 }
 
 func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
+	if pl == nil {
+		return fmt.Errorf("Failed bytes to delta info: empty delta payload. ")
+	}
 	var err error
-	err = types.Json.Unmarshal(pl.ABCIRsp, &info.abciResponses)
+	ar := &ABCIResponses{}
+	err = ar.UnmarshalFromAmino(nil, pl.ABCIRsp)
 	if err != nil {
 		return err
 	}
+	info.abciResponses = ar
 
 	info.treeDeltaMap, err = unmarshalTreeDeltaMap(pl.DeltasBytes)
 	if err != nil {
