@@ -11,12 +11,14 @@ import (
 
 var testTreeDeltaMap = []TreeDeltaMap{
 	//empty
+	{},
+	//empty treedelta
 	{
-		"test0": {},
+		"test1": {},
 	},
 	//empty NodesDelta
 	{
-		"test1": {
+		"test2": {
 			NodesDelta:         []*NodeJsonImp{},
 			OrphansDelta:       []*NodeJson{{Version: 3}, {Version: 4}},
 			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {"nd2", 2}},
@@ -24,7 +26,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	//empty OrphansDelta
 	{
-		"test2": {
+		"test3": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -35,7 +37,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	//empty CommitOrphansDelta
 	{
-		"test3": {
+		"test4": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -46,7 +48,20 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	// full data
 	{
-		"test4": {
+		"test5": {
+			NodesDelta: []*NodeJsonImp{
+				{"nd1", &NodeJson{Version: 1}},
+				{},
+				{"nd2", &NodeJson{Version: 2}},
+			},
+			OrphansDelta:       []*NodeJson{{Version: 3}, {}, {Version: 4}},
+			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {}, {"nd2", 2}},
+		},
+	},
+
+	// full data
+	{
+		"test6": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -57,7 +72,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	// multiple data
 	{
-		"test5.0": {
+		"test7.0": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -65,7 +80,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 			OrphansDelta:       []*NodeJson{{Version: 3}, {Version: 4}},
 			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {"nd2", 2}},
 		},
-		"test5.1": {
+		"test7.1": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd3", &NodeJson{Version: 3}},
 			},
@@ -76,26 +91,52 @@ var testTreeDeltaMap = []TreeDeltaMap{
 }
 
 func newTestTreeDeltaMap() TreeDeltaMap {
-	return testTreeDeltaMap[5]
+	return testTreeDeltaMap[len(testTreeDeltaMap)-1]
 }
 
-func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
-func testTreeDeltaAmino(t *testing.T) {
+// test map[string]*TreeDelta amino
+func TestTreeDeltaMapAmino(t *testing.T) { testTreeDeltaMapAmino(t) }
+func testTreeDeltaMapAmino(t *testing.T) {
+	for i, tdm := range testTreeDeltaMap {
+
+		expect, err := cdc.MarshalBinaryBare(tdm)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := tdm.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := TreeDeltaMap{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := TreeDeltaMap{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+}
+
+// test struct{string,*TreeDelta} amino
+func TestTreeDeltaImpAmino(t *testing.T) { testTreeDeltaImpAmino(t) }
+func testTreeDeltaImpAmino(t *testing.T) {
 	for i, tdm := range testTreeDeltaMap {
 		// each tree delta
-		for _, td := range tdm {
-			expect, err := cdc.MarshalBinaryBare(td)
+		for k, td := range tdm {
+			imp := &TreeDeltaMapImp{Key: k, TreeValue: td}
+
+			expect, err := cdc.MarshalBinaryBare(imp)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-			actual, err := td.MarshalToAmino(cdc)
+			actual, err := imp.MarshalToAmino(cdc)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
 
-			var expectValue TreeDelta
+			var expectValue TreeDeltaMapImp
 			err = cdc.UnmarshalBinaryBare(expect, &expectValue)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-			var actualValue TreeDelta
+			var actualValue TreeDeltaMapImp
 			err = actualValue.UnmarshalFromAmino(cdc, expect)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))

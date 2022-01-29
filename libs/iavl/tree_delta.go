@@ -16,6 +16,7 @@ func (tdm TreeDeltaMap) MarshalAmino() ([]*TreeDeltaMapImp, error) {
 	index := 0
 	for k := range tdm {
 		keys[index] = k
+		index++
 	}
 	sort.Strings(keys)
 
@@ -26,6 +27,12 @@ func (tdm TreeDeltaMap) MarshalAmino() ([]*TreeDeltaMapImp, error) {
 		index++
 	}
 	return treeDeltaList, nil
+}
+func (tdm TreeDeltaMap) UnmarshalAmino(treeDeltaList []*TreeDeltaMapImp) error {
+	for _, v := range treeDeltaList {
+		tdm[v.Key] = v.TreeValue
+	}
+	return nil
 }
 
 // MarshalToAmino marshal to amino bytes
@@ -54,7 +61,7 @@ func (tdm TreeDeltaMap) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 
 		// map must convert to new struct before it marshal
 		ti := &TreeDeltaMapImp{Key: k, TreeValue: tdm[k]}
-		data, err := ti.MarshalToAmino(nil)
+		data, err := ti.MarshalToAmino(cdc)
 		if err != nil {
 			return nil, err
 		}
@@ -142,17 +149,17 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
+			// because this map, must be maclloc memory
 			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 			var data []byte
-			if ti.TreeValue != nil {
-				data, err = ti.TreeValue.MarshalToAmino(cdc)
-				if err != nil {
-					return nil, err
-				}
+			data, err = ti.TreeValue.MarshalToAmino(cdc)
+			if err != nil {
+				return nil, err
 			}
+
 			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
@@ -381,16 +388,17 @@ func (ni *NodeJsonImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
+			if ni.NodeValue == nil {
+				break
+			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 			var data []byte
-			if ni.NodeValue != nil {
-				data, err = ni.NodeValue.MarshalToAmino(cdc)
-				if err != nil {
-					return nil, err
-				}
+			data, err = ni.NodeValue.MarshalToAmino(cdc)
+			if err != nil {
+				return nil, err
 			}
 
 			err = amino.EncodeByteSliceToBuffer(&buf, data)

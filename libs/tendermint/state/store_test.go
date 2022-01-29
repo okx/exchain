@@ -246,9 +246,6 @@ func TestABCIResponsesAmino(t *testing.T) {
 		var actualValue sm.ABCIResponses
 		err = actualValue.UnmarshalFromAmino(sm.ModuleCodec, expect)
 		require.NoError(t, err)
-
-		fmt.Println("expect", expectValue.DeliverTxs)
-		fmt.Println("actual", actualValue.DeliverTxs)
 		require.EqualValues(t, expectValue, actualValue)
 	}
 }
