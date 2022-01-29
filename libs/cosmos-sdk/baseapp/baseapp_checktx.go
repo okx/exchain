@@ -16,22 +16,11 @@ import (
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.wrappedTxDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
+	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
 
-	//app.logger.Debug("(app *BaseApp) CheckTx",
-	//	"wrapped-tx-hash", txhash(req.Tx),
-	//)
-
-	if tx.GetType() == sdk.WrappedTxType {
-		app.logger.Info("(app *BaseApp) CheckTx",
-			"payload-tx-hash", txhash(tx.GetPayloadTxBytes()),
-		)
-	}
-
-	//app.logger.Info("(app *BaseApp) CheckTx", "payload", tx.GetPayloadTx())
 	var mode runTxMode
 
 	switch {
