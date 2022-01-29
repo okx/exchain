@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/okex/exchain/x/gov"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -35,6 +34,7 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/genutil"
+	"github.com/okex/exchain/x/gov"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
