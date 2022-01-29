@@ -195,13 +195,13 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Tx
 
 	case *WtxMessage:
+		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
 			memR.Logger.Error("wtx.verify", "error", err, "txhash", types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height))
-			return
+		} else {
+			txInfo.wtx = msg.Wtx
+			txInfo.checkType = abci.CheckTxType_WrappedCheck
 		}
-		txInfo.wtx = msg.Wtx
-		txInfo.checkType = abci.CheckTxType_WrappedCheck
-		tx = msg.Wtx.Payload
 		// broadcasting happens from go routines per peer
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
@@ -274,9 +274,9 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				msg = &WtxMessage{
 					Wtx: &WrappedTx{
 						Payload:   memTx.tx,
+						From:      memTx.from,
 						Signature: memTx.signature,
 						NodeKey:   memTx.nodeKey,
-						From:      memTx.from,
 					},
 				}
 			} else if memR.enableWtx {
@@ -362,9 +362,9 @@ func (m *WtxMessage) String() string {
 
 type WrappedTx struct {
 	Payload   []byte `json:"payload"`   // std tx or evm tx
+	From      string `json:"from"`      // from address of evm tx or ""
 	Signature []byte `json:"signature"` // signature for payload
 	NodeKey   []byte `json:"nodeKey"`   // pub key of the node who signs the tx
-	From      string `json:"from"`      // from address of evm tx or ""
 }
 
 func (wtx *WrappedTx) GetPayload() []byte {
@@ -400,7 +400,7 @@ func (w *WrappedTx) verify(whitelist map[string]struct{}) error {
 	if _, ok := whitelist[string(p2p.PubKeyToID(pub))]; !ok {
 		return fmt.Errorf("node key [%s] not in whitelist", p2p.PubKeyToID(pub))
 	}
-	if !pub.VerifyBytes(w.Payload, w.Signature) {
+	if !pub.VerifyBytes(append(w.Payload, w.From...), w.Signature) {
 		return fmt.Errorf("invalid signature of wtx")
 	}
 	return nil
@@ -409,10 +409,10 @@ func (w *WrappedTx) verify(whitelist map[string]struct{}) error {
 func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
 	wtx := &WrappedTx{
 		Payload: tx,
-		NodeKey: memR.nodeKey.PubKey().Bytes(),
 		From:    from,
+		NodeKey: memR.nodeKey.PubKey().Bytes(),
 	}
-	sig, err := memR.nodeKey.PrivKey.Sign(wtx.Payload)
+	sig, err := memR.nodeKey.PrivKey.Sign(append(wtx.Payload, from...))
 	if err != nil {
 		return nil, err
 	}
