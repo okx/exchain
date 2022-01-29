@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+
 	"github.com/fortytw2/leaktest"
 	"github.com/go-kit/kit/log/term"
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
@@ -240,4 +242,24 @@ func TestDontExhaustMaxActiveIDs(t *testing.T) {
 		reactor.Receive(MempoolChannel, peer, []byte{0x1, 0x2, 0x3})
 		reactor.AddPeer(peer)
 	}
+}
+
+func TestVerifyWtx(t *testing.T) {
+	nodeKey := &p2p.NodeKey{
+		PrivKey: ed25519.GenPrivKey(),
+	}
+	memR := &Reactor{
+		nodeKey: nodeKey,
+	}
+
+	wtx, err := memR.wrapTx([]byte("test-tx"), "test-from")
+	assert.Nil(t, err)
+
+	nodeKeyWhitelist := make(map[string]struct{})
+	err = wtx.verify(nodeKeyWhitelist)
+	assert.NotNil(t, err)
+
+	nodeKeyWhitelist[string(p2p.PubKeyToID(nodeKey.PubKey()))] = struct{}{}
+	err = wtx.verify(nodeKeyWhitelist)
+	assert.Nil(t, err)
 }
