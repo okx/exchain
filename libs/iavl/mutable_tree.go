@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func SetIgnoreVersionCheck(check bool) {

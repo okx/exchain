@@ -3,7 +3,7 @@ package transient
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 )
@@ -24,6 +24,11 @@ func NewStore() *Store {
 // Implements CommitStore
 // Commit cleans up Store.
 func (ts *Store) Commit(*iavl.TreeDelta, []byte) (id types.CommitID, _ iavl.TreeDelta, _ []byte) {
+	ts.Store = dbadapter.Store{DB: dbm.NewMemDB()}
+	return
+}
+
+func (ts *Store) CommitterCommit(*iavl.TreeDelta) (id types.CommitID, _ *iavl.TreeDelta) {
 	ts.Store = dbadapter.Store{DB: dbm.NewMemDB()}
 	return
 }

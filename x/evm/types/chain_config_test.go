@@ -1,7 +1,10 @@
 package types
 
 import (
+	"math"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/stretchr/testify/require"
 
@@ -261,4 +264,81 @@ yoloV2_block: "-1"
 ewasm_block: "-1"
 `
 	require.Equal(t, configStr, DefaultChainConfig().String())
+}
+
+func TestChainConfigAmino(t *testing.T) {
+	testCases := []ChainConfig{
+		{},
+		{
+			DAOForkSupport: true,
+			EIP150Hash:     "EIP150Hash",
+		},
+		{
+			sdk.NewInt(0),
+			sdk.NewInt(1),
+			false,
+			sdk.NewInt(2),
+			"test",
+			sdk.NewInt(3),
+			sdk.NewInt(4),
+			sdk.NewInt(5),
+			sdk.NewInt(6),
+			sdk.NewInt(7),
+			sdk.NewInt(8),
+			sdk.NewInt(9),
+			sdk.NewInt(10),
+			sdk.NewInt(11),
+		},
+		{
+			HomesteadBlock:      sdk.NewInt(math.MaxInt64),
+			DAOForkBlock:        sdk.NewInt(math.MaxInt64),
+			EIP150Block:         sdk.NewInt(math.MaxInt64),
+			EIP155Block:         sdk.NewInt(math.MaxInt64),
+			EIP158Block:         sdk.NewInt(math.MaxInt64),
+			ByzantiumBlock:      sdk.NewInt(math.MaxInt64),
+			ConstantinopleBlock: sdk.NewInt(math.MaxInt64),
+			PetersburgBlock:     sdk.NewInt(math.MaxInt64),
+			IstanbulBlock:       sdk.NewInt(math.MaxInt64),
+			MuirGlacierBlock:    sdk.NewInt(math.MaxInt64),
+			YoloV2Block:         sdk.NewInt(math.MaxInt64),
+			EWASMBlock:          sdk.NewInt(math.MaxInt64),
+		},
+		{
+			HomesteadBlock:      sdk.NewInt(math.MinInt64),
+			DAOForkBlock:        sdk.NewInt(math.MinInt64),
+			EIP150Block:         sdk.NewInt(math.MinInt64),
+			EIP155Block:         sdk.NewInt(math.MinInt64),
+			EIP158Block:         sdk.NewInt(math.MinInt64),
+			ByzantiumBlock:      sdk.NewInt(math.MinInt64),
+			ConstantinopleBlock: sdk.NewInt(math.MinInt64),
+			PetersburgBlock:     sdk.NewInt(math.MinInt64),
+			IstanbulBlock:       sdk.NewInt(math.MinInt64),
+			MuirGlacierBlock:    sdk.NewInt(math.MinInt64),
+			YoloV2Block:         sdk.NewInt(math.MinInt64),
+			EWASMBlock:          sdk.NewInt(math.MinInt64),
+		},
+	}
+
+	cdc := amino.NewCodec()
+	RegisterCodec(cdc)
+
+	for _, chainConfig := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(chainConfig)
+		require.NoError(t, err)
+
+		var expectValue ChainConfig
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue ChainConfig
+		err = actualValue.UnmarshalFromAmino(cdc, expectData[4:])
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		require.NoError(t, err)
+		actualValue = v.(ChainConfig)
+		require.EqualValues(t, expectValue, actualValue)
+	}
 }

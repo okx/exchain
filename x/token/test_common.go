@@ -13,7 +13,7 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // CreateParam create okexchain parm for test

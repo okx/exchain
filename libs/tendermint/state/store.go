@@ -6,7 +6,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
@@ -128,26 +128,18 @@ type ABCIResponses struct {
 	BeginBlock *abci.ResponseBeginBlock  `json:"begin_block"`
 }
 
-func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
+func (arz ABCIResponses) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	var err error
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
 		switch pos {
 		case 1:
-			if len(arz.DeliverTxs) == 0 {
-				break
-			}
 			for i := 0; i < len(arz.DeliverTxs); i++ {
-				err = buf.WriteByte(fieldKeysType[pos-1])
+				data, err := arz.DeliverTxs[i].MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
-				data, err := abci.MarshalResponseDeliverTxToAmino(arz.DeliverTxs[i])
-				if err != nil {
-					return nil, err
-				}
-				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
@@ -156,15 +148,11 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if arz.EndBlock == nil {
 				break
 			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
+			data, err := arz.EndBlock.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
-			data, err := abci.MarshalResponseEndBlockToAmino(arz.EndBlock)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
@@ -172,15 +160,11 @@ func (arz ABCIResponses) MarshalToAmino() ([]byte, error) {
 			if arz.BeginBlock == nil {
 				break
 			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
+			data, err := arz.BeginBlock.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
-			data, err := abci.MarshalResponseBeginBlockToAmino(arz.BeginBlock)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
@@ -301,7 +285,7 @@ func NewABCIResponses(block *types.Block) *ABCIResponses {
 
 // Bytes serializes the ABCIResponse using go-amino.
 func (arz *ABCIResponses) Bytes() []byte {
-	bz, err := arz.MarshalToAmino()
+	bz, err := arz.MarshalToAmino(cdc)
 	if err != nil {
 		return cdc.MustMarshalBinaryBare(arz)
 	}
@@ -418,7 +402,7 @@ func loadValidatorsInfo(db dbm.DB, height int64) *ValidatorsInfo {
 // signing. It should be called from s.Save(), right before the state itself is
 // persisted.
 func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *types.ValidatorSet) {
-	if lastHeightChanged > height {
+	if !IgnoreSmbCheck && lastHeightChanged > height {
 		panic("LastHeightChanged cannot be greater than ValidatorsInfo height")
 	}
 	valInfo := &ValidatorsInfo{

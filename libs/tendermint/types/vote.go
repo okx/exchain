@@ -59,7 +59,7 @@ type Vote struct {
 	Signature        []byte        `json:"signature"`
 }
 
-func (vote *Vote) UnmarshalFromAmino(data []byte) error {
+func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var timestampUpdated bool
@@ -112,7 +112,7 @@ func (vote *Vote) UnmarshalFromAmino(data []byte) error {
 			vote.Round = int(u64)
 			dataLen = uint64(n)
 		case 4:
-			err = vote.BlockID.UnmarshalFromAmino(subData)
+			err = vote.BlockID.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

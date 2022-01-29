@@ -72,15 +72,12 @@ func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
-	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
-	viper.SetDefault(watcher.FlagFastQuery, true)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
-		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc archive mode",
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by archive node mode",
 		server.FlagPruning, "nothing", abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
-		watcher.FlagFastQueryLru, 10000, watcher.FlagFastQuery, true,
 		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
 		server.FlagCORS, "*"))
 }

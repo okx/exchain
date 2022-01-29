@@ -26,7 +26,7 @@ func TestConsensusAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue Consensus
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
@@ -60,7 +60,7 @@ func BenchmarkConsensusAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var value Consensus
-				err := value.UnmarshalFromAmino(data)
+				err := value.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}

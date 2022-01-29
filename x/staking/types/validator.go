@@ -174,7 +174,7 @@ func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, er
 	}
 	value = value[n:]
 
-	if err = validator.UnmarshalFromAmino(value); err != nil {
+	if err = validator.UnmarshalFromAmino(cdc, value); err != nil {
 		err = cdc.UnmarshalBinaryBare(value, &validator)
 	}
 	return validator, err
@@ -279,7 +279,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v *Validator) UnmarshalFromAmino(data []byte) error {
+func (v *Validator) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var unbondingCompletionTimeUpdated bool
@@ -314,11 +314,14 @@ func (v *Validator) UnmarshalFromAmino(data []byte) error {
 			v.OperatorAddress = make([]byte, dataLen)
 			copy(v.OperatorAddress, subData)
 		case 2:
-			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 3:
+			if len(data) == 0 {
+				return fmt.Errorf("Validator : Jailed, not enough data")
+			}
 			if data[0] == 0 {
 				v.Jailed = false
 			} else if data[0] == 1 {
@@ -335,15 +338,15 @@ func (v *Validator) UnmarshalFromAmino(data []byte) error {
 			v.Status = sdk.BondStatus(status)
 			dataLen = uint64(n)
 		case 5:
-			if err = v.Tokens.UnmarshalFromAmino(subData); err != nil {
+			if err = v.Tokens.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 6:
-			if err = v.DelegatorShares.UnmarshalFromAmino(subData); err != nil {
+			if err = v.DelegatorShares.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 7:
-			if err = v.Description.UnmarshalFromAmino(subData); err != nil {
+			if err = v.Description.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 8:
@@ -360,11 +363,11 @@ func (v *Validator) UnmarshalFromAmino(data []byte) error {
 			}
 			unbondingCompletionTimeUpdated = true
 		case 10:
-			if err = v.Commission.UnmarshalFromAmino(subData); err != nil {
+			if err = v.Commission.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 11:
-			if err = v.MinSelfDelegation.UnmarshalFromAmino(subData); err != nil {
+			if err = v.MinSelfDelegation.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		default:
@@ -471,7 +474,7 @@ func (d Description) EnsureLength() (Description, error) {
 	return d, nil
 }
 
-func (d *Description) UnmarshalFromAmino(data []byte) error {
+func (d *Description) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

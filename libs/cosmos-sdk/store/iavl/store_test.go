@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
@@ -139,7 +139,7 @@ func TestGetImmutable(t *testing.T) {
 
 	require.Panics(t, func() { newStore.Set(nil, nil) })
 	require.Panics(t, func() { newStore.Delete(nil) })
-	require.Panics(t, func() { newStore.Commit(&iavl.TreeDelta{}, nil) })
+	require.Panics(t, func() { newStore.CommitterCommit(nil) })
 }
 
 func TestTestGetImmutableIterator(t *testing.T) {
@@ -433,7 +433,7 @@ func nextVersion(iStore *Store) {
 	key := []byte(fmt.Sprintf("Key for tree: %d", iStore.LastCommitID().Version))
 	value := []byte(fmt.Sprintf("Value for tree: %d", iStore.LastCommitID().Version))
 	iStore.Set(key, value)
-	iStore.Commit(&iavl.TreeDelta{}, nil)
+	iStore.CommitterCommit(nil)
 }
 
 func TestIAVLNoPrune(t *testing.T) {
@@ -480,7 +480,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
 	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
-	cid, _, _ := iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ := iavlStore.CommitterCommit(nil)
 	ver := cid.Version
 	query := abci.RequestQuery{Path: "/key", Data: k1, Height: ver}
 	querySub := abci.RequestQuery{Path: "/subspace", Data: ksub, Height: ver}
@@ -500,7 +500,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Nil(t, qres.Value)
 
 	// commit it, but still don't see on old version
-	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ = iavlStore.CommitterCommit(nil)
 	qres = iavlStore.Query(query)
 	require.Equal(t, uint32(0), qres.Code)
 	require.Nil(t, qres.Value)
@@ -518,7 +518,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 	// modify
 	iavlStore.Set(k1, v3)
-	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ = iavlStore.CommitterCommit(nil)
 
 	// query will return old values, as height is fixed
 	qres = iavlStore.Query(query)
@@ -548,7 +548,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 }
 
 func testCommitDelta(t *testing.T) {
-	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
+	emptyDelta := &iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
 	tmtypes.DownloadDelta = true
 	iavl.SetProduceDelta(false)
 
@@ -566,20 +566,20 @@ func testCommitDelta(t *testing.T) {
 	iavlStore.Set(k2, v2)
 
 	// normal case (not use delta and not produce delta)
-	cid, treeDelta, _ := iavlStore.Commit(nil, nil)
+	cid, treeDelta := iavlStore.CommitterCommit(nil)
 	assert.NotEmpty(t, cid.Hash)
 	assert.EqualValues(t, 1, cid.Version)
 	assert.Equal(t, emptyDelta, treeDelta)
 
 	// not use delta and produce delta
 	iavl.SetProduceDelta(true)
-	cid1, treeDelta1, _ := iavlStore.Commit(nil, nil)
+	cid1, treeDelta1 := iavlStore.CommitterCommit(nil)
 	assert.NotEmpty(t, cid1.Hash)
 	assert.EqualValues(t, 2, cid1.Version)
 	assert.NotEqual(t, emptyDelta, treeDelta1)
 
 	// use delta and produce delta
-	cid2, treeDelta2, _ := iavlStore.Commit(&treeDelta1, []byte("delta"))
+	cid2, treeDelta2 := iavlStore.CommitterCommit(treeDelta1)
 	assert.NotEmpty(t, cid2.Hash)
 	assert.EqualValues(t, 3, cid2.Version)
 	assert.NotEqual(t, emptyDelta, treeDelta2)
@@ -587,7 +587,7 @@ func testCommitDelta(t *testing.T) {
 
 	// use delta and not produce delta
 	iavl.SetProduceDelta(false)
-	cid3, treeDelta3, _ := iavlStore.Commit(&treeDelta1, []byte("delta"))
+	cid3, treeDelta3 := iavlStore.CommitterCommit(treeDelta1)
 	assert.NotEmpty(t, cid3.Hash)
 	assert.EqualValues(t, 4, cid3.Version)
 	assert.Equal(t, emptyDelta, treeDelta3)
