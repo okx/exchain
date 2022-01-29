@@ -237,6 +237,8 @@ func TestABCIResponsesAmino(t *testing.T) {
 		actual, err := resp.MarshalToAmino()
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), resp.AminoSize(sm.ModuleCodec))
 	}
 }
 

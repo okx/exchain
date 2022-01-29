@@ -117,3 +117,14 @@ func (pair *Pair) UnmarshalFromAmino(data []byte) error {
 	}
 	return nil
 }
+
+func (pair Pair) AminoSize(_ *amino.Codec) int {
+	var size = 0
+	if len(pair.Key) != 0 {
+		size += 1 + amino.ByteSliceSize(pair.Key)
+	}
+	if len(pair.Value) != 0 {
+		size += 1 + amino.ByteSliceSize(pair.Value)
+	}
+	return size
+}
