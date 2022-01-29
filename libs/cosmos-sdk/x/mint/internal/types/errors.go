@@ -12,5 +12,5 @@ var (
 	ErrEmptyTreasures = sdkerrors.Register(ModuleName, 2, "treasures is not empty")
 
 	ErrDuplicatedTreasure     = sdkerrors.Register(ModuleName, 3, "treasures can not be duplicate")
-	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 3, "Unsupported proposal type of mint module")
+	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 4, "Unsupported proposal type of mint module")
 )

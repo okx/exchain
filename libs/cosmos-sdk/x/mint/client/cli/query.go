@@ -28,6 +28,7 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryParams(cdc),
 			GetCmdQueryInflation(cdc),
 			GetCmdQueryAnnualProvisions(cdc),
+			GetCmdQueryTreasures(cdc),
 		)...,
 	)
 
@@ -108,6 +109,32 @@ func GetCmdQueryAnnualProvisions(cdc *codec.Codec) *cobra.Command {
 			}
 
 			return cliCtx.PrintOutput(inflation)
+		},
+	}
+}
+
+// GetCmdQueryParams implements a command to return the current minting
+// parameters.
+func GetCmdQueryTreasures(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "treasures",
+		Short: "Query the current treasures",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryTreasures)
+			res, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var treasures []types.Treasure
+			if err := cdc.UnmarshalJSON(res, &treasures); err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(treasures)
 		},
 	}
 }

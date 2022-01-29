@@ -62,7 +62,7 @@ func GetMapFromTreasures(treasures []Treasure) map[string]Treasure {
 }
 
 func GetTreasuresFromMap(src map[string]Treasure) []Treasure {
-	result := make([]Treasure, len(src))
+	result := make([]Treasure, 0)
 	for k, _ := range src {
 		result = append(result, src[k])
 	}
