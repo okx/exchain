@@ -37,6 +37,13 @@ func GenAppStateFromConfig(cdc *codec.Codec, config *cfg.Config,
 	}
 
 	config.P2P.PersistentPeers = persistentPeers
+
+	var nodeKeyWhiteList []string
+	for _, nodeAddr := range strings.Split(persistentPeers, ",") {
+		nodeKey := strings.Split(nodeAddr, "@")[0]
+		nodeKeyWhiteList = append(nodeKeyWhiteList, nodeKey)
+	}
+	config.Mempool.NodeKeyWhitelist = nodeKeyWhiteList
 	cfg.WriteConfigFile(filepath.Join(config.RootDir, "config", "config.toml"), config)
 
 	// if there are no gen txs to be processed, return the default empty state

@@ -636,7 +636,7 @@ func NewNode(config *cfg.Config,
 
 	// Make MempoolReactor
 	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger)
-
+	mempoolReactor.SetNodeKey(nodeKey)
 	// Make Evidence Reactor
 	evidenceReactor, evidencePool, err := createEvidenceReactor(config, dbProvider, stateDB, logger)
 	if err != nil {
