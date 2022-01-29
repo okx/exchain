@@ -212,6 +212,20 @@ func TestProduceDelta(t *testing.T) {
 	}
 }
 
+func TestAminoDecoder(t *testing.T) { testDecodeABCIResponse(t) }
+func testDecodeABCIResponse(t *testing.T) {
+	abciResponses1 := produceAbciRsp()
+
+	// encode
+	data, err := abciResponses1.MarshalToAmino(cdc)
+	require.NoError(t, err)
+
+	//decode
+	abciResponses2 := &ABCIResponses{}
+	err = abciResponses2.UnmarshalFromAmino(nil, data)
+	require.NoError(t, err)
+	require.Equal(t, abciResponses1, abciResponses2)
+}
 func BenchmarkMarshalJson(b *testing.B) {
 	abciResponses := produceAbciRsp()
 
@@ -237,5 +251,40 @@ func BenchmarkMarshalCustom(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
 		abciResponses.MarshalToAmino(ModuleCodec)
+	}
+}
+
+func BenchmarkUnmarshalFromJson(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := types.Json.Marshal(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		types.Json.Unmarshal(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromAmino(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	var cdc = amino.NewCodec()
+	data, _ := cdc.MarshalBinaryBare(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		cdc.UnmarshalBinaryBare(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromCustom(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := abciResponses.MarshalToAmino(cdc)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		ar.UnmarshalFromAmino(nil, data)
 	}
 }

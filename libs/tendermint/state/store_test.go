@@ -238,6 +238,18 @@ func TestABCIResponsesAmino(t *testing.T) {
 		actual, err := resp.MarshalToAmino(sm.ModuleCodec)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var expectValue sm.ABCIResponses
+		err = sm.ModuleCodec.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue sm.ABCIResponses
+		err = actualValue.UnmarshalFromAmino(sm.ModuleCodec, expect)
+		require.NoError(t, err)
+
+		fmt.Println("expect", expectValue.DeliverTxs)
+		fmt.Println("actual", actualValue.DeliverTxs)
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }
 
