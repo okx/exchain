@@ -84,7 +84,6 @@ type (
 	QueryAccountParams               = types.QueryAccountParams
 	StdSignMsg                       = types.StdSignMsg
 	StdTx                            = types.StdTx
-	WrappedTx                        = types.WrappedTx
 	StdFee                           = types.StdFee
 	StdSignDoc                       = types.StdSignDoc
 	StdSignature                     = types.StdSignature

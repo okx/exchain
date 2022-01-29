@@ -50,16 +50,6 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
 }
 
-func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
-	return nil
-}
-
-func (wtx MsgEthereumTx) GetPayloadTxBytes() []byte {
-	return nil
-}
-func (tx MsgEthereumTx) GetType() sdk.TransactionType {
-	return sdk.EvmTxType
-}
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
