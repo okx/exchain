@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 )
 
 // NOTE: never use new(Dec) or else we will panic unmarshalling into the
@@ -693,7 +695,7 @@ func (d *Dec) UnmarshalAmino(text string) (err error) {
 	return nil
 }
 
-func (d *Dec) UnmarshalFromAmino(data []byte) error {
+func (d *Dec) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	tempInt := new(big.Int)
 	err := tempInt.UnmarshalText(data)
 	if err != nil {
@@ -703,7 +705,7 @@ func (d *Dec) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-func (d Dec) MarshalToAmino() ([]byte, error) {
+func (d Dec) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	if d.Int == nil {
 		return []byte(nilAmino), nil
 	}

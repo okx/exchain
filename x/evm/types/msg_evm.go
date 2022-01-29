@@ -4,23 +4,20 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"math/big"
 	"sync/atomic"
-
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -39,8 +36,6 @@ const (
 	TypeMsgEthereumTx = "ethereum"
 )
 
-
-
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
 	Data TxData
@@ -48,6 +43,11 @@ type MsgEthereumTx struct {
 	// caches
 	size atomic.Value
 	from atomic.Value
+}
+
+func (tx *MsgEthereumTx) SetFrom(addr string) {
+	// only cache from but not signer
+	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
 }
 
 func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
@@ -408,8 +408,7 @@ func deriveChainID(v *big.Int) *big.Int {
 	return v.Div(v, big.NewInt(2))
 }
 
-
-func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -441,7 +440,7 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			if err := msg.Data.UnmarshalFromAmino(subData); err != nil {
+			if err := msg.Data.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		default:

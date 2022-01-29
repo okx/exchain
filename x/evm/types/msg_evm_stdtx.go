@@ -1,12 +1,11 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"math/big"
 
 	"github.com/okex/exchain/app/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 //___________________std tx______________________
@@ -15,7 +14,6 @@ import (
 func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
 }
-
 
 // Return tx sender and gas price
 func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
@@ -30,14 +28,19 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 		return exTxInfo
 	}
 
-	// Verify signature and retrieve sender address
-	fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-	if err != nil {
-		return exTxInfo
+	if ctx.From() == "" {
+		// Verify signature and retrieve sender address
+		fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+		if err != nil {
+			return exTxInfo
+		}
+
+		from := fromSigCache.GetFrom()
+		exTxInfo.Sender = from.String()
+	} else {
+		exTxInfo.Sender = ctx.From()
 	}
 
-	from := fromSigCache.GetFrom()
-	exTxInfo.Sender = from.String()
 	exTxInfo.GasPrice = msg.Data.Price
 
 	return exTxInfo
@@ -64,4 +67,3 @@ func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	methodId := msg.Data.Payload[0:4]
 	return append(recipient, methodId...), 0
 }
-
