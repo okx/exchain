@@ -77,7 +77,6 @@ var testTreeDeltaMap = []TreeDeltaMap{
 
 func newTestTreeDeltaMap() TreeDeltaMap {
 	return testTreeDeltaMap[5]
-
 }
 
 func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
