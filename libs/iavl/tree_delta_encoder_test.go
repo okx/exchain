@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/stretchr/testify/assert"
 )
 
 var testTreeDeltaMap = []TreeDeltaMap{
@@ -102,21 +101,6 @@ func testTreeDeltaAmino(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
 		}
-	}
-}
-
-// test decode function
-func TestAminoDecoder(t *testing.T) { testDecodeTreeDelta(t, newEncoder("amino")) }
-func TestJsonDecoder(t *testing.T)  { testDecodeTreeDelta(t, newEncoder("json")) }
-func testDecodeTreeDelta(t *testing.T, enc encoder) {
-	newTestTreeDeltaMap()
-	for i, tt := range testTreeDeltaMap {
-		encByte, err := enc.encodeFunc(tt)
-		assert.NoError(t, err, fmt.Sprintf("num %v", i))
-
-		res, err := enc.decodeFunc(encByte)
-		assert.NoError(t, err, fmt.Sprintf("num %v", i))
-		assert.Equal(t, tt, res, fmt.Sprintf("num %v", i))
 	}
 }
 

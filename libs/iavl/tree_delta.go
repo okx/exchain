@@ -11,6 +11,23 @@ import (
 
 type TreeDeltaMap map[string]*TreeDelta
 
+func (tdm TreeDeltaMap) MarshalAmino() ([]*TreeDeltaMapImp, error) {
+	keys := make([]string, len(tdm))
+	index := 0
+	for k := range tdm {
+		keys[index] = k
+	}
+	sort.Strings(keys)
+
+	treeDeltaList := make([]*TreeDeltaMapImp, len(tdm))
+	index = 0
+	for _, k := range keys {
+		treeDeltaList[index] = &TreeDeltaMapImp{Key: k, TreeValue: tdm[k]}
+		index++
+	}
+	return treeDeltaList, nil
+}
+
 // MarshalToAmino marshal to amino bytes
 func (tdm TreeDeltaMap) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
@@ -81,9 +98,7 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 		switch pos {
 		case 1:
 			// a object to unmarshal data
-			ad := &TreeDeltaMapImp{
-				TreeValue: &TreeDelta{NodesDelta: []*NodeJsonImp{}, OrphansDelta: []*NodeJson{}, CommitOrphansDelta: []*CommitOrphansImp{}},
-			}
+			ad := &TreeDeltaMapImp{}
 			err := ad.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
@@ -138,7 +153,6 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 					return nil, err
 				}
 			}
-
 			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err

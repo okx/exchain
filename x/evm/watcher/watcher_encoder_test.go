@@ -23,11 +23,6 @@ func newTestWatchData() *watcher.WatchData {
 	return data
 }
 
-func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
-func testTreeDeltaAmino(t *testing.T) {
-
-}
-
 func TestWatchDataEncoder(t *testing.T) {
 	w := setupTest()
 	w.app.EvmKeeper.Watcher.Commit()
