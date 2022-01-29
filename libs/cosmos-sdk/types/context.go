@@ -21,28 +21,28 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx                 context.Context
-	ms                  MultiStore
-	header              abci.Header
-	chainID             string
-	txBytes             []byte
-	logger              log.Logger
-	voteInfo            []abci.VoteInfo
-	gasMeter            GasMeter
-	blockGasMeter       GasMeter
-	checkTx             bool
-	recheckTx           bool // if recheckTx == true, then checkTx must also be true
-	traceTx             bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
-	traceTxLog          bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
-	minGasPrice         DecCoins
-	consParams          *abci.ConsensusParams
-	eventManager        *EventManager
-	accountNonce        uint64
-	sigCache            SigCache
-	isAsync             bool
-	cache               *Cache
-	nodeSigVerifyResult int
-	NodekeyWhitelist    map[string][]byte
+	ctx            context.Context
+	ms             MultiStore
+	header         abci.Header
+	chainID        string
+	from           string
+	txBytes        []byte
+	logger         log.Logger
+	voteInfo       []abci.VoteInfo
+	gasMeter       GasMeter
+	blockGasMeter  GasMeter
+	checkTx        bool
+	recheckTx      bool // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	minGasPrice    DecCoins
+	consParams     *abci.ConsensusParams
+	eventManager   *EventManager
+	accountNonce   uint64
+	sigCache       SigCache
+	isAsync        bool
+	cache          *Cache
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -54,6 +54,7 @@ func (c Context) MultiStore() MultiStore      { return c.ms }
 func (c Context) BlockHeight() int64          { return c.header.Height }
 func (c Context) BlockTime() time.Time        { return c.header.Time }
 func (c Context) ChainID() string             { return c.chainID }
+func (c Context) From() string                { return c.from }
 func (c Context) TxBytes() []byte             { return c.txBytes }
 func (c Context) Logger() log.Logger          { return c.logger }
 func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
@@ -63,12 +64,12 @@ func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c Context) IsTraceTx() bool             { return c.traceTx }
 func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
+func (c Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) NodeSigVerifyResult() int    { return c.nodeSigVerifyResult }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -146,6 +147,11 @@ func (c Context) WithChainID(chainID string) Context {
 	return c
 }
 
+func (c Context) WithFrom(from string) Context {
+	c.from = from
+	return c
+}
+
 func (c Context) WithTxBytes(txBytes []byte) Context {
 	c.txBytes = txBytes
 	return c
@@ -199,6 +205,17 @@ func (c Context) WithIsTraceTx(isTraceTx bool) Context {
 	c.traceTx = isTraceTx
 	return c
 }
+
+// WithIsWrappedCheckTx called with true will also set true on checkTx in order to
+// enforce the invariant that if recheckTx = true then checkTx = true as well.
+func (c Context) WithIsWrappedCheckTx(isWrappedCheckTx bool) Context {
+	if isWrappedCheckTx {
+		c.checkTx = true
+	}
+	c.wrappedCheckTx = isWrappedCheckTx
+	return c
+}
+
 func (c Context) WithMinGasPrices(gasPrices DecCoins) Context {
 	c.minGasPrice = gasPrices
 	return c
@@ -274,11 +291,6 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 // WithSigCache set sigCache.
 func (c Context) WithSigCache(cache SigCache) Context {
 	c.sigCache = cache
-	return c
-}
-
-func (c Context) WithNodeSigVerifyResult(r int) Context {
-	c.nodeSigVerifyResult = r
 	return c
 }
 

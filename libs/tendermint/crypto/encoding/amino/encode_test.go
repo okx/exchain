@@ -234,3 +234,30 @@ func TestRegisterKeyType(t *testing.T) {
 	nameTable[reflect.TypeOf(secp256k1.PubKeySecp256k1{})] = secp256k1.PubKeyAminoName
 	nameTable[reflect.TypeOf(multisig.PubKeyMultisigThreshold{})] = multisig.PubKeyMultisigThresholdAminoRoute
 }
+
+func TestPubKeyAmino(t *testing.T) {
+	testCases := []crypto.PubKey{
+		ed25519.PubKeyEd25519{},
+		sr25519.PubKeySr25519{},
+		secp256k1.PubKeySecp256k1{},
+		multisig.PubKeyMultisigThreshold{},
+	}
+
+	for _, pubkey := range testCases {
+		bz, err := cdc.MarshalBinaryBare(pubkey)
+		require.NoError(t, err)
+
+		bz2, err := MarshalPubKeyToAmino(cdc, pubkey)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, bz2)
+
+		var pubkey1 crypto.PubKey
+		err = cdc.UnmarshalBinaryBare(bz, &pubkey1)
+		require.NoError(t, err)
+
+		pubkey2, err := UnmarshalPubKeyFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, pubkey1, pubkey2)
+	}
+}

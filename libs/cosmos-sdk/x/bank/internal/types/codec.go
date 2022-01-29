@@ -12,7 +12,7 @@ func RegisterCodec(cdc *codec.Codec) {
 
 	cdc.RegisterConcreteUnmarshaller("cosmos-sdk/MsgSend", func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgSend
-		err := msg.UnmarshalFromAmino(bytes)
+		err := msg.UnmarshalFromAmino(c, bytes)
 		if err != nil {
 			return nil, 0, err
 		}

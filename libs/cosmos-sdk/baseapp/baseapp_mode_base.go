@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -27,7 +25,7 @@ type modeHandler interface {
 func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	var h modeHandler
 	switch mode {
-	case runTxModeCheck:
+	case runTxModeCheck, runTxModeWrappedCheck:
 		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeReCheck:
 		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
@@ -163,62 +161,13 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) err
 	return err
 }
 
-func (m *modeHandlerBase) addExTxInfo(info *runTxInfo, exTxInfo *mempool.ExTxInfo) {
-
-	enableWrappedTx := m.app.enableWtx
-
-	// disable WrappedTx for dev branch
-	enableWrappedTx = false
-	if !enableWrappedTx {
-		return
-	}
-	if info.nodeSigVerifyResult > 0 {
-		return
-	}
-	if m.app.wrappedTxEncoder == nil {
-		return
-	}
-
-	payloadBytes := info.txBytes
-	if info.tx.GetType() == sdk.WrappedTxType {
-		payloadBytes = info.tx.GetPayloadTxBytes()
-		if payloadBytes == nil {
-			panic("Invalid Wrapped Tx")
-		}
-	}
-
-	signature, err := m.app.nodekey.PrivKey.Sign(payloadBytes)
-	if err != nil {
-		m.app.logger.Error("Failed to sign payload tx", "err", err)
-		return
-	}
-
-	exInfo := &sdk.ExTxInfo{
-		Metadata:  []byte("dummy Metadata"),
-		Signature: signature,
-		NodeKey:   m.app.nodekey.PubKey().Bytes(),
-	}
-	data, err := m.app.wrappedTxEncoder(payloadBytes, exInfo)
-	if err == nil {
-		exTxInfo.WrappedTx = data
-		m.app.logger.Info("add ExTxInfo",
-			"payload txhash", txhash(payloadBytes),
-			"wrapped txhash", txhash(data),
-			"pubkey", hexutil.Encode(m.app.nodekey.PubKey().Bytes()),
-			"exInfo", exInfo,
-		)
-	}
-}
-
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
-	if m.mode != runTxModeCheck {
+	if m.mode != runTxModeCheck && m.mode != runTxModeWrappedCheck {
 		return
 	}
 
 	exTxInfo := m.app.GetTxInfo(info.ctx, info.tx)
 	exTxInfo.SenderNonce = info.accountNonce
-
-	m.addExTxInfo(info, &exTxInfo)
 
 	data, err := json.Marshal(exTxInfo)
 	if err == nil {
