@@ -126,7 +126,7 @@ func (b *Batch) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal amino bytes to this object
-func (b *Batch) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (b *Batch) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -297,7 +297,7 @@ func (w *WatchData) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal from amino bytes
-func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -339,7 +339,7 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			var bat *Batch = nil
 			if len(subData) != 0 {
 				bat = &Batch{}
-				err := bat.UnmarshalFromAmino(nil, subData)
+				err := bat.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
 				}
@@ -347,15 +347,18 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			w.Batches = append(w.Batches, bat)
 
 		case 3:
-			delayEraseKey := make([]byte, len(subData))
-			copy(delayEraseKey, subData)
+			var delayEraseKey []byte
+			if len(subData) != 0 {
+				delayEraseKey = make([]byte, len(subData))
+				copy(delayEraseKey, subData)
+			}
 			w.DelayEraseKey = append(w.DelayEraseKey, delayEraseKey)
 
 		case 4:
 			var kv *types.KV = nil
-			if len(subData) == 0 {
+			if len(subData) != 0 {
 				kv = &types.KV{}
-				err := kv.UnmarshalFromAmino(nil, subData)
+				err := kv.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
 				}
@@ -363,8 +366,11 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			w.BloomData = append(w.BloomData, kv)
 
 		case 5:
-			dirtyList := make([]byte, len(subData))
-			copy(dirtyList, subData)
+			var dirtyList []byte
+			if len(subData) != 0 {
+				dirtyList = make([]byte, len(subData))
+				copy(dirtyList, subData)
+			}
 			w.DirtyList = append(w.DirtyList, dirtyList)
 
 		default:

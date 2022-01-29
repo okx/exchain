@@ -1,42 +1,81 @@
-package watcher_test
+package watcher
 
 import (
+	"fmt"
 	"testing"
-	"time"
 
-	"github.com/okex/exchain/x/evm/watcher"
+	jsoniter "github.com/json-iterator/go"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 )
 
-func newTestWatchData() *watcher.WatchData {
-	w := setupTest()
-	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+var (
+	testAccAddr1 = sdk.AccAddress("0x01")
+	testAccAddr2 = sdk.AccAddress("0x02")
+)
+var (
+	jsonEnc = jsoniter.ConfigCompatibleWithStandardLibrary
+	cdc     = amino.NewCodec()
+)
 
-	// get WatchData
-	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
-	wd, _ := wdFunc()
-
-	// unmarshal to raw watch data
-	data := &watcher.WatchData{}
-	data.UnmarshalFromAmino(nil, wd)
-	return data
+var testWatchData = []*WatchData{
+	{},
+	{
+		DirtyAccount: []*sdk.AccAddress{&testAccAddr1, &testAccAddr2},
+	},
+	{
+		Batches: []*Batch{{Key: []byte("0x01")}, {Value: []byte("0x01")}, {TypeValue: 1}},
+	},
+	{
+		DelayEraseKey: [][]byte{[]byte("0x01"), []byte("0x02")},
+	},
+	{
+		BloomData: []*types.KV{{Key: []byte("0x01")}, {Value: []byte("0x01")}},
+	},
+	{
+		DirtyList: [][]byte{[]byte("0x01"), []byte("0x02")},
+	},
+	{
+		DirtyAccount:  []*sdk.AccAddress{&testAccAddr1, {}, &testAccAddr2},
+		Batches:       []*Batch{{Key: []byte("0x01")}, {}, {TypeValue: 1}},
+		DelayEraseKey: [][]byte{[]byte("0x01"), {}, []byte("0x02")},
+		BloomData:     []*types.KV{{Key: []byte("0x01")}, {}, {Value: []byte("0x01")}},
+		DirtyList:     [][]byte{[]byte("0x01"), {}, []byte("0x02")},
+	},
+	{
+		DirtyAccount:  []*sdk.AccAddress{&testAccAddr1, &testAccAddr2},
+		Batches:       []*Batch{{Key: []byte("0x01")}, {Value: []byte("0x02")}, {TypeValue: 1}},
+		DelayEraseKey: [][]byte{[]byte("0x01"), []byte("0x02")},
+		BloomData:     []*types.KV{{Key: []byte("0x01")}, {Value: []byte("0x01")}},
+		DirtyList:     [][]byte{[]byte("0x01"), []byte("0x02")},
+	},
 }
 
-func TestWatchDataEncoder(t *testing.T) {
-	w := setupTest()
-	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+func newTestWatchData() *WatchData {
+	return testWatchData[len(testWatchData)-1]
+}
 
-	// get WatchData
-	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
-	wd, err := wdFunc()
-	require.NoError(t, err)
+func TestWatchDataEncoder(t *testing.T) { testWatchDataAmino(t) }
+func testWatchDataAmino(t *testing.T) {
+	for i, wd := range testWatchData {
+		expect, err := cdc.MarshalBinaryBare(wd)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-	// unmarshal to raw watch data
-	data := &watcher.WatchData{}
-	err = data.UnmarshalFromAmino(nil, wd)
-	require.NoError(t, err)
+		actual, err := wd.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		var expectValue WatchData
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		var actualValue WatchData
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
 }
 
 // benchmark encode performance
@@ -69,8 +108,8 @@ func benchmarkDecodeDelta(b *testing.B, enc encoder) {
 
 type encoder interface {
 	name() string
-	encodeFunc(*watcher.WatchData) ([]byte, error)
-	decodeFunc([]byte) (*watcher.WatchData, error)
+	encodeFunc(*WatchData) ([]byte, error)
+	decodeFunc([]byte) (*WatchData, error)
 }
 
 func newEncoder(encType string) encoder {
@@ -88,11 +127,11 @@ func newEncoder(encType string) encoder {
 type aminoEncoder struct{}
 
 func (ae *aminoEncoder) name() string { return "amino" }
-func (ae *aminoEncoder) encodeFunc(data *watcher.WatchData) ([]byte, error) {
+func (ae *aminoEncoder) encodeFunc(data *WatchData) ([]byte, error) {
 	return data.MarshalToAmino(nil)
 }
-func (ae *aminoEncoder) decodeFunc(data []byte) (*watcher.WatchData, error) {
-	wd := &watcher.WatchData{}
+func (ae *aminoEncoder) decodeFunc(data []byte) (*WatchData, error) {
+	wd := &WatchData{}
 	err := wd.UnmarshalFromAmino(nil, data)
 	return wd, err
 }
@@ -101,11 +140,11 @@ func (ae *aminoEncoder) decodeFunc(data []byte) (*watcher.WatchData, error) {
 type jsonEncoder struct{}
 
 func (je *jsonEncoder) name() string { return "json" }
-func (je *jsonEncoder) encodeFunc(data *watcher.WatchData) ([]byte, error) {
-	return json.Marshal(data)
+func (je *jsonEncoder) encodeFunc(data *WatchData) ([]byte, error) {
+	return jsonEnc.Marshal(data)
 }
-func (je *jsonEncoder) decodeFunc(data []byte) (*watcher.WatchData, error) {
-	wd := &watcher.WatchData{}
-	err := json.Unmarshal(data, wd)
+func (je *jsonEncoder) decodeFunc(data []byte) (*WatchData, error) {
+	wd := &WatchData{}
+	err := jsonEnc.Unmarshal(data, wd)
 	return wd, err
 }

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/require"
 )
 
 var testTreeDeltaMap = []TreeDeltaMap{
 	//empty
+	{},
+	//empty treedelta
 	{
 		"test0": {},
 	},
@@ -79,23 +80,49 @@ func newTestTreeDeltaMap() TreeDeltaMap {
 	return testTreeDeltaMap[5]
 }
 
-func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
-func testTreeDeltaAmino(t *testing.T) {
+// test map[string]*TreeDelta amino
+func TestTreeDeltaMapAmino(t *testing.T) { testTreeDeltaMapAmino(t) }
+func testTreeDeltaMapAmino(t *testing.T) {
+	for i, tdm := range testTreeDeltaMap {
+
+		expect, err := cdc.MarshalBinaryBare(tdm)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := tdm.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := TreeDeltaMap{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := TreeDeltaMap{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+}
+
+// test struct{string,*TreeDelta} amino
+func TestTreeDeltaImpAmino(t *testing.T) { testTreeDeltaImpAmino(t) }
+func testTreeDeltaImpAmino(t *testing.T) {
 	for i, tdm := range testTreeDeltaMap {
 		// each tree delta
-		for _, td := range tdm {
-			expect, err := cdc.MarshalBinaryBare(td)
+		for k, td := range tdm {
+			imp := &TreeDeltaMapImp{Key: k, TreeValue: td}
+
+			expect, err := cdc.MarshalBinaryBare(imp)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-			actual, err := td.MarshalToAmino(cdc)
+			actual, err := imp.MarshalToAmino(cdc)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
 
-			var expectValue TreeDelta
+			var expectValue TreeDeltaMapImp
 			err = cdc.UnmarshalBinaryBare(expect, &expectValue)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 
-			var actualValue TreeDelta
+			var actualValue TreeDeltaMapImp
 			err = actualValue.UnmarshalFromAmino(cdc, expect)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
