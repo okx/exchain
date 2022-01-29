@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	"github.com/tendermint/go-amino"
 )
 
-func (pubkey PubKey) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (pubkey PubKey) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -44,6 +45,47 @@ func (pubkey PubKey) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+// UnmarshalFromAmino unmarshal data from amino bytes.
+func (pub *PubKey) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			pub.Type = string(subData)
+
+		case 2:
+			pub.Data = make([]byte, len(subData))
+			copy(pub.Data, subData)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func (valUpdate ValidatorUpdate) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
@@ -88,7 +130,56 @@ func (valUpdate ValidatorUpdate) MarshalToAmino(cdc *amino.Codec) ([]byte, error
 	return buf.Bytes(), nil
 }
 
-func (params BlockParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+// UnmarshalFromAmino unmarshal data from amino bytes.
+func (vu *ValidatorUpdate) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			err := vu.PubKey.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+
+		case 2:
+			power, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			vu.Power = int64(power)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
+func (params BlockParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -117,7 +208,47 @@ func (params BlockParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params EvidenceParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+// UnmarshalFromAmino unmarshal data from amino bytes.
+func (bp *BlockParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		switch pos {
+		case 1:
+			mb, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			bp.MaxBytes = int64(mb)
+		case 2:
+			mg, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			bp.MaxGas = int64(mg)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
+func (params EvidenceParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -146,7 +277,46 @@ func (params EvidenceParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (params ValidatorParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+// UnmarshalFromAmino unmarshal data from amino bytes.
+func (ep *EvidenceParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		switch pos {
+		case 1:
+			ma, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			ep.MaxAgeNumBlocks = int64(ma)
+
+		case 2:
+			md, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+			ep.MaxAgeDuration = time.Duration(md)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
+func (params ValidatorParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	var pubKeyTypesPbKey = byte(1<<3 | 2)
@@ -161,6 +331,45 @@ func (params ValidatorParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+// UnmarshalFromAmino unmarshal data from amino bytes.
+func (vp *ValidatorParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			vp.PubKeyTypes = append(vp.PubKeyTypes, string(subData))
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func (event Event) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
@@ -456,6 +665,47 @@ func (beginBlock ResponseBeginBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, e
 	return buf.Bytes(), nil
 }
 
+func (bb *ResponseBeginBlock) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			event := Event{}
+			err = event.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			bb.Events = append(bb.Events, event)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func (params ConsensusParams) MarshalToAmino(cdc *amino.Codec) (data []byte, err error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
@@ -516,6 +766,67 @@ func (params ConsensusParams) MarshalToAmino(cdc *amino.Codec) (data []byte, err
 	}
 	return buf.Bytes(), nil
 }
+func (cp *ConsensusParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			bParams := &BlockParams{}
+			if len(subData) != 0 {
+				err := bParams.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
+			}
+			cp.Block = bParams
+		case 2:
+			eParams := &EvidenceParams{}
+			if len(subData) != 0 {
+				err := eParams.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
+			}
+			cp.Evidence = eParams
+
+		case 3:
+			vp := &ValidatorParams{}
+			if len(subData) != 0 {
+				err := vp.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
+			}
+			cp.Validator = vp
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
 
 func (endBlock ResponseEndBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
@@ -574,4 +885,61 @@ func (endBlock ResponseEndBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (eb *ResponseEndBlock) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			vu := ValidatorUpdate{}
+			err := vu.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			eb.ValidatorUpdates = append(eb.ValidatorUpdates, vu)
+		case 2:
+			consParam := &ConsensusParams{}
+			if len(subData) != 0 {
+				err := consParam.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
+			}
+			eb.ConsensusParamUpdates = consParam
+		case 3:
+			var event Event
+			err = event.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			eb.Events = append(eb.Events, event)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }

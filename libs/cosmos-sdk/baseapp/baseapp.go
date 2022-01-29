@@ -126,15 +126,6 @@ type BaseApp struct { // nolint: maligned
 	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
 	txDecoder sdk.TxDecoder
 
-	// the cosmos-sdk/types.Tx interface returned by wrappedTxDecoder probably is:
-	// 1. a WrappedTx
-	// 2. an StdTx
-	// 3. a MsgEthereumTx
-	// depends on how []byte is marshalled
-	wrappedTxDecoder sdk.TxDecoder
-
-	wrappedTxEncoder sdk.WrappedTxEncoder
-
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
 
@@ -225,20 +216,7 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		wrappedTxDecoder: txDecoder,
-	}
-
-	app.txDecoder = func(txBytes []byte, height ...int64) (tx sdk.Tx, err error) {
-		tx, err = app.wrappedTxDecoder(txBytes, height...)
-		if err != nil {
-			return
-		}
-
-		stdTx := tx.GetPayloadTx()
-		if stdTx != nil {
-			tx = stdTx
-		}
-		return
+		txDecoder: txDecoder,
 	}
 
 	for _, option := range options {

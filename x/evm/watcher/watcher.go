@@ -3,11 +3,12 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"sync"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"math/big"
-	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
@@ -374,7 +375,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.dispatchJob(func() {w.commitBatch(batch)})
+	w.dispatchJob(func() { w.commitBatch(batch) })
 
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
@@ -471,7 +472,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	return func() ([]byte, error) {
-		valueByte, err := itjs.Marshal(value)
+		valueByte, err := value.MarshalToAmino(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -484,7 +485,7 @@ func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
 	}
 	wd := WatchData{}
-	if err := itjs.Unmarshal(wdByte, &wd); err != nil {
+	if err := wd.UnmarshalFromAmino(nil, wdByte); err != nil {
 		return nil, err
 	}
 	return wd, nil
