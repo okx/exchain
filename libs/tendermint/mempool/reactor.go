@@ -195,13 +195,13 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Tx
 
 	case *WtxMessage:
+		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
 			memR.Logger.Error("wtx.verify", "error", err, "txhash", types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height))
-			return
+		} else {
+			txInfo.wtx = msg.Wtx
+			txInfo.checkType = abci.CheckTxType_WrappedCheck
 		}
-		txInfo.wtx = msg.Wtx
-		txInfo.checkType = abci.CheckTxType_WrappedCheck
-		tx = msg.Wtx.Payload
 		// broadcasting happens from go routines per peer
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
