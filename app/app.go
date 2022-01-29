@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/utils/sanity"
+	"github.com/spf13/cobra"
 	"io"
 	"math/big"
 	"os"
@@ -580,9 +582,15 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) error {
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
+	// check start flag conflicts
+	err := sanity.CheckStart(cmd)
+	if err != nil {
+		return err
+	}
 
 	// set config by node mode
 	setNodeConfig(ctx)
@@ -591,7 +599,7 @@ func PreRun(ctx *server.Context) error {
 	appconfig.PprofDownload(ctx)
 
 	// pruning options
-	_, err := server.GetPruningOptionsFromFlags()
+	_, err = server.GetPruningOptionsFromFlags()
 	if err != nil {
 		return err
 	}
