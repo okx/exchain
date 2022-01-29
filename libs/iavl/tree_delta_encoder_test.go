@@ -12,13 +12,17 @@ import (
 var testTreeDeltaMap = []TreeDeltaMap{
 	//empty
 	{},
+	//nil treedelta
+	{
+		"test1": nil,
+	},
 	//empty treedelta
 	{
-		"test1": {},
+		"test2": {},
 	},
 	//empty NodesDelta
 	{
-		"test2": {
+		"test3": {
 			NodesDelta:         []*NodeJsonImp{},
 			OrphansDelta:       []*NodeJson{{Version: 3}, {Version: 4}},
 			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {"nd2", 2}},
@@ -26,7 +30,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	//empty OrphansDelta
 	{
-		"test3": {
+		"test4": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -37,7 +41,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	//empty CommitOrphansDelta
 	{
-		"test4": {
+		"test5": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -46,22 +50,23 @@ var testTreeDeltaMap = []TreeDeltaMap{
 			CommitOrphansDelta: []*CommitOrphansImp{},
 		},
 	},
-	// full data
+	// some empty data in slice
 	{
-		"test5": {
+		"test6": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{},
+				nil,
 				{"nd2", &NodeJson{Version: 2}},
 			},
-			OrphansDelta:       []*NodeJson{{Version: 3}, {}, {Version: 4}},
-			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {}, {"nd2", 2}},
+			OrphansDelta:       []*NodeJson{{Version: 3}, {}, nil, {Version: 4}},
+			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {}, nil, {"nd2", 2}},
 		},
 	},
 
 	// full data
 	{
-		"test6": {
+		"test7": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -72,7 +77,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 	},
 	// multiple data
 	{
-		"test7.0": {
+		"test8.0": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd1", &NodeJson{Version: 1}},
 				{"nd2", &NodeJson{Version: 2}},
@@ -80,7 +85,7 @@ var testTreeDeltaMap = []TreeDeltaMap{
 			OrphansDelta:       []*NodeJson{{Version: 3}, {Version: 4}},
 			CommitOrphansDelta: []*CommitOrphansImp{{"nd1", 1}, {"nd2", 2}},
 		},
-		"test7.1": {
+		"test8.1": {
 			NodesDelta: []*NodeJsonImp{
 				{"nd3", &NodeJson{Version: 3}},
 			},

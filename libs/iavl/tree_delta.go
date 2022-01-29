@@ -149,7 +149,9 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
-			// because this map, must be maclloc memory
+			if ti.TreeValue == nil {
+				break
+			}
 			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
