@@ -23,7 +23,7 @@ type KV struct {
 }
 
 // MarshalToAmino encode KV data to amino bytes
-func (k *KV) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (k *KV) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}

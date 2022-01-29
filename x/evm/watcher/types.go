@@ -74,7 +74,7 @@ type Batch struct {
 }
 
 // MarshalToAmino marshal batch data to amino bytes
-func (b *Batch) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (b *Batch) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3 << 3}
@@ -191,7 +191,7 @@ func (w *WatchData) Size() int {
 }
 
 // MarshalToAmino marshal to amino bytes
-func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (w *WatchData) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
@@ -202,33 +202,36 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(w.DirtyAccount); i++ {
-				if w.DirtyAccount[i] == nil {
-					continue
-				}
-				err = buf.WriteByte(fieldKeysType[pos-1])
+				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeByteSliceToBuffer(&buf, w.DirtyAccount[i].Bytes())
+				var data []byte
+				if w.DirtyAccount != nil {
+					data = w.DirtyAccount[i].Bytes()
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
 				}
+
 			}
 		case 2:
 			if len(w.Batches) == 0 {
 				break
 			}
 			for i := 0; i < len(w.Batches); i++ {
-				if w.Batches[i] == nil {
-					continue
-				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				data, err := w.Batches[i].MarshalToAmino(nil)
-				if err != nil {
-					return nil, err
+
+				var data []byte
+				if w.Batches[i] != nil {
+					data, err = w.Batches[i].MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
 				}
 				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
@@ -241,9 +244,6 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 			}
 			// encode a slice one by one
 			for i := 0; i < len(w.DelayEraseKey); i++ {
-				if len(w.DelayEraseKey[i]) == 0 {
-					continue
-				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -258,16 +258,16 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				break
 			}
 			for i := 0; i < len(w.BloomData); i++ {
-				if w.BloomData[i] == nil {
-					continue
-				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				data, err := w.BloomData[i].MarshalToAmino(nil)
-				if err != nil {
-					return nil, err
+				var data []byte
+				if w.BloomData[i] != nil {
+					data, err = w.BloomData[i].MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
 				}
 				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
@@ -280,9 +280,6 @@ func (w *WatchData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 			}
 			// encode a slice one by one
 			for i := 0; i < len(w.DirtyList); i++ {
-				if len(w.DirtyList[i]) == 0 {
-					continue
-				}
 				err = buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
@@ -329,16 +326,23 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		switch pos {
 		case 1:
 			// copy subData to new memory and use it as sdk.AccAddress type
-			accAddr := make([]byte, len(subData))
-			copy(accAddr, subData)
-			acc := sdk.AccAddress(accAddr)
-			w.DirtyAccount = append(w.DirtyAccount, &acc)
+			var acc *sdk.AccAddress = nil
+			if len(subData) != 0 {
+				accAddr := make([]byte, len(subData))
+				copy(accAddr, subData)
+				accByte := sdk.AccAddress(accAddr)
+				acc = &accByte
+			}
+			w.DirtyAccount = append(w.DirtyAccount, acc)
 
 		case 2:
-			bat := &Batch{}
-			err := bat.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var bat *Batch = nil
+			if len(subData) != 0 {
+				bat = &Batch{}
+				err := bat.UnmarshalFromAmino(nil, subData)
+				if err != nil {
+					return err
+				}
 			}
 			w.Batches = append(w.Batches, bat)
 
@@ -348,10 +352,13 @@ func (w *WatchData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			w.DelayEraseKey = append(w.DelayEraseKey, delayEraseKey)
 
 		case 4:
-			kv := &types.KV{}
-			err := kv.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var kv *types.KV = nil
+			if len(subData) == 0 {
+				kv = &types.KV{}
+				err := kv.UnmarshalFromAmino(nil, subData)
+				if err != nil {
+					return err
+				}
 			}
 			w.BloomData = append(w.BloomData, kv)
 

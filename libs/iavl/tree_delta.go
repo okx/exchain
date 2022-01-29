@@ -3,15 +3,16 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/tendermint/go-amino"
+	amino "github.com/tendermint/go-amino"
 )
 
 type TreeDeltaMap map[string]*TreeDelta
 
 // MarshalToAmino marshal to amino bytes
-func (tdm TreeDeltaMap) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (tdm TreeDeltaMap) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := byte(1<<3 | 2)
 
@@ -19,8 +20,16 @@ func (tdm TreeDeltaMap) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 		return buf.Bytes(), nil
 	}
 
-	// encode a pair of data one by one
+	keys := make([]string, len(tdm))
+	index := 0
 	for k := range tdm {
+		keys[index] = k
+		index++
+	}
+	sort.Strings(keys)
+
+	// encode a pair of data one by one
+	for _, k := range keys {
 		err := buf.WriteByte(fieldKeysType)
 		if err != nil {
 			return nil, err
@@ -43,7 +52,7 @@ func (tdm TreeDeltaMap) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino decode bytes from amino format.
-func (tdm TreeDeltaMap) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (tdm TreeDeltaMap) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -73,9 +82,9 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		case 1:
 			// a object to unmarshal data
 			ad := &TreeDeltaMapImp{
-				TreeValue: &TreeDelta{NodesDelta: map[string]*NodeJson{}, OrphansDelta: []*NodeJson{}, CommitOrphansDelta: map[string]int64{}},
+				TreeValue: &TreeDelta{NodesDelta: []*NodeJsonImp{}, OrphansDelta: []*NodeJson{}, CommitOrphansDelta: []*CommitOrphansImp{}},
 			}
-			err := ad.UnmarshalFromAmino(nil, subData)
+			err := ad.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -96,7 +105,10 @@ type TreeDeltaMapImp struct {
 }
 
 //MarshalToAmino marshal data to amino bytes
-func (ti *TreeDeltaMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (ti *TreeDeltaMapImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+	if ti == nil {
+		return nil, nil
+	}
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -115,20 +127,18 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
-			if ti.TreeValue == nil {
-				break
-			}
-			data, err := ti.TreeValue.MarshalToAmino(nil)
+			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
-			if len(data) == 0 {
-				break
+			var data []byte
+			if ti.TreeValue != nil {
+				data, err = ti.TreeValue.MarshalToAmino(cdc)
+				if err != nil {
+					return nil, err
+				}
 			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
+
 			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
@@ -142,7 +152,7 @@ func (ti *TreeDeltaMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (ti *TreeDeltaMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (ti *TreeDeltaMapImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -173,11 +183,15 @@ func (ti *TreeDeltaMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error
 			ti.Key = string(subData)
 
 		case 2:
-			// treevalue isn't empty,go on
-			err := ti.TreeValue.UnmarshalFromAmino(subData)
-			if err != nil {
-				return err
+			var tv *TreeDelta = nil
+			if len(subData) != 0 {
+				tv = &TreeDelta{}
+				err := tv.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
+			ti.TreeValue = tv
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -188,27 +202,30 @@ func (ti *TreeDeltaMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error
 
 // TreeDelta is the delta for applying on new version tree
 type TreeDelta struct {
-	NodesDelta         map[string]*NodeJson `json:"nodes_delta"`
-	OrphansDelta       []*NodeJson          `json:"orphans_delta"`
-	CommitOrphansDelta map[string]int64     `json:"commit_orphans_delta"`
+	NodesDelta         []*NodeJsonImp      `json:"nodes_delta"`
+	OrphansDelta       []*NodeJson         `json:"orphans_delta"`
+	CommitOrphansDelta []*CommitOrphansImp `json:"commit_orphans_delta"`
 }
 
-func (td *TreeDelta) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (td *TreeDelta) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
 		switch pos {
 		case 1:
 			//encode data
-			for k := range td.NodesDelta {
+			for _, node := range td.NodesDelta {
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				ni := &NodeJsonMapImp{Key: k, NodeValue: td.NodesDelta[k]}
-				data, err := ni.MarshalToAmino(nil)
-				if err != nil {
-					return nil, err
+
+				var data []byte
+				if node != nil {
+					data, err = node.MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
 				}
 				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
@@ -236,15 +253,17 @@ func (td *TreeDelta) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				}
 			}
 		case 3:
-			for k := range td.CommitOrphansDelta {
+			for _, v := range td.CommitOrphansDelta {
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				cv := &CommitOrphansMapImp{Key: k, CommitValue: td.CommitOrphansDelta[k]}
-				data, err := cv.MarshalToAmino(nil)
-				if err != nil {
-					return nil, err
+				var data []byte
+				if v != nil {
+					data, err = v.MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
 				}
 				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
@@ -258,7 +277,7 @@ func (td *TreeDelta) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
-func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
+func (td *TreeDelta) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -286,28 +305,37 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			ni := &NodeJsonMapImp{NodeValue: new(NodeJson)}
-			err := ni.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var ni *NodeJsonImp = nil
+			if len(subData) != 0 {
+				ni = &NodeJsonImp{}
+				err := ni.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
-			td.NodesDelta[ni.Key] = ni.NodeValue
+			td.NodesDelta = append(td.NodesDelta, ni)
+
 		case 2:
-			nodeData := &NodeJson{}
-			err := nodeData.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var nodeData *NodeJson = nil
+			if len(subData) != 0 {
+				nodeData = &NodeJson{}
+				err := nodeData.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
 			td.OrphansDelta = append(td.OrphansDelta, nodeData)
+
 		case 3:
-			ci := &CommitOrphansMapImp{}
-			err := ci.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var ci *CommitOrphansImp = nil
+			if len(subData) != 0 {
+				ci = &CommitOrphansImp{}
+				err := ci.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
-			// key and value must be existing together
-			// CommitValue is initial in first.
-			td.CommitOrphansDelta[ci.Key] = ci.CommitValue
+			td.CommitOrphansDelta = append(td.CommitOrphansDelta, ci)
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -316,13 +344,13 @@ func (td *TreeDelta) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
-type NodeJsonMapImp struct {
+type NodeJsonImp struct {
 	Key       string
 	NodeValue *NodeJson
 }
 
 // MarshalToAmino marshal data to amino bytes.
-func (ni *NodeJsonMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (ni *NodeJsonImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -341,20 +369,18 @@ func (ni *NodeJsonMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 				return nil, err
 			}
 		case 2:
-			if ni.NodeValue == nil {
-				break
-			}
-			data, err := ni.NodeValue.MarshalToAmino(nil)
+			err := buf.WriteByte(fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
-			if len(data) == 0 {
-				break
+			var data []byte
+			if ni.NodeValue != nil {
+				data, err = ni.NodeValue.MarshalToAmino(cdc)
+				if err != nil {
+					return nil, err
+				}
 			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
+
 			err = amino.EncodeByteSliceToBuffer(&buf, data)
 			if err != nil {
 				return nil, err
@@ -368,7 +394,7 @@ func (ni *NodeJsonMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (ni *NodeJsonMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (ni *NodeJsonImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -399,11 +425,15 @@ func (ni *NodeJsonMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 			ni.Key = string(subData)
 
 		case 2:
-			// NodeValue isn't empty, go on
-			err := ni.NodeValue.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var nj *NodeJson = nil
+			if len(subData) != 0 {
+				nj = &NodeJson{}
+				err := nj.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
+			ni.NodeValue = nj
 
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
@@ -412,13 +442,13 @@ func (ni *NodeJsonMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 	return nil
 }
 
-type CommitOrphansMapImp struct {
+type CommitOrphansImp struct {
 	Key         string
 	CommitValue int64
 }
 
 // MarshalToAmino marshal data to amino bytes.
-func (ci *CommitOrphansMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (ci *CommitOrphansImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	//key type list
 	fieldKeysType := [2]byte{1<<3 | 2, 2 << 3}
@@ -459,7 +489,7 @@ func (ci *CommitOrphansMapImp) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from animo bytes.
-func (ci *CommitOrphansMapImp) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (ci *CommitOrphansImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -519,7 +549,7 @@ type NodeJson struct {
 }
 
 // MarshalToAmino marshal data to amino bytes.
-func (nj *NodeJson) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (nj *NodeJson) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [10]byte{
 		1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2,
@@ -656,7 +686,7 @@ func (nj *NodeJson) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (nj *NodeJson) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (nj *NodeJson) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 

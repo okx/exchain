@@ -176,7 +176,7 @@ func (arz ABCIResponses) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
-func (arz *ABCIResponses) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -204,26 +204,35 @@ func (arz *ABCIResponses) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 
 		switch pos {
 		case 1:
-			resDeliverTx := &abci.ResponseDeliverTx{Events: []abci.Event{}}
-			err := resDeliverTx.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var resDeliverTx *abci.ResponseDeliverTx = nil
+			if len(subData) != 0 {
+				resDeliverTx = &abci.ResponseDeliverTx{Events: []abci.Event{}}
+				err := resDeliverTx.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
 			arz.DeliverTxs = append(arz.DeliverTxs, resDeliverTx)
 
 		case 2:
-			eBlock := &abci.ResponseEndBlock{}
-			err := eBlock.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var eBlock *abci.ResponseEndBlock = nil
+			if len(subData) == 0 {
+				eBlock := &abci.ResponseEndBlock{}
+				err := eBlock.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
 			arz.EndBlock = eBlock
 
 		case 3:
-			bBlock := &abci.ResponseBeginBlock{}
-			err := bBlock.UnmarshalFromAmino(nil, subData)
-			if err != nil {
-				return err
+			var bBlock *abci.ResponseBeginBlock = nil
+			if len(subData) == 0 {
+				bBlock := &abci.ResponseBeginBlock{}
+				err := bBlock.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
 			}
 			arz.BeginBlock = bBlock
 
