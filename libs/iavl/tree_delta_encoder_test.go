@@ -92,6 +92,15 @@ func testTreeDeltaAmino(t *testing.T) {
 			actual, err := td.MarshalToAmino(cdc)
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+			var expectValue TreeDelta
+			err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+			require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+			var actualValue TreeDelta
+			err = actualValue.UnmarshalFromAmino(cdc, expect)
+			require.NoError(t, err, fmt.Sprintf("num %v", i))
+			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
 		}
 	}
 }

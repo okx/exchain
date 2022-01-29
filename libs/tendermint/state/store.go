@@ -206,7 +206,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 		case 1:
 			var resDeliverTx *abci.ResponseDeliverTx = nil
 			if len(subData) != 0 {
-				resDeliverTx = &abci.ResponseDeliverTx{Events: []abci.Event{}}
+				resDeliverTx = &abci.ResponseDeliverTx{}
 				err := resDeliverTx.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -215,9 +215,8 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 			arz.DeliverTxs = append(arz.DeliverTxs, resDeliverTx)
 
 		case 2:
-			var eBlock *abci.ResponseEndBlock = nil
+			eBlock := &abci.ResponseEndBlock{}
 			if len(subData) == 0 {
-				eBlock := &abci.ResponseEndBlock{}
 				err := eBlock.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -226,9 +225,8 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 			arz.EndBlock = eBlock
 
 		case 3:
-			var bBlock *abci.ResponseBeginBlock = nil
+			bBlock := &abci.ResponseBeginBlock{}
 			if len(subData) == 0 {
-				bBlock := &abci.ResponseBeginBlock{}
 				err := bBlock.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err

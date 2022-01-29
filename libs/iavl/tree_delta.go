@@ -183,9 +183,8 @@ func (ti *TreeDeltaMapImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			ti.Key = string(subData)
 
 		case 2:
-			var tv *TreeDelta = nil
+			tv := &TreeDelta{}
 			if len(subData) != 0 {
-				tv = &TreeDelta{}
 				err := tv.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -235,18 +234,17 @@ func (td *TreeDelta) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 
 		case 2:
 			for _, v := range td.OrphansDelta {
-				if v == nil {
-					continue
-				}
 				err := buf.WriteByte(fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
 				}
-				data, err := v.MarshalToAmino(nil)
-				if err != nil {
-					return nil, err
+				var data []byte
+				if v != nil {
+					data, err = v.MarshalToAmino(nil)
+					if err != nil {
+						return nil, err
+					}
 				}
-
 				err = amino.EncodeByteSliceToBuffer(&buf, data)
 				if err != nil {
 					return nil, err
@@ -425,9 +423,8 @@ func (ni *NodeJsonImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			ni.Key = string(subData)
 
 		case 2:
-			var nj *NodeJson = nil
+			nj := &NodeJson{}
 			if len(subData) != 0 {
-				nj = &NodeJson{}
 				err := nj.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err

@@ -11,7 +11,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-func (pubkey PubKey) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (pubkey PubKey) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	for pos := 1; pos <= 2; pos++ {
@@ -179,7 +179,7 @@ func (vu *ValidatorUpdate) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 	return nil
 }
 
-func (params BlockParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (params BlockParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -248,7 +248,7 @@ func (bp *BlockParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-func (params EvidenceParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (params EvidenceParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1 << 3, 2 << 3}
 	for pos := 1; pos <= 2; pos++ {
@@ -316,7 +316,7 @@ func (ep *EvidenceParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 	return nil
 }
 
-func (params ValidatorParams) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (params ValidatorParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	var pubKeyTypesPbKey = byte(1<<3 | 2)
@@ -793,9 +793,8 @@ func (cp *ConsensusParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 
 		switch pos {
 		case 1:
-			var bParams *BlockParams = nil
+			bParams := &BlockParams{}
 			if len(subData) != 0 {
-				bParams = &BlockParams{}
 				err := bParams.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -803,9 +802,8 @@ func (cp *ConsensusParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			}
 			cp.Block = bParams
 		case 2:
-			var eParams *EvidenceParams = nil
+			eParams := &EvidenceParams{}
 			if len(subData) != 0 {
-				eParams = &EvidenceParams{}
 				err := eParams.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -814,9 +812,8 @@ func (cp *ConsensusParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			cp.Evidence = eParams
 
 		case 3:
-			var vp *ValidatorParams = nil
+			vp := &ValidatorParams{}
 			if len(subData) != 0 {
-				vp = &ValidatorParams{}
 				err := vp.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -924,9 +921,8 @@ func (eb *ResponseEndBlock) UnmarshalFromAmino(cdc *amino.Codec, data []byte) er
 			}
 			eb.ValidatorUpdates = append(eb.ValidatorUpdates, vu)
 		case 2:
-			var consParam *ConsensusParams = nil
+			consParam := &ConsensusParams{}
 			if len(subData) != 0 {
-				consParam = &ConsensusParams{}
 				err := consParam.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
