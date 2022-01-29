@@ -19,6 +19,50 @@ type DecCoin struct {
 	Amount Dec    `json:"amount"`
 }
 
+func (coin *DecCoin) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			coin.Denom = string(subData)
+		case 2:
+			err = coin.Amount.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // NewDecCoin creates a new DecCoin instance from an Int.
 func NewDecCoin(denom string, amount Int) DecCoin {
 	if err := validate(denom, amount); err != nil {
@@ -157,53 +201,30 @@ func (coin DecCoin) IsValid() bool {
 
 var decCoinBufferPool = amino.NewBufferPool()
 
-func (coin DecCoin) MarshalToAmino() ([]byte, error) {
+func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = decCoinBufferPool.Get()
 	defer decCoinBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
-		if err != nil {
-			return nil, err
-		}
-		err = buf.WriteByte(posByte)
-		if err != nil {
-			return nil, err
-		}
-
 		switch pos {
 		case 1:
 			if coin.Denom == "" {
-				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, uint64(len(coin.Denom)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.WriteString(coin.Denom)
+			err := amino.EncodeStringWithKeyToBuffer(buf, coin.Denom, 1<<3|2)
 			if err != nil {
 				return nil, err
 			}
 		case 2:
-			data, err := coin.Amount.MarshalToAmino()
+			data, err := coin.Amount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, 2<<3|2)
 			if err != nil {
 				return nil, err
 			}
 		default:
 			panic("unreachable")
-		}
-		if noWrite {
-			buf.Truncate(lBeforeKey)
 		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil

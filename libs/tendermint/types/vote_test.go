@@ -361,7 +361,7 @@ func TestVoteAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue Vote
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)

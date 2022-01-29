@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	db "github.com/tendermint/tm-db"
-	dbm "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -149,7 +149,7 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	if len(bz) == 0 {
 		return nil
 	}
-	err = part.UnmarshalFromAmino(bz)
+	err = part.UnmarshalFromAmino(cdc, bz)
 	if err != nil {
 		part = new(types.Part)
 		err = cdc.UnmarshalBinaryBare(bz, part)

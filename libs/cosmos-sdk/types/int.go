@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/tendermint/go-amino"
+
 	"math/big"
 )
 
@@ -166,20 +168,6 @@ func NewIntWithDecimal(n int64, dec int) Int {
 		panic("NewIntWithDecimal() out of bound")
 	}
 	return Int{i}
-}
-
-func NewIntFromAmino(data []byte) (Int, error) {
-	ret := Int{new(big.Int)}
-
-	if err := ret.i.UnmarshalText(data); err != nil {
-		return Int{}, err
-	}
-
-	if ret.i.BitLen() > maxBitLen {
-		return Int{}, fmt.Errorf("integer out of range: %s", string(data))
-	}
-
-	return ret, nil
 }
 
 // ZeroInt returns Int value with zero
@@ -379,7 +367,7 @@ func (i *Int) UnmarshalAmino(text string) error {
 	return unmarshalAmino(i.i, text)
 }
 
-func (i *Int) UnmarshalFromAmino(data []byte) error {
+func (i *Int) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	if i.i == nil { // Necessary since default Int initialization has i.i as nil
 		i.i = new(big.Int)
 	}

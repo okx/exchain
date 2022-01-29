@@ -408,7 +408,7 @@ func deriveChainID(v *big.Int) *big.Int {
 	return v.Div(v, big.NewInt(2))
 }
 
-func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -440,7 +440,7 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			if err := msg.Data.UnmarshalFromAmino(subData); err != nil {
+			if err := msg.Data.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		default:

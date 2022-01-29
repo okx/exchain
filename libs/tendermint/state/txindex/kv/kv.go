@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"
@@ -71,7 +71,7 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 	}
 
 	txResult := new(types.TxResult)
-	err = txResult.UnmarshalFromAmino(rawBytes)
+	err = txResult.UnmarshalFromAmino(cdc, rawBytes)
 	if err != nil {
 		txResult = new(types.TxResult)
 		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)

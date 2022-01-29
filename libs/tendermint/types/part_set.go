@@ -28,7 +28,7 @@ type Part struct {
 	Proof merkle.SimpleProof `json:"proof"`
 }
 
-func (part *Part) UnmarshalFromAmino(data []byte) error {
+func (part *Part) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -47,9 +47,15 @@ func (part *Part) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for %s, need %d, have %d", aminoType, dataLen, len(data))
+			}
 			subData = data[:dataLen]
 		}
 
@@ -65,7 +71,7 @@ func (part *Part) UnmarshalFromAmino(data []byte) error {
 			part.Bytes = make([]byte, dataLen)
 			copy(part.Bytes, subData)
 		case 3:
-			err = part.Proof.UnmarshalFromAmino(subData)
+			err = part.Proof.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -123,7 +129,7 @@ func (psh PartSetHeader) AminoSize() int {
 	return size
 }
 
-func (psh *PartSetHeader) UnmarshalFromAmino(data []byte) error {
+func (psh *PartSetHeader) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -142,9 +148,15 @@ func (psh *PartSetHeader) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for %s, need %d, have %d", aminoType, dataLen, len(data))
+			}
 			subData = data[:dataLen]
 		}
 
@@ -153,6 +165,9 @@ func (psh *PartSetHeader) UnmarshalFromAmino(data []byte) error {
 			var n int
 			var uvint uint64
 			uvint, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 			psh.Total = int(uvint)
 			dataLen = uint64(n)
 		case 2:

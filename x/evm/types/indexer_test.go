@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"testing"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func TestIndexer_ProcessSection(t *testing.T) {

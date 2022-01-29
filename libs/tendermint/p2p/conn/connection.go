@@ -919,9 +919,9 @@ func RegisterPacket(cdc *amino.Codec) {
 	})
 	cdc.RegisterConcreteMarshaller(PacketMsgName, func(codec *amino.Codec, i interface{}) ([]byte, error) {
 		if packet, ok := i.(PacketMsg); ok {
-			return packet.MarshalToAmino()
+			return packet.MarshalToAmino(codec)
 		} else if ppacket, ok := i.(*PacketMsg); ok {
-			return ppacket.MarshalToAmino()
+			return ppacket.MarshalToAmino(codec)
 		} else {
 			return nil, fmt.Errorf("%v must be of type %v", i, PacketMsg{})
 		}
@@ -934,7 +934,7 @@ func RegisterPacket(cdc *amino.Codec) {
 	})
 	cdc.RegisterConcreteUnmarshaller(PacketMsgName, func(codec *amino.Codec, data []byte) (interface{}, int, error) {
 		var msg PacketMsg
-		err := msg.UnmarshalFromAmino(data)
+		err := msg.UnmarshalFromAmino(codec, data)
 		if err != nil {
 			return nil, 0, err
 		} else {
@@ -950,22 +950,22 @@ func (PacketMsg) AssertIsPacket()  {}
 type PacketPing struct {
 }
 
-func (p *PacketPing) UnmarshalFromAmino([]byte) error {
+func (p *PacketPing) UnmarshalFromAmino(_ *amino.Codec, _ []byte) error {
 	return nil
 }
 
-func (PacketPing) MarshalToAmino() ([]byte, error) {
+func (PacketPing) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return []byte{}, nil
 }
 
 type PacketPong struct {
 }
 
-func (PacketPong) MarshalToAmino() ([]byte, error) {
+func (PacketPong) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (p *PacketPong) UnmarshalFromAmino(data []byte) error {
+func (p *PacketPong) UnmarshalFromAmino(_ *amino.Codec, _ []byte) error {
 	return nil
 }
 
@@ -981,23 +981,20 @@ func (mp PacketMsg) String() string {
 
 var packetMsgBufferPool = amino.NewBufferPool()
 
-func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
+func (mp PacketMsg) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf = packetMsgBufferPool.Get()
 	defer packetMsgBufferPool.Put(buf)
 	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
 	for pos := 1; pos <= 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err := buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
-
+		var err error
 		switch pos {
 		case 1:
 			if mp.ChannelID == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			if mp.ChannelID <= 0b0111_1111 {
 				err = buf.WriteByte(mp.ChannelID)
@@ -1016,8 +1013,11 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			}
 		case 2:
 			if mp.EOF == 0 {
-				noWrite = true
 				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
 			}
 			if mp.EOF <= 0b0111_1111 {
 				err = buf.WriteByte(mp.EOF)
@@ -1036,25 +1036,20 @@ func (mp PacketMsg) MarshalToAmino() ([]byte, error) {
 			}
 		case 3:
 			if len(mp.Bytes) == 0 {
-				noWrite = true
 				break
 			}
-			err = amino.EncodeByteSliceToBuffer(buf, mp.Bytes)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, mp.Bytes, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 		default:
 			panic("unreachable")
 		}
-
-		if noWrite {
-			buf.Truncate(lBeforeKey)
-		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil
 }
 
-func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
+func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -1073,9 +1068,15 @@ func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("invalid data len")
+			}
 			subData = data[:dataLen]
 		}
 
@@ -1083,14 +1084,14 @@ func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
 		case 1:
 			vari, n, err := amino.DecodeUvarint(data)
 			if err != nil {
-				return nil
+				return err
 			}
 			mp.ChannelID = byte(vari)
 			dataLen = uint64(n)
 		case 2:
 			vari, n, err := amino.DecodeUvarint(data)
 			if err != nil {
-				return nil
+				return err
 			}
 			mp.EOF = byte(vari)
 			dataLen = uint64(n)
@@ -1164,7 +1165,7 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 		return
 	} else if bytes.Equal(PacketMsgTypePrefix, bz[0:4]) {
 		msg := PacketMsg{}
-		err = msg.UnmarshalFromAmino(bz[4:])
+		err = msg.UnmarshalFromAmino(cdc, bz[4:])
 		if err == nil {
 			packet = msg
 			return

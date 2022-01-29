@@ -10,13 +10,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
 	amino "github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
@@ -572,6 +574,8 @@ func NewNode(config *cfg.Config,
 	if err != nil {
 		return nil, err
 	}
+
+	global.SetGlobalHeight(state.LastBlockHeight)
 
 	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
 	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
