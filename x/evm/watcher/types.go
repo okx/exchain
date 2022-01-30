@@ -207,7 +207,7 @@ func (w *WatchData) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 					return nil, err
 				}
 				var data []byte
-				if w.DirtyAccount != nil {
+				if w.DirtyAccount[i] != nil {
 					data = w.DirtyAccount[i].Bytes()
 				}
 				err = amino.EncodeByteSliceToBuffer(&buf, data)

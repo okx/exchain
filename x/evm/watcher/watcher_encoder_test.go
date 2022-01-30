@@ -24,6 +24,13 @@ var (
 var testWatchData = []*WatchData{
 	{},
 	{
+		DirtyAccount:  []*sdk.AccAddress{},
+		Batches:       []*Batch{},
+		DelayEraseKey: [][]byte{},
+		BloomData:     []*types.KV{},
+		DirtyList:     [][]byte{},
+	},
+	{
 		DirtyAccount: []*sdk.AccAddress{&testAccAddr1, &testAccAddr2},
 	},
 	{
@@ -39,11 +46,11 @@ var testWatchData = []*WatchData{
 		DirtyList: [][]byte{[]byte("0x01"), []byte("0x02")},
 	},
 	{
-		DirtyAccount:  []*sdk.AccAddress{&testAccAddr1, {}, &testAccAddr2},
-		Batches:       []*Batch{{Key: []byte("0x01")}, {}, {TypeValue: 1}},
-		DelayEraseKey: [][]byte{[]byte("0x01"), {}, []byte("0x02")},
-		BloomData:     []*types.KV{{Key: []byte("0x01")}, {}, {Value: []byte("0x01")}},
-		DirtyList:     [][]byte{[]byte("0x01"), {}, []byte("0x02")},
+		DirtyAccount:  []*sdk.AccAddress{&testAccAddr1, {}, nil, &testAccAddr2},
+		Batches:       []*Batch{{Key: []byte("0x01")}, {}, nil, {TypeValue: 1}},
+		DelayEraseKey: [][]byte{[]byte("0x01"), {}, nil, []byte("0x02")},
+		BloomData:     []*types.KV{{Key: []byte("0x01")}, {}, nil, {Value: []byte("0x01")}},
+		DirtyList:     [][]byte{[]byte("0x01"), {}, nil, []byte("0x02")},
 	},
 	{
 		DirtyAccount:  []*sdk.AccAddress{&testAccAddr1, &testAccAddr2},
@@ -58,7 +65,7 @@ func newTestWatchData() *WatchData {
 	return testWatchData[len(testWatchData)-1]
 }
 
-func TestWatchDataEncoder(t *testing.T) { testWatchDataAmino(t) }
+func TestWatchDataAmino(t *testing.T) { testWatchDataAmino(t) }
 func testWatchDataAmino(t *testing.T) {
 	for i, wd := range testWatchData {
 		expect, err := cdc.MarshalBinaryBare(wd)
