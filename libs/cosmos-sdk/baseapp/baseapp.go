@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -27,8 +28,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -205,6 +206,9 @@ type BaseApp struct { // nolint: maligned
 
 	nodekey *p2p.NodeKey
 	enableWtx bool
+
+	blockTxSender map[string]sdk.SigCache
+	blockTxSenderLock sync.RWMutex
 }
 
 type recordHandle func(string)
@@ -1163,3 +1167,32 @@ func (app *BaseApp) SetNodeKey(from string, k *p2p.NodeKey) {
 //	}
 //	return ed25519.GenPrivKeyFromSecret(secert)
 //}
+
+func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block)  {
+	go func() {
+		if len(block.Data.Txs) < 20 {
+			return
+		}
+
+		app.blockTxSenderLock.Lock()
+		app.blockTxSender = make(map[string]sdk.SigCache, len(block.Data.Txs))
+		app.blockTxSenderLock.Unlock()
+
+		for idx, tx := range block.Data.Txs {
+			cmstx, err := app.wrappedTxDecoder(tx)
+			if err != nil {
+				continue
+			}
+
+			go func(idx int, rawTx tmtypes.Tx, tx sdk.Tx) {
+				ethSignInfo := tx.GetEthSignInfo(app.checkState.ctx)
+
+				app.blockTxSenderLock.Lock()
+				defer app.blockTxSenderLock.Unlock()
+				if ethSignInfo != nil {
+					app.blockTxSender[txhash(rawTx)] = ethSignInfo
+				}
+			}(idx, tx, cmstx)
+		}
+	}()
+}

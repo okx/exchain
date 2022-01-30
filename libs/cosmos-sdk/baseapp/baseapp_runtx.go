@@ -51,6 +51,14 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}
 	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
 
+	if mode == runTxModeDeliver{
+		app.blockTxSenderLock.RLock()
+		defer app.blockTxSenderLock.RUnlock()
+		if ethSignInfo, ok := app.blockTxSender[txhash(txBytes)]; ok {
+			info.ctx.WithSigCache(ethSignInfo)
+		}
+	}
+
 	err = handler.handleGasConsumed(info)
 	if err != nil {
 		return info, err

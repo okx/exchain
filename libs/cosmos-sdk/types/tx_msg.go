@@ -58,6 +58,8 @@ type Tx interface {
 	GetType() TransactionType
 
 	GetPayloadTxBytes() []byte
+
+	GetEthSignInfo(ctx Context) SigCache
 }
 
 //__________________________________________________________

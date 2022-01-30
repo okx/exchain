@@ -606,6 +606,10 @@ func (wtx txTest) GetPayloadTxBytes() []byte {
 	return nil
 }
 
+func (wtx txTest) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
+	return nil
+}
+
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"

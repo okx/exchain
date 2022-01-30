@@ -2135,6 +2135,9 @@ func (cs *State) updatePrivValidatorPubKey() error {
 	return nil
 }
 
+func (cs *State) BlockExec() *sm.BlockExecutor {
+	return cs.blockExec
+}
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {

@@ -65,3 +65,17 @@ func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return append(recipient, methodId...), 0
 }
 
+func (msg MsgEthereumTx) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
+	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil
+	}
+
+	// Verify signature and retrieve sender address
+	fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+	if err != nil {
+		return nil
+	}
+
+	return fromSigCache
+}

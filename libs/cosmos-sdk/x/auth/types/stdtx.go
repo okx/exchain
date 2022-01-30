@@ -271,6 +271,10 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
+func (tx StdTx) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
+	return nil
+}
+
 
 //__________________________________________________________
 

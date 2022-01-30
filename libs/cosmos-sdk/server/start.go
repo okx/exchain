@@ -315,6 +315,10 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		tmNode.Mempool().SetTxInfoParser(parser)
 	}
 
+	if blockParser, ok := app.(state.BlockTxsSenderParser); ok {
+		tmNode.ConsensusState().BlockExec().SetBlockTxsSenderParser(blockParser)
+	}
+
 	if keeper, ok := app.(p2p.NodeKeyUser); ok {
 		keeper.SetNodeKey(cfg.NodeKeyFile(), nodeKey)
 	}
