@@ -2,12 +2,13 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"runtime/debug"
 )
 
 type runTxInfo struct {
@@ -21,7 +22,6 @@ type runTxInfo struct {
 	runMsgFinished bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
-	nodeSigVerifyResult   int
 
 	result  *sdk.Result
 	txBytes []byte
@@ -29,15 +29,15 @@ type runTxInfo struct {
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
-	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result,
+	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
 	msCacheList sdk.CacheMultiStore, err error) {
 
 	var info *runTxInfo
-	info, err = app.runtx(mode, txBytes, tx, height)
+	info, err = app.runtx(mode, txBytes, tx, height, from...)
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
@@ -50,6 +50,13 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		return info, err
 	}
 	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	for _, addr := range from {
+		// cache from if exist
+		if addr != "" {
+			info.ctx = info.ctx.WithFrom(addr)
+			break
+		}
+	}
 
 	if mode == runTxModeDeliver{
 		app.blockTxSenderLock.RLock()
@@ -63,7 +70,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if err != nil {
 		return info, err
 	}
-
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -82,14 +88,13 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return info, err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-
 	app.pin(AnteHandler, true, mode)
+
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
@@ -104,7 +109,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	return info, err
 }
-
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
@@ -123,14 +127,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
-	info.nodeSigVerifyResult = newCtx.NodeSigVerifyResult()
-	app.logger.Debug("anteHandler finished",
-		"mode", mode,
-		"type", info.tx.GetType(),
-		"nodeSigVerifyResult", info.nodeSigVerifyResult,
-		"err", err,
-		"tx", info.tx,
-		"payloadtx", info.tx.GetPayloadTx())
 
 	if !newCtx.IsZero() {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
@@ -170,21 +166,9 @@ func txhash(txbytes []byte) string {
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	tx, err := app.wrappedTxDecoder(req.Tx)
+	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-	}
-
-	//app.logger.Debug("(app *BaseApp) DeliverT",
-	//	"wrapped-tx-hash", txhash(req.Tx),
-	//)
-
-	if tx.GetType() == sdk.WrappedTxType {
-		req.Tx = tx.GetPayloadTxBytes()
-		tx = tx.GetPayloadTx()
-		app.logger.Info("(app *BaseApp) DeliverTx",
-			"payload-tx-hash", txhash(req.Tx),
-		)
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
@@ -200,7 +184,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through

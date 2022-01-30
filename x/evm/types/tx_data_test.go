@@ -1,9 +1,12 @@
 package types
 
 import (
+	"math"
 	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -29,6 +32,8 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 		Hash:         &hash,
 	}
 
+	cdc := amino.NewCodec()
+
 	bz, err := txData.MarshalAmino()
 	require.NoError(t, err)
 	require.NotNil(t, bz)
@@ -40,7 +45,7 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	require.Equal(t, txData, txData2)
 
 	var txData3 TxData
-	err = txData3.UnmarshalFromAmino(bz)
+	err = txData3.UnmarshalFromAmino(cdc, bz)
 	require.NoError(t, err)
 	require.Equal(t, txData2, txData3)
 
@@ -49,6 +54,65 @@ func TestMarshalAndUnmarshalData(t *testing.T) {
 	require.Error(t, err)
 	err = txData3.UnmarshalAmino(bz[1:])
 	require.Error(t, err)
+}
+
+func TestTxDataAmino(t *testing.T) {
+	addr := GenerateEthAddress()
+	hash := ethcmn.BigToHash(big.NewInt(2))
+
+	testCases := []TxData{
+		{
+			AccountNonce: 2,
+			Price:        big.NewInt(3),
+			GasLimit:     1,
+			Recipient:    &addr,
+			Amount:       big.NewInt(4),
+			Payload:      []byte("test"),
+			V:            big.NewInt(5),
+			R:            big.NewInt(6),
+			S:            big.NewInt(7),
+			Hash:         &hash,
+		},
+		{
+			Price:     big.NewInt(math.MinInt64),
+			Recipient: &ethcmn.Address{},
+			Amount:    big.NewInt(math.MinInt64),
+			Payload:   []byte{},
+			V:         big.NewInt(math.MinInt64),
+			R:         big.NewInt(math.MinInt64),
+			S:         big.NewInt(math.MinInt64),
+			Hash:      &ethcmn.Hash{},
+		},
+		{
+			AccountNonce: math.MaxUint64,
+			Price:        big.NewInt(math.MaxInt64),
+			GasLimit:     math.MaxUint64,
+			Amount:       big.NewInt(math.MaxInt64),
+			V:            big.NewInt(math.MaxInt64),
+			R:            big.NewInt(math.MaxInt64),
+			S:            big.NewInt(math.MaxInt64),
+		},
+	}
+
+	cdc := amino.NewCodec()
+	RegisterCodec(cdc)
+
+	for _, txData := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(txData)
+		require.NoError(t, err)
+
+		var expectValue TxData
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue TxData
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actualValue)
+		//err = actualValue.UnmarshalFromAmino(expectData)
+		require.NoError(t, err)
+		actualValue = v.(TxData)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
 }
 
 func BenchmarkUnmarshalTxData(b *testing.B) {
@@ -69,6 +133,7 @@ func BenchmarkUnmarshalTxData(b *testing.B) {
 	}
 
 	bz, _ := txData.MarshalAmino()
+	cdc := amino.NewCodec()
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -80,7 +145,7 @@ func BenchmarkUnmarshalTxData(b *testing.B) {
 
 	b.Run("unmarshaller", func(b *testing.B) {
 		var txData3 TxData
-		_ = txData3.UnmarshalFromAmino(bz)
+		_ = txData3.UnmarshalFromAmino(cdc, bz)
 	})
 }
 

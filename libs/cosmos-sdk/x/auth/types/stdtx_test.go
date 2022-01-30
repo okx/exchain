@@ -2,7 +2,10 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"testing"
+
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -34,7 +37,7 @@ func TestStdTx(t *testing.T) {
 	require.Equal(t, addr, feePayer)
 }
 
-func TestStdTxUnmarshalFromAmino(t *testing.T) {
+func TestStdTxAmino(t *testing.T) {
 	cdc := ModuleCdc
 	sdk.RegisterCodec(cdc)
 	cdc.RegisterConcrete(sdk.TestMsg2{}, "cosmos-sdk/Test2", nil)
@@ -44,19 +47,54 @@ func TestStdTxUnmarshalFromAmino(t *testing.T) {
 	sigs := []StdSignature{}
 
 	tx := NewStdTx(msgs, fee, sigs, "")
-	txBytes, err := cdc.MarshalBinaryBare(tx)
-	require.NoError(t, err)
 
-	tx2 := StdTx{}
-	err = cdc.UnmarshalBinaryBare(txBytes, &tx2)
-	require.NoError(t, err)
+	testCases := []StdTx{
+		{},
+		tx,
+		{
+			Msgs: []sdk.Msg{sdk.NewTestMsg2(addr), sdk.NewTestMsg2(addr), sdk.NewTestMsg2(addr)},
+			Fee: StdFee{
+				Amount: sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10), sdk.NewInt64Coin("barcoin", 15)),
+				Gas:    10000,
+			},
+			Signatures: []StdSignature{
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{1, 2, 3},
+				},
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{2, 3, 4},
+				},
+				{
+					PubKey:    priv.PubKey(),
+					Signature: []byte{3, 4, 5},
+				},
+			},
+			Memo: "TestMemo",
+		},
+		{
+			Msgs:       []sdk.Msg{},
+			Signatures: []StdSignature{},
+			Memo:       "",
+		},
+	}
 
-	tx3 := StdTx{}
-	v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
-	require.NoError(t, err)
-	tx3 = v.(StdTx)
+	for _, tx := range testCases {
+		txBytes, err := cdc.MarshalBinaryBare(tx)
+		require.NoError(t, err)
 
-	require.EqualValues(t, tx2, tx3)
+		tx2 := StdTx{}
+		err = cdc.UnmarshalBinaryBare(txBytes, &tx2)
+		require.NoError(t, err)
+
+		tx3 := StdTx{}
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
+		require.NoError(t, err)
+		tx3 = v.(StdTx)
+
+		require.EqualValues(t, tx2, tx3)
+	}
 }
 
 func TestStdSignBytes(t *testing.T) {
@@ -190,5 +228,73 @@ func TestStdSignatureMarshalYAML(t *testing.T) {
 		bz, err := yaml.Marshal(tc.sig)
 		require.NoError(t, err)
 		require.Equal(t, tc.output, string(bz), "test case #%d", i)
+	}
+}
+
+func TestStdSignatureAmino(t *testing.T) {
+	_, pubKey, _ := KeyTestPubAddr()
+	testCases := []StdSignature{
+		{},
+		{PubKey: pubKey, Signature: []byte("dummySig")},
+		{PubKey: multisig.PubKeyMultisigThreshold{}, Signature: []byte{}},
+	}
+
+	cdc := ModuleCdc
+
+	for _, stdSig := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(stdSig)
+		require.NoError(t, err)
+
+		var expectValue StdSignature
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue StdSignature
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
+}
+
+func TestStdFeeAmino(t *testing.T) {
+	testCases := []StdFee{
+		{},
+		{
+			Amount: sdk.Coins{
+				sdk.Coin{
+					Denom:  "dummy",
+					Amount: sdk.NewDec(5),
+				},
+				sdk.Coin{
+					Denom:  "summy",
+					Amount: sdk.NewDec(math.MaxInt64),
+				},
+				sdk.Coin{
+					Denom:  "summy",
+					Amount: sdk.Dec{},
+				},
+			},
+			Gas: uint64(5),
+		},
+		{
+			Amount: sdk.Coins{},
+			Gas:    math.MaxUint64,
+		},
+	}
+
+	for _, stdFee := range testCases {
+		expectData, err := ModuleCdc.MarshalBinaryBare(stdFee)
+		require.NoError(t, err)
+
+		var expectValue StdFee
+		err = ModuleCdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue StdFee
+		err = actualValue.UnmarshalFromAmino(ModuleCdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }

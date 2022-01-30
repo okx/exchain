@@ -31,8 +31,8 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
-	// confident node keys
-	confidentNodeKeys []string
+	// nodeKeyWhitelist
+	nodeKeyWhitelist []string
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -67,7 +67,7 @@ const (
 	FlagMempoolFlush           = "mempool.flush"
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
-	FlagConfidentNodeKeys      = "mempool.confident_node_keys"
+	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
@@ -130,10 +130,10 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
-	c.SetConfidentNodeKeys(viper.GetString(FlagConfidentNodeKeys))
+	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 }
 
-func resolveConfidentNodeKyesString(plain string) []string {
+func resolveNodeKeyWhitelist(plain string) []string {
 	if len(plain) == 0 {
 		return []string{}
 	}
@@ -218,12 +218,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
-	case FlagConfidentNodeKeys:
+	case FlagNodeKeyWhitelist:
 		r, ok := value.(string)
 		if !ok {
 			return
 		}
-		c.SetConfidentNodeKeys(r)
+		c.SetNodeKeyWhitelist(r)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -327,11 +327,11 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 	c.mempoolFlush = value
 }
 
-func (c *OecConfig) GetConfidentNodeKeys() []string {
-	return c.confidentNodeKeys
+func (c *OecConfig) GetNodeKeyWhitelist() []string {
+	return c.nodeKeyWhitelist
 }
-func (c *OecConfig) SetConfidentNodeKeys(value string) {
-	c.confidentNodeKeys = resolveConfidentNodeKyesString(value)
+func (c *OecConfig) SetNodeKeyWhitelist(value string) {
+	c.nodeKeyWhitelist = resolveNodeKeyWhitelist(value)
 }
 
 func (c *OecConfig) GetMaxTxNumPerBlock() int64 {

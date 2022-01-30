@@ -3,9 +3,9 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -117,6 +117,9 @@ type TxInfo struct {
 	SenderID uint16
 	// SenderP2PID is the actual p2p.ID of the sender, used e.g. for logging.
 	SenderP2PID p2p.ID
+
+	wtx       *WrappedTx
+	checkType abci.CheckTxType
 }
 
 //--------------------------------------------------------------------------------

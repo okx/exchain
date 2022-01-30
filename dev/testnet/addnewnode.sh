@@ -134,6 +134,7 @@ start() {
     p2pport=$1
     rpcport=$2
     seednode=$3
+    ((restport = INPUT_INDEX * 100 + REST_PORT)) # for evm tx
 
 #     echo "${BIN_NAME} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind  start --p2p.laddr tcp://${IP}:${p2pport} --p2p.seeds ${seednode} --rpc.laddr tcp://${IP}:${rpcport}"
 
@@ -146,6 +147,7 @@ start() {
     --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
+    --rest.laddr tcp://${IP}:${restport} \
     --log_level ${LOG_LEVEL} \
     --enable-gid \
     --append-pid \

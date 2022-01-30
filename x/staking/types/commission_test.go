@@ -1,8 +1,12 @@
 package types
 
 import (
+	"math"
+	"math/big"
 	"testing"
 	"time"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/stretchr/testify/require"
 
@@ -68,5 +72,75 @@ func TestCommissionValidateNewRate(t *testing.T) {
 			"unexpected result; tc #%d, input: %v, newRate: %s, blockTime: %s",
 			i, tc.input, tc.newRate, tc.blockTime,
 		)
+	}
+}
+
+func TestCommissionAmino(t *testing.T) {
+	testCases := []Commission{
+		{},
+		{
+			CommissionRates{sdk.NewDec(1), sdk.NewDec(2), sdk.NewDec(3)}, time.Now(),
+		},
+	}
+	cdc := amino.NewCodec()
+	for _, commission := range testCases {
+		bz, err := cdc.MarshalBinaryBare(commission)
+		require.NoError(t, err)
+
+		var newCommission Commission
+		err = cdc.UnmarshalBinaryBare(bz, &newCommission)
+		require.NoError(t, err)
+
+		var newCommission2 Commission
+		err = newCommission2.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, newCommission, newCommission2)
+	}
+}
+
+func TestCommissionRatesAmino(t *testing.T) {
+	testCases := []CommissionRates{
+		{},
+		{
+			sdk.Dec{new(big.Int)},
+			sdk.Dec{new(big.Int)},
+			sdk.Dec{new(big.Int)},
+		},
+		{
+			sdk.Dec{big.NewInt(1)},
+			sdk.Dec{big.NewInt(10)},
+			sdk.Dec{big.NewInt(100)},
+		},
+		{
+			sdk.Dec{big.NewInt(math.MinInt64)},
+			sdk.Dec{big.NewInt(math.MinInt64)},
+			sdk.Dec{big.NewInt(math.MinInt64)},
+		},
+		{
+			sdk.Dec{big.NewInt(math.MaxInt64)},
+			sdk.Dec{big.NewInt(math.MaxInt64)},
+			sdk.Dec{big.NewInt(math.MaxInt64)},
+		},
+		{
+			sdk.Dec{big.NewInt(0).Mul(big.NewInt(math.MaxInt64), big.NewInt(math.MaxInt64))},
+			sdk.Dec{big.NewInt(0).Add(big.NewInt(math.MaxInt64), big.NewInt(math.MaxInt64))},
+			sdk.Dec{big.NewInt(0).Mul(big.NewInt(math.MaxInt64), big.NewInt(2))},
+		},
+	}
+	cdc := amino.NewCodec()
+	for _, commission := range testCases {
+		bz, err := cdc.MarshalBinaryBare(commission)
+		require.NoError(t, err)
+
+		var newCommission CommissionRates
+		err = cdc.UnmarshalBinaryBare(bz, &newCommission)
+		require.NoError(t, err)
+
+		var newCommission2 CommissionRates
+		err = newCommission2.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, newCommission, newCommission2)
 	}
 }

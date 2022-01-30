@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -163,10 +164,6 @@ func TestTxDecoder(t *testing.T) {
 		_, err = TxDecoder(cdc)(rlpBytes)
 		require.Equal(t, c.enableRLPDecoder, err == nil)
 	}
-	// more heights parameter allowed.
-	tx, err = TxDecoder(cdc)(txbytes, 0, 999)
-	require.Nil(t, err)
-
 }
 
 func TestEthLogAmino(t *testing.T) {
@@ -195,11 +192,11 @@ func TestEthLogAmino(t *testing.T) {
 				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
 			},
 			Data:        []byte{5, 6, 7, 8},
-			BlockNumber: 18,
+			BlockNumber: math.MaxUint64,
 			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-			TxIndex:     0,
+			TxIndex:     math.MaxUint,
 			BlockHash:   ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
-			Index:       0,
+			Index:       math.MaxUint,
 			Removed:     true,
 		},
 	}
@@ -242,7 +239,19 @@ func TestResultDataAmino(t *testing.T) {
 					Data:        []byte{1, 2, 3, 4},
 					BlockNumber: 17,
 					Index:       10,
-				}},
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				nil,
+			},
 			Ret:    ret,
 			TxHash: ethcmn.HexToHash("0x00"),
 		},
@@ -264,7 +273,7 @@ func TestResultDataAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(data)
 		require.NoError(t, err)
 
-		actual, err := data.MarshalToAmino()
+		actual, err := data.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 		t.Log(fmt.Sprintf("%d pass\n", i))
@@ -273,7 +282,7 @@ func TestResultDataAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expect, &expectRd)
 		require.NoError(t, err)
 		var actualRd ResultData
-		err = actualRd.UnmarshalFromAmino(expect)
+		err = actualRd.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
 

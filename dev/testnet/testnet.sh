@@ -157,6 +157,7 @@ run() {
 #     --iavl-enable-async-commit \    --consensus-testcase case12.json \
 #     --upload-delta \
 #     --enable-preruntx \
+#     --mempool.node_key_whitelist="nodeKey1,nodeKey2" \
 }
 
 function start() {
