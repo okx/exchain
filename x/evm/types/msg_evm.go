@@ -8,20 +8,16 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -49,16 +45,11 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
-func (tx MsgEthereumTx) GetPayloadTx() sdk.Tx {
-	return nil
+func (tx *MsgEthereumTx) SetFrom(addr string) {
+	// only cache from but not signer
+	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
 }
 
-func (wtx MsgEthereumTx) GetPayloadTxBytes() []byte {
-	return nil
-}
-func (tx MsgEthereumTx) GetType() sdk.TransactionType {
-	return sdk.EvmTxType
-}
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
