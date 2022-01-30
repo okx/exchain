@@ -1,11 +1,13 @@
 package types
 
 import (
+	"encoding/json"
+	"github.com/json-iterator/go"
+	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestParamsValidate(t *testing.T) {
@@ -85,4 +87,43 @@ func TestMarshalUnmarshal(t *testing.T) {
 			assert.EqualValues(t, tc.params, unmarshalledP)
 		})
 	}
+}
+
+func BenchmarkParamsUnmarshal(b *testing.B) {
+	s := `{"enable_create":true,"enable_call":false,"extra_eips":[1,1,1,1],"enable_contract_deployment_whitelist":true,"enable_contract_blocked_list":true,"max_gas_limit_per_tx":100}`
+	bz := []byte(s)
+	b.ResetTimer()
+	b.Run("json", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			var params Params
+			_ = json.Unmarshal(bz, &params)
+		}
+	})
+
+	b.Run("jsoniter", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			var params Params
+			_ = jsoniter.Unmarshal(bz, &params)
+		}
+	})
+	b.Run("ffjson", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			var params Params
+			_ = ffjson.Unmarshal(bz, &params)
+		}
+	})
+	b.Run("fastjson", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			var p Params
+			_ = p.UnmarshalJSON(bz)
+		}
+	})
 }
