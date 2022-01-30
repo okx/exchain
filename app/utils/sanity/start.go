@@ -1,7 +1,6 @@
 package sanity
 
 import (
-	"fmt"
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -9,7 +8,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/spf13/cobra"
 )
 
 // CheckStart check start command's flags. if user set conflict flags return error.
@@ -54,7 +52,7 @@ import (
 
 var (
 	// conflicts flags
-	conflictElems = []conflictPair{
+	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --paralleled-tx=true
 		{
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
@@ -92,38 +90,13 @@ var (
 	}
 )
 
-type conflictPair struct {
-	configA item
-	configB item
-}
-
-// checkConflict check configA vs configB by cmd and viper
-// if both configA and configB is set by user,
-// and the value is equal to the conflicts value then complain it
-func (cp *conflictPair) checkConflict(cmd *cobra.Command) error {
-	if checkUserSetFlag(cmd, cp.configA.label()) &&
-		checkUserSetFlag(cmd, cp.configB.label()) {
-		if cp.configA.check() &&
-			cp.configB.check() {
-			return fmt.Errorf(" %v conflict with %v", cp.configA.verbose(), cp.configB.verbose())
-		}
-	}
-
-	return nil
-}
-
-func CheckStart(cmd *cobra.Command) error {
-	for _, v := range conflictElems {
-		if err := v.checkConflict(cmd); err != nil {
+// CheckStart check start command.If it has conflict pair above. then return the conflict error
+func CheckStart() error {
+	for _, v := range startConflictElems {
+		if err := v.checkConflict(); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-// checkUserSetFlag If the user set the value (or if left to default)
-func checkUserSetFlag(cmd *cobra.Command, inFlag string) bool {
-	flag := cmd.Flags().Lookup(inFlag)
-	return flag != nil && flag.Changed
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// item: app's flags
 type item interface {
 	// label: get item's name
 	label() string
@@ -47,4 +48,21 @@ func (s stringItem) check() bool {
 
 func (s stringItem) verbose() string {
 	return fmt.Sprintf("--%v=%v", s.name, s.value)
+}
+
+// conflictPair: configA and configB are conflict pair
+type conflictPair struct {
+	configA item
+	configB item
+}
+
+// checkConflict: check configA vs configB
+// and the value is equal to the conflicts value then complain it
+func (cp *conflictPair) checkConflict() error {
+	if cp.configA.check() &&
+		cp.configB.check() {
+		return fmt.Errorf(" %v conflict with %v", cp.configA.verbose(), cp.configB.verbose())
+	}
+
+	return nil
 }
