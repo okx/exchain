@@ -29,9 +29,14 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 
 	if manageTreasuresProposal.IsAdded {
 		// add deployer addresses into whitelist
-		return k.UpdateTreasures(ctx, manageTreasuresProposal.Treasures)
+		if err := k.UpdateTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
+			return types.ErrTreasuresInternal(err)
+		}
 	}
 
 	// remove deployer addresses from whitelist
-	return k.DeleteTreasures(ctx, manageTreasuresProposal.Treasures)
+	if err := k.DeleteTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
+		return types.ErrTreasuresInternal(err)
+	}
+	return nil
 }

@@ -106,6 +106,9 @@ func (k Keeper) AllocateTokenToTreasure(ctx sdk.Context, fees sdk.Coins) (remain
 func (k Keeper) UpdateTreasures(ctx sdk.Context, treasures []types.Treasure) error {
 	src := k.GetTreasure(ctx)
 	result := types.InsertAndUpdateTreasures(src, treasures)
+	if err := types.ValidateTreasures(result); err != nil {
+		return err
+	}
 	k.SetTreasure(ctx, result)
 	return nil
 }
@@ -114,6 +117,9 @@ func (k Keeper) DeleteTreasures(ctx sdk.Context, treasures []types.Treasure) err
 	src := k.GetTreasure(ctx)
 	result, err := types.DeleteTreasures(src, treasures)
 	if err != nil {
+		return err
+	}
+	if err := types.ValidateTreasures(result); err != nil {
 		return err
 	}
 	k.SetTreasure(ctx, result)

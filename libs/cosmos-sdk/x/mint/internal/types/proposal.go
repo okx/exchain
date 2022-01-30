@@ -28,7 +28,7 @@ var (
 type ManageTreasuresProposal struct {
 	Title       string     `json:"title" yaml:"title"`
 	Description string     `json:"description" yaml:"description"`
-	Treasures   []Treasure `json:"Treasures" yaml:"Treasures"`
+	Treasures   []Treasure `json:"treasures" yaml:"treasures"`
 	IsAdded     bool       `json:"is_added" yaml:"is_added"`
 }
 

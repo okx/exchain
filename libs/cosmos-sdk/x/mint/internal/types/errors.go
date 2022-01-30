@@ -1,6 +1,10 @@
 package types
 
-import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+import (
+	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+)
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.
 const (
@@ -14,3 +18,12 @@ var (
 	ErrDuplicatedTreasure     = sdkerrors.Register(ModuleName, 3, "treasures can not be duplicate")
 	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 4, "Unsupported proposal type of mint module")
 )
+
+// ErrTreasuresInternal returns an error when the length of address list in the proposal is larger than the max limitation
+func ErrTreasuresInternal(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			11,
+			fmt.Sprintf("treasures error:%s", err.Error()))}
+}

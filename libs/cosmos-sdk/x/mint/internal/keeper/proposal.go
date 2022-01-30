@@ -50,6 +50,21 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	case types.ManageTreasuresProposal:
 		// whole target address list will be added/deleted to/from the contract deployment whitelist/contract blocked list.
 		// It's not necessary to check the existence in CheckMsgSubmitProposal
+		treasures := k.GetTreasure(ctx)
+		if content.IsAdded {
+			result := types.InsertAndUpdateTreasures(treasures, content.Treasures)
+			if err := types.ValidateTreasures(result); err != nil {
+				return types.ErrTreasuresInternal(err)
+			}
+		} else {
+			result, err := types.DeleteTreasures(treasures, content.Treasures)
+			if err != nil {
+				return types.ErrTreasuresInternal(err)
+			}
+			if err := types.ValidateTreasures(result); err != nil {
+				return types.ErrTreasuresInternal(err)
+			}
+		}
 		return nil
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))

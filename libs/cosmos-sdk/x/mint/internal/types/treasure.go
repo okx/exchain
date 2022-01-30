@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/pkg/errors"
 	"sort"
 )
 
@@ -24,9 +25,7 @@ func NewTreasure(address sdk.AccAddress, proportion sdk.Dec) *Treasure {
 
 func (t Treasure) ValidateBasic() error {
 	if t.Proportion.IsNegative() || t.Proportion.GT(sdk.OneDec()) {
-		return fmt.Errorf(
-			"treasure proportion should non-negative and less than one: %s", t.Proportion,
-		)
+		return errors.New(fmt.Sprintf("treasure proportion should non-negative and less than one: %s", t.Proportion))
 	}
 	return nil
 }
@@ -40,9 +39,7 @@ func ValidateTreasures(treasures []Treasure) error {
 		sumProportion = sumProportion.Add(treasures[i].Proportion)
 	}
 	if sumProportion.IsNegative() || sumProportion.GT(sdk.OneDec()) {
-		return fmt.Errorf(
-			"the sum of treasure proportion should non-negative and less than one: %s", sumProportion,
-		)
+		return errors.New(fmt.Sprintf("the sum of treasure proportion should non-negative and less than one: %s", sumProportion))
 	}
 	return nil
 }
@@ -96,7 +93,7 @@ func DeleteTreasures(src, dst []Treasure) ([]Treasure, error) {
 	for i, _ := range dst {
 		key := dst[i].Address.String()
 		if _, ok := temp[key]; !ok {
-			return nil, fmt.Errorf("can not delete %s,because it's not exist from treasures", key)
+			return nil, errors.New(fmt.Sprintf("can not delete %s,because it's not exist from treasures", key))
 		}
 	}
 	return GetTreasuresFromMap(temp), nil
