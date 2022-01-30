@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -156,9 +157,9 @@ func testTreeDeltaAmino(t *testing.T) {
 		{nil, nil, nil},
 		{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
 		{
-			[]*NodeJsonImp{nil, {}, {"0x01", nil}, {"0x02", &NodeJson{}}, {"0x03", &NodeJson{Version: 1}}},
+			[]*NodeJsonImp{nil, {}, {"0x01", &NodeJson{Version: 1}}},
 			[]*NodeJson{nil, {}, {Version: 2}},
-			[]*CommitOrphansImp{nil, {}, {"0x01", -1}, {"0x01", 1}},
+			[]*CommitOrphansImp{nil, {}, {"0x01", 1}},
 		},
 	}
 	for i, td := range testTreeDeltas {
@@ -216,6 +217,8 @@ func testCommitOrphansImpAmino(t *testing.T) {
 	testCommitOrphansImps := []*CommitOrphansImp{
 		{},
 		{"0x01", -1},
+		{"0x01", math.MinInt64},
+		{"0x01", math.MaxInt64},
 		{"0x01", 1},
 	}
 
@@ -243,11 +246,16 @@ func TestNodeJsonAmino(t *testing.T) { testNodeJsonAmino(t) }
 func testNodeJsonAmino(t *testing.T) {
 	testNodeJsons := []*NodeJson{
 		{},
-		{Key: []byte("0x01"), Value: []byte("0Xff"), Hash: []byte("0xFF"), LeftHash: []byte("01"), RightHash: []byte("")},
-		{Version: 1, Size: -1},
+		{Key: []byte("0x01"), Value: []byte("0xff"), Hash: []byte("0xFF"), LeftHash: []byte("01"), RightHash: []byte("")},
+		{Version: -1, Size: 1},
+		{Version: math.MinInt64, Size: math.MaxInt64},
 		{Height: int8(1)},
 		{Height: int8(-1)},
+		{Height: math.MaxInt8},
+		{Height: math.MaxInt8},
 		{Persisted: true, PrePersisted: false},
+		{Key: []byte("0x01"), Value: []byte("0x02"), Hash: []byte("0x03"), LeftHash: []byte("0x04"), RightHash: []byte("0x05"),
+			Version: 1, Size: 1, Height: 1, Persisted: true, PrePersisted: true},
 	}
 
 	for i, nj := range testNodeJsons {
