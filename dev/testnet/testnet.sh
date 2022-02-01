@@ -18,11 +18,22 @@ set -x # activate debugging
 source oec.profile
 WRAPPEDTX=false
 PRERUN=false
-while getopts "isn:b:p:c:Smxwk:" opt; do
+WHITE_LIST=a2e571917a38b71ced380455182ae9e5209be52d,\
+380f0adba4e18af820394119c71a37994cb6dcc8,\
+bf232c9dd89109ae7eb865fe9c9a9290d46e27a0,\
+testnet-node-ids,\
+1aadf453eaa153bf588e1873f2dcbda96c381bf8
+
+
+while getopts "risn:b:p:c:Smxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
     OKCHAIN_INIT=1
+    ;;
+  r)
+    echo "OKCHAIN_INIT"
+    OKCHAIN_RECOVER=1
     ;;
   w)
     echo "WRAPPEDTX=$OPTARG"
@@ -100,6 +111,12 @@ init() {
     --keyring-backend test \
     --mnemonic=${HARDCODED_MNEMONIC}
 }
+recover() {
+  killbyname ${BIN_NAME}
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  rm -rf cache
+  cp -rf nodecache cache
+}
 
 run() {
 
@@ -127,7 +144,7 @@ run() {
   exchaind add-genesis-account 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 900000000okt --home cache/node${index}/exchaind
   exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
-  LOG_LEVEL=main:debug,*:error,consensus:error,state:info,ante:info,txdecoder:info
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
@@ -135,6 +152,7 @@ run() {
     --p2p.allow_duplicate_ip \
     --enable-dynamic-gp=false \
     --enable-wtx=${WRAPPEDTX} \
+    --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \
@@ -158,6 +176,7 @@ run() {
 #     --upload-delta \
 #     --enable-preruntx \
 #     --mempool.node_key_whitelist="nodeKey1,nodeKey2" \
+#    --mempool.node_key_whitelist ${WHITE_LIST} \
 }
 
 function start() {
@@ -187,6 +206,10 @@ fi
 
 if [ ! -z "${OKCHAIN_INIT}" ]; then
   init ${NUM_NODE}
+fi
+
+if [ ! -z "${OKCHAIN_RECOVER}" ]; then
+  recover ${NUM_NODE}
 fi
 
 if [ ! -z "${OKCHAIN_START}" ]; then

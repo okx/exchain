@@ -46,11 +46,13 @@ const (
 var CheckTxType_name = map[int32]string{
 	0: "New",
 	1: "Recheck",
+	2: "WrappedCheck",
 }
 
 var CheckTxType_value = map[string]int32{
 	"New":     0,
 	"Recheck": 1,
+	"WrappedCheck": 2,
 }
 
 func (x CheckTxType) String() string {

@@ -1,0 +1,524 @@
+{
+  "genesis_time": "2022-02-01T22:06:26.953321Z",
+  "chain_id": "exchain-67",
+  "consensus_params": {
+    "block": {
+      "max_bytes": "22020096",
+      "max_gas": "-1",
+      "time_iota_ms": "1000"
+    },
+    "evidence": {
+      "max_age_num_blocks": "100000",
+      "max_age_duration": "172800000000000"
+    },
+    "validator": {
+      "pub_key_types": [
+        "ed25519"
+      ]
+    }
+  },
+  "app_hash": "",
+  "app_state": {
+    "ammswap": {
+      "params": {
+        "fee_rate": "0.003000000000000000"
+      },
+      "swap_token_pair_records": null
+    },
+    "auth": {
+      "accounts": [
+        {
+          "type": "okexchain/EthAccount",
+          "value": {
+            "account_number": 0,
+            "address": "ex1pt7xrmxul7sx54ml44lvv403r06clrdk0s8rxy",
+            "code_hash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "coins": [
+              {
+                "amount": "9000000.000000000000000000",
+                "denom": "okt"
+              }
+            ],
+            "eth_address": "0x0AfC61eCdCffA06a577faD7ec655F11bf58f8dB6",
+            "public_key": "",
+            "sequence": 0
+          }
+        },
+        {
+          "type": "okexchain/EthAccount",
+          "value": {
+            "account_number": 0,
+            "address": "ex1q6ls3h64gkxq0r73u2eqwwr7d5mp583fdkqsxx",
+            "code_hash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "coins": [
+              {
+                "amount": "9000000.000000000000000000",
+                "denom": "okt"
+              }
+            ],
+            "eth_address": "0x06BF08DF55458C078Fd1e2b207387E6d361a1e29",
+            "public_key": "",
+            "sequence": 0
+          }
+        },
+        {
+          "type": "okexchain/EthAccount",
+          "value": {
+            "account_number": 0,
+            "address": "ex1ve4mwgq9967gk338yptsg2fheur4ke32u0gqh3",
+            "code_hash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "coins": [
+              {
+                "amount": "9000000.000000000000000000",
+                "denom": "okt"
+              }
+            ],
+            "eth_address": "0x666bB720052EbC8B46272057042937CF075b662A",
+            "public_key": "",
+            "sequence": 0
+          }
+        },
+        {
+          "type": "okexchain/EthAccount",
+          "value": {
+            "account_number": 0,
+            "address": "ex1gd6avvrg0jp5wxpfyfa4c84fygtl6cn9m6za7h",
+            "code_hash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "coins": [
+              {
+                "amount": "9000000.000000000000000000",
+                "denom": "okt"
+              }
+            ],
+            "eth_address": "0x4375D630687C83471829227b5C1Ea92217FD6265",
+            "public_key": "",
+            "sequence": 0
+          }
+        }
+      ],
+      "params": {
+        "max_memo_characters": "256",
+        "sig_verify_cost_ed25519": "590",
+        "sig_verify_cost_secp256k1": "1000",
+        "tx_sig_limit": "7",
+        "tx_size_cost_per_byte": "10"
+      }
+    },
+    "bank": {
+      "send_enabled": true
+    },
+    "crisis": {
+      "constant_fee": {
+        "amount": "1000.000000000000000000",
+        "denom": "okt"
+      }
+    },
+    "dex": {
+      "max_token_pair_id": "0",
+      "operators": null,
+      "params": {
+        "delist_max_deposit_period": "86400000000000",
+        "delist_min_deposit": [
+          {
+            "amount": "100.000000000000000000",
+            "denom": "okt"
+          }
+        ],
+        "delist_voting_period": "259200000000000",
+        "list_fee": {
+          "amount": "20000.000000000000000000",
+          "denom": "okt"
+        },
+        "ownership_confirm_window": "86400000000000",
+        "register_operator_fee": {
+          "amount": "0.000000000000000000",
+          "denom": "okt"
+        },
+        "transfer_ownership_fee": {
+          "amount": "10.000000000000000000",
+          "denom": "okt"
+        },
+        "withdraw_period": "259200000000000"
+      },
+      "product_locks": {
+        "Data": {}
+      },
+      "token_pairs": null,
+      "withdraw_infos": null
+    },
+    "distribution": {
+      "delegator_withdraw_infos": [],
+      "fee_pool": {
+        "community_pool": []
+      },
+      "params": {
+        "community_tax": "0.020000000000000000",
+        "withdraw_addr_enabled": true
+      },
+      "previous_proposer": "",
+      "validator_accumulated_commissions": []
+    },
+    "evidence": {
+      "evidence": [],
+      "params": {
+        "max_evidence_age": "120000000000"
+      }
+    },
+    "evm": {
+      "accounts": [],
+      "chain_config": {
+        "byzantium_block": "0",
+        "constantinople_block": "0",
+        "dao_fork_block": "0",
+        "dao_fork_support": true,
+        "eip150_block": "0",
+        "eip150_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155_block": "0",
+        "eip158_block": "0",
+        "ewasm_block": "-1",
+        "homestead_block": "0",
+        "istanbul_block": "0",
+        "muir_glacier_block": "0",
+        "petersburg_block": "0",
+        "yoloV2_block": "-1"
+      },
+      "contract_blocked_list": [],
+      "contract_deployment_whitelist": [],
+      "params": {
+        "enable_call": false,
+        "enable_contract_blocked_list": false,
+        "enable_contract_deployment_whitelist": false,
+        "enable_create": false,
+        "extra_eips": null,
+        "max_gas_limit_per_tx": "30000000"
+      },
+      "txs_logs": []
+    },
+    "farm": {
+      "current_rewards": [],
+      "historical_rewards": [],
+      "lock_infos": [],
+      "params": {
+        "create_pool_deposit": {
+          "amount": "10.000000000000000000",
+          "denom": "okt"
+        },
+        "create_pool_fee": {
+          "amount": "0.000000000000000000",
+          "denom": "okt"
+        },
+        "quote_symbol": "usdk",
+        "yield_native_token": false
+      },
+      "pools": [],
+      "pools_yield_native_token": null
+    },
+    "genutil": {
+      "gentxs": [
+        {
+          "type": "cosmos-sdk/StdTx",
+          "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
+            "memo": "a2e571917a38b71ced380455182ae9e5209be52d@127.0.0.1:26656",
+            "msg": [
+              {
+                "type": "okexchain/staking/MsgCreateValidator",
+                "value": {
+                  "delegator_address": "ex1pt7xrmxul7sx54ml44lvv403r06clrdk0s8rxy",
+                  "description": {
+                    "details": "",
+                    "identity": "",
+                    "moniker": "node0",
+                    "website": ""
+                  },
+                  "min_self_delegation": {
+                    "amount": "10000.000000000000000000",
+                    "denom": "okt"
+                  },
+                  "pubkey": "exvalconspub1zcjduepq9rhmjgjn3nvtw7khcvx8al5pj7ng59jmj8pgu5s8mumav39ql4dqxuwl2z",
+                  "validator_address": "exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7"
+                }
+              }
+            ],
+            "signatures": [
+              {
+                "pub_key": {
+                  "type": "ethermint/PubKeyEthSecp256k1",
+                  "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
+                },
+                "signature": "ZWlhGuMvevY3cJIG61IzOV+GNhVjQFYbM99MWNhN/DxVA7VvhmBS0YH5WdCCKC4q39PlvwdiO1bVlPwvOG2BogE="
+              }
+            ]
+          }
+        },
+        {
+          "type": "cosmos-sdk/StdTx",
+          "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
+            "memo": "380f0adba4e18af820394119c71a37994cb6dcc8@127.0.0.1:26756",
+            "msg": [
+              {
+                "type": "okexchain/staking/MsgCreateValidator",
+                "value": {
+                  "delegator_address": "ex1q6ls3h64gkxq0r73u2eqwwr7d5mp583fdkqsxx",
+                  "description": {
+                    "details": "",
+                    "identity": "",
+                    "moniker": "node1",
+                    "website": ""
+                  },
+                  "min_self_delegation": {
+                    "amount": "10000.000000000000000000",
+                    "denom": "okt"
+                  },
+                  "pubkey": "exvalconspub1zcjduepq5vdnaw3h8apm0p9d72m67kvqjj8ec3upurjfrp5sqwpgcvcauy3q6nr7l2",
+                  "validator_address": "exvaloper1q6ls3h64gkxq0r73u2eqwwr7d5mp583fm325zu"
+                }
+              }
+            ],
+            "signatures": [
+              {
+                "pub_key": {
+                  "type": "ethermint/PubKeyEthSecp256k1",
+                  "value": "AqaZF+DYBukQYJhp6q//qWMGGb9bvzACLJ0CvaVYyPuY"
+                },
+                "signature": "kCDn27yCCJqruiATjmrh8ECitLYnx7I0vtg1/lYNH4dCOpmJWMnnTR14yoTFyrWarkC/lQk2hos8nmkmzGvSdAA="
+              }
+            ]
+          }
+        },
+        {
+          "type": "cosmos-sdk/StdTx",
+          "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
+            "memo": "bf232c9dd89109ae7eb865fe9c9a9290d46e27a0@127.0.0.1:26856",
+            "msg": [
+              {
+                "type": "okexchain/staking/MsgCreateValidator",
+                "value": {
+                  "delegator_address": "ex1ve4mwgq9967gk338yptsg2fheur4ke32u0gqh3",
+                  "description": {
+                    "details": "",
+                    "identity": "",
+                    "moniker": "node2",
+                    "website": ""
+                  },
+                  "min_self_delegation": {
+                    "amount": "10000.000000000000000000",
+                    "denom": "okt"
+                  },
+                  "pubkey": "exvalconspub1zcjduepqdpp2p20xmunt587ppwwtcy8kypp8z2csrq98kw22wqmkzzrnm0jsy4jcg8",
+                  "validator_address": "exvaloper1ve4mwgq9967gk338yptsg2fheur4ke322gzynt"
+                }
+              }
+            ],
+            "signatures": [
+              {
+                "pub_key": {
+                  "type": "ethermint/PubKeyEthSecp256k1",
+                  "value": "Ar+A78Et8nVLj66J/+NMlnNA/7MDw3Dk1eb7zsUJEoym"
+                },
+                "signature": "UmRPfeQENTtfakqeRTWi3ty5sMxlldIkO6lAMlC4HC5ggPSUJg+mgsS+vIj/Z9hlvhWgWVS3GE08K9OxU1K8pwA="
+              }
+            ]
+          }
+        },
+        {
+          "type": "cosmos-sdk/StdTx",
+          "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
+            "memo": "1aadf453eaa153bf588e1873f2dcbda96c381bf8@127.0.0.1:26956",
+            "msg": [
+              {
+                "type": "okexchain/staking/MsgCreateValidator",
+                "value": {
+                  "delegator_address": "ex1gd6avvrg0jp5wxpfyfa4c84fygtl6cn9m6za7h",
+                  "description": {
+                    "details": "",
+                    "identity": "",
+                    "moniker": "node3",
+                    "website": ""
+                  },
+                  "min_self_delegation": {
+                    "amount": "10000.000000000000000000",
+                    "denom": "okt"
+                  },
+                  "pubkey": "exvalconspub1zcjduepq37g9f7p6anm86nkale633zzmt94wt4fmy0cgjrz7wwpwasth9aasw5s9dk",
+                  "validator_address": "exvaloper1gd6avvrg0jp5wxpfyfa4c84fygtl6cn9dage6d"
+                }
+              }
+            ],
+            "signatures": [
+              {
+                "pub_key": {
+                  "type": "ethermint/PubKeyEthSecp256k1",
+                  "value": "AvyyFQnQkG/hRqXOFPWO/iDt4p7fuM8x3iDLfhq4Cx8J"
+                },
+                "signature": "+XUA0qt4Eb/ZMIaqzaIKSV0qplg/jrc/IqdFXQBpT6VdRxYWpT3J8ILxPNCGnDlQaX0B0FwfDD/N520emK5cHAE="
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "gov": {
+      "deposit_params": {
+        "max_deposit_period": "86400000000000",
+        "min_deposit": [
+          {
+            "amount": "100.000000000000000000",
+            "denom": "okt"
+          }
+        ]
+      },
+      "deposits": null,
+      "proposals": null,
+      "starting_proposal_id": "1",
+      "tally_params": {
+        "quorum": "0.334000000000000000",
+        "threshold": "0.500000000000000000",
+        "veto": "0.334000000000000000",
+        "yes_in_vote_period": "0.667000000000000000"
+      },
+      "votes": null,
+      "voting_params": {
+        "voting_period": "259200000000000"
+      },
+      "waiting_proposals": {}
+    },
+    "mint": {
+      "minter": {
+        "minted_per_block": [
+          {
+            "amount": "0.000000000000000000",
+            "denom": "okt"
+          }
+        ],
+        "next_block_to_update": "0"
+      },
+      "original_minted_per_block": "1.000000000000000000",
+      "params": {
+        "blocks_per_year": "10519200",
+        "deflation_epoch": "3",
+        "deflation_rate": "0.500000000000000000",
+        "farm_proportion": "0.500000000000000000",
+        "goal_bonded": "0.000000000000000000",
+        "inflation_max": "0.000000000000000000",
+        "inflation_min": "0.000000000000000000",
+        "inflation_rate_change": "0.000000000000000000",
+        "mint_denom": "okt"
+      }
+    },
+    "order": {
+      "open_orders": null,
+      "params": {
+        "cancel_order_msg_gas_unit": "30000",
+        "fee_per_block": {
+          "amount": "0.000000000000000000",
+          "denom": "okt"
+        },
+        "max_deals_per_block": "1000",
+        "new_order_msg_gas_unit": "40000",
+        "order_expire_blocks": "259200",
+        "trade_fee_rate": "0.001000000000000000"
+      }
+    },
+    "params": {
+      "params": {
+        "max_block_height": "100000",
+        "max_deposit_period": "86400000000000",
+        "min_deposit": [
+          {
+            "amount": "100.000000000000000000",
+            "denom": "okt"
+          }
+        ],
+        "voting_period": "259200000000000"
+      }
+    },
+    "slashing": {
+      "missed_blocks": {},
+      "params": {
+        "downtime_jail_duration": "600000000000",
+        "min_signed_per_window": "0.050000000000000000",
+        "signed_blocks_window": "10000",
+        "slash_fraction_double_sign": "0.000000000000000000",
+        "slash_fraction_downtime": "0.000000000000000000"
+      },
+      "signing_infos": {}
+    },
+    "staking": {
+      "all_shares": null,
+      "delegators": null,
+      "exported": false,
+      "last_total_power": "0",
+      "last_validator_powers": null,
+      "params": {
+        "epoch": 252,
+        "max_bonded_validators": 21,
+        "max_validators_to_add_shares": 30,
+        "min_delegation": "0.000100000000000000",
+        "min_self_delegation": "10000.000000000000000000",
+        "unbonding_time": "1209600000000000"
+      },
+      "proxy_delegator_keys": null,
+      "unbonding_delegations": null,
+      "validators": null
+    },
+    "supply": {
+      "supply": []
+    },
+    "token": {
+      "locked_assets": null,
+      "locked_fees": null,
+      "params": {
+        "burn_fee": {
+          "amount": "10.000000000000000000",
+          "denom": "okt"
+        },
+        "issue_fee": {
+          "amount": "2500.000000000000000000",
+          "denom": "okt"
+        },
+        "mint_fee": {
+          "amount": "10.000000000000000000",
+          "denom": "okt"
+        },
+        "modify_fee": {
+          "amount": "0.000000000000000000",
+          "denom": "okt"
+        },
+        "ownership_confirm_window": "86400000000000",
+        "transfer_ownership_fee": {
+          "amount": "10.000000000000000000",
+          "denom": "okt"
+        }
+      },
+      "tokens": [
+        {
+          "description": "OK Group Global Utility Token",
+          "mintable": true,
+          "original_symbol": "okt",
+          "original_total_supply": "1000000000.000000000000000000",
+          "owner": "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf",
+          "symbol": "okt",
+          "type": "0",
+          "whole_name": "OKT"
+        }
+      ]
+    },
+    "upgrade": {}
+  }
+}
