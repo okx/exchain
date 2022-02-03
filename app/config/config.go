@@ -83,20 +83,15 @@ const (
 
 var (
 	testnetNodeIdWhitelist = []string{
-		"f21d97a331e0e120b70e1dfb78b96ab9b3d06cbb",
-		"f0be5e7c40f7e9ad5791bbeb06b5b46fa7f3784a",
-		"e0f979e746f6a13b722d4c373f7b9e5c054c48ef",
-		"e4fd5abf68c48219203b10dd489226f4fef42329",
 	}
 
 	mainnetNodeIdWhitelist = []string{
 	}
+
+	oecConfig  *OecConfig
+	once       sync.Once
+	confLogger log.Logger
 )
-
-
-var oecConfig *OecConfig
-var once sync.Once
-var confLogger log.Logger
 
 func GetOecConfig() *OecConfig {
 	once.Do(func() {
