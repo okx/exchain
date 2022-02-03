@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math"
 	"reflect"
 	"sync"
@@ -197,7 +198,9 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
-			memR.Logger.Error("wtx.verify", "error", err, "txhash", types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height))
+			memR.Logger.Error("wtx.verify", "error", err, "txhash",
+				common.BytesToHash(types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height)),
+			)
 		} else {
 			txInfo.wtx = msg.Wtx
 			txInfo.checkType = abci.CheckTxType_WrappedCheck

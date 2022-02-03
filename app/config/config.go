@@ -78,11 +78,20 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
+
 )
 
-var oecConfig *OecConfig
-var once sync.Once
-var confLogger log.Logger
+var (
+	testnetNodeIdWhitelist = []string{
+	}
+
+	mainnetNodeIdWhitelist = []string{
+	}
+
+	oecConfig  *OecConfig
+	once       sync.Once
+	confLogger log.Logger
+)
 
 func GetOecConfig() *OecConfig {
 	once.Do(func() {
@@ -331,7 +340,17 @@ func (c *OecConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
 func (c *OecConfig) SetNodeKeyWhitelist(value string) {
-	c.nodeKeyWhitelist = resolveNodeKeyWhitelist(value)
+	idList := resolveNodeKeyWhitelist(value)
+
+	for _, id := range idList {
+		if id == "testnet-node-ids" {
+			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, testnetNodeIdWhitelist...)
+		} else if id == "mainnet-node-ids" {
+			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, mainnetNodeIdWhitelist...)
+		} else {
+			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
+		}
+	}
 }
 
 func (c *OecConfig) GetMaxTxNumPerBlock() int64 {
