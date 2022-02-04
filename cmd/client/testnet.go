@@ -52,7 +52,6 @@ var (
 	flagIPAddrs           = "ip-addrs"
 	flagBaseport          = "base-port"
 	flagLocal             = "local"
-	flagMnemonic          = "mnemonic"
 )
 
 const nodeDirPerm = 0755
@@ -94,10 +93,9 @@ Note, strict routability for addresses is turned off in the config file.`,
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
-			hasHardcodedMnemonic := viper.GetBool(flagMnemonic)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal, hasHardcodedMnemonic,
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal,
 			)
 		},
 	}
@@ -116,7 +114,6 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
 	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
-	cmd.Flags().BoolP(flagMnemonic, "m", false, "hard-code the mnemonic of first 4 validators")
 	return cmd
 }
 
@@ -140,7 +137,6 @@ func InitTestnet(
 	algo string,
 	numValidators int,
 	isLocal bool,
-	hasHardcodedMnemonic bool,
 ) error {
 
 	if chainID == "" {
@@ -238,7 +234,7 @@ func InitTestnet(
 
 		keyPass := clientkeys.DefaultKeyPass
 		mnemonic := ""
-		if hasHardcodedMnemonic && i < 4 {
+		if i < len(mnemonicList) {
 			mnemonic = mnemonicList[i]
 		}
 		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
