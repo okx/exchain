@@ -18,14 +18,14 @@ set -x # activate debugging
 source oec.profile
 WRAPPEDTX=false
 PRERUN=false
-WHITE_LIST=a2e571917a38b71ced380455182ae9e5209be52d,\
-380f0adba4e18af820394119c71a37994cb6dcc8,\
-bf232c9dd89109ae7eb865fe9c9a9290d46e27a0,\
-testnet-node-ids,\
-1aadf453eaa153bf588e1873f2dcbda96c381bf8
+WHITE_LIST=0b066ca0790f27a6595560b23bf1a1193f100797,\
+3813c7011932b18f27f172f0de2347871d27e852,\
+6ea83a21a43c30a280a3139f6f23d737104b6975,\
+bab6c32fa95f3a54ecb7d32869e32e85a25d2e08,\
+testnet-node-ids
 
 
-while getopts "risn:b:p:c:Smxwk:" opt; do
+while getopts "risn:b:p:c:Sxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -71,10 +71,6 @@ while getopts "risn:b:p:c:Smxwk:" opt; do
     echo "IP=$OPTARG"
     IP=$OPTARG
     ;;
-  m)
-    echo "HARDCODED_MNEMONIC"
-    HARDCODED_MNEMONIC=true
-    ;;
   \?)
     echo "Invalid option: -$OPTARG"
     ;;
@@ -108,8 +104,7 @@ init() {
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
-    --keyring-backend test \
-    --mnemonic=${HARDCODED_MNEMONIC}
+    --keyring-backend test
 }
 recover() {
   killbyname ${BIN_NAME}
