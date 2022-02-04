@@ -25,7 +25,7 @@ bab6c32fa95f3a54ecb7d32869e32e85a25d2e08,\
 testnet-node-ids
 
 
-while getopts "risn:b:p:c:Smxwk:" opt; do
+while getopts "risn:b:p:c:Sxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
@@ -71,10 +71,6 @@ while getopts "risn:b:p:c:Smxwk:" opt; do
     echo "IP=$OPTARG"
     IP=$OPTARG
     ;;
-  m)
-    echo "HARDCODED_MNEMONIC"
-    HARDCODED_MNEMONIC=true
-    ;;
   \?)
     echo "Invalid option: -$OPTARG"
     ;;
@@ -108,8 +104,7 @@ init() {
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
-    --keyring-backend test \
-    --mnemonic=${HARDCODED_MNEMONIC}
+    --keyring-backend test
 }
 recover() {
   killbyname ${BIN_NAME}
