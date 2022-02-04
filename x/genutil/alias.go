@@ -34,4 +34,5 @@ var (
 	GenesisStateFromGenDoc       = sdkgenutil.GenesisStateFromGenDoc
 	SetGenTxsInAppGenesisState   = sdkgenutil.SetGenTxsInAppGenesisState
 	ExportGenesisFile            = sdkgenutil.ExportGenesisFile
+	InitializeNodeValidatorFilesByIndex = sdkgenutil.InitializeNodeValidatorFilesByIndex
 )

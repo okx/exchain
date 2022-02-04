@@ -212,7 +212,7 @@ func InitTestnet(
 			}
 		}
 
-		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFiles(config)
+		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
