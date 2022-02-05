@@ -83,9 +83,21 @@ const (
 
 var (
 	testnetNodeIdWhitelist = []string{
+		// rpc
+
+
+		// val
+
+
 	}
 
 	mainnetNodeIdWhitelist = []string{
+		// rpc
+
+
+		// val
+
+
 	}
 
 	oecConfig  *OecConfig
