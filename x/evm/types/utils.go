@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 	"strings"
@@ -21,6 +20,89 @@ import (
 type KV struct {
 	Key   []byte `json:"key"`
 	Value []byte `json:"value"`
+}
+
+// MarshalToAmino encode KV data to amino bytes
+func (k *KV) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
+	for pos := 1; pos <= 2; pos++ {
+		switch pos {
+		case 1:
+			if len(k.Key) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, k.Key)
+			if err != nil {
+				return nil, err
+			}
+
+		case 2:
+			if len(k.Value) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, k.Value)
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalFromAmino unmarshal amino bytes to this object
+func (k *KV) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			k.Key = make([]byte, len(subData))
+			copy(k.Key, subData)
+
+		case 2:
+			k.Value = make([]byte, len(subData))
+			copy(k.Value, subData)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // GenerateEthAddress generates an Ethereum address.
@@ -85,9 +167,15 @@ func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return nil, fmt.Errorf("invalid data length: %d", dataLen)
+			}
 			subData = data[:dataLen]
 		}
 
@@ -293,7 +381,7 @@ func MarshalEthLogToAmino(log *ethtypes.Log) ([]byte, error) {
 	return amino.GetBytesBufferCopy(buf), nil
 }
 
-func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
+func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -314,9 +402,15 @@ func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
 		data = data[1:]
 
 		var n int
-		dataLen, n, _ = amino.DecodeUvarint(data)
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
 
 		data = data[n:]
+		if len(data) < int(dataLen) {
+			return errors.New("invalid data len")
+		}
 		subData = data[:dataLen]
 
 		switch pos {
@@ -338,7 +432,7 @@ func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
 				log, err = UnmarshalEthLogFromAmino(subData)
 			}
 			if err != nil {
-				return nil
+				return err
 			}
 			rd.Logs = append(rd.Logs, log)
 		case 4:
@@ -356,7 +450,7 @@ func (rd *ResultData) UnmarshalFromAmino(data []byte) error {
 
 var resultDataBufferPool = amino.NewBufferPool()
 
-func (rd ResultData) MarshalToAmino() ([]byte, error) {
+func (rd ResultData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf = resultDataBufferPool.Get()
 	defer resultDataBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
@@ -479,7 +573,7 @@ func (rd ResultData) String() string {
 func EncodeResultData(data ResultData) ([]byte, error) {
 	var buf = new(bytes.Buffer)
 
-	bz, err := data.MarshalToAmino()
+	bz, err := data.MarshalToAmino(ModuleCdc)
 	if err != nil {
 		bz, err = ModuleCdc.MarshalBinaryBare(data)
 		if err != nil {
@@ -505,11 +599,10 @@ func EncodeResultData(data ResultData) ([]byte, error) {
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
 func DecodeResultData(in []byte) (ResultData, error) {
 	if len(in) > 0 {
-		u64, n := binary.Uvarint(in)
-		if u64 == uint64(len(in)-n) {
-			bz := in[n:]
+		bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(in)
+		if err == nil {
 			var data ResultData
-			err := data.UnmarshalFromAmino(bz)
+			err = data.UnmarshalFromAmino(ModuleCdc, bz)
 			if err == nil {
 				return data, nil
 			}
@@ -522,7 +615,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	}
 	return data, nil
 }
-
 
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.

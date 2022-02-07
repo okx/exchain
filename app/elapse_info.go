@@ -93,11 +93,12 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
+		trace.WtxRatio, e.infoMap[trace.WtxRatio],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		trace.Prerun, e.infoMap[trace.Prerun],

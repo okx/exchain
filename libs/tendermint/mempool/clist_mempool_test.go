@@ -553,7 +553,6 @@ func TestMempoolTxsBytes(t *testing.T) {
 	}
 }
 
-
 func checksumIt(data []byte) string {
 	h := sha256.New()
 	h.Write(data)
@@ -717,9 +716,6 @@ func TestReapUserTxs(t *testing.T) {
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
-
-
-
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	testCases := []struct {
 		Tx   *mempoolTx
@@ -874,7 +870,6 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 		Info ExTxInfo
 	}
 
-
 	testCases := []Case{
 		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("1")}, newExTxInfo("1", 0, big.NewInt(3780), 0)},
 		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2")}, newExTxInfo("1", 0, big.NewInt(3245), 1)},
@@ -911,16 +906,15 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	wait.Wait()
 }
 
-
 func newExTxInfo(Sender string,
 	SenderNonce uint64,
 	GasPrice *big.Int,
-	Nonce uint64, ) ExTxInfo {
+	Nonce uint64) ExTxInfo {
 
-	return ExTxInfo {
-		Sender: Sender,
+	return ExTxInfo{
+		Sender:      Sender,
 		SenderNonce: SenderNonce,
-		GasPrice: GasPrice,
-		Nonce: Nonce,
+		GasPrice:    GasPrice,
+		Nonce:       Nonce,
 	}
 }

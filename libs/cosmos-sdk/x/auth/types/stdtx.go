@@ -33,16 +33,6 @@ type StdTx struct {
 	Memo       string         `json:"memo" yaml:"memo"`
 }
 
-func (tx StdTx) GetPayloadTx() sdk.Tx {
-	return nil
-}
-
-func (wtx StdTx) GetPayloadTxBytes() []byte {
-	return nil
-}
-func (tx StdTx) GetType() sdk.TransactionType {
-	return sdk.StdTxType
-}
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -90,12 +80,12 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				tx.Msgs = append(tx.Msgs, v.(sdk.Msg))
 			}
 		case 2:
-			if err := tx.Fee.UnmarshalFromAmino(subData); err != nil {
+			if err := tx.Fee.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 3:
 			var sig StdSignature
-			if err := sig.UnmarshalFromAmino(subData); err != nil {
+			if err := sig.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 			tx.Signatures = append(tx.Signatures, sig)
@@ -271,7 +261,6 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
@@ -317,7 +306,7 @@ func (fee StdFee) GasPrices() sdk.DecCoins {
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
 }
 
-func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
+func (fee *StdFee) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -348,7 +337,8 @@ func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -445,7 +435,6 @@ func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	}
 }
 
-
 func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
 	return rlp.EncodeToBytes(tx)
 }
@@ -483,7 +472,7 @@ func (ss StdSignature) MarshalYAML() (interface{}, error) {
 	return string(bz), err
 }
 
-func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
+func (ss *StdSignature) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -517,7 +506,7 @@ func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

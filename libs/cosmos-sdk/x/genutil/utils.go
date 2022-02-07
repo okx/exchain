@@ -44,12 +44,26 @@ func ExportGenesisFileWithTime(
 	return genDoc.SaveAs(genFile)
 }
 
+func InitializeNodeValidatorFilesByIndex(config *cfg.Config, index int) (nodeID string, valPubKey crypto.PubKey, err error) {
+	nodeKey, err := p2p.LoadOrGenNodeKeyByIndex(config.NodeKeyFile(), index)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return initValidatorFiles(config, nodeKey)
+}
+
 // InitializeNodeValidatorFiles creates private validator and p2p configuration files.
 func InitializeNodeValidatorFiles(config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error) {
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
 	if err != nil {
 		return "", nil, err
 	}
+
+	return initValidatorFiles(config, nodeKey)
+}
+
+func initValidatorFiles(config *cfg.Config, nodeKey *p2p.NodeKey) (nodeID string, valPubKey crypto.PubKey, err error) {
 
 	nodeID = string(nodeKey.ID())
 

@@ -3,20 +3,20 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/trace"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -179,7 +179,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.wrappedTxDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
+	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
@@ -253,6 +253,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
 	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rflat<%d>, rflatTs<%dms>, wflat<%d>, wflatTs<%dms>",
 		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount(), time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds()))
+	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+
+	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
@@ -262,7 +266,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Commit. Use the header from this latest block.
 	app.setCheckState(header)
 
-	app.logger.Info("deliverState reset by BaseApp.Commit", "height", header.Height)
+	app.logger.Debug("deliverState reset by BaseApp.Commit", "height", header.Height)
 	// empty/reset the deliver state
 	app.deliverState = nil
 

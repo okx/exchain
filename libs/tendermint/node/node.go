@@ -17,8 +17,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
-	amino "github.com/tendermint/go-amino"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
@@ -636,7 +636,7 @@ func NewNode(config *cfg.Config,
 
 	// Make MempoolReactor
 	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger)
-
+	mempoolReactor.SetNodeKey(nodeKey)
 	// Make Evidence Reactor
 	evidenceReactor, evidencePool, err := createEvidenceReactor(config, dbProvider, stateDB, logger)
 	if err != nil {

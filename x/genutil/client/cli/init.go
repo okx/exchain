@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -69,8 +69,9 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager,
 			config := ctx.Config
 			config.SetRoot(viper.GetString(cli.HomeFlag))
 			chainID := viper.GetString(flags.FlagChainID)
+			index := viper.GetInt(flags.FlagNodeIndex)
 
-			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
+			nodeID, _, err := genutil.InitializeNodeValidatorFilesByIndex(config, index)
 			if err != nil {
 				return err
 			}
@@ -110,6 +111,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager,
 	cmd.Flags().String(cli.HomeFlag, defaultNodeHome, "node's home directory")
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
 	cmd.Flags().String(flags.FlagChainID, "testchain-1", "genesis file chain-id, it's necessary to be provided in the format like \"[chain name]-[positive integer]\"")
+	cmd.Flags().String(flags.FlagNodeIndex, "-1", "init by node index.")
 
 	return cmd
 }

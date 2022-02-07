@@ -1,8 +1,11 @@
 package types
 
 import (
+	"math"
 	"math/big"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/stretchr/testify/assert"
 
@@ -517,4 +520,38 @@ func TestDecSortableBytes(t *testing.T) {
 
 	assert.Panics(t, func() { SortableDecBytes(NewDec(1000000000000000001)) })
 	assert.Panics(t, func() { SortableDecBytes(NewDec(-1000000000000000001)) })
+}
+
+func TestDecAmino(t *testing.T) {
+	testCases := []Dec{
+		{},
+		{big.NewInt(0)},
+		{new(big.Int)},
+		{big.NewInt(12345)},
+		{big.NewInt(math.MaxInt64)},
+		{big.NewInt(math.MinInt64)},
+		{big.NewInt(0).Mul(big.NewInt(math.MaxInt64), big.NewInt(math.MaxInt64))},
+	}
+	cdc := amino.NewCodec()
+	for _, dec := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(dec)
+		require.NoError(t, err)
+
+		actualData, err := dec.MarshalToAmino(cdc)
+		require.NoError(t, err)
+
+		bareData, err := amino.GetBinaryBareFromBinaryLengthPrefixed(expectData)
+		require.NoError(t, err)
+		require.EqualValues(t, bareData, actualData)
+
+		var expectValue Dec
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		actualValue := Dec{}
+		err = actualValue.UnmarshalFromAmino(cdc, bareData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
+	}
 }

@@ -111,9 +111,9 @@ type exAminoEncoder struct {
 func newExAminoEncoder() *exAminoEncoder {
 	cdc := codec.New()
 	cdc.RegisterConcrete(MsgEthereumTx{}, exEthMsgName, nil)
-	cdc.RegisterConcreteUnmarshaller(exEthMsgName, func(_ *amino.Codec, bytes []byte) (interface{}, int, error) {
+	cdc.RegisterConcreteUnmarshaller(exEthMsgName, func(cdc *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgEthereumTx
-		err := msg.UnmarshalFromAmino(bytes)
+		err := msg.UnmarshalFromAmino(cdc, bytes)
 		if err != nil {
 			return nil, 0, err
 		}
