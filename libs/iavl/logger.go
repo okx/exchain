@@ -7,6 +7,7 @@ import (
 
 const (
 	FlagOutputModules = "iavl-output-modules"
+	ndbDebugPrintInfo="ndb"
 )
 
 const (
@@ -37,3 +38,7 @@ func iavlLog(module string, level int, format string, args ...interface{}) {
 	}
 }
 
+// --iavl-output-modules="ndb=1"
+func ndbIavlDebugLog(format string, args ...interface{}) {
+	iavlLog(ndbDebugPrintInfo,IavlInfo,format,args...)
+}

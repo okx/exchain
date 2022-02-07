@@ -49,7 +49,7 @@ type OecConfig struct {
 	csTimeoutPrecommitDelta time.Duration
 
 	// iavl-cache-size
-	iavlCacheSize int
+	iavlCacheSize  int
 }
 
 const (
