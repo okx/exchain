@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
@@ -65,6 +66,7 @@ func newTestWatchData() *WatchData {
 	return testWatchData[len(testWatchData)-1]
 }
 
+// TestWatchDataAmino test WatchData amino
 func TestWatchDataAmino(t *testing.T) { testWatchDataAmino(t) }
 func testWatchDataAmino(t *testing.T) {
 	for i, wd := range testWatchData {
@@ -84,6 +86,65 @@ func testWatchDataAmino(t *testing.T) {
 		require.NoError(t, err, fmt.Sprintf("num %v", i))
 		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
 	}
+}
+
+// TestBatchAmino test Batch Amino
+func TestBatchAmino(t *testing.T) { testBatchAmino(t) }
+func testBatchAmino(t *testing.T) {
+	testBatchs := []*Batch{
+		{},
+		{Key: []byte("0x01"), Value: []byte("")},
+		{TypeValue: 1},
+		{TypeValue: math.MaxUint32},
+		{Key: []byte("0x01"), Value: []byte("0x02"), TypeValue: 32},
+	}
+
+	for i, bat := range testBatchs {
+		expect, err := cdc.MarshalBinaryBare(bat)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := bat.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		var expectValue Batch
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		var actualValue Batch
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+}
+
+// TestKVAmino test KV amino
+func TestKVAmino(t *testing.T) { testKVAmino(t) }
+func testKVAmino(t *testing.T) {
+	testKVs := []*types.KV{
+		{},
+		{Key: []byte("0x01"), Value: []byte("")},
+		{Key: []byte("0x01"), Value: []byte("0x02")},
+	}
+
+	for i, kv := range testKVs {
+		expect, err := cdc.MarshalBinaryBare(kv)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := kv.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		var expectValue types.KV
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		var actualValue types.KV
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+
 }
 
 // benchmark encode performance
