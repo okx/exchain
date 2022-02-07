@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	FlagDisableSanity = "disable-sanity"
+)
+
 // item: app's flags
 type item interface {
 	// label: get item's name

@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/spf13/viper"
 )
 
 // CheckStart check start command's flags. if user set conflict flags return error.
@@ -92,6 +93,10 @@ var (
 
 // CheckStart check start command.If it has conflict pair above. then return the conflict error
 func CheckStart() error {
+	if viper.GetBool(FlagDisableSanity) {
+		return nil
+	}
+
 	for _, v := range startConflictElems {
 		if err := v.checkConflict(); err != nil {
 			return err

@@ -590,6 +590,7 @@ func PreRun(ctx *server.Context) error {
 	if err != nil {
 		return err
 	}
+
 	// set config by node mode
 	setNodeConfig(ctx)
 
