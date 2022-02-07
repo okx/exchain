@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -26,12 +27,13 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	switch {
 	case req.Type == abci.CheckTxType_New:
 		mode = runTxModeCheck
-
+		atomic.AddInt64(&app.checkTxNum, 1)
 	case req.Type == abci.CheckTxType_Recheck:
 		mode = runTxModeReCheck
 
 	case req.Type == abci.CheckTxType_WrappedCheck:
 		mode = runTxModeWrappedCheck
+		atomic.AddInt64(&app.wrappedCheckTxNum, 1)
 
 	default:
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))

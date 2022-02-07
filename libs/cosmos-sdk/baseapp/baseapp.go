@@ -197,6 +197,9 @@ type BaseApp struct { // nolint: maligned
 
 	blockTxSender map[string]sdk.SigCache
 	blockTxSenderLock sync.RWMutex
+
+	checkTxNum int64
+	wrappedCheckTxNum int64
 }
 
 type recordHandle func(string)

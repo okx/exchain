@@ -115,7 +115,7 @@ init() {
         exit
     fi
 
-    ${BIN_NAME} init ${NAME} -o --chain-id ${CHAIN_ID} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind
+    ${BIN_NAME} init ${NAME} -o --chain-id ${CHAIN_ID} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind --node-index ${INPUT_INDEX}
 }
 
 
