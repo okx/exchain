@@ -87,15 +87,13 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetMaxOpenFiles(maxOpenFiles)
 	}
 
-	opts.SetAllowMmapReads(true)
+	opts.SetAllowMmapReads(false)
 	if v, ok := params[mmapRead]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
 			panic(fmt.Sprintf("Invalid options parameter %s: %s", mmapRead, err))
 		}
-		if enable {
-			opts.SetAllowMmapReads(enable)
-		}
+		opts.SetAllowMmapReads(enable)
 	}
 
 	if v, ok := params[mmapWrite]; ok {
@@ -140,6 +138,19 @@ func (db *RocksDB) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 	return moveSliceToBytes(res), nil
+}
+
+func (db *RocksDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
+	key = nonNilBytes(key)
+	res, err := db.db.Get(db.ro, key)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Free()
+	if !res.Exists() {
+		return processor(nil)
+	}
+	return processor(res.Data())
 }
 
 // Has implements DB.

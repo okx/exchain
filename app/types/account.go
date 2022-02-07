@@ -37,6 +37,56 @@ type EthAccount struct {
 	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
 }
 
+func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		// all EthAccount fields are (2)
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid pbType: %v", pbType)
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("not enough data for field %d", pos)
+		}
+		subData := data[:dataLen]
+
+		switch pos {
+		case 1:
+			base := new(auth.BaseAccount)
+			err = base.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			acc.BaseAccount = base
+		case 2:
+			acc.CodeHash = make([]byte, len(subData))
+			copy(acc.CodeHash, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 func (acc EthAccount) Copy() interface{} {
 	return &EthAccount{
 		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
@@ -46,7 +96,7 @@ func (acc EthAccount) Copy() interface{} {
 
 var ethAccountBufferPool = amino.NewBufferPool()
 
-func (acc EthAccount) MarshalToAmino() ([]byte, error) {
+func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = ethAccountBufferPool.Get()
 	defer ethAccountBufferPool.Put(buf)
 	for pos := 1; pos < 3; pos++ {
@@ -67,7 +117,7 @@ func (acc EthAccount) MarshalToAmino() ([]byte, error) {
 				noWrite = true
 				break
 			}
-			data, err := acc.BaseAccount.MarshalToAmino()
+			data, err := acc.BaseAccount.MarshalToAmino(cdc)
 			if err != nil {
 				return nil, err
 			}

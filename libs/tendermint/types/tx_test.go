@@ -235,7 +235,7 @@ func TestTxResultAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var actualValue TxResult
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
@@ -268,7 +268,7 @@ func BenchmarkTxResultAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var res TxResult
-				err := res.UnmarshalFromAmino(data)
+				err := res.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}

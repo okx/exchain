@@ -3,20 +3,21 @@ package rootmulti
 import (
 	"bytes"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
 	iavltree "github.com/okex/exchain/libs/iavl"
 	"github.com/stretchr/testify/assert"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/stretchr/testify/require"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -75,7 +76,7 @@ func TestCacheMultiStoreWithVersion(t *testing.T) {
 	store1 := ms.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
 
-	cID, _, _ := ms.Commit(&iavltree.TreeDelta{}, nil)
+	cID, _ := ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), cID.Version)
 
 	// require no failure when given an invalid or pruned version
@@ -112,12 +113,12 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 	store1 := ms.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
 
-	cID, _, _ := ms.Commit(&iavltree.TreeDelta{}, nil)
+	cID, _ := ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), cID.Version)
 	hash := cID.Hash
 
 	// make an empty commit, it should update version, but not affect hash
-	cID, _, _ = ms.Commit(&iavltree.TreeDelta{}, nil)
+	cID, _ = ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(2), cID.Version)
 	require.Equal(t, hash, cID.Hash)
 }
@@ -143,7 +144,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	// Make a few commits and check them.
 	nCommits := int64(3)
 	for i := int64(0); i < nCommits; i++ {
-		commitID, _, _ = store.Commit(&iavltree.TreeDelta{}, nil)
+		commitID, _ = store.CommitterCommitMap(nil)
 		expectedCommitID := getExpectedCommitID(store, i+1)
 		checkStore(t, store, expectedCommitID, commitID)
 	}
@@ -156,7 +157,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	checkStore(t, store, commitID, commitID)
 
 	// Commit and check version.
-	commitID, _, _ = store.Commit(&iavltree.TreeDelta{}, nil)
+	commitID, _ = store.CommitterCommitMap(nil)
 	expectedCommitID := getExpectedCommitID(store, nCommits+1)
 	checkStore(t, store, expectedCommitID, commitID)
 
@@ -169,7 +170,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	checkStore(t, store, commitID, commitID)
 
 	// XXX: commit this older version
-	commitID, _, _ = store.Commit(&iavltree.TreeDelta{}, nil)
+	commitID, _ = store.CommitterCommitMap(nil)
 	expectedCommitID = getExpectedCommitID(store, ver+1)
 	checkStore(t, store, expectedCommitID, commitID)
 
@@ -208,7 +209,7 @@ func TestMultistoreLoadWithUpgrade(t *testing.T) {
 	require.Nil(t, s4)
 
 	// do one commit
-	commitID, _, _ := store.Commit(&iavltree.TreeDelta{}, nil)
+	commitID, _ := store.CommitterCommitMap(nil)
 	expectedCommitID := getExpectedCommitID(store, 1)
 	checkStore(t, store, expectedCommitID, commitID)
 
@@ -272,7 +273,7 @@ func TestMultistoreLoadWithUpgrade(t *testing.T) {
 	require.Equal(t, v2, rs2.Get(k2))
 
 	// store this migrated data, and load it again without migrations
-	migratedID, _, _ := restore.Commit(&iavltree.TreeDelta{}, nil)
+	migratedID, _ := restore.CommitterCommitMap(nil)
 	require.Equal(t, migratedID.Version, int64(2))
 
 	reload, _ := newMultiStoreWithModifiedMounts(db, types.PruneNothing)
@@ -352,7 +353,7 @@ func TestMultiStoreRestart(t *testing.T) {
 		store3 := multi.getStoreByName("store3").(types.KVStore)
 		store3.Set([]byte(k3), []byte(fmt.Sprintf("%s:%d", v3, i)))
 
-		multi.Commit(&iavltree.TreeDelta{}, nil)
+		multi.CommitterCommitMap(nil)
 
 		cinfo, err := getCommitInfo(multi.db, int64(i))
 		require.NoError(t, err)
@@ -367,7 +368,7 @@ func TestMultiStoreRestart(t *testing.T) {
 	store2 := multi.getStoreByName("store2").(types.KVStore)
 	store2.Set([]byte(k2), []byte(fmt.Sprintf("%s:%d", v2, 3)))
 
-	multi.Commit(&iavltree.TreeDelta{}, nil)
+	multi.CommitterCommitMap(nil)
 
 	flushedCinfo, err := getCommitInfo(multi.db, 3)
 	require.Nil(t, err)
@@ -377,7 +378,7 @@ func TestMultiStoreRestart(t *testing.T) {
 	store3 := multi.getStoreByName("store3").(types.KVStore)
 	store3.Set([]byte(k3), []byte(fmt.Sprintf("%s:%d", v3, 3)))
 
-	multi.Commit(&iavltree.TreeDelta{}, nil)
+	multi.CommitterCommitMap(nil)
 
 	postFlushCinfo, err := getCommitInfo(multi.db, 4)
 	require.NoError(t, err)
@@ -415,7 +416,7 @@ func TestMultiStoreQuery(t *testing.T) {
 	k2, v2 := []byte("water"), []byte("flows")
 	// v3 := []byte("is cold")
 
-	cid, _, _ := multi.Commit(&iavltree.TreeDelta{}, nil)
+	cID, _ := multi.CommitterCommitMap(nil)
 
 	// Make sure we can get by name.
 	garbage := multi.getStoreByName("bad-name")
@@ -430,8 +431,8 @@ func TestMultiStoreQuery(t *testing.T) {
 	store2.Set(k2, v2)
 
 	// Commit the multistore.
-	cid, _, _ = multi.Commit(&iavltree.TreeDelta{}, nil)
-	ver := cid.Version
+	cID, _ = multi.CommitterCommitMap(nil)
+	ver := cID.Version
 
 	// Reload multistore from database
 	multi = newMultiStoreWithMounts(db, types.PruneNothing)
@@ -499,7 +500,7 @@ func TestMultiStore_Pruning(t *testing.T) {
 			require.NoError(t, ms.LoadLatestVersion())
 
 			for i := int64(0); i < tc.numVersions; i++ {
-				ms.Commit(&iavltree.TreeDelta{}, nil)
+				ms.CommitterCommitMap(nil)
 			}
 
 			for _, v := range tc.saved {
@@ -523,7 +524,7 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 	// Commit enough to build up heights to prune, where on the next block we should
 	// batch delete.
 	for i := int64(0); i < 10; i++ {
-		ms.Commit(&iavltree.TreeDelta{}, nil)
+		ms.CommitterCommitMap(nil)
 	}
 
 	pruneHeights := []int64{1, 2, 4, 5, 7}
@@ -540,7 +541,7 @@ func TestMultiStore_PruningRestart(t *testing.T) {
 	require.Equal(t, pruneHeights, ms.pruneHeights)
 
 	// commit one more block and ensure the heights have been pruned
-	ms.Commit(&iavltree.TreeDelta{}, nil)
+	ms.CommitterCommitMap(nil)
 	require.Empty(t, ms.pruneHeights)
 
 	for _, v := range pruneHeights {
@@ -571,14 +572,14 @@ func testMultiStoreDelta(t *testing.T) {
 	tmtypes.UploadDelta = true
 	tmtypes.DownloadDelta = true
 	iavltree.SetProduceDelta(true)
-	cID, _, deltas := ms.Commit(nil, nil)
+	cID, deltas := ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), cID.Version)
 	assert.NotEmpty(t, deltas)
 
 	// use deltas
-	cID, _, deltas2 := ms.Commit(nil, deltas)
+	cID, _ = ms.CommitterCommitMap(deltas)
 	require.Equal(t, int64(2), cID.Version)
-	require.Equal(t, deltas, deltas2)
+	//require.Equal(t, deltas, deltas2)
 }
 func TestMultiStore_Delta(t *testing.T) {
 	if os.Getenv("SUB_PROCESS") == "1" {

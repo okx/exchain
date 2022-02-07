@@ -313,10 +313,6 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		tmNode.Mempool().SetTxInfoParser(parser)
 	}
 
-	if keeper, ok := app.(p2p.NodeKeyUser); ok {
-		keeper.SetNodeKey(cfg.NodeKeyFile(), nodeKey)
-	}
-
 	// run forever (the node will not be returned)
 	select {}
 }
