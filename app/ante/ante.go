@@ -54,8 +54,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				)
 			} else {
 				anteHandler = sdk.ChainAnteDecorators(
-					authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-					NewAccountSetupDecorator(ak),
+					authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
 					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 					authante.NewMempoolFeeDecorator(),
 					authante.NewValidateBasicDecorator(),

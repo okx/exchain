@@ -43,14 +43,6 @@ func RegisterCodec(cdc *codec.Codec) {
 		}
 		return msg, len(bytes), nil
 	})
-	cdc.RegisterConcreteUnmarshaller(MsgEthermintName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
-		var msg MsgEthermint
-		err := msg.UnmarshalFromAmino(c, bytes)
-		if err != nil {
-			return nil, 0, err
-		}
-		return msg, len(bytes), nil
-	})
 	cdc.RegisterConcreteUnmarshaller(TxDataName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var tx TxData
 		err := tx.UnmarshalFromAmino(c, bytes)
