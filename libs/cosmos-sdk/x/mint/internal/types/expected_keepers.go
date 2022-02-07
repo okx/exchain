@@ -10,6 +10,7 @@ import (
 type StakingKeeper interface {
 	StakingTokenSupply(ctx sdk.Context) sdk.Dec
 	BondedRatio(ctx sdk.Context) sdk.Dec
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // SupplyKeeper defines the expected supply keeper

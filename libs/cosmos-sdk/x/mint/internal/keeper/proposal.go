@@ -48,8 +48,9 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (voting
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	switch content := msg.Content.(type) {
 	case types.ManageTreasuresProposal:
-		// whole target address list will be added/deleted to/from the contract deployment whitelist/contract blocked list.
-		// It's not necessary to check the existence in CheckMsgSubmitProposal
+		if !k.sk.IsValidator(ctx, msg.Proposer) {
+			return types.ErrProposerMustBeValidator
+		}
 		treasures := k.GetTreasure(ctx)
 		if content.IsAdded {
 			result := types.InsertAndUpdateTreasures(treasures, content.Treasures)

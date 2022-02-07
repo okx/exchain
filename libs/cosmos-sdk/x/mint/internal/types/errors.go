@@ -15,8 +15,9 @@ var (
 	// ErrInvalidState returns an error resulting from an invalid Storage State.
 	ErrEmptyTreasures = sdkerrors.Register(ModuleName, 2, "treasures is not empty")
 
-	ErrDuplicatedTreasure     = sdkerrors.Register(ModuleName, 3, "treasures can not be duplicate")
-	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 4, "Unsupported proposal type of mint module")
+	ErrDuplicatedTreasure      = sdkerrors.Register(ModuleName, 3, "treasures can not be duplicate")
+	ErrUnexpectedProposalType  = sdkerrors.Register(ModuleName, 4, "unsupported proposal type of mint module")
+	ErrProposerMustBeValidator = sdkerrors.Register(ModuleName, 5, "the proposal of proposer must be validator")
 )
 
 // ErrTreasuresInternal returns an error when the length of address list in the proposal is larger than the max limitation

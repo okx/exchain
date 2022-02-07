@@ -95,6 +95,7 @@ func DeleteTreasures(src, dst []Treasure) ([]Treasure, error) {
 		if _, ok := temp[key]; !ok {
 			return nil, errors.New(fmt.Sprintf("can not delete %s,because it's not exist from treasures", key))
 		}
+		delete(temp, key)
 	}
 	return GetTreasuresFromMap(temp), nil
 }
