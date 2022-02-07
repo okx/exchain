@@ -58,7 +58,7 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }
 
-func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
+func (msg *MsgSend) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -74,6 +74,7 @@ func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
 		}
 		data = data[1:]
 
+		// pb types of all fields are byteLength(2)
 		if pbType != amino.Typ3_ByteLength {
 			return fmt.Errorf("invalid pbType: %v in MsgSend", pbType)
 		}
@@ -97,7 +98,8 @@ func (msg *MsgSend) UnmarshalFromAmino(data []byte) error {
 			msg.ToAddress = make([]byte, dataLen)
 			copy(msg.ToAddress, subData)
 		case 3:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

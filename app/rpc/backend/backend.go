@@ -19,7 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // Backend implements the functionality needed to filter changes.
@@ -43,6 +43,7 @@ type Backend interface {
 	UserPendingTransactionsCnt(address string) (int, error)
 	UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error)
 	PendingAddressList() ([]string, error)
+	GetPendingNonce(address string) (uint64, error)
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
@@ -278,6 +279,14 @@ func (b *EthermintBackend) UserPendingTransactionsCnt(address string) (int, erro
 		return 0, err
 	}
 	return result.Count, nil
+}
+
+func (b *EthermintBackend) GetPendingNonce(address string) (uint64, error) {
+	result, err := b.clientCtx.Client.GetPendingNonce(address)
+	if err != nil {
+		return 0, err
+	}
+	return result.Nonce, nil
 }
 
 func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error) {

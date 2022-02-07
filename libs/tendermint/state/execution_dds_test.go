@@ -2,17 +2,18 @@ package state
 
 import (
 	"encoding/hex"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 )
 
 func getRedisClient(t *testing.T) *redis_cgi.RedisClient {
@@ -60,9 +61,9 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	delta1 := &types.Deltas{Height: 1, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
 	delta2 := &types.Deltas{Height: 2, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
 	delta3 := &types.Deltas{Height: 3, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
-	dc.dataMap.insert(1, delta1, 1)
-	dc.dataMap.insert(2, delta2, 2)
-	dc.dataMap.insert(3, delta3, 3)
+	dc.dataMap.insert(1, delta1, nil, 1)
+	dc.dataMap.insert(2, delta2, nil, 2)
+	dc.dataMap.insert(3, delta3, nil, 3)
 
 	tests := []struct {
 		name    string
@@ -77,7 +78,7 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotDds := dc.prepareStateDelta(tt.height); !reflect.DeepEqual(gotDds, tt.wantDds) {
+			if gotDds, _ := dc.prepareStateDelta(tt.height); !reflect.DeepEqual(gotDds, tt.wantDds) {
 				t.Errorf("prepareStateDelta() = %v, want %v", gotDds, tt.wantDds)
 			}
 		})
@@ -187,9 +188,9 @@ func produceAbciRsp() *ABCIResponses {
 
 	blocks, stateDB := produceBlock()
 	ctx := &executionTask{
-		logger: log.TestingLogger(),
-		block: blocks[0],
-		db: stateDB,
+		logger:   log.TestingLogger(),
+		block:    blocks[0],
+		db:       stateDB,
 		proxyApp: proxyApp.Consensus(),
 	}
 
@@ -211,6 +212,20 @@ func TestProduceDelta(t *testing.T) {
 	}
 }
 
+func TestAminoDecoder(t *testing.T) { testDecodeABCIResponse(t) }
+func testDecodeABCIResponse(t *testing.T) {
+	abciResponses1 := produceAbciRsp()
+
+	// encode
+	data, err := abciResponses1.MarshalToAmino(cdc)
+	require.NoError(t, err)
+
+	//decode
+	abciResponses2 := &ABCIResponses{}
+	err = abciResponses2.UnmarshalFromAmino(nil, data)
+	require.NoError(t, err)
+	require.Equal(t, abciResponses1, abciResponses2)
+}
 func BenchmarkMarshalJson(b *testing.B) {
 	abciResponses := produceAbciRsp()
 
@@ -235,6 +250,41 @@ func BenchmarkMarshalCustom(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n <= b.N; n++ {
-		abciResponses.MarshalToAmino()
+		abciResponses.MarshalToAmino(ModuleCodec)
+	}
+}
+
+func BenchmarkUnmarshalFromJson(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := types.Json.Marshal(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		types.Json.Unmarshal(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromAmino(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	var cdc = amino.NewCodec()
+	data, _ := cdc.MarshalBinaryBare(abciResponses)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		cdc.UnmarshalBinaryBare(data, ar)
+	}
+}
+func BenchmarkUnmarshalFromCustom(b *testing.B) {
+	abciResponses := produceAbciRsp()
+	data, _ := abciResponses.MarshalToAmino(cdc)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n <= b.N; n++ {
+		ar := &ABCIResponses{}
+		ar.UnmarshalFromAmino(nil, data)
 	}
 }

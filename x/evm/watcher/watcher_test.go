@@ -1,7 +1,12 @@
 package watcher_test
 
 import (
+	"encoding/hex"
+	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -86,7 +91,7 @@ func flushDB(db *watcher.WatchStore) {
 
 func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
 		return err
 	}
 	for _, account := range wd.DirtyAccount {
@@ -97,7 +102,7 @@ func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
 
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	wd := watcher.WatchData{}
-	if err := json.Unmarshal(wdBytes, &wd); err != nil {
+	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
 		return
 	}
 	keys := make([][]byte, len(wd.Batches))
@@ -126,7 +131,9 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	flushDB(store)
 
 	// use WatchData
-	w.app.EvmKeeper.Watcher.UseWatchData(wd)
+	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
+	require.Nil(t, err)
+	w.app.EvmKeeper.Watcher.UseWatchData(wData)
 	time.Sleep(time.Second * 1)
 
 	cWd := getDBKV(store)
@@ -305,4 +312,85 @@ func TestDeployAndCallContract(t *testing.T) {
 	require.Equal(t, true, strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
 
 	testWatchData(t, w)
+}
+
+type mockDuplicateAccount struct {
+	*auth.BaseAccount
+	Addr byte
+	Seq  byte
+}
+
+func (a *mockDuplicateAccount) GetAddress() sdk.AccAddress {
+	return []byte{a.Addr}
+}
+
+func newMockAccount(byteAddr, seq byte) *mockDuplicateAccount {
+	ret := &mockDuplicateAccount{Addr: byteAddr, Seq: seq}
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	baseAcc := auth.NewBaseAccount(addr, nil, pubkey, 0, 0)
+	ret.BaseAccount = baseAcc
+	return ret
+}
+
+func TestDuplicateAddress(t *testing.T) {
+	accAdds := make([]*sdk.AccAddress, 0)
+	for i := 0; i < 10; i++ {
+		adds := hex.EncodeToString([]byte(fmt.Sprintf("addr-%d", i)))
+		a, _ := sdk.AccAddressFromHex(adds)
+		accAdds = append(accAdds, &a)
+	}
+	adds := hex.EncodeToString([]byte(fmt.Sprintf("addr-%d", 1)))
+	a, _ := sdk.AccAddressFromHex(adds)
+	accAdds = append(accAdds, &a)
+	filterM := make(map[string]struct{})
+	count := 0
+	for _, add := range accAdds {
+		_, exist := filterM[string(add.Bytes())]
+		if exist {
+			count++
+			continue
+		}
+		filterM[string(add.Bytes())] = struct{}{}
+	}
+	require.Equal(t, 1, count)
+}
+
+func TestDuplicateWatchMessage(t *testing.T) {
+	w := setupTest()
+	a1 := newMockAccount(1, 1)
+	w.app.EvmKeeper.Watcher.SaveAccount(a1, true)
+	a2 := newMockAccount(1, 2)
+	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
+	w.app.EvmKeeper.Watcher.Commit()
+	time.Sleep(time.Second)
+	store := watcher.InstanceOfWatchStore()
+	pWd := getDBKV(store)
+	require.Equal(t, 1, len(pWd))
+}
+
+func TestWriteLatestMsg(t *testing.T) {
+	viper.Set(watcher.FlagFastQuery, true)
+	viper.Set(watcher.FlagDBBackend, "memdb")
+	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
+	w.SetWatchDataFunc()
+
+	a1 := newMockAccount(1, 1)
+	a11 := newMockAccount(1, 2)
+	a111 := newMockAccount(1, 3)
+	w.SaveAccount(a1, true)
+	w.SaveAccount(a11, true)
+	w.SaveAccount(a111, true)
+	w.Commit()
+	time.Sleep(time.Second)
+	store := watcher.InstanceOfWatchStore()
+	pWd := getDBKV(store)
+	require.Equal(t, 1, len(pWd))
+
+	m := watcher.NewMsgAccount(a1)
+	v, err := store.Get(m.GetKey())
+	require.NoError(t, err)
+	mm := make(map[string]interface{})
+	json.Unmarshal(v, &mm)
+	require.Equal(t, 3, int(mm["Seq"].(float64)))
 }

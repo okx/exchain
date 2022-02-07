@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"
@@ -60,7 +60,7 @@ func getTxResultFromBytes(rawBytes []byte) (*types.TxResult, error) {
 		return nil, nil
 	}
 	txResult := new(types.TxResult)
-	err := txResult.UnmarshalFromAmino(rawBytes)
+	err := txResult.UnmarshalFromAmino(cdc, rawBytes)
 	if err != nil {
 		txResult = new(types.TxResult)
 		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
@@ -78,12 +78,18 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 		return nil, txindex.ErrorEmptyHash
 	}
 
-	v, err := txi.store.GetUnsafeValue(hash, func(rawBytes []byte, err error) (interface{}, error) {
-		if err != nil {
-			panic(err)
-		}
+	v, err := txi.store.GetUnsafeValue(hash, func(rawBytes []byte) (interface{}, error) {
 		return getTxResultFromBytes(rawBytes)
 	})
+	if err != nil {
+		txResult, ok := v.(*types.TxResult)
+		if !ok {
+			panic(err)
+		} else {
+			return txResult, err
+		}
+	}
+
 	txResult := v.(*types.TxResult)
 	return txResult, err
 }

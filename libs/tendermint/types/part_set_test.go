@@ -178,7 +178,7 @@ func TestPartSetHeaderAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var psh2 PartSetHeader
-		err = psh2.UnmarshalFromAmino(bz)
+		err = psh2.UnmarshalFromAmino(cdc, bz)
 		require.NoError(t, err)
 
 		require.EqualValues(t, psh, psh2)
@@ -213,7 +213,7 @@ func BenchmarkPartSetHeaderAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var psh PartSetHeader
-				err := psh.UnmarshalFromAmino(data)
+				err := psh.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -251,7 +251,7 @@ func TestPartAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
 		var actualValue Part
-		err = actualValue.UnmarshalFromAmino(expectData)
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
@@ -285,7 +285,7 @@ func BenchmarkPartAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, d := range testData {
 				var v Part
-				err := v.UnmarshalFromAmino(d)
+				err := v.UnmarshalFromAmino(cdc, d)
 				if err != nil {
 					b.Fatal()
 				}

@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	db "github.com/tendermint/tm-db"
-	dbm "github.com/tendermint/tm-db"
+	db "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -142,7 +142,7 @@ func loadBlockPartFromBytes(bz []byte) *types.Part {
 		return nil
 	}
 	var part = new(types.Part)
-	err := part.UnmarshalFromAmino(bz)
+	err := part.UnmarshalFromAmino(cdc, bz)
 	if err != nil {
 		part = new(types.Part)
 		err = cdc.UnmarshalBinaryBare(bz, part)
@@ -157,12 +157,12 @@ func loadBlockPartFromBytes(bz []byte) *types.Part {
 // from the block at the given height.
 // If no part is found for the given height and index, it returns nil.
 func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
-	v, _ := bs.db.GetUnsafeValue(calcBlockPartKey(height, index), func(bz []byte, err error) (interface{}, error) {
-		if err != nil {
-			panic(err)
-		}
+	v, err := bs.db.GetUnsafeValue(calcBlockPartKey(height, index), func(bz []byte) (interface{}, error) {
 		return loadBlockPartFromBytes(bz), nil
 	})
+	if err != nil {
+		panic(err)
+	}
 	return v.(*types.Part)
 }
 

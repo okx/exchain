@@ -68,7 +68,7 @@ func (c Commission) String() string {
 	)
 }
 
-func (c *Commission) UnmarshalFromAmino(data []byte) error {
+func (c *Commission) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var timeUpdated bool
@@ -103,7 +103,7 @@ func (c *Commission) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			if err = c.CommissionRates.UnmarshalFromAmino(subData); err != nil {
+			if err = c.CommissionRates.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 2:
@@ -178,7 +178,7 @@ func (c Commission) ValidateNewRate(newRate sdk.Dec, blockTime time.Time) sdk.Er
 	return nil
 }
 
-func (c *CommissionRates) UnmarshalFromAmino(data []byte) error {
+func (c *CommissionRates) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -212,15 +212,15 @@ func (c *CommissionRates) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			if err = c.Rate.UnmarshalFromAmino(subData); err != nil {
+			if err = c.Rate.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 2:
-			if err = c.MaxRate.UnmarshalFromAmino(subData); err != nil {
+			if err = c.MaxRate.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 3:
-			if err = c.MaxChangeRate.UnmarshalFromAmino(subData); err != nil {
+			if err = c.MaxChangeRate.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		default:

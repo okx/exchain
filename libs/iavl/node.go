@@ -14,20 +14,6 @@ import (
 	amino "github.com/tendermint/go-amino"
 )
 
-// NodeJson provide json Marshal of Node.
-type NodeJson struct {
-	Key          []byte `json:"key"`
-	Value        []byte `json:"value"`
-	Hash         []byte `json:"hash"`
-	LeftHash     []byte `json:"left_hash"`
-	RightHash    []byte `json:"right_hash"`
-	Version      int64  `json:"version"`
-	Size         int64  `json:"size"`
-	Height       int8   `json:"height"`
-	Persisted    bool   `json:"persisted"`
-	prePersisted bool   `json:"pre_persisted"`
-}
-
 // Node represents a node in a Tree.
 type Node struct {
 	key          []byte
@@ -59,7 +45,7 @@ func NodeToNodeJson(node *Node) *NodeJson {
 		Size:         node.size,
 		Height:       node.height,
 		Persisted:    node.persisted,
-		prePersisted: node.prePersisted,
+		PrePersisted: node.prePersisted,
 	}
 }
 
@@ -78,7 +64,7 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 		size:         nj.Size,
 		height:       nj.Height,
 		persisted:    nj.Persisted,
-		prePersisted: nj.prePersisted,
+		prePersisted: nj.PrePersisted,
 	}
 }
 

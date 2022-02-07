@@ -2,11 +2,13 @@ package watcher
 
 import (
 	"encoding/hex"
+	"fmt"
+	"math/big"
+	"sync"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"math/big"
-	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
@@ -37,8 +39,11 @@ type Watcher struct {
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
+
 	// for state delta transfering in network
 	watchData *WatchData
+
+	jobChan chan func()
 }
 
 var (
@@ -370,8 +375,9 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go w.commitBatch(batch)
+	w.dispatchJob(func() { w.commitBatch(batch) })
 
+	// we dont do deduplicatie here,we do it in `commit routine`
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
 	for i, b := range batch {
@@ -396,7 +402,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.delayEraseKey = data.DelayEraseKey
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -408,7 +413,12 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
+		filterMap[bytes2Key(b.GetKey())] = b
+	}
+
+	for _, b := range filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -446,7 +456,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 
@@ -468,7 +478,8 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	return func() ([]byte, error) {
-		valueByte, err := itjs.Marshal(value)
+		filterWatcher := filterCopy(value)
+		valueByte, err := filterWatcher.MarshalToAmino(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -476,19 +487,30 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	}
 }
 
-func (w *Watcher) UseWatchData(wdByte []byte) {
-	wd := WatchData{}
-	if len(wdByte) > 0 {
-		if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-			return
-		}
+func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
 	}
+	wd := WatchData{}
+	if err := wd.UnmarshalFromAmino(nil, wdByte); err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
 
-	go w.CommitWatchData(wd)
+func (w *Watcher) UseWatchData(watchData interface{}) {
+	wd, ok := watchData.(WatchData)
+	if !ok {
+		panic("use watch data failed")
+	}
+	w.delayEraseKey = wd.DelayEraseKey
+
+	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
-	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UseWatchData)
+	go w.jobRoutine()
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
@@ -509,4 +531,149 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	}
 
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+func bytes2Key(keyBytes []byte) string {
+	return string(keyBytes)
+}
+
+func key2Bytes(key string) []byte {
+	return []byte(key)
+}
+
+func filterCopy(origin *WatchData) *WatchData {
+	return &WatchData{
+		DirtyAccount:  filterAccount(origin.DirtyAccount),
+		Batches:       filterBatch(origin.Batches),
+		DelayEraseKey: filterDelayEraseKey(origin.DelayEraseKey),
+		BloomData:     filterBloomData(origin.BloomData),
+		DirtyList:     filterDirtyList(origin.DirtyList),
+	}
+}
+
+func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
+	if len(accounts) == 0 {
+		return nil
+	}
+
+	filterAccountMap := make(map[string]*sdk.AccAddress)
+	for _, account := range accounts {
+		filterAccountMap[bytes2Key(account.Bytes())] = account
+	}
+
+	ret := make([]*sdk.AccAddress, len(filterAccountMap))
+	i := 0
+	for _, acc := range filterAccountMap {
+		ret[i] = acc
+		i++
+	}
+
+	return ret
+}
+
+func filterBatch(datas []*Batch) []*Batch {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBatch := make(map[string]*Batch)
+	for _, b := range datas {
+		filterBatch[bytes2Key(b.Key)] = b
+	}
+
+	ret := make([]*Batch, len(filterBatch))
+	i := 0
+	for _, b := range filterBatch {
+		ret[i] = b
+		i++
+	}
+
+	return ret
+}
+
+func filterDelayEraseKey(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDelayEraseKey := make(map[string][]byte, 0)
+	for _, b := range datas {
+		filterDelayEraseKey[bytes2Key(b)] = b
+	}
+
+	ret := make([][]byte, len(filterDelayEraseKey))
+	i := 0
+	for _, k := range filterDelayEraseKey {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+func filterBloomData(datas []*evmtypes.KV) []*evmtypes.KV {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBloomData := make(map[string]*evmtypes.KV, 0)
+	for _, k := range datas {
+		filterBloomData[bytes2Key(k.Key)] = k
+	}
+
+	ret := make([]*evmtypes.KV, len(filterBloomData))
+	i := 0
+	for _, k := range filterBloomData {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+
+func filterDirtyList(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDirtyList := make(map[string][]byte, 0)
+	for _, k := range datas {
+		filterDirtyList[bytes2Key(k)] = k
+	}
+
+	ret := make([][]byte, len(filterDirtyList))
+	i := 0
+	for _, k := range filterDirtyList {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+
+/////////// job
+func (w *Watcher) jobRoutine() {
+	if !w.Enabled() {
+		return
+	}
+
+	w.lazyInitialization()
+
+	for job := range w.jobChan {
+		job()
+	}
+}
+
+func (w *Watcher) lazyInitialization() {
+	// lazy initial:
+	// now we will allocate chan memory
+	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*2)
+}
+
+func (w *Watcher) dispatchJob(f func()) {
+	// if jobRoutine were too slow to write data  to disk
+	// we have to wait
+	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
+	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	w.jobChan <- f
 }

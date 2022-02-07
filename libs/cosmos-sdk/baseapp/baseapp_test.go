@@ -4,27 +4,23 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"sync"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/mempool"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -166,7 +162,7 @@ func initStore(t *testing.T, db dbm.DB, storeKey string, k, v []byte) {
 	kv, _ := rs.GetStore(key).(store.KVStore)
 	require.NotNil(t, kv)
 	kv.Set(k, v)
-	commitID, _, _ := rs.Commit(&iavl.TreeDelta{}, nil)
+	commitID, _ := rs.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), commitID.Version)
 }
 
@@ -595,16 +591,6 @@ func (tx txTest) GetGasPrice() *big.Int {
 
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
-}
-func (tx txTest) GetPayloadTx() sdk.Tx {
-	return nil
-}
-func (tx txTest) GetType() sdk.TransactionType {
-	return sdk.StdTxType
-}
-
-func (wtx txTest) GetPayloadTxBytes() []byte {
-	return nil
 }
 
 const (

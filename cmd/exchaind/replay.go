@@ -21,6 +21,7 @@ import (
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
@@ -30,7 +31,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
@@ -276,6 +277,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
+		global.SetGlobalHeight(lastBlockHeight)
 		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
 		panicError(err)
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
@@ -295,6 +297,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
+	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)

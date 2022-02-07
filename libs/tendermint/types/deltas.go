@@ -3,9 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	"time"
 )
 
 const (
@@ -26,7 +27,7 @@ const (
 	FlagFastQuery   = "fast-query"
 
 	// do not apply delta if version does not match
-	DeltaVersion = 4
+	DeltaVersion = 6
 )
 
 var (

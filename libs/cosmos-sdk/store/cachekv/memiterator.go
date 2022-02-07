@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // Iterates over iterKVCache items.

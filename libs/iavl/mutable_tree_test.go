@@ -3,13 +3,14 @@ package iavl
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"runtime"
 	"strconv"
 	"testing"
 
-	db "github.com/tendermint/tm-db"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	db "github.com/okex/exchain/libs/tm-db"
 )
 
 func TestDelete(t *testing.T) {
@@ -254,7 +255,7 @@ func BenchmarkMutableTree_Set(b *testing.B) {
 }
 
 func TestMutableTree_SaveVersionDelta(t *testing.T) {
-	emptyDelta := TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+	emptyDelta := TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 
 	memDB := db.NewMemDB()
 	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 8})

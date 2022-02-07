@@ -9,7 +9,7 @@ import (
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
@@ -278,7 +278,9 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
 				tree.commitOrphans[string(node.hash)] = node.version
-				tree.deltas.CommitOrphansDelta[hex.EncodeToString(node.hash)] = node.version
+
+				commitOrp := &CommitOrphansImp{Key: hex.EncodeToString(node.hash), CommitValue: node.version}
+				tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 			}
 		}
 
