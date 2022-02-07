@@ -62,7 +62,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		app.blockTxSenderLock.RLock()
 		defer app.blockTxSenderLock.RUnlock()
 		if ethSignInfo, ok := app.blockTxSender[txhash(txBytes)]; ok {
-			info.ctx.WithSigCache(ethSignInfo)
+			info.ctx = info.ctx.WithSigCache(ethSignInfo)
 		}
 	}
 

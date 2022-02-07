@@ -26,14 +26,19 @@ func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	if err != nil || len(rst) == 0 {
 		return ethcmn.Hash{}
 	}
-
 	return ethcmn.BytesToHash(rst)
 }
 
 // SetMptRootHash sets the mapping from block height to root mpt hash
-func (k *Keeper) SetMptRootHash(height uint64, hash ethcmn.Hash) {
-	hhash := sdk.Uint64ToBigEndian(height)
+func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
+	hhash := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
 	k.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
+
+	// put root hash to iavl and participate the process of calculate appHash
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types2.KeyPrefixRootMptHashForIavl)
+		store.Set(hhash, hash.Bytes())
+	}
 }
 
 // GetLatestStoredBlockHeight get latest stored mpt storage height
@@ -92,7 +97,7 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 
 		latestVersion := uint64(ctx.BlockHeight())
 		offset := uint64(TriesInMemory)
-		for ; offset > 0 ; offset-- {
+		for ; offset > 0; offset-- {
 			if latestVersion > offset {
 				version := latestVersion - offset
 				if version <= oecStartHeight || version <= k.startHeight {
@@ -190,16 +195,18 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 
-	// The onleaf func is called _serially_, so we can reuse the same account
-	// for unmarshalling every time.
-	var storageRoot ethcmn.Hash
-	root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != types.EmptyRootHash {
-			k.db.TrieDB().Reference(storageRoot, parent)
-		}
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
+		// The onleaf func is called _serially_, so we can reuse the same account
+		// for unmarshalling every time.
+		var storageRoot ethcmn.Hash
+		root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+			storageRoot.SetBytes(leaf)
+			if storageRoot != types.EmptyRootHash {
+				k.db.TrieDB().Reference(storageRoot, parent)
+			}
 
-		return nil
-	})
-	k.SetMptRootHash(uint64(ctx.BlockHeight()), root)
+			return nil
+		})
+		k.SetMptRootHash(ctx, root)
+	}
 }

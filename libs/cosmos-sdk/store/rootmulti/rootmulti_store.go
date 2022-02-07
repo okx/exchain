@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/okex/exchain/libs/mpt"
+	types2 "github.com/okex/exchain/libs/types"
 	"io"
 	"log"
 	"path/filepath"
@@ -433,7 +434,7 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
-func (rs *Store) CommitterCommit(*iavltree.TreeDelta) ( _ types.CommitID, _ *iavltree.TreeDelta) {
+func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavltree.TreeDelta) {
 	return
 }
 
@@ -944,12 +945,21 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		commitID, outputDelta:= store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+		// old version, mpt(acc) store
+		if !tmtypes.HigherThanMars(version) && key.Name() == mpt.StoreKey {
+			// only write to iavl
+			if !types2.EnableDoubleWrite {
+				continue
+			}
+		}
+
+		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
 
+		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
 		if !tmtypes.HigherThanMars(version) && key.Name() == mpt.StoreKey {
 			continue
 		}

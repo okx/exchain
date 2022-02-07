@@ -300,6 +300,10 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 // Stop stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt.
 func (ms *MptStore) OnStop() error {
+	if !tmtypes.HigherThanMars(ms.version) && !types2.EnableDoubleWrite {
+		return nil
+	}
+
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	if !types2.TrieDirtyDisabled {
 		triedb := ms.db.TrieDB()
