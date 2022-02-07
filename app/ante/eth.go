@@ -438,7 +438,8 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// when mempool is not in enableRecheck mode, we should not increment the nonce
 
 	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
-	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() {
+	// if IsTraceMode is true,  sequence must be set.
+	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return next(ctx, tx, simulate)
 	}
 
