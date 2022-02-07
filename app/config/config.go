@@ -49,7 +49,7 @@ type OecConfig struct {
 	csTimeoutPrecommitDelta time.Duration
 
 	// iavl-cache-size
-	iavlCacheSize int
+	iavlCacheSize  int
 }
 
 const (
@@ -73,9 +73,21 @@ const (
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 )
 
+<<<<<<< HEAD
 var oecConfig *OecConfig
 var once sync.Once
 var confLogger log.Logger
+=======
+var (
+	testnetNodeIdWhitelist = []string{}
+
+	mainnetNodeIdWhitelist = []string{}
+
+	oecConfig  *OecConfig
+	once       sync.Once
+	confLogger log.Logger
+)
+>>>>>>> 0076fe56 (log end)
 
 func GetOecConfig() *OecConfig {
 	once.Do(func() {

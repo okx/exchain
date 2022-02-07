@@ -41,6 +41,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 		if orphansObj != nil {
 			orphansObj.orphans = orphans
 		}
+
 		for _, node := range orphans {
 			ndb.orphanNodeCache[string(node.hash)] = node
 			ndb.uncacheNode(node.hash)
@@ -51,7 +52,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	} else {
 		toVersion := ndb.getPreviousVersion(version)
 		for _, node := range orphans {
-			ndb.log(IavlDebug, "SAVEORPHAN %v-%v %X", node.version, toVersion, node.hash)
+			ndbIavlDebugLog("SAVEORPHAN %v-%v %X", node.version, toVersion, node.hash)
 			ndb.saveOrphan(batch, node.hash, node.version, toVersion)
 		}
 	}
@@ -75,6 +76,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
 		for _, node := range oldHeightOrphanItem.orphans {
 			delete(ndb.orphanNodeCache, string(node.hash))
+			ndbIavlDebugLog("meet orphans cache size,delete hash from  orphanNodeCache,%x", node.hash)
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
@@ -452,7 +454,7 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map
 
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
-		ndb.log(IavlDebug, "SAVEORPHAN %v-%v %X", fromVersion, toVersion, hash)
+		ndbIavlDebugLog("SAVEORPHAN %v-%v %X", fromVersion, toVersion, hash)
 		ndb.saveOrphan(batch, []byte(hash), fromVersion, toVersion)
 	}
 }
