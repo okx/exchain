@@ -24,7 +24,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 }
 
 func queryTreasures(ctx sdk.Context, k Keeper) ([]byte, error) {
-	treasures := k.GetTreasure(ctx)
+	treasures := k.GetTreasures(ctx)
 	res, err := codec.MarshalJSONIndent(k.cdc, treasures)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

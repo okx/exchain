@@ -32,6 +32,7 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 		if err := k.UpdateTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
 			return types.ErrTreasuresInternal(err)
 		}
+		return nil
 	}
 
 	// remove deployer addresses from whitelist

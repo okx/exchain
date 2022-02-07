@@ -67,16 +67,16 @@ func ValidateOriginalMintedPerBlock(originalMintedPerBlock sdk.Dec) error {
 	return nil
 }
 
-// SetTreasure set the treasures to db
-func (k Keeper) SetTreasure(ctx sdk.Context, treasures []types.Treasure) {
+// SetTreasures set the treasures to db
+func (k Keeper) SetTreasures(ctx sdk.Context, treasures []types.Treasure) {
 	store := ctx.KVStore(k.storeKey)
 	types.SortTreasures(treasures)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(treasures)
 	store.Set(types.TreasuresKey, b)
 }
 
-// GetTreasure get the treasures from db
-func (k Keeper) GetTreasure(ctx sdk.Context) (treasures []types.Treasure) {
+// GetTreasures get the treasures from db
+func (k Keeper) GetTreasures(ctx sdk.Context) (treasures []types.Treasure) {
 	store := ctx.KVStore(k.storeKey)
 	b := store.Get(types.TreasuresKey)
 	if b != nil {
@@ -87,7 +87,7 @@ func (k Keeper) GetTreasure(ctx sdk.Context) (treasures []types.Treasure) {
 
 // AllocateTokenToTreasure allocate token to treasure and return remain
 func (k Keeper) AllocateTokenToTreasure(ctx sdk.Context, fees sdk.Coins) (remain sdk.Coins, err error) {
-	treasures := k.GetTreasure(ctx)
+	treasures := k.GetTreasures(ctx)
 	remain = remain.Add(fees...)
 	for i, _ := range treasures {
 		allocated := fees.MulDecTruncate(treasures[i].Proportion)
@@ -104,17 +104,17 @@ func (k Keeper) AllocateTokenToTreasure(ctx sdk.Context, fees sdk.Coins) (remain
 }
 
 func (k Keeper) UpdateTreasures(ctx sdk.Context, treasures []types.Treasure) error {
-	src := k.GetTreasure(ctx)
+	src := k.GetTreasures(ctx)
 	result := types.InsertAndUpdateTreasures(src, treasures)
 	if err := types.ValidateTreasures(result); err != nil {
 		return err
 	}
-	k.SetTreasure(ctx, result)
+	k.SetTreasures(ctx, result)
 	return nil
 }
 
 func (k Keeper) DeleteTreasures(ctx sdk.Context, treasures []types.Treasure) error {
-	src := k.GetTreasure(ctx)
+	src := k.GetTreasures(ctx)
 	result, err := types.DeleteTreasures(src, treasures)
 	if err != nil {
 		return err
@@ -122,6 +122,6 @@ func (k Keeper) DeleteTreasures(ctx sdk.Context, treasures []types.Treasure) err
 	if err := types.ValidateTreasures(result); err != nil {
 		return err
 	}
-	k.SetTreasure(ctx, result)
+	k.SetTreasures(ctx, result)
 	return nil
 }

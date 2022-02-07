@@ -51,7 +51,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		if !k.sk.IsValidator(ctx, msg.Proposer) {
 			return types.ErrProposerMustBeValidator
 		}
-		treasures := k.GetTreasure(ctx)
+		treasures := k.GetTreasures(ctx)
 		if content.IsAdded {
 			result := types.InsertAndUpdateTreasures(treasures, content.Treasures)
 			if err := types.ValidateTreasures(result); err != nil {

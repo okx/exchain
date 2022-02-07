@@ -16,8 +16,7 @@ import (
 	"strings"
 )
 
-// GetCmdManageContractMethodBlockedListProposal implements a command handler for submitting a manage contract blocked list
-// proposal transaction
+// GetCmdManageTreasuresProposal implements a command handler for submitting a manage treasures proposal transaction
 func GetCmdManageTreasuresProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "treasures [proposal-file]",
