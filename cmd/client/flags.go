@@ -7,14 +7,15 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
-	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -97,7 +98,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
 	cmd.Flags().String(tmdb.FlagGoLeveldbOpts, "", "Options of goleveldb. (cache_size=128MB,handlers_num=1024)")
-        cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
+	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
@@ -107,4 +108,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 }

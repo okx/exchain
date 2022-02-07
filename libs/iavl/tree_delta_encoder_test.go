@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -103,7 +104,6 @@ func newTestTreeDeltaMap() TreeDeltaMap {
 func TestTreeDeltaMapAmino(t *testing.T) { testTreeDeltaMapAmino(t) }
 func testTreeDeltaMapAmino(t *testing.T) {
 	for i, tdm := range testTreeDeltaMap {
-
 		expect, err := cdc.MarshalBinaryBare(tdm)
 		require.NoError(t, err, fmt.Sprintf("num %v", i))
 
@@ -146,6 +146,134 @@ func testTreeDeltaImpAmino(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("num %v", i))
 			require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
 		}
+	}
+}
+
+// test TreeDelta amino
+func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
+func testTreeDeltaAmino(t *testing.T) {
+	testTreeDeltas := []*TreeDelta{
+		{},
+		{nil, nil, nil},
+		{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
+		{
+			[]*NodeJsonImp{nil, {}, {"0x01", &NodeJson{Version: 1}}},
+			[]*NodeJson{nil, {}, {Version: 2}},
+			[]*CommitOrphansImp{nil, {}, {"0x01", 1}},
+		},
+	}
+	for i, td := range testTreeDeltas {
+		expect, err := cdc.MarshalBinaryBare(td)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := td.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := TreeDelta{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := TreeDelta{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+}
+
+// test NodeJsonImp amino
+func TestNodeJsonImpAmino(t *testing.T) { testNodeJsonImpAmino(t) }
+func testNodeJsonImpAmino(t *testing.T) {
+	testNodeJsomImps := []*NodeJsonImp{
+		{},
+		{"0x01", nil},
+		{"0x02", &NodeJson{}},
+		{"0x03", &NodeJson{Version: 1}},
+	}
+
+	for i, ni := range testNodeJsomImps {
+		expect, err := cdc.MarshalBinaryBare(ni)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := ni.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := NodeJsonImp{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := NodeJsonImp{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+
+	}
+}
+
+// test CommitOrphansImp amino
+func TestCommitOrphansImpAmino(t *testing.T) { testCommitOrphansImpAmino(t) }
+func testCommitOrphansImpAmino(t *testing.T) {
+	testCommitOrphansImps := []*CommitOrphansImp{
+		{},
+		{"0x01", -1},
+		{"0x01", math.MinInt64},
+		{"0x01", math.MaxInt64},
+		{"0x01", 1},
+	}
+
+	for i, ci := range testCommitOrphansImps {
+		expect, err := cdc.MarshalBinaryBare(ci)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := ci.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := CommitOrphansImp{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := CommitOrphansImp{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
+	}
+}
+
+// test NodeJson amino
+func TestNodeJsonAmino(t *testing.T) { testNodeJsonAmino(t) }
+func testNodeJsonAmino(t *testing.T) {
+	testNodeJsons := []*NodeJson{
+		{},
+		{Key: []byte("0x01"), Value: []byte("0xff"), Hash: []byte("0xFF"), LeftHash: []byte("01"), RightHash: []byte("")},
+		{Version: -1, Size: 1},
+		{Version: math.MinInt64, Size: math.MaxInt64},
+		{Height: int8(1)},
+		{Height: int8(-1)},
+		{Height: math.MaxInt8},
+		{Height: math.MaxInt8},
+		{Persisted: true, PrePersisted: false},
+		{Key: []byte("0x01"), Value: []byte("0x02"), Hash: []byte("0x03"), LeftHash: []byte("0x04"), RightHash: []byte("0x05"),
+			Version: 1, Size: 1, Height: 1, Persisted: true, PrePersisted: true},
+	}
+
+	for i, nj := range testNodeJsons {
+		expect, err := cdc.MarshalBinaryBare(nj)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actual, err := nj.MarshalToAmino(cdc)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expect, actual, fmt.Sprintf("num %v", i))
+
+		expectValue := NodeJson{}
+		err = cdc.UnmarshalBinaryBare(expect, &expectValue)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+
+		actualValue := NodeJson{}
+		err = actualValue.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err, fmt.Sprintf("num %v", i))
+		require.EqualValues(t, expectValue, actualValue, fmt.Sprintf("num %v", i))
 	}
 }
 

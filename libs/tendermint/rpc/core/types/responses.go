@@ -209,6 +209,11 @@ type ResultUnconfirmedAddresses struct {
 	Addresses []string `json:"addresses"`
 }
 
+// max nonce in mempool txs
+type ResultPendingNonce struct {
+	Nonce uint64 `json:"nonce"`
+}
+
 // Info abci msg
 type ResultABCIInfo struct {
 	Response abci.ResponseInfo `json:"response"`
