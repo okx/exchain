@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -27,14 +27,15 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
 	applicationDB = "application"
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
+	txIndexDB     = "tx_index"
 
 	FlagStartHeight       string = "start-height"
 	FlagEnableRepairState string = "enable-repair-state"
@@ -194,7 +195,7 @@ func startEventBusAndIndexerService(config *cfg.Config, dbProvider tmnode.DBProv
 	var txIndexer txindex.TxIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
-		store, err := dbProvider(&tmnode.DBContext{ID: "tx_index", Config: config})
+		store, err := openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return err
 		}
