@@ -670,7 +670,7 @@ func (nj *NodeJson) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(&buf, uint64(nj.Height))
+			err = amino.EncodeInt8ToBuffer(&buf, nj.Height)
 			if err != nil {
 				return nil, err
 			}
@@ -771,12 +771,12 @@ func (nj *NodeJson) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			nj.Size = int64(value)
 
 		case 8:
-			value, n, err := amino.DecodeUvarint(data)
+			value, n, err := amino.DecodeInt8(data)
 			if err != nil {
 				return err
 			}
 			dataLen = uint64(n)
-			nj.Height = int8(value)
+			nj.Height = value
 
 		case 9:
 			if data[0] != 0 && data[0] != 1 {
