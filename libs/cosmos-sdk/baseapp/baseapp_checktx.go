@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -16,33 +17,23 @@ import (
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.wrappedTxDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
+	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
 
-	//app.logger.Debug("(app *BaseApp) CheckTx",
-	//	"wrapped-tx-hash", txhash(req.Tx),
-	//)
-
-	if tx.GetType() == sdk.WrappedTxType {
-		app.logger.Info("(app *BaseApp) CheckTx",
-			"payload-tx-hash", txhash(tx.GetPayloadTxBytes()),
-		)
-	}
-
-	//app.logger.Info("(app *BaseApp) CheckTx", "payload", tx.GetPayloadTx())
 	var mode runTxMode
 
 	switch {
 	case req.Type == abci.CheckTxType_New:
 		mode = runTxModeCheck
-
+		atomic.AddInt64(&app.checkTxNum, 1)
 	case req.Type == abci.CheckTxType_Recheck:
 		mode = runTxModeReCheck
 
 	case req.Type == abci.CheckTxType_WrappedCheck:
 		mode = runTxModeWrappedCheck
+		atomic.AddInt64(&app.wrappedCheckTxNum, 1)
 
 	default:
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
