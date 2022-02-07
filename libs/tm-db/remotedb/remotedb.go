@@ -125,3 +125,11 @@ func (rd *RemoteDB) Iterator(start, end []byte) (db.Iterator, error) {
 	}
 	return makeIterator(dic), nil
 }
+
+func (db *RemoteDB) GetUnsafeValue(key []byte, processor db.UnsafeValueProcessor) (interface{}, error) {
+	v, err := db.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return processor(v)
+}
