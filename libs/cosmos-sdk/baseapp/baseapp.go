@@ -188,6 +188,9 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
+
+	checkTxNum int64
+	wrappedCheckTxNum int64
 }
 
 type recordHandle func(string)

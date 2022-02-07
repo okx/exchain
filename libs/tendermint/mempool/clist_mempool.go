@@ -793,6 +793,10 @@ func (mem *CListMempool) GetAddressList() []string {
 	return mem.addressRecord.GetAddressList()
 }
 
+func (mem *CListMempool) GetPendingNonce(address string) uint64 {
+	return mem.addressRecord.GetAddressNonce(address)
+}
+
 // Lock() must be help by the caller during execution.
 func (mem *CListMempool) Update(
 	height int64,
