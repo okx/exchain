@@ -16,11 +16,6 @@ type RemoteDB struct {
 	dc  protodb.DBClient
 }
 
-func (rd *RemoteDB) GetUnsafeValue(key []byte, processor db.UnsafeValueProcessor) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func NewRemoteDB(serverAddr string, serverKey string) (*RemoteDB, error) {
 	return newRemoteDB(grpcdb.NewClient(serverAddr, serverKey))
 }
