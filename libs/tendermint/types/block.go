@@ -38,7 +38,6 @@ const (
 	MaxAminoOverheadForBlock int64 = 11
 )
 
-
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
 	mtx sync.Mutex
@@ -68,20 +67,26 @@ func (b *Block) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data to read field %d", pos)
+			}
 			subData = data[:dataLen]
 		}
 
 		switch pos {
 		case 1:
-			err = b.Header.UnmarshalFromAmino(subData)
+			err = b.Header.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 2:
-			err = b.Data.UnmarshalFromAmino(subData)
+			err = b.Data.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -92,7 +97,7 @@ func (b *Block) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 		case 4:
 			b.LastCommit = new(Commit)
-			err = b.LastCommit.UnmarshalFromAmino(subData)
+			err = b.LastCommit.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -365,7 +370,7 @@ type Header struct {
 	ProposerAddress Address          `json:"proposer_address"` // original proposer of the block
 }
 
-func (h *Header) UnmarshalFromAmino(data []byte) error {
+func (h *Header) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var timeUpdated = false
@@ -385,15 +390,21 @@ func (h *Header) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for field, need %d, have %d", dataLen, len(data))
+			}
 			subData = data[:dataLen]
 		}
 
 		switch pos {
 		case 1:
-			err = h.Version.UnmarshalFromAmino(subData)
+			err = h.Version.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -413,7 +424,7 @@ func (h *Header) UnmarshalFromAmino(data []byte) error {
 			}
 			timeUpdated = true
 		case 5:
-			err = h.LastBlockID.UnmarshalFromAmino(subData)
+			err = h.LastBlockID.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -676,7 +687,7 @@ type CommitSig struct {
 	Signature        []byte      `json:"signature"`
 }
 
-func (cs *CommitSig) UnmarshalFromAmino(data []byte) error {
+func (cs *CommitSig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 	var timestampUpdated bool
@@ -876,7 +887,7 @@ type Commit struct {
 	bitArray *bits.BitArray
 }
 
-func (commit *Commit) UnmarshalFromAmino(data []byte) error {
+func (commit *Commit) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -921,13 +932,13 @@ func (commit *Commit) UnmarshalFromAmino(data []byte) error {
 			commit.Round = int(u64)
 			dataLen = uint64(n)
 		case 3:
-			err = commit.BlockID.UnmarshalFromAmino(subData)
+			err = commit.BlockID.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 4:
 			var cs CommitSig
-			err = cs.UnmarshalFromAmino(subData)
+			err = cs.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -1288,7 +1299,7 @@ type Data struct {
 	hash tmbytes.HexBytes
 }
 
-func (d *Data) UnmarshalFromAmino(data []byte) error {
+func (d *Data) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -1477,7 +1488,7 @@ func (blockID BlockID) AminoSize() int {
 	return size
 }
 
-func (blockID *BlockID) UnmarshalFromAmino(data []byte) error {
+func (blockID *BlockID) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -1496,9 +1507,15 @@ func (blockID *BlockID) UnmarshalFromAmino(data []byte) error {
 
 		if aminoType == amino.Typ3_ByteLength {
 			var n int
-			dataLen, n, _ = amino.DecodeUvarint(data)
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
 
 			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
 			subData = data[:dataLen]
 		}
 
@@ -1507,7 +1524,7 @@ func (blockID *BlockID) UnmarshalFromAmino(data []byte) error {
 			blockID.Hash = make([]byte, len(subData))
 			copy(blockID.Hash, subData)
 		case 2:
-			err = blockID.PartsHeader.UnmarshalFromAmino(subData)
+			err = blockID.PartsHeader.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -1592,4 +1609,3 @@ func BlockIDFromProto(bID *tmproto.BlockID) (*BlockID, error) {
 
 	return blockID, blockID.ValidateBasic()
 }
-

@@ -31,8 +31,6 @@ func (cdsa commitDBStoreAdapter) CommitterCommit(*iavl.TreeDelta) (types.CommitI
 	}, &iavl.TreeDelta{}
 }
 
-func (cdsa commitDBStoreAdapter) CommitterCommitMap(iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {return}
-
 func (cdsa commitDBStoreAdapter) LastCommitID() types.CommitID {
 	return types.CommitID{
 		Version: -1,

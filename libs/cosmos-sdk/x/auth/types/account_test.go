@@ -2,10 +2,13 @@ package types
 
 import (
 	"errors"
+	"math"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -126,5 +129,55 @@ func TestGenesisAccountValidate(t *testing.T) {
 			err := tt.acc.Validate()
 			require.Equal(t, tt.expErr, err)
 		})
+	}
+}
+
+func TestBaseAccountAmino(t *testing.T) {
+	_, pub, addr := KeyTestPubAddr()
+	acc := NewBaseAccountWithAddress(addr)
+
+	someCoins := sdk.Coins{sdk.NewInt64Coin("atom", 123), sdk.NewInt64Coin("eth", 246)}
+	seq := uint64(7)
+
+	// set everything on the account
+	err := acc.SetPubKey(pub)
+	require.Nil(t, err)
+	err = acc.SetSequence(seq)
+	require.Nil(t, err)
+	err = acc.SetCoins(someCoins)
+	require.Nil(t, err)
+
+	testCases := []BaseAccount{
+		{},
+		{Address: []byte{}, Coins: []sdk.Coin{}, AccountNumber: math.MaxUint64, Sequence: math.MaxUint64},
+		{
+			Address: addr,
+			PubKey:  multisig.PubKeyMultisigThreshold{},
+			Coins:   someCoins,
+		},
+		acc,
+	}
+
+	// need a codec for marshaling
+	cdc := codec.New()
+	codec.RegisterCrypto(cdc)
+
+	for _, acc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(acc)
+		require.NoError(t, err)
+
+		actualData, err := acc.MarshalToAmino(cdc)
+		require.NoError(t, err)
+		require.EqualValues(t, expectData, actualData)
+
+		expectValue := BaseAccount{}
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+
+		actualValue := BaseAccount{}
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }

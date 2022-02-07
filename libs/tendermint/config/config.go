@@ -683,7 +683,7 @@ type MempoolConfig struct {
 	PendingPoolPeriod          int      `mapstructure:"pending_pool_period"`
 	PendingPoolReserveBlocks   int      `mapstructure:"pending_pool_reserve_blocks"`
 	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
-	ConfidentNodeKeys          []string `mapstructure:"confident_node_keys"`
+	NodeKeyWhitelist           []string `mapstructure:"node_key_whitelist"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -707,7 +707,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolPeriod:          3,
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
-		ConfidentNodeKeys:          []string{},
+		NodeKeyWhitelist:           []string{},
 	}
 }
 
@@ -728,14 +728,14 @@ func (cfg *MempoolConfig) WalEnabled() bool {
 	return cfg.WalPath != ""
 }
 
-// GetConfidentNodeKeys first use the DynamicConfig to get secondly backup to
+// GetNodeKeyWhitelist first use the DynamicConfig to get secondly backup to
 // the config file
-func (cfg *MempoolConfig) GetCondifentNodeKeys() ([]string, bool) {
-	keys := DynamicConfig.GetConfidentNodeKeys()
-	if len(keys) == 0 {
-		keys = cfg.ConfidentNodeKeys
+func (cfg *MempoolConfig) GetNodeKeyWhitelist() []string {
+	keys := DynamicConfig.GetNodeKeyWhitelist()
+	if len(keys) != 0 {
+		return keys
 	}
-	return keys, len(keys) > 0
+	return cfg.NodeKeyWhitelist
 }
 
 // ValidateBasic performs basic validation (checking param bounds, etc.) and
