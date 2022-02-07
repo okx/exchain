@@ -8,19 +8,19 @@ import (
 	govTypes "github.com/okex/exchain/x/gov/types"
 )
 
-// NewManageContractDeploymentWhitelistProposalHandler handles "gov" type message in "evm"
+// NewManageTreasuresProposalHandler handles "gov" type message in "mint"
 func NewManageTreasuresProposalHandler(k *Keeper) govTypes.Handler {
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
 		switch content := proposal.Content.(type) {
 		case types.ManageTreasuresProposal:
-			return handleManageContractDeploymentWhitelistProposal(ctx, k, proposal)
+			return handleManageTreasuresProposal(ctx, k, proposal)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
 	}
 }
 
-func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleManageTreasuresProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
 	// check
 	manageTreasuresProposal, ok := proposal.Content.(types.ManageTreasuresProposal)
 	if !ok {
@@ -28,14 +28,14 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 	}
 
 	if manageTreasuresProposal.IsAdded {
-		// add deployer addresses into whitelist
+		// add/update treasures into state
 		if err := k.UpdateTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
 			return types.ErrTreasuresInternal(err)
 		}
 		return nil
 	}
 
-	// remove deployer addresses from whitelist
+	// delete treasures into state
 	if err := k.DeleteTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
 		return types.ErrTreasuresInternal(err)
 	}

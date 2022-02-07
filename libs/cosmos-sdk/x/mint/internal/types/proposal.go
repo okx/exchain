@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	// proposalTypeManageContractDeploymentWhitelist defines the type for a ManageContractDeploymentWhitelist
+	// proposalTypeManageTreasures defines the type for a ManageContractTreasures
 	proposalTypeManageTreasures = "ManageTreasures"
 
 	// RouterKey uses module name for routing
@@ -24,7 +24,7 @@ var (
 	_ govtypes.Content = (*ManageTreasuresProposal)(nil)
 )
 
-// ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
+// ManageTreasuresProposal - structure for the proposal to add or delete treasures
 type ManageTreasuresProposal struct {
 	Title       string     `json:"title" yaml:"title"`
 	Description string     `json:"description" yaml:"description"`
@@ -32,7 +32,7 @@ type ManageTreasuresProposal struct {
 	IsAdded     bool       `json:"is_added" yaml:"is_added"`
 }
 
-// NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
+// NewManageTreasuresProposal creates a new instance of ManageTreasuresProposal
 func NewManageTreasuresProposal(title, description string, treasures []Treasure, isAdded bool,
 ) ManageTreasuresProposal {
 	return ManageTreasuresProposal{
@@ -43,27 +43,27 @@ func NewManageTreasuresProposal(title, description string, treasures []Treasure,
 	}
 }
 
-// GetTitle returns title of a manage contract deployment whitelist proposal object
+// GetTitle returns title of a manage treasures proposal object
 func (mp ManageTreasuresProposal) GetTitle() string {
 	return mp.Title
 }
 
-// GetDescription returns description of a manage contract deployment whitelist proposal object
+// GetDescription returns description of a manage treasures proposal object
 func (mp ManageTreasuresProposal) GetDescription() string {
 	return mp.Description
 }
 
-// ProposalRoute returns route key of a manage contract deployment whitelist proposal object
+// ProposalRoute returns route key of a manage treasures proposal object
 func (mp ManageTreasuresProposal) ProposalRoute() string {
 	return RouterKey
 }
 
-// ProposalType returns type of a manage contract deployment whitelist proposal object
+// ProposalType returns type of a manage treasures proposal object
 func (mp ManageTreasuresProposal) ProposalType() string {
 	return proposalTypeManageTreasures
 }
 
-// ValidateBasic validates a manage contract deployment whitelist proposal
+// ValidateBasic validates a manage treasures proposal
 func (mp ManageTreasuresProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(mp.Title)) == 0 {
 		return govtypes.ErrInvalidProposalContent("title is required")
@@ -97,7 +97,7 @@ func (mp ManageTreasuresProposal) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// String returns a human readable string representation of a ManageContractDeploymentWhitelistProposal
+// String returns a human readable string representation of a ManageTreasuresProposal
 func (mp ManageTreasuresProposal) String() string {
 	var builder strings.Builder
 	builder.WriteString(

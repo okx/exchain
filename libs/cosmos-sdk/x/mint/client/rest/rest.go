@@ -12,7 +12,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	registerQueryRoutes(cliCtx, r)
 }
 
-// ManageContractMethodBlockedListProposalRESTHandler defines evm proposal handler
+// ManageTreasuresProposalRESTHandler defines mint proposal handler
 func ManageTreasuresProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }

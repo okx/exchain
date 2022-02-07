@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 )
 
-// ManageContractMethodBlockedListProposalJSON defines a ManageContractMethodBlockedListProposal with a deposit used to parse
-// manage contract method blocked list proposals from a JSON file.
-type ManageTreasureProposalJSON struct {
+// ManageTreasuresProposalJSON defines a ManageTreasureProposal with a deposit used to parse
+// manage treasures proposals from a JSON file.
+type ManageTreasuresProposalJSON struct {
 	Title       string           `json:"title" yaml:"title"`
 	Description string           `json:"description" yaml:"description"`
 	Treasures   []types.Treasure `json:"treasures" yaml:"treasures"`
@@ -17,9 +17,9 @@ type ManageTreasureProposalJSON struct {
 	Deposit     sdk.SysCoins     `json:"deposit" yaml:"deposit"`
 }
 
-// ParseManageContractMethodBlockedListProposalJSON parses json from proposal file to ManageContractBlockedListProposalJSON struct
-func ParseManageTreasureProposalJSON(cdc *codec.Codec, proposalFilePath string) (
-	proposal ManageTreasureProposalJSON, err error) {
+// ParseManageTreasuresProposalJSON parses json from proposal file to ManageTreasuresProposalJSON struct
+func ParseManageTreasuresProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ManageTreasuresProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {
 		return

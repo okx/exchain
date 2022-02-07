@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-//BlockedContract is the struct which has address and proportion of mint reward.
+//Treasure is the struct which has address and proportion of mint reward.
 type Treasure struct {
 	//Treasure Address
 	Address sdk.AccAddress `json:"address" yaml:"address"`
