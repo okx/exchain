@@ -377,6 +377,7 @@ func (w *Watcher) Commit() {
 	batch := w.batch
 	w.dispatchJob(func() { w.commitBatch(batch) })
 
+	// we dont do deduplicatie here,we do it in `commit routine`
 	// get centerBatch for sending to DataCenter
 	ddsBatch := make([]*Batch, len(batch))
 	for i, b := range batch {
@@ -412,7 +413,12 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
+		filterMap[bytes2Key(b.GetKey())] = b
+	}
+
+	for _, b := range filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -472,7 +478,8 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	return func() ([]byte, error) {
-		valueByte, err := value.MarshalToAmino(nil)
+		filterWatcher := filterCopy(value)
+		valueByte, err := filterWatcher.MarshalToAmino(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -524,6 +531,123 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	}
 
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+func bytes2Key(keyBytes []byte) string {
+	return string(keyBytes)
+}
+
+func key2Bytes(key string) []byte {
+	return []byte(key)
+}
+
+func filterCopy(origin *WatchData) *WatchData {
+	return &WatchData{
+		DirtyAccount:  filterAccount(origin.DirtyAccount),
+		Batches:       filterBatch(origin.Batches),
+		DelayEraseKey: filterDelayEraseKey(origin.DelayEraseKey),
+		BloomData:     filterBloomData(origin.BloomData),
+		DirtyList:     filterDirtyList(origin.DirtyList),
+	}
+}
+
+func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
+	if len(accounts) == 0 {
+		return nil
+	}
+
+	filterAccountMap := make(map[string]*sdk.AccAddress)
+	for _, account := range accounts {
+		filterAccountMap[bytes2Key(account.Bytes())] = account
+	}
+
+	ret := make([]*sdk.AccAddress, len(filterAccountMap))
+	i := 0
+	for _, acc := range filterAccountMap {
+		ret[i] = acc
+		i++
+	}
+
+	return ret
+}
+
+func filterBatch(datas []*Batch) []*Batch {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBatch := make(map[string]*Batch)
+	for _, b := range datas {
+		filterBatch[bytes2Key(b.Key)] = b
+	}
+
+	ret := make([]*Batch, len(filterBatch))
+	i := 0
+	for _, b := range filterBatch {
+		ret[i] = b
+		i++
+	}
+
+	return ret
+}
+
+func filterDelayEraseKey(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDelayEraseKey := make(map[string][]byte, 0)
+	for _, b := range datas {
+		filterDelayEraseKey[bytes2Key(b)] = b
+	}
+
+	ret := make([][]byte, len(filterDelayEraseKey))
+	i := 0
+	for _, k := range filterDelayEraseKey {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+func filterBloomData(datas []*evmtypes.KV) []*evmtypes.KV {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBloomData := make(map[string]*evmtypes.KV, 0)
+	for _, k := range datas {
+		filterBloomData[bytes2Key(k.Key)] = k
+	}
+
+	ret := make([]*evmtypes.KV, len(filterBloomData))
+	i := 0
+	for _, k := range filterBloomData {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+
+func filterDirtyList(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDirtyList := make(map[string][]byte, 0)
+	for _, k := range datas {
+		filterDirtyList[bytes2Key(k)] = k
+	}
+
+	ret := make([][]byte, len(filterDirtyList))
+	i := 0
+	for _, k := range filterDirtyList {
+		ret[i] = k
+		i++
+	}
+
+	return ret
 }
 
 /////////// job
