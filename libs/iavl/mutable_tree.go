@@ -710,7 +710,7 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64) error
 // DeleteVersion deletes a tree version from disk. The version can then no
 // longer be accessed.
 func (tree *MutableTree) DeleteVersion(version int64) error {
-	tree.log(IavlDebug, "DELETE VERSION: %d BEGIN", version)
+	ndbIavlDebugLog("DELETE VERSION: %d BEGIN", version)
 	batch := tree.NewBatch()
 	if err := tree.deleteVersion(batch, version, tree.versions.Clone()); err != nil {
 		return err
@@ -721,7 +721,7 @@ func (tree *MutableTree) DeleteVersion(version int64) error {
 	}
 
 	tree.versions.Delete(version)
-	tree.log(IavlDebug, "DELETE VERSION: %d, DONE", version)
+	ndbIavlDebugLog( "DELETE VERSION: %d, END", version)
 	return nil
 }
 
@@ -816,7 +816,7 @@ func (tree *MutableTree) addOrphans(orphans []*Node) {
 	} else {
 		for _, node := range orphans {
 			if !node.persisted {
-				tree.log(IavlInfo, "discard node , %v", hex.EncodeToString(node.key))
+				ndbIavlDebugLog("discard node , %v", hex.EncodeToString(node.key))
 				// We don't need to orphan nodes that were never persisted.
 				continue
 			}

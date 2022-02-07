@@ -141,19 +141,21 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
 	}
 	if buf == nil {
-		// why: os case ?
-		// maybe:t0: db#set (but not flushed yet) ,t1: store#get was called immediately
+
 		{
+			// os case? ( `dbGet` get the value from the disk rather than try to get the value from os#cache first  )
 			time.Sleep(time.Second)
+			// print ndbInfo
+			info := ndb.String()
 			buf, err = ndb.dbGet(ndb.nodeKey(hash))
 			if err != nil {
 				panic(fmt.Sprintf("can't get node %X: %v", hash, err))
 			}
 			if buf == nil {
-				panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
+				panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x,ndbInfo:%s", hash, ndb.nodeKey(hash), info))
 			}
 			// error log
-			ndb.log(IavlErr, "root cause,os cache")
+			ndb.log(IavlDebug, "root cause ,os cache,value %v", buf)
 		}
 	}
 
@@ -196,7 +198,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	}
 
 	batch.Set(ndb.nodeKey(node.hash), buf.Bytes())
-	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
+	ndbIavlDebugLog("BATCH SAVE %X %p", node.hash, node)
 	node.persisted = true
 	ndb.addDBWriteCount(1)
 	ndb.cacheNode(node)
@@ -547,6 +549,7 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	if elem, ok := ndb.nodeCache[string(hash)]; ok {
 		ndb.nodeCacheQueue.Remove(elem)
 		delete(ndb.nodeCache, string(hash))
+		ndbIavlDebugLog("delete hash from nodeCache %v", hash)
 	}
 }
 
@@ -555,11 +558,11 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
-
 	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
 		delete(ndb.nodeCache, string(hash))
+		ndbIavlDebugLog("meet cache size limit,delete hash from  nodeCache ,%x", hash)
 	}
 }
 

@@ -55,7 +55,7 @@ type OecConfig struct {
 	csTimeoutPrecommitDelta time.Duration
 
 	// iavl-cache-size
-	iavlCacheSize int
+	iavlCacheSize  int
 }
 
 const (
@@ -78,15 +78,12 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
-
 )
 
 var (
-	testnetNodeIdWhitelist = []string{
-	}
+	testnetNodeIdWhitelist = []string{}
 
-	mainnetNodeIdWhitelist = []string{
-	}
+	mainnetNodeIdWhitelist = []string{}
 
 	oecConfig  *OecConfig
 	once       sync.Once
