@@ -1644,6 +1644,14 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 func (api *PublicEthereumAPI) accountNonce(
 	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
 ) (uint64, error) {
+	if pending {
+		// nonce is continuous in mempool txs
+		pendingNonce, err := api.backend.GetPendingNonce(address.String())
+		if err == nil && pendingNonce > 0 {
+			return pendingNonce + 1, nil
+		}
+	}
+
 	// Get nonce (sequence) from sender account
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
@@ -1660,17 +1668,6 @@ func (api *PublicEthereumAPI) accountNonce(
 		}
 		nonce = account.GetSequence()
 		api.watcherBackend.CommitAccountToRpcDb(account)
-	}
-
-	if !pending {
-		return nonce, nil
-	}
-
-	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
-	// to manually add them.
-	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
-	if err == nil {
-		nonce += uint64(pendingTxs)
 	}
 
 	return nonce, nil
