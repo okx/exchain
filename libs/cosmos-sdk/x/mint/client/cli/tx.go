@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	utils2 "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/utils"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	"github.com/okex/exchain/x/gov"
 	"github.com/spf13/cobra"
 	"strings"
@@ -22,51 +22,35 @@ func GetCmdManageTreasuresProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "treasures [proposal-file]",
 		Args:  cobra.ExactArgs(1),
-		Short: "Submit an update contract method blocked list proposal",
+		Short: "Submit an update treasures proposal",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Submit an update method contract blocked list proposal along with an initial deposit.
+			fmt.Sprintf(`Submit an update treasures proposal along with an initial deposit.
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal update-contract-blocked-list <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal treasures <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
 {
-    "title":"update contract blocked list proposal with a contract address list",
-    "description":"add a contract address list into the blocked list",
-    "contract_addresses":[
+    "title":"update treasures",
+    "description":"update treasures",
+    "treasures":[
         {
-            "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
-            "block_methods": [
-                {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
-                },
-                {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
-                }
-            ]
-        },
-        {
-            "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
-            "block_methods": [
-                {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
-                },
-                {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
-                }
-            ]
+            "address": "0xA6931Ac6b58E3Db85DFbE1aD408F5096c9736fAE",
+            "proportion":"0.1000000000000000"
+        }, {
+            "address": "0xA6931Ac6b58E3Db85DFbE1aD408F5096c9736fAE",
+            "proportion":"0.2000000000000000"
+        }，{
+            "address": "0xA6931Ac6b58E3Db85DFbE1aD408F5096c9736fAE",
+            "proportion":"0.2000000000000000"
         }
     ],
     "is_added":true,
     "deposit":[
         {
-            "denom":"%s",
+            "denom":"okt",
             "amount":"100.000000000000000000"
         }
     ]
@@ -83,7 +67,7 @@ Where proposal.json contains:
 				return err
 			}
 
-			content := types2.NewManageTreasuresProposal(
+			content := types.NewManageTreasuresProposal(
 				proposal.Title,
 				proposal.Description,
 				proposal.Treasures,
