@@ -4,10 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/pkg/errors"
 	amino "github.com/tendermint/go-amino"
 )
+
+var NodeJsonPool = sync.Pool{
+	New: func() interface{} {
+		return new(NodeJson)
+	},
+}
 
 type TreeDeltaMap map[string]*TreeDelta
 
@@ -118,6 +125,18 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 		}
 	}
 	return nil
+}
+
+// PutNodeJsonPool release temperary memory to pool
+func (tdm TreeDeltaMap) PutNodeJsonPool() {
+	for _, td := range tdm {
+		for _, v := range td.NodesDelta {
+			NodeJsonPool.Put(v)
+		}
+		for _, v := range td.OrphansDelta {
+			NodeJsonPool.Put(v)
+		}
+	}
 }
 
 // TreeDeltaMapImp convert map[string]*TreeDelta to struct
@@ -339,7 +358,8 @@ func (td *TreeDelta) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		case 2:
 			var nodeData *NodeJson = nil
 			if len(subData) != 0 {
-				nodeData = &NodeJson{}
+				nodeData = NodeJsonPool.Get().(*NodeJson)
+				//nodeData = &NodeJson{}
 				err := nodeData.UnmarshalFromAmino(cdc, subData)
 				if err != nil {
 					return err
@@ -447,7 +467,8 @@ func (ni *NodeJsonImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			ni.Key = string(subData)
 
 		case 2:
-			nj := &NodeJson{}
+			//nj := &NodeJson{}
+			nj := NodeJsonPool.Get().(*NodeJson)
 			if len(subData) != 0 {
 				err := nj.UnmarshalFromAmino(cdc, subData)
 				if err != nil {

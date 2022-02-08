@@ -2,6 +2,9 @@ package state
 
 import (
 	"fmt"
+	"sync/atomic"
+	"time"
+
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/tendermint/delta"
@@ -9,8 +12,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
-	"sync/atomic"
-	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -182,6 +183,12 @@ func (dc *DeltaContext) postApplyBlock(height int64, delta *types.Deltas, deltaI
 }
 
 func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
+	// when upload data finish, release temporary memory
+	defer func() {
+		tds := deltaMap.(iavl.TreeDeltaMap)
+		tds.PutNodeJsonPool()
+	}()
+
 	if abciResponses == nil || deltaMap == nil {
 		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
 		return
