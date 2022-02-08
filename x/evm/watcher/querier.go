@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -20,6 +21,28 @@ import (
 const MsgFunctionDisable = "fast query function has been disabled"
 
 var errNotFound = errors.New("leveldb: not found")
+
+const hashPrefixKeyLen = 33
+
+var hashPrefixKeyPool = &sync.Pool{
+	New: func() interface{} {
+		return &[hashPrefixKeyLen]byte{}
+	},
+}
+
+func getHashPrefixKey(prefix []byte, hash []byte) ([]byte, error) {
+	if len(prefix)+len(hash) > hashPrefixKeyLen {
+		return nil, errors.New("invalid prefix or hash len")
+	}
+	key := hashPrefixKeyPool.Get().(*[hashPrefixKeyLen]byte)
+	copy(key[:], prefix)
+	copy(key[len(prefix):], hash)
+	return key[:len(prefix)+len(hash)], nil
+}
+
+func putHashPrefixKey(key []byte) {
+	hashPrefixKeyPool.Put((*[hashPrefixKeyLen]byte)(key[:hashPrefixKeyLen]))
+}
 
 type Querier struct {
 	store *WatchStore
@@ -70,8 +93,15 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var block EthBlock
+	var err error
+	var blockHashKey []byte
+	if blockHashKey, err = getHashPrefixKey(prefixBlock, hash.Bytes()); err != nil {
+		blockHashKey = append(prefixBlock, hash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(blockHashKey)
+	}
 
-	_, err := q.store.GetUnsafe(append(prefixBlock, hash.Bytes()...), func(value []byte) (interface{}, error) {
+	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
@@ -215,7 +245,15 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var tx rpctypes.Transaction
-	_, err := q.store.GetUnsafe(append(prefixTx, hash.Bytes()...), func(value []byte) (interface{}, error) {
+	var txHashKey []byte
+	var err error
+	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
+		txHashKey = append(prefixTx, hash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(txHashKey)
+	}
+
+	_, err = q.store.GetUnsafe(txHashKey, func(value []byte) (interface{}, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
