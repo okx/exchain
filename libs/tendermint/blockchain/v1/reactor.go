@@ -421,7 +421,6 @@ func (bcR *BlockchainReactor) processBlock() error {
 		return err
 	}
 
-
 	chainID := bcR.initialState.ChainID
 
 	firstParts := first.MakePartSet(types.BlockPartSizeBytes)
@@ -444,7 +443,6 @@ func (bcR *BlockchainReactor) processBlock() error {
 	if err != nil {
 		panic(fmt.Sprintf("failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 	}
-
 
 	return nil
 }

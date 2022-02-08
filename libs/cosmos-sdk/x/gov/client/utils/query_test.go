@@ -3,10 +3,10 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"

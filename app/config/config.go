@@ -78,7 +78,6 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
-
 )
 
 var (
@@ -128,8 +127,7 @@ var (
 		"7f2b8a6b9b8b12247e6992aeb32d69e169c2f5ac",
 	}
 
-	mainnetNodeIdWhitelist = []string{
-	}
+	mainnetNodeIdWhitelist = []string{}
 
 	oecConfig  *OecConfig
 	once       sync.Once

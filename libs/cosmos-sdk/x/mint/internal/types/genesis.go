@@ -7,9 +7,9 @@ import (
 // GenesisState - minter state
 type GenesisState struct {
 	Minter MinterCustom `json:"minter" yaml:"minter"` // minter object
-	Params Params `json:"params" yaml:"params"` // inflation params
+	Params Params       `json:"params" yaml:"params"` // inflation params
 
-	OriginalMintedPerBlock sdk.Dec      `json:"original_minted_per_block" yaml:"original_minted_per_block"`
+	OriginalMintedPerBlock sdk.Dec `json:"original_minted_per_block" yaml:"original_minted_per_block"`
 }
 
 // NewGenesisState creates a new GenesisState object
@@ -29,8 +29,8 @@ func DefaultOriginalMintedPerBlock() sdk.Dec {
 // DefaultGenesisState creates a default GenesisState object
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Minter: DefaultInitialMinterCustom(),
-		Params: DefaultParams(),
+		Minter:                 DefaultInitialMinterCustom(),
+		Params:                 DefaultParams(),
 		OriginalMintedPerBlock: DefaultOriginalMintedPerBlock(),
 	}
 }

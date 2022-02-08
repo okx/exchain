@@ -6,13 +6,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/rest"
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestAppModule_BeginBlock(t *testing.T) {

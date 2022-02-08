@@ -261,7 +261,6 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
@@ -435,7 +434,6 @@ func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 		return EthereumTxEncode(tx)
 	}
 }
-
 
 func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
 	return rlp.EncodeToBytes(tx)

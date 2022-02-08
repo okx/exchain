@@ -11,8 +11,8 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/params"
 )
 
 // Keeper defines governance keeper
@@ -180,7 +180,7 @@ func (keeper Keeper) IterateProposals(ctx sdk.Context, cb func(proposal types.Pr
 // and performs a callback function
 func (keeper Keeper) IterateActiveProposalsQueue(
 	ctx sdk.Context, endTime time.Time, cb func(proposal types.Proposal,
-) (stop bool)) {
+	) (stop bool)) {
 	iterator := keeper.ActiveProposalQueueIterator(ctx, endTime)
 
 	defer iterator.Close()
@@ -201,7 +201,7 @@ func (keeper Keeper) IterateActiveProposalsQueue(
 // and performs a callback function
 func (keeper Keeper) IterateInactiveProposalsQueue(
 	ctx sdk.Context, endTime time.Time, cb func(proposal types.Proposal,
-) (stop bool)) {
+	) (stop bool)) {
 	iterator := keeper.InactiveProposalQueueIterator(ctx, endTime)
 
 	defer iterator.Close()
@@ -222,7 +222,7 @@ func (keeper Keeper) IterateInactiveProposalsQueue(
 // and performs a callback function
 func (keeper Keeper) IterateWaitingProposalsQueue(
 	ctx sdk.Context, height uint64, cb func(proposal types.Proposal,
-) (stop bool)) {
+	) (stop bool)) {
 	iterator := keeper.WaitingProposalQueueIterator(ctx, height)
 
 	defer iterator.Close()

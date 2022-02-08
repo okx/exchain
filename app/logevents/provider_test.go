@@ -10,7 +10,6 @@ func TestProvider(t *testing.T) {
 
 }
 
-
 func TestSubscriber(t *testing.T) {
 	s := &subscriber{
 		fileMap: make(map[string]*os.File),

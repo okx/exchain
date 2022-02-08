@@ -6,9 +6,9 @@ import (
 
 	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestAppModule(t *testing.T) {

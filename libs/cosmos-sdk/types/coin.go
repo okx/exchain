@@ -594,11 +594,11 @@ func removeZeroCoins(coins Coins) Coins {
 var (
 	// Denominations can be 3 ~ 16 characters long.
 	//reDnmString = `[a-z][a-z0-9]{2,15}`
-	reAmt       = `[[:digit:]]+`
+	reAmt = `[[:digit:]]+`
 	//reDecAmt    = `[[:digit:]]*\.[[:digit:]]+`
-	reSpc       = `[[:space:]]*`
-	reDnm       *regexp.Regexp
-	reCoin      *regexp.Regexp
+	reSpc  = `[[:space:]]*`
+	reDnm  *regexp.Regexp
+	reCoin *regexp.Regexp
 	//reDecCoin   *regexp.Regexp
 )
 

@@ -3,8 +3,8 @@ package perf
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/monitor"
 	"sync"
 	"time"
 )
@@ -145,7 +145,7 @@ type performance struct {
 	moduleInfoMap map[string]*moduleInfo
 	check         bool
 	msgQueue      []string
-	logger log.Logger
+	logger        log.Logger
 }
 
 func newPerf() *performance {
@@ -172,8 +172,6 @@ func newPerf() *performance {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
-
 
 func (p *performance) InitChainer(logger log.Logger) {
 	//p.logger = logger.With("module", "perf")

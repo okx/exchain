@@ -18,5 +18,5 @@ const (
 	EventTypeAddShares = "add_shares"
 
 	AttributeKeyValidatorToAddShares = "validator_to_add_shares"
-	AttributeKeyShares              = "shares"
+	AttributeKeyShares               = "shares"
 )

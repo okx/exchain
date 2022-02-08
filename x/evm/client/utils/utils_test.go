@@ -180,6 +180,6 @@ func TestParseManageContractMethodBlockedListProposalJSON(t *testing.T) {
 	require.NoError(t, err)
 	expectBc1 := types.NewBlockContract(addr1, methods)
 	expectBc2 := types.NewBlockContract(addr2, methods)
-	ok := types.BlockedContractListIsEqual(t,proposal.ContractList, types.BlockedContractList{*expectBc1, *expectBc2})
+	ok := types.BlockedContractListIsEqual(t, proposal.ContractList, types.BlockedContractList{*expectBc1, *expectBc2})
 	require.True(t, ok)
 }

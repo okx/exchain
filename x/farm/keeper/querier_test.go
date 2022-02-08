@@ -7,8 +7,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/farm/types"
 )
@@ -189,7 +189,7 @@ func TestQueries(t *testing.T) {
 		MulInt64(ctx.BlockHeight() - pools[0].YieldedTokenInfos[0].StartBlockHeightToYield)
 	cur := mockKeeper.Keeper.GetPoolCurrentRewards(ctx, pools[0].Name)
 	cur.Rewards = cur.Rewards.Add(
-		sdk.SysCoins{sdk.NewDecCoinFromDec(pools[0].YieldedTokenInfos[0].RemainingAmount.Denom, yieldAmount)}...
+		sdk.SysCoins{sdk.NewDecCoinFromDec(pools[0].YieldedTokenInfos[0].RemainingAmount.Denom, yieldAmount)}...,
 	)
 	referHis := mockKeeper.Keeper.GetPoolHistoricalRewards(ctx, pools[0].Name, lockInfos[0].ReferencePeriod)
 	newRatio := referHis.CumulativeRewardRatio.Add(cur.Rewards.QuoDecTruncate(pools[0].TotalValueLocked.Amount)...)
