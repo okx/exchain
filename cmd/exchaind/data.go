@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -28,6 +30,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/evm/types/innertx"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -68,6 +71,7 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		pruningCmd(ctx),
 		queryCmd(ctx),
 		dbConvertCmd(ctx),
+		recoverInnerTxCmd(ctx),
 	)
 
 	return cmd
@@ -577,4 +581,43 @@ func init() {
 	}
 
 	registerDBCompactor(dbm.GoLevelDBBackend, dbCompactor)
+}
+
+func recoverInnerTxCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "recover-innertx",
+		Short: "",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			blockStoreDB := initDB(config, blockDBName)
+			blockStore := store.NewBlockStore(blockStoreDB)
+			base := blockStore.Base()
+			size := blockStore.Size()
+			fmt.Printf("block base=%d, size=%d\n", base, size)
+
+			innertx.InitDB(config.RootDir, config.DBBackend)
+			count := 0
+			for i := int64(0); i < size; i++ {
+				block := blockStore.LoadBlock(base + i)
+				blockHash := common.BytesToHash(block.Hash()).Hex()
+				fmt.Println(blockHash)
+				txHashes := ethvm.GetBlockDB(blockHash)
+				if len(txHashes) == 0 {
+					txHashes = []string{blockHash}
+					//if err := ethvm.WriteBlockDB(blockHash, txHashes); err != nil {
+					//	panic(err)
+					//}
+					count++
+				}
+			}
+			fmt.Printf("recover innertx for block: %d\n", count)
+			return nil
+		},
+	}
+
+	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+
+	return cmd
 }
