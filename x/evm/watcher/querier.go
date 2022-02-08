@@ -70,18 +70,21 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var block EthBlock
-	b, e := q.store.Get(append(prefixBlock, hash.Bytes()...))
-	if e != nil {
-		return nil, e
-	}
-	if b == nil {
-		return nil, errNotFound
+
+	_, err := q.store.GetUnsafe(append(prefixBlock, hash.Bytes()...), func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &block)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	e = json.Unmarshal(b, &block)
-	if e != nil {
-		return nil, e
-	}
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := []rpctypes.Transaction{}
