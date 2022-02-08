@@ -20,6 +20,7 @@ const (
 	Evm         = "Evm"
 	Iavl        = "Iavl"
 	FlatKV      = "FlatKV"
+	WtxRatio    = "WtxRatio"
 	DeliverTxs  = "DeliverTxs"
 
 	Delta = "Delta"

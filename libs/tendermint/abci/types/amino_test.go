@@ -44,7 +44,7 @@ func TestEventAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(event)
 		require.NoError(t, err)
 
-		actual, err := MarshalEventToAmino(event)
+		actual, err := event.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -53,7 +53,7 @@ func TestEventAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var value2 Event
-		err = value2.UnmarshalFromAmino(expect)
+		err = value2.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 
 		require.EqualValues(t, value, value2)
@@ -77,7 +77,7 @@ func BenchmarkEventAminoMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, event := range eventTestcases {
-				_, err := MarshalEventToAmino(event)
+				_, err := event.MarshalToAmino(cdc)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -114,7 +114,7 @@ func BenchmarkEventAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var event Event
-				err := event.UnmarshalFromAmino(data)
+				err := event.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -132,15 +132,28 @@ func TestPubKeyAmino(t *testing.T) {
 			Type: "test",
 			Data: []byte("data"),
 		},
+		{
+			Data: []byte{},
+		},
 	}
 
 	for _, pubkey := range pubkeys {
 		expect, err := cdc.MarshalBinaryBare(pubkey)
 		require.NoError(t, err)
 
-		actual, err := MarshalPubKeyToAmino(pubkey)
+		actual, err := pubkey.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value PubKey
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 PubKey
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -150,6 +163,7 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		{
 			PubKey: PubKey{
 				Type: "test",
+				Data: []byte{},
 			},
 		},
 		{
@@ -159,11 +173,14 @@ func TestValidatorUpdateAmino(t *testing.T) {
 			},
 		},
 		{
-			Power: 100,
+			Power: math.MaxInt64,
+		},
+		{
+			Power: math.MinInt64,
 		},
 		{
 			PubKey: PubKey{
-				Type: "test",
+				Type: "",
 				Data: []byte("data"),
 			},
 			Power: 100,
@@ -174,14 +191,25 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(validatorUpdate)
 		require.NoError(t, err)
 
-		actual, err := MarshalValidatorUpdateToAmino(validatorUpdate)
+		actual, err := validatorUpdate.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value ValidatorUpdate
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ValidatorUpdate
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
 func TestBlockParamsAmino(t *testing.T) {
 	tests := []BlockParams{
+		{},
 		{
 			MaxBytes: 100,
 			MaxGas:   200,
@@ -190,27 +218,54 @@ func TestBlockParamsAmino(t *testing.T) {
 			MaxBytes: -100,
 			MaxGas:   -200,
 		},
+		{
+			MaxBytes: math.MaxInt64,
+			MaxGas:   math.MaxInt64,
+		},
+		{
+			MaxBytes: math.MinInt64,
+			MaxGas:   math.MinInt64,
+		},
 	}
 
 	for _, test := range tests {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
-		actual, err := MarshalBlockParamsToAmino(test)
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value BlockParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 BlockParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
 func TestEvidenceParamsAmino(t *testing.T) {
 	tests := []EvidenceParams{
+		{},
 		{
 			MaxAgeNumBlocks: 100,
 			MaxAgeDuration:  1000 * time.Second,
 		},
 		{
 			MaxAgeNumBlocks: -100,
-			MaxAgeDuration:  time.Second,
+			MaxAgeDuration:  time.Hour * 24 * 365,
+		},
+		{
+			MaxAgeNumBlocks: math.MinInt64,
+			MaxAgeDuration:  math.MinInt64,
+		},
+		{
+			MaxAgeNumBlocks: math.MaxInt64,
+			MaxAgeDuration:  math.MaxInt64,
 		},
 	}
 
@@ -218,9 +273,19 @@ func TestEvidenceParamsAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
-		actual, err := MarshalEvidenceParamsToAmino(test)
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value EvidenceParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 EvidenceParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -237,7 +302,7 @@ func TestValidatorParamsAmino(t *testing.T) {
 			PubKeyTypes: []string{"ed25519"},
 		},
 		{
-			PubKeyTypes: []string{"ed25519", "ed25519"},
+			PubKeyTypes: []string{"ed25519", "ed25519", "", "rsa"},
 		},
 	}
 
@@ -245,9 +310,19 @@ func TestValidatorParamsAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
-		actual, err := MarshalValidatorParamsToAmino(test)
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value ValidatorParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ValidatorParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -271,7 +346,7 @@ func TestConsensusParamsAmino(t *testing.T) {
 		},
 		{
 			Validator: &ValidatorParams{
-				PubKeyTypes: []string{"ed25519"},
+				PubKeyTypes: []string{"ed25519", "rsa"},
 			},
 		},
 		{
@@ -293,9 +368,19 @@ func TestConsensusParamsAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(test)
 		require.NoError(t, err)
 
-		actual, err := MarshalConsensusParamsToAmino(test)
+		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value ConsensusParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ConsensusParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -314,7 +399,7 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := MarshalResponseDeliverTxToAmino(resp)
+		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
@@ -323,7 +408,7 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		var resp2 ResponseDeliverTx
-		err = resp2.UnmarshalFromAmino(expect)
+		err = resp2.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err, fmt.Sprintf("error case index %d", i))
 
 		require.EqualValues(t, resp1, resp2)
@@ -346,7 +431,7 @@ func BenchmarkResponseDeliverTxAminoMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, resp := range responseDeliverTxTestCases {
-				_, err := MarshalResponseDeliverTxToAmino(resp)
+				_, err := resp.MarshalToAmino(cdc)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -382,7 +467,7 @@ func BenchmarkResponseDeliverTxAminoUnmarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, data := range testData {
 				var resp ResponseDeliverTx
-				err := resp.UnmarshalFromAmino(data)
+				err := resp.UnmarshalFromAmino(cdc, data)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -399,22 +484,35 @@ func TestResponseBeginBlockAmino(t *testing.T) {
 				{
 					Type: "test",
 				},
+				{
+					Type: "test2",
+				},
 			},
 		},
 		{
 			Events: []Event{},
 		},
 		{
-			Events: []Event{{}},
+			Events: []Event{{}, {}, {}, {}},
 		},
 	}
 	for _, resp := range resps {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := MarshalResponseBeginBlockToAmino(resp)
+		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value ResponseBeginBlock
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ResponseBeginBlock
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -453,8 +551,18 @@ func TestResponseEndBlockAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(resp)
 		require.NoError(t, err)
 
-		actual, err := MarshalResponseEndBlockToAmino(resp)
+		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var value ResponseEndBlock
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ResponseEndBlock
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }

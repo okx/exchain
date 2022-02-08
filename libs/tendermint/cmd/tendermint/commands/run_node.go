@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -152,6 +153,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"mempool.pending_pool_max_tx_per_address",
 		config.Mempool.PendingPoolMaxTxPerAddress,
 		"Maximum number of transactions per address in the pending pool",
+	)
+
+	cmd.Flags().String(
+		"mempool.node_key_whitelist",
+		strings.Join(config.Mempool.NodeKeyWhitelist, ","),
+		"The whitelist of nodes whose wtx is confident",
 	)
 
 	// db flags

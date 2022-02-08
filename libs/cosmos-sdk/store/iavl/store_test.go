@@ -4,17 +4,18 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/stretchr/testify/require"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
@@ -548,7 +549,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 }
 
 func testCommitDelta(t *testing.T) {
-	emptyDelta := &iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
+	emptyDelta := &iavl.TreeDelta{NodesDelta: []*iavl.NodeJsonImp{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: []*iavl.CommitOrphansImp{}}
 	tmtypes.DownloadDelta = true
 	iavl.SetProduceDelta(false)
 
@@ -619,7 +620,7 @@ func TestCommitDelta(t *testing.T) {
 }
 
 func TestIAVLDelta(t *testing.T) {
-	emptyDelta := iavl.TreeDelta{NodesDelta: map[string]*iavl.NodeJson{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: map[string]int64{}}
+	emptyDelta := iavl.TreeDelta{NodesDelta: []*iavl.NodeJsonImp{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: []*iavl.CommitOrphansImp{}}
 
 	db := dbm.NewMemDB()
 	tree, _ := newAlohaTree(t, db)
