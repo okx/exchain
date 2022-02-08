@@ -52,6 +52,7 @@ var (
 	flagIPAddrs           = "ip-addrs"
 	flagBaseport          = "base-port"
 	flagLocal             = "local"
+	flagNumRPCs           = "r"
 )
 
 const nodeDirPerm = 0755
@@ -93,10 +94,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
+			numRPCs := viper.GetInt(flagNumRPCs)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal,
-			)
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend,
+				algo, numValidators, isLocal, numRPCs)
 		},
 	}
 
@@ -114,10 +116,14 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
 	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
+	cmd.Flags().Int(flagNumRPCs, 3, "Number of RPCs to initialize the testnet with")
+
 	return cmd
 }
 
 // InitTestnet initializes the testnet configuration
+// 1.initializes the "validator" node configuration;
+// 2.based the "validator" node, initializes the "rpc" node.
 func InitTestnet(
 	cmd *cobra.Command,
 	config *tmconfig.Config,
@@ -137,6 +143,7 @@ func InitTestnet(
 	algo string,
 	numValidators int,
 	isLocal bool,
+	numRPCs int,
 ) error {
 
 	if chainID == "" {
@@ -155,8 +162,8 @@ func InitTestnet(
 		numValidators = len(ipAddresses)
 	}
 
-	nodeIDs := make([]string, numValidators)
-	valPubKeys := make([]tmcrypto.PubKey, numValidators)
+	nodeIDs := make([]string, numValidators+numRPCs)
+	valPubKeys := make([]tmcrypto.PubKey, numValidators+numRPCs)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -297,19 +304,45 @@ func InitTestnet(
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
 
-	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators); err != nil {
+	// generate private keys, node IDs for rpc nodes
+	for i := numValidators; i < numValidators+numRPCs; i++ {
+		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
+		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
+
+		config.SetRoot(nodeDir)
+		config.RPC.ListenAddress = "tcp://0.0.0.0:26657"
+
+		if err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm); err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		config.Moniker = nodeDirName
+
+		var err error
+		nodeIDs[i-numValidators], valPubKeys[i-numValidators], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		// get genesis file
+		genFiles = append(genFiles, config.GenesisFile())
+	}
+
+	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators+numRPCs); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		cdc, config, chainID, nodeIDs, valPubKeys, numValidators,
+		cdc, config, chainID, nodeIDs, valPubKeys, numValidators+numRPCs,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genAccIterator,
 	)
 	if err != nil {
 		return err
 	}
 
-	cmd.PrintErrf("Successfully initialized %d node directories\n", numValidators)
+	cmd.Printf("Successfully initialized %d validator nodes directories, %d rpc nodes directories\n", numValidators, numRPCs)
 	return nil
 }
 
