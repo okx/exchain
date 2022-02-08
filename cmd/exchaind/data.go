@@ -599,6 +599,7 @@ func recoverInnerTxCmd(ctx *server.Context) *cobra.Command {
 
 			innertx.InitDB(config.RootDir, config.DBBackend)
 			count := 0
+			start := time.Now()
 			for i := int64(0); i < size; i++ {
 				block := blockStore.LoadBlock(base + i)
 				blockHash := common.BytesToHash(block.Hash()).Hex()
@@ -612,6 +613,7 @@ func recoverInnerTxCmd(ctx *server.Context) *cobra.Command {
 				}
 			}
 			fmt.Printf("recover innertx for block: %d\n", count)
+			fmt.Printf("Time spent %s", time.Since(start).String())
 			return nil
 		},
 	}
