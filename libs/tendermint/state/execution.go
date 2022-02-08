@@ -19,6 +19,17 @@ import (
 )
 
 //-----------------------------------------------------------------------------
+type (
+	// Enum mode for executing [deliverTx, ...]
+	DeliverTxsExecMode uint8
+)
+
+const (
+	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+)
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -48,7 +59,8 @@ type BlockExecutor struct {
 
 	prerunCtx *prerunContext
 
-	isFastSync bool
+	isFastSync         bool
+	deliverTxsExecMode DeliverTxsExecMode
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -67,19 +79,21 @@ func NewBlockExecutor(
 	proxyApp proxy.AppConnConsensus,
 	mempool mempl.Mempool,
 	evpool EvidencePool,
+	deliverTxsExecMode int8,
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:           db,
-		proxyApp:     proxyApp,
-		eventBus:     types.NopEventBus{},
-		mempool:      mempool,
-		evpool:       evpool,
-		logger:       logger,
-		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
-		prerunCtx:    newPrerunContex(logger),
-		deltaContext: newDeltaContext(logger),
+		db:                 db,
+		proxyApp:           proxyApp,
+		eventBus:           types.NopEventBus{},
+		mempool:            mempool,
+		evpool:             evpool,
+		logger:             logger,
+		metrics:            NopMetrics(),
+		isAsync:            viper.GetBool(FlagParalleledTx),
+		prerunCtx:          newPrerunContex(logger),
+		deltaContext:       newDeltaContext(logger),
+		deliverTxsExecMode: DeliverTxsExecMode(deliverTxsExecMode),
 	}
 
 	for _, option := range options {
@@ -285,9 +299,19 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if blockExec.isAsync {
+			//if blockExec.isAsync {
+			//	abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			//} else {
+			//	abciResponses, err = execBlockOnProxyApp(ctx)
+			//}
+			switch blockExec.deliverTxsExecMode {
+			case deliverTxsExecModeSerial:
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			case deliverTxsExecModePartConcurrent:
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(ctx)
+			case deliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			} else {
+			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}

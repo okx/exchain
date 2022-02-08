@@ -45,11 +45,11 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
-	err = handler.handleStartHeight(info, height)
+	err = handler.handleStartHeight(info, height)	// deliverState or checkState
 	if err != nil {
 		return info, err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))	// set cache for deliverState
 	for _, addr := range from {
 		// cache from if exist
 		if addr != "" {

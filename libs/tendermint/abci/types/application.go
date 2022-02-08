@@ -25,6 +25,7 @@ type Application interface {
 
 	Commit(RequestCommit) ResponseCommit             // Commit the state and return the application Merkle root hash
 	ParallelTxs(txs [][]byte) []*ResponseDeliverTx
+	DeliverTxsConcurrent(txs [][]byte) []*ResponseDeliverTx
 }
 
 //-------------------------------------------------------
@@ -76,6 +77,10 @@ func (BaseApplication) EndBlock(req RequestEndBlock) ResponseEndBlock {
 }
 
 func (a BaseApplication) ParallelTxs(_ [][]byte) []*ResponseDeliverTx {
+	return nil
+}
+
+func (a BaseApplication) DeliverTxsConcurrent(_ [][]byte) []*ResponseDeliverTx {
 	return nil
 }
 

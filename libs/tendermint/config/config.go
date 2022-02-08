@@ -231,6 +231,12 @@ type BaseConfig struct { //nolint: maligned
 
 	// Logging stdout
 	LogStdout bool `mapstructure:"log_stdout"`
+
+	// There are three modes.
+	// 0: execute [deliverTx,...] sequentially (default)
+	// 1: execute [deliverTx,...] partially-concurrent
+	// 2: execute [deliverTx,...] parallel
+	DeliverTxsExecMode int `mapstructure:"deliver_txs_exec_mode"`
 }
 
 // DefaultBaseConfig returns a default base configuration for a Tendermint node
