@@ -7,6 +7,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -579,6 +580,12 @@ func PreRun(ctx *server.Context) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
+	// check start flag conflicts
+	err := sanity.CheckStart()
+	if err != nil {
+		return err
+	}
+
 	// set config by node mode
 	setNodeConfig(ctx)
 
@@ -586,7 +593,7 @@ func PreRun(ctx *server.Context) error {
 	appconfig.PprofDownload(ctx)
 
 	// pruning options
-	_, err := server.GetPruningOptionsFromFlags()
+	_, err = server.GetPruningOptionsFromFlags()
 	if err != nil {
 		return err
 	}
