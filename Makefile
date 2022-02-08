@@ -62,6 +62,10 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
+ifeq ($(WITH_BADGERDB),true)
+  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=badgerdb
+endif
+
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
 ifeq ($(DEBUG),true)
