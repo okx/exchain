@@ -602,7 +602,6 @@ func recoverInnerTxCmd(ctx *server.Context) *cobra.Command {
 			for i := int64(0); i < size; i++ {
 				block := blockStore.LoadBlock(base + i)
 				blockHash := common.BytesToHash(block.Hash()).Hex()
-				fmt.Println(blockHash)
 				txHashes := ethvm.GetBlockDB(blockHash)
 				if len(txHashes) == 0 {
 					txHashes = []string{blockHash}
