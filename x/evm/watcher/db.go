@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -56,6 +56,10 @@ func (w WatchStore) Set(key []byte, value []byte) {
 
 func (w WatchStore) Get(key []byte) ([]byte, error) {
 	return w.db.Get(key)
+}
+
+func (w WatchStore) GetUnsafe(key []byte, processor dbm.UnsafeValueProcessor) (interface{}, error) {
+	return w.db.GetUnsafeValue(key, processor)
 }
 
 func (w WatchStore) Delete(key []byte) {
