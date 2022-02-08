@@ -19,6 +19,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
+	"github.com/okex/exchain/app/rpc/namespaces/debug"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/rpc/namespaces/net"
@@ -34,6 +35,7 @@ const (
 	PersonalNamespace = "personal"
 	NetNamespace      = "net"
 	TxpoolNamespace   = "txpool"
+	DebugNamespace    = "debug"
 
 	apiVersion = "1.0"
 )
@@ -96,6 +98,15 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 			Version:   apiVersion,
 			Service:   personal.NewAPI(ethAPI, log),
 			Public:    false,
+		})
+	}
+
+	if viper.GetBool(FlagDebugAPI) {
+		apis = append(apis, rpc.API{
+			Namespace: DebugNamespace,
+			Version:   apiVersion,
+			Service:   debug.NewAPI(clientCtx, log, ethBackend),
+			Public:    true,
 		})
 	}
 

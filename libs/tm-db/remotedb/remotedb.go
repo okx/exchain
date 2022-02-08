@@ -81,6 +81,14 @@ func (rd *RemoteDB) Get(key []byte) ([]byte, error) {
 	return res.Value, nil
 }
 
+func (rd *RemoteDB) GetUnsafeValue(key []byte, processor db.UnsafeValueProcessor) (interface{}, error) {
+	v, err := rd.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return processor(v)
+}
+
 func (rd *RemoteDB) Has(key []byte) (bool, error) {
 	res, err := rd.dc.Has(rd.ctx, &protodb.Entity{Key: key})
 	if err != nil {

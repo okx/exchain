@@ -142,6 +142,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
+		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -210,6 +212,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
+		if ctx.IsTraceTxLog() {
+			// the result was replaced to trace logs when trace tx even if err != nil
+			executionResult.Result.Data = executionResult.TraceLogs
+			return executionResult.Result, nil
+		}
 		return nil, err
 	}
 
@@ -262,5 +269,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 	StopTxLog(bam.TransitionDb)
+	if ctx.IsTraceTxLog() {
+		// the result was replaced to trace logs when trace tx
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }
