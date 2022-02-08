@@ -3,12 +3,12 @@ package keys
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	amino "github.com/tendermint/go-amino"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	amino "github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"

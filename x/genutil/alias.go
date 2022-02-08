@@ -23,16 +23,16 @@ type (
 
 var (
 	// nolint
-	ModuleCdc                    = types.ModuleCdc
-	GenesisStateFromGenFile      = sdkgenutil.GenesisStateFromGenFile
-	NewGenesisState              = sdkgenutil.NewGenesisState
-	SetGenesisStateInAppState    = sdkgenutil.SetGenesisStateInAppState
-	InitializeNodeValidatorFiles = sdkgenutil.InitializeNodeValidatorFiles
-	ExportGenesisFileWithTime    = sdkgenutil.ExportGenesisFileWithTime
-	NewInitConfig                = sdkgenutil.NewInitConfig
-	ValidateGenesis              = types.ValidateGenesis
-	GenesisStateFromGenDoc       = sdkgenutil.GenesisStateFromGenDoc
-	SetGenTxsInAppGenesisState   = sdkgenutil.SetGenTxsInAppGenesisState
-	ExportGenesisFile            = sdkgenutil.ExportGenesisFile
+	ModuleCdc                           = types.ModuleCdc
+	GenesisStateFromGenFile             = sdkgenutil.GenesisStateFromGenFile
+	NewGenesisState                     = sdkgenutil.NewGenesisState
+	SetGenesisStateInAppState           = sdkgenutil.SetGenesisStateInAppState
+	InitializeNodeValidatorFiles        = sdkgenutil.InitializeNodeValidatorFiles
+	ExportGenesisFileWithTime           = sdkgenutil.ExportGenesisFileWithTime
+	NewInitConfig                       = sdkgenutil.NewInitConfig
+	ValidateGenesis                     = types.ValidateGenesis
+	GenesisStateFromGenDoc              = sdkgenutil.GenesisStateFromGenDoc
+	SetGenTxsInAppGenesisState          = sdkgenutil.SetGenTxsInAppGenesisState
+	ExportGenesisFile                   = sdkgenutil.ExportGenesisFile
 	InitializeNodeValidatorFilesByIndex = sdkgenutil.InitializeNodeValidatorFilesByIndex
 )

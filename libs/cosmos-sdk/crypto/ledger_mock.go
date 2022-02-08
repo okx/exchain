@@ -1,3 +1,4 @@
+//go:build ledger && test_ledger_mock
 // +build ledger,test_ledger_mock
 
 package crypto
@@ -8,9 +9,9 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/pkg/errors"
 
-	secp256k1 "github.com/tendermint/btcd/btcec"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmsecp256k1 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	secp256k1 "github.com/tendermint/btcd/btcec"
 
 	bip39 "github.com/cosmos/go-bip39"
 

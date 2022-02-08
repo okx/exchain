@@ -30,5 +30,3 @@ func subscribeLog() *cobra.Command {
 	}
 	return cmd
 }
-
-

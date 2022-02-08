@@ -5,9 +5,9 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 const addrTest = "ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658"

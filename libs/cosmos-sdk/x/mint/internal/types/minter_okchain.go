@@ -8,8 +8,8 @@ import (
 )
 
 type MinterCustom struct {
-	NextBlockToUpdate uint64 `json:"next_block_to_update" yaml:"next_block_to_update"` // record the block height for next year
-	MintedPerBlock types.DecCoins `json:"minted_per_block" yaml:"minted_per_block"` // record the MintedPerBlock per block in this year
+	NextBlockToUpdate uint64         `json:"next_block_to_update" yaml:"next_block_to_update"` // record the block height for next year
+	MintedPerBlock    types.DecCoins `json:"minted_per_block" yaml:"minted_per_block"`         // record the MintedPerBlock per block in this year
 }
 
 // NewMinterCustom returns a new Minter object with the given inflation and annual
@@ -17,7 +17,7 @@ type MinterCustom struct {
 func NewMinterCustom(nextBlockToUpdate uint64, mintedPerBlock sdk.DecCoins) MinterCustom {
 	return MinterCustom{
 		NextBlockToUpdate: nextBlockToUpdate,
-		MintedPerBlock: mintedPerBlock,
+		MintedPerBlock:    mintedPerBlock,
 	}
 }
 

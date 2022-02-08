@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmjsonrpc "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/client"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )

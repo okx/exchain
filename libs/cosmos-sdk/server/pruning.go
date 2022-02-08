@@ -9,7 +9,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
-
 )
 
 // GetPruningOptionsFromFlags parses command flags and returns the correct

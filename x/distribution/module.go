@@ -2,8 +2,8 @@ package distribution
 
 import (
 	"encoding/json"
-	"math/rand"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"

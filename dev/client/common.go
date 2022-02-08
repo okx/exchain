@@ -334,7 +334,6 @@ func send(client *ethclient.Client, to, privKey string) {
 	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
 }
 
-
 func transferOip(client *ethclient.Client, oip20 *Oip20,
 	sender common.Address, auth *bind.TransactOpts, toAddress common.Address) (nonce uint64, err error) {
 	transferAmount := str2bigInt("100000")
@@ -350,7 +349,6 @@ func transferOip(client *ethclient.Client, oip20 *Oip20,
 	}
 	return
 }
-
 
 func deployOip(client *ethclient.Client, sender common.Address,
 	privateKey *ecdsa.PrivateKey) (oip20 *Oip20, auth *bind.TransactOpts, err error) {

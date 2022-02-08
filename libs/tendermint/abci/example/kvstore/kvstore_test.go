@@ -221,8 +221,6 @@ func valsEqual(t *testing.T, vals1, vals2 []types.ValidatorUpdate) {
 	}
 }
 
-
-
 func runClientTests(t *testing.T, client abcicli.Client) {
 	// run some tests....
 	key := testKey

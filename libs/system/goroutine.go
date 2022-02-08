@@ -14,8 +14,8 @@ const (
 	FlagEnableGid = "enable-gid"
 )
 
-func Sleep(seconds time.Duration)  {
-	time.Sleep(seconds*time.Second)
+func Sleep(seconds time.Duration) {
+	time.Sleep(seconds * time.Second)
 }
 
 var (

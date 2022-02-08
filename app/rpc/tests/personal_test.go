@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -205,8 +205,8 @@ func TestPersonal_LockAccount(t *testing.T) {
 func TestPersonal_SendTransaction_Transfer(t *testing.T) {
 	params := make([]interface{}, 2)
 	params[0] = map[string]string{
-		"from": hexAddr1.Hex(),
-		"to": receiverAddr.Hex(),
+		"from":  hexAddr1.Hex(),
+		"to":    receiverAddr.Hex(),
 		"value": "0x16345785d8a0000", // 0.1
 	}
 	params[1] = defaultPassWd
@@ -222,8 +222,8 @@ func TestPersonal_SendTransaction_Transfer(t *testing.T) {
 func TestPersonal_SendTransaction_DeployContract(t *testing.T) {
 	params := make([]interface{}, 2)
 	params[0] = map[string]string{
-		"from": hexAddr1.Hex(),
-		"data": "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029",
+		"from":     hexAddr1.Hex(),
+		"data":     "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029",
 		"gasPrice": (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String(),
 	}
 	params[1] = defaultPassWd

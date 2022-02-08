@@ -50,8 +50,8 @@ var CheckTxType_name = map[int32]string{
 }
 
 var CheckTxType_value = map[string]int32{
-	"New":     0,
-	"Recheck": 1,
+	"New":          0,
+	"Recheck":      1,
 	"WrappedCheck": 2,
 }
 
@@ -1864,7 +1864,6 @@ func (m *ResponseEndBlock) GetEvents() []Event {
 	}
 	return nil
 }
-
 
 func (m *ResponseCommit) Reset()         { *m = ResponseCommit{} }
 func (m *ResponseCommit) String() string { return proto.CompactTextString(m) }

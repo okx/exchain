@@ -11,9 +11,9 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
+	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/common"
 )
 

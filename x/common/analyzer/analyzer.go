@@ -20,13 +20,13 @@ var (
 )
 
 type analyer struct {
-	status          bool
-	currentTxIndex  int64
-	blockHeight     int64
-	dbRead          int64
-	dbWrite         int64
-	evmCost         int64
-	txs             []*txLog
+	status         bool
+	currentTxIndex int64
+	blockHeight    int64
+	dbRead         int64
+	dbWrite        int64
+	evmCost        int64
+	txs            []*txLog
 }
 
 func init() {
@@ -93,7 +93,6 @@ func StopTxLog(oper string) {
 		singleAnalys.stopTxLog(oper)
 	}
 }
-
 
 func (s *analyer) onAppDeliverTxEnter() {
 	if s.status {
