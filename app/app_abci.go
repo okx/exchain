@@ -47,7 +47,6 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	defer analyzer.OnCommitDone()
 	res := app.BaseApp.Commit(req)
 
-
 	// we call watch#Commit here ,because
 	// 1. this round commit a valid block
 	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont

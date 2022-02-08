@@ -20,8 +20,8 @@ import (
 	authvesting "github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
 	"github.com/okex/exchain/x/genutil"
 
-	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/crypto/hd"
+	okexchain "github.com/okex/exchain/app/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )

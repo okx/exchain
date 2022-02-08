@@ -58,8 +58,6 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
-
-
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight

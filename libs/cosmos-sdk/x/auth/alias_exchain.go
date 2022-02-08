@@ -6,6 +6,6 @@ import (
 )
 
 type (
-	Account = exported.Account
+	Account   = exported.Account
 	ObserverI = keeper.ObserverI
 )

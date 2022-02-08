@@ -4,8 +4,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/spf13/cobra"
 )
 

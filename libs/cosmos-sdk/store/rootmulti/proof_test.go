@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/stretchr/testify/require"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
