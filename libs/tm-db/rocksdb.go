@@ -96,7 +96,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetAllowMmapReads(enable)
 	}
 
-	opts.SetAllowMmapWrites(true)
+	opts.SetAllowMmapWrites(false)
 	if v, ok := params[mmapWrite]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
