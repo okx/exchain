@@ -87,7 +87,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetMaxOpenFiles(maxOpenFiles)
 	}
 
-	opts.SetAllowMmapReads(false)
+	opts.SetAllowMmapReads(true)
 	if v, ok := params[mmapRead]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
@@ -96,7 +96,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetAllowMmapReads(enable)
 	}
 
-	opts.SetAllowMmapWrites(false)
+	opts.SetAllowMmapWrites(true)
 	if v, ok := params[mmapWrite]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
