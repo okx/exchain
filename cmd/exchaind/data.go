@@ -606,9 +606,9 @@ func recoverInnerTxCmd(ctx *server.Context) *cobra.Command {
 				txHashes := ethvm.GetBlockDB(blockHash)
 				if len(txHashes) == 0 {
 					txHashes = []string{blockHash}
-					//if err := ethvm.WriteBlockDB(blockHash, txHashes); err != nil {
-					//	panic(err)
-					//}
+					if err := ethvm.WriteBlockDB(blockHash, txHashes); err != nil {
+						panic(err)
+					}
 					count++
 				}
 			}
