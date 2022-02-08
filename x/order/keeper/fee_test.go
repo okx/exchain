@@ -8,8 +8,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/order/types"
 	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/x/order/types"
 )
 
 type MockGetFeeKeeper struct {

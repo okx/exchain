@@ -61,7 +61,7 @@ var (
 	WithdrawTimeKeyPrefix = []byte{0x54}
 	// UserTokenPairKeyPrefix is the store key for user token pair num
 	UserTokenPairKeyPrefix = []byte{0x06}
-    //the prefix of the confirm ownership key
+	//the prefix of the confirm ownership key
 	PrefixConfirmOwnershipKey = []byte{0x07}
 )
 

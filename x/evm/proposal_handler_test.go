@@ -221,7 +221,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 		msg                   string
 		prepare               func()
 		targetAddrListToCheck types.BlockedContractList
-		success bool
+		success               bool
 	}{
 		{
 			"add address into blocked list",
@@ -334,11 +334,10 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 				suite.Require().Error(err)
 			}
 
-
 			// check the blocked list with target address list
 			curBlockedList := suite.stateDB.GetContractMethodBlockedList()
 			suite.Require().Equal(len(tc.targetAddrListToCheck), len(curBlockedList))
-			ok := types.BlockedContractListIsEqual(suite.T(),curBlockedList, tc.targetAddrListToCheck)
+			ok := types.BlockedContractListIsEqual(suite.T(), curBlockedList, tc.targetAddrListToCheck)
 			suite.Require().True(ok)
 		})
 	}

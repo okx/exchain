@@ -2,16 +2,16 @@ package gov
 
 import (
 	"encoding/json"
-	"math/rand"
 	sim "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"math/rand"
 
+	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/cli"

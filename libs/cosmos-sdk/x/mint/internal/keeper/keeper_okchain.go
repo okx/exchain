@@ -45,7 +45,6 @@ func (k Keeper) UpdateMinterCustom(ctx sdk.Context, minter *types.MinterCustom, 
 	k.SetMinterCustom(ctx, *minter)
 }
 
-
 //______________________________________________________________________
 
 // GetOriginalMintedPerBlock returns the init tokens per block.
@@ -57,7 +56,6 @@ func (k Keeper) GetOriginalMintedPerBlock() sdk.Dec {
 func (k Keeper) SetOriginalMintedPerBlock(originalMintedPerBlock sdk.Dec) {
 	k.originalMintedPerBlock = originalMintedPerBlock
 }
-
 
 // ValidateMinterCustom validate minter
 func ValidateOriginalMintedPerBlock(originalMintedPerBlock sdk.Dec) error {

@@ -15,8 +15,8 @@ func TestDelta(t *testing.T) {
 			[]byte("detal"),
 			[]byte("watch"),
 		},
-		Height: 1,
-		Version: 1,
+		Height:       1,
+		Version:      1,
 		CompressType: 2,
 	}
 
@@ -27,12 +27,12 @@ func TestDelta(t *testing.T) {
 	err = unmarshaled.Unmarshal(marshaled)
 	require.NoError(t, err)
 
-	assert.True(t,	bytes.Compare(unmarshaled.ABCIRsp(), d.ABCIRsp()) == 0)
-	assert.True(t,	bytes.Compare(unmarshaled.DeltasBytes(), d.DeltasBytes()) == 0)
-	assert.True(t,	bytes.Compare(unmarshaled.WatchBytes(), d.WatchBytes()) == 0)
-	assert.True(t, 	unmarshaled.Height == d.Height)
-	assert.True(t, 	unmarshaled.Version == d.Version)
-	assert.True(t, 	unmarshaled.CompressType == d.CompressType)
+	assert.True(t, bytes.Compare(unmarshaled.ABCIRsp(), d.ABCIRsp()) == 0)
+	assert.True(t, bytes.Compare(unmarshaled.DeltasBytes(), d.DeltasBytes()) == 0)
+	assert.True(t, bytes.Compare(unmarshaled.WatchBytes(), d.WatchBytes()) == 0)
+	assert.True(t, unmarshaled.Height == d.Height)
+	assert.True(t, unmarshaled.Version == d.Version)
+	assert.True(t, unmarshaled.CompressType == d.CompressType)
 }
 
 func TestDeltas_MarshalUnMarshal(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDeltas_MarshalUnMarshal(t *testing.T) {
 		wantErr bool
 	}{
 		{"no compress", fields{Height: 1, Version: 1, Payload: payload}, false},
-		{"compress", fields{Height: 1, Version: 1, Payload: payload, CompressType: 1},false},
+		{"compress", fields{Height: 1, Version: 1, Payload: payload, CompressType: 1}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

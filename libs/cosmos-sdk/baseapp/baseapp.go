@@ -191,7 +191,7 @@ type BaseApp struct { // nolint: maligned
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
 
-	checkTxNum int64
+	checkTxNum        int64
 	wrappedCheckTxNum int64
 }
 
@@ -219,7 +219,7 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		txDecoder: txDecoder,
+		txDecoder:        txDecoder,
 	}
 
 	for _, option := range options {

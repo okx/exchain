@@ -11,8 +11,8 @@ import (
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 )
 
 // ValidateAccountInGenesis checks that the provided key has sufficient coins in the genesis accounts

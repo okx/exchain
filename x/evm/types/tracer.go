@@ -15,8 +15,8 @@ import (
 	json "github.com/json-iterator/go"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (

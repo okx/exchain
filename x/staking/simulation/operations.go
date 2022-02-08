@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // SimulateParamChangeProposalContent returns random parameter change content.

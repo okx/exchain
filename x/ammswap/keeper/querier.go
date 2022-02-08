@@ -3,8 +3,8 @@ package keeper
 import (
 	"encoding/json"
 
-	"github.com/okex/exchain/x/common"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/ammswap/types"
