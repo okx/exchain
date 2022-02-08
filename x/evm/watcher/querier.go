@@ -215,16 +215,18 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var tx rpctypes.Transaction
-	transaction, e := q.store.Get(append(prefixTx, hash.Bytes()...))
-	if e != nil {
-		return nil, e
-	}
-	if transaction == nil {
-		return nil, errNotFound
-	}
-	e = json.Unmarshal(transaction, &tx)
-	if e != nil {
-		return nil, e
+	_, err := q.store.GetUnsafe(append(prefixTx, hash.Bytes()...), func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &tx)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &tx, nil
 }
