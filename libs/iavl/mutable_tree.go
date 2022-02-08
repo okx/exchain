@@ -885,6 +885,9 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			hash, _ := hex.DecodeString(v.Key)
 			tree.commitOrphans[string(hash)] = v.CommitValue
 		}
+
+		//release NodeJson memory
+		delta.PutNodeJsonPool()
 	}
 }
 

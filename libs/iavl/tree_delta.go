@@ -12,7 +12,7 @@ import (
 
 var NodeJsonPool = sync.Pool{
 	New: func() interface{} {
-		return new(NodeJson)
+		return &NodeJson{}
 	},
 }
 
@@ -127,15 +127,10 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 	return nil
 }
 
-// PutNodeJsonPool release temperary memory to pool
+// PutNodeJsonPool release temporary memory to pool
 func (tdm TreeDeltaMap) PutNodeJsonPool() {
 	for _, td := range tdm {
-		for _, v := range td.NodesDelta {
-			NodeJsonPool.Put(v)
-		}
-		for _, v := range td.OrphansDelta {
-			NodeJsonPool.Put(v)
-		}
+		td.PutNodeJsonPool()
 	}
 }
 
@@ -383,6 +378,20 @@ func (td *TreeDelta) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 	}
 	return nil
+}
+
+func (td *TreeDelta) PutNodeJsonPool() {
+	// release NodeJson from NodesDelta
+	for i := 0; i < len(td.NodesDelta); i++ {
+		*td.NodesDelta[i].NodeValue = NodeJson{}
+		NodeJsonPool.Put(td.NodesDelta[i].NodeValue)
+	}
+
+	// release NodeJson from OrphansDelta
+	for i := 0; i < len(td.OrphansDelta); i++ {
+		*td.OrphansDelta[i] = NodeJson{}
+		NodeJsonPool.Put(td.OrphansDelta[i])
+	}
 }
 
 type NodeJsonImp struct {

@@ -21,6 +21,9 @@ func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("failed marshal TreeDeltaMap")
 	}
+	// when upload data finish, release temporary memory
+	defer dm.PutNodeJsonPool()
+
 	return dm.MarshalToAmino(nil)
 }
 
