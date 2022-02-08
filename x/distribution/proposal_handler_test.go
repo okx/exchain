@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	govtypes "github.com/okex/exchain/x/gov/types"
 
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"

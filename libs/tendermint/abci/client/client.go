@@ -52,7 +52,6 @@ type Client interface {
 
 //----------------------------------------
 
-
 //----------------------------------------
 
 type Callback func(*types.Request, *types.Response)

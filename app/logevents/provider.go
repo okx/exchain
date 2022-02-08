@@ -11,14 +11,14 @@ import (
 )
 
 type provider struct {
-	eventChan chan *KafkaMsg
-	identity string
-	logServerUrl string
-	logger log.Logger
-	kafka *logClient
+	eventChan       chan *KafkaMsg
+	identity        string
+	logServerUrl    string
+	logger          log.Logger
+	kafka           *logClient
 	subscriberAlive bool
 
-	mutex sync.Mutex
+	mutex         sync.Mutex
 	lastHeartbeat time.Time
 }
 
@@ -30,15 +30,15 @@ func NewProvider(logger log.Logger) log.Subscriber {
 	}
 
 	p := &provider{
-		eventChan: make(chan *KafkaMsg, 1000),
+		eventChan:    make(chan *KafkaMsg, 1000),
 		logServerUrl: url,
-		logger: logger.With("module", "provider"),
+		logger:       logger.With("module", "provider"),
 	}
 	p.init()
 	return p
 }
 
-func (p* provider) init()  {
+func (p *provider) init() {
 
 	var err error
 	p.identity, err = system.GetIpAddr(viper.GetBool(types.FlagAppendPid))
@@ -47,7 +47,7 @@ func (p* provider) init()  {
 		panic("Invalid identity")
 	}
 
-	if err != nil{
+	if err != nil {
 		p.logger.Error("Failed to set identity", "err", err)
 		return
 	}
@@ -66,7 +66,7 @@ func (p* provider) init()  {
 	go p.heartbeatRoutine()
 }
 
-func (p* provider) AddEvent(buf log.LogBuf)  {
+func (p *provider) AddEvent(buf log.LogBuf) {
 	if !p.subscriberAlive {
 		return
 	}
@@ -76,37 +76,37 @@ func (p* provider) AddEvent(buf log.LogBuf)  {
 	p.eventChan <- msg
 }
 
-func (p* provider) eventRoutine()  {
+func (p *provider) eventRoutine() {
 	for event := range p.eventChan {
 		p.eventHandler(event)
 	}
 }
 
-func (p* provider) heartbeatInterval() time.Duration {
+func (p *provider) heartbeatInterval() time.Duration {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return time.Now().Sub(p.lastHeartbeat)
 }
 
-func (p* provider) keepAlive() {
+func (p *provider) keepAlive() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.lastHeartbeat = time.Now()
 	p.subscriberAlive = true
 }
 
-func (p* provider) expiredRoutine() {
+func (p *provider) expiredRoutine() {
 	ticker := time.NewTicker(ExpiredInterval)
 	for range ticker.C {
 		interval := p.heartbeatInterval()
 		if interval > ExpiredInterval {
 			p.subscriberAlive = false
-			p.logger.Info("Subscriber expired", "not-seen-for", interval, )
+			p.logger.Info("Subscriber expired", "not-seen-for", interval)
 		}
 	}
 }
 
-func (p* provider) heartbeatRoutine()  {
+func (p *provider) heartbeatRoutine() {
 	for {
 		key, m, err := p.kafka.recv()
 		if err != nil {
@@ -118,12 +118,12 @@ func (p* provider) heartbeatRoutine()  {
 			"value", m.Data,
 			//"topic", m.Topic,
 			"err", err,
-			)
+		)
 		p.keepAlive()
 	}
 }
 
-func (p* provider) eventHandler(msg *KafkaMsg)  {
+func (p *provider) eventHandler(msg *KafkaMsg) {
 	// DO NOT use p.logger to log anything in this method!!!
 	defer KafkaMsgPool.Put(msg)
 	p.kafka.send(p.identity, msg)

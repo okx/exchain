@@ -13,8 +13,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/client/rest"
 
 	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/spf13/cobra"
 )
 
 var (

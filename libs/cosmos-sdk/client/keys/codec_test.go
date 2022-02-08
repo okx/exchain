@@ -21,9 +21,9 @@ func getTestCases() testCases {
 		// nolint:govet
 		[]keys.KeyOutput{
 			{"A", "B", "C", "D", "E", "F", 0, nil},
-			{"A", "B", "C", "D", "E", "",0, nil},
-			{"", "B", "C", "D", "E", "",0, nil},
-			{"", "", "", "", "", "",0, nil},
+			{"A", "B", "C", "D", "E", "", 0, nil},
+			{"", "B", "C", "D", "E", "", 0, nil},
+			{"", "", "", "", "", "", 0, nil},
 		},
 		make([]keys.KeyOutput, 4),
 		[][]byte{

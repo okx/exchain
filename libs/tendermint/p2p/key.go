@@ -66,6 +66,17 @@ func LoadOrGenNodeKey(filePath string) (*NodeKey, error) {
 	return genNodeKey(filePath)
 }
 
+func LoadOrGenNodeKeyByIndex(filePath string, index int) (*NodeKey, error) {
+	if tmos.FileExists(filePath) {
+		nodeKey, err := LoadNodeKey(filePath)
+		if err != nil {
+			return nil, err
+		}
+		return nodeKey, nil
+	}
+	return genNodeKeyByIndex(filePath, index)
+}
+
 func LoadNodeKey(filePath string) (*NodeKey, error) {
 	jsonBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -81,6 +92,27 @@ func LoadNodeKey(filePath string) (*NodeKey, error) {
 
 func genNodeKey(filePath string) (*NodeKey, error) {
 	privKey := ed25519.GenPrivKey()
+	nodeKey := &NodeKey{
+		PrivKey: privKey,
+	}
+
+	jsonBytes, err := cdc.MarshalJSON(nodeKey)
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(filePath, jsonBytes, 0600)
+	if err != nil {
+		return nil, err
+	}
+	return nodeKey, nil
+}
+
+func genNodeKeyByIndex(filePath string, index int) (*NodeKey, error) {
+	if index < 0 {
+		return genNodeKey(filePath)
+	}
+
+	privKey := ed25519.GenPrivKeyFromSecret([]byte(fmt.Sprintf("secret%d", index)))
 	nodeKey := &NodeKey{
 		PrivKey: privKey,
 	}

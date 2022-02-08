@@ -43,4 +43,3 @@ func (sl *syncList) MoveToBack(e *list.Element) {
 //	defer sl.mtx.Unlock()
 //	return sl.List.Remove(e)
 //}
-

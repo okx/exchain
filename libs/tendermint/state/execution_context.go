@@ -7,19 +7,18 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-
 type prerunContext struct {
-	prerunTx bool
-	taskChan chan *executionTask
+	prerunTx       bool
+	taskChan       chan *executionTask
 	taskResultChan chan *executionTask
-	prerunTask *executionTask
-	logger log.Logger
+	prerunTask     *executionTask
+	logger         log.Logger
 }
 
 func newPrerunContex(logger log.Logger) *prerunContext {
 	return &prerunContext{
-		taskChan:           make(chan *executionTask, 1),
-		taskResultChan:     make(chan *executionTask, 1),
+		taskChan:       make(chan *executionTask, 1),
+		taskResultChan: make(chan *executionTask, 1),
 		logger:         logger,
 	}
 }
@@ -32,7 +31,6 @@ func (pc *prerunContext) checkIndex(height int64) {
 	pc.logger.Info("Not apply delta", "height", height, "prerunIndex", index)
 
 }
-
 
 func (pc *prerunContext) flushPrerunResult() {
 	for {
@@ -102,7 +100,6 @@ func (pc *prerunContext) stopPrerun(height int64) (index int64) {
 	pc.prerunTask = nil
 	return index
 }
-
 
 func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Block) {
 

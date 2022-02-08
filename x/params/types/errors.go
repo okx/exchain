@@ -9,9 +9,9 @@ import (
 // Param module codespace constants
 const (
 	DefaultCodespace string = "params"
-	BaseParamsError = 4001
+	BaseParamsError         = 4001
 
-	CodeInvalidMaxProposalNum uint32 = BaseParamsError+4
+	CodeInvalidMaxProposalNum uint32 = BaseParamsError + 4
 )
 
 // ErrInvalidMaxProposalNum returns error when the number of params to change are out of limit

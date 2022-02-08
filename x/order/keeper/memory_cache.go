@@ -8,8 +8,8 @@ import (
 // Cache stores some caches that will not be written to disk
 type Cache struct {
 	// Reset at BeginBlock
-	updatedOrderIDs  []string
-	blockMatchResult *types.BlockMatchResult
+	updatedOrderIDs    []string
+	blockMatchResult   *types.BlockMatchResult
 	handlerTxMsgResult []bitset.BitSet
 
 	// for statistic

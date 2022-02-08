@@ -81,8 +81,8 @@ type BlockedContract struct {
 
 // NewBlockContract return point of BlockedContract
 func NewBlockContract(addr sdk.AccAddress, methods ContractMethods) *BlockedContract {
-	bm := make([]ContractMethod,len(methods))
-	copy(bm,methods)
+	bm := make([]ContractMethod, len(methods))
+	copy(bm, methods)
 	return &BlockedContract{Address: addr, BlockMethods: bm}
 }
 
@@ -118,7 +118,7 @@ func (bc BlockedContract) String() string {
 //ContractMethods is the list of blocked contract method
 type ContractMethods []ContractMethod
 
-func SortContractMethods(cms []ContractMethod)  {
+func SortContractMethods(cms []ContractMethod) {
 	sort.Slice(cms, func(i, j int) bool {
 		if cms[i].Sign == cms[j].Sign {
 			return cms[i].Extra < cms[j].Extra
@@ -126,6 +126,7 @@ func SortContractMethods(cms []ContractMethod)  {
 		return cms[i].Sign < cms[j].Sign
 	})
 }
+
 // String returns ContractMethods string
 func (cms ContractMethods) String() string {
 	var b strings.Builder
@@ -174,7 +175,7 @@ func (cms ContractMethods) GetContractMethodsMap() map[string]ContractMethod {
 
 // InsertContractMethods insert the list of ContractMethod into cms.
 // if repeated,methods will cover cms
-func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (ContractMethods,error) {
+func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (ContractMethods, error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
 		methodName := methods[i].Sign
@@ -185,16 +186,16 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (Cont
 		result = append(result, methodMap[k])
 	}
 	SortContractMethods(result)
-	return result,nil
+	return result, nil
 }
 
 // DeleteContractMethodMap delete the list of ContractMethod from cms.
 // if method is not exist,it can not be panic or error
-func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (ContractMethods,error) {
+func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (ContractMethods, error) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
-		if _,ok := methodMap[methods[i].Sign]; !ok {
-			return nil,errors.New(fmt.Sprintf("method(%s) is not exist",methods[i].Sign))
+		if _, ok := methodMap[methods[i].Sign]; !ok {
+			return nil, errors.New(fmt.Sprintf("method(%s) is not exist", methods[i].Sign))
 		}
 		delete(methodMap, methods[i].Sign)
 	}
@@ -203,7 +204,7 @@ func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) (Co
 		result = append(result, methodMap[k])
 	}
 	SortContractMethods(result)
-	return result,nil
+	return result, nil
 }
 
 //ContractMethod is the blocked contract method
@@ -249,7 +250,7 @@ func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc Con
 	cmbc.cache.Add(key, bc)
 }
 
-func BlockedContractListIsEqual(t *testing.T,src, dst BlockedContractList) bool {
+func BlockedContractListIsEqual(t *testing.T, src, dst BlockedContractList) bool {
 	expectedMap := make(map[string]ContractMethods, 0)
 	actuallyMap := make(map[string]ContractMethods, 0)
 	for i := range src {
@@ -269,7 +270,7 @@ func BlockedContractListIsEqual(t *testing.T,src, dst BlockedContractList) bool 
 			return false
 		}
 		if expected != nil && v != nil {
-			require.Equal(t, expected,v)
+			require.Equal(t, expected, v)
 		}
 	}
 	return true

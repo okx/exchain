@@ -2,8 +2,8 @@ package slashing
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/staking/exported"
 	"github.com/okex/exchain/x/slashing/internal/types"
+	"github.com/okex/exchain/x/staking/exported"
 )
 
 // InitGenesis initialize default parameters

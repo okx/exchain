@@ -21,7 +21,6 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	return
 }
 
-
 func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	app := m.app
 

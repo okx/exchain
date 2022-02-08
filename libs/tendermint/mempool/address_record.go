@@ -78,6 +78,20 @@ func (ar *AddressRecord) GetAddressTxsCnt(address string) int {
 	return cnt
 }
 
+func (ar *AddressRecord) GetAddressNonce(address string) uint64 {
+	ar.mtx.RLock()
+	defer ar.mtx.RUnlock()
+	nonce := uint64(0)
+	if userMap, ok := ar.items[address]; ok {
+		for _, e := range userMap {
+			if e.Nonce > nonce {
+				nonce = e.Nonce
+			}
+		}
+	}
+	return nonce
+}
+
 func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) types.Txs {
 	ar.mtx.RLock()
 	defer ar.mtx.RUnlock()

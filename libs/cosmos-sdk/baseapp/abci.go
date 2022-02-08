@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -252,6 +253,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
 	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rflat<%d>, rflatTs<%dms>, wflat<%d>, wflatTs<%dms>",
 		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount(), time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds()))
+	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+
+	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
@@ -261,7 +266,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Commit. Use the header from this latest block.
 	app.setCheckState(header)
 
-	app.logger.Info("deliverState reset by BaseApp.Commit", "height", header.Height)
+	app.logger.Debug("deliverState reset by BaseApp.Commit", "height", header.Height)
 	// empty/reset the deliver state
 	app.deliverState = nil
 
@@ -365,6 +370,28 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
 				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
+		case "trace":
+			tmtx, err := GetABCITx(req.Data)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
+			}
+			tx, err := app.txDecoder(tmtx.Tx, tmtx.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+			}
+			block, err := GetABCIBlock(tmtx.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
+			}
+			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
+			}
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    req.Height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(res),
 			}
 
 		case "version":
