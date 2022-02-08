@@ -78,7 +78,7 @@ func ParseTimeBytes(bz []byte) (time.Time, error) {
 func NewLevelDB(name, dir string) (db dbm.DB, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("couldn't create db: %v", r)
+			err = fmt.Errorf("couldn't create db %s: %v", name, r)
 		}
 	}()
 	return dbm.NewDB(name, backend, dir), err
