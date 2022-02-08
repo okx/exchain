@@ -117,7 +117,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
-		txList := []rpctypes.Transaction{}
+		txList := make([]rpctypes.Transaction, 0, len(txsHash))
 		if len(txsHash) == 0 {
 			block.TransactionsRoot = ethtypes.EmptyRootHash
 		}
