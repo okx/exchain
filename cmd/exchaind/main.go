@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/logevents"
 	"io"
+
+	"github.com/okex/exchain/app/logevents"
 
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -88,7 +89,7 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 		dataCmd(ctx),
 		exportAppCmd(ctx),
-		iaviewerCmd(cdc),
+		iaviewerCmd(ctx, cdc),
 		subscribeCmd(cdc),
 	)
 

@@ -6,15 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/app"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	slashingtypes "github.com/okex/exchain/x/slashing"
-	tokentypes "github.com/okex/exchain/x/token/types"
-	"github.com/spf13/cobra"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
 	"log"
 	"os"
 	"path"
@@ -22,7 +13,18 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/okex/exchain/app"
+	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	slashingtypes "github.com/okex/exchain/x/slashing"
+	tokentypes "github.com/okex/exchain/x/token/types"
+	"github.com/spf13/cobra"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	acctypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -62,22 +64,22 @@ var printKeysDict = map[string]printKey{
 	KeySupply:       supplyPrintKey,
 }
 
-func iaviewerCmd(cdc *codec.Codec) *cobra.Command {
+func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iaviewer",
 		Short: "Iaviewer key-value from leveldb",
 	}
 
 	cmd.AddCommand(
-		readAll(cdc),
-		readDiff(cdc),
+		readAll(ctx, cdc),
+		readDiff(ctx, cdc),
 	)
 
 	return cmd
 
 }
 
-func readAll(cdc *codec.Codec) *cobra.Command {
+func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "read [data_dir] [height] [module]",
 		Short: "Read key-value from leveldb",
@@ -96,13 +98,13 @@ func readAll(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic("The input height is wrong")
 			}
-			IaviewerReadData(cdc, args[0], moduleList, int(height))
+			IaviewerReadData(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), moduleList, int(height))
 		},
 	}
 	return cmd
 }
 
-func readDiff(cdc *codec.Codec) *cobra.Command {
+func readDiff(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff [data_dir] [compare_data_dir] [height] [module]",
 		Short: "Read different key-value from leveldb according two paths",
@@ -120,25 +122,25 @@ func readDiff(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic("The input height is wrong")
 			}
-			IaviewerPrintDiff(cdc, args[0], args[1], moduleList, int(height))
+			IaviewerPrintDiff(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), args[1], moduleList, int(height))
 		},
 	}
 	return cmd
 }
 
 // IaviewerPrintDiff reads different key-value from leveldb according two paths
-func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modules []string, height int) {
+func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType, compareDir string, modules []string, height int) {
 	for _, module := range modules {
 		os.Remove(path.Join(dataDir, "/LOCK"))
 		os.Remove(path.Join(compareDir, "/LOCK"))
 
 		//get all key-values
-		tree, err := ReadTree(dataDir, height, []byte(module), DefaultCacheSize)
+		tree, err := ReadTree(dataDir, backend, height, []byte(module), DefaultCacheSize)
 		if err != nil {
 			log.Println("Error reading data: ", err)
 			os.Exit(1)
 		}
-		compareTree, err := ReadTree(compareDir, height, []byte(module), DefaultCacheSize)
+		compareTree, err := ReadTree(compareDir, backend, height, []byte(module), DefaultCacheSize)
 		if err != nil {
 			log.Println("Error reading compareTree data: ", err)
 			os.Exit(1)
@@ -203,12 +205,11 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 }
 
 // IaviewerReadData reads key-value from leveldb
-func IaviewerReadData(cdc *codec.Codec, dataDir string, modules []string, version int) {
+func IaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, modules []string, version int) {
 	for _, module := range modules {
-		os.Remove(path.Join(dataDir, "/LOCK"))
 		log.Println(module)
 		log.Println(fmt.Sprintf("==================================== %s begin ====================================\n", module))
-		tree, err := ReadTree(dataDir, version, []byte(module), DefaultCacheSize)
+		tree, err := ReadTree(dataDir, backend, version, []byte(module), DefaultCacheSize)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
 			os.Exit(1)
@@ -484,8 +485,8 @@ func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 // ReadTree loads an iavl tree from the directory
 // If version is 0, load latest, otherwise, load named version
 // The prefix represents which iavl tree you want to read. The iaviwer will always set a prefix.
-func ReadTree(dir string, version int, prefix []byte, cacheSize int) (*iavl.MutableTree, error) {
-	db, err := OpenDB(dir)
+func ReadTree(dir string, backend dbm.BackendType, version int, prefix []byte, cacheSize int) (*iavl.MutableTree, error) {
+	db, err := OpenDB(dir, backend)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +503,7 @@ func ReadTree(dir string, version int, prefix []byte, cacheSize int) (*iavl.Muta
 	return tree, err
 }
 
-func OpenDB(dir string) (dbm.DB, error) {
+func OpenDB(dir string, backend dbm.BackendType) (db dbm.DB, err error) {
 	switch {
 	case strings.HasSuffix(dir, ".db"):
 		dir = dir[:len(dir)-3]
@@ -516,11 +517,13 @@ func OpenDB(dir string) (dbm.DB, error) {
 	if cut == -1 {
 		return nil, fmt.Errorf("cannot cut paths on %s", dir)
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("couldn't create db: %v", r)
+		}
+	}()
 	name := dir[cut+1:]
-	db, err := dbm.NewGoLevelDB(name, dir[:cut])
-	if err != nil {
-		return nil, err
-	}
+	db = dbm.NewDB(name, backend, dir[:cut])
 	return db, nil
 }
 
