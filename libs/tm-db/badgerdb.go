@@ -54,6 +54,8 @@ func (db *BadgerDB) Get(key []byte) ([]byte, error) {
 		item, err := txn.Get(key)
 		if err == badger.ErrKeyNotFound {
 			return nil
+		} else if err == badger.ErrEmptyKey {
+			return nil
 		} else if err != nil {
 			return err
 		}
