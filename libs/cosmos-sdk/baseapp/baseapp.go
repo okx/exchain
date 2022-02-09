@@ -26,6 +26,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	smState "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
@@ -192,12 +193,12 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
-	mptCommitHandler sdk.MptCommitHandler // handler for mpt trie commit
+	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
 
-	blockTxSender map[string]sdk.SigCache
+	blockTxSender     map[string]sdk.SigCache
 	blockTxSenderLock sync.RWMutex
 
 	checkTxNum        int64
@@ -1137,7 +1138,11 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	return int64(binary.BigEndian.Uint64(data))
 }
 
-func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block)  {
+func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
+
+	if !smState.EnableParaSender {
+		return
+	}
 	go func() {
 		if len(block.Data.Txs) < 20 {
 			return
@@ -1146,22 +1151,26 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block)  {
 		app.blockTxSenderLock.Lock()
 		app.blockTxSender = make(map[string]sdk.SigCache, len(block.Data.Txs))
 		app.blockTxSenderLock.Unlock()
+		poolChan := make(chan struct{}, 64)
+		for _, tx := range block.Data.Txs {
+			poolChan <- struct{}{}
 
-		for idx, tx := range block.Data.Txs {
-			cmstx, err := app.txDecoder(tx)
-			if err != nil {
-				continue
-			}
-
-			go func(idx int, rawTx tmtypes.Tx, tx sdk.Tx) {
-				ethSignInfo := tx.GetEthSignInfo(app.checkState.ctx)
+			go func(tx []byte) {
+				defer func() {
+					<-poolChan
+				}()
+				cmstx, err := app.txDecoder(tx)
+				if err != nil {
+					return
+				}
+				ethSignInfo := cmstx.GetEthSignInfo(app.checkState.ctx)
 
 				app.blockTxSenderLock.Lock()
 				defer app.blockTxSenderLock.Unlock()
 				if ethSignInfo != nil {
-					app.blockTxSender[txhash(rawTx)] = ethSignInfo
+					app.blockTxSender[txhash(tx)] = ethSignInfo
 				}
-			}(idx, tx, cmstx)
+			}(tx)
 		}
 	}()
 }

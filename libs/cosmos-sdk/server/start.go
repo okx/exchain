@@ -200,6 +200,7 @@ which accepts a path for the resulting pprof file.
 	viper.BindPFlag(FlagEvmImportMode, cmd.Flags().Lookup(FlagEvmImportMode))
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
+	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
 
 	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
 	registerRestServerFlags(cmd)
