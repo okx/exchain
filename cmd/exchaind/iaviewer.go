@@ -36,6 +36,10 @@ import (
 	"github.com/okex/exchain/x/distribution/types"
 )
 
+type (
+	formatKeyValue func(cdc *codec.Codec, key []byte, value []byte) string
+)
+
 const (
 	KeyDistribution = "s/k:distribution/"
 	KeyGov          = "s/k:gov/"
@@ -52,7 +56,7 @@ const (
 	DefaultCacheSize int = 100000
 )
 
-var printKeysDict = map[string]printKey{
+var printKeysDict = map[string]formatKeyValue{
 	KeyEvm:          evmPrintKey,
 	KeyAcc:          accPrintKey,
 	KeyParams:       paramsPrintKey,
@@ -280,14 +284,11 @@ func getKVs(tree *iavl.MutableTree, dataMap map[string][32]byte, wg *sync.WaitGr
 	wg.Done()
 }
 
-type (
-	printKey func(cdc *codec.Codec, key []byte, value []byte)
-)
-
 func printTree(cdc *codec.Codec, modulePrefixKey string, tree *iavl.MutableTree) {
 	tree.Iterate(func(key []byte, value []byte) bool {
 		if impl, exit := printKeysDict[modulePrefixKey]; exit {
-			impl(cdc, key, value)
+			kvFormat := impl(cdc, key, value)
+			fmt.Println(kvFormat)
 		} else {
 			printKey := parseWeaveKey(key)
 			digest := hex.EncodeToString(value)
@@ -300,7 +301,8 @@ func printTree(cdc *codec.Codec, modulePrefixKey string, tree *iavl.MutableTree)
 func printByKey(cdc *codec.Codec, tree *iavl.MutableTree, module string, key []byte) {
 	_, value := tree.Get(key)
 	if impl, exit := printKeysDict[module]; exit {
-		impl(cdc, key, value)
+		formatKV := impl(cdc, key, value)
+		fmt.Println(formatKV)
 	} else {
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
@@ -308,17 +310,16 @@ func printByKey(cdc *codec.Codec, tree *iavl.MutableTree, module string, key []b
 	}
 }
 
-func supplyPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func supplyPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case supplytypes.SupplyKey[0]:
 		var supplyAmount sdk.Dec
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &supplyAmount)
-		log.Println(fmt.Sprintf("tokenSymbol:%s:info:%s\n", string(key[1:]), supplyAmount.String()))
-		return
+		return fmt.Sprintf("tokenSymbol:%s:info:%s\n", string(key[1:]), supplyAmount.String())
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
@@ -327,208 +328,176 @@ type MinterCustom struct {
 	MintedPerBlock    sdk.DecCoins `json:"minted_per_block" yaml:"minted_per_block"`         // record the MintedPerBlock per block in this year
 }
 
-func mintPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func mintPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case minttypes.MinterKey[0]:
 		var minter MinterCustom
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &minter)
-		log.Println(fmt.Sprintf("minter:%v\n", minter))
-		return
+		return fmt.Sprintf("minter:%v\n", minter)
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case tokentypes.TokenKey[0]:
 		var token tokentypes.Token
 		cdc.MustUnmarshalBinaryBare(value, &token)
-		log.Println(fmt.Sprintf("tokenName:%s:info:%s\n", string(key[1:]), token.String()))
-		return
+		return fmt.Sprintf("tokenName:%s:info:%s\n", string(key[1:]), token.String())
 	case tokentypes.TokenNumberKey[0]:
 		var tokenNumber uint64
 		cdc.MustUnmarshalBinaryBare(value, &tokenNumber)
-		log.Println(fmt.Sprintf("tokenNumber:%x\n", tokenNumber))
-		return
+		return fmt.Sprintf("tokenNumber:%x\n", tokenNumber)
 	case tokentypes.PrefixUserTokenKey[0]:
 		var token tokentypes.Token
 		cdc.MustUnmarshalBinaryBare(value, &token)
 		//address-token:tokenInfo
-		log.Println(fmt.Sprintf("%s-%s:token:%s\n", hex.EncodeToString(key[1:21]), string(key[21:]), token.String()))
-		return
-
+		return fmt.Sprintf("%s-%s:token:%s\n", hex.EncodeToString(key[1:21]), string(key[21:]), token.String())
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func mainPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func mainPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	if bytes.Equal(key, []byte("consensus_params")) {
-		log.Println(fmt.Sprintf("consensusParams:%s\n", hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("consensusParams:%s\n", hex.EncodeToString(value))
 	}
 	printKey := parseWeaveKey(key)
 	digest := hex.EncodeToString(value)
-	log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+	return fmt.Sprintf("%s:%s\n", printKey, digest)
 }
 
-func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case slashingtypes.ValidatorSigningInfoKey[0]:
 		var signingInfo slashingtypes.ValidatorSigningInfo
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &signingInfo)
-		log.Println(fmt.Sprintf("validatorAddr:%s:signingInfo:%s\n", hex.EncodeToString(key[1:]), signingInfo.String()))
-		return
+		return fmt.Sprintf("validatorAddr:%s:signingInfo:%s\n", hex.EncodeToString(key[1:]), signingInfo.String())
 	case slashingtypes.ValidatorMissedBlockBitArrayKey[0]:
-		log.Println(fmt.Sprintf("validatorMissedBlockAddr:%s:index:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("validatorMissedBlockAddr:%s:index:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case slashingtypes.AddrPubkeyRelationKey[0]:
-		log.Println(fmt.Sprintf("pubkeyAddr:%s:pubkey:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("pubkeyAddr:%s:pubkey:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case distypes.FeePoolKey[0]:
 		var feePool distypes.FeePool
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &feePool)
-		log.Println(fmt.Sprintf("feePool:%v\n", feePool))
-		return
+		return fmt.Sprintf("feePool:%v\n", feePool)
 	case distypes.ProposerKey[0]:
-		log.Println(fmt.Sprintf("proposerKey:%s\n", hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("proposerKey:%s\n", hex.EncodeToString(value))
 	case distypes.DelegatorWithdrawAddrPrefix[0]:
-		log.Println(fmt.Sprintf("delegatorWithdrawAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("delegatorWithdrawAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case distypes.ValidatorAccumulatedCommissionPrefix[0]:
 		var commission types.ValidatorAccumulatedCommission
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &commission)
-		log.Println(fmt.Sprintf("validatorAccumulatedAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), commission.String()))
-		return
+		return fmt.Sprintf("validatorAccumulatedAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), commission.String())
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func govPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func govPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case govtypes.ProposalsKeyPrefix[0]:
-		log.Println(fmt.Sprintf("proposalId:%x;power:%x\n", binary.BigEndian.Uint64(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("proposalId:%x;power:%x\n", binary.BigEndian.Uint64(key[1:]), hex.EncodeToString(value))
 	case govtypes.ActiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		log.Println(fmt.Sprintf("activeProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value)))
-		return
+		return fmt.Sprintf("activeProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value))
 	case govtypes.InactiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		log.Println(fmt.Sprintf("inactiveProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value)))
-		return
+		return fmt.Sprintf("inactiveProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value))
 	case govtypes.ProposalIDKey[0]:
-		log.Println(fmt.Sprintf("proposalId:%x\n", hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("proposalId:%x\n", hex.EncodeToString(value))
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case stakingtypes.LastValidatorPowerKey[0]:
 		var power int64
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
-		log.Println(fmt.Sprintf("validatorAddress:%s;power:%x\n", hex.EncodeToString(key[1:]), power))
-		return
+		return fmt.Sprintf("validatorAddress:%s;power:%x\n", hex.EncodeToString(key[1:]), power)
 	case stakingtypes.LastTotalPowerKey[0]:
 		var power sdk.Int
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
-		log.Println(fmt.Sprintf("lastTotolValidatorPower:%s\n", power.String()))
-		return
+		return fmt.Sprintf("lastTotolValidatorPower:%s\n", power.String())
 	case stakingtypes.ValidatorsKey[0]:
 		var validator stakingtypes.Validator
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &validator)
-		log.Println(fmt.Sprintf("validator:%s;info:%s\n", hex.EncodeToString(key[1:]), validator))
-		return
+		return fmt.Sprintf("validator:%s;info:%s\n", hex.EncodeToString(key[1:]), validator)
 	case stakingtypes.ValidatorsByConsAddrKey[0]:
-		log.Println(fmt.Sprintf("validatorConsAddrKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("validatorConsAddrKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case stakingtypes.ValidatorsByPowerIndexKey[0]:
-		log.Println(fmt.Sprintf("validatorPowerIndexKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("validatorPowerIndexKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) {
-	log.Println(fmt.Sprintf("%s:%s\n", string(key), string(value)))
+func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
+	return fmt.Sprintf("%s:%s\n", string(key), string(value))
 }
 
-func accPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func accPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	if key[0] == acctypes.AddressStoreKeyPrefix[0] {
 		var acc exported.Account
 		bz := value
 		cdc.MustUnmarshalBinaryBare(bz, &acc)
-		log.Println(fmt.Sprintf("adress:%s;account:%s\n", hex.EncodeToString(key[1:]), acc.String()))
-		return
+		return fmt.Sprintf("adress:%s;account:%s\n", hex.EncodeToString(key[1:]), acc.String())
 	} else if bytes.Equal(key, acctypes.GlobalAccountNumberKey) {
-		log.Println(fmt.Sprintf("%s:%s\n", string(key), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("%s:%s\n", string(key), hex.EncodeToString(value))
 	} else {
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
-func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) {
+func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case evmtypes.KeyPrefixBlockHash[0]:
-		log.Println(fmt.Sprintf("blockHash:%s;height:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("blockHash:%s;height:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case evmtypes.KeyPrefixBloom[0]:
-		log.Println(fmt.Sprintf("bloomHeight:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("bloomHeight:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case evmtypes.KeyPrefixCode[0]:
-		log.Println(fmt.Sprintf("code:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("code:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case evmtypes.KeyPrefixStorage[0]:
-		log.Println(fmt.Sprintf("stroageHash:%s;keyHash:%s;data:%s\n", hex.EncodeToString(key[1:40]), hex.EncodeToString(key[41:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("stroageHash:%s;keyHash:%s;data:%s\n", hex.EncodeToString(key[1:40]), hex.EncodeToString(key[41:]), hex.EncodeToString(value))
 	case evmtypes.KeyPrefixChainConfig[0]:
 		bz := value
 		var config evmtypes.ChainConfig
 		cdc.MustUnmarshalBinaryBare(bz, &config)
-		log.Println(fmt.Sprintf("chainCofig:%s\n", config.String()))
-		return
+		return fmt.Sprintf("chainCofig:%s\n", config.String())
 	case evmtypes.KeyPrefixHeightHash[0]:
-		log.Println(fmt.Sprintf("height:%s;blockHash:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
-		return
+		return fmt.Sprintf("height:%s;blockHash:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
-		log.Println(fmt.Sprintf("whiteAddress:%s\n", hex.EncodeToString(key[1:])))
-		return
+		return fmt.Sprintf("whiteAddress:%s\n", hex.EncodeToString(key[1:]))
 	case evmtypes.KeyPrefixContractBlockedList[0]:
-		log.Println(fmt.Sprintf("blockedAddres:%s\n", hex.EncodeToString(key[1:])))
-		return
+		return fmt.Sprintf("blockedAddres:%s\n", hex.EncodeToString(key[1:]))
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+		return fmt.Sprintf("%s:%s\n", printKey, digest)
 	}
 }
 
