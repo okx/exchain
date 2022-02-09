@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -74,8 +75,30 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd.AddCommand(
 		readAll(ctx, cdc),
 		readDiff(ctx, cdc),
+		iaviewerListModulesCmd(),
 	)
 	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	return cmd
+}
+
+func iaviewerListModulesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list-modules",
+		Short: "List all module names",
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleKeys := make([]string, 0, len(app.ModuleBasics))
+			for moduleKey := range app.ModuleBasics {
+				moduleKeys = append(moduleKeys, moduleKey)
+			}
+			sort.Strings(moduleKeys)
+			fmt.Printf("there are %d modules:\n\n", len(moduleKeys))
+			for _, key := range moduleKeys {
+				fmt.Print("\t")
+				fmt.Println(key)
+			}
+			fmt.Println()
+		},
+	}
 	return cmd
 }
 
