@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
@@ -74,9 +75,8 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		readAll(ctx, cdc),
 		readDiff(ctx, cdc),
 	)
-
+	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 	return cmd
-
 }
 
 func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
@@ -98,7 +98,14 @@ func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic("The input height is wrong")
 			}
-			IaviewerReadData(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), moduleList, int(height))
+
+			dbBackend := dbm.GoLevelDBBackend
+			dbBackendStr := viper.GetString(flagDBBackend)
+			if dbBackendStr != "" {
+				dbBackend = dbm.BackendType(dbBackendStr)
+			}
+
+			IaviewerReadData(cdc, args[0], dbBackend, moduleList, int(height))
 		},
 	}
 	return cmd
@@ -130,17 +137,28 @@ func readDiff(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 // IaviewerPrintDiff reads different key-value from leveldb according two paths
 func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType, compareDir string, modules []string, height int) {
-	for _, module := range modules {
-		os.Remove(path.Join(dataDir, "/LOCK"))
-		os.Remove(path.Join(compareDir, "/LOCK"))
+	if dataDir == compareDir {
+		log.Fatal("data_dit and compare_data_dir should not be the same")
+	}
+	db, err := OpenDB(dataDir, backend)
+	defer db.Close()
+	if err != nil {
+		log.Fatal("Error opening DB: ", err)
+	}
+	compareDB, err := OpenDB(compareDir, backend)
+	defer compareDB.Close()
+	if err != nil {
+		log.Fatal("Error opening DB: ", err)
+	}
 
+	for _, module := range modules {
 		//get all key-values
-		tree, err := ReadTree(dataDir, backend, height, []byte(module), DefaultCacheSize)
+		tree, err := ReadTree(db, height, []byte(module), DefaultCacheSize)
 		if err != nil {
 			log.Println("Error reading data: ", err)
 			os.Exit(1)
 		}
-		compareTree, err := ReadTree(compareDir, backend, height, []byte(module), DefaultCacheSize)
+		compareTree, err := ReadTree(compareDB, height, []byte(module), DefaultCacheSize)
 		if err != nil {
 			log.Println("Error reading compareTree data: ", err)
 			os.Exit(1)
@@ -206,10 +224,16 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 
 // IaviewerReadData reads key-value from leveldb
 func IaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, modules []string, version int) {
+	db, err := OpenDB(dataDir, backend)
+	defer db.Close()
+	if err != nil {
+		log.Fatal("Error opening DB: ", err)
+	}
+
 	for _, module := range modules {
 		log.Println(module)
 		log.Println(fmt.Sprintf("==================================== %s begin ====================================\n", module))
-		tree, err := ReadTree(dataDir, backend, version, []byte(module), DefaultCacheSize)
+		tree, err := ReadTree(db, version, []byte(module), DefaultCacheSize)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
 			os.Exit(1)
@@ -485,11 +509,7 @@ func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 // ReadTree loads an iavl tree from the directory
 // If version is 0, load latest, otherwise, load named version
 // The prefix represents which iavl tree you want to read. The iaviwer will always set a prefix.
-func ReadTree(dir string, backend dbm.BackendType, version int, prefix []byte, cacheSize int) (*iavl.MutableTree, error) {
-	db, err := OpenDB(dir, backend)
-	if err != nil {
-		return nil, err
-	}
+func ReadTree(db dbm.DB, version int, prefix []byte, cacheSize int) (*iavl.MutableTree, error) {
 	if len(prefix) != 0 {
 		db = dbm.NewPrefixDB(db, prefix)
 	}
