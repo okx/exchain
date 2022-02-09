@@ -69,7 +69,7 @@ var printKeysDict = map[string]printKey{
 func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iaviewer",
-		Short: "Iaviewer key-value from leveldb",
+		Short: "Read iavl tree data from db",
 	}
 
 	cmd.AddCommand(
