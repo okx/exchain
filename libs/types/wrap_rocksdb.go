@@ -5,7 +5,6 @@ package types
 
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/tecbot/gorocksdb"
 	db "github.com/tendermint/tm-db"
 )
@@ -14,7 +13,7 @@ func init() {
 	dbCreator := func(name string, dir string) (ethdb.KeyValueStore, error) {
 		return NewWrapRocksDB(name, dir)
 	}
-	types.registerDBCreator(RocksDBBackend, dbCreator, false)
+	registerDBCreator(RocksDBBackend, dbCreator, false)
 }
 
 type WrapRocksDB struct {
