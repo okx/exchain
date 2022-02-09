@@ -42,10 +42,6 @@ type remoteClientCreator struct {
 	mustConnect bool
 }
 
-
-
-
-
 //-----------------------------------------------------------------
 // default
 

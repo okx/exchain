@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestAppModule_Smoke(t *testing.T) {

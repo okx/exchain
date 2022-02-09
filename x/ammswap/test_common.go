@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-
-
 func NewTestSwapTokenPairWithInitLiquidity(t *testing.T, ctx sdk.Context, k swapkeeper.Keeper,
 	baseToken, quoteToken sdk.DecCoin, addrList []sdk.AccAddress) SwapTokenPair {
 	handler := NewHandler(k)
@@ -24,16 +22,14 @@ func NewTestSwapTokenPairWithInitLiquidity(t *testing.T, ctx sdk.Context, k swap
 	require.Nil(t, err)
 	for _, addr := range addrList {
 		baseToken1 := sdk.NewDecCoinFromDec(baseToken.Denom, baseToken.Amount.Mul(sdk.NewDec(100)))
-		quoteToken1:= sdk.NewDecCoinFromDec(quoteToken.Denom, quoteToken.Amount.Mul(sdk.NewDec(100)))
+		quoteToken1 := sdk.NewDecCoinFromDec(quoteToken.Denom, quoteToken.Amount.Mul(sdk.NewDec(100)))
 		addLiquidityMsg := types.NewMsgAddLiquidity(sdk.NewDec(0), baseToken1, quoteToken1, deadLine, addr)
 		_, err = handler(ctx, addLiquidityMsg)
 		require.Nil(t, err)
 	}
-
 
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, types.GetSwapTokenPairName(baseToken.Denom, quoteToken.Denom))
 	require.Nil(t, err)
 
 	return swapTokenPair
 }
-

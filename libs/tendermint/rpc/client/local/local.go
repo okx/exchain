@@ -122,6 +122,10 @@ func (c *Local) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return core.GetAddressList()
 }
 
+func (c *Local) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+	return core.GetPendingNonce(address)
+}
+
 func (c *Local) NetInfo() (*ctypes.ResultNetInfo, error) {
 	return core.NetInfo(c.ctx)
 }

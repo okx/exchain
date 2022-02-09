@@ -3,11 +3,11 @@ package context
 import (
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmlite "github.com/okex/exchain/libs/tendermint/lite"
 	tmliteproxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	"github.com/pkg/errors"
 )
 
 const (

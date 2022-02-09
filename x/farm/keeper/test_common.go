@@ -17,6 +17,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	swap "github.com/okex/exchain/x/ammswap"
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
 	evm "github.com/okex/exchain/x/evm/keeper"
@@ -28,7 +29,6 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (

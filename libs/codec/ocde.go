@@ -6,20 +6,21 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"sync"
 )
+
 type OCDC_TYPE int
 
 const (
-	RLP  OCDC_TYPE = iota
+	RLP OCDC_TYPE = iota
 	JSON
 	AMINO
 )
 
 var (
-	once sync.Once
+	once     sync.Once
 	ocdcType OCDC_TYPE = 0
 )
 
-func InitOcdc(cdcType OCDC_TYPE)  {
+func InitOcdc(cdcType OCDC_TYPE) {
 	once.Do(func() {
 		ocdcType = cdcType
 	})
@@ -46,4 +47,3 @@ func Decode(b []byte, val interface{}) error {
 	}
 	return fmt.Errorf("unknown ocdc type")
 }
-

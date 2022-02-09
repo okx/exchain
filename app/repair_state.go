@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 	types2 "github.com/okex/exchain/libs/types"
 	"io"
 	"io/ioutil"
@@ -16,11 +15,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
-	tmnode "github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
@@ -36,6 +35,7 @@ const (
 	applicationDB = "application"
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
+	txIndexDB     = "tx_index"
 
 	FlagStartHeight       string = "start-height"
 	FlagEnableRepairState string = "enable-repair-state"
@@ -168,7 +168,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	var err error
 	// repair state
 	eventBus := types.NewEventBus()
-	err = startEventBusAndIndexerService(ctx.Config, tmnode.DefaultDBProvider, eventBus, ctx.Logger)
+	err = startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
@@ -197,8 +197,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, dbProvider tmnode.DBProvider,
-	eventBus *types.EventBus, logger tmlog.Logger) error {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) error {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
 		return err
@@ -207,7 +206,7 @@ func startEventBusAndIndexerService(config *cfg.Config, dbProvider tmnode.DBProv
 	var txIndexer txindex.TxIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
-		store, err := dbProvider(&tmnode.DBContext{ID: "tx_index", Config: config})
+		store, err := openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return err
 		}

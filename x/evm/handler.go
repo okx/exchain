@@ -155,6 +155,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
+		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
 	if ctx.IsCheckTx() {
 		st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
@@ -229,6 +231,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
+		if ctx.IsTraceTxLog() {
+			// the result was replaced to trace logs when trace tx even if err != nil
+			executionResult.Result.Data = executionResult.TraceLogs
+			return executionResult.Result, nil
+		}
 		return nil, err
 	}
 
@@ -281,13 +288,17 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 	StopTxLog(bam.TransitionDb)
+	if ctx.IsTraceTxLog() {
+		// the result was replaced to trace logs when trace tx
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 
-	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() && !ctx.IsTraceTx() {
 		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
 
@@ -310,6 +321,8 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
+		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
 	if ctx.IsCheckTx() {
 		st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
@@ -336,6 +349,11 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if err != nil {
+		if ctx.IsTraceTxLog() {
+			// the result was replaced to trace logs when trace tx even if err != nil
+			executionResult.Result.Data = executionResult.TraceLogs
+			return executionResult.Result, nil
+		}
 		return nil, err
 	}
 
@@ -377,5 +395,10 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
+
+	if ctx.IsTraceTxLog() {
+		// the result was replaced to trace logs when trace tx
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }

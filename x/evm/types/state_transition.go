@@ -28,11 +28,13 @@ type StateTransition struct {
 	Amount       *big.Int
 	Payload      []byte
 
-	ChainID  *big.Int
-	Csdb     *CommitStateDB
-	TxHash   *common.Hash
-	Sender   common.Address
-	Simulate bool // i.e CheckTx execution
+	ChainID    *big.Int
+	Csdb       *CommitStateDB
+	TxHash     *common.Hash
+	Sender     common.Address
+	Simulate   bool // i.e CheckTx execution
+	TraceTx    bool // reexcute tx or its predesessors
+	TraceTxLog bool // trace tx for its evm logs (predesessors are set to false)
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -45,10 +47,11 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs    []*ethtypes.Log
-	Bloom   *big.Int
-	Result  *sdk.Result
-	GasInfo GasInfo
+	Logs      []*ethtypes.Log
+	Bloom     *big.Int
+	Result    *sdk.Result
+	GasInfo   GasInfo
+	TraceLogs []byte
 }
 
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
@@ -161,18 +164,22 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	var tracer vm.Tracer
-	tracer = vm.NewStructLogger(evmLogConfig)
-
 	to := ""
 	if st.Recipient != nil {
 		to = st.Recipient.String()
 	}
 	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
+	var tracer vm.Tracer
+	if st.TraceTxLog || enableDebug {
+		tracer = vm.NewStructLogger(evmLogConfig)
+	} else {
+		tracer = NewNoOpTracer()
+	}
+
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
-		Debug:            enableDebug,
+		Debug:            st.TraceTxLog || enableDebug,
 		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
@@ -253,7 +260,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 
 	defer func() {
-		if !st.Simulate && enableDebug {
+		if !st.Simulate && enableDebug && !st.TraceTx {
 			result := &core.ExecutionResult{
 				UsedGas:    gasConsumed,
 				Err:        err,
@@ -262,7 +269,27 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			saveTraceResult(ctx, tracer, result)
 		}
 	}()
-
+	// return trace log if tracetxlog no matter err = nil  or not nil
+	defer func() {
+		var traceLogs []byte
+		if st.TraceTxLog {
+			result := &core.ExecutionResult{
+				UsedGas:    gasConsumed,
+				Err:        err,
+				ReturnData: ret,
+			}
+			traceLogs, err = GetTracerResult(tracer, result)
+			if err != nil {
+				traceLogs = []byte(err.Error())
+			}
+			if exeRes == nil {
+				exeRes = &ExecutionResult{
+					Result: &sdk.Result{},
+				}
+			}
+			exeRes.TraceLogs = traceLogs
+		}
+	}()
 	if err != nil {
 		if !st.Simulate {
 			st.Csdb.RevertToSnapshot(preSSId)
@@ -318,7 +345,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	resultLog := fmt.Sprintf(
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
-
 	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -332,7 +358,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			GasRefunded: leftOverGas,
 		},
 	}
-
 	return
 }
 

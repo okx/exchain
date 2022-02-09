@@ -20,10 +20,10 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func (suite *EvmTestSuite) TestExportImport() {
@@ -214,7 +214,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 					},
 				}
 				suite.Require().Equal(2, len(bcl))
-				ok := types.BlockedContractListIsEqual(suite.T(),bcl, expected)
+				ok := types.BlockedContractListIsEqual(suite.T(), bcl, expected)
 				suite.Require().True(ok)
 			},
 			false,
@@ -688,7 +688,7 @@ func (suite *EvmTestSuite) TestExport_files1() {
 		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
 		suite.Require().Equal(expectedAddrList, exportState.ContractDeploymentWhitelist)
 		suite.Require().Equal(expectedAddrList, exportState.ContractBlockedList)
-		suite.Require().True(types.BlockedContractListIsEqual(suite.T(),exportState.ContractMethodBlockedList, expectedContractMethodBlockedList))
+		suite.Require().True(types.BlockedContractListIsEqual(suite.T(), exportState.ContractMethodBlockedList, expectedContractMethodBlockedList))
 	})
 	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
 	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))

@@ -2,9 +2,9 @@ package txpool
 
 import (
 	"fmt"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -14,7 +14,7 @@ import (
 type PublicTxPoolAPI struct {
 	clientCtx clientcontext.CLIContext
 	logger    log.Logger
-	backend backend.Backend
+	backend   backend.Backend
 }
 
 // NewPublicTxPoolAPI creates a new tx pool service that gives information about the transaction pool.
@@ -34,7 +34,7 @@ func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*rpctypes.T
 		s.logger.Error("txpool.Content addressList err: ", err)
 	}
 	content := map[string]map[string]map[string]*rpctypes.Transaction{
-		"queued":  make(map[string]map[string]*rpctypes.Transaction),
+		"queued": make(map[string]map[string]*rpctypes.Transaction),
 	}
 
 	for _, address := range addressList {
@@ -62,7 +62,7 @@ func (s *PublicTxPoolAPI) Status() map[string]hexutil.Uint {
 		return nil
 	}
 	return map[string]hexutil.Uint{
-		"queued":  hexutil.Uint(numRes),
+		"queued": hexutil.Uint(numRes),
 	}
 }
 
@@ -74,7 +74,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 		s.logger.Error("txpool.Inspect addressList err: ", err)
 	}
 	content := map[string]map[string]map[string]string{
-		"queued":  make(map[string]map[string]string),
+		"queued": make(map[string]map[string]string),
 	}
 	for _, address := range addressList {
 		txs, err := s.backend.UserPendingTransactions(address, -1)

@@ -29,6 +29,8 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeReCheck:
 		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
+	case runTxModeTrace:
+		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case runTxModeDeliver:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
@@ -64,6 +66,11 @@ type modeHandlerRecheck struct {
 
 type modeHandlerSimulate struct {
 	*modeHandlerBase
+}
+
+//modeHandlerTrace derived from modeHandlerDeliver
+type modeHandlerTrace struct {
+	*modeHandlerDeliver
 }
 
 func (m *modeHandlerBase) getMode() runTxMode {

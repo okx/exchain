@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
@@ -592,6 +593,12 @@ func PreRun(ctx *server.Context) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
+	// check start flag conflicts
+	err := sanity.CheckStart()
+	if err != nil {
+		return err
+	}
+
 	// set config by node mode
 	setNodeConfig(ctx)
 
@@ -599,7 +606,7 @@ func PreRun(ctx *server.Context) error {
 	appconfig.PprofDownload(ctx)
 
 	// pruning options
-	_, err := server.GetPruningOptionsFromFlags()
+	_, err = server.GetPruningOptionsFromFlags()
 	if err != nil {
 		return err
 	}

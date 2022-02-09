@@ -36,7 +36,7 @@ var (
 	// commit
 	Commit = ""
 	// build tags
-	BuildTags = ""
+	BuildTags  = ""
 	CosmosSDK  = ""
 	Tendermint = ""
 )
@@ -51,8 +51,8 @@ type Info struct {
 	BuildTags  string     `json:"build_tags" yaml:"build_tags"`
 	GoVersion  string     `json:"go" yaml:"go"`
 	BuildDeps  []buildDep `json:"build_deps" yaml:"build_deps"`
-	CosmosSDK  string `json:"cosmos_sdk" yaml:"cosmos_sdk"`
-	Tendermint string `json:"tendermint" yaml:"tendermint"`
+	CosmosSDK  string     `json:"cosmos_sdk" yaml:"cosmos_sdk"`
+	Tendermint string     `json:"tendermint" yaml:"tendermint"`
 }
 
 func NewInfo() Info {
@@ -76,7 +76,7 @@ git commit: %s
 build tags: %s
 cosmos-sdk: %s
 tendermint: %s
-%s`,v.Name, v.Version, v.GitCommit, v.BuildTags, v.CosmosSDK, v.Tendermint, v.GoVersion)
+%s`, v.Name, v.Version, v.GitCommit, v.BuildTags, v.CosmosSDK, v.Tendermint, v.GoVersion)
 }
 
 func depsFromBuildInfo() (deps []buildDep) {

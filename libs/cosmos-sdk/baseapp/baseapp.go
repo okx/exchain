@@ -25,6 +25,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
@@ -36,6 +37,7 @@ const (
 	runTxModeSimulate                        // Simulate a transaction
 	runTxModeDeliver                         // Deliver a transaction
 	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
+	runTxModeTrace                           // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -198,7 +200,7 @@ type BaseApp struct { // nolint: maligned
 	blockTxSender map[string]sdk.SigCache
 	blockTxSenderLock sync.RWMutex
 
-	checkTxNum int64
+	checkTxNum        int64
 	wrappedCheckTxNum int64
 }
 
@@ -226,7 +228,7 @@ func NewBaseApp(
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
-		txDecoder: txDecoder,
+		txDecoder:        txDecoder,
 	}
 
 	for _, option := range options {
@@ -528,6 +530,20 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	}
 }
 
+// setTraceState sets the BaseApp's traceState with a cache-wrapped multi-store
+// (i.e. a CacheMultiStore) and a new Context with the cache-wrapped multi-store,
+// and provided header. It is set at the start of trace tx
+func (app *BaseApp) newTraceState(header abci.Header, height int64) (*state, error) {
+	ms, err := app.cms.CacheMultiStoreWithVersion(height)
+	if err != nil {
+		return nil, err
+	}
+	return &state{
+		ms:  ms,
+		ctx: sdk.NewContext(ms, header, false, app.logger),
+	}, nil
+}
+
 // setConsensusParams memoizes the consensus params.
 func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
@@ -658,24 +674,48 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	return ctx, nil
 }
-
-func GetABCIHeader(height int64) (abci.Header, error) {
+func GetABCITx(hash []byte) (*ctypes.ResultTx, error) {
 	laddr := viper.GetString("rpc.laddr")
 	splits := strings.Split(laddr, ":")
 	if len(splits) < 2 {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
 	}
 
 	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
 	if err != nil {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
+	}
+
+	tx, err := rpcCli.Tx(hash, false)
+	if err != nil {
+		return nil, fmt.Errorf("get ABCI tx failed!")
+	}
+
+	return tx, nil
+}
+func GetABCIBlock(height int64) (*ctypes.ResultBlock, error) {
+	laddr := viper.GetString("rpc.laddr")
+	splits := strings.Split(laddr, ":")
+	if len(splits) < 2 {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+
+	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
+	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
 	}
 
 	block, err := rpcCli.Block(&height)
 	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+	return block, nil
+}
+func GetABCIHeader(height int64) (abci.Header, error) {
+	block, err := GetABCIBlock(height)
+	if err != nil {
 		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
 	}
-
 	return blockHeaderToABCIHeader(block.Block.Header), nil
 }
 

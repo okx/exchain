@@ -43,7 +43,7 @@ type Subscriber interface {
 var subscriber Subscriber
 var once sync.Once
 
-func SetSubscriber(s Subscriber)  {
+func SetSubscriber(s Subscriber) {
 	once.Do(func() {
 		subscriber = s
 	})
@@ -63,7 +63,6 @@ type tmfmtLogger struct {
 func NewTMFmtLogger(w io.Writer) kitlog.Logger {
 	return &tmfmtLogger{w}
 }
-
 
 func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	enc := tmfmtEncoderPool.Get().(*tmfmtEncoder)
@@ -148,7 +147,6 @@ KeyvalueLoop:
 	if err := enc.EndRecord(); err != nil {
 		return err
 	}
-
 
 	result := enc.buf.Bytes()
 	//result := []byte(enc.buf.String())

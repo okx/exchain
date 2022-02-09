@@ -39,17 +39,28 @@ func (app *BaseApp) runTx(mode runTxMode,
 
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
+	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	return
+}
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
-		return info, err
+		return err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	//info with cache saved in app to load predesessor tx state
+	if mode != runTxModeTrace {
+		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
+		//to prevent modifying the deliver state
+		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
+		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	}
 	for _, addr := range from {
 		// cache from if exist
 		if addr != "" {
@@ -68,7 +79,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
-		return info, err
+		return err
 	}
 
 	defer func() {
@@ -89,7 +100,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		return info, err
+		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
@@ -98,7 +109,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			return info, err
+			return err
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -106,8 +117,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	app.pin(RunMsgs, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsgs, false, mode)
-
-	return info, err
+	return err
 }
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {

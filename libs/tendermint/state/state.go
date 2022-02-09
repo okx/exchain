@@ -16,7 +16,6 @@ var (
 	stateKey = []byte("stateKey")
 )
 
-
 //-----------------------------------------------------------------------------
 
 // Version is for versioning the State.

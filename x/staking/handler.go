@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/staking/keeper"
-	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/staking/keeper"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // NewHandler manages all tx treatment

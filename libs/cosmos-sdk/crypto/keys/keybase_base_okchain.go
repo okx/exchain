@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-
 func encode(derivedPriv [32]byte) string {
 	src := make([]byte, len(derivedPriv))
 	for idx, m := range derivedPriv {

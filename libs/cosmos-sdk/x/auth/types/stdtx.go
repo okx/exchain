@@ -440,7 +440,6 @@ func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	}
 }
 
-
 func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
 	return rlp.EncodeToBytes(tx)
 }

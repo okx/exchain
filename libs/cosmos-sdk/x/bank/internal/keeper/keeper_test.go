@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"

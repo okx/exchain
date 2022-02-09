@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/stretchr/testify/assert"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )

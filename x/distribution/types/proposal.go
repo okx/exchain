@@ -27,7 +27,7 @@ type CommunityPoolSpendProposal struct {
 	Title       string         `json:"title" yaml:"title"`
 	Description string         `json:"description" yaml:"description"`
 	Recipient   sdk.AccAddress `json:"recipient" yaml:"recipient"`
-	Amount      sdk.SysCoins      `json:"amount" yaml:"amount"`
+	Amount      sdk.SysCoins   `json:"amount" yaml:"amount"`
 }
 
 // NewCommunityPoolSpendProposal creates a new community pool spned proposal.

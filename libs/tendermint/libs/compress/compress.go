@@ -17,14 +17,14 @@ type compressBroker interface {
 }
 
 var (
-	once sync.Once
-	zlibCompressBroker compressBroker
+	once                sync.Once
+	zlibCompressBroker  compressBroker
 	flateCompressBroker compressBroker
-	gzipCompressBroker compressBroker
+	gzipCompressBroker  compressBroker
 	dummyCompressBroker compressBroker
 )
 
-func init()  {
+func init() {
 	once.Do(func() {
 		zlibCompressBroker = &Zlib{}
 		flateCompressBroker = &Flate{}
@@ -62,18 +62,19 @@ func getCompressBroker(compressType int) compressBroker {
 	case 3:
 		broker = gzipCompressBroker
 		break
-	 default:
-		 broker = dummyCompressBroker
+	default:
+		broker = dummyCompressBroker
 	}
 	return broker
 }
 
 type dummy struct {
 }
-func (z *dummy) defaultCompress(src []byte) ([]byte, error) {return src, nil}
-func (z *dummy) bestCompress(src []byte) ([]byte, error) {return src, nil}
-func (z *dummy) fastCompress(src []byte) ([]byte, error) {return src, nil}
-func (z *dummy) unCompress(src []byte) ([]byte, error) {return src, nil}
+
+func (z *dummy) defaultCompress(src []byte) ([]byte, error) { return src, nil }
+func (z *dummy) bestCompress(src []byte) ([]byte, error)    { return src, nil }
+func (z *dummy) fastCompress(src []byte) ([]byte, error)    { return src, nil }
+func (z *dummy) unCompress(src []byte) ([]byte, error)      { return src, nil }
 
 // Zlib
 type Zlib struct {
@@ -114,7 +115,7 @@ func (z *Zlib) unCompress(compressSrc []byte) ([]byte, error) {
 // -------------------------------------------------------------
 
 // Gzip
-type Gzip struct {	
+type Gzip struct {
 }
 
 func (g *Gzip) defaultCompress(src []byte) ([]byte, error) {

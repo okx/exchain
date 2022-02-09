@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"time"
-
 )
 
 // GovKeeper defines the expected gov Keeper

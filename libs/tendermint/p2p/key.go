@@ -90,7 +90,6 @@ func LoadNodeKey(filePath string) (*NodeKey, error) {
 	return nodeKey, nil
 }
 
-
 func genNodeKey(filePath string) (*NodeKey, error) {
 	privKey := ed25519.GenPrivKey()
 	nodeKey := &NodeKey{
@@ -107,7 +106,6 @@ func genNodeKey(filePath string) (*NodeKey, error) {
 	}
 	return nodeKey, nil
 }
-
 
 func genNodeKeyByIndex(filePath string, index int) (*NodeKey, error) {
 	if index < 0 {

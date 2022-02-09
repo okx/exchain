@@ -64,7 +64,6 @@ func main() {
 
 	ctx := server.NewDefaultContext()
 
-
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
@@ -94,7 +93,6 @@ func main() {
 		iaviewerCmd(cdc),
 		subscribeCmd(cdc),
 	)
-
 
 	subFunc := func(logger log.Logger) log.Subscriber {
 		return logevents.NewProvider(logger)
