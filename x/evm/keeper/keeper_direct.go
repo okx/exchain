@@ -1,9 +1,9 @@
 package keeper
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/x/evm/types"
 )
 

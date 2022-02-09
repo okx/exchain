@@ -16,14 +16,15 @@ const (
 
 var (
 	mostRecentHeightKey string
-	deltaLockerKey  string
+	deltaLockerKey      string
 )
 
 var once sync.Once
-func init()  {
+
+func init() {
 	const (
 		mostRecentHeight = "MostRecentHeight"
-		deltaLocker  = "DeltaLocker"
+		deltaLocker      = "DeltaLocker"
 	)
 	once.Do(func() {
 		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, mostRecentHeight)
@@ -41,7 +42,7 @@ func NewRedisClient(url, auth string, ttl time.Duration, db int, l log.Logger) *
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: auth, // no password set
-		DB:       db,    // use select DB
+		DB:       db,   // use select DB
 	})
 	return &RedisClient{rdb, ttl, l}
 }
@@ -74,7 +75,7 @@ func (r *RedisClient) ResetMostRecentHeightAfterUpload(targetHeight int64, uploa
 		err = r.rdb.Set(context.Background(), mostRecentHeightKey, targetHeight, 0).Err()
 		if err == nil {
 			res = true
-			r.logger.Info("Reset most recent height", "new-mrh", targetHeight, "old-mrh", mrh, )
+			r.logger.Info("Reset most recent height", "new-mrh", targetHeight, "old-mrh", mrh)
 		} else {
 			r.logger.Error("Failed to reset most recent height",
 				"target-mrh", targetHeight,

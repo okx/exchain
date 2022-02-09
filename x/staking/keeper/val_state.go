@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // KickOutAndReturnValidatorSetUpdates shows the main logic when a validator is kicked out of validator-set in an epoch

@@ -20,11 +20,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // GenTxCmd builds the application's gentx command

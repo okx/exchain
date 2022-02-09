@@ -6,7 +6,7 @@ import (
 
 // BaseResponse is the main frame of response
 type BaseResponse struct {
-	Code      uint32         `json:"code"`
+	Code      uint32      `json:"code"`
 	Msg       string      `json:"msg"`
 	DetailMsg string      `json:"detail_msg"`
 	Data      interface{} `json:"data"`

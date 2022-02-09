@@ -10,9 +10,9 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
+	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"
-	comm "github.com/okex/exchain/x/common"
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {

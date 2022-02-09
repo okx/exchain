@@ -68,5 +68,5 @@ var (
 	NewMsgDeposit  = types.NewMsgDeposit
 	NewMsgWithdraw = types.NewMsgWithdraw
 
-	ErrTokenPairNotFound   = types.ErrTokenPairNotFound
+	ErrTokenPairNotFound = types.ErrTokenPairNotFound
 )
