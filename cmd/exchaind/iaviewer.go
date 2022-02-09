@@ -81,6 +81,16 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+func iaviewerCmdPreRun(ctx *server.Context) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		dbBackendStr := viper.GetString(flagDBBackend)
+		ctx.Config.DBBackend = dbBackendStr
+		if dbBackendStr != "" {
+			ctx.Config.DBBackend = dbBackendStr
+		}
+	}
+}
+
 func iaviewerListModulesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list-modules",
@@ -104,9 +114,10 @@ func iaviewerListModulesCmd() *cobra.Command {
 
 func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "read <data_dir> <module> [version]",
-		Short: "Read iavl tree key-value from db",
-		Long:  "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		Use:    "read <data_dir> <module> [version]",
+		Short:  "Read iavl tree key-value from db",
+		Long:   "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		PreRun: iaviewerCmdPreRun(ctx),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if len(args) < 2 {
 				return fmt.Errorf("must specify data_dir and module")
@@ -119,12 +130,7 @@ func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			dbBackend := dbm.GoLevelDBBackend
-			dbBackendStr := viper.GetString(flagDBBackend)
-			if dbBackendStr != "" {
-				dbBackend = dbm.BackendType(dbBackendStr)
-			}
-
+			dbBackend := dbm.BackendType(ctx.Config.DBBackend)
 			return iaviewerReadData(cdc, dataDir, dbBackend, module, version)
 		},
 	}
