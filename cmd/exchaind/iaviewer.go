@@ -73,7 +73,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		readAll(ctx, cdc),
+		iaviewerReadCmd(ctx, cdc),
 		readDiff(ctx, cdc),
 		iaviewerListModulesCmd(),
 	)
@@ -102,24 +102,21 @@ func iaviewerListModulesCmd() *cobra.Command {
 	return cmd
 }
 
-func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
+func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "read [data_dir] [height] [module]",
-		Short: "Read key-value from db",
-		Run: func(cmd *cobra.Command, args []string) {
-			var moduleList []string
-			if len(args) == 3 {
-				moduleList = []string{args[2]}
-			} else {
-				moduleList = make([]string, 0, len(app.ModuleBasics))
-				for m := range app.ModuleBasics {
-					moduleList = append(moduleList, fmt.Sprintf("s/k:%s/", m))
-				}
+		Use:   "read <data_dir> <module> [version]",
+		Short: "Read iavl tree key-value from db",
+		Long:  "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if len(args) < 2 {
+				return fmt.Errorf("must specify data_dir and module")
 			}
-
-			height, err := strconv.ParseInt(args[1], 10, 64)
-			if err != nil {
-				panic("The input height is wrong")
+			dataDir, module, version := args[0], args[1], 0
+			if len(args) == 3 {
+				version, err = strconv.Atoi(args[2])
+				if err != nil {
+					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
+				}
 			}
 
 			dbBackend := dbm.GoLevelDBBackend
@@ -128,7 +125,7 @@ func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 				dbBackend = dbm.BackendType(dbBackendStr)
 			}
 
-			iaviewerReadData(cdc, args[0], dbBackend, moduleList, int(height))
+			return iaviewerReadData(cdc, dataDir, dbBackend, module, version)
 		},
 	}
 	return cmd
@@ -246,26 +243,25 @@ func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 }
 
 // iaviewerReadData reads key-value from leveldb
-func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, modules []string, version int) {
+func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, module string, version int) error {
 	db, err := OpenDB(dataDir, backend)
 	defer db.Close()
 	if err != nil {
-		log.Fatal("Error opening DB: ", err)
+		return fmt.Errorf("error opening DB: %w", err)
 	}
 
-	for _, module := range modules {
-		log.Println(module)
-		log.Println(fmt.Sprintf("==================================== %s begin ====================================\n", module))
-		tree, err := ReadTree(db, version, []byte(module), DefaultCacheSize)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
-			os.Exit(1)
-		}
-		printTree(cdc, module, tree)
-		log.Println(fmt.Sprintf("Hash: %X\n", tree.Hash()))
-		log.Println(fmt.Sprintf("Size: %X\n", tree.Size()))
-		log.Println(fmt.Sprintf("==================================== %s end ====================================\n\n", module))
+	modulePrefix := fmt.Sprintf("s/k:%s/", module)
+
+	fmt.Printf("==================================== %s begin ====================================\n", module)
+	tree, err := ReadTree(db, version, []byte(modulePrefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
 	}
+	printTree(cdc, module, tree)
+	fmt.Printf("Hash: %X\n", tree.Hash())
+	fmt.Printf("Size: %d\n", tree.Size())
+	fmt.Printf("==================================== %s end ====================================\n\n", module)
+	return nil
 }
 
 // getKVs, get all key-values by mutableTree
