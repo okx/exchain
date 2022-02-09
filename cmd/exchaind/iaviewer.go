@@ -74,7 +74,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 	cmd.AddCommand(
 		iaviewerReadCmd(ctx, cdc),
-		readDiff(ctx, cdc),
+		iaviewerDiffCmd(ctx, cdc),
 		iaviewerListModulesCmd(),
 	)
 	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
@@ -137,10 +137,11 @@ func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func readDiff(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
+func iaviewerDiffCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "diff [data_dir] [compare_data_dir] [height] [module]",
-		Short: "Read different key-value from leveldb according two paths",
+		Use:    "diff [data_dir] [compare_data_dir] [height] [module]",
+		Short:  "Read different key-value from leveldb according two paths",
+		PreRun: iaviewerCmdPreRun(ctx),
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
 			if len(args) == 4 {
