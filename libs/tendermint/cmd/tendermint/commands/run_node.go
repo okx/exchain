@@ -40,7 +40,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"genesis_hash",
 		[]byte{},
 		"Optional SHA-256 hash of the genesis file")
-	cmd.Flags().Int(
+	cmd.Flags().Int8(
 		"deliver_txs_exec_mode",
 		config.DeliverTxsExecMode,
 		"Mode for executing deliverTxs",

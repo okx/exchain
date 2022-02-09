@@ -149,6 +149,10 @@ func (app *PersistentKVStoreApplication) ParallelTxs(_ [][]byte) []*types.Respon
 	return nil
 }
 
+func (app *PersistentKVStoreApplication) DeliverTxsConcurrent(_ [][]byte) []*types.ResponseDeliverTx {
+	return nil
+}
+
 //---------------------------------------------
 // update validators
 

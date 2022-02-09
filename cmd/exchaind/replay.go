@@ -154,7 +154,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	}
 
 	// replay
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight, int8(0))
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
@@ -258,7 +258,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
+	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64, deliverTxsMode int8) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
@@ -283,13 +283,13 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
+		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
 
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()

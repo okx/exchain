@@ -236,7 +236,7 @@ type BaseConfig struct { //nolint: maligned
 	// 0: execute [deliverTx,...] sequentially (default)
 	// 1: execute [deliverTx,...] partially-concurrent
 	// 2: execute [deliverTx,...] parallel
-	DeliverTxsExecMode int `mapstructure:"deliver_txs_exec_mode"`
+	DeliverTxsExecMode int8 `mapstructure:"deliver_txs_exec_mode"`
 }
 
 // DefaultBaseConfig returns a default base configuration for a Tendermint node

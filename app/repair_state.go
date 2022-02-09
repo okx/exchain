@@ -157,7 +157,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	eventBus := types.NewEventBus()
 	err = startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, int8(0))
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	blockExec.SetEventBus(eventBus)
 	global.SetGlobalHeight(startHeight + 1)

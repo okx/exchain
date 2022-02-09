@@ -76,7 +76,7 @@ func WALGenerateNBlocks(t *testing.T, wr io.Writer, numBlocks int) (err error) {
 	defer eventBus.Stop()
 	mempool := mock.Mempool{}
 	evpool := sm.MockEvidencePool{}
-	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool)
+	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool, config.DeliverTxsExecMode)
 	consensusState := NewState(config.Consensus, state.Copy(), blockExec, blockStore, deltaStore, mempool, evpool)
 	consensusState.SetLogger(logger)
 	consensusState.SetEventBus(eventBus)

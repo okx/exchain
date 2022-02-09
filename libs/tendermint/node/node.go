@@ -267,12 +267,13 @@ func doHandshake(
 	genDoc *types.GenesisDoc,
 	eventBus types.BlockEventPublisher,
 	proxyApp proxy.AppConns,
-	consensusLogger log.Logger) error {
+	consensusLogger log.Logger,
+	deliverTxsMode int8) error {
 
 	handshaker := cs.NewHandshaker(stateDB, state, blockStore, deltaStore, genDoc)
 	handshaker.SetLogger(consensusLogger)
 	handshaker.SetEventBus(eventBus)
-	if err := handshaker.Handshake(proxyApp); err != nil {
+	if err := handshaker.Handshake(proxyApp, deliverTxsMode); err != nil {
 		return fmt.Errorf("error during handshake: %v", err)
 	}
 	return nil
@@ -601,7 +602,7 @@ func NewNode(config *cfg.Config,
 	// Create the handshaker, which calls RequestInfo, sets the AppVersion on the state,
 	// and replays any blocks as necessary to sync tendermint with the app.
 	consensusLogger := logger.With("module", "consensus")
-	if err := doHandshake(stateDB, state, blockStore, deltasStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
+	if err := doHandshake(stateDB, state, blockStore, deltasStore, genDoc, eventBus, proxyApp, consensusLogger, config.DeliverTxsExecMode); err != nil {
 		return nil, err
 	}
 
@@ -650,6 +651,7 @@ func NewNode(config *cfg.Config,
 		proxyApp.Consensus(),
 		mempool,
 		evidencePool,
+		config.DeliverTxsExecMode,
 		sm.BlockExecutorWithMetrics(smMetrics),
 	)
 
