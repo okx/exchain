@@ -2,11 +2,13 @@ package types
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -62,6 +64,13 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data  *hexutil.Bytes `json:"data"`
 	Input *hexutil.Bytes `json:"input"`
+
+	//import by EIP1559
+	MaxFeePerGas         *hexutil.Big `json:"maxFeePerGas"`
+	MaxPriorityFeePerGas *hexutil.Big `json:"maxPriorityFeePerGas"`
+	// Introduced by AccessListTxType transaction.
+	AccessList *evmtypes.AccessList `json:"accessList,omitempty"`
+	ChainID    *hexutil.Big         `json:"chainId,omitempty"`
 }
 
 func (ca SendTxArgs) String() string {
@@ -78,6 +87,12 @@ func (ca SendTxArgs) String() string {
 	if ca.GasPrice != nil {
 		arg += fmt.Sprintf("GasPrice: %s, ", ca.GasPrice.String())
 	}
+	if ca.MaxFeePerGas != nil {
+		arg += fmt.Sprintf("MaxFeePerGas: %s, ", ca.MaxFeePerGas.String())
+	}
+	if ca.MaxPriorityFeePerGas != nil {
+		arg += fmt.Sprintf("MaxPriorityFeePerGas: %s, ", ca.MaxPriorityFeePerGas.String())
+	}
 	if ca.Value != nil {
 		arg += fmt.Sprintf("Value: %s, ", ca.Value.String())
 	}
@@ -91,6 +106,25 @@ func (ca SendTxArgs) String() string {
 		arg += fmt.Sprintf("Input: %s, ", ca.Input.String())
 	}
 	return strings.TrimRight(arg, ", ")
+}
+
+// GetFrom retrieves the transaction sender address.
+func (args *SendTxArgs) GetFrom() common.Address {
+	if args.From == nil {
+		return common.Address{}
+	}
+	return *args.From
+}
+
+// GetData retrieves the transaction calldata. Input field is preferred.
+func (args *SendTxArgs) GetData() []byte {
+	if args.Input != nil {
+		return *args.Input
+	}
+	if args.Data != nil {
+		return *args.Data
+	}
+	return nil
 }
 
 // CallArgs represents the arguments for a call.
@@ -158,4 +192,23 @@ type EthHeaderWithBlockHash struct {
 	MixDigest   common.Hash         `json:"mixHash"`
 	Nonce       ethtypes.BlockNonce `json:"nonce"`
 	Hash        common.Hash         `json:"hash"`
+}
+
+type FeeHistoryResult struct {
+	OldestBlock  *hexutil.Big     `json:"oldestBlock"`
+	Reward       [][]*hexutil.Big `json:"reward,omitempty"`
+	BaseFee      []*hexutil.Big   `json:"baseFeePerGas,omitempty"`
+	GasUsedRatio []float64        `json:"gasUsedRatio"`
+}
+
+// SignTransactionResult represents a RLP encoded signed transaction.
+type SignTransactionResult struct {
+	Raw hexutil.Bytes `json:"raw"`
+	Tx  *Transaction  `json:"tx"`
+}
+
+type OneFeeHistory struct {
+	BaseFee      *big.Int   // base fee  for each block
+	Reward       []*big.Int // each element of the array will have the tip provided to miners for the percentile given
+	GasUsedRatio float64    // the ratio of gas used to the gas limit for each block
 }

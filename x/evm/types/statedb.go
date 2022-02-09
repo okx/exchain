@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
@@ -115,7 +116,7 @@ type CommitStateDB struct {
 	nextRevisionID int
 
 	// Per-transaction access list
-	accessList *accessList
+	accessList *AccessList
 
 	// mutex for state deep copying
 	lock sync.Mutex
@@ -170,7 +171,7 @@ func newCommitStateDB(
 		hashToPreimageIndex: make(map[ethcmn.Hash]int),
 		journal:             newJournal(),
 		validRevisions:      []revision{},
-		accessList:          newAccessList(),
+		accessList:          NewAccessList(),
 		logs:                []*ethtypes.Log{},
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           DefaultPrefixDb{},
@@ -196,7 +197,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		hashToPreimageIndex: make(map[ethcmn.Hash]int),
 		journal:             newJournal(),
 		validRevisions:      []revision{},
-		accessList:          newAccessList(),
+		accessList:          NewAccessList(),
 		logSize:             0,
 		logs:                []*ethtypes.Log{},
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
@@ -1009,7 +1010,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	csdb.logSize = 0
 	csdb.preimages = []preimageEntry{}
 	csdb.hashToPreimageIndex = make(map[ethcmn.Hash]int)
-	csdb.accessList = newAccessList()
+	csdb.accessList = NewAccessList()
 	csdb.params = nil
 
 	csdb.clearJournalAndRefund()

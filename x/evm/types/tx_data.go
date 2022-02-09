@@ -18,6 +18,8 @@ type TxData struct {
 	AccountNonce uint64          `json:"nonce"`
 	Price        *big.Int        `json:"gasPrice"`
 	GasLimit     uint64          `json:"gas"`
+	GasFeeCap    *big.Int        `json:"gasFeeCap"`
+	GasTipCap    *big.Int        `json:"gasTipCap"`
 	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"`
 	Payload      []byte          `json:"input"`

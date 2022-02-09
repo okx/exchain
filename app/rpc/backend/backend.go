@@ -3,21 +3,25 @@ package backend
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
+	"github.com/okex/exchain/app/rpc/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	feekeeper "github.com/okex/exchain/x/feemarket/keeper"
+	feetypes "github.com/okex/exchain/x/feemarket/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -52,6 +56,10 @@ type Backend interface {
 
 	// Used by eip-1898
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
+	// Fee API
+	FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*types.FeeHistoryResult, error)
+	BaseFee(height int64) (*big.Int, error)
+	SetTxDefaults(args types.SendTxArgs) (types.SendTxArgs, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -497,4 +505,54 @@ func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.Block
 		return rpctypes.LatestBlockNumber, rpctypes.ErrResourceNotFound
 	}
 	return rpctypes.BlockNumber(out.Number), nil
+}
+
+// BaseFee returns the base fee tracked by the Fee Market module. If the base fee is not enabled,
+// it returns the initial base fee amount. Return nil if London is not activated.
+func (b *EthermintBackend) BaseFee(height int64) (*big.Int, error) {
+	if !tmtypes.IsLondon(height) {
+		return nil, nil
+	}
+
+	// Checks the feemarket param NoBaseFee settings, return 0 if it is enabled.
+	resParams, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feekeeper.QueryParameters))
+	if err != nil {
+		return nil, err
+	}
+	var out feekeeper.QueryParamsResponse
+	if err := b.clientCtx.Codec.UnmarshalJSON(resParams, &out); err != nil {
+		return nil, err
+	}
+	if out.Params.NoBaseFee {
+		return big.NewInt(0), nil
+	}
+
+	blockRes, err := b.clientCtx.Client.BlockResults(&height)
+	if err != nil {
+		return nil, err
+	}
+
+	baseFee := types.BaseFeeFromEvents(blockRes.BeginBlockEvents)
+	if baseFee != nil {
+		return baseFee, nil
+	}
+
+	// If we cannot find in events, we tried to get it from the state.
+	// It will return feemarket.baseFee if london is activated but feemarket is not enable
+	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feekeeper.QueryBaseFee))
+	var baseFeeRes feekeeper.QueryBaseFeeResponse
+	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return nil, err
+	}
+	if err == nil && baseFeeRes.BaseFee != nil {
+		return baseFeeRes.BaseFee, nil
+	}
+
+	return nil, nil
+}
+
+// SetTxDefaults populates tx message with default values in case they are not
+// provided on the args
+func (e *EthermintBackend) SetTxDefaults(args rpctypes.SendTxArgs) (rpctypes.SendTxArgs, error) {
+	return args, nil
 }

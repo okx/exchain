@@ -17,9 +17,11 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	feemarkettypes "github.com/okex/exchain/x/feemarket/types"
 )
 
 var (
@@ -277,4 +279,25 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	}
 
 	return
+}
+
+// BaseFeeFromEvents parses the feemarket basefee from cosmos events
+func BaseFeeFromEvents(events []abci.Event) *big.Int {
+	for _, event := range events {
+		if event.Type != feemarkettypes.EventTypeFeeMarket {
+			continue
+		}
+
+		for _, attr := range event.Attributes {
+			if bytes.Equal(attr.Key, []byte(feemarkettypes.AttributeKeyBaseFee)) {
+				result, success := new(big.Int).SetString(string(attr.Value), 10)
+				if success {
+					return result
+				}
+
+				return nil
+			}
+		}
+	}
+	return nil
 }
