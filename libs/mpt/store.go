@@ -231,14 +231,13 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 	triedb := ms.db.TrieDB()
 	if types2.TrieDirtyDisabled {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == types3.EmptyRootHash {
-			curMptRoot = (ethcmn.Hash{})
+			curMptRoot = ethcmn.Hash{}
 		} else {
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 				panic("fail to commit mpt data: " + err.Error())
 			}
-			ms.SetLatestStoredBlockHeight(uint64(curHeight))
 		}
-
+		ms.SetLatestStoredBlockHeight(uint64(curHeight))
 		if ms.logger != nil {
 			ms.logger.Info("sync push acc data to db", "block", curHeight, "trieHash", curMptRoot)
 		}
@@ -268,20 +267,18 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 			// If the header is missing (canonical chain behind), we're reorging a low
 			// diff sidechain. Suspend committing until this operation is completed.
 			chRoot := ms.GetMptRootHash(uint64(chosen))
-			if chRoot == (ethcmn.Hash{}) {
-				if ms.logger != nil {
-					ms.logger.Debug("Reorg in progress, trie commit postponed", "number", chosen)
-				}
+			if chRoot == (ethcmn.Hash{}) || chRoot == types3.EmptyRootHash {
+				chRoot = ethcmn.Hash{}
 			} else {
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
 				if err := triedb.Commit(chRoot, true, nil); err != nil {
 					panic("fail to commit mpt data: " + err.Error())
 				}
-				ms.SetLatestStoredBlockHeight(uint64(chosen))
-				if ms.logger != nil {
-					ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
-				}
+			}
+			ms.SetLatestStoredBlockHeight(uint64(chosen))
+			if ms.logger != nil {
+				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
 			}
 
 			// Garbage collect anything below our required write retention
@@ -319,21 +316,19 @@ func (ms *MptStore) OnStop() error {
 				}
 
 				recentMptRoot := ms.GetMptRootHash(version)
-				if recentMptRoot == (ethcmn.Hash{}) {
-					if ms.logger != nil {
-						ms.logger.Debug("Reorg in progress, trie commit postponed", "block", version)
-					}
+				if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types3.EmptyRootHash {
+					recentMptRoot = ethcmn.Hash{}
 				} else {
-					if ms.logger != nil {
-						ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
-					}
 					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 						if ms.logger != nil {
 							ms.logger.Error("Failed to commit recent state trie", "err", err)
 						}
 						break
 					}
-					ms.SetLatestStoredBlockHeight(version)
+				}
+				ms.SetLatestStoredBlockHeight(version)
+				if ms.logger != nil {
+					ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
 				}
 			}
 		}

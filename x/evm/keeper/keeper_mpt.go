@@ -105,16 +105,16 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 				}
 
 				recentMptRoot := k.GetMptRootHash(version)
-				if recentMptRoot == (ethcmn.Hash{}) {
-					k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "block", version)
+				if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types.EmptyRootHash {
+					recentMptRoot = ethcmn.Hash{}
 				} else {
-					k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
 						break
 					}
-					k.SetLatestStoredBlockHeight(version)
 				}
+				k.SetLatestStoredBlockHeight(version)
+				k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 			}
 		}
 
@@ -138,8 +138,8 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 				panic("fail to commit mpt data: " + err.Error())
 			}
-			k.SetLatestStoredBlockHeight(uint64(curHeight))
 		}
+		k.SetLatestStoredBlockHeight(uint64(curHeight))
 		k.Logger(ctx).Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
 	} else {
 		// Full but not archive node, do proper garbage collection
@@ -166,17 +166,17 @@ func (k *Keeper) PushData2Database(ctx sdk.Context) {
 			// If the header is missing (canonical chain behind), we're reorging a low
 			// diff sidechain. Suspend committing until this operation is completed.
 			chRoot := k.GetMptRootHash(uint64(chosen))
-			if chRoot == (ethcmn.Hash{}) {
-				k.Logger(ctx).Debug("Reorg in progress, trie commit postponed", "number", chosen)
+			if chRoot == (ethcmn.Hash{}) || chRoot == types.EmptyRootHash {
+				chRoot = ethcmn.Hash{}
 			} else {
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
 				if err := triedb.Commit(chRoot, true, nil); err != nil {
 					panic("fail to commit mpt data: " + err.Error())
 				}
-				k.SetLatestStoredBlockHeight(uint64(chosen))
-				k.Logger(ctx).Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
 			}
+			k.SetLatestStoredBlockHeight(uint64(chosen))
+			k.Logger(ctx).Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
 
 			// Garbage collect anything below our required write retention
 			for !k.triegc.Empty() {

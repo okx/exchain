@@ -241,6 +241,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		}
 	}
 
+	if !tmtypes.HigherThanMars(ver) && types2.EnableDoubleWrite {
+		mptInfo := infos[mpt.StoreKey]
+		mptInfo.Core.CommitID.Version = ver
+		infos[mpt.StoreKey] = mptInfo
+	}
+
 	roots := make(map[int64][]byte)
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
