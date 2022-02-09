@@ -80,6 +80,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerReadCmd(ctx, cdc),
 		iaviewerDiffCmd(ctx, cdc),
 		iaviewerListModulesCmd(),
+		iaviewerVersionsCmd(ctx),
 	)
 	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 	return cmd
@@ -136,6 +137,30 @@ func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 			dbBackend := dbm.BackendType(ctx.Config.DBBackend)
 			return iaviewerReadData(cdc, dataDir, dbBackend, module, version)
+		},
+	}
+	return cmd
+}
+
+func iaviewerVersionsCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "versions <data_dir> <module> [version]",
+		Short:  "list iavl tree versions",
+		PreRun: iaviewerCmdPreRun(ctx),
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if len(args) < 2 {
+				return fmt.Errorf("must specify data_dir and module")
+			}
+			dataDir, module, version := args[0], args[1], 0
+			if len(args) == 3 {
+				version, err = strconv.Atoi(args[2])
+				if err != nil {
+					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
+				}
+			}
+
+			dbBackend := dbm.BackendType(ctx.Config.DBBackend)
+			return iaviewerVersions(dataDir, dbBackend, module, version)
 		},
 	}
 	return cmd
@@ -273,6 +298,30 @@ func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType,
 	fmt.Printf("Size: %d\n", tree.Size())
 	fmt.Printf("==================================== %s end ====================================\n\n", module)
 	return nil
+}
+
+func iaviewerVersions(dataDir string, backend dbm.BackendType, module string, version int) error {
+	db, err := OpenDB(dataDir, backend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer db.Close()
+
+	modulePrefix := fmt.Sprintf("s/k:%s/", module)
+	tree, err := ReadTree(db, version, []byte(modulePrefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
+	}
+	iaviewerPrintVersions(tree)
+	return nil
+}
+
+func iaviewerPrintVersions(tree *iavl.MutableTree) {
+	versions := tree.AvailableVersions()
+	fmt.Println("Available versions:")
+	for _, v := range versions {
+		fmt.Printf("  %d\n", v)
+	}
 }
 
 // getKVs, get all key-values by mutableTree
