@@ -2,12 +2,10 @@ package db
 
 import (
 	"fmt"
-	"sync"
 )
 
 // PrefixDB wraps a namespace of another database as a logical database.
 type PrefixDB struct {
-	mtx    sync.Mutex
 	prefix []byte
 	db     DB
 }
@@ -24,9 +22,6 @@ func NewPrefixDB(db DB, prefix []byte) *PrefixDB {
 
 // Get implements DB.
 func (pdb *PrefixDB) Get(key []byte) ([]byte, error) {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	pkey := pdb.prefixed(key)
 	value, err := pdb.db.Get(pkey)
 	if err != nil {
@@ -36,18 +31,12 @@ func (pdb *PrefixDB) Get(key []byte) ([]byte, error) {
 }
 
 func (pdb *PrefixDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (retv interface{}, err error) {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	pkey := pdb.prefixed(key)
 	return pdb.db.GetUnsafeValue(pkey, processor)
 }
 
 // Has implements DB.
 func (pdb *PrefixDB) Has(key []byte) (bool, error) {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	ok, err := pdb.db.Has(pdb.prefixed(key))
 	if err != nil {
 		return ok, err
@@ -58,9 +47,6 @@ func (pdb *PrefixDB) Has(key []byte) (bool, error) {
 
 // Set implements DB.
 func (pdb *PrefixDB) Set(key []byte, value []byte) error {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	pkey := pdb.prefixed(key)
 	if err := pdb.db.Set(pkey, value); err != nil {
 		return err
@@ -70,33 +56,21 @@ func (pdb *PrefixDB) Set(key []byte, value []byte) error {
 
 // SetSync implements DB.
 func (pdb *PrefixDB) SetSync(key []byte, value []byte) error {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	return pdb.db.SetSync(pdb.prefixed(key), value)
 }
 
 // Delete implements DB.
 func (pdb *PrefixDB) Delete(key []byte) error {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	return pdb.db.Delete(pdb.prefixed(key))
 }
 
 // DeleteSync implements DB.
 func (pdb *PrefixDB) DeleteSync(key []byte) error {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	return pdb.db.DeleteSync(pdb.prefixed(key))
 }
 
 // Iterator implements DB.
 func (pdb *PrefixDB) Iterator(start, end []byte) (Iterator, error) {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	var pstart, pend []byte
 	pstart = append(cp(pdb.prefix), start...)
 	if end == nil {
@@ -114,9 +88,6 @@ func (pdb *PrefixDB) Iterator(start, end []byte) (Iterator, error) {
 
 // ReverseIterator implements DB.
 func (pdb *PrefixDB) ReverseIterator(start, end []byte) (Iterator, error) {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	var pstart, pend []byte
 	pstart = append(cp(pdb.prefix), start...)
 	if end == nil {
@@ -134,17 +105,11 @@ func (pdb *PrefixDB) ReverseIterator(start, end []byte) (Iterator, error) {
 
 // NewBatch implements DB.
 func (pdb *PrefixDB) NewBatch() Batch {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	return newPrefixBatch(pdb.prefix, pdb.db.NewBatch())
 }
 
 // Close implements DB.
 func (pdb *PrefixDB) Close() error {
-	pdb.mtx.Lock()
-	defer pdb.mtx.Unlock()
-
 	return pdb.db.Close()
 }
 
