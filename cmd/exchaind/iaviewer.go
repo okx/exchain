@@ -197,15 +197,16 @@ func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 		log.Fatal("data_dit and compare_data_dir should not be the same")
 	}
 	db, err := OpenDB(dataDir, backend)
+	if err != nil {
+		log.Fatal("Error opening DB: ", err)
+	}
 	defer db.Close()
-	if err != nil {
-		log.Fatal("Error opening DB: ", err)
-	}
+
 	compareDB, err := OpenDB(compareDir, backend)
-	defer compareDB.Close()
 	if err != nil {
 		log.Fatal("Error opening DB: ", err)
 	}
+	defer compareDB.Close()
 
 	for _, module := range modules {
 		//get all key-values
@@ -281,10 +282,10 @@ func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 // iaviewerReadData reads key-value from leveldb
 func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, module string, version int) error {
 	db, err := OpenDB(dataDir, backend)
-	defer db.Close()
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
+	defer db.Close()
 
 	modulePrefix := fmt.Sprintf("s/k:%s/", module)
 
