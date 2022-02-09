@@ -257,7 +257,7 @@ func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType,
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	printTree(cdc, module, tree)
+	printTree(cdc, modulePrefix, tree)
 	fmt.Printf("Hash: %X\n", tree.Hash())
 	fmt.Printf("Size: %d\n", tree.Size())
 	fmt.Printf("==================================== %s end ====================================\n\n", module)
@@ -277,14 +277,14 @@ type (
 	printKey func(cdc *codec.Codec, key []byte, value []byte)
 )
 
-func printTree(cdc *codec.Codec, module string, tree *iavl.MutableTree) {
+func printTree(cdc *codec.Codec, modulePrefixKey string, tree *iavl.MutableTree) {
 	tree.Iterate(func(key []byte, value []byte) bool {
-		if impl, exit := printKeysDict[module]; exit {
+		if impl, exit := printKeysDict[modulePrefixKey]; exit {
 			impl(cdc, key, value)
 		} else {
 			printKey := parseWeaveKey(key)
 			digest := hex.EncodeToString(value)
-			log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
+			fmt.Printf("%s:%s\n", printKey, digest)
 		}
 		return false
 	})
@@ -538,7 +538,7 @@ func ReadTree(db dbm.DB, version int, prefix []byte, cacheSize int) (*iavl.Mutab
 		return nil, err
 	}
 	ver, err := tree.LoadVersion(int64(version))
-	log.Println(fmt.Sprintf("%s Got version: %d\n", string(prefix), ver))
+	fmt.Printf("prefix %s, Got version: %d\n", string(prefix), ver)
 	return tree, err
 }
 
