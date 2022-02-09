@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/types"
-	"github.com/spf13/viper"
 	"path/filepath"
 	"sync"
 )
@@ -24,7 +24,7 @@ func InstanceOfEvmStore(homeDir string) ethstate.Database {
 	initEvmOnce.Do(func() {
 		path := filepath.Join(homeDir, EvmDataDir)
 
-		backend := viper.GetString(FlagDBBackend)
+		backend := sdk.DBBackend
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}
