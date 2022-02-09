@@ -82,7 +82,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "read [data_dir] [height] [module]",
-		Short: "Read key-value from leveldb",
+		Short: "Read key-value from db",
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
 			if len(args) == 3 {
@@ -105,7 +105,7 @@ func readAll(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 				dbBackend = dbm.BackendType(dbBackendStr)
 			}
 
-			IaviewerReadData(cdc, args[0], dbBackend, moduleList, int(height))
+			iaviewerReadData(cdc, args[0], dbBackend, moduleList, int(height))
 		},
 	}
 	return cmd
@@ -129,14 +129,14 @@ func readDiff(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic("The input height is wrong")
 			}
-			IaviewerPrintDiff(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), args[1], moduleList, int(height))
+			iaviewerPrintDiff(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), args[1], moduleList, int(height))
 		},
 	}
 	return cmd
 }
 
-// IaviewerPrintDiff reads different key-value from leveldb according two paths
-func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType, compareDir string, modules []string, height int) {
+// iaviewerPrintDiff reads different key-value from leveldb according two paths
+func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType, compareDir string, modules []string, height int) {
 	if dataDir == compareDir {
 		log.Fatal("data_dit and compare_data_dir should not be the same")
 	}
@@ -222,8 +222,8 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 	}
 }
 
-// IaviewerReadData reads key-value from leveldb
-func IaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, modules []string, version int) {
+// iaviewerReadData reads key-value from leveldb
+func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, modules []string, version int) {
 	db, err := OpenDB(dataDir, backend)
 	defer db.Close()
 	if err != nil {
