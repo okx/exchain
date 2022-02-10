@@ -161,8 +161,10 @@ func InitTestnet(
 		numValidators = len(ipAddresses)
 	}
 
-	nodeIDs := make([]string, numValidators+numRPCs)
-	valPubKeys := make([]tmcrypto.PubKey, numValidators+numRPCs)
+	totalNodes := numValidators + numRPCs
+
+	nodeIDs := make([]string, totalNodes)
+	valPubKeys := make([]tmcrypto.PubKey, totalNodes)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -174,12 +176,13 @@ func InitTestnet(
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 	// generate private keys, node IDs, and initial transactions
-	for i := 0; i < numValidators; i++ {
+	for i := 0; i < totalNodes; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
 		clientDir := filepath.Join(outputDir, nodeDirName, nodeCLIHome)
 		gentxsDir := filepath.Join(outputDir, "gentxs")
 
+		// generate private keys, node IDs for all nodes
 		config.SetRoot(nodeDir)
 		config.RPC.ListenAddress = "tcp://0.0.0.0:26657"
 
@@ -188,145 +191,123 @@ func InitTestnet(
 			return err
 		}
 
-		if err := os.MkdirAll(clientDir, nodeDirPerm); err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
 		config.Moniker = nodeDirName
 
-		var ip string
 		var err error
-		port := viper.GetInt(flagBaseport)
-
-		if isLocal {
-			ip, err = getIP(0, startingIPAddress)
-			port += i * 100
-		} else {
-			if len(ipAddresses) == 0 {
-				ip, err = getIP(i, startingIPAddress)
-				if err != nil {
-					_ = os.RemoveAll(outputDir)
-					return err
-				}
-			} else {
-				ip = ipAddresses[i]
-			}
-		}
-
 		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
 
-		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
 		genFiles = append(genFiles, config.GenesisFile())
 
-		kb, err := keys.NewKeyring(
-			sdk.KeyringServiceName(),
-			keyringBackend,
-			clientDir,
-			inBuf,
-			hd.EthSecp256k1Options()...,
-		)
-		if err != nil {
-			return err
+		// validator nodes add initial transactions
+		if i < numValidators {
+			if err := os.MkdirAll(clientDir, nodeDirPerm); err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			var ip string
+			port := viper.GetInt(flagBaseport)
+
+			if isLocal {
+				ip, err = getIP(0, startingIPAddress)
+				port += i * 100
+			} else {
+				if len(ipAddresses) == 0 {
+					ip, err = getIP(i, startingIPAddress)
+					if err != nil {
+						_ = os.RemoveAll(outputDir)
+						return err
+					}
+				} else {
+					ip = ipAddresses[i]
+				}
+			}
+
+			memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
+
+			kb, err := keys.NewKeyring(
+				sdk.KeyringServiceName(),
+				keyringBackend,
+				clientDir,
+				inBuf,
+				hd.EthSecp256k1Options()...,
+			)
+			if err != nil {
+				return err
+			}
+
+			cmd.Printf(
+				"Password for account '%s' :\n", nodeDirName,
+			)
+
+			keyPass := clientkeys.DefaultKeyPass
+			mnemonic := ""
+			if i < len(mnemonicList) {
+				mnemonic = mnemonicList[i]
+			}
+			addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
+				clientDir, nodeDirName, addr, secret)
+			info := map[string]string{"secret": secret}
+
+			cliPrint, err := json.Marshal(info)
+			if err != nil {
+				return err
+			}
+
+			// save private key seed words
+			if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
+				return err
+			}
+
+			coins := sdk.NewCoins(
+				sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
+			)
+
+			genAccounts = append(genAccounts, ethermint.EthAccount{
+				BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
+				CodeHash:    ethcrypto.Keccak256(nil),
+			})
+
+			msg := stakingtypes.NewMsgCreateValidator(
+				sdk.ValAddress(addr),
+				valPubKeys[i],
+				stakingtypes.NewDescription(nodeDirName, "", "", ""),
+				sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
+			)
+
+			tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
+			txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
+
+			signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			txBytes, err := cdc.MarshalJSON(signedTx)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			// gather gentxs folder
+			if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 		}
-
-		cmd.Printf(
-			"Password for account '%s' :\n", nodeDirName,
-		)
-
-		keyPass := clientkeys.DefaultKeyPass
-		mnemonic := ""
-		if i < len(mnemonicList) {
-			mnemonic = mnemonicList[i]
-		}
-		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
-			clientDir, nodeDirName, addr, secret)
-		info := map[string]string{"secret": secret}
-
-		cliPrint, err := json.Marshal(info)
-		if err != nil {
-			return err
-		}
-
-		// save private key seed words
-		if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
-			return err
-		}
-
-		coins := sdk.NewCoins(
-			sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
-		)
-
-		genAccounts = append(genAccounts, ethermint.EthAccount{
-			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
-			CodeHash:    ethcrypto.Keccak256(nil),
-		})
-
-		msg := stakingtypes.NewMsgCreateValidator(
-			sdk.ValAddress(addr),
-			valPubKeys[i],
-			stakingtypes.NewDescription(nodeDirName, "", "", ""),
-			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
-		)
-
-		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
-		txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
-
-		signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		txBytes, err := cdc.MarshalJSON(signedTx)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		// gather gentxs folder
-		if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
-	}
-
-	// generate private keys, node IDs for rpc nodes
-	for i := numValidators; i < numValidators+numRPCs; i++ {
-		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
-		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
-
-		config.SetRoot(nodeDir)
-		config.RPC.ListenAddress = "tcp://0.0.0.0:26657"
-
-		if err := os.MkdirAll(filepath.Join(nodeDir, "config"), nodeDirPerm); err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		config.Moniker = nodeDirName
-
-		var err error
-		nodeIDs[i-numValidators], valPubKeys[i-numValidators], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		// get genesis file
-		genFiles = append(genFiles, config.GenesisFile())
 	}
 
 	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators+numRPCs); err != nil {
