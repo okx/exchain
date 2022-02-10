@@ -109,19 +109,37 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func iaviewerCmdPreRun(ctx *iaviewerContext) func(cmd *cobra.Command, args []string) {
-	return func(cmd *cobra.Command, args []string) {
-		if dbflag := ctx.flags.DbBackend; dbflag != nil && *dbflag != "" {
-			ctx.DbBackend = dbm.BackendType(*dbflag)
-		}
+func iaviewerCmdParseFlags(ctx *iaviewerContext) {
+	if dbflag := ctx.flags.DbBackend; dbflag != nil && *dbflag != "" {
+		ctx.DbBackend = dbm.BackendType(*dbflag)
+	}
 
-		if ctx.flags.Start != nil {
-			ctx.Start = *ctx.flags.Start
-		}
-		if ctx.flags.Limit != nil {
-			ctx.Limit = *ctx.flags.Limit
+	if ctx.flags.Start != nil {
+		ctx.Start = *ctx.flags.Start
+	}
+	if ctx.flags.Limit != nil {
+		ctx.Limit = *ctx.flags.Limit
+	}
+}
+
+func iaviewerCmdParseArgs(ctx *iaviewerContext, args []string) (err error) {
+	if len(args) < 2 {
+		return fmt.Errorf("must specify data_dir and module")
+	}
+	dataDir, module, version := args[0], args[1], 0
+	if len(args) == 3 {
+		version, err = strconv.Atoi(args[2])
+		if err != nil {
+			return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
 		}
 	}
+	ctx.DataDir = dataDir
+	ctx.Module = module
+	ctx.Version = version
+	if ctx.Module != "" {
+		ctx.Prefix = fmt.Sprintf("s/k:%s/", ctx.Module)
+	}
+	return nil
 }
 
 func iaviewerListModulesCmd() *cobra.Command {
@@ -147,25 +165,14 @@ func iaviewerListModulesCmd() *cobra.Command {
 
 func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "read <data_dir> <module> [version]",
-		Short:  "Read iavl tree key-value from db",
-		Long:   "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
-		PreRun: iaviewerCmdPreRun(ctx),
+		Use:   "read <data_dir> <module> [version]",
+		Short: "Read iavl tree key-value from db",
+		Long:  "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if len(args) < 2 {
-				return fmt.Errorf("must specify data_dir and module")
-			}
-			dataDir, module, version := args[0], args[1], 0
-			if len(args) == 3 {
-				version, err = strconv.Atoi(args[2])
-				if err != nil {
-					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
-				}
-			}
-			ctx.DataDir = dataDir
-			ctx.Module = module
-			ctx.Version = version
-
 			return iaviewerReadData(ctx)
 		},
 	}
@@ -174,24 +181,13 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 
 func iaviewerVersionsCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "versions <data_dir> <module> [version]",
-		Short:  "list iavl tree versions",
-		PreRun: iaviewerCmdPreRun(ctx),
+		Use:   "versions <data_dir> <module> [version]",
+		Short: "list iavl tree versions",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if len(args) < 2 {
-				return fmt.Errorf("must specify data_dir and module")
-			}
-			dataDir, module, version := args[0], args[1], 0
-			if len(args) == 3 {
-				version, err = strconv.Atoi(args[2])
-				if err != nil {
-					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
-				}
-			}
-			ctx.DataDir = dataDir
-			ctx.Module = module
-			ctx.Version = version
-
 			return iaviewerVersions(ctx)
 		},
 	}
@@ -200,9 +196,11 @@ func iaviewerVersionsCmd(ctx *iaviewerContext) *cobra.Command {
 
 func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "diff [data_dir] [compare_data_dir] [height] [module]",
-		Short:  "Read different key-value from leveldb according two paths",
-		PreRun: iaviewerCmdPreRun(ctx),
+		Use:   "diff [data_dir] [compare_data_dir] [height] [module]",
+		Short: "Read different key-value from leveldb according two paths",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			iaviewerCmdParseFlags(ctx)
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
 			if len(args) == 4 {
@@ -319,10 +317,6 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 	}
 	defer db.Close()
 
-	if ctx.Module != "" {
-		ctx.Prefix = fmt.Sprintf("s/k:%s/", ctx.Module)
-	}
-
 	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
@@ -348,12 +342,11 @@ func iaviewerVersions(ctx *iaviewerContext) error {
 	}
 	defer db.Close()
 
-	modulePrefix := fmt.Sprintf("s/k:%s/", ctx.Module)
-	tree, err := ReadTree(db, ctx.Version, []byte(modulePrefix), DefaultCacheSize)
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	printIaviewerStatus(ctx.Module, modulePrefix, tree)
+	printIaviewerStatus(ctx.Module, ctx.Prefix, tree)
 	iaviewerPrintVersions(ctx, tree)
 	return nil
 }
