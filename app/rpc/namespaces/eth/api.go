@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
@@ -1722,17 +1721,27 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 	if err != nil {
 		return nil, err
 	}
-	var defaultArgs rpctypes.SendTxArgs
-	// Set some sanity defaults and terminate on failure
-	defaultArgs, err = api.backend.SetTxDefaults(args)
+	_, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
+	if !exist {
+		api.logger.Debug("failed to find key in keyring", "key", args.From)
+		return nil, keystore.ErrLocked
+	}
+
+	// Mutex lock the address' nonce to avoid assigning it to multiple requests
+	if args.Nonce == nil {
+		api.nonceLock.LockAddr(*args.From)
+		defer api.nonceLock.UnlockAddr(*args.From)
+	}
+
+	// Assemble transaction from fields
+	tx, err := api.generateFromArgs(args)
 	if err != nil {
+		api.logger.Debug("failed to generate tx", "error", err)
 		return nil, err
 	}
 
-	// Assemble the transaction and obtain rlp
-	ethTx, err := api.generateFromArgs(defaultArgs)
-	if err != nil {
-		api.logger.Debug("failed to generate tx", "error", err)
+	if err := tx.ValidateBasic(); err != nil {
+		api.logger.Debug("tx failed basic validation", "error", err)
 		return nil, err
 	}
 
@@ -1744,145 +1753,17 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 	}
 
 	// Encode transaction by RLP encoder
-	txBytes, err := txEncoder(ethTx)
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcTx, err := rpctypes.NewTransaction(ethTx, *ethTx.Data.Hash, common.Hash{}, 0, 0)
+	rpcTx, err := rpctypes.NewTransaction(tx, common.Hash{}, common.Hash{}, 0, 0)
+	if err != nil {
+		return nil, err
+	}
 	return &rpctypes.SignTransactionResult{
 		Raw: txBytes,
 		Tx:  rpcTx,
 	}, nil
-}
-
-// Resend accepts an existing transaction and a new gas price and limit. It will remove
-// the given transaction from the pool and reinsert it with the new gas price and limit.
-func (api *PublicEthereumAPI) Resend(ctx context.Context, args rpctypes.SendTxArgs, gasPrice *hexutil.Big, gasLimit *hexutil.Uint64) (common.Hash, error) {
-	monitor := monitor.GetMonitor("eth_resend", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("args", args)
-	if args.Nonce == nil {
-		return common.Hash{}, fmt.Errorf("missing transaction nonce in transaction spec")
-	}
-	height, err := api.BlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
-	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
-	if !exist {
-		api.logger.Debug("failed to find key in keyring", "key", args.From)
-		return common.Hash{}, keystore.ErrLocked
-	}
-
-	// Mutex lock the address' nonce to avoid assigning it to multiple requests
-	if args.Nonce == nil {
-		api.nonceLock.LockAddr(*args.From)
-		defer api.nonceLock.UnlockAddr(*args.From)
-	}
-
-	// Assemble transaction from fields
-	matchTx, err := api.generateFromArgs(args)
-	if err != nil {
-		api.logger.Debug("failed to generate tx", "error", err)
-		return common.Hash{}, err
-	}
-
-	if err := matchTx.ValidateBasic(); err != nil {
-		api.logger.Debug("tx failed basic validation", "error", err)
-		return common.Hash{}, err
-	}
-
-	// Before replacing the old transaction, ensure the _new_ transaction fee is reasonable.
-	/*
-		price := matchTx.GasPrice()
-		if gasPrice != nil {
-			price = gasPrice.ToInt()
-		}
-		gas := matchTx.Gas()
-		if gasLimit != nil {
-			gas = uint64(*gasLimit)
-		}
-		if err := checkTxFee(price, gas, api.backend.RPCTxFeeCap()); err != nil {
-			return common.Hash{}, err
-		}
-	*/
-	pending, err := api.backend.PendingTransactions()
-	if err != nil {
-		return common.Hash{}, err
-	}
-	for _, tx := range pending {
-		if tx.From == *args.From && tx.Hash == *matchTx.Data.Hash {
-			// Match. Re-sign and send the transaction.
-			if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
-				args.GasPrice = gasPrice
-			}
-			if gasLimit != nil && *gasLimit != 0 {
-				args.Gas = gasLimit
-			}
-			// Sign transaction
-			if err := matchTx.Sign(api.chainIDEpoch, key.ToECDSA()); err != nil {
-				api.logger.Debug("failed to sign tx", "error", err)
-				return common.Hash{}, err
-			}
-
-			var txEncoder sdk.TxEncoder
-			if tmtypes.HigherThanVenus(int64(height)) {
-				txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-			} else {
-				txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-			}
-
-			// Encode transaction by RLP encoder
-			txBytes, err := txEncoder(matchTx)
-			if err != nil {
-				return common.Hash{}, err
-			}
-
-			//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
-			VenusTxPoolHeight := int64(0)
-			if tmtypes.GetVenusHeight() > 1800 {
-				VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
-			}
-			// send chanData to txPool
-			if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
-				return broadcastTxByTxPool(api, matchTx, txBytes)
-			}
-
-			// Broadcast transaction in sync mode (default)
-			// NOTE: If error is encountered on the node, the broadcast will not return an error
-			res, err := api.clientCtx.BroadcastTx(txBytes)
-			if err != nil {
-				return common.Hash{}, err
-			}
-
-			if res.Code != abci.CodeTypeOK {
-				return CheckError(res)
-			}
-
-			// Return transaction hash
-			return common.HexToHash(res.TxHash), nil
-		}
-	}
-
-	return common.Hash{}, fmt.Errorf("transaction %#x not found", *matchTx.Data.Hash)
-}
-
-// checkTxFee is an internal function used to check whether the fee of
-// the given transaction is _reasonable_(under the cap).
-func checkTxFee(gasPrice *big.Int, gas uint64, cap float64) error {
-	// Short circuit if there is no cap for transaction fee at all.
-	if cap == 0 {
-		return nil
-	}
-	totalfee := new(big.Float).SetInt(new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gas)))
-	// 1 photon in 10^18 aphoton
-	oneToken := new(big.Float).SetInt(big.NewInt(params.Ether))
-	// quo = rounded(x/y)
-	feeEth := new(big.Float).Quo(totalfee, oneToken)
-	// no need to check error from parsing
-	feeFloat, _ := feeEth.Float64()
-	if feeFloat > cap {
-		return fmt.Errorf("tx fee (%.2f ether) exceeds the configured cap (%.2f ether)", feeFloat, cap)
-	}
-	return nil
 }

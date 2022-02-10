@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -348,27 +347,6 @@ func isProtectedV(V *big.Int) bool {
 // GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
 func (msg MsgEthereumTx) GetGas() uint64 {
 	return msg.Data.GasLimit
-}
-
-// GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
-func (msg MsgEthereumTx) GetGasFeeCap() *big.Int {
-	return msg.Data.GasFeeCap
-}
-
-// GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
-func (msg MsgEthereumTx) GetGasTipCap() *big.Int {
-	return msg.Data.GasTipCap
-}
-
-// EffectiveGasTip returns the effective miner gasTipCap for the given base fee.
-// Note: if the effective gasTipCap is negative, this method returns both error
-// the actual negative value, _and_ ErrGasFeeCapTooLow
-func (msg MsgEthereumTx) GetEffectiveGasTip(baseFee *big.Int) *big.Int {
-	if baseFee == nil {
-		return msg.GetGasTipCap()
-	}
-	gasFeeCap := msg.GetGasFeeCap()
-	return math.BigMin(msg.GetGasTipCap(), gasFeeCap.Sub(gasFeeCap, baseFee))
 }
 
 // Fee returns gasprice * gaslimit.

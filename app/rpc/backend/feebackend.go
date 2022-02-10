@@ -84,13 +84,11 @@ func (e *EthermintBackend) processBlock(
 		}
 		txGasUsed := uint64(eachTendermintTxResult.GasUsed)
 		for _, msg := range tx.GetMsgs() {
-			ethMsg, ok := msg.(*evmtypes.MsgEthereumTx)
+			_, ok := msg.(*evmtypes.MsgEthereumTx)
 			if !ok {
 				continue
 			}
-
-			reward := ethMsg.GetEffectiveGasTip(blockBaseFee)
-			sorter[i] = txGasAndReward{gasUsed: txGasUsed, reward: reward}
+			sorter[i] = txGasAndReward{gasUsed: txGasUsed}
 			break
 		}
 	}
@@ -178,7 +176,8 @@ func (b *EthermintBackend) FeeHistory(
 		}
 
 		onefeehistory := rpctypes.OneFeeHistory{}
-		err = b.processBlock(tendermintblock, ethBlock.(*map[string]interface{}), rewardPercentiles, tendermintBlockResult, &onefeehistory)
+		ethBlockMap := ethBlock.(map[string]interface{})
+		err = b.processBlock(tendermintblock, &ethBlockMap, rewardPercentiles, tendermintBlockResult, &onefeehistory)
 		if err != nil {
 			return nil, err
 		}
