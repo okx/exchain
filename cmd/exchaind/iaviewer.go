@@ -59,6 +59,7 @@ const (
 	flagLimit  = "limit"
 	flagHex    = "hex"
 	flagPrefix = "prefix"
+	flagKey    = "key"
 )
 
 var printKeysDict = map[string]formatKeyValue{
@@ -188,6 +189,8 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
+	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
+		"if specified, start and limit flags would be ignored")
 	return cmd
 }
 
@@ -350,6 +353,17 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 		return fmt.Errorf("error reading data: %w", err)
 	}
 	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+	if key := viper.GetString(flagKey); key != "" {
+		keyByte, err := hex.DecodeString(key)
+		if err != nil {
+			return fmt.Errorf("error decoding key: %w", err)
+		}
+		i, value := tree.Get(keyByte)
+		fmt.Printf("key:\t%s\nvalue:\t%X\nindex:\t%d\n", key, value, i)
+		return nil
+	}
+
 	printTree(ctx, tree)
 	return nil
 }
