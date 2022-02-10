@@ -95,7 +95,9 @@ Note, strict routability for addresses is turned off in the config file.`,
 			isLocal := viper.GetBool(flagLocal)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal,
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, 
+				startingIPAddress, ipAddresses, keyringBackend, 
+				algo, numValidators, isLocal,0,
 			)
 		},
 	}
@@ -137,7 +139,9 @@ func InitTestnet(
 	algo string,
 	numValidators int,
 	isLocal bool,
+	numRPCs int,
 ) error {
+	numNodes := numValidators+numRPCs
 
 	if chainID == "" {
 		chainID = fmt.Sprintf("exchain-%d", tmrand.Int63n(9999999999999)+1)
@@ -152,11 +156,11 @@ func InitTestnet(
 	}
 
 	if len(ipAddresses) != 0 {
-		numValidators = len(ipAddresses)
+		numNodes = len(ipAddresses)
 	}
 
-	nodeIDs := make([]string, numValidators)
-	valPubKeys := make([]tmcrypto.PubKey, numValidators)
+	nodeIDs := make([]string, numNodes)
+	valPubKeys := make([]tmcrypto.PubKey, numNodes)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -168,7 +172,7 @@ func InitTestnet(
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 	// generate private keys, node IDs, and initial transactions
-	for i := 0; i < numValidators; i++ {
+	for i := 0; i < numNodes; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
 		clientDir := filepath.Join(outputDir, nodeDirName, nodeCLIHome)
@@ -217,99 +221,100 @@ func InitTestnet(
 		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
 		genFiles = append(genFiles, config.GenesisFile())
 
-		kb, err := keys.NewKeyring(
-			sdk.KeyringServiceName(),
-			keyringBackend,
-			clientDir,
-			inBuf,
-			hd.EthSecp256k1Options()...,
-		)
-		if err != nil {
-			return err
+		if i < 4 {
+			kb, err := keys.NewKeyring(
+				sdk.KeyringServiceName(),
+				keyringBackend,
+				clientDir,
+				inBuf,
+				hd.EthSecp256k1Options()...,
+			)
+			if err != nil {
+				return err
+			}
+
+			cmd.Printf(
+				"Password for account '%s' :\n", nodeDirName,
+			)
+
+			keyPass := clientkeys.DefaultKeyPass
+			mnemonic := ""
+			if i < len(mnemonicList) {
+				mnemonic = mnemonicList[i]
+			}
+			addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
+				clientDir, nodeDirName, addr, secret)
+			info := map[string]string{"secret": secret}
+
+			cliPrint, err := json.Marshal(info)
+			if err != nil {
+				return err
+			}
+
+			// save private key seed words
+			if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
+				return err
+			}
+
+			coins := sdk.NewCoins(
+				sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
+			)
+
+			genAccounts = append(genAccounts, ethermint.EthAccount{
+				BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
+				CodeHash:    ethcrypto.Keccak256(nil),
+			})
+
+			msg := stakingtypes.NewMsgCreateValidator(
+				sdk.ValAddress(addr),
+				valPubKeys[i],
+				stakingtypes.NewDescription(nodeDirName, "", "", ""),
+				sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
+			)
+
+			tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
+			txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
+
+			signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			txBytes, err := cdc.MarshalJSON(signedTx)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+
+			// gather gentxs folder
+			if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
 		}
-
-		cmd.Printf(
-			"Password for account '%s' :\n", nodeDirName,
-		)
-
-		keyPass := clientkeys.DefaultKeyPass
-		mnemonic := ""
-		if i < len(mnemonicList) {
-			mnemonic = mnemonicList[i]
-		}
-		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
-			clientDir, nodeDirName, addr, secret)
-		info := map[string]string{"secret": secret}
-
-		cliPrint, err := json.Marshal(info)
-		if err != nil {
-			return err
-		}
-
-		// save private key seed words
-		if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
-			return err
-		}
-
-		coins := sdk.NewCoins(
-			sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
-		)
-
-		genAccounts = append(genAccounts, ethermint.EthAccount{
-			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
-			CodeHash:    ethcrypto.Keccak256(nil),
-		})
-
-		msg := stakingtypes.NewMsgCreateValidator(
-			sdk.ValAddress(addr),
-			valPubKeys[i],
-			stakingtypes.NewDescription(nodeDirName, "", "", ""),
-			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
-		)
-
-		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
-		txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
-
-		signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		txBytes, err := cdc.MarshalJSON(signedTx)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
-		// gather gentxs folder
-		if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
 
-	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators); err != nil {
+	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numNodes); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		cdc, config, chainID, nodeIDs, valPubKeys, numValidators,
+		cdc, config, chainID, nodeIDs, valPubKeys, numNodes,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genAccIterator,
 	)
 	if err != nil {
 		return err
 	}
 
-	cmd.PrintErrf("Successfully initialized %d node directories\n", numValidators)
+	cmd.PrintErrf("Successfully initialized %d node directories\n", numNodes)
 	return nil
 }
 
@@ -317,7 +322,7 @@ func initGenFiles(
 	cdc *codec.Codec, mbm module.BasicManager,
 	chainID, coinDenom string,
 	genAccounts []authexported.GenesisAccount,
-	genFiles []string, numValidators int,
+	genFiles []string, numNodes int,
 ) error {
 
 	appGenState := mbm.DefaultGenesis()
@@ -359,7 +364,7 @@ func initGenFiles(
 	}
 
 	// generate empty genesis files for each validator and save
-	for i := 0; i < numValidators; i++ {
+	for i := 0; i < numNodes; i++ {
 		if err := genDoc.SaveAs(genFiles[i]); err != nil {
 			return err
 		}
@@ -392,14 +397,14 @@ func GenerateSaveCoinKey(keybase keys.Keybase, keyName, keyPass string, overwrit
 func collectGenFiles(
 	cdc *codec.Codec, config *tmconfig.Config, chainID string,
 	nodeIDs []string, valPubKeys []tmcrypto.PubKey,
-	numValidators int, outputDir, nodeDirPrefix, nodeDaemonHome string,
+	numNodes int, outputDir, nodeDirPrefix, nodeDaemonHome string,
 	genAccIterator authtypes.GenesisAccountIterator,
 ) error {
 
 	var appState json.RawMessage
 	genTime := tmtime.Now()
 
-	for i := 0; i < numValidators; i++ {
+	for i := 0; i < numNodes; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
 		gentxsDir := filepath.Join(outputDir, "gentxs")
