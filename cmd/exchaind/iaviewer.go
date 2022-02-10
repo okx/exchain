@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
@@ -55,6 +57,7 @@ const (
 
 	flagStart = "start"
 	flagLimit = "limit"
+	flagHex   = "hex"
 )
 
 var printKeysDict = map[string]formatKeyValue{
@@ -176,6 +179,7 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 			return iaviewerReadData(ctx)
 		},
 	}
+	cmd.PersistentFlags().Bool("hex", false, "print key and value in hex format")
 	return cmd
 }
 
@@ -385,7 +389,7 @@ func defaultKvFormater(key []byte, value []byte) string {
 }
 
 func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) {
-	if impl, exit := printKeysDict[modulePrefixKey]; exit {
+	if impl, exit := printKeysDict[modulePrefixKey]; exit && !viper.GetBool(flagHex) {
 		kvFormat := impl(cdc, key, value)
 		if kvFormat != "" {
 			fmt.Println(kvFormat)
