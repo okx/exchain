@@ -38,6 +38,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -46,6 +47,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 )
 
@@ -353,14 +355,18 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	balances := make(map[string]*hexutil.Big)
+	type accBalance struct {
+		Type    token.AccType `json:"type"`
+		Balance *hexutil.Big  `json:"balance"`
+	}
+	balances := make(map[string]accBalance)
 	for _, address := range addresses {
 		if acc, err := api.wrappedBackend.MustGetAccount(address.Bytes()); err == nil {
 			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
 			if balance == nil {
-				balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
+				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
 			} else {
-				balances[address.String()] = (*hexutil.Big)(balance)
+				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(balance)}
 			}
 			continue
 		}
@@ -369,45 +375,45 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		if err != nil {
 			return nil, err
 		}
-
 		res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 		if err != nil {
-			api.saveZeroAccount(address)
-			balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
 			continue
 		}
 
-		var account ethermint.EthAccount
+		var account authexported.Account
 		if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
 			return nil, err
 		}
 
-		val := account.Balance(sdk.DefaultBondDenom).BigInt()
-		api.watcherBackend.CommitAccountToRpcDb(account)
-		if blockNum != rpctypes.PendingBlockNumber {
-			balances[address.String()] = (*hexutil.Big)(val)
-			continue
-		}
-
-		// update the address balance with the pending transactions value (if applicable)
-		pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, tx := range pendingTxs {
-			if tx == nil {
+		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+		accType := accountType(account)
+		if accType == token.UserAccount || accType == token.ContractAccount {
+			api.watcherBackend.CommitAccountToRpcDb(account)
+			if blockNum != rpctypes.PendingBlockNumber {
+				balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
 				continue
 			}
 
-			if tx.From == address {
-				val = new(big.Int).Sub(val, tx.Value.ToInt())
+			// update the address balance with the pending transactions value (if applicable)
+			pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
+			if err != nil {
+				return nil, err
 			}
-			if *tx.To == address {
-				val = new(big.Int).Add(val, tx.Value.ToInt())
+
+			for _, tx := range pendingTxs {
+				if tx == nil {
+					continue
+				}
+
+				if tx.From == address {
+					val = new(big.Int).Sub(val, tx.Value.ToInt())
+				}
+				if *tx.To == address {
+					val = new(big.Int).Add(val, tx.Value.ToInt())
+				}
 			}
 		}
-		balances[address.String()] = (*hexutil.Big)(val)
+		balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
 	}
 	return balances, nil
 }
