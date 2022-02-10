@@ -393,6 +393,14 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.Batches != nil {
 		w.commitCenterBatch(data.Batches)
 	}
+	if checkWd {
+		keys := make([][]byte, len(data.Batches))
+		for i, _ := range data.Batches {
+			keys[i] = data.Batches[i].Key
+		}
+		w.CheckWatchDB(keys, "consumer")
+	}
+
 	if data.DirtyAccount != nil {
 		w.delDirtyAccount(data.DirtyAccount)
 	}
@@ -403,13 +411,13 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.commitBloomData(data.BloomData)
 	}
 
-	if checkWd {
-		keys := make([][]byte, len(data.Batches))
-		for i, _ := range data.Batches {
-			keys[i] = data.Batches[i].Key
-		}
-		w.CheckWatchDB(keys, "consumer")
-	}
+	//if checkWd {
+	//	keys := make([][]byte, len(data.Batches))
+	//	for i, _ := range data.Batches {
+	//		keys[i] = data.Batches[i].Key
+	//	}
+	//	w.CheckWatchDB(keys, "consumer")
+	//}
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
@@ -525,12 +533,15 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 		if err != nil {
 			continue
 		}
-		kvHash.Write(key)
-		kvHash.Write(value)
 		output[hex.EncodeToString(key)] = string(value)
 	}
-
-	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+	ob, err := itjs.Marshal(output)
+	if err != nil {
+		w.log.Info("watchDB delta", "mode", mode, "height", w.height, "kv", output)
+	} else {
+		kvHash.Write(ob)
+		w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+	}
 }
 
 func bytes2Key(keyBytes []byte) string {
