@@ -55,9 +55,10 @@ const (
 
 	DefaultCacheSize int = 100000
 
-	flagStart = "start"
-	flagLimit = "limit"
-	flagHex   = "hex"
+	flagStart  = "start"
+	flagLimit  = "limit"
+	flagHex    = "hex"
+	flagPrefix = "prefix"
 )
 
 var printKeysDict = map[string]formatKeyValue{
@@ -78,6 +79,7 @@ type iaviewerFlags struct {
 	Start     *int
 	Limit     *int
 	DbBackend *string
+	Prefix    *string
 }
 
 type iaviewerContext struct {
@@ -109,6 +111,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(flagDBBackend, "", "Database backend: goleveldb | rocksdb")
 	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
 	iavlCtx.flags.Limit = cmd.PersistentFlags().Int(flagLimit, 0, "limit of result set, 0 means no limit")
+	iavlCtx.flags.Prefix = cmd.PersistentFlags().String(flagPrefix, "", "the prefix of keys, module value must be \"\" if prefix is set")
 	return cmd
 }
 
@@ -122,6 +125,10 @@ func iaviewerCmdParseFlags(ctx *iaviewerContext) {
 	}
 	if ctx.flags.Limit != nil {
 		ctx.Limit = *ctx.flags.Limit
+	}
+
+	if ctx.flags.Prefix != nil && *ctx.flags.Prefix != "" {
+		ctx.Prefix = *ctx.flags.Prefix
 	}
 }
 
