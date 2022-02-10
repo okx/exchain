@@ -449,12 +449,18 @@ func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	if tree.Size() <= int64(ctx.Start) {
 		return
 	}
+	printed := ctx.Limit
 	if ctx.Start != 0 {
 		startKey, _ = tree.GetByIndex(int64(ctx.Start))
 	}
 	if ctx.Limit != 0 && int64(ctx.Start+ctx.Limit) < tree.Size() {
 		endKey, _ = tree.GetByIndex(int64(ctx.Start + ctx.Limit))
+	} else {
+		printed = int(tree.Size()) - ctx.Start
 	}
+
+	fmt.Printf("total: %d\n", tree.Size())
+	fmt.Printf("printed: %d\n\n", printed)
 
 	tree.IterateRange(startKey, endKey, true, func(key []byte, value []byte) bool {
 		printKV(ctx.Codec, ctx.Prefix, key, value)
