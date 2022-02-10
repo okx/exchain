@@ -104,6 +104,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 	cmd.AddCommand(
 		iaviewerReadCmd(iavlCtx),
+		iaviewerStatusCmd(iavlCtx),
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
@@ -187,6 +188,22 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
+	return cmd
+}
+
+func iaviewerStatusCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "status <data_dir> <module> [version]",
+		Short: "print iavl tree status",
+		Long:  "print iavl tree status, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			return iaviewerStatus(ctx)
+		},
+	}
 	return cmd
 }
 
@@ -332,18 +349,33 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-
-	printIaviewerStatus(ctx.Module, ctx.Prefix, tree)
+	fmt.Printf("module: %s, prefix key: %s\n", ctx.Module, ctx.Prefix)
+	printIaviewerStatus(tree)
 	printTree(ctx, tree)
 	return nil
 }
 
-func printIaviewerStatus(module string, prefixKey string, tree *iavl.MutableTree) {
-	fmt.Printf("module: %s, prefix key: %s\n", module, prefixKey)
+func iaviewerStatus(ctx *iaviewerContext) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer db.Close()
+
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
+	}
+	fmt.Printf("module: %s, prefix key: %s\n", ctx.Module, ctx.Prefix)
+	printIaviewerStatus(tree)
+	return nil
+}
+
+func printIaviewerStatus(tree *iavl.MutableTree) {
 	fmt.Printf("iavl tree:\n"+
 		"\troot hash: %X\n"+
 		"\tsize: %d\n"+
-		"\tcurrent version: %d\n\n", tree.Hash(), tree.Size(), tree.Version())
+		"\tcurrent version: %d\n", tree.Hash(), tree.Size(), tree.Version())
 }
 
 func iaviewerVersions(ctx *iaviewerContext) error {
@@ -357,7 +389,8 @@ func iaviewerVersions(ctx *iaviewerContext) error {
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	printIaviewerStatus(ctx.Module, ctx.Prefix, tree)
+	fmt.Printf("module: %s, prefix key: %s\n", ctx.Module, ctx.Prefix)
+	printIaviewerStatus(tree)
 	iaviewerPrintVersions(ctx, tree)
 	return nil
 }
@@ -396,7 +429,7 @@ func getKVs(tree *iavl.MutableTree, dataMap map[string][32]byte, wg *sync.WaitGr
 
 func defaultKvFormatter(key []byte, value []byte) string {
 	printKey := parseWeaveKey(key)
-	return fmt.Sprintf("parsed key: %s\nhex key: %X\nhex value: %X", printKey, key, value)
+	return fmt.Sprintf("parsed key:\t%s\nhex key:\t%X\nhex value:\t%X", printKey, key, value)
 }
 
 func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) {
