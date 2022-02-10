@@ -373,7 +373,11 @@ func iaviewerPrintVersions(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	if ctx.Start+ctx.Limit > len(versions) {
 		ctx.Limit = len(versions) - ctx.Start
 	}
-	versions = versions[ctx.Start : ctx.Start+ctx.Limit]
+	if ctx.Limit == 0 {
+		versions = versions[ctx.Start:]
+	} else {
+		versions = versions[ctx.Start : ctx.Start+ctx.Limit]
+	}
 	fmt.Printf("printed versions: %d\n\n", len(versions))
 
 	for _, v := range versions {
