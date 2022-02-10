@@ -151,8 +151,176 @@ func (suite *TreasuresTestSuite) TestGetSetTreasures() {
 	}
 }
 
-func (suite *TreasuresTestSuite) AllocateTokenToTreasure() {
+func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
+	input := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(5, 1)))
+	testCases := []struct {
+		msg        string
+		treasures  func() []types.Treasure
+		prepare    func(trs []types.Treasure)
+		expectfunc func(trs []types.Treasure, remain sdk.Coins, err error, msg string)
+	}{
+		{
+			msg: "0.5 coin allocate 0%(one)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(0, 2)}}
+			},
+			prepare: func(trs []types.Treasure) {
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2))), remain, msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))).String(), acc.GetCoins().String(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+		{
+			msg: "0.5 coin allocate 50%(one)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(50, 2)}}
+			},
+			prepare: func(trs []types.Treasure) {
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), remain, msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+		{
+			msg: "0.5 coin allocate 50%(multi)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{
+					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(20, 2)},
+				}
+			},
+			prepare: func(trs []types.Treasure) {
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), remain, msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+		{
+			msg: "0.5 coin allocate 60%(multi)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{
+					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(30, 2)},
+				}
+			},
+			prepare: func(trs []types.Treasure) {
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(20, 2))), remain, msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+		{
+			msg: "0.5 coin allocate 100%(multi)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{
+					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(60, 2)},
+					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(40, 2)},
+				}
+			},
+			prepare: func(trs []types.Treasure) {
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(0, 2))).String(), remain.String(), msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+		{
+			msg: "0.7 coin allocate 60%(multi)",
+			treasures: func() []types.Treasure {
+				return []types.Treasure{
+					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(30, 2)},
+				}
+			},
+			prepare: func(trs []types.Treasure) {
+				input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(7, 1)))
+				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
+				suite.Require().NoError(err)
+				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
+			},
+			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
+				suite.Require().NoError(err, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(28, 2))), remain, msg)
+				for i, _ := range trs {
+					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(70, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().NoError(err, msg)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				}
+			},
+		},
+	}
 
+	for _, tc := range testCases {
+		input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(5, 1)))
+		//prepare environment
+		treasuresInput := tc.treasures()
+		tc.prepare(treasuresInput)
+
+		// handler test case
+		remain, err := suite.app.MintKeeper.AllocateTokenToTreasure(suite.ctx, input)
+
+		// verify
+		tc.expectfunc(treasuresInput, remain, err, tc.msg)
+
+		// reset environment
+		suite.app.MintKeeper.SetTreasures(suite.ctx, make([]types.Treasure, 0))
+	}
 }
 
 func (suite *TreasuresTestSuite) TestUpdateTreasures() {
@@ -908,6 +1076,166 @@ func (suite *TreasuresTestSuite) TestDeleteTreasures() {
 			},
 			isPass:     false,
 			expected:   []types.Treasure{},
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures from multi",
+			prepare: func() {
+				input = []types.Treasure{treasures[0], treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0]})
+			},
+			isPass:     true,
+			expected:   nil,
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part) from multi",
+			prepare: func() {
+				input = []types.Treasure{treasures[0], treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,part negative) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(-1, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,all negative) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(-1, 0)}, {Address: treasures[1].Address, Proportion: sdk.NewDecWithPrec(-1, 0)}}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,part more than one) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(8, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,all more than one) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(8, 0)}, {Address: treasures[1].Address, Proportion: sdk.NewDecWithPrec(8, 0)}}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,the sum proportion more than one) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(2, 1)}, {Address: treasures[1].Address, Proportion: sdk.NewDecWithPrec(83, 2)}}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1], treasures[0], treasures[2]})
+			},
+			isPass:     true,
+			expected:   []types.Treasure{treasures[2]},
+			expectFunc: normal,
+		},
+		{
+			msg: "delete multi treasures(part,part not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{treasures[0], treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[0], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,negative part not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(-1, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[0], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,more than one part not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(2, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[0], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,the sumproportion more than one, part not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(2, 1)}, {Address: treasures[1].Address, Proportion: sdk.NewDecWithPrec(83, 2)}}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[0], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,all not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{treasures[0], treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[3], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,negative,all not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(-1, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[3], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,more than one all not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(2, 0)}, treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[3], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures(part,the sumproportion more than one, all not exist) from multi",
+			prepare: func() {
+				input = []types.Treasure{{Address: treasures[0].Address, Proportion: sdk.NewDecWithPrec(2, 1)}, {Address: treasures[1].Address, Proportion: sdk.NewDecWithPrec(83, 2)}}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[3], treasures[2]})
+			},
+			isPass:     false,
+			expected:   nil,
+			expectFunc: unexistError,
+		},
+		{
+			msg: "delete multi treasures from one",
+			prepare: func() {
+				input = []types.Treasure{treasures[0], treasures[1]}
+				suite.app.MintKeeper.SetTreasures(suite.ctx, []types.Treasure{treasures[1]})
+			},
+			isPass:     false,
+			expected:   nil,
 			expectFunc: unexistError,
 		},
 	}
