@@ -288,17 +288,22 @@ func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType,
 	defer db.Close()
 
 	modulePrefix := fmt.Sprintf("s/k:%s/", module)
-
-	fmt.Printf("==================================== %s begin ====================================\n", module)
 	tree, err := ReadTree(db, version, []byte(modulePrefix), DefaultCacheSize)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
+
+	printIaviewerStatus(module, modulePrefix, tree)
 	printTree(cdc, modulePrefix, tree)
-	fmt.Printf("Hash: %X\n", tree.Hash())
-	fmt.Printf("Size: %d\n", tree.Size())
-	fmt.Printf("==================================== %s end ====================================\n\n", module)
 	return nil
+}
+
+func printIaviewerStatus(module string, prefixKey string, tree *iavl.MutableTree) {
+	fmt.Printf("module: %s, prefix key: %s\n", module, prefixKey)
+	fmt.Printf("iavl tree:\n"+
+		"\troot hash: %X\n"+
+		"\tsize: %d\n"+
+		"\tlatest version: %d\n\n", tree.Hash(), tree.Size(), tree.Version())
 }
 
 func iaviewerVersions(dataDir string, backend dbm.BackendType, module string, version int) error {
@@ -313,6 +318,7 @@ func iaviewerVersions(dataDir string, backend dbm.BackendType, module string, ve
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
+	printIaviewerStatus(module, modulePrefix, tree)
 	iaviewerPrintVersions(tree)
 	return nil
 }
@@ -547,8 +553,7 @@ func ReadTree(db dbm.DB, version int, prefix []byte, cacheSize int) (*iavl.Mutab
 	if err != nil {
 		return nil, err
 	}
-	ver, err := tree.LoadVersion(int64(version))
-	fmt.Printf("prefix %s, Got version: %d\n", string(prefix), ver)
+	_, err = tree.LoadVersion(int64(version))
 	return tree, err
 }
 
