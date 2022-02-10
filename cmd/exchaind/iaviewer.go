@@ -13,8 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/app"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
@@ -54,6 +52,9 @@ const (
 	KeySlashing     = "s/k:slashing/"
 
 	DefaultCacheSize int = 100000
+
+	flagStart = "start"
+	flagLimit = "limit"
 )
 
 var printKeysDict = map[string]formatKeyValue{
@@ -70,28 +71,55 @@ var printKeysDict = map[string]formatKeyValue{
 	KeySupply:       supplyPrintKey,
 }
 
+type iaviewerFlags struct {
+	Start     *int
+	Limit     *int
+	DbBackend *string
+}
+
+type iaviewerContext struct {
+	DataDir   string
+	Prefix    string
+	Module    string
+	Version   int
+	DbBackend dbm.BackendType
+	Start     int
+	Limit     int
+	Codec     *codec.Codec
+
+	flags iaviewerFlags
+}
+
 func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iaviewer",
 		Short: "Read iavl tree data from db",
 	}
+	iavlCtx := &iaviewerContext{Codec: cdc, DbBackend: dbm.BackendType(ctx.Config.DBBackend)}
 
 	cmd.AddCommand(
-		iaviewerReadCmd(ctx, cdc),
-		iaviewerDiffCmd(ctx, cdc),
+		iaviewerReadCmd(iavlCtx),
+		iaviewerDiffCmd(iavlCtx),
+		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
-		iaviewerVersionsCmd(ctx),
 	)
-	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(flagDBBackend, "", "Database backend: goleveldb | rocksdb")
+	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
+	iavlCtx.flags.Limit = cmd.PersistentFlags().Int(flagLimit, 0, "limit of result set, 0 means no limit")
 	return cmd
 }
 
-func iaviewerCmdPreRun(ctx *server.Context) func(cmd *cobra.Command, args []string) {
+func iaviewerCmdPreRun(ctx *iaviewerContext) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
-		dbBackendStr := viper.GetString(flagDBBackend)
-		ctx.Config.DBBackend = dbBackendStr
-		if dbBackendStr != "" {
-			ctx.Config.DBBackend = dbBackendStr
+		if dbflag := ctx.flags.DbBackend; dbflag != nil && *dbflag != "" {
+			ctx.DbBackend = dbm.BackendType(*dbflag)
+		}
+
+		if ctx.flags.Start != nil {
+			ctx.Start = *ctx.flags.Start
+		}
+		if ctx.flags.Limit != nil {
+			ctx.Limit = *ctx.flags.Limit
 		}
 	}
 }
@@ -117,7 +145,7 @@ func iaviewerListModulesCmd() *cobra.Command {
 	return cmd
 }
 
-func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
+func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "read <data_dir> <module> [version]",
 		Short:  "Read iavl tree key-value from db",
@@ -134,15 +162,17 @@ func iaviewerReadCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
 				}
 			}
+			ctx.DataDir = dataDir
+			ctx.Module = module
+			ctx.Version = version
 
-			dbBackend := dbm.BackendType(ctx.Config.DBBackend)
-			return iaviewerReadData(cdc, dataDir, dbBackend, module, version)
+			return iaviewerReadData(ctx)
 		},
 	}
 	return cmd
 }
 
-func iaviewerVersionsCmd(ctx *server.Context) *cobra.Command {
+func iaviewerVersionsCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "versions <data_dir> <module> [version]",
 		Short:  "list iavl tree versions",
@@ -158,15 +188,17 @@ func iaviewerVersionsCmd(ctx *server.Context) *cobra.Command {
 					return fmt.Errorf("invalid version: %s, error : %w\n", args[2], err)
 				}
 			}
+			ctx.DataDir = dataDir
+			ctx.Module = module
+			ctx.Version = version
 
-			dbBackend := dbm.BackendType(ctx.Config.DBBackend)
-			return iaviewerVersions(dataDir, dbBackend, module, version)
+			return iaviewerVersions(ctx)
 		},
 	}
 	return cmd
 }
 
-func iaviewerDiffCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
+func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "diff [data_dir] [compare_data_dir] [height] [module]",
 		Short:  "Read different key-value from leveldb according two paths",
@@ -185,7 +217,7 @@ func iaviewerDiffCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic("The input height is wrong")
 			}
-			iaviewerPrintDiff(cdc, args[0], dbm.BackendType(ctx.Config.DBBackend), args[1], moduleList, int(height))
+			iaviewerPrintDiff(ctx.Codec, args[0], ctx.DbBackend, args[1], moduleList, int(height))
 		},
 	}
 	return cmd
@@ -280,21 +312,24 @@ func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType
 }
 
 // iaviewerReadData reads key-value from leveldb
-func iaviewerReadData(cdc *codec.Codec, dataDir string, backend dbm.BackendType, module string, version int) error {
-	db, err := OpenDB(dataDir, backend)
+func iaviewerReadData(ctx *iaviewerContext) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
 	defer db.Close()
 
-	modulePrefix := fmt.Sprintf("s/k:%s/", module)
-	tree, err := ReadTree(db, version, []byte(modulePrefix), DefaultCacheSize)
+	if ctx.Module != "" {
+		ctx.Prefix = fmt.Sprintf("s/k:%s/", ctx.Module)
+	}
+
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
 
-	printIaviewerStatus(module, modulePrefix, tree)
-	printTree(cdc, modulePrefix, tree)
+	printIaviewerStatus(ctx.Module, ctx.Prefix, tree)
+	printTree(ctx, tree)
 	return nil
 }
 
@@ -306,26 +341,37 @@ func printIaviewerStatus(module string, prefixKey string, tree *iavl.MutableTree
 		"\tlatest version: %d\n\n", tree.Hash(), tree.Size(), tree.Version())
 }
 
-func iaviewerVersions(dataDir string, backend dbm.BackendType, module string, version int) error {
-	db, err := OpenDB(dataDir, backend)
+func iaviewerVersions(ctx *iaviewerContext) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
 	defer db.Close()
 
-	modulePrefix := fmt.Sprintf("s/k:%s/", module)
-	tree, err := ReadTree(db, version, []byte(modulePrefix), DefaultCacheSize)
+	modulePrefix := fmt.Sprintf("s/k:%s/", ctx.Module)
+	tree, err := ReadTree(db, ctx.Version, []byte(modulePrefix), DefaultCacheSize)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	printIaviewerStatus(module, modulePrefix, tree)
-	iaviewerPrintVersions(tree)
+	printIaviewerStatus(ctx.Module, modulePrefix, tree)
+	iaviewerPrintVersions(ctx, tree)
 	return nil
 }
 
-func iaviewerPrintVersions(tree *iavl.MutableTree) {
+func iaviewerPrintVersions(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	versions := tree.AvailableVersions()
-	fmt.Println("Available versions:")
+	fmt.Printf("total versions: %d\n", len(versions))
+
+	if ctx.Start >= len(versions) {
+		fmt.Printf("printed verions: 0\n")
+		return
+	}
+	if ctx.Start+ctx.Limit > len(versions) {
+		ctx.Limit = len(versions) - ctx.Start
+	}
+	versions = versions[ctx.Start : ctx.Start+ctx.Limit]
+	fmt.Printf("printed versions: %d\n\n", len(versions))
+
 	for _, v := range versions {
 		fmt.Printf("  %d\n", v)
 	}
@@ -358,11 +404,28 @@ func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte)
 	fmt.Println()
 }
 
-func printTree(cdc *codec.Codec, modulePrefixKey string, tree *iavl.MutableTree) {
-	tree.Iterate(func(key []byte, value []byte) bool {
-		printKV(cdc, modulePrefixKey, key, value)
+func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
+	startKey := []byte(nil)
+	endKey := []byte(nil)
+	if tree.Size() <= int64(ctx.Start) {
+		return
+	}
+	if ctx.Start != 0 {
+		startKey, _ = tree.GetByIndex(int64(ctx.Start))
+	}
+	if ctx.Limit != 0 && int64(ctx.Start+ctx.Limit) < tree.Size() {
+		endKey, _ = tree.GetByIndex(int64(ctx.Start + ctx.Limit))
+	}
+
+	tree.IterateRange(startKey, endKey, true, func(key []byte, value []byte) bool {
+		printKV(ctx.Codec, ctx.Prefix, key, value)
 		return false
 	})
+
+	//tree.Iterate(func(key []byte, value []byte) bool {
+	//	printKV(ctx.Codec, ctx.Prefix, key, value)
+	//	return false
+	//})
 }
 
 func printByKey(cdc *codec.Codec, tree *iavl.MutableTree, module string, key []byte) {
