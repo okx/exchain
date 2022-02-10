@@ -6,10 +6,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -38,6 +34,9 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -439,6 +438,12 @@ func collectGenFiles(
 		config.Moniker = nodeDirName
 
 		config.SetRoot(nodeDir)
+		// set node's port
+		port := viper.GetInt(flagBaseport)
+		p2pPort := port + i*100
+		rpcPort := port + i*100 + 1
+		config.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", p2pPort)
+		config.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
 
 		nodeID, valPubKey := nodeIDs[i], valPubKeys[i]
 		initCfg := genutiltypes.NewInitConfig(chainID, gentxsDir, nodeID, nodeID, valPubKey)
