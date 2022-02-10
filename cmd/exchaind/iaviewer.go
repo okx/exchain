@@ -349,8 +349,7 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	fmt.Printf("module: %s, prefix key: %s\n", ctx.Module, ctx.Prefix)
-	printIaviewerStatus(tree)
+	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
 	printTree(ctx, tree)
 	return nil
 }
@@ -389,8 +388,7 @@ func iaviewerVersions(ctx *iaviewerContext) error {
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	fmt.Printf("module: %s, prefix key: %s\n", ctx.Module, ctx.Prefix)
-	printIaviewerStatus(tree)
+	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
 	iaviewerPrintVersions(ctx, tree)
 	return nil
 }
