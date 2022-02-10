@@ -116,7 +116,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
 	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
-	cmd.Flags().Int(flagNumRPCs, 3, "Number of RPCs to initialize the testnet with")
+	cmd.Flags().Int(flagNumRPCs, 0, "Number of RPC nodes to initialize the testnet with")
 
 	return cmd
 }
