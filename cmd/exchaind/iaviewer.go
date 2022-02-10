@@ -179,7 +179,7 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 			return iaviewerReadData(ctx)
 		},
 	}
-	cmd.PersistentFlags().Bool("hex", false, "print key and value in hex format")
+	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
 	return cmd
 }
 
@@ -336,7 +336,7 @@ func printIaviewerStatus(module string, prefixKey string, tree *iavl.MutableTree
 	fmt.Printf("iavl tree:\n"+
 		"\troot hash: %X\n"+
 		"\tsize: %d\n"+
-		"\tlatest version: %d\n\n", tree.Hash(), tree.Size(), tree.Version())
+		"\tcurrent version: %d\n\n", tree.Hash(), tree.Size(), tree.Version())
 }
 
 func iaviewerVersions(ctx *iaviewerContext) error {
@@ -383,9 +383,9 @@ func getKVs(tree *iavl.MutableTree, dataMap map[string][32]byte, wg *sync.WaitGr
 	wg.Done()
 }
 
-func defaultKvFormater(key []byte, value []byte) string {
+func defaultKvFormatter(key []byte, value []byte) string {
 	printKey := parseWeaveKey(key)
-	return fmt.Sprintf("  %s\n    %X", printKey, value)
+	return fmt.Sprintf("parsed key: %s\nhex key: %X\nhex value: %X", printKey, key, value)
 }
 
 func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) {
@@ -397,7 +397,7 @@ func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte)
 			return
 		}
 	}
-	fmt.Println(defaultKvFormater(key, value))
+	fmt.Println(defaultKvFormatter(key, value))
 	fmt.Println()
 }
 
@@ -437,7 +437,7 @@ func supplyPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &supplyAmount)
 		return fmt.Sprintf("tokenSymbol:%s:info:%s", string(key[1:]), supplyAmount.String())
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -453,7 +453,7 @@ func mintPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &minter)
 		return fmt.Sprintf("minter:%v", minter)
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -473,7 +473,7 @@ func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 		//address-token:tokenInfo
 		return fmt.Sprintf("%s-%s:token:%s", hex.EncodeToString(key[1:21]), string(key[21:]), token.String())
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -481,7 +481,7 @@ func mainPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	if bytes.Equal(key, []byte("consensus_params")) {
 		return fmt.Sprintf("consensusParams:%s", hex.EncodeToString(value))
 	}
-	return defaultKvFormater(key, value)
+	return defaultKvFormatter(key, value)
 }
 
 func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
@@ -495,7 +495,7 @@ func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case slashingtypes.AddrPubkeyRelationKey[0]:
 		return fmt.Sprintf("pubkeyAddr:%s:pubkey:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -514,7 +514,7 @@ func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &commission)
 		return fmt.Sprintf("validatorAccumulatedAddr:%s:address:%s", hex.EncodeToString(key[1:]), commission.String())
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -531,7 +531,7 @@ func govPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case govtypes.ProposalIDKey[0]:
 		return fmt.Sprintf("proposalId:%x", hex.EncodeToString(value))
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -554,7 +554,7 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case stakingtypes.ValidatorsByPowerIndexKey[0]:
 		return fmt.Sprintf("validatorPowerIndexKey:%s;address:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -571,7 +571,7 @@ func accPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	} else if bytes.Equal(key, acctypes.GlobalAccountNumberKey) {
 		return fmt.Sprintf("%s:%s", string(key), hex.EncodeToString(value))
 	} else {
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
@@ -597,7 +597,7 @@ func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case evmtypes.KeyPrefixContractBlockedList[0]:
 		return fmt.Sprintf("blockedAddres:%s", hex.EncodeToString(key[1:]))
 	default:
-		return defaultKvFormater(key, value)
+		return defaultKvFormatter(key, value)
 	}
 }
 
