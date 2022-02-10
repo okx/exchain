@@ -180,10 +180,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	if types.UploadDelta {
-		panic("fsc:test upload delta")
-	}
-
 	delta, deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
