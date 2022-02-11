@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-./testnet.sh -s -i -n 6
+# 4v+1r
+./testnet.sh -s -i -n 5 -r 1
 
 #sleep 5
 #

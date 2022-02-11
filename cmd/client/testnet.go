@@ -43,6 +43,7 @@ import (
 var (
 	flagNodeDirPrefix     = "node-dir-prefix"
 	flagNumValidators     = "v"
+	flagNumRpcs           = "r"
 	flagOutputDir         = "output-dir"
 	flagNodeDaemonHome    = "node-daemon-home"
 	flagNodeCLIHome       = "node-cli-home"
@@ -90,6 +91,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			ipAddresses, _ := cmd.Flags().GetStringSlice(flagIPAddrs)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
+			numRpcs, _ := cmd.Flags().GetInt(flagNumRpcs)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
@@ -97,12 +99,13 @@ Note, strict routability for addresses is turned off in the config file.`,
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
 				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, 
 				startingIPAddress, ipAddresses, keyringBackend, 
-				algo, numValidators, isLocal,0,
+				algo, numValidators, isLocal, numRpcs,
 			)
 		},
 	}
 
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
+	cmd.Flags().Int(flagNumRpcs, 0, "Number of rpc nodes to initialize the testnet with")
 	cmd.Flags().StringP(flagOutputDir, "o", "./build", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
 	cmd.Flags().String(flagNodeDaemonHome, "exchaind", "Home directory of the node's daemon configuration")
@@ -221,7 +224,7 @@ func InitTestnet(
 		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
 		genFiles = append(genFiles, config.GenesisFile())
 
-		if i < 4 {
+		if i < numValidators {
 			kb, err := keys.NewKeyring(
 				sdk.KeyringServiceName(),
 				keyringBackend,
