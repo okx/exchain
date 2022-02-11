@@ -29,6 +29,7 @@ func NewAPI(clientCtx context.CLIContext, log log.Logger) *PublicNetAPI {
 	return &PublicNetAPI{
 		networkVersion: chainIDEpoch.Uint64(),
 		logger:         log.With("module", "json-rpc", "namespace", "net"),
+		tmClient:       clientCtx.Client,
 	}
 }
 

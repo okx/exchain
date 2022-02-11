@@ -94,25 +94,6 @@ func (ca SendTxArgs) String() string {
 	return strings.TrimRight(arg, ", ")
 }
 
-// GetFrom retrieves the transaction sender address.
-func (args *SendTxArgs) GetFrom() common.Address {
-	if args.From == nil {
-		return common.Address{}
-	}
-	return *args.From
-}
-
-// GetData retrieves the transaction calldata. Input field is preferred.
-func (args *SendTxArgs) GetData() []byte {
-	if args.Input != nil {
-		return *args.Input
-	}
-	if args.Data != nil {
-		return *args.Data
-	}
-	return nil
-}
-
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     *common.Address `json:"from"`
