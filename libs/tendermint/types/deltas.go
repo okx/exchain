@@ -27,7 +27,7 @@ const (
 	FlagFastQuery   = "fast-query"
 
 	// do not apply delta if version does not match
-	DeltaVersion = 6
+	DeltaVersion = 7
 )
 
 var (
@@ -184,7 +184,7 @@ func (d *Deltas) String() string {
 func (dds *Deltas) Validate(height int64) bool {
 	if DeltaVersion != dds.Version ||
 		dds.Height != height ||
-		len(dds.WatchBytes()) == 0 ||
+//		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
 		len(dds.DeltasBytes()) == 0 {
 		return false
