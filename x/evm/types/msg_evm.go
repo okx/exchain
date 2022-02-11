@@ -36,10 +36,6 @@ const (
 	TypeMsgEthereumTx = "ethereum"
 )
 
-var (
-	ErrGasFeeCapTooLow = errors.New("fee cap less than base fee")
-)
-
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
 	Data TxData

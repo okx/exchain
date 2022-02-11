@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -64,13 +63,6 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data  *hexutil.Bytes `json:"data"`
 	Input *hexutil.Bytes `json:"input"`
-
-	//import by EIP1559
-	MaxFeePerGas         *hexutil.Big `json:"maxFeePerGas"`
-	MaxPriorityFeePerGas *hexutil.Big `json:"maxPriorityFeePerGas"`
-	// Introduced by AccessListTxType transaction.
-	AccessList *evmtypes.AccessList `json:"accessList,omitempty"`
-	ChainID    *hexutil.Big         `json:"chainId,omitempty"`
 }
 
 func (ca SendTxArgs) String() string {
@@ -86,12 +78,6 @@ func (ca SendTxArgs) String() string {
 	}
 	if ca.GasPrice != nil {
 		arg += fmt.Sprintf("GasPrice: %s, ", ca.GasPrice.String())
-	}
-	if ca.MaxFeePerGas != nil {
-		arg += fmt.Sprintf("MaxFeePerGas: %s, ", ca.MaxFeePerGas.String())
-	}
-	if ca.MaxPriorityFeePerGas != nil {
-		arg += fmt.Sprintf("MaxPriorityFeePerGas: %s, ", ca.MaxPriorityFeePerGas.String())
 	}
 	if ca.Value != nil {
 		arg += fmt.Sprintf("Value: %s, ", ca.Value.String())

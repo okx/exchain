@@ -1,11 +1,3 @@
-/*
- * @Author: worm
- * @Description:
- * @Date: 2022-02-09 08:55:01
- * @LastEditors: worm
- * @LastEditTime: 2022-02-09 22:03:54
- * @FilePath: /exchain/x/feemarket/keeper/eip1559.go
- */
 package keeper
 
 import (
