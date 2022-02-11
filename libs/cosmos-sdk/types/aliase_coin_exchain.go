@@ -12,7 +12,6 @@ type Coins = DecCoins
 type SysCoin = DecCoin
 type SysCoins = DecCoins
 
-
 var (
 	reDnmString = fmt.Sprintf(`[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?`)
 	reDecAmt    = `[[:digit:]]*\.?[[:digit:]]+`
@@ -27,7 +26,7 @@ var (
 )
 
 var (
-	ParseCoin = ParseDecCoin
+	ParseCoin  = ParseDecCoin
 	ParseCoins = ParseDecCoins
 )
 
@@ -59,12 +58,12 @@ func newDecFromIntWithPrec(i Int, prec int64) Dec {
 		new(big.Int).Mul(i.BigInt(), precisionMultiplier(prec)),
 	}
 }
+
 // Round a decimal with precision, perform bankers rounding (gaussian rounding)
 func (d Dec) RoundDecimal(precision int64) Dec {
 	precisionMul := NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(precision), nil))
 	return newDecFromInt(d.MulInt(precisionMul).RoundInt()).QuoInt(precisionMul)
 }
-
 
 func MustParseCoins(denom, amount string) Coins {
 	coins, err := ParseCoins(amount + denom)
@@ -106,4 +105,3 @@ func ValidateDenom(denom string) error {
 func (coins DecCoins) Add2(coinsB DecCoins) DecCoins {
 	return coins.safeAdd(coinsB)
 }
-

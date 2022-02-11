@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 )
 
 func mockNodeDB() *nodeDB {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
@@ -20,7 +21,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
@@ -31,6 +31,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -53,7 +54,6 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
-	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 func init() {
@@ -212,7 +212,6 @@ func NewOKExChainApp(
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 
-	bApp.SetWrappedTxEncoder(authtypes.EncodeWrappedTx)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
@@ -435,8 +434,6 @@ func NewOKExChainApp(
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
-	evmtypes.SetLogger(app.Logger())
-
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -588,6 +585,12 @@ func PreRun(ctx *server.Context) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
+	// check start flag conflicts
+	err := sanity.CheckStart()
+	if err != nil {
+		return err
+	}
+
 	// set config by node mode
 	setNodeConfig(ctx)
 
@@ -595,7 +598,7 @@ func PreRun(ctx *server.Context) error {
 	appconfig.PprofDownload(ctx)
 
 	// pruning options
-	_, err := server.GetPruningOptionsFromFlags()
+	_, err = server.GetPruningOptionsFromFlags()
 	if err != nil {
 		return err
 	}

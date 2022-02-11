@@ -73,4 +73,3 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 	setInflationHandler = disableMining
 	beginBlocker(ctx, k)
 }
-

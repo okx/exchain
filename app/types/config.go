@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 const (

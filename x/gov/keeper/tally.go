@@ -8,11 +8,11 @@ import (
 
 // validatorGovInfo used for tallying
 type validatorGovInfo struct {
-	Address             sdk.ValAddress // address of the validator operator
-	BondedTokens        sdk.Int        // Power of a Validator
-	DelegatorShares     sdk.Dec        // Total outstanding delegator shares
-	DelegatorDeductions sdk.Dec        // Delegator deductions from validator's delegators voting independently
-	Vote                types.VoteOption     // Vote of the validator
+	Address             sdk.ValAddress   // address of the validator operator
+	BondedTokens        sdk.Int          // Power of a Validator
+	DelegatorShares     sdk.Dec          // Total outstanding delegator shares
+	DelegatorDeductions sdk.Dec          // Delegator deductions from validator's delegators voting independently
+	Vote                types.VoteOption // Vote of the validator
 }
 
 func newValidatorGovInfo(address sdk.ValAddress, bondedTokens sdk.Int, delegatorShares,

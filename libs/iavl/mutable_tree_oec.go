@@ -278,7 +278,8 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			if node.persisted && EnablePruningHistoryState {
 				k := string(node.hash)
 				tree.commitOrphans[k] = node.version
-				tree.deltas.CommitOrphansDelta[k] = node.version
+				commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
+				tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 			}
 		}
 

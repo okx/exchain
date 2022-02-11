@@ -20,7 +20,7 @@ type Keeper struct {
 	supplyKeeper     types.SupplyKeeper
 	feeCollectorName string
 
-	farmModuleName     string
+	farmModuleName         string
 	originalMintedPerBlock sdk.Dec
 }
 
@@ -36,13 +36,13 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		cdc:              cdc,
-		storeKey:         key,
-		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
-		sk:               sk,
-		supplyKeeper:     supplyKeeper,
-		feeCollectorName: feeCollectorName,
-		farmModuleName:   farmModule,
+		cdc:                    cdc,
+		storeKey:               key,
+		paramSpace:             paramSpace.WithKeyTable(types.ParamKeyTable()),
+		sk:                     sk,
+		supplyKeeper:           supplyKeeper,
+		feeCollectorName:       feeCollectorName,
+		farmModuleName:         farmModule,
 		originalMintedPerBlock: types.DefaultOriginalMintedPerBlock(),
 	}
 }

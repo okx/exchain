@@ -10,12 +10,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/staking/exported"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 )
 
 //func tokensFromTendermintPower(power int64) sdk.Int {

@@ -9,13 +9,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/rakyll/statik/fs"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
 	tmrpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
+	"github.com/rakyll/statik/fs"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"

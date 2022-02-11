@@ -10,8 +10,8 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	"github.com/pkg/errors"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 )
 
 func SetIgnoreVersionCheck(check bool) {
@@ -82,7 +82,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			ImmutableTree: head,
 			lastSaved:     head.clone(),
 			savedNodes:    map[string]*Node{},
-			deltas:        &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}},
+			deltas:        &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
 			orphans:       []*Node{},
 			commitOrphans: map[string]int64{},
 			versions:      NewSyncMap(),
@@ -377,7 +377,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = iTree
@@ -437,7 +437,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = t
@@ -506,7 +506,7 @@ func (tree *MutableTree) Rollback() {
 		tree.ImmutableTree = &ImmutableTree{ndb: tree.ndb, version: 0}
 	}
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 }
@@ -534,7 +534,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
 
-	tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 
 	if !ignoreVersionCheck && tree.versions.Get(version) {
 		// If the version already exists, return an error as we're attempting to overwrite.
@@ -556,7 +556,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.ImmutableTree = tree.ImmutableTree.clone()
 			tree.lastSaved = tree.ImmutableTree.clone()
 			tree.savedNodes = map[string]*Node{}
-			tree.deltas = &TreeDelta{map[string]*NodeJson{}, []*NodeJson{}, map[string]int64{}}
+			tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 			tree.orphans = []*Node{}
 			tree.commitOrphans = map[string]int64{}
 			return existingHash, version, *tree.deltas, nil
@@ -871,9 +871,8 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 
 func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 	if delta != nil {
-		for k, v := range delta.NodesDelta {
-			kb, _ := hex.DecodeString(k)
-			tree.savedNodes[amino.BytesToStr(kb)] = NodeJsonToNode(v)
+		for _, v := range delta.NodesDelta {
+			tree.savedNodes[v.Key] = NodeJsonToNode(v.NodeValue)
 		}
 
 		// set tree.orphans
@@ -884,16 +883,20 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		tree.orphans = orphans
 
 		// set tree.commitOrphans
-		for k, v := range delta.CommitOrphansDelta {
-			tree.commitOrphans[k] = v
+		for _, v := range delta.CommitOrphansDelta {
+			tree.commitOrphans[v.Key] = v.CommitValue
 		}
 	}
 }
 
 func (tree *MutableTree) GetDelta() {
+	nodes := make([]*NodeJsonImp, len(tree.savedNodes))
+	index := 0
 	for k, v := range tree.savedNodes {
-		tree.deltas.NodesDelta[amino.HexEncodeToString(amino.StrToBytes(k))] = NodeToNodeJson(v)
+		nodes[index] = &NodeJsonImp{Key: k, NodeValue: NodeToNodeJson(v)}
+		index++
 	}
+	tree.deltas.NodesDelta = nodes
 
 	orphans := make([]*NodeJson, len(tree.orphans))
 	for i, orphan := range tree.orphans {

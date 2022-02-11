@@ -177,7 +177,7 @@ func TestRedact(t *testing.T) {
 		changed   error // if untouched == false, expect this error
 	}{
 		"panic looses message": {
-			err:     Wrap(ErrPanic, "some secret stack trace"),
+			err:       Wrap(ErrPanic, "some secret stack trace"),
 			untouched: true,
 		},
 		"sdk errors untouched": {

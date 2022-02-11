@@ -148,6 +148,16 @@ func TestPubKeyAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), pubkey.AminoSize(cdc))
+
+		var value PubKey
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 PubKey
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -190,6 +200,16 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), validatorUpdate.AminoSize(cdc))
+
+		var value ValidatorUpdate
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ValidatorUpdate
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -223,6 +243,16 @@ func TestBlockParamsAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), test.AminoSize(cdc))
+
+		var value BlockParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 BlockParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -256,6 +286,16 @@ func TestEvidenceParamsAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), test.AminoSize(cdc))
+
+		var value EvidenceParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 EvidenceParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -285,6 +325,16 @@ func TestValidatorParamsAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), test.AminoSize(cdc))
+
+		var value ValidatorParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ValidatorParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -335,6 +385,16 @@ func TestConsensusParamsAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), test.AminoSize(cdc))
+
+		var value ConsensusParams
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ConsensusParams
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -461,6 +521,16 @@ func TestResponseBeginBlockAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.Equal(t, len(expect), resp.AminoSize(cdc))
+
+		var value ResponseBeginBlock
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ResponseBeginBlock
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }
 
@@ -504,5 +574,15 @@ func TestResponseEndBlockAmino(t *testing.T) {
 		require.EqualValues(t, expect, actual)
 
 		require.EqualValues(t, len(expect), resp.AminoSize(cdc))
+
+		var value ResponseEndBlock
+		err = cdc.UnmarshalBinaryBare(expect, &value)
+		require.NoError(t, err)
+
+		var value2 ResponseEndBlock
+		err = value2.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, value, value2)
 	}
 }

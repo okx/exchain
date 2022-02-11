@@ -10,18 +10,18 @@ import (
 )
 
 const (
-	OECLogTopic       = "oeclog"
-	LogConsumerGroup  = "oeclog-consumer-group"
+	OECLogTopic      = "oeclog"
+	LogConsumerGroup = "oeclog-consumer-group"
 
-	HeartbeatTopic    = "oeclog-subscriber-heartbeat"
+	HeartbeatTopic = "oeclog-subscriber-heartbeat"
 
-	HeartbeatInterval = 5*time.Second
-	ExpiredInterval   = 6*HeartbeatInterval
+	HeartbeatInterval = 5 * time.Second
+	ExpiredInterval   = 6 * HeartbeatInterval
 )
 
 type logClient struct {
-	wt   string
-	rt   string
+	wt      string
+	rt      string
 	groupID string
 	*kafka.Writer
 	*kafka.Reader
@@ -30,8 +30,8 @@ type logClient struct {
 func newLogClient(kafkaAddrs string, wt, rt string, groupID string) *logClient {
 	addrs := strings.Split(kafkaAddrs, ",")
 	return &logClient{
-		wt: wt,
-		rt: rt,
+		wt:      wt,
+		rt:      rt,
 		groupID: groupID,
 		Writer: kafka.NewWriter(kafka.WriterConfig{
 			Brokers:  addrs,
@@ -43,8 +43,8 @@ func newLogClient(kafkaAddrs string, wt, rt string, groupID string) *logClient {
 }
 
 type KafkaMsg struct {
-	Topic  string           `json:"topic"`
-	Data   string           `json:"data"`
+	Topic string `json:"topic"`
+	Data  string `json:"data"`
 }
 
 var KafkaMsgPool = sync.Pool{
@@ -89,9 +89,9 @@ func (kc *logClient) send(key string, rawMsg *KafkaMsg) error {
 func getKafkaReader(kafkaURL, topic, groupID string) *kafka.Reader {
 	brokers := strings.Split(kafkaURL, ",")
 	return kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  brokers,
-		GroupID:  groupID,
-		Topic:    topic,
+		Brokers: brokers,
+		GroupID: groupID,
+		Topic:   topic,
 		//MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
 	})

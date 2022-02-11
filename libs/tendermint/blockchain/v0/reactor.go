@@ -373,7 +373,7 @@ FOR_LOOP:
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					// The block can't be committed, do we need to delete it from store db?
-					_, errDel := bcR.store.DeleteBlocksFromTop(first.Height-1)
+					_, errDel := bcR.store.DeleteBlocksFromTop(first.Height - 1)
 					if errDel != nil {
 						bcR.Logger.Error("Failed to delete blocks from top", "height", first.Height-1, "err", errDel)
 					}

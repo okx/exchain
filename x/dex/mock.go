@@ -8,9 +8,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
 	ordertypes "github.com/okex/exchain/x/order/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type mockTokenKeeper struct {

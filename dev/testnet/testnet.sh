@@ -18,11 +18,23 @@ set -x # activate debugging
 source oec.profile
 WRAPPEDTX=false
 PRERUN=false
-while getopts "isn:b:p:c:Smxwk:" opt; do
+NUM_RPC=0
+WHITE_LIST=0b066ca0790f27a6595560b23bf1a1193f100797,\
+3813c7011932b18f27f172f0de2347871d27e852,\
+6ea83a21a43c30a280a3139f6f23d737104b6975,\
+bab6c32fa95f3a54ecb7d32869e32e85a25d2e08,\
+testnet-node-ids
+
+
+while getopts "r:isn:b:p:c:Sxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
     OKCHAIN_INIT=1
+    ;;
+  r)
+    echo "NUM_RPC=$OPTARG"
+    NUM_RPC=$OPTARG
     ;;
   w)
     echo "WRAPPEDTX=$OPTARG"
@@ -60,10 +72,6 @@ while getopts "isn:b:p:c:Smxwk:" opt; do
     echo "IP=$OPTARG"
     IP=$OPTARG
     ;;
-  m)
-    echo "HARDCODED_MNEMONIC"
-    HARDCODED_MNEMONIC=true
-    ;;
   \?)
     echo "Invalid option: -$OPTARG"
     ;;
@@ -93,12 +101,17 @@ init() {
 
   echo "=================================================="
   echo "===== Generate testnet configurations files...===="
-  echorun exchaind testnet --v $1 -o cache -l \
+  echorun exchaind testnet --v $1 --r $2 -o cache -l \
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
-    --keyring-backend test \
-    --mnemonic=${HARDCODED_MNEMONIC}
+    --keyring-backend test
+}
+recover() {
+  killbyname ${BIN_NAME}
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  rm -rf cache
+  cp -rf nodecache cache
 }
 
 run() {
@@ -127,7 +140,7 @@ run() {
   exchaind add-genesis-account 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 900000000okt --home cache/node${index}/exchaind
   exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
-  LOG_LEVEL=main:debug,*:error,consensus:error,state:info,ante:info,txdecoder:info
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
@@ -135,6 +148,7 @@ run() {
     --p2p.allow_duplicate_ip \
     --enable-dynamic-gp=false \
     --enable-wtx=${WRAPPEDTX} \
+    --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \
@@ -158,6 +172,7 @@ run() {
 #     --upload-delta \
 #     --enable-preruntx \
 #     --mempool.node_key_whitelist="nodeKey1,nodeKey2" \
+#    --mempool.node_key_whitelist ${WHITE_LIST} \
 }
 
 function start() {
@@ -186,7 +201,12 @@ if [ -z ${IP} ]; then
 fi
 
 if [ ! -z "${OKCHAIN_INIT}" ]; then
-  init ${NUM_NODE}
+	((NUM_VAL=NUM_NODE-NUM_RPC))
+  init ${NUM_VAL} ${NUM_RPC}
+fi
+
+if [ ! -z "${OKCHAIN_RECOVER}" ]; then
+  recover ${NUM_NODE}
 fi
 
 if [ ! -z "${OKCHAIN_START}" ]; then
