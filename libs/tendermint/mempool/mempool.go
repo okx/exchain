@@ -121,6 +121,7 @@ type TxInfo struct {
 
 	wtx       *WrappedTx
 	checkType abci.CheckTxType
+	from      string
 }
 
 //--------------------------------------------------------------------------------
