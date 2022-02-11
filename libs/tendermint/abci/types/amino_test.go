@@ -48,6 +48,8 @@ func TestEventAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
+		require.Equal(t, len(expect), event.AminoSize(cdc))
+
 		var value Event
 		err = cdc.UnmarshalBinaryBare(expect, &value)
 		require.NoError(t, err)
@@ -144,6 +146,8 @@ func TestPubKeyAmino(t *testing.T) {
 		actual, err := pubkey.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), pubkey.AminoSize(cdc))
 	}
 }
 
@@ -184,6 +188,8 @@ func TestValidatorUpdateAmino(t *testing.T) {
 		actual, err := validatorUpdate.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), validatorUpdate.AminoSize(cdc))
 	}
 }
 
@@ -215,6 +221,8 @@ func TestBlockParamsAmino(t *testing.T) {
 		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), test.AminoSize(cdc))
 	}
 }
 
@@ -246,6 +254,8 @@ func TestEvidenceParamsAmino(t *testing.T) {
 		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), test.AminoSize(cdc))
 	}
 }
 
@@ -273,6 +283,8 @@ func TestValidatorParamsAmino(t *testing.T) {
 		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), test.AminoSize(cdc))
 	}
 }
 
@@ -321,6 +333,8 @@ func TestConsensusParamsAmino(t *testing.T) {
 		actual, err := test.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), test.AminoSize(cdc))
 	}
 }
 
@@ -342,6 +356,8 @@ func TestResponseDeliverTxAmino(t *testing.T) {
 		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.Equal(t, len(expect), resp.AminoSize(cdc))
 
 		var resp1 ResponseDeliverTx
 		err = cdc.UnmarshalBinaryBare(expect, &resp1)
@@ -443,6 +459,8 @@ func TestResponseBeginBlockAmino(t *testing.T) {
 		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.Equal(t, len(expect), resp.AminoSize(cdc))
 	}
 }
 
@@ -484,5 +502,7 @@ func TestResponseEndBlockAmino(t *testing.T) {
 		actual, err := resp.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		require.EqualValues(t, len(expect), resp.AminoSize(cdc))
 	}
 }

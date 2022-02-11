@@ -575,3 +575,171 @@ func (endBlock ResponseEndBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error
 	}
 	return buf.Bytes(), nil
 }
+
+func (m *PubKey) AminoSize(_ *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	if len(m.Type) != 0 {
+		size += 1 + amino.EncodedStringSize(m.Type)
+	}
+	if len(m.Data) != 0 {
+		size += 1 + amino.ByteSliceSize(m.Data)
+	}
+	return size
+}
+
+func (m *ValidatorUpdate) AminoSize(cdc *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	pubkeySize := m.PubKey.AminoSize(cdc)
+	if pubkeySize > 0 {
+		size += 1 + amino.UvarintSize(uint64(pubkeySize)) + pubkeySize
+	}
+	if m.Power != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Power))
+	}
+	return size
+}
+
+func (m *BlockParams) AminoSize(_ *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	if m.MaxBytes != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.MaxBytes))
+	}
+	if m.MaxGas != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.MaxGas))
+	}
+	return size
+}
+
+func (m *EvidenceParams) AminoSize(_ *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	if m.MaxAgeNumBlocks != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.MaxAgeNumBlocks))
+	}
+	if m.MaxAgeDuration != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.MaxAgeDuration))
+	}
+	return size
+}
+
+func (m *ValidatorParams) AminoSize(_ *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	for _, pkt := range m.PubKeyTypes {
+		size += 1 + amino.EncodedStringSize(pkt)
+	}
+	return size
+}
+
+func (event Event) AminoSize(cdc *amino.Codec) int {
+	size := 0
+
+	if len(event.Type) != 0 {
+		size += 1 + amino.EncodedStringSize(event.Type)
+	}
+
+	for _, attr := range event.Attributes {
+		attrSize := attr.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(attrSize)) + attrSize
+	}
+
+	return size
+}
+
+func (tx *ResponseDeliverTx) AminoSize(cdc *amino.Codec) int {
+	if tx == nil {
+		return 0
+	}
+	size := 0
+	if tx.Code != 0 {
+		size += 1 + amino.UvarintSize(uint64(tx.Code))
+	}
+	if len(tx.Data) != 0 {
+		size += 1 + amino.ByteSliceSize(tx.Data)
+	}
+	if len(tx.Log) != 0 {
+		size += 1 + amino.EncodedStringSize(tx.Log)
+	}
+	if len(tx.Info) != 0 {
+		size += 1 + amino.EncodedStringSize(tx.Info)
+	}
+	if tx.GasWanted != 0 {
+		size += 1 + amino.UvarintSize(uint64(tx.GasWanted))
+	}
+	if tx.GasUsed != 0 {
+		size += 1 + amino.UvarintSize(uint64(tx.GasUsed))
+	}
+	for _, e := range tx.Events {
+		eventSize := e.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(eventSize)) + eventSize
+	}
+	if len(tx.Codespace) != 0 {
+		size += 1 + amino.EncodedStringSize(tx.Codespace)
+	}
+	return size
+}
+
+func (beginBlock *ResponseBeginBlock) AminoSize(cdc *amino.Codec) int {
+	if beginBlock == nil {
+		return 0
+	}
+	size := 0
+	for _, event := range beginBlock.Events {
+		eventSize := event.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(eventSize)) + eventSize
+	}
+	return size
+}
+
+func (m *ConsensusParams) AminoSize(cdc *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	if m.Block != nil {
+		blockSize := m.Block.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(blockSize)) + blockSize
+	}
+	if m.Evidence != nil {
+		eviSize := m.Evidence.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(eviSize)) + eviSize
+	}
+	if m.Validator != nil {
+		valSize := m.Validator.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(valSize)) + valSize
+	}
+	return size
+}
+
+func (m *ResponseEndBlock) AminoSize(cdc *amino.Codec) int {
+	if m == nil {
+		return 0
+	}
+	size := 0
+	for _, valUpd := range m.ValidatorUpdates {
+		valUpdSize := valUpd.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(valUpdSize)) + valUpdSize
+	}
+	if m.ConsensusParamUpdates != nil {
+		conSize := m.ConsensusParamUpdates.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(conSize)) + conSize
+	}
+	for _, event := range m.Events {
+		eventSize := event.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(eventSize)) + eventSize
+	}
+	return size
+}
