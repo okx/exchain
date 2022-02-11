@@ -1,74 +1,68 @@
 package keeper
 
 import (
-	"math/big"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/feemarket/types"
 )
 
-// Supported endpoints
-const (
-	// QueryParameters defines 	QueryParameters = "params" query route path
-	QueryParameters = "params"
-	QueryBaseFee    = "basefee"
-	QueryBlockGas   = "blockgas"
-)
+func NewQuerier(keeper Keeper) sdk.Querier {
+	return func(ctx sdk.Context, path []string, _ abci.RequestQuery) ([]byte, error) {
+		if len(path) < 1 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+				"Insufficient parameters, at least 1 parameter is required")
+		}
 
-// QueryParamsResponse is response type for Param query
-type QueryParamsRequest struct {
+		switch path[0] {
+		case types.QueryParameters:
+			return queryParams(ctx, keeper)
+		case types.QueryBaseFee:
+			return queryBaseFee(ctx, keeper)
+		case types.QueryBlockGas:
+			return queryBlockGas(ctx, keeper)
+		default:
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
+		}
+	}
 }
-
-// QueryParamsResponse is response type for Param query
-type QueryParamsResponse struct {
-	Params types.Params `json:"param"`
-}
-
-// QueryParamsResponse is response type for Param query
-type QueryBaseFeeRequest struct {
-}
-
-// QueryParamsResponse is response type for Param query
-type QueryBaseFeeResponse struct {
-	BaseFee *big.Int `json:"baseFee"`
-}
-
-// QueryParamsResponse is response type for Param query
-type QueryBlockGasRequest struct {
-}
-
-// QueryParamsResponse is response type for Param query
-type QueryBlockGasResponse struct {
-	Gas int64 `json:"gas"`
-}
-
-// Params implements the Query/Params gRPC method
-func (k Keeper) Params(ctx sdk.Context, _ *QueryParamsRequest) (*QueryParamsResponse, error) {
-	params := k.GetParams(ctx)
-
-	return &QueryParamsResponse{
+func queryParams(ctx sdk.Context, keeper Keeper) ([]byte, error) {
+	params := keeper.GetParams(ctx)
+	res := &types.QueryParamsResponse{
 		Params: params,
-	}, nil
-}
-
-// BaseFee implements the Query/BaseFee gRPC method
-func (k Keeper) BaseFee(ctx sdk.Context, _ *QueryBaseFeeRequest) (*QueryBaseFeeResponse, error) {
-	res := &QueryBaseFeeResponse{}
-	baseFee := k.GetBaseFee(ctx)
-
-	if baseFee != nil {
-		aux := sdk.NewIntFromBigInt(baseFee)
-		res.BaseFee = aux.BigInt()
+	}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
-	return res, nil
+	return bz, nil
 }
+func queryBaseFee(ctx sdk.Context, keeper Keeper) ([]byte, error) {
+	bnRes := types.QueryBaseFeeResponse{}
+	baseFee := keeper.GetBaseFee(ctx)
+	if baseFee != nil {
+		aux := sdk.NewIntFromBigInt(baseFee)
+		bnRes.BaseFee = aux.BigInt()
+	}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
 
-// BlockGas implements the Query/BlockGas gRPC method
-func (k Keeper) BlockGas(ctx sdk.Context, _ *QueryBlockGasRequest) (*QueryBlockGasResponse, error) {
-	gas := k.GetBlockGasUsed(ctx)
+	return bz, nil
+}
+func queryBlockGas(ctx sdk.Context, keeper Keeper) ([]byte, error) {
+	gas := keeper.GetBlockGasUsed(ctx)
 
-	return &QueryBlockGasResponse{
+	bnRes := &types.QueryBlockGasResponse{
 		Gas: int64(gas),
-	}, nil
+	}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return bz, nil
 }

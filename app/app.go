@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -44,6 +45,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
+	"github.com/okex/exchain/x/feemarket"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
@@ -103,6 +105,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		feemarket.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -146,24 +149,25 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
+	AccountKeeper   auth.AccountKeeper
+	BankKeeper      bank.Keeper
+	SupplyKeeper    supply.Keeper
+	StakingKeeper   staking.Keeper
+	SlashingKeeper  slashing.Keeper
+	MintKeeper      mint.Keeper
+	DistrKeeper     distr.Keeper
+	GovKeeper       gov.Keeper
+	CrisisKeeper    crisis.Keeper
+	UpgradeKeeper   upgrade.Keeper
+	ParamsKeeper    params.Keeper
+	EvidenceKeeper  evidence.Keeper
+	EvmKeeper       *evm.Keeper
+	TokenKeeper     token.Keeper
+	DexKeeper       dex.Keeper
+	OrderKeeper     order.Keeper
+	SwapKeeper      ammswap.Keeper
+	FarmKeeper      farm.Keeper
+	FeeMarketKeeper feemarket.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -222,7 +226,7 @@ func NewOKExChainApp(
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, feemarket.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -253,6 +257,7 @@ func NewOKExChainApp(
 	app.subspaces[order.ModuleName] = app.ParamsKeeper.Subspace(order.DefaultParamspace)
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
+	app.subspaces[feemarket.ModuleName] = app.ParamsKeeper.Subspace(feemarket.DefaultParamspace)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -304,6 +309,8 @@ func NewOKExChainApp(
 
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
+
+	app.FeeMarketKeeper = feemarket.NewKeeper(app.cdc, app.subspaces[feemarket.StoreKey], app.keys[feemarket.StoreKey])
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -364,6 +371,7 @@ func NewOKExChainApp(
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
+		feemarket.NewAppModule(app.FeeMarketKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -380,6 +388,7 @@ func NewOKExChainApp(
 		staking.ModuleName,
 		farm.ModuleName,
 		evidence.ModuleName,
+		feemarket.ModuleName,
 		evm.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
@@ -389,6 +398,7 @@ func NewOKExChainApp(
 		order.ModuleName,
 		staking.ModuleName,
 		evm.ModuleName,
+		feemarket.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -397,7 +407,7 @@ func NewOKExChainApp(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
-		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
+		evm.ModuleName, feemarket.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

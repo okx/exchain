@@ -3,14 +3,17 @@ package keeper
 import (
 	"math/big"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/feemarket/types"
+	"github.com/okex/exchain/x/params"
 )
 
 // Keeper grants access to the Fee Market module state.
 type Keeper struct {
+	// Amino codec
+	cdc *codec.Codec
 	// Store key required for the Fee Market Prefix KVStore.
 	storeKey sdk.StoreKey
 	// module specific parameter space that can be configured through governance
@@ -23,9 +26,26 @@ type Subspace interface {
 }
 
 // NewKeeper generates new fee market module keeper
-func NewKeeper(storeKey sdk.StoreKey) Keeper {
+func NewKeeper(cdc *codec.Codec, paramSpace params.Subspace, storeKey sdk.StoreKey) Keeper {
+
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
 	return Keeper{
-		storeKey: storeKey,
+		cdc:        cdc,
+		storeKey:   storeKey,
+		paramSpace: paramSpace,
+	}
+}
+
+// NewKeeper generates new evm module keeper
+func NewSimulateKeeper(cdc *codec.Codec, paramSpace params.Subspace, storeKey sdk.StoreKey) Keeper {
+	return Keeper{
+		cdc:        cdc,
+		storeKey:   storeKey,
+		paramSpace: paramSpace,
 	}
 }
 

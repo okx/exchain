@@ -13,7 +13,6 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	feekeeper "github.com/okex/exchain/x/feemarket/keeper"
 	feetypes "github.com/okex/exchain/x/feemarket/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -59,7 +58,6 @@ type Backend interface {
 	// Fee API
 	FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*types.FeeHistoryResult, error)
 	BaseFee(height int64) (*big.Int, error)
-	SetTxDefaults(args types.SendTxArgs) (types.SendTxArgs, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -515,11 +513,11 @@ func (b *EthermintBackend) BaseFee(height int64) (*big.Int, error) {
 	}
 
 	// Checks the feemarket param NoBaseFee settings, return 0 if it is enabled.
-	resParams, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feekeeper.QueryParameters))
+	resParams, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feetypes.QueryParameters))
 	if err != nil {
 		return nil, err
 	}
-	var out feekeeper.QueryParamsResponse
+	var out feetypes.QueryParamsResponse
 	if err := b.clientCtx.Codec.UnmarshalJSON(resParams, &out); err != nil {
 		return nil, err
 	}
@@ -539,8 +537,8 @@ func (b *EthermintBackend) BaseFee(height int64) (*big.Int, error) {
 
 	// If we cannot find in events, we tried to get it from the state.
 	// It will return feemarket.baseFee if london is activated but feemarket is not enable
-	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feekeeper.QueryBaseFee))
-	var baseFeeRes feekeeper.QueryBaseFeeResponse
+	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", feetypes.ModuleName, feetypes.QueryBaseFee))
+	var baseFeeRes feetypes.QueryBaseFeeResponse
 	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
 		return nil, err
 	}
@@ -549,10 +547,4 @@ func (b *EthermintBackend) BaseFee(height int64) (*big.Int, error) {
 	}
 
 	return nil, nil
-}
-
-// SetTxDefaults populates tx message with default values in case they are not
-// provided on the args
-func (e *EthermintBackend) SetTxDefaults(args rpctypes.SendTxArgs) (rpctypes.SendTxArgs, error) {
-	return args, nil
 }

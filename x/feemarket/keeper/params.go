@@ -5,6 +5,10 @@ import (
 	"github.com/okex/exchain/x/feemarket/types"
 )
 
+var (
+	DefaultParamspace = types.ModuleName
+)
+
 // GetParams returns the total set of evm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	k.paramSpace.GetParamSet(ctx, &params)
