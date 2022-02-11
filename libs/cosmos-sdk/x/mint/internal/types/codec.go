@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	ManageTreasuresProposalName = "okexchain/evm/ManageTreasuresProposal"
+	ManageTreasuresProposalName = "okexchain/mint/ManageTreasuresProposal"
 )
 
 // ModuleCdc is a generic sealed codec to be used throughout this module
