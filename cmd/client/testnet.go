@@ -200,113 +200,115 @@ func InitTestnet(
 		}
 
 		genFiles = append(genFiles, config.GenesisFile())
+		if i >= numValidators {
+			// rpc nodes do not need to add initial transactions, key_seeds etc.
+			continue
+		}
 
 		// validator nodes add initial transactions
-		if i < numValidators {
-			if err := os.MkdirAll(clientDir, nodeDirPerm); err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
-
-			var ip string
-			port := viper.GetInt(flagBaseport)
-
-			if isLocal {
-				ip, err = getIP(0, startingIPAddress)
-				port += i * 100
-			} else {
-				if len(ipAddresses) == 0 {
-					ip, err = getIP(i, startingIPAddress)
-					if err != nil {
-						_ = os.RemoveAll(outputDir)
-						return err
-					}
-				} else {
-					ip = ipAddresses[i]
-				}
-			}
-
-			memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
-
-			kb, err := keys.NewKeyring(
-				sdk.KeyringServiceName(),
-				keyringBackend,
-				clientDir,
-				inBuf,
-				hd.EthSecp256k1Options()...,
-			)
-			if err != nil {
-				return err
-			}
-
-			cmd.Printf(
-				"Password for account '%s' :\n", nodeDirName,
-			)
-
-			keyPass := clientkeys.DefaultKeyPass
-			mnemonic := ""
-			if i < len(mnemonicList) {
-				mnemonic = mnemonicList[i]
-			}
-			addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
-			if err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
-
-			fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
-				clientDir, nodeDirName, addr, secret)
-			info := map[string]string{"secret": secret}
-
-			cliPrint, err := json.Marshal(info)
-			if err != nil {
-				return err
-			}
-
-			// save private key seed words
-			if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
-				return err
-			}
-
-			coins := sdk.NewCoins(
-				sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
-			)
-
-			genAccounts = append(genAccounts, ethermint.EthAccount{
-				BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
-				CodeHash:    ethcrypto.Keccak256(nil),
-			})
-
-			msg := stakingtypes.NewMsgCreateValidator(
-				sdk.ValAddress(addr),
-				valPubKeys[i],
-				stakingtypes.NewDescription(nodeDirName, "", "", ""),
-				sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
-			)
-
-			tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
-			txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
-
-			signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
-			if err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
-
-			txBytes, err := cdc.MarshalJSON(signedTx)
-			if err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
-
-			// gather gentxs folder
-			if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
-
-			srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
+		if err := os.MkdirAll(clientDir, nodeDirPerm); err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
 		}
+
+		var ip string
+		port := viper.GetInt(flagBaseport)
+
+		if isLocal {
+			ip, err = getIP(0, startingIPAddress)
+			port += i * 100
+		} else {
+			if len(ipAddresses) == 0 {
+				ip, err = getIP(i, startingIPAddress)
+				if err != nil {
+					_ = os.RemoveAll(outputDir)
+					return err
+				}
+			} else {
+				ip = ipAddresses[i]
+			}
+		}
+
+		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
+
+		kb, err := keys.NewKeyring(
+			sdk.KeyringServiceName(),
+			keyringBackend,
+			clientDir,
+			inBuf,
+			hd.EthSecp256k1Options()...,
+		)
+		if err != nil {
+			return err
+		}
+
+		cmd.Printf(
+			"Password for account '%s' :\n", nodeDirName,
+		)
+
+		keyPass := clientkeys.DefaultKeyPass
+		mnemonic := ""
+		if i < len(mnemonicList) {
+			mnemonic = mnemonicList[i]
+		}
+		addr, secret, err := GenerateSaveCoinKey(kb, nodeDirName, keyPass, true, keys.SigningAlgo(algo), mnemonic)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
+			clientDir, nodeDirName, addr, secret)
+		info := map[string]string{"secret": secret}
+
+		cliPrint, err := json.Marshal(info)
+		if err != nil {
+			return err
+		}
+
+		// save private key seed words
+		if err := writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, cliPrint); err != nil {
+			return err
+		}
+
+		coins := sdk.NewCoins(
+			sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
+		)
+
+		genAccounts = append(genAccounts, ethermint.EthAccount{
+			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
+			CodeHash:    ethcrypto.Keccak256(nil),
+		})
+
+		msg := stakingtypes.NewMsgCreateValidator(
+			sdk.ValAddress(addr),
+			valPubKeys[i],
+			stakingtypes.NewDescription(nodeDirName, "", "", ""),
+			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
+		)
+
+		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
+		txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
+
+		signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		txBytes, err := cdc.MarshalJSON(signedTx)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		// gather gentxs folder
+		if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
 
 	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numNodes); err != nil {
