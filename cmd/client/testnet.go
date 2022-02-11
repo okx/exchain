@@ -6,10 +6,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -38,6 +34,9 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -52,6 +51,7 @@ var (
 	flagIPAddrs           = "ip-addrs"
 	flagBaseport          = "base-port"
 	flagLocal             = "local"
+	flagNumRPCs           = "r"
 )
 
 const nodeDirPerm = 0755
@@ -90,13 +90,14 @@ Note, strict routability for addresses is turned off in the config file.`,
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			ipAddresses, _ := cmd.Flags().GetStringSlice(flagIPAddrs)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
+			numRPCs, _ := cmd.Flags().GetInt(flagNumRPCs)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal,
-			)
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend,
+				algo, numValidators, isLocal, numRPCs)
 		},
 	}
 
@@ -114,10 +115,14 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
 	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
+	cmd.Flags().Int(flagNumRPCs, 0, "Number of RPC nodes to initialize the testnet with")
+
 	return cmd
 }
 
 // InitTestnet initializes the testnet configuration
+// 1.initializes the "validator" node configuration;
+// 2.based the "validator" node, initializes the "rpc" node.
 func InitTestnet(
 	cmd *cobra.Command,
 	config *tmconfig.Config,
@@ -137,6 +142,7 @@ func InitTestnet(
 	algo string,
 	numValidators int,
 	isLocal bool,
+	numRPCs int,
 ) error {
 
 	if chainID == "" {
@@ -151,12 +157,13 @@ func InitTestnet(
 		return err
 	}
 
+	numNodes := numValidators + numRPCs
 	if len(ipAddresses) != 0 {
-		numValidators = len(ipAddresses)
+		numNodes = len(ipAddresses)
 	}
 
-	nodeIDs := make([]string, numValidators)
-	valPubKeys := make([]tmcrypto.PubKey, numValidators)
+	nodeIDs := make([]string, numNodes)
+	valPubKeys := make([]tmcrypto.PubKey, numNodes)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -168,12 +175,13 @@ func InitTestnet(
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 	// generate private keys, node IDs, and initial transactions
-	for i := 0; i < numValidators; i++ {
+	for i := 0; i < numNodes; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
 		clientDir := filepath.Join(outputDir, nodeDirName, nodeCLIHome)
 		gentxsDir := filepath.Join(outputDir, "gentxs")
 
+		// generate private keys, node IDs for all nodes
 		config.SetRoot(nodeDir)
 		config.RPC.ListenAddress = "tcp://0.0.0.0:26657"
 
@@ -182,15 +190,28 @@ func InitTestnet(
 			return err
 		}
 
+		config.Moniker = nodeDirName
+
+		var err error
+		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		genFiles = append(genFiles, config.GenesisFile())
+		if i >= numValidators {
+			// rpc nodes do not need to add initial transactions, key_seeds etc.
+			continue
+		}
+
+		// validator nodes add initial transactions
 		if err := os.MkdirAll(clientDir, nodeDirPerm); err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
 
-		config.Moniker = nodeDirName
-
 		var ip string
-		var err error
 		port := viper.GetInt(flagBaseport)
 
 		if isLocal {
@@ -208,14 +229,7 @@ func InitTestnet(
 			}
 		}
 
-		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFilesByIndex(config, i)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
-
 		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
-		genFiles = append(genFiles, config.GenesisFile())
 
 		kb, err := keys.NewKeyring(
 			sdk.KeyringServiceName(),
@@ -297,19 +311,19 @@ func InitTestnet(
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
 
-	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators); err != nil {
+	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numNodes); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		cdc, config, chainID, nodeIDs, valPubKeys, numValidators,
+		cdc, config, chainID, nodeIDs, valPubKeys, numNodes,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genAccIterator,
 	)
 	if err != nil {
 		return err
 	}
 
-	cmd.PrintErrf("Successfully initialized %d node directories\n", numValidators)
+	cmd.Printf("Successfully initialized %d validator nodes directories, %d rpc nodes directories\n", numValidators, numRPCs)
 	return nil
 }
 
@@ -406,6 +420,12 @@ func collectGenFiles(
 		config.Moniker = nodeDirName
 
 		config.SetRoot(nodeDir)
+		// set node's port
+		port := viper.GetInt(flagBaseport)
+		p2pPort := port + i*100
+		rpcPort := port + i*100 + 1
+		config.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", p2pPort)
+		config.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
 
 		nodeID, valPubKey := nodeIDs[i], valPubKeys[i]
 		initCfg := genutiltypes.NewInitConfig(chainID, gentxsDir, nodeID, nodeID, valPubKey)
