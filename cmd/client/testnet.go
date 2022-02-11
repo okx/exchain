@@ -90,10 +90,10 @@ Note, strict routability for addresses is turned off in the config file.`,
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			ipAddresses, _ := cmd.Flags().GetStringSlice(flagIPAddrs)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
+			numRPCs, _ := cmd.Flags().GetInt(flagNumRPCs)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
-			numRPCs := viper.GetInt(flagNumRPCs)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
 				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend,
@@ -157,14 +157,13 @@ func InitTestnet(
 		return err
 	}
 
+	numNodes := numValidators + numRPCs
 	if len(ipAddresses) != 0 {
-		numValidators = len(ipAddresses)
+		numNodes = len(ipAddresses)
 	}
 
-	totalNodes := numValidators + numRPCs
-
-	nodeIDs := make([]string, totalNodes)
-	valPubKeys := make([]tmcrypto.PubKey, totalNodes)
+	nodeIDs := make([]string, numNodes)
+	valPubKeys := make([]tmcrypto.PubKey, numNodes)
 
 	simappConfig := srvconfig.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
@@ -176,7 +175,7 @@ func InitTestnet(
 
 	inBuf := bufio.NewReader(cmd.InOrStdin())
 	// generate private keys, node IDs, and initial transactions
-	for i := 0; i < totalNodes; i++ {
+	for i := 0; i < numNodes; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outputDir, nodeDirName, nodeDaemonHome)
 		clientDir := filepath.Join(outputDir, nodeDirName, nodeCLIHome)
