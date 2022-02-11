@@ -2,6 +2,9 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -127,6 +130,46 @@ func TestDeltas_Validate(t *testing.T) {
 			if got := dds.Validate(tt.args.height); got != tt.want {
 				t.Errorf("Validate() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestGetDeltaVersionNone(t *testing.T) {
+	cmd := cobra.Command{}
+	cmd.Flags().Int(FlagDeltaVersion, DeltaVersion, "Specify delta version")
+	viper.BindPFlag(FlagDeltaVersion, cmd.Flags().Lookup(FlagDeltaVersion))
+	cmd.Execute()
+
+	tests := []struct {
+		name string
+		want int
+	}{
+		{name: "1. user do not set --delta-version", want: DeltaVersion},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, GetDeltaVersion(), "GetDeltaVersion()")
+		})
+	}
+}
+
+func TestGetDeltaVersionUserSpecified(t *testing.T) {
+	userSpecified := DeltaVersion + 1
+	cmd := cobra.Command{}
+	cmd.Flags().Int(FlagDeltaVersion, DeltaVersion, "Specify delta version")
+	viper.BindPFlag(FlagDeltaVersion, cmd.Flags().Lookup(FlagDeltaVersion))
+	cmd.ParseFlags([]string{fmt.Sprintf("--%v=%d", FlagDeltaVersion, userSpecified)})
+	cmd.Execute()
+
+	tests := []struct {
+		name string
+		want int
+	}{
+		{name: "1. user specify --delta-version", want: userSpecified},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, GetDeltaVersion(), "GetDeltaVersion()")
 		})
 	}
 }

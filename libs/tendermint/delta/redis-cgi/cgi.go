@@ -27,8 +27,8 @@ func init() {
 		deltaLocker      = "DeltaLocker"
 	)
 	once.Do(func() {
-		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, mostRecentHeight)
-		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, deltaLocker)
+		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.GetDeltaVersion(), mostRecentHeight)
+		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.GetDeltaVersion(), deltaLocker)
 	})
 }
 
@@ -137,5 +137,5 @@ func genBlockKey(height int64) string {
 }
 
 func genDeltaKey(height int64) string {
-	return fmt.Sprintf("DH-%d:%d", types.DeltaVersion, height)
+	return fmt.Sprintf("DH-%d:%d", types.GetDeltaVersion(), height)
 }

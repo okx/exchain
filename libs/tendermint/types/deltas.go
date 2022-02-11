@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/viper"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -26,9 +27,18 @@ const (
 	FlagRedisDB     = "delta-redis-db"
 	FlagFastQuery   = "fast-query"
 
+	// specify the DeltaVersion
+	FlagDeltaVersion = "delta-version"
+
 	// do not apply delta if version does not match
 	DeltaVersion = 6
 )
+
+// GetDeltaVersion get delta version. the default value is set to 'DeltaVersion'
+// if user set the flag use user's setting,otherwise use the default 'DeltaVersion' above
+func GetDeltaVersion() int {
+	return viper.GetInt(FlagDeltaVersion)
+}
 
 var (
 	FastQuery     = false
@@ -182,7 +192,7 @@ func (d *Deltas) String() string {
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if DeltaVersion != dds.Version ||
+	if GetDeltaVersion() != dds.Version ||
 		dds.Height != height ||
 		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
