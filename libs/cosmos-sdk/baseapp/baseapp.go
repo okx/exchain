@@ -33,8 +33,9 @@ const (
 	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
 	runTxModeSimulate                        // Simulate a transaction
 	runTxModeDeliver                         // Deliver a transaction
-	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
-	runTxModeTrace                           // Trace a transaction
+	runTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
+	runTxModeDeliverPartConcurrent			 // Deliver a transaction partial concurrent
+ 	runTxModeTrace                           // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -187,6 +188,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+	deliverTxsMgr *DeliverTxTasksManager
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -217,7 +219,7 @@ func NewBaseApp(
 		fauxMerkleMode: false,
 		trace:          false,
 
-		parallelTxManage: newParallelTxManager(),
+		//parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 	}
@@ -231,7 +233,7 @@ func NewBaseApp(
 	}
 	app.cms.SetLogger(app.logger)
 
-	app.parallelTxManage.workgroup.Start()
+	//app.parallelTxManage.workgroup.Start()
 
 	return app
 }
@@ -620,7 +622,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
-	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliverInAsync && app.parallelTxManage.isAsyncDeliverTx {
 		ctx = ctx.WithAsync()
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
 			ctx = ctx.WithSigCache(s.signCache)

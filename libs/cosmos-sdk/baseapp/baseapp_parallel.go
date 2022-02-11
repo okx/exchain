@@ -31,7 +31,6 @@ func getTxByteWithIndex(txByte []byte, txIndex int) []byte {
 
 func getRealTxByte(txByteWithIndex []byte) []byte {
 	return txByteWithIndex[:len(txByteWithIndex)-txIndexLen]
-
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
@@ -61,6 +60,10 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	if app.parallelTxManage == nil {
+		app.parallelTxManage = newParallelTxManager()
+		app.parallelTxManage.workgroup.Start()
+	}
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
@@ -87,7 +90,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	}
 
 	return app.runTxs(txWithIndex)
-
 }
 
 func (app *BaseApp) fixFeeCollector(txString string) {

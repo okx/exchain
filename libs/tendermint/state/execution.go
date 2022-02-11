@@ -308,7 +308,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 			case deliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			case deliverTxsExecModePartConcurrent:
-				abciResponses, err = execBlockOnProxyAppPartConcurrent(ctx)
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			case deliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
