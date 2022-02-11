@@ -309,12 +309,12 @@ func InitTestnet(
 		}
 	}
 
-	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numValidators+numRPCs); err != nil {
+	if err := initGenFiles(cdc, mbm, chainID, coinDenom, genAccounts, genFiles, numNodes); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		cdc, config, chainID, nodeIDs, valPubKeys, numValidators+numRPCs,
+		cdc, config, chainID, nodeIDs, valPubKeys, numNodes,
 		outputDir, nodeDirPrefix, nodeDaemonHome, genAccIterator,
 	)
 	if err != nil {
