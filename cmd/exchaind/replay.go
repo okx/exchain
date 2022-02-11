@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -54,6 +55,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set external package flags
+			setExternalPackageValue(cmd)
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
@@ -121,7 +127,16 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
+
 	return cmd
+}
+
+// Use setExternalPackageValue to set external package config value.
+func setExternalPackageValue(cmd *cobra.Command) {
+	types.DownloadDelta = viper.GetBool(types.FlagDownloadDDS)
+	types.UploadDelta = viper.GetBool(types.FlagUploadDDS)
+	types.FastQuery = viper.GetBool(types.FlagFastQuery)
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
