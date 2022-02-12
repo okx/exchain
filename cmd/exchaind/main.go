@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	logsdk "github.com/itsfunny/go-cell/sdk/log"
 	"github.com/okex/exchain/app/logevents"
 	"io"
 
@@ -42,7 +43,17 @@ const flagInvCheckPeriod = "inv-check-period"
 
 var invCheckPeriod uint
 
+func initLog() {
+	logsdk.SetFilter(logsdk.BlackWordFilter(
+		"Not apply delta",
+		"Got prerun result",
+		"CommitSchedule:",
+		"Prerun completed",
+		"Produce[Consensus<",
+	))
+}
 func main() {
+	initLog()
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)

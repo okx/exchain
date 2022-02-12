@@ -53,6 +53,9 @@ func (s Subspace) WithKeyTable(table KeyTable) Subspace {
 	if len(s.table.m) != 0 {
 		panic("SetKeyTable() called on already initialized Subspace")
 	}
+	if s.table.m==nil{
+		s.table.m=make(map[string]attribute)
+	}
 
 	for k, v := range table.m {
 		s.table.m[k] = v

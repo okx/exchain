@@ -312,6 +312,15 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
 	}
+	//
+	//var grpcSrv *grpc.Server
+	//if cfg.GRPC.Enable {
+	//	coregrpc.StartGRPCServer()
+	//	grpcSrv, err = servergrpc.StartGRPCServer(clientCtx, app, config.GRPC.Address)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	// run forever (the node will not be returned)
 	select {}

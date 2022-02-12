@@ -153,6 +153,7 @@ func (k Keeper) BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) err
 	return nil
 }
 
+
 // GetSupplyByDenom gets the amount of a token supply from the store
 func (k Keeper) GetSupplyByDenom(ctx sdk.Context, denom string) sdk.Dec {
 	tokenSupplyAmount := sdk.ZeroDec()

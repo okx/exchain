@@ -14,6 +14,7 @@ const RootCodespace = "sdk"
 const UndefinedCodespace = "undefined"
 
 var (
+	ErrLogic = Register(RootCodespace, 35, "internal logic error")
 	// ErrInternal should never be exposed, but we reserve this code for non-specified errors
 	//nolint
 	ErrInternal = Register(UndefinedCodespace, 1, "internal")
@@ -58,6 +59,17 @@ var (
 
 	// ErrTooManySignatures to doc
 	ErrTooManySignatures = Register(RootCodespace, 14, "maximum number of signatures exceeded")
+
+	// ErrInvalidHeight defines an error for an invalid height
+	ErrInvalidHeight = Register(RootCodespace, 26, "invalid height")
+	ErrPackAny = Register(RootCodespace, 33, "failed packing protobuf message to Any")
+	ErrUnpackAny = Register(RootCodespace, 34, "failed unpacking protobuf message from Any")
+	ErrInvalidType = Register(RootCodespace, 29, "invalid type")
+	// ErrInvalidVersion defines a general error for an invalid version
+	ErrInvalidVersion = Register(RootCodespace, 27, "invalid version")
+
+	// ErrInvalidChainID defines an error when the chain-id is invalid.
+	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
 
 	// ErrNoSignatures to doc
 	ErrNoSignatures = Register(RootCodespace, 15, "no signatures supplied")

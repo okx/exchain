@@ -328,3 +328,14 @@ func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.Respo
 		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
+
+// RegisterServices registers all module services
+func (m *Manager) RegisterServices(cfg Configurator) {
+	for _, module := range m.Modules {
+		if ada, ok := module.(AppModuleAdapter); ok {
+			ada.RegisterServices(cfg)
+		}
+	}
+}
+
+type MigrationHandler func(sdk.Context) error

@@ -28,6 +28,8 @@ type AccountKeeper struct {
 
 	paramSubspace subspace.Subspace
 
+	permAddrs map[string]types.PermissionsForAddress
+
 	observers []ObserverI
 }
 
@@ -37,12 +39,31 @@ type AccountKeeper struct {
 func NewAccountKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
+	return NewAccountKeeperWithPer(cdc, key, paramstore, proto, nil)
+}
+
+func NewAccountKeeperWithPer(
+	cdc *codec.Codec, key sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
+	maccPerms map[string][]string,
+) AccountKeeper {
+	// set KeyTable if it has not already been set
+	if !paramstore.HasKeyTable() {
+		paramstore = paramstore.WithKeyTable(types.ParamKeyTable())
+	}
+
+	permAddrs := make(map[string]types.PermissionsForAddress)
+	if maccPerms != nil {
+		for name, perms := range maccPerms {
+			permAddrs[name] = types.NewPermissionsForAddress(name, perms)
+		}
+	}
 
 	return AccountKeeper{
 		key:           key,
 		proto:         proto,
 		cdc:           cdc,
-		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
+		paramSubspace: paramstore,
+		permAddrs:     permAddrs,
 	}
 }
 
@@ -106,3 +127,47 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	}
 	return
 }
+
+
+
+// GetModuleAddress returns an address based on the module name
+func (ak AccountKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {
+	permAddr, ok := ak.permAddrs[moduleName]
+	if !ok {
+		return nil
+	}
+
+	return permAddr.GetAddress()
+}
+
+// GetModuleAccount gets the module account from the auth account store, if the account does not
+// exist in the AccountKeeper, then it is created.
+//func (ak AccountKeeper) GetModuleAccount(ctx sdk.Context, moduleName string) types.ModuleAccountI {
+//	acc, _ := ak.GetModuleAccountAndPermissions(ctx, moduleName)
+//	return acc
+//}
+
+// GetModuleAccountAndPermissions gets the module account from the auth account store and its
+// registered permissions
+//func (ak AccountKeeper) GetModuleAccountAndPermissions(ctx sdk.Context, moduleName string) (types.ModuleAccountI, []string) {
+//	addr, perms := ak.GetModuleAddressAndPermissions(moduleName)
+//	if addr == nil {
+//		return nil, []string{}
+//	}
+//
+//	acc := ak.GetAccount(ctx, addr)
+//	if acc != nil {
+//		macc, ok := acc.(types.ModuleAccountI)
+//		if !ok {
+//			panic("account is not a module account")
+//		}
+//		return macc, perms
+//	}
+//
+//	// create a new module account
+//	macc := types.NewEmptyModuleAccount(moduleName, perms...)
+//	maccI := (ak.NewAccount(ctx, macc)).(types.ModuleAccountI) // set the account number
+//	ak.SetModuleAccount(ctx, maccI)
+//
+//	return maccI, perms
+//}
