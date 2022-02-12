@@ -33,27 +33,24 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		var anteHandler sdk.AnteHandler
 		switch tx.(type) {
 		case auth.StdTx:
-			if ctx.IsWrappedCheckTx() {
-				anteHandler = sdk.ChainAnteDecorators(
-					authante.NewIncrementSequenceDecorator(ak),
-				)
-			} else {
-				anteHandler = sdk.ChainAnteDecorators(
-					authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
-					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					authante.NewMempoolFeeDecorator(),
-					authante.NewValidateBasicDecorator(),
-					authante.NewValidateMemoDecorator(ak),
-					authante.NewConsumeGasForTxSizeDecorator(ak),
-					authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-					authante.NewValidateSigCountDecorator(ak),
-					authante.NewDeductFeeDecorator(ak, sk),
-					authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-					authante.NewSigVerificationDecorator(ak),
-					authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-					NewValidateMsgHandlerDecorator(validateMsgHandler),
-				)
-			}
+
+			anteHandler = sdk.ChainAnteDecorators(
+				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+				//NewAccountSetupDecorator(ak),
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+				authante.NewMempoolFeeDecorator(),
+				authante.NewValidateBasicDecorator(),
+				authante.NewValidateMemoDecorator(ak),
+				authante.NewConsumeGasForTxSizeDecorator(ak),
+				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+				authante.NewValidateSigCountDecorator(ak),
+				authante.NewDeductFeeDecorator(ak, sk),
+				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+				authante.NewSigVerificationDecorator(ak),
+				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				NewValidateMsgHandlerDecorator(validateMsgHandler),
+			)
+
 		case evmtypes.MsgEthereumTx:
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
