@@ -59,6 +59,16 @@ var (
 	// ErrTooManySignatures to doc
 	ErrTooManySignatures = Register(RootCodespace, 14, "maximum number of signatures exceeded")
 
+	// ErrInvalidHeight defines an error for an invalid height
+	ErrInvalidHeight = Register(RootCodespace, 26, "invalid height")
+	ErrPackAny = Register(RootCodespace, 33, "failed packing protobuf message to Any")
+	ErrUnpackAny = Register(RootCodespace, 34, "failed unpacking protobuf message from Any")
+	// ErrInvalidVersion defines a general error for an invalid version
+	ErrInvalidVersion = Register(RootCodespace, 27, "invalid version")
+
+	// ErrInvalidChainID defines an error when the chain-id is invalid.
+	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
+
 	// ErrNoSignatures to doc
 	ErrNoSignatures = Register(RootCodespace, 15, "no signatures supplied")
 
