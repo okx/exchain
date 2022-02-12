@@ -2,10 +2,17 @@ package types
 
 import (
 	ics23 "github.com/confio/ics23/go"
+	"github.com/okex/exchain/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/04-channel/types"
 	commitmenttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
+	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	"strings"
 	"time"
 )
@@ -73,7 +80,7 @@ func (cs ClientState) Validate() error {
 	if strings.TrimSpace(cs.ChainId) == "" {
 		return sdkerrors.Wrap(ErrInvalidChainID, "chain id cannot be empty string")
 	}
-	if err := light.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
+	if err := lite.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
 		return err
 	}
 	if cs.TrustingPeriod == 0 {
@@ -135,7 +142,7 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 
 // Initialize will check that initial consensus state is a Tendermint consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
-func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryMarshaler, clientStore sdk.KVStore, consState exported.ConsensusState) error {
+func (cs ClientState) Initialize(ctx sdk.Context, _ codec.Codec, clientStore sdk.KVStore, consState exported.ConsensusState) error {
 	if _, ok := consState.(*ConsensusState); !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid initial consensus state. expected type: %T, got: %T",
 			&ConsensusState{}, consState)
@@ -149,7 +156,7 @@ func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryMarshaler, clien
 // stored on the target machine
 func (cs ClientState) VerifyClientState(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	prefix exported.Prefix,
 	counterpartyClientIdentifier string,
@@ -176,7 +183,7 @@ func (cs ClientState) VerifyClientState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
 	}
 
-	bz, err := cdc.MarshalInterface(clientState)
+	bz, err := common.DefaultMarshal(cdc,clientState)
 	if err != nil {
 		return err
 	}
@@ -188,7 +195,7 @@ func (cs ClientState) VerifyClientState(
 // Tendermint client stored on the target machine.
 func (cs ClientState) VerifyClientConsensusState(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	counterpartyClientIdentifier string,
 	consensusHeight exported.Height,
@@ -216,7 +223,8 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid consensus type %T, expected %T", consensusState, &ConsensusState{})
 	}
 
-	bz, err := cdc.MarshalInterface(consensusState)
+
+	bz, err := common.DefaultMarshal(cdc,consensusState)
 	if err != nil {
 		return err
 	}
@@ -232,7 +240,7 @@ func (cs ClientState) VerifyClientConsensusState(
 // specified connection end stored on the target machine.
 func (cs ClientState) VerifyConnectionState(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -271,7 +279,7 @@ func (cs ClientState) VerifyConnectionState(
 // channel end, under the specified port, stored on the target machine.
 func (cs ClientState) VerifyChannelState(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -311,7 +319,7 @@ func (cs ClientState) VerifyChannelState(
 // the specified port, specified channel, and specified sequence.
 func (cs ClientState) VerifyPacketCommitment(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	currentTimestamp uint64,
 	delayPeriod uint64,
@@ -349,7 +357,7 @@ func (cs ClientState) VerifyPacketCommitment(
 // acknowledgement at the specified port, specified channel, and specified sequence.
 func (cs ClientState) VerifyPacketAcknowledgement(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	currentTimestamp uint64,
 	delayPeriod uint64,
@@ -388,7 +396,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 // specified sequence.
 func (cs ClientState) VerifyPacketReceiptAbsence(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	currentTimestamp uint64,
 	delayPeriod uint64,
@@ -425,7 +433,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 // received of the specified channel at the specified port.
 func (cs ClientState) VerifyNextSequenceRecv(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	height exported.Height,
 	currentTimestamp uint64,
 	delayPeriod uint64,
@@ -482,7 +490,7 @@ func verifyDelayPeriodPassed(store sdk.KVStore, proofHeight exported.Height, cur
 // merkle proof, the consensus state and an error if one occurred.
 func produceVerificationArgs(
 	store sdk.KVStore,
-	cdc codec.BinaryMarshaler,
+	cdc codec.Codec,
 	cs ClientState,
 	height exported.Height,
 	prefix exported.Prefix,

@@ -79,3 +79,13 @@ func NewIdentifiedGenesisMetadata(clientID string, gms []GenesisMetadata) Identi
 		ClientMetadata: gms,
 	}
 }
+
+
+// NewGenesisMetadata is a constructor for GenesisMetadata
+func NewGenesisMetadata(key, val []byte) GenesisMetadata {
+	return GenesisMetadata{
+		Key:   key,
+		Value: val,
+	}
+}
+

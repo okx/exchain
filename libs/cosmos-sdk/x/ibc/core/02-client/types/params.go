@@ -2,31 +2,56 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
+	paramtypes"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"strings"
 )
 
-
 var (
 	// DefaultAllowedClients are "06-solomachine" and "07-tendermint"
-	//DefaultAllowedClients = []string{exported.Solomachine, exported.Tendermint}
+	DefaultAllowedClients = []string{exported.Solomachine, exported.Tendermint}
 
 	// KeyAllowedClients is store's key for AllowedClients Params
 	KeyAllowedClients = []byte("AllowedClients")
 )
 
-
 // ParamKeyTable type declaration for parameters
-func ParamKeyTable() params.KeyTable {
-	return params.NewKeyTable().RegisterParamSet(&Params{})
+func ParamKeyTable() paramtypes.KeyTable {
+	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+// NewParams creates a new parameter configuration for the ibc transfer module
+func NewParams(allowedClients ...string) Params {
+	return Params{
+		AllowedClients: allowedClients,
+	}
+}
+
+// DefaultParams is the default parameter configuration for the ibc-transfer module
+func DefaultParams() Params {
+	return NewParams(DefaultAllowedClients...)
+}
+
+// Validate all ibc-transfer module parameters
+func (p Params) Validate() error {
+	return validateClients(p.AllowedClients)
+}
 
 // ParamSetPairs implements params.ParamSet
-func (p *Params) ParamSetPairs() params.ParamSetPairs {
-	return params.ParamSetPairs{
-		params.NewParamSetPair(KeyAllowedClients, p.AllowedClients, validateClients),
+func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
+	return paramtypes.ParamSetPairs{
+		paramtypes.NewParamSetPair(KeyAllowedClients, p.AllowedClients, validateClients),
 	}
+}
+
+// IsAllowedClient checks if the given client type is registered on the allowlist.
+func (p Params) IsAllowedClient(clientType string) bool {
+	for _, allowedClient := range p.AllowedClients {
+		if allowedClient == clientType {
+			return true
+		}
+	}
+	return false
 }
 
 func validateClients(i interface{}) error {

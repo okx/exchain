@@ -63,6 +63,7 @@ var (
 	ErrInvalidHeight = Register(RootCodespace, 26, "invalid height")
 	ErrPackAny = Register(RootCodespace, 33, "failed packing protobuf message to Any")
 	ErrUnpackAny = Register(RootCodespace, 34, "failed unpacking protobuf message from Any")
+	ErrInvalidType = Register(RootCodespace, 29, "invalid type")
 	// ErrInvalidVersion defines a general error for an invalid version
 	ErrInvalidVersion = Register(RootCodespace, 27, "invalid version")
 

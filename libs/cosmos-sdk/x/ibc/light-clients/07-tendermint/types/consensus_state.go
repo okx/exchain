@@ -3,9 +3,26 @@ package types
 import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"time"
 )
+
+
+
+// NewConsensusState creates a new ConsensusState instance.
+func NewConsensusState(
+	timestamp time.Time, root commitmenttypes.MerkleRoot, nextValsHash tmbytes.HexBytes,
+) *ConsensusState {
+	return &ConsensusState{
+		Timestamp:          timestamp,
+		Root:               root,
+		NextValidatorsHash: nextValsHash,
+	}
+}
+
 
 // ClientType returns Tendermint
 func (ConsensusState) ClientType() string {

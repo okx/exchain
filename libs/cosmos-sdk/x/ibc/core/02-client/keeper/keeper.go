@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	lite "github.com/itsfunny/exchain/libs/tendermint/lite2"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -310,7 +311,7 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 			expectedProofSpecs, tmClient.ProofSpecs)
 	}
 
-	if err := light.ValidateTrustLevel(tmClient.TrustLevel.ToTendermint()); err != nil {
+	if err := lite.ValidateTrustLevel(tmClient.TrustLevel.ToTendermint()); err != nil {
 		return sdkerrors.Wrapf(types.ErrInvalidClient, "trust-level invalid: %v", err)
 	}
 
@@ -327,7 +328,7 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 
 	if len(tmClient.UpgradePath) != 0 {
 		// For now, SDK IBC implementation assumes that upgrade path (if defined) is defined by SDK upgrade module
-		expectedUpgradePath := []string{upgradetypes.StoreKey, upgradetypes.KeyUpgradedIBCState}
+		expectedUpgradePath := []string{UpgradeModuleName, KeyUpgradedIBCState}
 		if !reflect.DeepEqual(expectedUpgradePath, tmClient.UpgradePath) {
 			return sdkerrors.Wrapf(types.ErrInvalidClient, "upgrade path must be the upgrade path defined by upgrade module. expected %v, got %v",
 				expectedUpgradePath, tmClient.UpgradePath)
@@ -336,6 +337,11 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 	return nil
 }
 
+var (
+	// ModuleName is the name of this module
+	UpgradeModuleName = "upgrade"
+	KeyUpgradedIBCState = "upgradedIBCState"
+)
 
 
 // IterateClients provides an iterator over all stored light client State
