@@ -41,6 +41,10 @@ const (
 // List of CLI flags
 const (
 	FlagHome               = tmcli.HomeFlag
+	FlagKeyringDir       = "keyring-dir"
+	FlagOffline          = "offline"
+	FlagSignMode         = "sign-mode"
+	SignModeLegacyAminoJSON = "amino-json"
 	FlagUseLedger          = "ledger"
 	FlagChainID            = "chain-id"
 	FlagNode               = "node"

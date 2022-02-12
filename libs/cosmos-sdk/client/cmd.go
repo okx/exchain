@@ -2,6 +2,12 @@ package client
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	"github.com/spf13/pflag"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -35,4 +41,204 @@ func ValidateCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	return cmd.Help()
+}
+
+
+
+// GetClientQueryContext returns a Context from a command with fields set based on flags
+// defined in AddQueryFlagsToCmd. An error is returned if any flag query fails.
+//
+// - client.Context field not pre-populated & flag not set: uses default flag value
+// - client.Context field not pre-populated & flag set: uses set flag value
+// - client.Context field pre-populated & flag not set: uses pre-populated value
+// - client.Context field pre-populated & flag set: uses set flag value
+func GetClientQueryContext(cmd *cobra.Command) (Context, error) {
+	ctx := GetClientContextFromCmd(cmd)
+	return readQueryCommandFlags(ctx, cmd.Flags())
+}
+
+// GetClientTxContext returns a Context from a command with fields set based on flags
+// defined in AddTxFlagsToCmd. An error is returned if any flag query fails.
+//
+// - client.Context field not pre-populated & flag not set: uses default flag value
+// - client.Context field not pre-populated & flag set: uses set flag value
+// - client.Context field pre-populated & flag not set: uses pre-populated value
+// - client.Context field pre-populated & flag set: uses set flag value
+func GetClientTxContext(cmd *cobra.Command) (Context, error) {
+	ctx := GetClientContextFromCmd(cmd)
+	return readTxCommandFlags(ctx, cmd.Flags())
+}
+
+// ClientContextKey defines the context key used to retrieve a client.Context from
+// a command's Context.
+const ClientContextKey = sdk.ContextKey("client.context")
+// GetClientContextFromCmd returns a Context from a command or an empty Context
+// if it has not been set.
+func GetClientContextFromCmd(cmd *cobra.Command) Context {
+	if v := cmd.Context().Value(ClientContextKey); v != nil {
+		clientCtxPtr := v.(*Context)
+		return *clientCtxPtr
+	}
+
+	return Context{}
+}
+
+// SetCmdClientContext sets a command's Context value to the provided argument.
+func SetCmdClientContext(cmd *cobra.Command, clientCtx Context) error {
+	v := cmd.Context().Value(ClientContextKey)
+	if v == nil {
+		return errors.New("client context not set")
+	}
+
+	clientCtxPtr := v.(*Context)
+	*clientCtxPtr = clientCtx
+
+	return nil
+}
+
+// - client.Context field pre-populated & flag set: uses set flag value
+func readQueryCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, error) {
+	if clientCtx.Height == 0 || flagSet.Changed(flags.FlagHeight) {
+		height, _ := flagSet.GetInt64(flags.FlagHeight)
+		clientCtx = clientCtx.WithHeight(height)
+	}
+
+	if !clientCtx.UseLedger || flagSet.Changed(flags.FlagUseLedger) {
+		useLedger, _ := flagSet.GetBool(flags.FlagUseLedger)
+		clientCtx = clientCtx.WithUseLedger(useLedger)
+	}
+
+	return ReadPersistentCommandFlags(clientCtx, flagSet)
+}
+func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, error) {
+	if clientCtx.OutputFormat == "" || flagSet.Changed(cli.OutputFlag) {
+		output, _ := flagSet.GetString(cli.OutputFlag)
+		clientCtx = clientCtx.WithOutputFormat(output)
+	}
+
+	if clientCtx.HomeDir == "" || flagSet.Changed(flags.FlagHome) {
+		homeDir, _ := flagSet.GetString(flags.FlagHome)
+		clientCtx = clientCtx.WithHomeDir(homeDir)
+	}
+	if !clientCtx.Simulate || flagSet.Changed(flags.FlagDryRun) {
+		dryRun, _ := flagSet.GetBool(flags.FlagDryRun)
+		clientCtx = clientCtx.WithSimulation(dryRun)
+	}
+
+	if clientCtx.KeyringDir == "" || flagSet.Changed(flags.FlagKeyringDir) {
+		keyringDir, _ := flagSet.GetString(flags.FlagKeyringDir)
+
+		// The keyring directory is optional and falls back to the home directory
+		// if omitted.
+		if keyringDir == "" {
+			keyringDir = clientCtx.HomeDir
+		}
+
+		clientCtx = clientCtx.WithKeyringDir(keyringDir)
+	}
+
+	if clientCtx.ChainID == "" || flagSet.Changed(flags.FlagChainID) {
+		chainID, _ := flagSet.GetString(flags.FlagChainID)
+		clientCtx = clientCtx.WithChainID(chainID)
+	}
+
+	if clientCtx.Keyring == nil || flagSet.Changed(flags.FlagKeyringBackend) {
+		keyringBackend, _ := flagSet.GetString(flags.FlagKeyringBackend)
+
+		if keyringBackend != "" {
+			kr, err := NewKeyringFromBackend(clientCtx, keyringBackend)
+			if err != nil {
+				return clientCtx, err
+			}
+
+			clientCtx = clientCtx.WithKeyring(kr)
+		}
+	}
+
+	if clientCtx.Client == nil || flagSet.Changed(flags.FlagNode) {
+		rpcURI, _ := flagSet.GetString(flags.FlagNode)
+		if rpcURI != "" {
+			clientCtx = clientCtx.WithNodeURI(rpcURI)
+
+			client, err := NewClientFromNode(rpcURI)
+			if err != nil {
+				return clientCtx, err
+			}
+
+			clientCtx = clientCtx.WithClient(client)
+		}
+	}
+
+	return clientCtx, nil
+}
+
+// NewClientFromNode sets up Client implementation that communicates with a Tendermint node over
+// JSON RPC and WebSockets
+// TODO: We might not need to manually append `/websocket`:
+// https://github.com/cosmos/cosmos-sdk/issues/8986
+func NewClientFromNode(nodeURI string) (*rpchttp.HTTP, error) {
+	return rpchttp.New(nodeURI, "/websocket")
+}
+
+
+func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, error) {
+	clientCtx, err := ReadPersistentCommandFlags(clientCtx, flagSet)
+	if err != nil {
+		return clientCtx, err
+	}
+
+	if !clientCtx.GenerateOnly || flagSet.Changed(flags.FlagGenerateOnly) {
+		genOnly, _ := flagSet.GetBool(flags.FlagGenerateOnly)
+		clientCtx = clientCtx.WithGenerateOnly(genOnly)
+	}
+
+	if !clientCtx.Simulate || flagSet.Changed(flags.FlagDryRun) {
+		dryRun, _ := flagSet.GetBool(flags.FlagDryRun)
+		clientCtx = clientCtx.WithSimulation(dryRun)
+	}
+
+	if !clientCtx.Offline || flagSet.Changed(flags.FlagOffline) {
+		offline, _ := flagSet.GetBool(flags.FlagOffline)
+		clientCtx = clientCtx.WithOffline(offline)
+	}
+
+	if !clientCtx.UseLedger || flagSet.Changed(flags.FlagUseLedger) {
+		useLedger, _ := flagSet.GetBool(flags.FlagUseLedger)
+		clientCtx = clientCtx.WithUseLedger(useLedger)
+	}
+
+	if clientCtx.BroadcastMode == "" || flagSet.Changed(flags.FlagBroadcastMode) {
+		bMode, _ := flagSet.GetString(flags.FlagBroadcastMode)
+		clientCtx = clientCtx.WithBroadcastMode(bMode)
+	}
+
+	if !clientCtx.SkipConfirm || flagSet.Changed(flags.FlagSkipConfirmation) {
+		skipConfirm, _ := flagSet.GetBool(flags.FlagSkipConfirmation)
+		clientCtx = clientCtx.WithSkipConfirmation(skipConfirm)
+	}
+
+	if clientCtx.SignModeStr == "" || flagSet.Changed(flags.FlagSignMode) {
+		signModeStr, _ := flagSet.GetString(flags.FlagSignMode)
+		clientCtx = clientCtx.WithSignModeStr(signModeStr)
+	}
+
+	if clientCtx.From == "" || flagSet.Changed(flags.FlagFrom) {
+		from, _ := flagSet.GetString(flags.FlagFrom)
+		fromAddr, fromName, keyType, err := GetFromFields(clientCtx.Keyring, from, clientCtx.GenerateOnly)
+		if err != nil {
+			return clientCtx, err
+		}
+
+		clientCtx = clientCtx.WithFrom(from).WithFromAddress(fromAddr).WithFromName(fromName)
+
+		// If the `from` signer account is a ledger key, we need to use
+		// SIGN_MODE_AMINO_JSON, because ledger doesn't support proto yet.
+		// ref: https://github.com/cosmos/cosmos-sdk/issues/8109
+		if keyType == keyring.TypeLedger && clientCtx.SignModeStr != flags.SignModeLegacyAminoJSON {
+			fmt.Println("Default sign-mode 'direct' not supported by Ledger, using sign-mode 'amino-json'.")
+			clientCtx = clientCtx.WithSignModeStr(flags.SignModeLegacyAminoJSON)
+		}
+	}
+
+	return clientCtx, nil
 }
