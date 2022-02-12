@@ -1,30 +1,39 @@
 package client
 
 import (
+	"bufio"
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 )
 
+
+func GetContext(cmd *cobra.Command,cdc *codec.Codec)context.CLIContext{
+	inBuf := bufio.NewReader(cmd.InOrStdin())
+	clientCtx:=context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+	return clientCtx
+}
 // Context implements a typical context created in SDK modules for transaction
 // handling and queries.
 type Context struct {
 	FromAddress       sdk.AccAddress
 	Client            rpcclient.Client
 	ChainID           string
-	Cdc codec.Codec
+	Cdc               codec.Codec
 	InterfaceRegistry codectypes.InterfaceRegistry
 	Input             io.Reader
-	Keyring           keyring.Keyring
+	Keyring           keys.Keybase
 	Output            io.Writer
 	OutputFormat      string
 	Height            int64
@@ -49,7 +58,7 @@ type Context struct {
 }
 
 // WithKeyring returns a copy of the context with an updated keyring.
-func (ctx Context) WithKeyring(k keyring.Keyring) Context {
+func (ctx Context) WithKeyring(k keys.Keybase) Context {
 	ctx.Keyring = k
 	return ctx
 }
@@ -296,7 +305,7 @@ func (ctx Context) printOutput(out []byte) error {
 // GetFromFields returns a from account address, account name and keyring type, given either
 // an address or key name. If genOnly is true, only a valid Bech32 cosmos
 // address is returned.
-func GetFromFields(kr keyring.Keyring, from string, genOnly bool) (sdk.AccAddress, string, keyring.KeyType, error) {
+func GetFromFields(kr keys.Keybase, from string, genOnly bool) (sdk.AccAddress, string, keys.KeyType, error) {
 	if from == "" {
 		return nil, "", 0, nil
 	}
@@ -310,14 +319,14 @@ func GetFromFields(kr keyring.Keyring, from string, genOnly bool) (sdk.AccAddres
 		return addr, "", 0, nil
 	}
 
-	var info keyring.Info
+	var info keys.Info
 	if addr, err := sdk.AccAddressFromBech32(from); err == nil {
-		info, err = kr.KeyByAddress(addr)
+		info, err = kr.GetByAddress(addr)
 		if err != nil {
 			return nil, "", 0, err
 		}
 	} else {
-		info, err = kr.Key(from)
+		info, err = kr.Get(from)
 		if err != nil {
 			return nil, "", 0, err
 		}
@@ -327,10 +336,9 @@ func GetFromFields(kr keyring.Keyring, from string, genOnly bool) (sdk.AccAddres
 }
 
 // NewKeyringFromBackend gets a Keyring object from a backend
-func NewKeyringFromBackend(ctx Context, backend string) (keyring.Keyring, error) {
+func NewKeyringFromBackend(ctx Context, backend string) (keys.Keybase, error) {
 	if ctx.GenerateOnly || ctx.Simulate {
-		return keyring.New(sdk.KeyringServiceName(), keyring.BackendMemory, ctx.KeyringDir, ctx.Input)
+		return keys.NewKeyring(sdk.KeyringServiceName(), keys.BackendMemory, ctx.KeyringDir, ctx.Input)
 	}
-
-	return keyring.New(sdk.KeyringServiceName(), backend, ctx.KeyringDir, ctx.Input)
+	return keys.NewKeyring(sdk.KeyringServiceName(), backend, ctx.KeyringDir, ctx.Input)
 }

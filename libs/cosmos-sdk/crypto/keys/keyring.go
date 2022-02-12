@@ -30,6 +30,7 @@ const (
 	BackendKWallet = "kwallet"
 	BackendPass    = "pass"
 	BackendTest    = "test"
+	BackendMemory  = "memory"
 )
 
 const (
@@ -79,6 +80,8 @@ func NewKeyring(
 		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
 		config = newPassBackendKeyringConfig(appName, rootDir, userInput)
+	case BackendMemory:
+		return NewInMemory(opts...), err
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
 	}

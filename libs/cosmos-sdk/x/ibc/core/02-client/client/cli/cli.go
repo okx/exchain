@@ -2,12 +2,13 @@ package cli
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
 	"github.com/spf13/cobra"
 )
 
 // GetQueryCmd returns the query commands for IBC clients
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        types.SubModuleName,
 		Short:                      "IBC client query subcommands",
@@ -17,13 +18,13 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		GetCmdQueryClientStates(),
-		GetCmdQueryClientState(),
-		GetCmdQueryConsensusStates(),
-		GetCmdQueryConsensusState(),
-		GetCmdQueryHeader(),
-		GetCmdNodeConsensusState(),
-		GetCmdParams(),
+		GetCmdQueryClientStates(cdc),
+		GetCmdQueryClientState(cdc),
+		GetCmdQueryConsensusStates(cdc),
+		GetCmdQueryConsensusState(cdc),
+		GetCmdQueryHeader(cdc),
+		GetCmdNodeConsensusState(cdc),
+		GetCmdParams(cdc),
 	)
 
 	return queryCmd
