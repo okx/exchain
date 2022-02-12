@@ -127,7 +127,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
 
-	m.handleRunMsg4CheckMode(info)
+	//m.handleRunMsg4CheckMode(info)
 	err = m.checkHigherThanMercury(err, info)
 	return
 }

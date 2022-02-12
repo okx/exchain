@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	logsdk "github.com/itsfunny/go-cell/sdk/log"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/app/logevents"
 	"io"
 
@@ -42,7 +44,21 @@ const flagInvCheckPeriod = "inv-check-period"
 
 var invCheckPeriod uint
 
+func initLog() {
+	logsdk.SetFilter(logsdk.BlackWordFilter(
+		"Not apply delta",
+		"Got prerun result",
+		"CommitSchedule:",
+		"Prerun completed",
+		"Produce[Consensus<",
+	))
+	logrusplugin.SetupDefaultWithInterest(map[string]logrusplugin.Color{
+		"connectionId": logrusplugin.TextRed,
+		"capabilityName":logrusplugin.TextRed,
+	})
+}
 func main() {
+	initLog()
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)

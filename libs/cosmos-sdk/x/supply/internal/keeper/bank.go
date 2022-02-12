@@ -106,7 +106,7 @@ func (k Keeper) MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) err
 	if !acc.HasPermission(types.Minter) {
 		panic(sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "module account %s does not have permissions to mint tokens", moduleName))
 	}
-
+	
 	_, err := k.bk.AddCoins(ctx, acc.GetAddress(), amt)
 	if err != nil {
 		return err
@@ -152,6 +152,7 @@ func (k Keeper) BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) err
 
 	return nil
 }
+
 
 // GetSupplyByDenom gets the amount of a token supply from the store
 func (k Keeper) GetSupplyByDenom(ctx sdk.Context, denom string) sdk.Dec {

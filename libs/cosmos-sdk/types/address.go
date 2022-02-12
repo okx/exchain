@@ -137,6 +137,9 @@ func VerifyAddressFormat(bz []byte) error {
 func AccAddressFromBech32(address string) (AccAddress, error) {
 	return AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
 }
+func UnsafeSetAddressPrefix(address string){
+	GetConfig().bech32AddressPrefix["account_addr"] = address
+}
 
 // AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
 func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (addr AccAddress, err error) {

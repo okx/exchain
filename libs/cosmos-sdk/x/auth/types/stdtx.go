@@ -243,6 +243,7 @@ func (tx StdTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	if tx.GetSigners() != nil {
 		exInfo.Sender = tx.FeePayer(ctx).String()
 	}
+	fmt.Println(tx.Fee.GasPrices().Len())
 	exInfo.GasPrice = tx.Fee.GasPrices()[0].Amount.BigInt()
 
 	return exInfo

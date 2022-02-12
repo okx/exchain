@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/global"
 	"math/big"
 	"sort"
 	"sync"
@@ -580,31 +581,63 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
+			var memTx *mempoolTx
 			var exTxInfo ExTxInfo
-			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
-				mem.cache.Remove(tx)
-				mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
-				return
-			}
-			if exTxInfo.GasPrice.Cmp(big.NewInt(0)) <= 0 {
-				mem.cache.Remove(tx)
-				mem.logger.Error("Failed to get extra info for this tx!")
-				return
+			// TODO
+			if !global.IBCEnable {
+				if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
+					mem.cache.Remove(tx)
+					mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
+					return
+				}
+				if exTxInfo.GasPrice.Cmp(big.NewInt(0)) <= 0 {
+					mem.cache.Remove(tx)
+					mem.logger.Error("Failed to get extra info for this tx!")
+					return
+				}
+				memTx = &mempoolTx{
+					height:    mem.height,
+					gasWanted: r.CheckTx.GasWanted,
+					tx:        tx,
+					nodeKey:   txInfo.wtx.GetNodeKey(),
+					signature: txInfo.wtx.GetSignature(),
+					from:      exTxInfo.Sender,
+				}
+			} else {
+				memTx = &mempoolTx{
+					height:    mem.height,
+					gasWanted: r.CheckTx.GasWanted,
+					tx:        tx,
+					nodeKey:   txInfo.wtx.GetNodeKey(),
+					signature: txInfo.wtx.GetSignature(),
+				}
 			}
 
-			memTx := &mempoolTx{
-				height:    mem.height,
-				gasWanted: r.CheckTx.GasWanted,
-				tx:        tx,
-				nodeKey:   txInfo.wtx.GetNodeKey(),
-				signature: txInfo.wtx.GetSignature(),
-				from:      exTxInfo.Sender,
-			}
+			//var exTxInfo ExTxInfo
+			//if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
+			//	mem.cache.Remove(tx)
+			//	mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
+			//	return
+			//}
+			//if exTxInfo.GasPrice.Cmp(big.NewInt(0)) <= 0 {
+			//	mem.cache.Remove(tx)
+			//	mem.logger.Error("Failed to get extra info for this tx!")
+			//	return
+			//}
+
+			//memTx := &mempoolTx{
+			//	height:    mem.height,
+			//	gasWanted: r.CheckTx.GasWanted,
+			//	tx:        tx,
+			//	nodeKey:   txInfo.wtx.GetNodeKey(),
+			//	signature: txInfo.wtx.GetSignature(),
+			//	from:      exTxInfo.Sender,
+			//}
 
 			memTx.senders.Store(txInfo.SenderID, true)
 
 			var err error
-			if mem.pendingPool != nil {
+			if mem.pendingPool != nil && !global.IBCEnable {
 				err = mem.addPendingTx(memTx, exTxInfo)
 			} else {
 				err = mem.addTx(memTx, exTxInfo)

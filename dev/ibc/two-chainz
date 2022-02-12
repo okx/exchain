@@ -1,0 +1,101 @@
+#!/bin/bash
+# two-chainz creates two gaiad chains and configures the relayer to 
+
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+GAIA_DATA="$(pwd)/data"
+RELAYER_DIR="$(dirname $SCRIPTDIR)"
+RELAYER_CONF="$HOME/.relayer"
+
+
+killbyname() {
+  NAME=$1
+  ps -ef|grep "$NAME"|grep -v grep |awk '{print "kill -9 "$2", "$8}'
+  ps -ef|grep "$NAME"|grep -v grep |awk '{print "kill -9 "$2}' | sh
+  echo "All <$NAME> killed!"
+}
+
+# Ensure jq is installed
+if [[ ! -x "$(which jq)" ]]; then
+  echo "jq (a tool for parsing json in the command line) is required..."
+  echo "https://stedolan.github.io/jq/download/"
+  exit 1
+fi
+
+# Ensure user understands what will be deleted
+if [[ -d $GAIA_DATA ]] && [[ ! "$1" == "skip" ]]; then
+  read -p "$(basename $0) will delete \$(pwd)/data and \$HOME/.relayer folders. Do you wish to continue? (y/n): " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      exit 1
+  fi
+fi
+
+# Delete data from old runs
+rm -rf $GAIA_DATA &> /dev/null
+rm -rf $RELAYER_CONF &> /dev/null
+
+# Stop existing gaiad processes
+killbyname gaiad &> /dev/null
+killbyname akash &> /dev/null
+killbyname simd &> /dev/null
+killbyname exchaind
+killbyname exchaincli
+set -e
+
+
+chainid0=ibc-0
+chainid1=ibc-1
+echo "Generating gaia configurations..."
+mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
+./one-chain-ibc.sh gaiad $chainid0 ./data 6657 6656 6060 9090
+./one-chain-ibc.sh gaiad $chainid1 ./data 16657 16656 6061 9091
+
+
+chainid0="exchain-100"
+chainid1="exchain-101"
+echo "Generating exchain configurations..."
+mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
+./start.sh $chainid0 ./data 26657 26656 6060 9090 8084
+./start.sh $chainid1 ./data 36657 36656 6060 9090 8084
+
+pwd=${PWD}
+if [[ ! -x "$(which rly)" ]]; then
+  echo "rly is not installed "
+  echo  "build relayer"
+
+  relayer_path=${GOPATH}/src/github.com/cosmos/relayer
+  if [ ! -d ${relayer_path} ];then
+    mkdir -p ${GOPATH}/src/github.com/cosmos/
+    cd ${GOPATH}/src/github.com/cosmos/
+    git clone git@github.com:okex/relayer.git
+    git fetch --all
+  fi
+  cd ${relayer_path}
+  git checkout dev-lvcong-adapter
+  if [ $? -ne 0 ]; then
+      echo "checkout failed ,use stash or commit first"
+      exit
+  fi
+  git pull origin dev-lvcong-adapter
+  sh ./build.sh
+fi
+
+rm -rf ~/.relayer
+
+cd ${pwd}
+echo "Generating rly configurations..."
+rly config init
+rly config add-chains configs/demo/chains
+SEED0=$(jq -r '.mnemonic' $GAIA_DATA/exchain-100/key_seed.json)
+SEED1=$(jq -r '.mnemonic' $GAIA_DATA/exchain-101/key_seed.json)
+SEED_CM_0=$(jq -r '.mnemonic' $GAIA_DATA/ibc-0/key_seed.json)
+SEED_CM_1=$(jq -r '.mnemonic' $GAIA_DATA/ibc-1/key_seed.json)
+echo "Key $(rly keys restore exchain-100 admin16 "$SEED1") imported from exchain-100 to relayer..."
+echo "Key $(rly keys restore exchain-101 admin16 "$SEED1") imported from exchain-101 to relayer..."
+echo "Key $(rly keys restore ibc-0 testkey "$SEED_CM_0") imported from ibc-0 to relayer..."
+echo "Key $(rly keys restore ibc-1 testkey "$SEED_CM_1") imported from ibc-1 to relayer..."
+rly config add-paths configs/demo/paths
+echo "current pathes"
+rly paths list
+echo "current chains "
+rly chains list

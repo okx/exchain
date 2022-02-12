@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -18,7 +17,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
-
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
@@ -322,6 +320,10 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 	path := splitPath(req.Path)
 	if len(path) == 0 {
 		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+	}
+
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
 	switch path[0] {

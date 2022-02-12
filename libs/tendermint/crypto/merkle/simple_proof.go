@@ -3,7 +3,7 @@ package merkle
 import (
 	"bytes"
 	"fmt"
-
+	merkle2 "github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
 	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
@@ -30,6 +30,21 @@ type SimpleProof struct {
 	Index    int      `json:"index"`     // Index of item to prove.
 	LeafHash []byte   `json:"leaf_hash"` // Hash of item value.
 	Aunts    [][]byte `json:"aunts"`     // Hashes from leaf's sibling to a root's child.
+}
+
+func (sp *SimpleProof) ToProto() *merkle2.SimpleProof {
+	if sp == nil {
+		return nil
+	}
+
+	pb := new(merkle2.SimpleProof)
+
+	pb.Total = int64(sp.Total)
+	pb.Index = int64(sp.Index)
+	pb.LeafHash = sp.LeafHash
+	pb.Aunts = sp.Aunts
+
+	return pb
 }
 
 func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {

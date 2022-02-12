@@ -195,6 +195,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	fail.Fail() // XXX
 
 	trc.Pin(trace.SaveResp)
+	//logrusplugin.Info("出块","height",block.Height,"hash",block.Hash(),"appHash",block.AppHash)
 
 	// Save the results before we commit.
 	SaveABCIResponses(blockExec.db, block.Height, abciResponses)

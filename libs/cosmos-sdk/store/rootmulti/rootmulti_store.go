@@ -2,6 +2,11 @@ package rootmulti
 
 import (
 	"fmt"
+	"github.com/okex/exchain/global"
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+
+	//types2 "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
 	"io"
 	"log"
 	"path/filepath"
@@ -17,7 +22,7 @@ import (
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -625,6 +630,7 @@ func (rs *Store) getStoreByName(name string) types.Store {
 // TODO: add proof for `multistore -> substore`.
 func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	path := req.Path
+	str := string(req.Data)
 	storeName, subpath, err := parsePath(path)
 	if err != nil {
 		return sdkerrors.QueryResult(err)
@@ -643,6 +649,13 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// trim the path and make the query
 	req.Path = subpath
 	res := queryable.Query(req)
+	if strings.Contains(str, "connections") {
+		defer func() {
+			if res.Proof == nil || len(res.Proof.Ops) == 0 {
+				panic("asd")
+			}
+		}()
+	}
 
 	if !req.Prove || !RequireProof(subpath) {
 		return res
@@ -666,11 +679,15 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	// Restore origin path and append proof op.
-	res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-		[]byte(storeName),
-		NewMultiStoreProof(commitInfo.StoreInfos),
-	).ProofOp())
+	if global.IBCEnable {
+		queryIbcProof(&res, &commitInfo, storeName)
+	} else {
+		// Restore origin path and append proof op.
+		res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+			[]byte(storeName),
+			NewMultiStoreProof(commitInfo.StoreInfos),
+		).ProofOp())
+	}
 
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
@@ -746,6 +763,12 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		}
 
 		return transient.NewStore(), nil
+	case types.StoreTypeMemory:
+		if _, ok := key.(*types.MemoryStoreKey); !ok {
+			return nil, fmt.Errorf("unexpected key type for a MemoryStoreKey; got: %s", key.String())
+		}
+
+		return mem.NewStore(), nil
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -859,13 +882,20 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	// TODO: cache to ci.hash []byte
-	m := make(map[string][]byte, len(ci.StoreInfos))
-	for _, storeInfo := range ci.StoreInfos {
-		m[storeInfo.Name] = storeInfo.Hash()
+	//// TODO: cache to ci.hash []byte
+	//m := make(map[string][]byte, len(ci.StoreInfos))
+	//for _, storeInfo := range ci.StoreInfos {
+	//	m[storeInfo.Name] = storeInfo.Hash()
+	//}
+	//
+	//return merkle.SimpleHashFromMap(m)
+	// we need a special case for empty set, as SimpleProofsFromMap requires at least one entry
+	if len(ci.StoreInfos) == 0 {
+		return nil
 	}
 
-	return merkle.SimpleHashFromMap(m)
+	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
+	return rootHash
 }
 
 func (ci commitInfo) CommitID() types.CommitID {

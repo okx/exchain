@@ -40,7 +40,7 @@ func (mfd MempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	if !ok {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
 	}
-	feeCoins := feeTx.GetFee()
+	//feeCoins := feeTx.GetFee()
 	gas := feeTx.GetGas()
 
 	// Ensure that the provided fees meet a minimum threshold for the validator,
@@ -59,9 +59,9 @@ func (mfd MempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 				requiredFees[i] = sdk.NewDecCoinFromDec(gp.Denom, fee)
 			}
 
-			if !feeCoins.IsAnyGTE(requiredFees) {
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "insufficient fees; got: %s required: %s", feeCoins, requiredFees)
-			}
+			//if !feeCoins.IsAnyGTE(requiredFees) {
+			//	return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "insufficient fees; got: %s required: %s", feeCoins, requiredFees)
+			//}
 		}
 	}
 
@@ -98,7 +98,11 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 	feePayerAcc := dfd.ak.GetAccount(ctx, feePayer)
 
 	if feePayerAcc == nil {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
+		//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
+		//feePayerAcc = dfd.ak.GetAccount(ctx, addr)
+		//if nil != err {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
+		//}
 	}
 
 	// deduct the fees

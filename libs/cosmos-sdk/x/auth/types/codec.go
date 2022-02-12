@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/tendermint/go-amino"
 )
@@ -15,6 +16,9 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/Account", nil)
 	cdc.RegisterConcrete(StdTx{}, "cosmos-sdk/StdTx", nil)
+	cdc.RegisterConcrete(&types.RelayMsgWrapper{}, "cosmos-sdk/RelayTx", nil)
+	cdc.RegisterConcrete(&types.RelayMsg{}, "cosmos-sdk/RelayMsg", nil)
+	cdc.RegisterConcrete(&types.BytesWrapper{},"bytesSADS",nil)
 
 	cdc.RegisterConcreteUnmarshaller("cosmos-sdk/StdTx", func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var tx StdTx

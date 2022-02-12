@@ -26,6 +26,7 @@ var _ Logger = (*tmLogger)(nil)
 // that underlying logger could be swapped with something else.
 func NewTMLogger(w io.Writer) Logger {
 	// Color by level value
+	return NewLogAdapter("ALL")
 	colorFn := func(keyvals ...interface{}) term.FgBgColor {
 		if keyvals[0] != kitlevel.Key() {
 			panic(fmt.Sprintf("expected level key to be first, got %v", keyvals[0]))

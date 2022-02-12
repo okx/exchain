@@ -51,6 +51,8 @@ var (
 	KeyMaxValsToAddShares = []byte("MaxValsToAddShares")
 	KeyMinDelegation      = []byte("MinDelegation")
 	KeyMinSelfDelegation  = []byte("MinSelfDelegation")
+
+	KeyHistoricalEntries = []byte("HistoricalEntries")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -69,6 +71,8 @@ type Params struct {
 	MinDelegation sdk.Dec `json:"min_delegation" yaml:"min_delegation"`
 	// validator's self declared minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
+
+	HistoricalEntries uint32 `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
 }
 
 // NewParams creates a new Params instance
@@ -97,8 +101,17 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16Positive("epoch")},
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
+		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
 	}
+}
+func validateHistoricalEntries(i interface{}) error {
+	_, ok := i.(uint32)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	return nil
 }
 
 // Equal returns a boolean determining if two Param types are identical

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -29,6 +30,10 @@ type Keeper struct {
 func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {
 
+	// set KeyTable if it has not already been set
+	if !paramstore.HasKeyTable() {
+		paramstore = paramstore.WithKeyTable(ParamKeyTable())
+	}
 	// ensure bonded and not bonded module accounts are set
 	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))
@@ -42,7 +47,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeep
 		storeKey:     key,
 		cdc:          cdc,
 		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore.WithKeyTable(ParamKeyTable()),
+		paramstore:  paramstore,
 		hooks:        nil,
 	}
 }
@@ -125,4 +130,18 @@ func (k Keeper) GetOperAndValidatorAddr(ctx sdk.Context) types.OVPairs {
 		ovPairs = append(ovPairs, ovPair)
 	}
 	return ovPairs
+}
+
+
+// GetHistoricalInfo gets the historical info at a given height
+func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types2.HistoricalInfo, bool) {
+	store := ctx.KVStore(k.storeKey)
+	key := types2.GetHistoricalInfoKey(height)
+
+	value := store.Get(key)
+	if value == nil {
+		return types2.HistoricalInfo{}, false
+	}
+
+	return types2.MustUnmarshalHistoricalInfo(k.cdc, value), true
 }

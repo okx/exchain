@@ -292,16 +292,15 @@ func RunAddCmd(cmd *cobra.Command, args []string, kb keys.Keybase, inBuf *bufio.
 	// Recover key from seed passphrase
 	if viper.GetBool(flagRecover) {
 		// Hide mnemonic from output
-		showMnemonic = false
-		mnemonic = ""
+		showMnemonic = true
+		//mnemonic = ""
 	}
-
 	return printCreate(cmd, info, showMnemonic, mnemonic)
 }
 
 func printCreate(cmd *cobra.Command, info keys.Info, showMnemonic bool, mnemonic string) error {
 	output := viper.Get(cli.OutputFlag)
-
+	showMnemonic=true
 	switch output {
 	case OutputFormatText:
 		cmd.PrintErrln()

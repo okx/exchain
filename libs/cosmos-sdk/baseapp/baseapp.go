@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/global"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -193,6 +195,10 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
+
+	interfaceRegistry types.InterfaceRegistry
+	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
+	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 }
 
 type recordHandle func(string)
@@ -220,6 +226,8 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
+		msgServiceRouter: NewMsgServiceRouter(),
+		grpcQueryRouter:  NewGRPCQueryRouter(),
 	}
 
 	for _, option := range options {
@@ -1009,7 +1017,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
-		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
+		if !global.IBCEnable && (mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck) {
 			break
 		}
 
@@ -1114,3 +1122,5 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	return int64(binary.BigEndian.Uint64(data))
 }
+
+func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
