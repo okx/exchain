@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"github.com/armon/go-metrics"
-	"github.com/cosmos/cosmos-sdk/telemetry"
+	//"github.com/cosmos/cosmos-sdk/telemetry"
+
+	//"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
@@ -37,15 +39,15 @@ func (k Keeper) ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdatePropo
 	k.Logger(ctx).Info("client updated after governance proposal passed", "client-id", p.ClientId, "height", clientState.GetLatestHeight().String())
 
 	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "client", "update"},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
-				telemetry.NewLabel(types.LabelClientID, p.ClientId),
-				telemetry.NewLabel(types.LabelUpdateType, "proposal"),
-			},
-		)
+		//telemetry.IncrCounterWithLabels(
+		//	[]string{"ibc", "client", "update"},
+		//	1,
+		//	[]metrics.Label{
+		//		telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
+		//		telemetry.NewLabel(types.LabelClientID, p.ClientId),
+		//		telemetry.NewLabel(types.LabelUpdateType, "proposal"),
+		//	},
+		//)
 	}()
 
 	// emitting events in the keeper for proposal updates to clients

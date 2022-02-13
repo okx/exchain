@@ -1,13 +1,12 @@
 package simulation
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"math/rand"
-
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 )
 
 // GenClientGenesis returns the default client genesis state.
-func GenClientGenesis(_ *rand.Rand, _ []simtypes.Account) types.GenesisState {
+func GenClientGenesis(_ *rand.Rand, _ []simulation.Account) types.GenesisState {
 	return types.DefaultGenesisState()
 }

@@ -89,3 +89,15 @@ func NewGenesisMetadata(key, val []byte) GenesisMetadata {
 	}
 }
 
+
+
+// DefaultGenesisState returns the ibc client submodule's default genesis state.
+func DefaultGenesisState() GenesisState {
+	return GenesisState{
+		Clients:            []IdentifiedClientState{},
+		ClientsConsensus:   ClientsConsensusStates{},
+		Params:             DefaultParams(),
+		CreateLocalhost:    false,
+		NextClientSequence: 0,
+	}
+}

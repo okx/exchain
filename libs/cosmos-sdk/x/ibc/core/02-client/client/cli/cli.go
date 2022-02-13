@@ -18,13 +18,13 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		GetCmdQueryClientStates(cdc),
-		GetCmdQueryClientState(cdc),
-		GetCmdQueryConsensusStates(cdc),
-		GetCmdQueryConsensusState(cdc),
-		GetCmdQueryHeader(cdc),
-		GetCmdNodeConsensusState(cdc),
-		GetCmdParams(cdc),
+		//GetCmdQueryClientStates(cdc),
+		//GetCmdQueryClientState(cdc),
+		//GetCmdQueryConsensusStates(cdc),
+		//GetCmdQueryConsensusState(cdc),
+		//GetCmdQueryHeader(cdc),
+		//GetCmdNodeConsensusState(cdc),
+		//GetCmdParams(cdc),
 	)
 
 	return queryCmd
