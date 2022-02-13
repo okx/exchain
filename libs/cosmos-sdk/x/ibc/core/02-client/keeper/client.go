@@ -1,9 +1,6 @@
 package keeper
 
 import (
-	"github.com/armon/go-metrics"
-
-	//"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"

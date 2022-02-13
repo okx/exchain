@@ -2,13 +2,13 @@ package types
 
 import (
 	"bytes"
-	lite "github.com/itsfunny/exchain/libs/tendermint/lite2"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
+	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"time"
 

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	lite "github.com/itsfunny/exchain/libs/tendermint/lite2"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -14,6 +13,7 @@ import (
 	ibctmtypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	"reflect"
 	"strings"
 )

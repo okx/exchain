@@ -10,10 +10,12 @@ require (
 	github.com/alicebob/miniredis/v2 v2.17.0
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 	github.com/apolloconfig/agollo/v4 v4.0.8
+	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
+	github.com/confio/ics23/go v0.6.6
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
@@ -23,7 +25,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-redis/redis/v8 v8.11.4
-	github.com/gogo/protobuf v1.3.2
+	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/btree v1.0.0
@@ -67,6 +69,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.42.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -97,6 +100,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
+	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.0 // indirect
@@ -138,7 +142,6 @@ require (
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
 	golang.org/x/text v0.3.6 // indirect
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
@@ -152,3 +155,5 @@ replace (
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain5
 )
+
+replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
