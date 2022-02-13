@@ -391,6 +391,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	return nil
 }
 
+
 // VerifyPacketReceiptAbsence verifies a proof of the absence of an
 // incoming packet receipt at the specified port, specified channel, and
 // specified sequence.

@@ -117,3 +117,100 @@ func contains(elem string, set []string) bool {
 
 	return false
 }
+
+
+// IsSupportedVersion returns true if the proposed version has a matching version
+// identifier and its entire feature set is supported or the version identifier
+// supports an empty feature set.
+func IsSupportedVersion(proposedVersion *Version) bool {
+	supportedVersion, found := FindSupportedVersion(proposedVersion, GetCompatibleVersions())
+	if !found {
+		return false
+	}
+
+	if err := supportedVersion.VerifyProposedVersion(proposedVersion); err != nil {
+		return false
+	}
+
+	return true
+}
+
+
+// PickVersion iterates over the descending ordered set of compatible IBC
+// versions and selects the first version with a version identifier that is
+// supported by the counterparty. The returned version contains a feature
+// set with the intersection of the features supported by the source and
+// counterparty chains. If the feature set intersection is nil and this is
+// not allowed for the chosen version identifier then the search for a
+// compatible version continues. This function is called in the ConnOpenTry
+// handshake procedure.
+//
+// CONTRACT: PickVersion must only provide a version that is in the
+// intersection of the supported versions and the counterparty versions.
+func PickVersion(supportedVersions, counterpartyVersions []exported.Version) (*Version, error) {
+	for _, supportedVersion := range supportedVersions {
+		// check if the source version is supported by the counterparty
+		if counterpartyVersion, found := FindSupportedVersion(supportedVersion, counterpartyVersions); found {
+			featureSet := GetFeatureSetIntersection(supportedVersion.GetFeatures(), counterpartyVersion.GetFeatures())
+			if len(featureSet) == 0 && !allowNilFeatureSet[supportedVersion.GetIdentifier()] {
+				continue
+			}
+
+			return NewVersion(supportedVersion.GetIdentifier(), featureSet), nil
+		}
+	}
+
+	return nil, sdkerrors.Wrapf(
+		ErrVersionNegotiationFailed,
+		"failed to find a matching counterparty version (%v) from the supported version list (%v)", counterpartyVersions, supportedVersions,
+	)
+}
+
+
+// GetFeatureSetIntersection returns the intersections of source feature set
+// and the counterparty feature set. This is done by iterating over all the
+// features in the source version and seeing if they exist in the feature
+// set for the counterparty version.
+func GetFeatureSetIntersection(sourceFeatureSet, counterpartyFeatureSet []string) (featureSet []string) {
+	for _, feature := range sourceFeatureSet {
+		if contains(feature, counterpartyFeatureSet) {
+			featureSet = append(featureSet, feature)
+		}
+	}
+
+	return featureSet
+}
+
+
+// ExportedVersionsToProto casts a slice of the Version interface to a slice
+// of the Version proto definition.
+func ExportedVersionsToProto(exportedVersions []exported.Version) []*Version {
+	versions := make([]*Version, len(exportedVersions))
+	for i := range exportedVersions {
+		versions[i] = exportedVersions[i].(*Version)
+	}
+
+	return versions
+}
+
+// FindSupportedVersion returns the version with a matching version identifier
+// if it exists. The returned boolean is true if the version is found and
+// false otherwise.
+func FindSupportedVersion(version exported.Version, supportedVersions []exported.Version) (exported.Version, bool) {
+	for _, supportedVersion := range supportedVersions {
+		if version.GetIdentifier() == supportedVersion.GetIdentifier() {
+			return supportedVersion, true
+		}
+	}
+	return nil, false
+}
+
+
+
+// GetCompatibleVersions returns a descending ordered set of compatible IBC
+// versions for the caller chain's connection end. The latest supported
+// version should be first element and the set should descend to the oldest
+// supported version.
+func GetCompatibleVersions() []exported.Version {
+	return []exported.Version{DefaultIBCVersion}
+}

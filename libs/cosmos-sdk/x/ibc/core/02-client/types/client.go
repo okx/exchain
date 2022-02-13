@@ -8,6 +8,12 @@ import (
 	"sort"
 )
 
+
+// UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
+func (ics IdentifiedClientState) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	return unpacker.UnpackAny(ics.ClientState, new(exported.ClientState))
+}
+
 // NewConsensusStateWithHeight creates a new ConsensusStateWithHeight instance
 func NewConsensusStateWithHeight(height Height, consensusState exported.ConsensusState) ConsensusStateWithHeight {
 	msg, ok := consensusState.(proto.Message)
