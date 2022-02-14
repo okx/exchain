@@ -199,7 +199,6 @@ which accepts a path for the resulting pprof file.
 	viper.BindPFlag(FlagEvmImportMode, cmd.Flags().Lookup(FlagEvmImportMode))
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
-	viper.BindPFlag(tmtypes.FlagDeltaVersion, cmd.Flags().Lookup(tmtypes.FlagDeltaVersion))
 
 	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
 	registerRestServerFlags(cmd)
@@ -339,4 +338,5 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
+	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 }

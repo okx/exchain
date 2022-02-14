@@ -21,14 +21,16 @@ var (
 
 var once sync.Once
 
-func init() {
+// init initialize the mostRecentHeightKey and deltaLockerKey
+// as the keys are based types.DeltaVersion, which maybe specified by user.
+func (r *RedisClient) init() {
 	const (
 		mostRecentHeight = "MostRecentHeight"
 		deltaLocker      = "DeltaLocker"
 	)
 	once.Do(func() {
-		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.GetDeltaVersion(), mostRecentHeight)
-		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.GetDeltaVersion(), deltaLocker)
+		mostRecentHeightKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, mostRecentHeight)
+		deltaLockerKey = fmt.Sprintf("dds:%d:%s", types.DeltaVersion, deltaLocker)
 	})
 }
 
@@ -44,7 +46,9 @@ func NewRedisClient(url, auth string, ttl time.Duration, db int, l log.Logger) *
 		Password: auth, // no password set
 		DB:       db,   // use select DB
 	})
-	return &RedisClient{rdb, ttl, l}
+	r := RedisClient{rdb, ttl, l}
+	r.init()
+	return &r
 }
 
 func (r *RedisClient) GetLocker() bool {
@@ -137,5 +141,5 @@ func genBlockKey(height int64) string {
 }
 
 func genDeltaKey(height int64) string {
-	return fmt.Sprintf("DH-%d:%d", types.GetDeltaVersion(), height)
+	return fmt.Sprintf("DH-%d:%d", types.DeltaVersion, height)
 }

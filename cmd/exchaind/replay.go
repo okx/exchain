@@ -54,6 +54,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// specify delta version by user
+			types.DeltaVersion = viper.GetInt(types.FlagDeltaVersion)
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
@@ -121,8 +126,6 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
-
-	viper.BindPFlag(types.FlagDeltaVersion, cmd.Flags().Lookup(types.FlagDeltaVersion))
 
 	return cmd
 }
