@@ -214,3 +214,14 @@ func FindSupportedVersion(version exported.Version, supportedVersions []exported
 func GetCompatibleVersions() []exported.Version {
 	return []exported.Version{DefaultIBCVersion}
 }
+
+// VerifySupportedFeature takes in a version and feature string and returns
+// true if the feature is supported by the version and false otherwise.
+func VerifySupportedFeature(version exported.Version, feature string) bool {
+	for _, f := range version.GetFeatures() {
+		if f == feature {
+			return true
+		}
+	}
+	return false
+}

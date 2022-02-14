@@ -2,11 +2,36 @@ package types
 
 import (
 	"crypto/sha256"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
 	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
 )
+
+
+// CommitPacket returns the packet commitment bytes. The commitment consists of:
+// sha256_hash(timeout_timestamp + timeout_height.RevisionNumber + timeout_height.RevisionHeight + sha256_hash(data))
+// from a given packet. This results in a fixed length preimage.
+// NOTE: sdk.Uint64ToBigEndian sets the uint64 to a slice of length 8.
+func CommitPacket(cdc codec.Codec, packet exported.PacketI) []byte {
+	timeoutHeight := packet.GetTimeoutHeight()
+
+	buf := sdk.Uint64ToBigEndian(packet.GetTimeoutTimestamp())
+
+	revisionNumber := sdk.Uint64ToBigEndian(timeoutHeight.GetRevisionNumber())
+	buf = append(buf, revisionNumber...)
+
+	revisionHeight := sdk.Uint64ToBigEndian(timeoutHeight.GetRevisionHeight())
+	buf = append(buf, revisionHeight...)
+
+	dataHash := sha256.Sum256(packet.GetData())
+	buf = append(buf, dataHash[:]...)
+
+	hash := sha256.Sum256(buf)
+	return hash[:]
+}
 
 // CommitAcknowledgement returns the hash of commitment bytes
 func CommitAcknowledgement(data []byte) []byte {
