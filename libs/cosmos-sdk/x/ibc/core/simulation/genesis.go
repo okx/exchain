@@ -1,22 +1,22 @@
 package simulation
 
-// DONTCOVER
-
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/04-channel/types"
+	clientsims "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/simulation"
+	connectionsims "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/simulation"
+	channelsims "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/04-channel/simulation"
+	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/types"
 	"math/rand"
-
-	"github.com/cosmos/cosmos-sdk/types/module"
-	clientsims "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/simulation"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	connectionsims "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/simulation"
-	connectiontypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	channelsims "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/simulation"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/types"
 )
+
+// DONTCOVER
+
 
 // Simulation parameter constants
 const (
