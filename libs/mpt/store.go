@@ -84,7 +84,7 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 func (ms *MptStore) openTrie(id types.CommitID) error {
 	latestStoredHeight := ms.GetLatestStoredBlockHeight()
 	openHeight := uint64(id.Version)
-	if openHeight > latestStoredHeight {
+	if latestStoredHeight > 0 && openHeight > latestStoredHeight {
 		return fmt.Errorf("fail to open mpt trie, the target version is: %d, the latest stored version is: %d, "+
 			"please repair", openHeight, latestStoredHeight)
 	}
