@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types3 "github.com/okex/exchain/libs/types"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -96,6 +97,9 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
+	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+		ctx.KVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
+	}
 
 	return accNumber
 }
