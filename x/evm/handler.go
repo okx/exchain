@@ -181,6 +181,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 					//failed to set coins for refund fees
 					panic(err)
 				}
+				pm.Watcher.SaveAccount(sendAcc, false)
 			}
 			ctx.WithGasMeter(currentGasMeter)
 		}
