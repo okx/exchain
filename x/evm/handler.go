@@ -63,23 +63,18 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}()
 
 		var handlerFun func() (*sdk.Result, error)
-		var name string
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			name = "handleMsgEthereumTx"
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgEthereumTx(ctx, k, msg)
 			}
 		case types.MsgEthermint:
-			name = "handleMsgEthermint"
 			handlerFun = func() (*sdk.Result, error) {
-				return handleMsgEthermint(ctx, k, msg)
+				return handleSimulation(ctx, k, msg)
 			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-
-		_ = name
 
 		result, err = handlerFun()
 		if err != nil {
@@ -282,10 +277,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 }
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
-func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+func handleSimulation(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 
-	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() && !ctx.IsTraceTx() {
-		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
+	if !ctx.IsCheckTx() {
+		panic("Invalid Ethermint tx")
+	}
+
+
+	if ctx.IsReCheckTx() || ctx.IsTraceTx() || ctx.IsTraceTxLog() {
+		panic("Invalid Ethermint tx")
 	}
 
 	// parse the chainID from a string to a base-10 integer
@@ -307,9 +307,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
-		Simulate:     ctx.IsCheckTx(),
-		TraceTx:      ctx.IsTraceTx(),
-		TraceTxLog:   ctx.IsTraceTxLog(),
+		Simulate:     true,
 	}
 
 	if msg.Recipient != nil {
@@ -317,41 +315,14 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		st.Recipient = &to
 	}
 
-	if !st.Simulate {
-		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
-		st.Csdb.SetLogSize(k.LogSize)
-		k.TxCount++
-	}
-
 	config, found := k.GetChainConfig(ctx)
 	if !found {
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+	executionResult, _, err, _, _ := st.TransitionDb(ctx, config)
 	if err != nil {
-		if ctx.IsTraceTxLog() {
-			// the result was replaced to trace logs when trace tx even if err != nil
-			executionResult.Result.Data = executionResult.TraceLogs
-			return executionResult.Result, nil
-		}
 		return nil, err
-	}
-
-	if !st.Simulate {
-		if innerTxs != nil {
-			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
-		}
-		if erc20s != nil {
-			k.AddContract(erc20s)
-		}
-	}
-
-	// update block bloom filter
-	if !st.Simulate {
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -378,9 +349,5 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 
-	if ctx.IsTraceTxLog() {
-		// the result was replaced to trace logs when trace tx
-		executionResult.Result.Data = executionResult.TraceLogs
-	}
 	return executionResult.Result, nil
 }

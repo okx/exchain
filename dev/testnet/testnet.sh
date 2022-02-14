@@ -18,6 +18,7 @@ set -x # activate debugging
 source oec.profile
 WRAPPEDTX=false
 PRERUN=false
+NUM_RPC=0
 WHITE_LIST=0b066ca0790f27a6595560b23bf1a1193f100797,\
 3813c7011932b18f27f172f0de2347871d27e852,\
 6ea83a21a43c30a280a3139f6f23d737104b6975,\
@@ -25,15 +26,15 @@ bab6c32fa95f3a54ecb7d32869e32e85a25d2e08,\
 testnet-node-ids
 
 
-while getopts "risn:b:p:c:Sxwk:" opt; do
+while getopts "r:isn:b:p:c:Sxwk:" opt; do
   case $opt in
   i)
     echo "OKCHAIN_INIT"
     OKCHAIN_INIT=1
     ;;
   r)
-    echo "OKCHAIN_INIT"
-    OKCHAIN_RECOVER=1
+    echo "NUM_RPC=$OPTARG"
+    NUM_RPC=$OPTARG
     ;;
   w)
     echo "WRAPPEDTX=$OPTARG"
@@ -100,7 +101,7 @@ init() {
 
   echo "=================================================="
   echo "===== Generate testnet configurations files...===="
-  echorun exchaind testnet --v $1 -o cache -l \
+  echorun exchaind testnet --v $1 --r $2 -o cache -l \
     --chain-id ${CHAIN_ID} \
     --starting-ip-address ${IP} \
     --base-port ${BASE_PORT} \
@@ -200,7 +201,8 @@ if [ -z ${IP} ]; then
 fi
 
 if [ ! -z "${OKCHAIN_INIT}" ]; then
-  init ${NUM_NODE}
+	((NUM_VAL=NUM_NODE-NUM_RPC))
+  init ${NUM_VAL} ${NUM_RPC}
 fi
 
 if [ ! -z "${OKCHAIN_RECOVER}" ]; then
