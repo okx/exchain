@@ -55,8 +55,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Use:   "replay",
 		Short: "Replay blocks from local db",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// specify delta version by user
-			types.DeltaVersion = viper.GetInt(types.FlagDeltaVersion)
+			// set external package flags
+			setExternalPackageValue(cmd)
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -128,6 +128,14 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	return cmd
+}
+
+// setExternalPackageValue set external package config value.
+func setExternalPackageValue(cmd *cobra.Command) {
+	types.DownloadDelta = viper.GetBool(types.FlagDownloadDDS)
+	types.UploadDelta = viper.GetBool(types.FlagUploadDDS)
+	types.FastQuery = viper.GetBool(types.FlagFastQuery)
+	types.DeltaVersion = viper.GetInt(types.FlagDeltaVersion)
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
