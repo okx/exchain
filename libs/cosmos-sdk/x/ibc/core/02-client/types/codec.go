@@ -2,14 +2,45 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
 )
 
-func RegisterInterfaces(cdc codec.Codec) {
+// RegisterInterfaces registers the client interfaces to protobuf Any.
+func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+	registry.RegisterInterface(
+		"ibc.core.client.v1.ClientState",
+		(*exported.ClientState)(nil),
+	)
+	registry.RegisterInterface(
+		"ibc.core.client.v1.ConsensusState",
+		(*exported.ConsensusState)(nil),
+	)
+	registry.RegisterInterface(
+		"ibc.core.client.v1.Header",
+		(*exported.Header)(nil),
+	)
+	registry.RegisterInterface(
+		"ibc.core.client.v1.Height",
+		(*exported.Height)(nil),
+		&Height{},
+	)
+	registry.RegisterInterface(
+		"ibc.core.client.v1.Misbehaviour",
+		(*exported.Misbehaviour)(nil),
+	)
+	registry.RegisterImplementations(
+		(*sdk.Msg)(nil),
+		&MsgCreateClient{},
+		&MsgUpdateClient{},
+		&MsgUpgradeClient{},
+		&MsgSubmitMisbehaviour{},
+	)
 
+	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 // UnpackClientState unpacks an Any into a ClientState. It returns an error if the
 // client state can't be unpacked into a ClientState.

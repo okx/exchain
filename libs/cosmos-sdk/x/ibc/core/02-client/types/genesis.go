@@ -1,7 +1,9 @@
 package types
 
 import (
+	"fmt"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
 	"sort"
 
@@ -100,4 +102,135 @@ func DefaultGenesisState() GenesisState {
 		CreateLocalhost:    false,
 		NextClientSequence: 0,
 	}
+}
+
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (gs GenesisState) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	for _, client := range gs.Clients {
+		if err := client.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+
+	return gs.ClientsConsensus.UnpackInterfaces(unpacker)
+}
+
+
+// Validate performs basic genesis state validation returning an error upon any
+// failure.
+func (gs GenesisState) Validate() error {
+	// keep track of the max sequence to ensure it is less than
+	// the next sequence used in creating client identifers.
+	var maxSequence uint64 = 0
+
+	if err := gs.Params.Validate(); err != nil {
+		return err
+	}
+
+	validClients := make(map[string]string)
+
+	for i, client := range gs.Clients {
+		if err := host.ClientIdentifierValidator(client.ClientId); err != nil {
+			return fmt.Errorf("invalid client consensus state identifier %s index %d: %w", client.ClientId, i, err)
+		}
+
+		clientState, ok := client.ClientState.GetCachedValue().(exported.ClientState)
+		if !ok {
+			return fmt.Errorf("invalid client state with ID %s", client.ClientId)
+		}
+
+		if !gs.Params.IsAllowedClient(clientState.ClientType()) {
+			return fmt.Errorf("client type %s not allowed by genesis params", clientState.ClientType())
+		}
+		if err := clientState.Validate(); err != nil {
+			return fmt.Errorf("invalid client %v index %d: %w", client, i, err)
+		}
+
+		clientType, sequence, err := ParseClientIdentifier(client.ClientId)
+		if err != nil {
+			return err
+		}
+
+		if clientType != clientState.ClientType() {
+			return fmt.Errorf("client state type %s does not equal client type in client identifier %s", clientState.ClientType(), clientType)
+		}
+
+		if err := ValidateClientType(clientType); err != nil {
+			return err
+		}
+
+		if sequence > maxSequence {
+			maxSequence = sequence
+		}
+
+		// add client id to validClients map
+		validClients[client.ClientId] = clientState.ClientType()
+	}
+
+	for _, cc := range gs.ClientsConsensus {
+		// check that consensus state is for a client in the genesis clients list
+		clientType, ok := validClients[cc.ClientId]
+		if !ok {
+			return fmt.Errorf("consensus state in genesis has a client id %s that does not map to a genesis client", cc.ClientId)
+		}
+
+		for i, consensusState := range cc.ConsensusStates {
+			if consensusState.Height.IsZero() {
+				return fmt.Errorf("consensus state height cannot be zero")
+			}
+
+			cs, ok := consensusState.ConsensusState.GetCachedValue().(exported.ConsensusState)
+			if !ok {
+				return fmt.Errorf("invalid consensus state with client ID %s at height %s", cc.ClientId, consensusState.Height)
+			}
+
+			if err := cs.ValidateBasic(); err != nil {
+				return fmt.Errorf("invalid client consensus state %v clientID %s index %d: %w", cs, cc.ClientId, i, err)
+			}
+
+			// ensure consensus state type matches client state type
+			if clientType != cs.ClientType() {
+				return fmt.Errorf("consensus state client type %s does not equal client state client type %s", cs.ClientType(), clientType)
+			}
+
+		}
+	}
+
+	for _, clientMetadata := range gs.ClientsMetadata {
+		// check that metadata is for a client in the genesis clients list
+		_, ok := validClients[clientMetadata.ClientId]
+		if !ok {
+			return fmt.Errorf("metadata in genesis has a client id %s that does not map to a genesis client", clientMetadata.ClientId)
+		}
+
+		for i, gm := range clientMetadata.ClientMetadata {
+			if err := gm.Validate(); err != nil {
+				return fmt.Errorf("invalid client metadata %v clientID %s index %d: %w", gm, clientMetadata.ClientId, i, err)
+			}
+
+		}
+
+	}
+
+	if gs.CreateLocalhost && !gs.Params.IsAllowedClient(exported.Localhost) {
+		return fmt.Errorf("localhost client is not registered on the allowlist")
+	}
+
+	if maxSequence != 0 && maxSequence >= gs.NextClientSequence {
+		return fmt.Errorf("next client identifier sequence %d must be greater than the maximum sequence used in the provided client identifiers %d", gs.NextClientSequence, maxSequence)
+	}
+
+	return nil
+}
+
+// Validate ensures key and value of metadata are not empty
+func (gm GenesisMetadata) Validate() error {
+	if len(gm.Key) == 0 {
+		return fmt.Errorf("genesis metadata key cannot be empty")
+	}
+	if len(gm.Value) == 0 {
+		return fmt.Errorf("genesis metadata value cannot be empty")
+	}
+	return nil
 }

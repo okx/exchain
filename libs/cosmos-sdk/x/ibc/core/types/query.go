@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/gogo/protobuf/grpc"
+	client "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client"
 	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
 	connection "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection"
 	connectiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/types"
@@ -18,7 +19,7 @@ type QueryServer interface {
 
 // RegisterQueryService registers each individual IBC submodule query service
 func RegisterQueryService(server grpc.Server, queryService QueryServer) {
-	//client.RegisterQueryService(server, queryService)
+	client.RegisterQueryService(server, queryService)
 	connection.RegisterQueryService(server, queryService)
 	channel.RegisterQueryService(server, queryService)
 }

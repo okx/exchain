@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
+	"math"
 	"sort"
+	"strings"
 )
 
 
@@ -69,5 +73,39 @@ func (ics IdentifiedClientStates) Swap(i, j int) { ics[i], ics[j] = ics[j], ics[
 func (ics IdentifiedClientStates) Sort() IdentifiedClientStates {
 	sort.Sort(ics)
 	return ics
+}
+
+
+
+// IsValidClientID checks if the clientID is valid and can be parsed into the client
+// identifier format.
+func IsValidClientID(clientID string) bool {
+	_, _, err := ParseClientIdentifier(clientID)
+	return err == nil
+}
+
+// ValidateClientType validates the client type. It cannot be blank or empty. It must be a valid
+// client identifier when used with '0' or the maximum uint64 as the sequence.
+func ValidateClientType(clientType string) error {
+	if strings.TrimSpace(clientType) == "" {
+		return sdkerrors.Wrap(ErrInvalidClientType, "client type cannot be blank")
+	}
+
+	smallestPossibleClientID := FormatClientIdentifier(clientType, 0)
+	largestPossibleClientID := FormatClientIdentifier(clientType, uint64(math.MaxUint64))
+
+	// IsValidClientID will check client type format and if the sequence is a uint64
+	if !IsValidClientID(smallestPossibleClientID) {
+		return sdkerrors.Wrap(ErrInvalidClientType, "")
+	}
+
+	if err := host.ClientIdentifierValidator(smallestPossibleClientID); err != nil {
+		return sdkerrors.Wrap(err, "client type results in smallest client identifier being invalid")
+	}
+	if err := host.ClientIdentifierValidator(largestPossibleClientID); err != nil {
+		return sdkerrors.Wrap(err, "client type results in largest client identifier being invalid")
+	}
+
+	return nil
 }
 
