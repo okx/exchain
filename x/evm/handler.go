@@ -171,13 +171,16 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
-			//fix sender's balance in watcher with refund fees
-			gasConsumed := ctx.GasMeter().GasConsumed()
-			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
-			coins := sendAcc.GetCoins().Add2(fixedFees)
-			_ = sendAcc.SetCoins(coins)
 			if sendAcc != nil {
-				pm.Watcher.SaveAccount(sendAcc, false)
+				//fix sender's balance in watcher with refund fees
+				gasConsumed := currentGasMeter.GasConsumed()
+				fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
+				coins := sendAcc.GetCoins().Add2(fixedFees)
+				err = sendAcc.SetCoins(coins)
+				if err != nil {
+					//failed to set coins for refund fees
+					panic(err)
+				}
 			}
 			ctx.WithGasMeter(currentGasMeter)
 		}
@@ -282,7 +285,6 @@ func handleSimulation(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.
 	if !ctx.IsCheckTx() {
 		panic("Invalid Ethermint tx")
 	}
-
 
 	if ctx.IsReCheckTx() || ctx.IsTraceTx() || ctx.IsTraceTxLog() {
 		panic("Invalid Ethermint tx")
