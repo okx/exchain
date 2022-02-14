@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
@@ -47,4 +48,72 @@ func (k Keeper) CreateClient(
 	//}()
 
 	return clientID, nil
+}
+
+
+// UpdateClient updates the consensus state and the state root from a provided header.
+func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error {
+	clientState, found := k.GetClientState(ctx, clientID)
+	if !found {
+		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot update client with ID %s", clientID)
+	}
+
+	// prevent update if the client is frozen before or at header height
+	if clientState.IsFrozen() && clientState.GetFrozenHeight().LTE(header.GetHeight()) {
+		return sdkerrors.Wrapf(types.ErrClientFrozen, "cannot update client with ID %s", clientID)
+	}
+
+	clientState, consensusState, err := clientState.CheckHeaderAndUpdateState(ctx, k.cdc, k.ClientStore(ctx, clientID), header)
+	if err != nil {
+		return sdkerrors.Wrapf(err, "cannot update client with ID %s", clientID)
+	}
+
+	k.SetClientState(ctx, clientID, clientState)
+
+	var consensusHeight exported.Height
+
+	// we don't set consensus state for localhost client
+	if header != nil && clientID != exported.Localhost {
+		k.SetClientConsensusState(ctx, clientID, header.GetHeight(), consensusState)
+		consensusHeight = header.GetHeight()
+	} else {
+		consensusHeight = types.GetSelfHeight(ctx)
+	}
+
+	k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
+
+	defer func() {
+		//telemetry.IncrCounterWithLabels(
+		//	[]string{"ibc", "client", "update"},
+		//	1,
+			//[]metrics.Label{
+			//	telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
+			//	telemetry.NewLabel(types.LabelClientID, clientID),
+			//	telemetry.NewLabel(types.LabelUpdateType, "msg"),
+			//},
+		//)
+	}()
+
+	// emit the full header in events
+	var headerStr string
+	if header != nil {
+		// Marshal the Header as an Any and encode the resulting bytes to hex.
+		// This prevents the event value from containing invalid UTF-8 characters
+		// which may cause data to be lost when JSON encoding/decoding.
+		headerStr = hex.EncodeToString(types.MustMarshalHeader(k.cdc, header))
+
+	}
+
+	// emitting events in the keeper emits for both begin block and handler client updates
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeUpdateClient,
+			sdk.NewAttribute(types.AttributeKeyClientID, clientID),
+			sdk.NewAttribute(types.AttributeKeyClientType, clientState.ClientType()),
+			sdk.NewAttribute(types.AttributeKeyConsensusHeight, consensusHeight.String()),
+			sdk.NewAttribute(types.AttributeKeyHeader, headerStr),
+		),
+	)
+
+	return nil
 }

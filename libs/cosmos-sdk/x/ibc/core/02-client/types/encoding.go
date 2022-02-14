@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/exported"
 )
@@ -91,4 +92,33 @@ func MustMarshalConsensusState(cdc codec.Codec, consensusState exported.Consensu
 // MarshalConsensusState protobuf serializes a ConsensusState interface
 func MarshalConsensusState(cdc codec.Codec, cs exported.ConsensusState) ([]byte, error) {
 	return cdc.MarshalBinaryBare(cs)
+}
+
+
+
+// MarshalHeader protobuf serializes a Header interface
+func MarshalHeader(cdc codec.Codec, h exported.Header) ([]byte, error) {
+	return common.DefaultMarshal(cdc,h)
+}
+
+// MustMarshalHeader attempts to encode a Header object and returns the
+// raw encoded bytes. It panics on error.
+func MustMarshalHeader(cdc codec.Codec, header exported.Header) []byte {
+	bz, err := MarshalHeader(cdc, header)
+	if err != nil {
+		panic(fmt.Errorf("failed to encode header: %w", err))
+	}
+
+	return bz
+}
+
+// UnmarshalHeader returns a Header interface from raw proto encoded header bytes.
+// An error is returned upon decoding failure.
+func UnmarshalHeader(cdc codec.BinaryMarshaler, bz []byte) (exported.Header, error) {
+	var header exported.Header
+	if err := cdc.UnmarshalInterface(bz, &header); err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
