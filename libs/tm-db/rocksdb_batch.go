@@ -83,3 +83,15 @@ func (b *RocksDBBatch) NewIterator() *gorocksdb.WriteBatchIterator{
 	b.assertOpen()
 	return b.batch.NewIterator()
 }
+
+// WriteWithoutClose designed for ethdb.Batch: not close here for ethdb will use it again!!!
+func (b *RocksDBBatch) WriteWithoutClose() error {
+	b.assertOpen()
+	err := b.db.db.Write(b.db.wo, b.batch)
+	if err != nil {
+		return err
+	}
+	// Never call b.Close() here!!!
+	//b.Close()
+	return nil
+}

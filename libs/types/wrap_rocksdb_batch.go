@@ -14,6 +14,10 @@ type WrapRocksDBBatch struct {
 	*tmdb.RocksDBBatch
 }
 
+func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
+	return &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db)}
+}
+
 func (wrsdbb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
 	wrsdbb.Set(key, value)
 	return nil
@@ -28,8 +32,8 @@ func (wrsdbb *WrapRocksDBBatch) ValueSize() int {
 	return wrsdbb.Size()
 }
 
-func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
-	return &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db)}
+func (wrsdbb *WrapRocksDBBatch) Write() error {
+	return wrsdbb.RocksDBBatch.WriteWithoutClose()
 }
 
 // Replay replays the batch contents.
