@@ -2,7 +2,8 @@ package keeper
 
 import (
 	"bytes"
-	"github.com/cosmos/cosmos-sdk/telemetry"
+
+	//"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/gogo/protobuf/proto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -45,7 +46,7 @@ func (k Keeper) ConnOpenInit(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "NONE", "new-state", "INIT")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-init")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-init")
 	}()
 
 	return connectionID, nil
@@ -180,7 +181,7 @@ func (k Keeper) ConnOpenTry(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", previousConnection.State.String(), "new-state", "TRYOPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-try")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-try")
 	}()
 
 	return connectionID, nil
@@ -280,7 +281,7 @@ func (k Keeper) ConnOpenAck(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", connection.State.String(), "new-state", "OPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-ack")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-ack")
 	}()
 
 	// Update connection state to Open
@@ -333,7 +334,7 @@ func (k Keeper) ConnOpenConfirm(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "TRYOPEN", "new-state", "OPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")
 	}()
 
 	return nil
