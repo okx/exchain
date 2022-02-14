@@ -40,7 +40,7 @@ var (
 	treasure2 = types.NewTreasure(sdk.AccAddress([]byte{0x02}), sdk.NewDecWithPrec(3, 2))
 	treasure3 = types.NewTreasure(sdk.AccAddress([]byte{0x03}), sdk.NewDecWithPrec(2, 2))
 	treasure4 = types.NewTreasure(sdk.AccAddress([]byte{0x04}), sdk.NewDecWithPrec(1, 2))
-	treasure5 = types.NewTreasure(sdk.AccAddress([]byte{0x05}), sdk.NewDecWithPrec(0, 2))
+	treasure5 = types.NewTreasure(sdk.AccAddress([]byte{0x05}), sdk.NewDecWithPrec(1, 1))
 	treasures = []types.Treasure{*treasure1, *treasure2, *treasure3, *treasure4, *treasure5}
 )
 
@@ -327,11 +327,11 @@ func (suite *TreasuresTestSuite) TestUpdateTreasures() {
 	input := []types.Treasure{}
 	normal := func(isPass bool, expected []types.Treasure, msg string, err error) {
 		if isPass {
-			suite.Require().NoError(err)
+			suite.Require().NoError(err, msg)
 			actual := suite.app.MintKeeper.GetTreasures(suite.ctx)
 			suite.Require().Equal(expected, actual, msg)
 		} else {
-			suite.Require().Error(err)
+			suite.Require().Error(err, msg)
 		}
 	}
 	treasureError := func(isPass bool, expected []types.Treasure, msg string, err error) {
