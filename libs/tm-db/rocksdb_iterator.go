@@ -9,16 +9,16 @@ import (
 	"github.com/tecbot/gorocksdb"
 )
 
-type rocksDBIterator struct {
+type RocksDBIterator struct {
 	source     *gorocksdb.Iterator
 	start, end []byte
 	isReverse  bool
 	isInvalid  bool
 }
 
-var _ Iterator = (*rocksDBIterator)(nil)
+var _ Iterator = (*RocksDBIterator)(nil)
 
-func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse bool) *rocksDBIterator {
+func NewRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse bool) *RocksDBIterator {
 	if isReverse {
 		if end == nil {
 			source.SeekToLast()
@@ -40,7 +40,7 @@ func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse
 			source.Seek(start)
 		}
 	}
-	return &rocksDBIterator{
+	return &RocksDBIterator{
 		source:    source,
 		start:     start,
 		end:       end,
@@ -50,12 +50,12 @@ func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse
 }
 
 // Domain implements Iterator.
-func (itr rocksDBIterator) Domain() ([]byte, []byte) {
+func (itr RocksDBIterator) Domain() ([]byte, []byte) {
 	return itr.start, itr.end
 }
 
 // Valid implements Iterator.
-func (itr rocksDBIterator) Valid() bool {
+func (itr RocksDBIterator) Valid() bool {
 
 	// Once invalid, forever invalid.
 	if itr.isInvalid {
@@ -92,21 +92,21 @@ func (itr rocksDBIterator) Valid() bool {
 }
 
 // Key implements Iterator.
-func (itr rocksDBIterator) Key() []byte {
+func (itr RocksDBIterator) Key() []byte {
 	itr.assertNoError()
 	itr.assertIsValid()
 	return moveSliceToBytes(itr.source.Key())
 }
 
 // Value implements Iterator.
-func (itr rocksDBIterator) Value() []byte {
+func (itr RocksDBIterator) Value() []byte {
 	itr.assertNoError()
 	itr.assertIsValid()
 	return moveSliceToBytes(itr.source.Value())
 }
 
 // Next implements Iterator.
-func (itr rocksDBIterator) Next() {
+func (itr RocksDBIterator) Next() {
 	itr.assertNoError()
 	itr.assertIsValid()
 	if itr.isReverse {
@@ -117,22 +117,22 @@ func (itr rocksDBIterator) Next() {
 }
 
 // Error implements Iterator.
-func (itr rocksDBIterator) Error() error {
+func (itr RocksDBIterator) Error() error {
 	return itr.source.Err()
 }
 
 // Close implements Iterator.
-func (itr rocksDBIterator) Close() {
+func (itr RocksDBIterator) Close() {
 	itr.source.Close()
 }
 
-func (itr rocksDBIterator) assertNoError() {
+func (itr RocksDBIterator) assertNoError() {
 	if err := itr.source.Err(); err != nil {
 		panic(err)
 	}
 }
 
-func (itr rocksDBIterator) assertIsValid() {
+func (itr RocksDBIterator) assertIsValid() {
 	if !itr.Valid() {
 		panic("rocksDBIterator is invalid")
 	}
@@ -149,4 +149,8 @@ func moveSliceToBytes(s *gorocksdb.Slice) []byte {
 	v := make([]byte, len(s.Data()))
 	copy(v, s.Data())
 	return v
+}
+
+func (itr RocksDBIterator) Release() *RocksDBIterator {
+	return NewRocksDBIterator(itr.source, itr.start, itr.end, itr.isReverse)
 }

@@ -244,17 +244,17 @@ func (db *RocksDB) Stats() map[string]string {
 
 // NewBatch implements DB.
 func (db *RocksDB) NewBatch() Batch {
-	return newRocksDBBatch(db)
+	return NewRocksDBBatch(db)
 }
 
 // Iterator implements DB.
 func (db *RocksDB) Iterator(start, end []byte) (Iterator, error) {
 	itr := db.db.NewIterator(db.ro)
-	return newRocksDBIterator(itr, start, end, false), nil
+	return NewRocksDBIterator(itr, start, end, false), nil
 }
 
 // ReverseIterator implements DB.
 func (db *RocksDB) ReverseIterator(start, end []byte) (Iterator, error) {
 	itr := db.db.NewIterator(db.ro)
-	return newRocksDBIterator(itr, start, end, true), nil
+	return NewRocksDBIterator(itr, start, end, true), nil
 }
