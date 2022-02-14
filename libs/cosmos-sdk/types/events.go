@@ -38,7 +38,7 @@ func (em *EventManager) EmitEvents(events Events) {
 }
 
 // ABCIEvents returns all stored Event objects as abci.Event objects.
-func (em EventManager) ABCIEvents() []Event {
+func (em EventManager) ABCIEvents() []abci.Event {
 	return em.events.ToABCIEvents()
 }
 
@@ -152,10 +152,10 @@ func (e Events) AppendEvents(events Events) Events {
 
 // ToABCIEvents converts a slice of Event objects to a slice of abci.Event
 // objects.
-func (e Events) ToABCIEvents() []Event {
-	res := make([]Event, len(e))
+func (e Events) ToABCIEvents() []abci.Event {
+	res := make([]abci.Event, len(e))
 	for i, ev := range e {
-		res[i] = Event{Type: ev.Type, Attributes: ev.Attributes}
+		res[i] = abci.Event{Type: ev.Type, Attributes: ev.Attributes}
 	}
 
 	return res
