@@ -197,15 +197,13 @@ func (st *Store) Set(key, value []byte) {
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	value := st.getFlatKV(key)
+	_, value := st.tree.Get(key)
 	if value != nil {
-		return value
+		flatValue := st.getFlatKV(key)
+		if flatValue == nil {
+			st.setFlatKV(key, value)
+		}
 	}
-	_, value = st.tree.Get(key)
-	if value != nil {
-		st.setFlatKV(key, value)
-	}
-
 	return value
 }
 

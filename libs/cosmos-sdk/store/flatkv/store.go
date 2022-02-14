@@ -44,9 +44,6 @@ func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
 	}
-	if cacheVal, ok := st.cache.get(key); ok {
-		return cacheVal
-	}
 	ts := time.Now()
 	value, err := st.db.Get(key)
 	st.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
@@ -67,9 +64,6 @@ func (st *Store) Set(key, value []byte) {
 func (st *Store) Has(key []byte) bool {
 	if !st.enable {
 		return false
-	}
-	if _, ok := st.cache.get(key); ok {
-		return true
 	}
 	st.addDBReadCount()
 	if ok, err := st.db.Has(key); err == nil && ok {
