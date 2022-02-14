@@ -46,9 +46,10 @@ func NewRedisClient(url, auth string, ttl time.Duration, db int, l log.Logger) *
 		Password: auth, // no password set
 		DB:       db,   // use select DB
 	})
-	r := RedisClient{rdb, ttl, l}
-	r.init()
-	return &r
+	redisClient := RedisClient{rdb, ttl, l}
+	redisClient.init()
+
+	return &redisClient
 }
 
 func (r *RedisClient) GetLocker() bool {
