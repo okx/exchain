@@ -101,7 +101,7 @@ func (st *Store) Commit(version int64) {
 	for key, value := range cache {
 		batch.Set([]byte(key), value)
 	}
-	st.setLatestVersion(batch, version)
+	//st.setLatestVersion(batch, version)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
