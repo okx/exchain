@@ -317,7 +317,7 @@ func (se StringEvents) Flatten() StringEvents {
 }
 
 // StringifyEvent converts an Event object to a StringEvent object.
-func StringifyEvent(e abci.Event) StringEvent {
+func StringifyEvent(e Event) StringEvent {
 	res := StringEvent{Type: e.Type}
 
 	for _, attr := range e.Attributes {
@@ -332,7 +332,7 @@ func StringifyEvent(e abci.Event) StringEvent {
 
 // StringifyEvents converts a slice of Event objects into a slice of StringEvent
 // objects.
-func StringifyEvents(events []abci.Event) StringEvents {
+func StringifyEvents(events []Event) StringEvents {
 	res := make(StringEvents, 0, len(events))
 
 	for _, e := range events {
