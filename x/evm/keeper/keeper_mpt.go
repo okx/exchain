@@ -67,6 +67,10 @@ func (k *Keeper) OpenTrie() {
 	}
 	k.rootTrie = tr
 	k.startHeight = latestStoredHeight
+
+	if latestStoredHeight == 0 {
+		k.startHeight = uint64(tmtypes.GetStartBlockHeight())
+	}
 }
 
 func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
