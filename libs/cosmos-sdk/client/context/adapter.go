@@ -4,15 +4,13 @@ package context
 import (
 	gocontext "context"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/types/tx"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	grpctypes "github.com/okex/exchain/libs/cosmos-sdk/types/grpc"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	//"golang.org/x/net/context"
+	//"google.golang.org/grpc/codes"
+	//"google.golang.org/grpc/status"
 	"reflect"
 	"strconv"
 
@@ -39,48 +37,48 @@ func (ctx CLIContext) Invoke(grpcCtx gocontext.Context, method string, req, repl
 	}
 
 	// Case 1. Broadcasting a Tx.
-	if reqProto, ok := req.(*tx.BroadcastTxRequest); ok {
-		if !ok {
-			return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxRequest)(nil), req)
-		}
-		resProto, ok := reply.(*tx.BroadcastTxResponse)
-		if !ok {
-			return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxResponse)(nil), req)
-		}
-
-		broadcastRes, err := TxServiceBroadcast(grpcCtx, ctx, reqProto)
-		if err != nil {
-			return err
-		}
-		*resProto = *broadcastRes
-
-		return err
-	}
-
-	// Case 2. Querying state.
-	inMd, _ := metadata.FromOutgoingContext(grpcCtx)
-	abciRes, outMd, err := RunGRPCQuery(ctx, grpcCtx, method, req, inMd)
-	if err != nil {
-		return err
-	}
-
-	err = protoCodec.Unmarshal(abciRes.Value, reply)
-	if err != nil {
-		return err
-	}
-
-	for _, callOpt := range opts {
-		header, ok := callOpt.(grpc.HeaderCallOption)
-		if !ok {
-			continue
-		}
-
-		*header.HeaderAddr = outMd
-	}
-
-	if ctx.InterfaceRegistry != nil {
-		return types.UnpackInterfaces(reply, ctx.InterfaceRegistry)
-	}
+	//if reqProto, ok := req.(*tx.BroadcastTxRequest); ok {
+	//	if !ok {
+	//		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxRequest)(nil), req)
+	//	}
+	//	resProto, ok := reply.(*tx.BroadcastTxResponse)
+	//	if !ok {
+	//		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxResponse)(nil), req)
+	//	}
+	//
+	//	broadcastRes, err := TxServiceBroadcast(grpcCtx, ctx, reqProto)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	*resProto = *broadcastRes
+	//
+	//	return err
+	//}
+	//
+	//// Case 2. Querying state.
+	//inMd, _ := metadata.FromOutgoingContext(grpcCtx)
+	//abciRes, outMd, err := RunGRPCQuery(ctx, grpcCtx, method, req, inMd)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = protoCodec.Unmarshal(abciRes.Value, reply)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//for _, callOpt := range opts {
+	//	header, ok := callOpt.(grpc.HeaderCallOption)
+	//	if !ok {
+	//		continue
+	//	}
+	//
+	//	*header.HeaderAddr = outMd
+	//}
+	//
+	//if ctx.InterfaceRegistry != nil {
+	//	return types.UnpackInterfaces(reply, ctx.InterfaceRegistry)
+	//}
 
 	return nil
 }
@@ -136,38 +134,38 @@ func RunGRPCQuery(ctx CLIContext, grpcCtx gocontext.Context, method string, req 
 }
 
 
-
-// TxServiceBroadcast is a helper function to broadcast a Tx with the correct gRPC types
-// from the tx service. Calls `clientCtx.BroadcastTx` under the hood.
-func TxServiceBroadcast(grpcCtx context.Context, clientCtx CLIContext, req *tx.BroadcastTxRequest) (*tx.BroadcastTxResponse, error) {
-	if req == nil || req.TxBytes == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid empty tx")
-	}
-
-	clientCtx = clientCtx.WithBroadcastMode(normalizeBroadcastMode(req.Mode))
-	resp, err := clientCtx.BroadcastTx(req.TxBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(resp)
-	return &tx.BroadcastTxResponse{
-		TxResponse: nil,
-	}, nil
-}
-
-
-// normalizeBroadcastMode converts a broadcast mode into a normalized string
-// to be passed into the clientCtx.
-func normalizeBroadcastMode(mode tx.BroadcastMode) string {
-	switch mode {
-	case tx.BroadcastMode_BROADCAST_MODE_ASYNC:
-		return "async"
-	case tx.BroadcastMode_BROADCAST_MODE_BLOCK:
-		return "block"
-	case tx.BroadcastMode_BROADCAST_MODE_SYNC:
-		return "sync"
-	default:
-		return "unspecified"
-	}
-}
+//
+//// TxServiceBroadcast is a helper function to broadcast a Tx with the correct gRPC types
+//// from the tx service. Calls `clientCtx.BroadcastTx` under the hood.
+//func TxServiceBroadcast(grpcCtx context.Context, clientCtx CLIContext, req *tx.BroadcastTxRequest) (*tx.BroadcastTxResponse, error) {
+//	if req == nil || req.TxBytes == nil {
+//		return nil, status.Error(codes.InvalidArgument, "invalid empty tx")
+//	}
+//
+//	clientCtx = clientCtx.WithBroadcastMode(normalizeBroadcastMode(req.Mode))
+//	resp, err := clientCtx.BroadcastTx(req.TxBytes)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	fmt.Println(resp)
+//	return &tx.BroadcastTxResponse{
+//		TxResponse: nil,
+//	}, nil
+//}
+//
+//
+//// normalizeBroadcastMode converts a broadcast mode into a normalized string
+//// to be passed into the clientCtx.
+//func normalizeBroadcastMode(mode tx.BroadcastMode) string {
+//	switch mode {
+//	case tx.BroadcastMode_BROADCAST_MODE_ASYNC:
+//		return "async"
+//	case tx.BroadcastMode_BROADCAST_MODE_BLOCK:
+//		return "block"
+//	case tx.BroadcastMode_BROADCAST_MODE_SYNC:
+//		return "sync"
+//	default:
+//		return "unspecified"
+//	}
+//}

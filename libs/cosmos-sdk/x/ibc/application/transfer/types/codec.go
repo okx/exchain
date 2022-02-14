@@ -3,8 +3,6 @@ package types
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 )
 
 // RegisterLegacyAminoCodec registers the necessary x/ibc transfer interfaces and concrete types
@@ -16,9 +14,8 @@ func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgTransfer{})
-
-	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+	//registry.RegisterImplementations((*sdk.Msg)(nil), &MsgTransfer{})
+	//msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
 var (

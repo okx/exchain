@@ -5,7 +5,12 @@ import (
 	"github.com/okex/exchain/app/utils/sanity"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer"
+	ibctransferkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/keeper"
+	ibctransfertypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/types"
 	ibc "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core"
+	ibcclient "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client"
+	porttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"io"
 	"math/big"
@@ -178,6 +183,10 @@ type OKExChainApp struct {
 	blockGasPrice []*big.Int
 
 	// ibc
+	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
+	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
+	ScopedIBCMockKeeper  capabilitykeeper.ScopedKeeper
+	TransferKeeper   ibctransferkeeper.Keeper
 	CapabilityKeeper *capabilitykeeper.Keeper
 	IBCKeeper        *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 }
@@ -321,13 +330,21 @@ func NewOKExChainApp(
 	evidenceKeeper.SetRouter(evidenceRouter)
 	app.EvidenceKeeper = *evidenceKeeper
 
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 	// add capability keeper and ScopeToModule for ibc module
 	app.CapabilityKeeper = capabilitykeeper.NewKeeper(cdc, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(host.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
-	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(ibcmock.ModuleName)
+	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
+
+	// Create Transfer Keepers
+	app.TransferKeeper = ibctransferkeeper.NewKeeper(
+		cdc, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
+		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
+		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper,
+	)
 
 
 	app.IBCKeeper = ibc.NewKeeper(
@@ -342,7 +359,9 @@ func NewOKExChainApp(
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
-		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper))
+		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
+		// ibc
+		AddRoute(host.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
@@ -357,6 +376,14 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
+
+
+	transferModule := transfer.NewAppModule(app.TransferKeeper)
+	// Create static IBC router, add transfer route, then set and seal it
+	ibcRouter := porttypes.NewRouter()
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
+	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
+	app.IBCKeeper.SetRouter(ibcRouter)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -404,6 +431,7 @@ func NewOKExChainApp(
 		farm.ModuleName,
 		evidence.ModuleName,
 		evm.ModuleName,
+		host.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
@@ -420,6 +448,7 @@ func NewOKExChainApp(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
+		host.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 	)
 
@@ -440,6 +469,7 @@ func NewOKExChainApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
+		ibc.NewAppModule(app.IBCKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -463,6 +493,14 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
+
+	app.ScopedIBCKeeper = scopedIBCKeeper
+	app.ScopedTransferKeeper = scopedTransferKeeper
+
+	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
+	// note replicate if you do not need to test core IBC or light clients.
+	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
+
 
 	return app
 }

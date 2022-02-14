@@ -34,7 +34,7 @@ func HandleMsgChannelOpenInit(ctx sdk.Context, k keeper.Keeper, portCap *capabil
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, channelID, capKey, nil
 }
 
@@ -63,7 +63,7 @@ func HandleMsgChannelOpenTry(ctx sdk.Context, k keeper.Keeper, portCap *capabili
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, channelID, capKey, nil
 }
 
@@ -94,7 +94,7 @@ func HandleMsgChannelOpenAck(ctx sdk.Context, k keeper.Keeper, channelCap *capab
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
@@ -123,7 +123,7 @@ func HandleMsgChannelOpenConfirm(ctx sdk.Context, k keeper.Keeper, channelCap *c
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
@@ -152,7 +152,7 @@ func HandleMsgChannelCloseInit(ctx sdk.Context, k keeper.Keeper, channelCap *cap
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
@@ -181,6 +181,6 @@ func HandleMsgChannelCloseConfirm(ctx sdk.Context, k keeper.Keeper, channelCap *
 	})
 
 	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }

@@ -3,9 +3,9 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/types"
+	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"math/rand"
 	"strings"
 )
