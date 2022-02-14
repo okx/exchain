@@ -24,7 +24,8 @@ func NewTreasure(address sdk.AccAddress, proportion sdk.Dec) *Treasure {
 }
 
 func (t Treasure) ValidateBasic() error {
-	if t.Proportion.IsNegative() || t.Proportion.GT(sdk.OneDec()) {
+	// proportion must (0,1]. if proportion <= 0 or  > 1
+	if t.Proportion.LTE(sdk.ZeroDec()) || t.Proportion.GT(sdk.OneDec()) {
 		return errors.New(fmt.Sprintf("treasure proportion should non-negative and less than one: %s", t.Proportion))
 	}
 	return nil
