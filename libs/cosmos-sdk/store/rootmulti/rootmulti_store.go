@@ -239,12 +239,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
 		}
-	}
 
-	if !tmtypes.HigherThanMars(ver) && types2.EnableDoubleWrite {
-		mptInfo := infos[mpt.StoreKey]
-		mptInfo.Core.CommitID.Version = ver
-		infos[mpt.StoreKey] = mptInfo
+		if !tmtypes.HigherThanMars(ver) && types2.EnableDoubleWrite {
+			mptInfo := infos[mpt.StoreKey]
+			mptInfo.Core.CommitID.Version = ver
+			infos[mpt.StoreKey] = mptInfo
+		}
 	}
 
 	roots := make(map[int64][]byte)
