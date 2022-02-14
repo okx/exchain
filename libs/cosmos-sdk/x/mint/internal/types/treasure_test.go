@@ -45,6 +45,13 @@ func TestValidateBasic(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "treasure proportion should non-negative")
 
+	// error treasure's proportion is error
+	temp = Treasure{Address: sdk.AccAddress([]byte{0x00}), Proportion: sdk.NewDec(0)}
+	treasures = []Treasure{*treasure1, *treasure2, temp}
+	err = ValidateTreasures(treasures)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "treasure proportion should non-negative")
+
 	// error treasure's proportion is more than one
 	temp = Treasure{Address: sdk.AccAddress([]byte{0x00}), Proportion: sdk.NewDecWithPrec(2, 0)}
 	treasures = []Treasure{*treasure1, *treasure2, temp}
