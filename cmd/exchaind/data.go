@@ -552,6 +552,7 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(queryBlockState, queryAppState)
+	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }
