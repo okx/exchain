@@ -22,7 +22,7 @@ var (
 var once sync.Once
 
 // init initialize the mostRecentHeightKey and deltaLockerKey
-// as the keys are based types.DeltaVersion, which maybe specified by user.
+// the keys are based types.DeltaVersion, which can specified by user.
 func (r *RedisClient) init() {
 	const (
 		mostRecentHeight = "MostRecentHeight"
