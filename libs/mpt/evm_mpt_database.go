@@ -4,8 +4,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/types"
+	"github.com/spf13/viper"
 	"path/filepath"
 	"sync"
 )
@@ -20,8 +22,9 @@ const (
 	EvmSpace   = "evm"
 )
 
-func InstanceOfEvmStore(homeDir string) ethstate.Database {
+func InstanceOfEvmStore() ethstate.Database {
 	initEvmOnce.Do(func() {
+		homeDir := viper.GetString(flags.FlagHome)
 		path := filepath.Join(homeDir, EvmDataDir)
 
 		backend := sdk.DBBackend
