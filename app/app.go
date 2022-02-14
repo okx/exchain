@@ -3,6 +3,10 @@ package app
 import (
 	"fmt"
 	"github.com/okex/exchain/app/utils/sanity"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	ibc "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core"
+	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
 	"io"
 	"math/big"
 	"os"
@@ -172,6 +176,10 @@ type OKExChainApp struct {
 	sm *module.SimulationManager
 
 	blockGasPrice []*big.Int
+
+	// ibc
+	CapabilityKeeper *capabilitykeeper.Keeper
+	IBCKeeper        *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -313,6 +321,19 @@ func NewOKExChainApp(
 	evidenceKeeper.SetRouter(evidenceRouter)
 	app.EvidenceKeeper = *evidenceKeeper
 
+	// add capability keeper and ScopeToModule for ibc module
+	app.CapabilityKeeper = capabilitykeeper.NewKeeper(cdc, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
+	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(host.ModuleName)
+	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
+	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
+	// note replicate if you do not need to test core IBC or light clients.
+	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(ibcmock.ModuleName)
+
+
+	app.IBCKeeper = ibc.NewKeeper(
+		cdc, keys[host.StoreKey], app.GetSubspace(host.ModuleName), app.StakingKeeper, scopedIBCKeeper,
+	)
+
 	// register the proposal types
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
@@ -364,6 +385,8 @@ func NewOKExChainApp(
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
+		// ibc
+		ibc.NewAppModule(app.IBCKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

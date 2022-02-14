@@ -59,9 +59,9 @@ type (
 
 // NewKeeper constructs a new CapabilityKeeper instance and initializes maps
 // for capability map and scopedModules map.
-func NewKeeper(cdc codec.Codec, storeKey, memKey sdk.StoreKey) *Keeper {
+func NewKeeper(cdc *codec.Codec, storeKey, memKey sdk.StoreKey) *Keeper {
 	return &Keeper{
-		cdc:           cdc,
+		cdc:           *cdc,
 		storeKey:      storeKey,
 		memKey:        memKey,
 		capMap:        make(map[uint64]*types.Capability),

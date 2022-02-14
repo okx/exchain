@@ -107,7 +107,7 @@ func NewABCIMessageLog(i uint16, log string, events Events) ABCIMessageLog {
 	return ABCIMessageLog{
 		MsgIndex: i,
 		Log:      log,
-		Events:   StringifyEvents(events.ToABCIEvents()),
+		Events:   StringifyEvents(events),
 	}
 }
 
@@ -382,7 +382,7 @@ func WrapServiceResult(ctx Context, res proto.Message, err error) (*Result, erro
 
 	var events []Event
 	if evtMgr := ctx.EventManager(); evtMgr != nil {
-		events = evtMgr.ABCIEvents()
+		events = evtMgr.Events()
 	}
 
 	return &Result{

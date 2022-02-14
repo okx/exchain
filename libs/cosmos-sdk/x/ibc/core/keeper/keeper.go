@@ -32,9 +32,10 @@ type Keeper struct {
 
 // NewKeeper creates a new ibc Keeper
 func NewKeeper(
-	cdc codec.Codec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
+	cdcc *codec.Codec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
+	cdc:=*cdcc
 	clientKeeper := clientkeeper.NewKeeper(cdc, key, paramSpace, stakingKeeper)
 	connectionKeeper := connectionkeeper.NewKeeper(cdc, key, clientKeeper)
 	portKeeper := portkeeper.NewKeeper(scopedKeeper)
