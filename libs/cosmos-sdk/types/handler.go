@@ -1,5 +1,7 @@
 package types
 
+import ethcommon "github.com/ethereum/go-ethereum/common"
+
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
 
@@ -15,7 +17,7 @@ type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
 type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
-type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
+type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache, *ethcommon.Address)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {

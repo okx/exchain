@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -19,6 +20,7 @@ type extraDataForTx struct {
 	fee       sdk.Coins
 	isEvm     bool
 	signCache sdk.SigCache
+	to        *ethcommon.Address
 }
 
 // txByteWithIndex = txByte + index
@@ -48,11 +50,12 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm, s, toAddr := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
 				fee:       coin,
 				isEvm:     isEvm,
 				signCache: s,
+				to:        toAddr,
 			}
 		}()
 	}
@@ -60,12 +63,84 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 	return res
 }
 
+var (
+	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
+)
+
+func Find(x ethcommon.Address) ethcommon.Address {
+	if rootAddr[x] != x {
+		rootAddr[x] = Find(rootAddr[x])
+	}
+	return rootAddr[x]
+}
+
+func Union(x ethcommon.Address, y *ethcommon.Address) {
+	if _, ok := rootAddr[x]; !ok {
+		rootAddr[x] = x
+	}
+	if y == nil {
+		return
+	}
+	if _, ok := rootAddr[*y]; !ok {
+		rootAddr[*y] = *y
+	}
+	fx := Find(x)
+	fy := Find(*y)
+	if fx != fy {
+		rootAddr[fy] = fx
+	}
+}
+
+func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int, map[int]int) {
+	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
+	for _, tx := range txsExtraData {
+		Union(tx.signCache.GetFrom(), tx.to)
+	}
+
+	groupList := make(map[int][]int, 0)
+	addrToID := make(map[ethcommon.Address]int, 0)
+	indexToID := make(map[int]int, 0)
+
+	for index, sender := range txsExtraData {
+		rootAddr := Find(sender.signCache.GetFrom())
+		id, exist := addrToID[rootAddr]
+		if !exist {
+			id = len(groupList)
+			addrToID[rootAddr] = id
+
+		}
+		groupList[id] = append(groupList[id], index)
+		indexToID[index] = id
+	}
+
+	nextTxIndexInGroup := make(map[int]int)
+	//preTxIndexInGroup := make(map[int]int)
+	//heapList := make([]int, 0)
+	for _, list := range groupList {
+		for index := 0; index < len(list); index++ {
+			if index+1 <= len(list)-1 {
+				nextTxIndexInGroup[list[index]] = list[index+1]
+			}
+			//if index-1 >= 0 {
+			//	preTxIndexInGroup[list[index]] = list[index-1]
+			//}
+		}
+		//heapList = append(heapList, list[0])
+	}
+	return groupList, indexToID, nextTxIndexInGroup
+
+}
+
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
 	}
+
 	extraData := app.getExtraDataByTxs(txs)
+
+	groupList, indexToID, nextIndexInGroup := app.calGroup(extraData)
+
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -86,7 +161,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
 
-	return app.runTxs(txWithIndex)
+	return app.runTxs(txWithIndex, groupList, indexToID, nextIndexInGroup)
 
 }
 
@@ -108,7 +183,7 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 	cache.Write()
 }
 
-func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[int]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -129,7 +204,17 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
 	asyncCb := func(execRes *executeResult) {
-		txReps[execRes.GetCounter()] = execRes
+		receiveTxIndex := execRes.GetCounter()
+		txReps[receiveTxIndex] = execRes
+		app.parallelTxManage.setTxStatus(int(receiveTxIndex), false)
+		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !app.parallelTxManage.isRunning(nextTx) {
+			app.parallelTxManage.setTxStatus(nextTx, true)
+			go app.asyncDeliverTx(txs[nextTx])
+		}
+		if nextTx := nextTxInGroup[int(receiveTxIndex)+1]; nextTx != 0 && !app.parallelTxManage.isRunning(nextTx) {
+			app.parallelTxManage.setTxStatus(nextTx, true)
+			go app.asyncDeliverTx(txs[nextTx])
+		}
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
@@ -165,9 +250,17 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	}
 
 	app.parallelTxManage.workgroup.cb = asyncCb
-	for _, tx := range txs {
-		go app.asyncDeliverTx(tx)
+
+	for _, group := range groupList {
+		for _, txIndex := range group {
+			app.parallelTxManage.setTxStatus(txIndex, true)
+			go app.asyncDeliverTx(txs[txIndex])
+		}
 	}
+
+	//for _, tx := range txs {
+	//	go app.asyncDeliverTx(tx)
+	//}
 
 	if len(txs) > 0 {
 		//waiting for call back
@@ -338,7 +431,8 @@ type parallelTxManager struct {
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
 
-	currTxFee sdk.Coins
+	currTxFee     sdk.Coins
+	runningStatus map[int]bool
 }
 
 type txStatus struct {
@@ -402,6 +496,18 @@ func (f *parallelTxManager) isReRun(tx string) bool {
 		return false
 	}
 	return data.reRun
+}
+
+func (f *parallelTxManager) setTxStatus(txIndex int, status bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.runningStatus[txIndex] = status
+}
+
+func (f *parallelTxManager) isRunning(txIndex int) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.runningStatus[txIndex]
 }
 
 type asyncCache struct {
