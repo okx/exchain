@@ -559,10 +559,6 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 				if len(msgs) > 1 {
 					return wrongMsgErr
 				}
-			case evmtypes.MsgEthermint:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
 			}
 
 			if err != nil {

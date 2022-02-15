@@ -68,10 +68,6 @@ func NewHandler(k *Keeper) sdk.Handler {
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgEthereumTx(ctx, k, msg)
 			}
-		case types.MsgEthermint:
-			handlerFun = func() (*sdk.Result, error) {
-				return handleSimulation(ctx, k, msg)
-			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
@@ -273,81 +269,5 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		// the result was replaced to trace logs when trace tx
 		executionResult.Result.Data = executionResult.TraceLogs
 	}
-	return executionResult.Result, nil
-}
-
-// handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
-func handleSimulation(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-
-	if !ctx.IsCheckTx() {
-		panic("Invalid Ethermint tx")
-	}
-
-
-	if ctx.IsReCheckTx() || ctx.IsTraceTx() || ctx.IsTraceTxLog() {
-		panic("Invalid Ethermint tx")
-	}
-
-	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return nil, err
-	}
-
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	ethHash := common.BytesToHash(txHash)
-
-	st := types.StateTransition{
-		AccountNonce: msg.AccountNonce,
-		Price:        msg.Price.BigInt(),
-		GasLimit:     msg.GasLimit,
-		Amount:       msg.Amount.BigInt(),
-		Payload:      msg.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
-		ChainID:      chainIDEpoch,
-		TxHash:       &ethHash,
-		Sender:       common.BytesToAddress(msg.From.Bytes()),
-		Simulate:     true,
-	}
-
-	if msg.Recipient != nil {
-		to := common.BytesToAddress(msg.Recipient.Bytes())
-		st.Recipient = &to
-	}
-
-	config, found := k.GetChainConfig(ctx)
-	if !found {
-		return nil, types.ErrChainConfigNotFound
-	}
-
-	executionResult, _, err, _, _ := st.TransitionDb(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeEthermint,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-		),
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
-		),
-	})
-
-	if msg.Recipient != nil {
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeEthermint,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Recipient.String()),
-			),
-		)
-	}
-
-	// set the events to the result
-	executionResult.Result.Events = ctx.EventManager().Events()
-
 	return executionResult.Result, nil
 }
