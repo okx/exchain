@@ -26,7 +26,14 @@ const (
 	FlagRedisDB     = "delta-redis-db"
 	FlagFastQuery   = "fast-query"
 
-	// do not apply delta if version does not match
+	// FlagDeltaVersion specify the DeltaVersion
+	FlagDeltaVersion = "delta-version"
+)
+
+var (
+	// DeltaVersion do not apply delta if version does not match
+	// if user specify the flag 'FlagDeltaVersion'(--delta-version) use user's setting,
+	// otherwise use the default value
 	DeltaVersion = 6
 )
 
