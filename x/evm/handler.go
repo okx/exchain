@@ -168,6 +168,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	defer func() {
 		currentGasMeter := ctx.GasMeter()
 		defer ctx.WithGasMeter(currentGasMeter)
+
 		pm := k.GenerateCSDBParams()
 		infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 		sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
@@ -189,8 +190,16 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			panic(e)
 		}
 		if !st.Simulate {
-			//save state and account data into batch
-			k.Watcher.Finalize()
+			if err != nil {
+				k.Watcher.Reset()
+				if sendAcc != nil {
+					// delete account which is already in Watcher.batch
+					k.Watcher.AddDelAccMsg(sendAcc, true)
+				}
+			} else {
+				//save state and account data into batch
+				k.Watcher.Finalize()
+			}
 		}
 	}()
 
