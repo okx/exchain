@@ -76,6 +76,22 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	return rpcTx, nil
 }
 
+func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *Transaction {
+	rpcTx := &Transaction{
+		From:     *from,
+		Gas:      hexutil.Uint64(tx.Data.GasLimit),
+		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		Input:    hexutil.Bytes(tx.Data.Payload),
+		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Data.Amount),
+		V:        (*hexutil.Big)(tx.Data.V),
+		R:        (*hexutil.Big)(tx.Data.R),
+		S:        (*hexutil.Big)(tx.Data.S),
+	}
+	return rpcTx
+}
+
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
 func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (map[string]interface{}, error) {
 	var blockTxs interface{}

@@ -12,12 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -653,21 +652,38 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 	monitor := monitor.GetMonitor("eth_sign", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
-
+	height, err := api.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
 	if !exist {
 		return nil, keystore.ErrLocked
 	}
-
+	var tx = &evmtypes.MsgEthereumTx{}
+	// RLP decode raw transaction bytes
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return nil, err
+	}
 	// Sign the requested hash with the wallet
-	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
+	if err := tx.Sign(api.chainIDEpoch, key.ToECDSA()); err != nil {
+		api.logger.Debug("failed to sign tx", "error", err)
+		return nil, err
+	}
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
+
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return nil, err
 	}
-
-	sig[crypto.RecoveryIDOffset] += 27 // transform V from 0/1 to 27/28
-
-	return sig, nil
+	return txBytes, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
@@ -1707,4 +1723,59 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount.SetAddress(address.Bytes())
 	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
 	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
+}
+
+func (e *PublicEthereumAPI) FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*rpctypes.FeeHistoryResult, error) {
+	e.logger.Debug("eth_feeHistory")
+	return e.backend.FeeHistory(blockCount, lastBlock, rewardPercentiles)
+}
+
+// FillTransaction fills the defaults (nonce, gas, gasPrice or 1559 fields)
+// on a given unsigned transaction, and returns it to the caller for further
+// processing (signing + broadcast).
+func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctypes.SignTransactionResult, error) {
+
+	monitor := monitor.GetMonitor("eth_fillTransaction", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("args", args)
+
+	height, err := api.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
+
+	// Mutex lock the address' nonce to avoid assigning it to multiple requests
+	if args.Nonce == nil {
+		api.nonceLock.LockAddr(*args.From)
+		defer api.nonceLock.UnlockAddr(*args.From)
+	}
+
+	// Assemble transaction from fields
+	tx, err := api.generateFromArgs(args)
+	if err != nil {
+		api.logger.Debug("failed to generate tx", "error", err)
+		return nil, err
+	}
+
+	if err := tx.ValidateBasic(); err != nil {
+		api.logger.Debug("tx failed basic validation", "error", err)
+		return nil, err
+	}
+
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
+
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return nil, err
+	}
+	rpcTx := rpctypes.ToTransaction(tx, args.From)
+	return &rpctypes.SignTransactionResult{
+		Raw: txBytes,
+		Tx:  rpcTx,
+	}, nil
 }

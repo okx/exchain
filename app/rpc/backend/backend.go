@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
+	"github.com/okex/exchain/app/rpc/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -52,6 +54,7 @@ type Backend interface {
 
 	// Used by eip-1898
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
+	FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*types.FeeHistoryResult, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
