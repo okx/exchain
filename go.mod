@@ -35,7 +35,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/gtank/merlin v0.1.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/itsfunny/go-cell v0.0.0-00010101000000-000000000000
+	github.com/itsfunny/go-cell v0.0.2
 	github.com/jmhodges/levigo v1.0.0
 	github.com/json-iterator/go v1.1.9
 	github.com/libp2p/go-buffer-pool v0.0.2
@@ -162,5 +162,3 @@ replace (
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-
-replace github.com/itsfunny/go-cell => /Users/lvcong/go/src/github.com/itsfunny/go-cell
