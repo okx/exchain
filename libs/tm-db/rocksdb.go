@@ -71,6 +71,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
 
+	opts.EnableStatistics()
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
