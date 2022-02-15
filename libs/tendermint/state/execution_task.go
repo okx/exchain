@@ -28,6 +28,7 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 	blockHash      string
+	isParalleledTx bool
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -39,6 +40,7 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
+		isParalleledTx: blockExec.isAsync,
 	}
 	ret.blockHash=hex.EncodeToString(block.Hash())
 
@@ -68,7 +70,14 @@ func (t *executionTask) run() {
 	t.dump("Start prerun")
 	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
 
-	abciResponses, err := execBlockOnProxyApp(t)
+	var abciResponses *ABCIResponses
+	var err error
+
+	if t.isParalleledTx {
+		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
+	} else {
+		abciResponses, err = execBlockOnProxyApp(t)
+	}
 
 	if !t.stopped {
 		t.result = &executionResult{
