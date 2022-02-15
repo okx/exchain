@@ -103,40 +103,255 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ## [0.19.13](https://github.com/okex/exchain/compare/v0.19.12...v0.19.13) (2021-11-01)
 
 
+### Features
+
+* Support paralleled tx in `x/evm` ([\#1100](https://github.com/okex/exchain/pull/1100))
+
+* Support paralleled-tx when replay tx ([\#1112](https://github.com/okex/exchain/pull/1112))
+
+* Add keccak256Hash Cache to storage `address-key` hash ([\#1120](https://github.com/okex/exchain/pull/1120))
+
+* Add flag to close checkTx mutex ([\#1129](https://github.com/okex/exchain/pull/1129))
+
+* Hide `stream` flags ([\#1136](https://github.com/okex/exchain/pull/1136))
+
+* Add pprof to `applyblock` ([\#1147](https://github.com/okex/exchain/pull/1147))
+
+
+### Bug fixes
+
+* Bloom must not support paralleled-tx in `x/evm` ([\#1119](https://github.com/okex/exchain/pull/1119))
+
+* Fix `leveldb` api compatible in `x/evm` ([\#1122](https://github.com/okex/exchain/pull/1122))
+
+* Fix `saveCommitOrphans` bug when it is executed before commit event ([\#1131](https://github.com/okex/exchain/pull/1131))
+
+* Fix concurrent read write map ([\#1155](https://github.com/okex/exchain/pull/1155))
+
+
+### Code refactoring
+
+* Sub-command `covert`  covert data between`goleveldb` and `rocksdb` ([\#1109](https://github.com/okex/exchain/pull/1109))
+
+* Refactor `addressRecord` in `mempool`  ([\#1149](https://github.com/okex/exchain/pull/1149))
+
+* Refine timing in `x/analyzer` ([\#1151](https://github.com/okex/exchain/pull/1151))
+
+
+### Tests
+
+* Add ut of async-commit ([\#1137](https://github.com/okex/exchain/pull/1137))
+
+
+### Chores
+
+* Change path about `cosmos` and `tendermint` in makefile ([\#1142](https://github.com/okex/exchain/pull/1142))
+
+
+### Breaking Changes
+
+* Ship all dependence, including `cosmos-sdk`, `tendermint`, `iavl`, `tendermint-db` ([\#1128](https://github.com/okex/exchain/pull/1128))
+
+
 
 ## [0.19.12](https://github.com/okex/exchain/compare/v0.19.11...v0.19.12) (2021-10-18)
 
 
+### Features
+
+* Add `antehandle` analysis ([\#1079](https://github.com/okex/exchain/pull/1079))
+
+* Add command to export eth keystore file in `exchaincli` ([\#1084](https://github.com/okex/exchain/pull/1084))
+
+* Dump pprof automatically when ApplyBlock elapsed time is too long. ([\#1087](https://github.com/okex/exchain/pull/1087))
+
+* Run replay with dump pprof ([\#1089](https://github.com/okex/exchain/pull/1089))
+
+* Use flag control log print ([\#1098](https://github.com/okex/exchain/pull/1098))
+
+* Add sub-command `covert` to covert data from `goleveldb` to `rocksdb` ([\#1114](https://github.com/okex/exchain/pull/1114))
+
+
+### Bug fixes
+
+* `x/evm` start `x/analyzer` log when transaction is `checktx` ([\#1091](https://github.com/okex/exchain/pull/1091))
+
+* Fix eth tx multiple signature ([\#1092](https://github.com/okex/exchain/pull/1092))
+
+
+### Code refactoring
+
+* repair state with `start-height` instead of `commit-inyerval` ([\#1095](https://github.com/okex/exchain/pull/1095))
+
+
+### Performance Improvements
+
+* Compact `rocksdb` ([\#1083](https://github.com/okex/exchain/pull/1083))
+
+* `watchdb` is compatible with `rocksdb` ([\#1088](https://github.com/okex/exchain/pull/1088))
+
 
 ## [0.19.11](https://github.com/okex/exchain/compare/v0.19.10...v0.19.11) (2021-10-14)
+
+
+### Features
+
+* Add more timestamp log into `x/analyzer` and count times  that `db`  is written or read ([\#1060](https://github.com/okex/exchain/pull/1060))
+
+* Add features check whether address is blocked ([\#1066](https://github.com/okex/exchain/pull/1066))
+
+* Count `evm` execute time ([\#1072](https://github.com/okex/exchain/pull/1072))
+
+
+### Bug fixes
+
+* Fix wrong gas consume in `antehandler` ([\#1085](https://github.com/okex/exchain/pull/1085))
+
+* `x/analyzer` start log when transaction is `checktx` ([\#1093](https://github.com/okex/exchain/pull/1093))
+
+
+### Performance Improvements
+
+* Delete useless code in deliverTx ([\#1076](https://github.com/okex/exchain/pull/1076))
+
+
+### Chores
+
+* Support make `rocksdb` in makefile ([\#1074](https://github.com/okex/exchain/pull/1074))
 
 
 
 ## [0.19.10](https://github.com/okex/exchain/compare/v0.19.9...v0.19.10) (2021-10-08)
 
 
+### Features
+
+* Support `rocksdb` ([\#1055](https://github.com/okex/exchain/pull/1055))
+
+* Add trace log to catch problems when happen enhancement ([\#1057](https://github.com/okex/exchain/pull/1057))
+
+* Add `DEBUG` argument to makefile to switch between debug and release mode ([\#1058](https://github.com/okex/exchain/pull/1058))
+
+* Add more timestamp log into `x/analyzer` ([\#1059](https://github.com/okex/exchain/pull/1059))
+
+
 
 ## [0.19.9](https://github.com/okex/exchain/compare/v0.19.8...v0.19.9) (2021-09-30)
+
+
+### Features
+
+* Support async commit to `iavl tree` ([\#1048](https://github.com/okex/exchain/pull/1048))
 
 
 
 ## [0.19.8](https://github.com/okex/exchain/compare/v0.19.7...v0.19.8) (2021-09-29)
 
 
+### Features
+
+* Add log into `x/evm commitStatedb` and `x/analyzer` ([\#1041](https://github.com/okex/exchain/pull/1041))
+
+
+### Bug fixes
+
+* Fix current local replay ([\#1043](https://github.com/okex/exchain/pull/1043))
+
+
 
 ## [0.19.7](https://github.com/okex/exchain/compare/v0.19.6...v0.19.7) (2021-09-27)
+
+
+### Features
+
+* Add query blocked contracts in rest api ([\#1027](https://github.com/okex/exchain/pull/1027))
+
+* Add `iaviewer` ([\#1030](https://github.com/okex/exchain/pull/1030))
+
+
+### Bug fixes 
+
+* Fix RPC API `eth_getCode` occur error after get `blocknumber` ([\#1029](https://github.com/okex/exchain/pull/1029))
+
+
+### Chores
+
+* Enable `x/evm` in `start.sh`  ([\#1040](https://github.com/okex/exchain/pull/1040))
 
 
 
 ## [0.19.6](https://github.com/okex/exchain/compare/v0.19.5...v0.19.6) (2021-09-16)
 
 
+### Features
+
+* Support `eip-1898` feature ([\#1024](https://github.com/okex/exchain/pull/1024))
+
+
+### Bug fixes
+
+* Fix sending cosmos tx to pending pool ([\#1023](https://github.com/okex/exchain/pull/1023))
+
+* Fix local replay ([\#1061](https://github.com/okex/exchain/pull/1061))
+
+
+### Code Refactoring
+
+* Rename sub-command `repair-data` to `repair-state` ([\#1020](https://github.com/okex/exchain/pull/1020))
+
+
+### Performance Improvements
+
+* Auto dump pprof when cpu is high ([\#1018](https://github.com/okex/exchain/pull/1018))
+
+
+### Chores
+
+* Enable `golangci-lint` ([\#1019](https://github.com/okex/exchain/pull/1019))
+
+
 
 ## [0.19.5](https://github.com/okex/exchain/compare/v0.19.2...v0.19.5) (2021-09-09)
 
 
+### Features
+
+* Add pending pool in `txpool` ([\#997](https://github.com/okex/exchain/pull/997))
+
+* Add sub-command to repair state ([\#1008](https://github.com/okex/exchain/pull/1008))
+
+
+### Bug Fixes
+
+* Fix `txpool` doesn't drop tx when broadcast error is `ErrInvalidSequence` ([\#995](https://github.com/okex/exchain/pull/995))
+
+* Fix replay block panic when `haltheight` is not set ([\#1013](https://github.com/okex/exchain/pull/1013))
+
+
+### Chores
+
+* Produce testnet script ([\#1003](https://github.com/okex/exchain/pull/1003))
+
+
 
 ## [0.19.2](https://github.com/okex/exchain/compare/v0.19.1...v0.19.2) (2021-08-31)
+
+
+### Features
+
+* Support dynamic config ([\#982](https://github.com/okex/exchain/pull/982))
+
+* Add `eth_multiCall` RPC-API to perform multiple raw contract call multiple raw contract call ([\#998](https://github.com/okex/exchain/pull/998))
+
+
+### Performance Improvements
+
+*  Optimize compact in pruning ([\#993](https://github.com/okex/exchain/pull/993))
+
+
+### Chores
+
+* Produce snapshot script ([\#996](https://github.com/okex/exchain/pull/996))
 
 
 
@@ -146,12 +361,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Support 0x prefixed address format ([\#973](https://github.com/okex/exchain/pull/973))
 
-* Add logger for tx_pool ([\#983](https://github.com/okex/exchain/pull/983))
+* Add logger for `txpool` ([\#983](https://github.com/okex/exchain/pull/983))
 
 
 ### Documentation
 
-* Provide issue template to  report running error ([\#983](https://github.com/okex/exchain/pull/979))
+* Provide issue template to  report running error ([\#979](https://github.com/okex/exchain/pull/979))
+
 
 ### Code Refactoring
 
