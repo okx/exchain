@@ -35,7 +35,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 		return nil, err
 	}
 
-
 	// Run txs of block.
 	var validTxs, invalidTxs = 0, 0
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))

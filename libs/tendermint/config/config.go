@@ -259,6 +259,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogFile:            defaultLogFile,
 		LogStdout:          true,
 		ProfListenAddress:  "localhost:6060",
+		DeliverTxsExecMode: int8(1),
 	}
 }
 

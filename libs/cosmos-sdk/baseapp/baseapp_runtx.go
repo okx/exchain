@@ -54,6 +54,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if err != nil {
 		return err
 	}
+	fmt.Printf("handleStartHeight end. gasUsed:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
+
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
@@ -69,10 +71,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 	}
 
+	fmt.Printf("handleGasConsumed start. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 	err = handler.handleGasConsumed(info)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("handleGasConsumed end. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -80,6 +84,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
+		fmt.Printf("deferRecover. gasWanted: %d, startingGas: %d, gasMeter:%d, blockGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.BlockGasMeter().GasConsumed())
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
 
@@ -91,10 +96,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		handler.handleDeferRefund(info)
 	}()
 
+	fmt.Printf("validateBasicTxMsgs start. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
+	fmt.Printf("validateBasicTxMsgs end. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 
 	app.pin(AnteHandler, true, mode)
 
@@ -107,13 +114,14 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(AnteHandler, false, mode)
 
 	app.pin(RunMsgs, true, mode)
+	fmt.Println("handleRunMsg.")
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsgs, false, mode)
 	return err
 }
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
-
+	fmt.Printf("runAnte start. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 	var anteCtx sdk.Context
 
 	// Cache wrap context before AnteHandler call in case it aborts.
@@ -125,7 +133,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	fmt.Printf("runAnte 1. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	fmt.Printf("runAnte 2. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
@@ -140,9 +150,12 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		// prior to returning.
 		info.ctx = newCtx.WithMultiStore(ms)
 	}
+	fmt.Printf("runAnte 3. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
+
 
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
+	fmt.Printf("runAnte 4. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 
 	if mode == runTxModeDeliverInAsync {
 		app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
@@ -152,10 +165,14 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		return err
 	}
 
+	//fmt.Printf("runAnte middle. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
+
 	if mode != runTxModeDeliverInAsync {
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 	}
+
+	//fmt.Printf("runAnte end. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
 
 	return nil
 }
@@ -167,7 +184,6 @@ func txhash(txbytes []byte) string {
 }
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)

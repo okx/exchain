@@ -37,6 +37,8 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeDeliverInAsync:
 		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
+	case runTxModeDeliverPartConcurrent:
+		h = &modeHandlerDeliverPartConcurrent{&modeHandlerBase{mode: mode,app: app}}
 	default:
 		h = &modeHandlerBase{mode: mode, app: app}
 	}
@@ -73,6 +75,10 @@ type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
 
+type modeHandlerDeliverPartConcurrent struct {
+	*modeHandlerBase
+}
+
 func (m *modeHandlerBase) getMode() runTxMode {
 	return m.mode
 }
@@ -83,6 +89,7 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 	app := m.app
 	startHeight := tmtypes.GetStartBlockHeight()
 
+	//fmt.Printf("handleStartHeight: %d\n", height)
 	if height < startHeight && height != 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
@@ -100,8 +107,10 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 	if info.ctx.BlockGasMeter().IsOutOfGas() {
 		info.gInfo = sdk.GasInfo{GasUsed: info.ctx.BlockGasMeter().GasConsumed()}
 		err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
+		fmt.Println("handleGasConsumed failed.")
 	} else {
 		info.startingGas = info.ctx.BlockGasMeter().GasConsumed()
+		fmt.Printf("info.startingGas=%d\n", info.startingGas)
 	}
 
 	return err

@@ -180,7 +180,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				deliverTxs[index].Data = v
 			}
 		}
-
 	}
 	return deliverTxs
 }

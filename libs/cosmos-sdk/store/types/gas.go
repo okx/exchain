@@ -1,6 +1,8 @@
 package types
 
-import "math"
+import (
+	"math"
+)
 
 // Gas consumption descriptors.
 const (
@@ -80,6 +82,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
+	//fmt.Printf("basicGasMeter -- ConsumeGas:%d,consumed=%d,usage:%s\n", amount, g.consumed, descriptor)
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
 	}
@@ -125,6 +128,7 @@ func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
+	//fmt.Printf("infiniteGasMeter -- ConsumeGas:%d,consumed=%d,usage:%s\n", amount, g.consumed, descriptor)
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
 	}
