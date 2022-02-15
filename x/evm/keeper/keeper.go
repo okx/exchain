@@ -7,6 +7,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/mpt"
 	"math/big"
+	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -62,6 +63,9 @@ type Keeper struct {
 
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
+
+	mptCommitMu *sync.Mutex
+	asyncChain  chan int64
 }
 
 // NewKeeper generates new evm module keeper
@@ -104,12 +108,15 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(2 * 1024 * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
+		mptCommitMu:    &sync.Mutex{},
+		asyncChain:     make(chan int64, 1000),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
+	k.asyncCommit(logger)
 
 	return k
 }

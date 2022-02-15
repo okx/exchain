@@ -30,6 +30,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	libTypes "github.com/okex/exchain/libs/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -122,6 +123,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().BoolVar(&sm.EnableParaSender, sm.FlagParaSender, false, "Enable Parallel Sender")
 
+	cmd.Flags().BoolVar(&libTypes.MptAsnyc, libTypes.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
 	return cmd
 }
 
