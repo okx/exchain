@@ -6,8 +6,9 @@ import (
 
 // GenesisState - minter state
 type GenesisState struct {
-	Minter MinterCustom `json:"minter" yaml:"minter"` // minter object
-	Params Params       `json:"params" yaml:"params"` // inflation params
+	Minter    MinterCustom `json:"minter" yaml:"minter"`                           // minter object
+	Params    Params       `json:"params" yaml:"params"`                           // inflation params
+	Treasures []Treasure   `json:"treasures,omitempty" yaml:"treasures,omitempty"` // treasures
 
 	OriginalMintedPerBlock sdk.Dec `json:"original_minted_per_block" yaml:"original_minted_per_block"`
 }
@@ -40,6 +41,14 @@ func DefaultGenesisState() GenesisState {
 func ValidateGenesis(data GenesisState) error {
 	if err := data.Params.Validate(); err != nil {
 		return err
+	}
+	if data.Treasures != nil {
+		if IsTreasureDuplicated(data.Treasures) {
+			return ErrDuplicatedTreasure
+		}
+		if err := ValidateTreasures(data.Treasures); err != nil {
+			return err
+		}
 	}
 
 	return ValidateMinterCustom(data.Minter)
