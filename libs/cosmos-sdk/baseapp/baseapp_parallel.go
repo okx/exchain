@@ -188,6 +188,9 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[int]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
 	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
+	for _, v := range groupList {
+		fmt.Println("group", len(v), v)
+	}
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -225,7 +228,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		if txIndex != int(receiveTxIndex) {
 			return
 		}
-		//fmt.Println("handle", txIndex, receiveTxIndex)
+		fmt.Println("handle", txIndex, receiveTxIndex)
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
@@ -284,6 +287,9 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 			}
 		}
 
+	}
+	if len(txs) == 6000 {
+		panic("sb")
 	}
 	return deliverTxs
 }
