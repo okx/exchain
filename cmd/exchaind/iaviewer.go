@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
@@ -55,11 +57,12 @@ const (
 
 	DefaultCacheSize int = 100000
 
-	flagStart  = "start"
-	flagLimit  = "limit"
-	flagHex    = "hex"
-	flagPrefix = "prefix"
-	flagKey    = "key"
+	flagStart     = "start"
+	flagLimit     = "limit"
+	flagHex       = "hex"
+	flagPrefix    = "prefix"
+	flagKey       = "key"
+	flagKeyPrefix = "keyprefix"
 )
 
 var printKeysDict = map[string]formatKeyValue{
@@ -190,7 +193,8 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	}
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
-		"if specified, start and limit flags would be ignored")
+		"if specified, keyprefix, start and limit flags would be ignored")
+	cmd.PersistentFlags().String(flagKeyPrefix, "", "print values for keys with specified prefix, prefix must be in hex format.")
 	return cmd
 }
 
@@ -460,6 +464,13 @@ func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte)
 func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	startKey := []byte(nil)
 	endKey := []byte(nil)
+
+	var keyPrefix string
+	if keyPrefix = viper.GetString(flagKeyPrefix); keyPrefix != "" {
+		index, _ := tree.Get(amino.StrToBytes(keyPrefix))
+		ctx.Start += int(index)
+	}
+
 	if tree.Size() <= int64(ctx.Start) {
 		return
 	}
@@ -477,6 +488,11 @@ func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	fmt.Printf("printed: %d\n\n", printed)
 
 	tree.IterateRange(startKey, endKey, true, func(key []byte, value []byte) bool {
+		if keyPrefix != "" {
+			if !bytes.HasPrefix(key, amino.StrToBytes(keyPrefix)) {
+				return true
+			}
+		}
 		printKV(ctx.Codec, ctx.Prefix, key, value)
 		return false
 	})
