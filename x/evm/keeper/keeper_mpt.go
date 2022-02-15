@@ -19,7 +19,7 @@ var (
 	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
 
-const TriesInMemory = 64
+const TriesInMemory = 100
 
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
@@ -110,13 +110,15 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 				if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types.EmptyRootHash {
 					recentMptRoot = ethcmn.Hash{}
 				} else {
+					k.mptCommitMu.Lock()
 					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
 						break
 					}
+					k.mptCommitMu.Unlock()
+					k.SetLatestStoredBlockHeight(version)
+					k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 				}
-				k.SetLatestStoredBlockHeight(version)
-				k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 			}
 		}
 
@@ -137,9 +139,11 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == types.EmptyRootHash {
 			curMptRoot = (ethcmn.Hash{})
 		} else {
+			k.mptCommitMu.Lock()
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 				panic("fail to commit mpt data: " + err.Error())
 			}
+			k.mptCommitMu.Unlock()
 			k.SetLatestStoredBlockHeight(uint64(curHeight))
 			log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
 		}
