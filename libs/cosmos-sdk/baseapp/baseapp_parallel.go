@@ -103,6 +103,9 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 
 	for index, sender := range txsExtraData {
 		rootAddr := Find(sender.signCache.GetFrom())
+		//if sender.to != nil {
+		//	fmt.Println("sender", sender.signCache.GetFrom().String(), sender.to.String(), rootAddr.String())
+		//}
 		id, exist := addrToID[rootAddr]
 		if !exist {
 			id = len(groupList)
@@ -184,6 +187,7 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 }
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[int]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
+	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -206,15 +210,22 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	asyncCb := func(execRes *executeResult) {
 		receiveTxIndex := execRes.GetCounter()
 		txReps[receiveTxIndex] = execRes
-		app.parallelTxManage.setTxStatus(int(receiveTxIndex), false)
 		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !app.parallelTxManage.isRunning(nextTx) {
 			app.parallelTxManage.setTxStatus(nextTx, true)
-			go app.asyncDeliverTx(txs[nextTx])
+			go app.asyncDeliverTx(txs[nextTx], nextTx)
 		}
-		if nextTx := nextTxInGroup[int(receiveTxIndex)+1]; nextTx != 0 && !app.parallelTxManage.isRunning(nextTx) {
+		if nextTx := nextTxInGroup[int(receiveTxIndex)+1]; nextTx != 0 && nextTx < len(txs) && !app.parallelTxManage.isRunning(nextTx) {
+			if app.parallelTxManage.txStatus[string(txs[nextTx])] == nil {
+				fmt.Println("kkk", receiveTxIndex, txIndex, nextTx)
+			}
 			app.parallelTxManage.setTxStatus(nextTx, true)
-			go app.asyncDeliverTx(txs[nextTx])
+			go app.asyncDeliverTx(txs[nextTx], nextTx)
 		}
+		//fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
+		if txIndex != int(receiveTxIndex) {
+			return
+		}
+		//fmt.Println("handle", txIndex, receiveTxIndex)
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
@@ -254,7 +265,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	for _, group := range groupList {
 		for _, txIndex := range group {
 			app.parallelTxManage.setTxStatus(txIndex, true)
-			go app.asyncDeliverTx(txs[txIndex])
+			go app.asyncDeliverTx(txs[txIndex], txIndex)
 		}
 	}
 
@@ -265,6 +276,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
+		//fmt.Println("EEEEEE--")
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
@@ -453,6 +465,7 @@ func newParallelTxManager() *parallelTxManager {
 
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
+		runningStatus: make(map[int]bool),
 	}
 }
 
@@ -465,6 +478,8 @@ func (f *parallelTxManager) clear() {
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
 	f.currTxFee = sdk.Coins{}
+	f.runningStatus = make(map[int]bool)
+	//fmt.Println("CCCCCCCCC--")
 
 }
 func (f *parallelTxManager) setFee(key string, value sdk.Coins) {

@@ -217,8 +217,9 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, index int) {
 
+	//fmt.Println("run-----", index)
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
 	if err != nil {

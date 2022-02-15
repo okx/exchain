@@ -21,7 +21,7 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
+    LOG_LEVEL=main:info,iavl:info,*:error
 
     exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
@@ -99,6 +99,9 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_de
 # Enable EVM
 
 if [ "$(uname -s)" == "Darwin" ]; then
+    sed -i "" 's/size = 10000/size=10000000/ ' $HOME_SERVER/config/config.toml
+    sed -i "" 's/max_tx_num_per_block = 300/max_tx_num_per_block = 6000/' $HOME_SERVER/config/config.toml
+
     sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
@@ -124,6 +127,6 @@ exchaind collect-gentxs --home $HOME_SERVER
 exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
-run
+#run
 
 # exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y
