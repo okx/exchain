@@ -170,20 +170,14 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 		sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 		if !st.Simulate && k.Watcher.Enabled() {
-			currentGasMeter := ctx.GasMeter()
 			if sendAcc != nil {
 				//fix sender's balance in watcher with refund fees
-				gasConsumed := currentGasMeter.GasConsumed()
+				gasConsumed := ctx.GasMeter().GasConsumed()
 				fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
 				coins := sendAcc.GetCoins().Add2(fixedFees)
-				err = sendAcc.SetCoins(coins)
-				if err != nil {
-					//failed to set coins for refund fees
-					panic(err)
-				}
+				sendAcc.SetCoins(coins) //ignore err, no err will be returned in SetCoins
 				pm.Watcher.SaveAccount(sendAcc, false)
 			}
-			ctx.WithGasMeter(currentGasMeter)
 		}
 		if e := recover(); e != nil {
 			k.Watcher.Reset()
