@@ -115,12 +115,20 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	// Verify signature and retrieve sender address
 
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-	if err != nil {
-		return nil, err
-	}
+	var (
+		sender common.Address
+	)
 
-	sender := senderSigCache.GetFrom()
+	// IsCheckTx will Simulate the Transition to get the gas fee
+	if !ctx.IsCheckTx() {
+		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+		if err != nil {
+			return nil, err
+		}
+		sender = senderSigCache.GetFrom()
+	} else {
+		sender = common.BytesToAddress(msg.From().Bytes())
+	}
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog(bam.Txhash)
