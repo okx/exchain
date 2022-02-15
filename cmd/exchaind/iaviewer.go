@@ -109,6 +109,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
+		iaviewerMptCmd(iavlCtx),
 	)
 	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(flagDBBackend, "", "Database backend: goleveldb | rocksdb")
 	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
@@ -191,6 +192,25 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
 		"if specified, start and limit flags would be ignored")
+	return cmd
+}
+
+func iaviewerMptCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mpt <iavl_data_dir> <mpt_data_dir>",
+		Short: "convert evm to mpt from iavl ",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			ctx.Prefix = KeyEvm
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if len(args) != 2 {
+				return fmt.Errorf("must specify iavl_data_dir and mpt_data_dir")
+			}
+			return iaviewerEvmIavlToMpt(ctx, args[0], args[1])
+		},
+	}
 	return cmd
 }
 
@@ -365,6 +385,52 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 	}
 
 	printTree(ctx, tree)
+	return nil
+}
+
+// iaviewerReadData reads key-value from leveldb
+func iaviewerEvmIavlToMpt(ctx *iaviewerContext, iavlDir string, mptDir string) error {
+	iavlDb, err := OpenDB(iavlDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer iavlDb.Close()
+	mptDb, err := OpenDB(mptDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer mptDb.Close()
+
+	tree, err := ReadTree(iavlDb, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
+	}
+
+	evmCodeStarted, _ := tree.Get(evmtypes.KeyPrefixCode)
+	evmCodeStartedKey, _ := tree.GetByIndex(evmCodeStarted)
+
+	evmStorageStarted, _ := tree.Get(evmtypes.KeyPrefixStorage)
+	evmStorageStartedKey, _ := tree.GetByIndex(evmStorageStarted)
+
+	tree.IterateRange(evmCodeStartedKey, nil, true, func(key []byte, value []byte) bool {
+		if len(key) < 1 || key[0] != evmtypes.KeyPrefixCode[0] {
+			return true
+		}
+		// codeHash := key[1:]
+		// code := value
+		return false
+	})
+
+	tree.IterateRange(evmStorageStartedKey, nil, true, func(key []byte, value []byte) bool {
+		if len(key) < 1 || key[0] != evmtypes.KeyPrefixStorage[0] {
+			return true
+		}
+		// addr := key[1:21]
+		// key := key[21:]
+		// data := value
+		return false
+	})
+
 	return nil
 }
 
