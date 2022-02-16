@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -132,7 +133,7 @@ func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegat
 		)
 	}
 
-	if err = keeper.SetCoins(ctx, moduleAccAddr, newCoins); err != nil {
+	if err = keeper.setCoinsToAccount(ctx, moduleAccAddr, moduleAcc, newCoins); err != nil {
 		return err
 	}
 
@@ -311,7 +312,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	}
 
 	newCoins := oldCoins.Sub(amt) // should not panic as spendable coins was already checked
-	err := keeper.SetCoins(ctx, addr, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, newCoins)
 
 	return newCoins, err
 }
@@ -322,7 +323,16 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	oldCoins := keeper.GetCoins(ctx, addr)
+	// oldCoins := keeper.GetCoins(ctx, addr)
+
+	acc := keeper.ak.GetAccount(ctx, addr)
+	var oldCoins sdk.Coins
+	if acc == nil {
+		oldCoins = sdk.NewCoins()
+	} else {
+		oldCoins = acc.GetCoins()
+	}
+
 	newCoins := oldCoins.Add(amt...)
 
 	if newCoins.IsAnyNegative() {
@@ -331,7 +341,8 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 		)
 	}
 
-	err := keeper.SetCoins(ctx, addr, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, newCoins)
+
 	return newCoins, err
 }
 
@@ -344,6 +355,28 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	acc := keeper.ak.GetAccount(ctx, addr)
 	if acc == nil {
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
+	}
+
+	err := acc.SetCoins(amt)
+	if err != nil {
+		panic(err)
+	}
+
+	keeper.ak.SetAccount(ctx, acc)
+	return nil
+}
+
+func (keeper BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) error {
+	if !amt.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+	}
+
+	if acc == nil {
+		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
+	} else {
+		if !bytes.Equal(acc.GetAddress(), addr) {
+			acc = keeper.ak.GetAccount(ctx, addr)
+		}
 	}
 
 	err := acc.SetCoins(amt)
