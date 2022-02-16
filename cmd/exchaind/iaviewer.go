@@ -645,11 +645,12 @@ func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 func accPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	if key[0] == acctypes.AddressStoreKeyPrefix[0] {
 		var acc exported.Account
-		bz := value
-		cdc.MustUnmarshalBinaryBare(bz, &acc)
-		return fmt.Sprintf("adress:%s;account:%s", hex.EncodeToString(key[1:]), acc.String())
+		cdc.MustUnmarshalBinaryBare(value, &acc)
+		return fmt.Sprintf("adress:%X;account:%s", key[1:], acc.String())
 	} else if bytes.Equal(key, acctypes.GlobalAccountNumberKey) {
-		return fmt.Sprintf("%s:%s", string(key), hex.EncodeToString(value))
+		var accNum uint64
+		cdc.MustUnmarshalBinaryLengthPrefixed(value, &accNum)
+		return fmt.Sprintf("%s:%d", string(key), accNum)
 	} else {
 		return defaultKvFormatter(key, value)
 	}
