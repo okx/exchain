@@ -329,6 +329,9 @@ sort_tx_by_gp = {{ .Mempool.SortTxByGp }}
 # Minimum price bump percentage to replace an already existing transaction (nonce)
 tx_price_bump = {{ .Mempool.TxPriceBump }}
 
+# Node key whitelist used in mempool to reduce CPU and Memory tradeoff 
+node_key_whitelist = [{{ range .Mempool.NodeKeyWhitelist }}{{ printf "%q, " . }}{{end}}]
+
 ##### fast sync configuration options #####
 [fastsync]
 

@@ -7,29 +7,41 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmdb "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
-	tmdb "github.com/tendermint/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
+	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
+	cmd.Flags().Bool(rpc.FlagDebugAPI, false, "Enable the debug_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
-	cmd.Flags().String(stream.NacosTmrpcUrls, "", "Stream plugin`s nacos server urls for discovery service of tendermint rpc")
-	cmd.Flags().MarkHidden(stream.NacosTmrpcUrls)
-	cmd.Flags().String(stream.NacosTmrpcNamespaceID, "", "Stream plugin`s nacos namepace id for discovery service of tendermint rpc")
-	cmd.Flags().MarkHidden(stream.NacosTmrpcNamespaceID)
-	cmd.Flags().String(stream.NacosTmrpcAppName, "", "Stream plugin`s tendermint rpc name in eureka or nacos")
-	cmd.Flags().MarkHidden(stream.NacosTmrpcAppName)
-	cmd.Flags().String(stream.RpcExternalAddr, "127.0.0.1:26657", "Set the rpc-server external ip and port, when it is launched by Docker (default \"127.0.0.1:26657\")")
+	// register application rpc to nacos
+	cmd.Flags().String(rpc.FlagRestApplicationName, "", "rest application name in  nacos")
+	cmd.Flags().MarkHidden(rpc.FlagRestApplicationName)
+	cmd.Flags().String(rpc.FlagRestNacosUrls, "", "nacos server urls for discovery service of rest api")
+	cmd.Flags().MarkHidden(rpc.FlagRestNacosUrls)
+	cmd.Flags().String(rpc.FlagRestNacosNamespaceId, "", "nacos namepace id for discovery service of rest api")
+	cmd.Flags().MarkHidden(rpc.FlagRestNacosNamespaceId)
+	cmd.Flags().String(rpc.FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
+	// register tendermint rpc to nacos
+	cmd.Flags().String(rpc.FlagNacosTmrpcUrls, "", "nacos server urls for discovery service of tendermint rpc")
+	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcUrls)
+	cmd.Flags().String(rpc.FlagNacosTmrpcNamespaceID, "", "nacos namepace id for discovery service of tendermint rpc")
+	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcNamespaceID)
+	cmd.Flags().String(rpc.FlagNacosTmrpcAppName, "", " tendermint rpc name in nacos")
+	cmd.Flags().MarkHidden(rpc.FlagNacosTmrpcAppName)
+	cmd.Flags().String(rpc.FlagRpcExternalAddr, "127.0.0.1:26657", "Set the rpc-server external ip and port, when it is launched by Docker (default \"127.0.0.1:26657\")")
 
 	cmd.Flags().String(rpc.FlagRateLimitAPI, "", "Set the RPC API to be controlled by the rate limit policy, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
 	cmd.Flags().Int(rpc.FlagRateLimitCount, 0, "Set the count of requests allowed per second of rpc rate limiter")
@@ -85,7 +97,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
-	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true)")
+	cmd.Flags().String(tmdb.FlagGoLeveldbOpts, "", "Options of goleveldb. (cache_size=128MB,handlers_num=1024)")
+	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
@@ -93,4 +106,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
+
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 }

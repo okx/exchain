@@ -3,8 +3,8 @@ package log
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"io"
-	"os"
 	"sync"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 type tmfmtEncoder struct {
 	*logfmt.Encoder
 	buf bytes.Buffer
+	//buf strings.Builder
 }
 
 func (l *tmfmtEncoder) Reset() {
@@ -29,6 +30,23 @@ var tmfmtEncoderPool = sync.Pool{
 		enc.Encoder = logfmt.NewEncoder(&enc.buf)
 		return &enc
 	},
+}
+
+type LogBuf interface {
+	String() string
+}
+
+type Subscriber interface {
+	AddEvent(LogBuf)
+}
+
+var subscriber Subscriber
+var once sync.Once
+
+func SetSubscriber(s Subscriber) {
+	once.Do(func() {
+		subscriber = s
+	})
 }
 
 type tmfmtLogger struct {
@@ -45,8 +63,6 @@ type tmfmtLogger struct {
 func NewTMFmtLogger(w io.Writer) kitlog.Logger {
 	return &tmfmtLogger{w}
 }
-
-var pid = os.Getpid()
 
 func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	enc := tmfmtEncoderPool.Get().(*tmfmtEncoder)
@@ -94,8 +110,18 @@ func (l tmfmtLogger) Log(keyvals ...interface{}) error {
 	//     D										- first character of the level, uppercase (ASCII only)
 	//     [2016-05-02|11:06:44.322]    - our time format (see https://golang.org/src/time/format.go)
 	//     Stopping ...					- message
-	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d] %-44s ",
-		lvl[0]-32, time.Now().Format("2006-01-02|15:04:05.000"), pid, msg))
+
+	goridInfo := "]"
+	if system.EnableGid {
+		goridInfo = fmt.Sprintf(":%-5s", system.GoRId.String()+"]")
+	}
+
+	enc.buf.WriteString(fmt.Sprintf("%c[%s][%d%s %s. ",
+		lvl[0]-32,
+		time.Now().Format("2006-01-02|15:04:05.000"),
+		system.Getpid(),
+		goridInfo,
+		msg))
 
 	if module != unknown {
 		enc.buf.WriteString("module=" + module + " ")
@@ -122,11 +148,19 @@ KeyvalueLoop:
 		return err
 	}
 
+	result := enc.buf.Bytes()
+	//result := []byte(enc.buf.String())
 	// The Logger interface requires implementations to be safe for concurrent
 	// use by multiple goroutines. For this implementation that means making
 	// only one call to l.w.Write() for each call to Log.
-	if _, err := l.w.Write(enc.buf.Bytes()); err != nil {
+	if _, err := l.w.Write(result); err != nil {
 		return err
 	}
+
+	// send new event to kafka
+	if subscriber != nil {
+		subscriber.AddEvent(&enc.buf)
+	}
+
 	return nil
 }

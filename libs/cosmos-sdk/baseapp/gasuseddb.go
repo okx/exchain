@@ -2,14 +2,14 @@ package baseapp
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	db "github.com/tendermint/tm-db"
 	"path/filepath"
 	"sync"
 )
 
 const (
-	FlagDBBackend    = "db_backend"
+	FlagDBBackend = "db_backend"
 
 	HistoryGasUsedDbDir  = "data"
 	HistoryGasUsedDBName = "hgu"
@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	once sync.Once
-	guDB db.DB
+	once          sync.Once
+	guDB          db.DB
 	GasUsedFactor = 0.4
 )
 

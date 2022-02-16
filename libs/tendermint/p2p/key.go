@@ -44,6 +44,15 @@ func PubKeyToID(pubKey crypto.PubKey) ID {
 	return ID(hex.EncodeToString(pubKey.Address()))
 }
 
+// BytesToPubKey returns the PubKey corresponding to the given ID.
+func BytesToPubKey(b []byte) crypto.PubKey {
+	var pub crypto.PubKey
+	if err := cdc.UnmarshalBinaryBare(b, &pub); err != nil {
+		return nil
+	}
+	return pub
+}
+
 // LoadOrGenNodeKey attempts to load the NodeKey from the given filePath.
 // If the file does not exist, it generates and saves a new NodeKey.
 func LoadOrGenNodeKey(filePath string) (*NodeKey, error) {
@@ -55,6 +64,17 @@ func LoadOrGenNodeKey(filePath string) (*NodeKey, error) {
 		return nodeKey, nil
 	}
 	return genNodeKey(filePath)
+}
+
+func LoadOrGenNodeKeyByIndex(filePath string, index int) (*NodeKey, error) {
+	if tmos.FileExists(filePath) {
+		nodeKey, err := LoadNodeKey(filePath)
+		if err != nil {
+			return nil, err
+		}
+		return nodeKey, nil
+	}
+	return genNodeKeyByIndex(filePath, index)
 }
 
 func LoadNodeKey(filePath string) (*NodeKey, error) {
@@ -72,6 +92,27 @@ func LoadNodeKey(filePath string) (*NodeKey, error) {
 
 func genNodeKey(filePath string) (*NodeKey, error) {
 	privKey := ed25519.GenPrivKey()
+	nodeKey := &NodeKey{
+		PrivKey: privKey,
+	}
+
+	jsonBytes, err := cdc.MarshalJSON(nodeKey)
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(filePath, jsonBytes, 0600)
+	if err != nil {
+		return nil, err
+	}
+	return nodeKey, nil
+}
+
+func genNodeKeyByIndex(filePath string, index int) (*NodeKey, error) {
+	if index < 0 {
+		return genNodeKey(filePath)
+	}
+
+	privKey := ed25519.GenPrivKeyFromSecret([]byte(fmt.Sprintf("secret%d", index)))
 	nodeKey := &NodeKey{
 		PrivKey: privKey,
 	}

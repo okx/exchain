@@ -9,48 +9,93 @@ import (
 
 var cdc = amino.NewCodec()
 
-func TestKvPairAmino(t *testing.T) {
-	var pairs = []Pair{
-		{},
-		{Key: []byte("key")},
-		{Value: []byte("value")},
-		{Key: []byte("key1"), Value: []byte("value1")},
-		{Key: []byte("key1"), Value: []byte("value1"), XXX_NoUnkeyedLiteral: struct{}{}, XXX_sizecache: -10, XXX_unrecognized: []byte("unrecognized")},
-		{Key: []byte{}, Value: []byte{}},
-		{Key: []byte{}, Value: []byte{}, XXX_sizecache: 10},
-	}
+var testPairs = []Pair{
+	{},
+	{Key: []byte("key")},
+	{Value: []byte("value")},
+	{Key: []byte("key1"), Value: []byte("value1")},
+	{Key: []byte("key1"), Value: []byte("value1"), XXX_NoUnkeyedLiteral: struct{}{}, XXX_sizecache: -10, XXX_unrecognized: []byte("unrecognized")},
+	{Key: []byte{}, Value: []byte{}},
+	{Key: []byte{}, Value: []byte{}, XXX_sizecache: 10},
+}
 
-	for _, pair := range pairs {
+func TestKvPairAmino(t *testing.T) {
+	for _, pair := range testPairs {
 		expect, err := cdc.MarshalBinaryBare(pair)
 		require.NoError(t, err)
 
-		actual, err := MarshalPairToAmino(pair)
+		actual, err := pair.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
+
+		var pair2 Pair
+		err = cdc.UnmarshalBinaryBare(expect, &pair2)
+		require.NoError(t, err)
+		var pair3 Pair
+		err = pair3.UnmarshalFromAmino(cdc, expect)
+		require.NoError(t, err)
+
+		require.EqualValues(t, pair2, pair3)
 	}
 }
 
-func BenchmarkKvPairAmino(b *testing.B) {
-	var pair = Pair{
-		Key:   []byte("key"),
-		Value: []byte("value"),
-	}
+func BenchmarkKvPairAminoMarshal(b *testing.B) {
 	b.ResetTimer()
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBare(pair)
-			if err != nil {
-				b.Fatal(err)
+			for _, pair := range testPairs {
+				_, err := cdc.MarshalBinaryBare(pair)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
 		}
 	})
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := MarshalPairToAmino(pair)
-			if err != nil {
-				b.Fatal(err)
+			for _, pair := range testPairs {
+				_, err := pair.MarshalToAmino(cdc)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkKvPairAminoUnmarshal(b *testing.B) {
+	testData := make([][]byte, len(testPairs))
+	for i, pair := range testPairs {
+		data, err := cdc.MarshalBinaryBare(pair)
+		if err != nil {
+			b.Fatal(err)
+		}
+		testData[i] = data
+	}
+	b.ResetTimer()
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var pair Pair
+				err := cdc.UnmarshalBinaryBare(data, &pair)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, data := range testData {
+				var pair Pair
+				err := pair.UnmarshalFromAmino(cdc, data)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
 		}
 	})

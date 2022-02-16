@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-	yaml "gopkg.in/yaml.v2"
-
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/tendermint/go-amino"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -81,12 +80,12 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				tx.Msgs = append(tx.Msgs, v.(sdk.Msg))
 			}
 		case 2:
-			if err := tx.Fee.UnmarshalFromAmino(subData); err != nil {
+			if err := tx.Fee.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 		case 3:
 			var sig StdSignature
-			if err := sig.UnmarshalFromAmino(subData); err != nil {
+			if err := sig.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
 			tx.Signatures = append(tx.Signatures, sig)
@@ -307,7 +306,7 @@ func (fee StdFee) GasPrices() sdk.DecCoins {
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
 }
 
-func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
+func (fee *StdFee) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -338,7 +337,8 @@ func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
@@ -401,7 +401,10 @@ type StdSignature struct {
 
 // DefaultTxDecoder logic for standard transaction decoding
 func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
-	return func(txBytes []byte) (sdk.Tx, error) {
+	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
+		if len(heights) > 0 {
+			return nil, fmt.Errorf("too many height parameters")
+		}
 		var tx = StdTx{}
 
 		if len(txBytes) == 0 {
@@ -424,6 +427,20 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
 		return cdc.MarshalBinaryLengthPrefixed(tx)
 	}
+}
+
+func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
+	return func(tx sdk.Tx) ([]byte, error) {
+		return EthereumTxEncode(tx)
+	}
+}
+
+func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
+	return rlp.EncodeToBytes(tx)
+}
+
+func EthereumTxDecode(b []byte, tx interface{}) error {
+	return rlp.DecodeBytes(b, tx)
 }
 
 // MarshalYAML returns the YAML representation of the signature.
@@ -455,7 +472,7 @@ func (ss StdSignature) MarshalYAML() (interface{}, error) {
 	return string(bz), err
 }
 
-func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
+func (ss *StdSignature) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
 
@@ -489,7 +506,7 @@ func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
 
 		switch pos {
 		case 1:
-			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}

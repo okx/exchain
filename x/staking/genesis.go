@@ -5,10 +5,10 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	"github.com/okex/exchain/x/staking/exported"
-	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // InitGenesis sets the pool and parameters for the provided keeper

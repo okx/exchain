@@ -2,18 +2,20 @@ package mempool
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math"
 	"reflect"
 	"sync"
 	"time"
 
-	amino "github.com/tendermint/go-amino"
-
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -35,9 +37,16 @@ const (
 // peers you received it from.
 type Reactor struct {
 	p2p.BaseReactor
-	config  *cfg.MempoolConfig
-	mempool *CListMempool
-	ids     *mempoolIDs
+	config           *cfg.MempoolConfig
+	mempool          *CListMempool
+	ids              *mempoolIDs
+	nodeKey          *p2p.NodeKey
+	nodeKeyWhitelist map[string]struct{}
+	enableWtx        bool
+}
+
+func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
+	memR.nodeKey = key
 }
 
 type mempoolIDs struct {
@@ -106,9 +115,14 @@ func newMempoolIDs() *mempoolIDs {
 // NewReactor returns a new Reactor with the given config and mempool.
 func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR := &Reactor{
-		config:  config,
-		mempool: mempool,
-		ids:     newMempoolIDs(),
+		config:           config,
+		mempool:          mempool,
+		ids:              newMempoolIDs(),
+		nodeKeyWhitelist: make(map[string]struct{}),
+		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
+	}
+	for _, nodeKey := range config.GetNodeKeyWhitelist() {
+		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	return memR
@@ -171,19 +185,35 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	memR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
+	txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src)}
+	if src != nil {
+		txInfo.SenderP2PID = src.ID()
+	}
+	var tx types.Tx
+
 	switch msg := msg.(type) {
 	case *TxMessage:
-		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(src)}
-		if src != nil {
-			txInfo.SenderP2PID = src.ID()
-		}
-		err := memR.mempool.CheckTx(msg.Tx, nil, txInfo)
-		if err != nil {
-			memR.Logger.Info("Could not check tx", "tx", txID(msg.Tx), "err", err)
+		tx = msg.Tx
+
+	case *WtxMessage:
+		tx = msg.Wtx.Payload
+		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
+			memR.Logger.Error("wtx.verify", "error", err, "txhash",
+				common.BytesToHash(types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height)),
+			)
+		} else {
+			txInfo.wtx = msg.Wtx
+			txInfo.checkType = abci.CheckTxType_WrappedCheck
 		}
 		// broadcasting happens from go routines per peer
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
+		return
+	}
+
+	err = memR.mempool.CheckTx(tx, nil, txInfo)
+	if err != nil {
+		memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.height), "err", err)
 	}
 }
 
@@ -242,7 +272,29 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
 			// send memTx
-			msg := &TxMessage{Tx: memTx.tx}
+			var msg Message
+			if memTx.nodeKey != nil && memTx.signature != nil {
+				msg = &WtxMessage{
+					Wtx: &WrappedTx{
+						Payload:   memTx.tx,
+						From:      memTx.from,
+						Signature: memTx.signature,
+						NodeKey:   memTx.nodeKey,
+					},
+				}
+			} else if memR.enableWtx {
+				if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
+					msg = &WtxMessage{
+						Wtx: wtx,
+					}
+				}
+
+			} else {
+				msg = &TxMessage{
+					Tx: memTx.tx,
+				}
+			}
+
 			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
@@ -271,6 +323,7 @@ type Message interface{}
 func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
+	cdc.RegisterConcrete(&WtxMessage{}, "tendermint/mempool/WtxMessage", nil)
 }
 
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
@@ -298,4 +351,74 @@ func (m *TxMessage) String() string {
 // account for amino overhead of TxMessage
 func calcMaxMsgSize(maxTxSize int) int {
 	return maxTxSize + aminoOverheadForTxMessage
+}
+
+// WtxMessage is a Message containing a transaction.
+type WtxMessage struct {
+	Wtx *WrappedTx
+}
+
+// String returns a string representation of the WtxMessage.
+func (m *WtxMessage) String() string {
+	return fmt.Sprintf("[WtxMessage %v]", m.Wtx)
+}
+
+type WrappedTx struct {
+	Payload   []byte `json:"payload"`   // std tx or evm tx
+	From      string `json:"from"`      // from address of evm tx or ""
+	Signature []byte `json:"signature"` // signature for payload
+	NodeKey   []byte `json:"nodeKey"`   // pub key of the node who signs the tx
+}
+
+func (wtx *WrappedTx) GetPayload() []byte {
+	if wtx != nil {
+		return wtx.Payload
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetSignature() []byte {
+	if wtx != nil {
+		return wtx.Signature
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetNodeKey() []byte {
+	if wtx != nil {
+		return wtx.NodeKey
+	}
+	return nil
+}
+
+func (wtx *WrappedTx) GetFrom() string {
+	if wtx != nil {
+		return wtx.From
+	}
+	return ""
+}
+
+func (w *WrappedTx) verify(whitelist map[string]struct{}) error {
+	pub := p2p.BytesToPubKey(w.NodeKey)
+	if _, ok := whitelist[string(p2p.PubKeyToID(pub))]; !ok {
+		return fmt.Errorf("node key [%s] not in whitelist", p2p.PubKeyToID(pub))
+	}
+	if !pub.VerifyBytes(append(w.Payload, w.From...), w.Signature) {
+		return fmt.Errorf("invalid signature of wtx")
+	}
+	return nil
+}
+
+func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
+	wtx := &WrappedTx{
+		Payload: tx,
+		From:    from,
+		NodeKey: memR.nodeKey.PubKey().Bytes(),
+	}
+	sig, err := memR.nodeKey.PrivKey.Sign(append(wtx.Payload, from...))
+	if err != nil {
+		return nil, err
+	}
+	wtx.Signature = sig
+	return wtx, nil
 }

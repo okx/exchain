@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
@@ -41,8 +41,6 @@ const (
 	French
 	// Italian is currently not supported.
 	Italian
-	addressSuffix = "address"
-	infoSuffix    = "info"
 )
 
 const (
@@ -51,6 +49,10 @@ const (
 
 	// bits of entropy to draw when creating a mnemonic
 	defaultEntropySize = 128 //mnemonicEntropySize
+)
+const (
+	addressSuffix = "address"
+	infoSuffix    = "info"
 )
 
 var (
@@ -472,4 +474,9 @@ func addrKey(address types.AccAddress) []byte {
 
 func infoKey(name string) []byte {
 	return []byte(fmt.Sprintf("%s.%s", name, infoSuffix))
+}
+
+// FileDir show dbKeybase position
+func (kb dbKeybase) FileDir() (string, error) {
+	return "", fmt.Errorf("dbKeybase unsupported export")
 }

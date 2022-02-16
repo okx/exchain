@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	dbm "github.com/tendermint/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/behaviour"

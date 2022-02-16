@@ -33,120 +33,133 @@ type BaseAccount struct {
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
 }
 
+func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if int(dataLen) > len(data) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			acc.Address = make([]byte, len(subData))
+			copy(acc.Address, subData)
+		case 2:
+			var coin sdk.DecCoin
+			err = coin.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+			acc.Coins = append(acc.Coins, coin)
+		case 3:
+			acc.PubKey, err = cryptoamino.UnmarshalPubKeyFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+		case 4:
+			var n int
+			acc.AccountNumber, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 5:
+			var n int
+			acc.Sequence, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		}
+	}
+	return nil
+}
+
 func (acc BaseAccount) Copy() interface{} {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
 var baseAccountBufferPool = amino.NewBufferPool()
 
-func (acc BaseAccount) MarshalToAmino() ([]byte, error) {
+func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = baseAccountBufferPool.Get()
 	defer baseAccountBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5 << 3}
-	for pos := 1; pos < 6; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err := buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
-
+	for pos := 1; pos <= 5; pos++ {
+		var err error
 		switch pos {
 		case 1:
-			addressLen := len(acc.Address)
-			if addressLen == 0 {
-				noWrite = true
+			if len(acc.Address) == 0 {
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, uint64(addressLen))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(acc.Address)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, acc.Address, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 		case 2:
-			coinsLen := len(acc.Coins)
-			if coinsLen == 0 {
-				noWrite = true
-				break
-			}
-			if coinsLen == 1 {
-				data, err := acc.Coins[0].MarshalToAmino()
+			for _, coin := range acc.Coins {
+				data, err := coin.MarshalToAmino(cdc)
 				if err != nil {
 					return nil, err
 				}
-				err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
+				err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, fieldKeysType[pos-1])
 				if err != nil {
 					return nil, err
-				}
-				_, err = buf.Write(data)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				buf.Truncate(lBeforeKey)
-				for _, coin := range acc.Coins {
-					err := buf.WriteByte(fieldKeysType[pos-1])
-					if err != nil {
-						return nil, err
-					}
-					data, err := coin.MarshalToAmino()
-					if err != nil {
-						return nil, err
-					}
-					err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-					if err != nil {
-						return nil, err
-					}
-					_, err = buf.Write(data)
-					if err != nil {
-						return nil, err
-					}
 				}
 			}
 		case 3:
 			if acc.PubKey == nil {
-				noWrite = true
 				break
 			}
-			data, err := cryptoamino.MarshalPubKeyToAminoWithTypePrefix(acc.PubKey)
+			data, err := cryptoamino.MarshalPubKeyToAmino(cdc, acc.PubKey)
 			if err != nil {
 				return nil, err
 			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(data)
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 		case 4:
 			if acc.AccountNumber == 0 {
-				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, acc.AccountNumber)
+			err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.AccountNumber, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 		case 5:
 			if acc.Sequence == 0 {
-				noWrite = true
 				break
 			}
-			err := amino.EncodeUvarintToBuffer(buf, acc.Sequence)
+			err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.Sequence, fieldKeysType[pos-1])
 			if err != nil {
 				return nil, err
 			}
 		default:
 			panic("unreachable")
-		}
-
-		if noWrite {
-			buf.Truncate(lBeforeKey)
 		}
 	}
 	return amino.GetBytesBufferCopy(buf), nil

@@ -48,6 +48,7 @@ type CommitStateDBParams struct {
 
 type Watcher interface {
 	SaveAccount(account auth.Account, isDirectly bool)
+	AddDelAccMsg(account auth.Account, isDirectly bool)
 	SaveState(addr ethcmn.Address, key, value []byte)
 	Enabled() bool
 	SaveContractBlockedListItem(addr sdk.AccAddress)
@@ -1359,7 +1360,7 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
 			if err != nil {
 				return err
 			}
@@ -1378,9 +1379,9 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
-			result,err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+			result, err := bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
 			if err != nil {
-				return ErrBlockedContractMethodIsNotExist(contractList[i].Address,err)
+				return ErrBlockedContractMethodIsNotExist(contractList[i].Address, err)
 			}
 			bc.BlockMethods = result
 			//if block contract method delete empty then remove contract from blocklist.
@@ -1394,7 +1395,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 				csdb.SetContractMethodBlocked(*bc)
 			}
 		} else {
-			return ErrBlockedContractMethodIsNotExist(contractList[i].Address,ErrorContractMethodBlockedIsNotExist)
+			return ErrBlockedContractMethodIsNotExist(contractList[i].Address, ErrorContractMethodBlockedIsNotExist)
 		}
 	}
 	return nil

@@ -2,10 +2,13 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"runtime/debug"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type runTxInfo struct {
@@ -26,36 +29,50 @@ type runTxInfo struct {
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
-	txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result,
+	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
 	msCacheList sdk.CacheMultiStore, err error) {
 
 	var info *runTxInfo
-	info, err = app.runtx(mode, txBytes, tx, height)
+	info, err = app.runtx(mode, txBytes, tx, height, from...)
 	return info.gInfo, info.result, info.msCacheAnte, err
-
-	//return app.runtx_org(mode, txBytes, tx, height)
-
 }
 
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
+	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	return
+}
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
-		return info, err
+		return err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	//info with cache saved in app to load predesessor tx state
+	if mode != runTxModeTrace {
+		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
+		//to prevent modifying the deliver state
+		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
+		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	}
+	for _, addr := range from {
+		// cache from if exist
+		if addr != "" {
+			info.ctx = info.ctx.WithFrom(addr)
+			break
+		}
+	}
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
-		return info, err
+		return err
 	}
-
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -74,18 +91,17 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		handler.handleDeferRefund(info)
 	}()
 
-
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		return info, err
+		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-
 	app.pin(AnteHandler, true, mode)
+
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			return info, err
+			return err
 		}
 	}
 	app.pin(AnteHandler, false, mode)
@@ -93,12 +109,10 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	app.pin(RunMsgs, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsgs, false, mode)
-
-	return info, err
+	return err
 }
 
-
-func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	var anteCtx sdk.Context
 
@@ -111,9 +125,11 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate)
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
+
 	if !newCtx.IsZero() {
 		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 		// replaced by the AnteHandler. We want the original multistore, not one
@@ -144,18 +160,17 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) (error) {
 	return nil
 }
 
+func txhash(txbytes []byte) string {
+	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
+	ethHash := common.BytesToHash(txHash)
+	return ethHash.String()
+}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-	}
-
-	//just for asynchronous deliver tx
-	if app.parallelTxManage.isAsyncDeliverTx {
-		go app.asyncDeliverTx(req, tx)
-		return abci.ResponseDeliverTx{}
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
@@ -171,7 +186,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Events:    result.Events.ToABCIEvents(),
 	}
 }
-
 
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
@@ -203,9 +217,16 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 
-	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
+	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
+	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
+	if err != nil {
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		app.parallelTxManage.workgroup.Push(asyncExe)
+		return
+	}
+
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
@@ -213,7 +234,7 @@ func (app *BaseApp) asyncDeliverTx(req abci.RequestDeliverTx, tx sdk.Tx)  {
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
+	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {

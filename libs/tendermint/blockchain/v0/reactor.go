@@ -174,13 +174,8 @@ func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
 	block := bcR.store.LoadBlock(msg.Height)
-	var deltas *types.Deltas
-	if types.EnableBroadcastP2PDelta() {
-		deltas = bcR.dstore.LoadDeltas(msg.Height)
-	}
-
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, Deltas: deltas})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -249,13 +244,6 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		bcR.setIsSyncing(false)
 	}()
 
-	bcR.pool.SetHeight(bcR.store.Height() + 1)
-	bcR.pool.Stop()
-	bcR.pool.Reset()
-	bcR.pool.Start()
-
-	blocksSynced := uint64(0)
-
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
 		conState, err := conR.SwitchToFastSync()
@@ -264,6 +252,13 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		}
 	}
 	chainID := bcR.curState.ChainID
+
+	bcR.pool.SetHeight(bcR.curState.LastBlockHeight + 1)
+	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.pool.Start()
+
+	blocksSynced := uint64(0)
 
 	lastHundred := time.Now()
 	lastRate := 0.0
@@ -377,6 +372,11 @@ FOR_LOOP:
 				bcR.curState, _, err = bcR.blockExec.ApplyBlock(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
+					// The block can't be committed, do we need to delete it from store db?
+					_, errDel := bcR.store.DeleteBlocksFromTop(first.Height - 1)
+					if errDel != nil {
+						bcR.Logger.Error("Failed to delete blocks from top", "height", first.Height-1, "err", errDel)
+					}
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++

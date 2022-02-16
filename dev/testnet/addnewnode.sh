@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source exchain.profile
+source oec.profile
 
 set -e
 set -o errexit
@@ -115,7 +115,7 @@ init() {
         exit
     fi
 
-    ${BIN_NAME} init ${NAME} -o --chain-id ${CHAIN_ID} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind
+    ${BIN_NAME} init ${NAME} -o --chain-id ${CHAIN_ID} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind --node-index ${INPUT_INDEX}
 }
 
 
@@ -134,19 +134,23 @@ start() {
     p2pport=$1
     rpcport=$2
     seednode=$3
+    ((restport = INPUT_INDEX * 100 + REST_PORT)) # for evm tx
 
 #     echo "${BIN_NAME} --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind  start --p2p.laddr tcp://${IP}:${p2pport} --p2p.seeds ${seednode} --rpc.laddr tcp://${IP}:${rpcport}"
 
 #    LOG_LEVEL=main:info,*:error
-#    LOG_LEVEL=main:info,*:error,consensus:info,state:info
     LOG_LEVEL=main:info,*:error,state:info
+#    LOG_LEVEL=main:info,*:error,state:debug,consensus:debug
 
     ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
     --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --p2p.seeds ${seednode} \
+    --rest.laddr tcp://${IP}:${restport} \
     --log_level ${LOG_LEVEL} \
+    --enable-gid \
+    --append-pid \
     ${UPLOAD_DELTA} \
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \

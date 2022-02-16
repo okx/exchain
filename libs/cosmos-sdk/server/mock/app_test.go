@@ -52,6 +52,13 @@ func TestDeliverTx(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	appState, err := AppGenState(nil, types.GenesisDoc{}, nil)
+	require.NoError(t, err)
+	req := abci.RequestInitChain{
+		AppStateBytes: appState,
+	}
+	app.InitChain(req)
+
 	key := "my-special-key"
 	value := "top-secret-data!!"
 	tx := NewTx(key, value)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
@@ -55,6 +57,92 @@ type Vote struct {
 	ValidatorAddress Address       `json:"validator_address"`
 	ValidatorIndex   int           `json:"validator_index"`
 	Signature        []byte        `json:"signature"`
+}
+
+func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+	var timestampUpdated bool
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			vote.Type = SignedMsgType(u64)
+			dataLen = uint64(n)
+		case 2:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			vote.Height = int64(u64)
+			dataLen = uint64(n)
+		case 3:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			vote.Round = int(u64)
+			dataLen = uint64(n)
+		case 4:
+			err = vote.BlockID.UnmarshalFromAmino(cdc, subData)
+			if err != nil {
+				return err
+			}
+		case 5:
+			vote.Timestamp, _, err = amino.DecodeTime(subData)
+			if err != nil {
+				return err
+			}
+			timestampUpdated = true
+		case 6:
+			vote.ValidatorAddress = make([]byte, len(subData))
+			copy(vote.ValidatorAddress, subData)
+		case 7:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			vote.ValidatorIndex = int(u64)
+			dataLen = uint64(n)
+		case 8:
+			vote.Signature = make([]byte, len(subData))
+			copy(vote.Signature, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	if !timestampUpdated {
+		vote.Timestamp = amino.ZeroTime
+	}
+	return nil
 }
 
 // CommitSig converts the Vote to a CommitSig.

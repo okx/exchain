@@ -2,7 +2,8 @@ package app
 
 import (
 	"fmt"
-	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
+	"sort"
+	"strings"
 
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
@@ -21,8 +22,7 @@ import (
 func setNodeConfig(ctx *server.Context) {
 	nodeMode := viper.GetString(types.FlagNodeMode)
 
-	ctx.Logger.Info("starting node","Genesis Height",
-		tendermintTypes.GetStartBlockHeight(), "node mode", nodeMode)
+	ctx.Logger.Info("Starting node", "mode", nodeMode)
 
 	switch types.NodeMode(nodeMode) {
 	case types.RpcNode:
@@ -72,37 +72,41 @@ func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
-	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
-	viper.SetDefault(watcher.FlagFastQuery, true)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
-		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc archive mode",
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by archive node mode",
 		server.FlagPruning, "nothing", abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
-		watcher.FlagFastQueryLru, 10000, watcher.FlagFastQuery, true,
 		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
 		server.FlagCORS, "*"))
 }
 
 func logStartingFlags(logger log.Logger) {
-	flagMap := map[string]interface{}{
-		server.FlagPruning:                  viper.GetString(server.FlagPruning),
-		abcitypes.FlagDisableABCIQueryMutex: viper.GetBool(abcitypes.FlagDisableABCIQueryMutex),
-		evmtypes.FlagEnableBloomFilter:      viper.GetBool(evmtypes.FlagEnableBloomFilter),
-		watcher.FlagFastQueryLru:            viper.GetInt(watcher.FlagFastQueryLru),
-		watcher.FlagFastQuery:               viper.GetBool(watcher.FlagFastQuery),
-		iavl.FlagIavlEnableAsyncCommit:      viper.GetBool(iavl.FlagIavlEnableAsyncCommit),
-		flags.FlagMaxOpenConnections:        viper.GetInt(flags.FlagMaxOpenConnections),
-		server.FlagCORS:                     viper.GetString(server.FlagCORS),
-		appconfig.FlagEnableDynamicGp:       viper.GetBool(appconfig.FlagEnableDynamicGp),
-		store.FlagIavlCacheSize:             viper.GetInt(store.FlagIavlCacheSize),
-		mempool.FlagEnablePendingPool:       viper.GetBool(mempool.FlagEnablePendingPool),
-		appconfig.FlagMaxGasUsedPerBlock:    viper.GetInt64(appconfig.FlagMaxGasUsedPerBlock),
+	msg := "All flags:\n"
+
+	var maxLen int
+	kvMap := make(map[string]interface{})
+	var keys []string
+	for _, key := range viper.AllKeys() {
+
+		if strings.Index(key, "stream.") == 0 {
+			continue
+		}
+		if strings.Index(key, "backend.") == 0 {
+			continue
+		}
+
+		keys = append(keys, key)
+		kvMap[key] = viper.Get(key)
+		if len(key) > maxLen {
+			maxLen = len(key)
+		}
 	}
-	msg := "starting flags:"
-	for k, v := range flagMap {
-		msg += fmt.Sprintf("\n	%s=%v", k, v)
+
+	sort.Strings(keys)
+	for _, k := range keys {
+		msg += fmt.Sprintf("	%-45s= %v\n", k, kvMap[k])
 	}
 
 	logger.Info(msg)

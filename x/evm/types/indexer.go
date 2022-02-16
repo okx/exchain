@@ -6,8 +6,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -29,7 +29,6 @@ func CloseIndexer() {
 		indexer.backend.db.Close()
 	}
 }
-
 
 func GetEnableBloomFilter() bool {
 	once.Do(func() {

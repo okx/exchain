@@ -2,9 +2,8 @@ package state
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"sync/atomic"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -15,8 +14,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
 )
 
 //-----------------------------------------------------------------------------
@@ -40,22 +39,17 @@ type BlockExecutor struct {
 	mempool mempl.Mempool
 	evpool  EvidencePool
 
-	logger log.Logger
+	logger  log.Logger
 	metrics *Metrics
 	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
 
-	prerunTx bool
-	prerunChan chan *executionContext
-	prerunResultChan chan *executionContext
-	prerunIndex int64
-	prerunContext *executionContext
+	prerunCtx *prerunContext
 
 	isFastSync bool
 }
-
 
 type BlockExecutorOption func(executor *BlockExecutor)
 
@@ -76,24 +70,23 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:             db,
-		proxyApp:       proxyApp,
-		eventBus:       types.NopEventBus{},
-		mempool:        mempool,
-		evpool:         evpool,
-		logger:         logger,
-		metrics:        NopMetrics(),
-		isAsync:        viper.GetBool(FlagParalleledTx),
-		prerunChan:           make(chan *executionContext, 1),
-		prerunResultChan:     make(chan *executionContext, 1),
-		deltaContext:         newDeltaContext(),
+		db:           db,
+		proxyApp:     proxyApp,
+		eventBus:     types.NopEventBus{},
+		mempool:      mempool,
+		evpool:       evpool,
+		logger:       logger,
+		metrics:      NopMetrics(),
+		isAsync:      viper.GetBool(FlagParalleledTx),
+		prerunCtx:    newPrerunContex(logger),
+		deltaContext: newDeltaContext(logger),
 	}
 
 	for _, option := range options {
 		option(res)
 	}
 	automation.LoadTestCase(logger)
-	res.deltaContext.init(logger)
+	res.deltaContext.init()
 
 	return res
 }
@@ -108,9 +101,6 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
-}
-func (blockExec *BlockExecutor) GetIsFastSyncing() bool {
-	return blockExec.isFastSync
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -174,7 +164,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc := trace.NewTracer(trace.ApplyBlock)
 	dc := blockExec.deltaContext
 
-	var delta *types.Deltas
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
@@ -191,13 +180,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	delta = dc.prepareStateDelta(block.Height)
+	delta, deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block, delta)
+	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -239,16 +228,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, delta, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
-
-	if blockExec.deltaContext.downloadDelta {
-		atomic.StoreInt64(&dc.lastCommitHeight, block.Height)
-	}
+	global.SetGlobalHeight(block.Height)
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
@@ -268,45 +254,32 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, delta, abciResponses, commitResp.Deltas.DeltasByte, blockExec.isFastSync)
+	dc.postApplyBlock(block.Height, delta, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if delta != nil {
+	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
-		err = types.Json.Unmarshal(delta.ABCIRsp(), &abciResponses)
-		if err != nil {
-			return nil, err
-		}
+		abciResponses = deltaInfo.abciResponses
 	} else {
 		//if blockExec.deltaContext.downloadDelta {
 		//	time.Sleep(time.Second*1)
 		//}
-		if blockExec.prerunTx {
-			blockExec.logger.Info("Not apply delta", "height", block.Height,
-				"block-size", block.Size(),
-				"prerunIndex", blockExec.prerunIndex)
+
+		pc := blockExec.prerunCtx
+		if pc.prerunTx {
+			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
 		}
 
-		// blockExec.prerunIndex==0 means:
-		// 1. prerunTx disabled
-		// 2. the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
-		if blockExec.prerunIndex > 0 && !blockExec.GetIsFastSyncing() {
-			if !blockExec.prerunTx {
-				panic("never gonna happen")
-			}
-			abciResponses, err = blockExec.getPrerunResult(blockExec.prerunContext)
-			blockExec.prerunContext = nil
-			blockExec.prerunIndex = 0
-		} else {
-			ctx := &executionContext{
+		if abciResponses == nil {
+			ctx := &executionTask{
 				logger:   blockExec.logger,
 				block:    block,
 				db:       blockExec.db,
@@ -322,6 +295,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 
 	return abciResponses, err
 }
+
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
 // mempool.
 // It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
@@ -331,7 +305,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas)
 func (blockExec *BlockExecutor) commit(
 	state State,
 	block *types.Block,
-	delta *types.Deltas,
+	deltaInfo *DeltaInfo,
 	deliverTxResponses []*abci.ResponseDeliverTx,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
@@ -351,14 +325,12 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	abciDelta := &abci.Deltas{}
-	if delta != nil {
-		abciDelta.DeltasByte = delta.DeltasBytes()
-		blockExec.logger.Debug("set abciDelta", "abciDelta", delta, "gid", gorid.GoRId)
-	}
-
 	// Commit block, get hash back
-	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{Deltas: abciDelta})
+	var treeDeltaMap interface{}
+	if deltaInfo != nil {
+		treeDeltaMap = deltaInfo.treeDeltaMap
+	}
+	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
 	if err != nil {
 		blockExec.logger.Error(
 			"Client error during proxyAppConn.CommitSync",
@@ -396,10 +368,6 @@ func (blockExec *BlockExecutor) commit(
 		})
 	}
 
-	if res.Deltas == nil {
-		res.Deltas = &abci.Deltas{}
-	}
-
 	return res, res.RetainHeight, err
 }
 
@@ -416,7 +384,7 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(context *executionContext) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	block := context.block
 	proxyAppConn := context.proxyApp
 	stateDB := context.db
@@ -501,7 +469,6 @@ func execBlockOnProxyAppWithDeltas(
 		Header:              types.TM2PB.Header(&block.Header),
 		LastCommitInfo:      commitInfo,
 		ByzantineValidators: byzVals,
-		UseDeltas:           true,
 	})
 }
 
@@ -674,38 +641,3 @@ func fireEvents(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
 }
-
-//----------------------------------------------------------------------------------------------------
-// Execute block without state. TODO: eliminate
-
-// ExecCommitBlock executes and commits a block on the proxyApp without validating or mutating the state.
-// It returns the application root hash (result of abci.Commit).
-func ExecCommitBlock(
-	appConnConsensus proxy.AppConnConsensus,
-	block *types.Block,
-	logger log.Logger,
-	stateDB dbm.DB,
-) ([]byte, error) {
-
-	ctx := &executionContext{
-		logger: logger,
-		block: block,
-		db: stateDB,
-		proxyApp: appConnConsensus,
-	}
-
-	_, err := execBlockOnProxyApp(ctx)
-	if err != nil {
-		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
-		return nil, err
-	}
-	// Commit block, get hash back
-	res, err := appConnConsensus.CommitSync(abci.RequestCommit{})
-	if err != nil {
-		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
-		return nil, err
-	}
-	// ResponseCommit has no error or log, just data
-	return res.Data, nil
-}
-

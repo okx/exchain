@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -38,6 +37,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -46,6 +46,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 )
 
@@ -95,7 +96,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
-		watcherBackend: watcher.NewWatcher(),
+		watcherBackend: watcher.NewWatcher(log),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -353,14 +354,18 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	balances := make(map[string]*hexutil.Big)
+	type accBalance struct {
+		Type    token.AccType `json:"type"`
+		Balance *hexutil.Big  `json:"balance"`
+	}
+	balances := make(map[string]accBalance)
 	for _, address := range addresses {
 		if acc, err := api.wrappedBackend.MustGetAccount(address.Bytes()); err == nil {
 			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
 			if balance == nil {
-				balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
+				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
 			} else {
-				balances[address.String()] = (*hexutil.Big)(balance)
+				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(balance)}
 			}
 			continue
 		}
@@ -369,45 +374,45 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		if err != nil {
 			return nil, err
 		}
-
 		res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 		if err != nil {
-			api.saveZeroAccount(address)
-			balances[address.String()] = (*hexutil.Big)(sdk.ZeroInt().BigInt())
 			continue
 		}
 
-		var account ethermint.EthAccount
+		var account authexported.Account
 		if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
 			return nil, err
 		}
 
-		val := account.Balance(sdk.DefaultBondDenom).BigInt()
-		api.watcherBackend.CommitAccountToRpcDb(account)
-		if blockNum != rpctypes.PendingBlockNumber {
-			balances[address.String()] = (*hexutil.Big)(val)
-			continue
-		}
-
-		// update the address balance with the pending transactions value (if applicable)
-		pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, tx := range pendingTxs {
-			if tx == nil {
+		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+		accType := accountType(account)
+		if accType == token.UserAccount || accType == token.ContractAccount {
+			api.watcherBackend.CommitAccountToRpcDb(account)
+			if blockNum != rpctypes.PendingBlockNumber {
+				balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
 				continue
 			}
 
-			if tx.From == address {
-				val = new(big.Int).Sub(val, tx.Value.ToInt())
+			// update the address balance with the pending transactions value (if applicable)
+			pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
+			if err != nil {
+				return nil, err
 			}
-			if *tx.To == address {
-				val = new(big.Int).Add(val, tx.Value.ToInt())
+
+			for _, tx := range pendingTxs {
+				if tx == nil {
+					continue
+				}
+
+				if tx.From == address {
+					val = new(big.Int).Sub(val, tx.Value.ToInt())
+				}
+				if *tx.To == address {
+					val = new(big.Int).Add(val, tx.Value.ToInt())
+				}
 			}
 		}
-		balances[address.String()] = (*hexutil.Big)(val)
+		balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
 	}
 	return balances, nil
 }
@@ -671,6 +676,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	defer monitor.OnEnd("args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
@@ -701,15 +710,26 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
+
+	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
+	VenusTxPoolHeight := int64(0)
+	if tmtypes.GetVenusHeight() > 1800 {
+		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
+	}
 	// send chanData to txPool
-	if api.txPool != nil {
+	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -732,23 +752,33 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
 	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("data", data)
+	height, err := api.BlockNumber()
+	if err != nil {
+		return common.Hash{}, err
+	}
 	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
-	if err := rlp.DecodeBytes(data, tx); err != nil {
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
 		return common.Hash{}, err
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
-	if err != nil {
-		return common.Hash{}, err
+	txBytes := data
+	if !tmtypes.HigherThanVenus(int64(height)) {
+		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+		if err != nil {
+			return common.Hash{}, err
+		}
 	}
 
+	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
+	VenusTxPoolHeight := int64(0)
+	if tmtypes.GetVenusHeight() > 1800 {
+		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
+	}
 	// send chanData to txPool
-	if api.txPool != nil {
+	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -1077,7 +1107,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	}
 
 	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash()), blockHash, height, uint64(tx.Index))
+	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
@@ -1160,7 +1190,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	}
 
 	height := uint64(block.Height)
-	txHash := common.BytesToHash(block.Txs[idx].Hash())
+	txHash := common.BytesToHash(block.Txs[idx].Hash(block.Height))
 	blockHash := common.BytesToHash(block.Hash())
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
@@ -1624,6 +1654,14 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 func (api *PublicEthereumAPI) accountNonce(
 	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
 ) (uint64, error) {
+	if pending {
+		// nonce is continuous in mempool txs
+		pendingNonce, err := api.backend.GetPendingNonce(address.String())
+		if err == nil && pendingNonce > 0 {
+			return pendingNonce + 1, nil
+		}
+	}
+
 	// Get nonce (sequence) from sender account
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
@@ -1640,17 +1678,6 @@ func (api *PublicEthereumAPI) accountNonce(
 		}
 		nonce = account.GetSequence()
 		api.watcherBackend.CommitAccountToRpcDb(account)
-	}
-
-	if !pending {
-		return nonce, nil
-	}
-
-	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
-	// to manually add them.
-	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
-	if err == nil {
-		nonce += uint64(pendingTxs)
 	}
 
 	return nonce, nil

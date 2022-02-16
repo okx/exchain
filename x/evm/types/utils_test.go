@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"testing"
@@ -9,8 +10,11 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,6 +134,36 @@ func TestTxDecoder(t *testing.T) {
 
 	_, err = txDecoder(txbytes[1:])
 	require.Error(t, err)
+
+	oldHeight := types.GetMilestoneVenusHeight()
+	defer types.UnittestOnlySetMilestoneVenusHeight(oldHeight)
+	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
+	require.Nil(t, err)
+
+	for _, c := range []struct {
+		curHeight          int64
+		venusHeight        int64
+		enableAminoDecoder bool
+		enableRLPDecoder   bool
+	}{
+		{999, 0, true, false},
+		{999, 1000, true, false},
+		{1000, 1000, false, true},
+		{1500, 1000, false, true},
+	} {
+		types.UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
+		_, err = TxDecoder(cdc)(txbytes, c.curHeight)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes, c.curHeight)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+
+		// use global height when height is not pass through parameters.
+		global.SetGlobalHeight(c.curHeight)
+		_, err = TxDecoder(cdc)(txbytes)
+		require.Equal(t, c.enableAminoDecoder, err == nil)
+		_, err = TxDecoder(cdc)(rlpBytes)
+		require.Equal(t, c.enableRLPDecoder, err == nil)
+	}
 }
 
 func TestEthLogAmino(t *testing.T) {
@@ -158,11 +192,11 @@ func TestEthLogAmino(t *testing.T) {
 				ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
 			},
 			Data:        []byte{5, 6, 7, 8},
-			BlockNumber: 18,
+			BlockNumber: math.MaxUint64,
 			TxHash:      ethcmn.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-			TxIndex:     0,
+			TxIndex:     math.MaxUint,
 			BlockHash:   ethcmn.HexToHash("0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"),
-			Index:       0,
+			Index:       math.MaxUint,
 			Removed:     true,
 		},
 	}
@@ -205,7 +239,19 @@ func TestResultDataAmino(t *testing.T) {
 					Data:        []byte{1, 2, 3, 4},
 					BlockNumber: 17,
 					Index:       10,
-				}},
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				},
+				nil,
+			},
 			Ret:    ret,
 			TxHash: ethcmn.HexToHash("0x00"),
 		},
@@ -227,7 +273,7 @@ func TestResultDataAmino(t *testing.T) {
 		expect, err := cdc.MarshalBinaryBare(data)
 		require.NoError(t, err)
 
-		actual, err := data.MarshalToAmino()
+		actual, err := data.MarshalToAmino(cdc)
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 		t.Log(fmt.Sprintf("%d pass\n", i))
@@ -236,7 +282,7 @@ func TestResultDataAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expect, &expectRd)
 		require.NoError(t, err)
 		var actualRd ResultData
-		err = actualRd.UnmarshalFromAmino(expect)
+		err = actualRd.UnmarshalFromAmino(cdc, expect)
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
 

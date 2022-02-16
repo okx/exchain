@@ -163,6 +163,10 @@ func (c *Client) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return c.next.GetAddressList()
 }
 
+func (c *Client) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+	return c.next.GetPendingNonce(address)
+}
+
 func (c *Client) NetInfo() (*ctypes.ResultNetInfo, error) {
 	return c.next.NetInfo()
 }
@@ -363,7 +367,7 @@ func (c *Client) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
 	}
 
 	// Validate the proof.
-	return res, res.Proof.Validate(h.DataHash)
+	return res, res.Proof.Validate(h.DataHash, res.Height)
 }
 
 func (c *Client) TxSearch(query string, prove bool, page, perPage int, orderBy string) (

@@ -1,8 +1,10 @@
 package watcher
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -18,7 +20,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -45,6 +49,7 @@ var (
 const (
 	TypeOthers = uint32(1)
 	TypeState  = uint32(2)
+	TypeDelete = uint32(3)
 )
 
 type WatchMessage interface {
@@ -68,6 +73,111 @@ type Batch struct {
 	TypeValue uint32 `json:"type_value"`
 }
 
+// MarshalToAmino marshal batch data to amino bytes
+func (b *Batch) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3 << 3}
+	for pos := 1; pos <= 3; pos++ {
+		switch pos {
+		case 1:
+			if len(b.Key) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, b.Key)
+			if err != nil {
+				return nil, err
+			}
+
+		case 2:
+			if len(b.Value) == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeByteSliceToBuffer(&buf, b.Value)
+			if err != nil {
+				return nil, err
+			}
+		case 3:
+			if b.TypeValue == 0 {
+				break
+			}
+			err := buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			err = amino.EncodeUvarintToBuffer(&buf, uint64(b.TypeValue))
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalFromAmino unmarshal amino bytes to this object
+func (b *Batch) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		// decode field key type and data position
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		// choose sub-data to parse data
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			b.Key = make([]byte, len(subData))
+			copy(b.Key, subData)
+
+		case 2:
+			b.Value = make([]byte, len(subData))
+			copy(b.Value, subData)
+
+		case 3:
+			tv, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			b.TypeValue = uint32(tv)
+			dataLen = uint64(n)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 type WatchData struct {
 	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
 	Batches       []*Batch          `json:"batches"`
@@ -78,6 +188,196 @@ type WatchData struct {
 
 func (w *WatchData) Size() int {
 	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
+}
+
+// MarshalToAmino marshal to amino bytes
+func (w *WatchData) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
+	for pos := 1; pos <= 5; pos++ {
+		switch pos {
+		case 1:
+			if len(w.DirtyAccount) == 0 {
+				break
+			}
+			for i := 0; i < len(w.DirtyAccount); i++ {
+				err := buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				var data []byte
+				if w.DirtyAccount[i] != nil {
+					data = w.DirtyAccount[i].Bytes()
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+
+			}
+		case 2:
+			if len(w.Batches) == 0 {
+				break
+			}
+			for i := 0; i < len(w.Batches); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+
+				var data []byte
+				if w.Batches[i] != nil {
+					data, err = w.Batches[i].MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 3:
+			if len(w.DelayEraseKey) == 0 {
+				break
+			}
+			// encode a slice one by one
+			for i := 0; i < len(w.DelayEraseKey); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, w.DelayEraseKey[i])
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 4:
+			if len(w.BloomData) == 0 {
+				break
+			}
+			for i := 0; i < len(w.BloomData); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				var data []byte
+				if w.BloomData[i] != nil {
+					data, err = w.BloomData[i].MarshalToAmino(cdc)
+					if err != nil {
+						return nil, err
+					}
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, data)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 5:
+			if len(w.DirtyList) == 0 {
+				break
+			}
+			// encode a slice one by one
+			for i := 0; i < len(w.DirtyList); i++ {
+				err = buf.WriteByte(fieldKeysType[pos-1])
+				if err != nil {
+					return nil, err
+				}
+				err = amino.EncodeByteSliceToBuffer(&buf, w.DirtyList[i])
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalFromAmino unmarshal from amino bytes
+func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return errors.New("not enough data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			// copy subData to new memory and use it as sdk.AccAddress type
+			var acc *sdk.AccAddress = nil
+			if len(subData) != 0 {
+				accAddr := make([]byte, len(subData))
+				copy(accAddr, subData)
+				accByte := sdk.AccAddress(accAddr)
+				acc = &accByte
+			}
+			w.DirtyAccount = append(w.DirtyAccount, acc)
+
+		case 2:
+			var bat *Batch = nil
+			if len(subData) != 0 {
+				bat = &Batch{}
+				err := bat.UnmarshalFromAmino(cdc, subData)
+				if err != nil {
+					return err
+				}
+			}
+			w.Batches = append(w.Batches, bat)
+
+		case 3:
+			var delayEraseKey []byte
+			if len(subData) != 0 {
+				delayEraseKey = make([]byte, len(subData))
+				copy(delayEraseKey, subData)
+			}
+			w.DelayEraseKey = append(w.DelayEraseKey, delayEraseKey)
+
+		case 4:
+			var kv *types.KV = nil
+			if len(subData) != 0 {
+				kv = &types.KV{}
+				err := kv.UnmarshalFromAmino(nil, subData)
+				if err != nil {
+					return err
+				}
+			}
+			w.BloomData = append(w.BloomData, kv)
+
+		case 5:
+			var dirtyList []byte
+			if len(subData) != 0 {
+				dirtyList = make([]byte, len(subData))
+				copy(dirtyList, subData)
+			}
+			w.DirtyList = append(w.DirtyList, dirtyList)
+
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
@@ -399,6 +699,28 @@ func (msgAccount *MsgAccount) GetKey() []byte {
 
 func (msgAccount *MsgAccount) GetValue() string {
 	return msgAccount.accountValue
+}
+
+type DelAccMsg struct {
+	addr []byte
+}
+
+func NewDelAccMsg(acc auth.Account) *DelAccMsg {
+	return &DelAccMsg{
+		addr: acc.GetAddress().Bytes(),
+	}
+}
+
+func (delAcc *DelAccMsg) GetType() uint32 {
+	return TypeDelete
+}
+
+func (delAcc *DelAccMsg) GetKey() []byte {
+	return GetMsgAccountKey(delAcc.addr)
+}
+
+func (delAcc *DelAccMsg) GetValue() string {
+	return ""
 }
 
 type MsgState struct {

@@ -4,21 +4,25 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/evm/client/utils"
+	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/x/evm/client/utils"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/common"
@@ -36,7 +40,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
-
+	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -89,7 +94,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		}
 	}
 
-	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx)
+	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -121,7 +126,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
+	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +140,7 @@ func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
 		if err != nil {
 			return err
 		}
-		err = resTx.Proof.Validate(check.Header.DataHash)
+		err = resTx.Proof.Validate(check.Header.DataHash, resTx.Height)
 		if err != nil {
 			return err
 		}
@@ -218,7 +223,11 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
 
-		bz, height, err := cliCtx.QueryWithData(path, nil)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
@@ -232,8 +241,7 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 			ethAddrs = append(ethAddrs, ethcommon.BytesToAddress(accAddr.Bytes()).Hex())
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, ethAddrs)
+		rest.PostProcessResponseBare(w, cliCtx, ethAddrs)
 	}
 }
 
@@ -242,7 +250,11 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractMethodBlockedList)
 
-		bz, height, err := cliCtx.QueryWithData(path, nil)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		bz, _, err := cliCtx.QueryWithData(path, nil)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
@@ -258,7 +270,78 @@ func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.Han
 			results = append(results, result)
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, results)
+		rest.PostProcessResponseBare(w, cliCtx, results)
 	}
+}
+func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		blockHeightStr := vars["blockHeight"]
+		blockHeight, err := strconv.ParseInt(blockHeightStr, 10, 64)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
+			return
+		}
+		res, err := GetBlockTxHashes(cliCtx, blockHeight)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, evmtypes.CodeGetBlockTxHashesFailed,
+				fmt.Sprintf("failed to get block tx hash: %s", err.Error()))
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h, err := rpc.GetChainHeight(cliCtx)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, evmtypes.CodeGetChainHeightFailed,
+				fmt.Sprintf("failed to get chain height: %s", err.Error()))
+			return
+		}
+		res := common.GetBaseResponse(h)
+		bz, err := json.Marshal(res)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+		}
+		rest.PostProcessResponse(w, cliCtx, bz)
+	}
+}
+
+// GetBlockTxHashes return tx hashes in the block of the given height
+func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error) {
+	// get the node
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	// header -> BlockchainInfo
+	// header, tx -> Block
+	// results -> BlockResults
+	res, err := node.Block(&height)
+	if err != nil {
+		return nil, err
+	}
+
+	if !cliCtx.TrustNode {
+		check, err := cliCtx.Verify(res.Block.Height)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tmliteProxy.ValidateBlock(res.Block, check)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	txs := res.Block.Txs
+	txLen := len(txs)
+	txHashes := make([]string, txLen)
+	for i, txBytes := range txs {
+		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash(height))
+	}
+	return txHashes, nil
 }

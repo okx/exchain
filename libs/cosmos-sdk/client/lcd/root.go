@@ -9,13 +9,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/rakyll/statik/fs"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
 	tmrpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
+	"github.com/rakyll/statik/fs"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -43,6 +43,7 @@ func NewRestServer(cdc *codec.Codec, tmNode *node.Node) *RestServer {
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
 	if tmNode != nil {
+		cliCtx = cliCtx.WithChainID(tmNode.ConsensusState().GetState().ChainID)
 		cliCtx.Client = local.New(tmNode)
 		logger = tmNode.Logger.With("module", "rest-server")
 	}

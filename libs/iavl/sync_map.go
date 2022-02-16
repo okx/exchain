@@ -3,13 +3,13 @@ package iavl
 import "sync"
 
 type SyncMap struct {
-	mp map[int64]bool
+	mp   map[int64]bool
 	lock sync.RWMutex
 }
 
 func NewSyncMap() *SyncMap {
 	return &SyncMap{
-		mp: make(map[int64]bool),
+		mp:   make(map[int64]bool),
 		lock: sync.RWMutex{},
 	}
 }
@@ -47,7 +47,7 @@ func (sm *SyncMap) Len() int {
 	return len(sm.mp)
 }
 
-func (sm *SyncMap) Range(f func(key int64, value bool)bool) {
+func (sm *SyncMap) Range(f func(key int64, value bool) bool) {
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	for k, v := range sm.mp {
@@ -58,7 +58,7 @@ func (sm *SyncMap) Range(f func(key int64, value bool)bool) {
 	}
 }
 
-func (sm *SyncMap) Clone() map[int64]bool{
+func (sm *SyncMap) Clone() map[int64]bool {
 	mp := make(map[int64]bool, sm.Len())
 	sm.Range(func(key int64, value bool) bool {
 		mp[key] = value
@@ -66,4 +66,3 @@ func (sm *SyncMap) Clone() map[int64]bool{
 	})
 	return mp
 }
-

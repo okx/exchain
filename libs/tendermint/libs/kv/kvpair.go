@@ -2,7 +2,10 @@ package kv
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
+
+	"github.com/pkg/errors"
 
 	"github.com/tendermint/go-amino"
 )
@@ -38,7 +41,7 @@ func (kvs Pairs) Less(i, j int) bool {
 func (kvs Pairs) Swap(i, j int) { kvs[i], kvs[j] = kvs[j], kvs[i] }
 func (kvs Pairs) Sort()         { sort.Sort(kvs) }
 
-func MarshalPairToAmino(pair Pair) ([]byte, error) {
+func (pair Pair) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
 	var err error
@@ -73,4 +76,50 @@ func MarshalPairToAmino(pair Pair) ([]byte, error) {
 		}
 	}
 	return buf.Bytes(), nil
+}
+
+func (pair *Pair) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		if aminoType != amino.Typ3_ByteLength {
+			return errors.New("invalid amino type")
+		}
+		data = data[1:]
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return errors.New("invalid data length")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			pair.Key = make([]byte, dataLen)
+			copy(pair.Key, subData)
+		case 2:
+			pair.Value = make([]byte, dataLen)
+			copy(pair.Value, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }

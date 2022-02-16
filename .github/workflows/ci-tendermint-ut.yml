@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.17
       - uses: actions/setup-go@v2
       - name: Set GOBIN
         run: |
@@ -37,15 +37,69 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.17
 
-      - name: test_tm_core
+      - name: test_tm_core 
+        run: echo "noop test" 
+  tm-consensus:
+    name: tm-consensus tests
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test consensus/
+        run: go test $(go list ./libs/tendermint/consensus/... |grep -v commont_test.go) -timeout 20m
+  tm-lite:
+    name: tm-lite tests
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test lite/
+        run:  go test -count=1 ./libs/tendermint/lite/...
+  tm-async:
+    name: tm-async tests
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test libs/async
+        run: go test -count=1 -ldflags -s $(go list ./... | grep libs/async)
+
+  tm-mempool:
+    name: tm-mempool tests
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test mempool/
+        id: first-attempt
+        run: go test -count=1 ./libs/tendermint/mempool/...
         continue-on-error: true
-        run: |
-          go test -count=1 ./libs/tendermint/libs/async/...
-          go test -count=1 ./libs/tendermint/lite/...
-          go test -count=1 ./libs/tendermint/mempool/...
-          go test -count=1 ./libs/tendermint/consensus/...
+      - name: Go Test mempool Retry again on failure
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'
+        run: go test -count=1 ./libs/tendermint/mempool/...
 
   test_abci_apps:
     name: abci_apps tests
@@ -53,6 +107,8 @@ jobs:
     needs: Build
     steps:
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - name: Set GOBIN
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
@@ -71,6 +127,8 @@ jobs:
     needs: Build
     steps:
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - name: Set GOBIN
         run: |
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV

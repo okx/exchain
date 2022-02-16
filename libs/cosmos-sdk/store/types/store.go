@@ -9,7 +9,7 @@ import (
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstrings "github.com/okex/exchain/libs/tendermint/libs/strings"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 type Store interface { //nolint
@@ -19,7 +19,8 @@ type Store interface { //nolint
 
 // something that can persist to disk
 type Committer interface {
-	Commit(*iavl.TreeDelta, []byte) (CommitID, iavl.TreeDelta, []byte)
+	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta) // CommitterCommit
+
 	LastCommitID() CommitID
 
 	// TODO: Deprecate after 0.38.5
@@ -32,6 +33,10 @@ type Analyser interface {
 	GetDBWriteCount() int
 	GetDBReadCount() int
 	GetNodeReadCount() int
+	GetFlatKVReadTime() int
+	GetFlatKVWriteTime() int
+	GetFlatKVReadCount() int
+	GetFlatKVWriteCount() int
 	ResetCount()
 }
 
@@ -145,6 +150,7 @@ type CacheMultiStore interface {
 type CommitMultiStore interface {
 	Committer
 	MultiStore
+	CommitterCommitMap(iavl.TreeDeltaMap) (CommitID, iavl.TreeDeltaMap) // CommitterCommit
 
 	// Mount a store of type using the given db.
 	// If db == nil, the new store will use the CommitMultiStore db.

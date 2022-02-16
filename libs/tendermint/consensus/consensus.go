@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
@@ -44,7 +45,7 @@ var (
 //-----------------------------------------------------------------------------
 
 var (
-	msgQueueSize           = 1000
+	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
 )
 
@@ -185,7 +186,7 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		prerunTx:  viper.GetBool(EnablePrerunTx),
+		prerunTx:         viper.GetBool(EnablePrerunTx),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -317,17 +318,15 @@ func (cs *State) OnStart() error {
 
 	// we may set the WAL in testing before calling Start,
 	// so only OpenWAL if its still the nilWAL
-	//if _, ok := cs.wal.(nilWAL); ok {
-	walFile := cs.config.WalFile()
-	wal, err := cs.OpenWAL(walFile)
-	if err != nil {
-		cs.Logger.Error("Error loading State wal", "err", err.Error())
-		return err
+	if _, ok := cs.wal.(nilWAL); ok {
+		walFile := cs.config.WalFile()
+		wal, err := cs.OpenWAL(walFile)
+		if err != nil {
+			cs.Logger.Error("Error loading State wal", "err", err.Error())
+			return err
+		}
+		cs.wal = wal
 	}
-	cs.wal = wal
-	//} else if err := cs.wal.Start(); err != nil{
-	////	//return err
-	//}
 
 	// we need the timeoutRoutine for replay so
 	// we don't block on the tick chan.
@@ -384,14 +383,12 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
-	if cs.prerunTx {
-		cs.blockExec.StopPreRun()
-	}
 }
 
 func (cs *State) OnReset() error {
 	cs.evsw.Reset()
 	cs.wal.Reset()
+	cs.wal = nilWAL{}
 	cs.timeoutTicker.Reset()
 	return nil
 }
@@ -1162,7 +1159,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 func (cs *State) defaultDoPrevote(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if automation.PrevoteNil(height, round){
+	if automation.PrevoteNil(height, round) {
 		cs.signAddVote(types.PrevoteType, nil, types.PartSetHeader{})
 		return
 	}
@@ -1428,6 +1425,8 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
 			cs.ProposalBlock = nil
+			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
+				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
@@ -1548,10 +1547,10 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 	/*
-	var deltas *types.Deltas
-	if types.EnableApplyP2PDelta() {
-		deltas = cs.Deltas
-	}
+		var deltas *types.Deltas
+		if types.EnableApplyP2PDelta() {
+			deltas = cs.Deltas
+		}
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
@@ -1570,11 +1569,11 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	/*
-	if types.EnableBroadcastP2PDelta() {
-		// persists the given deltas to the underlying db.
-		deltas.Height = block.Height
-		cs.deltaStore.SaveDeltas(deltas, block.Height)
-	}
+		if types.EnableBroadcastP2PDelta() {
+			// persists the given deltas to the underlying db.
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
 	*/
 
 	fail.Fail() // XXX
@@ -1792,7 +1791,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		if cs.prerunTx {
-			cs.blockExec.NotifyPrerun(height, cs.ProposalBlock) // 3. addProposalBlockPart
+			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
 
 		// receive Deltas from BlockMessage and put into State(cs)
@@ -1984,6 +1983,8 @@ func (cs *State) addVote(
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
+					cs.Logger.Info("addVote proposalBlockPart reset ,because of mismatch hash,",
+						"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
@@ -2154,4 +2155,3 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	}
 	return 0
 }
-

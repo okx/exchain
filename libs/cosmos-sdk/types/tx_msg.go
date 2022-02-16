@@ -2,8 +2,9 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"math/big"
+
+	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // Transactions messages must fulfill the Msg
@@ -53,8 +54,10 @@ type Tx interface {
 
 //__________________________________________________________
 
+//__________________________________________________________
+
 // TxDecoder unmarshals transaction bytes
-type TxDecoder func(txBytes []byte) (Tx, error)
+type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
 
 // TxEncoder marshals transaction to bytes
 type TxEncoder func(tx Tx) ([]byte, error)
@@ -63,7 +66,7 @@ type TxEncoder func(tx Tx) ([]byte, error)
 
 var _ Msg = (*TestMsg)(nil)
 
-// msg type for testing
+// TestMsg is msg type for testing
 type TestMsg struct {
 	signers []AccAddress
 }

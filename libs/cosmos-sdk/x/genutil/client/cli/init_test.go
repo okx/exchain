@@ -5,19 +5,16 @@ import (
 	"io"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
-	abciServer "github.com/okex/exchain/libs/tendermint/abci/server"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/server/mock"
 	"github.com/okex/exchain/libs/cosmos-sdk/tests"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -90,36 +87,6 @@ func TestEmptyState(t *testing.T) {
 	require.Contains(t, out, "consensus_params")
 	require.Contains(t, out, "app_hash")
 	require.Contains(t, out, "app_state")
-}
-
-func TestStartStandAlone(t *testing.T) {
-	home, cleanup := tests.NewTestCaseDir(t)
-	defer cleanup()
-	viper.Set(cli.HomeFlag, home)
-	defer setupClientHome(t)()
-
-	logger := log.NewNopLogger()
-	cfg, err := tcmd.ParseConfig()
-	require.Nil(t, err)
-	ctx := server.NewContext(cfg, logger)
-	cdc := makeCodec()
-	initCmd := InitCmd(ctx, cdc, testMbm, home)
-	require.NoError(t, initCmd.RunE(nil, []string{"appnode-test"}))
-
-	app, err := mock.NewApp(home, logger)
-	require.Nil(t, err)
-	svrAddr, _, err := server.FreeTCPAddr()
-	require.Nil(t, err)
-	svr, err := abciServer.NewServer(svrAddr, "socket", app)
-	require.Nil(t, err, "error creating listener")
-	svr.SetLogger(logger.With("module", "abci-server"))
-	svr.Start()
-
-	timer := time.NewTimer(time.Duration(2) * time.Second)
-	for range timer.C {
-		svr.Stop()
-		break
-	}
 }
 
 func TestInitNodeValidatorFiles(t *testing.T) {

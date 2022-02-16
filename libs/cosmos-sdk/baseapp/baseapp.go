@@ -19,13 +19,13 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
 )
 
 const (
@@ -34,6 +34,8 @@ const (
 	runTxModeSimulate                        // Simulate a transaction
 	runTxModeDeliver                         // Deliver a transaction
 	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
+	runTxModeTrace                           // Trace a transaction
+	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
@@ -89,6 +91,27 @@ type (
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
 
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	case runTxModeWrappedCheck:
+		res = "ModeWrappedCheck"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
@@ -99,7 +122,9 @@ type BaseApp struct { // nolint: maligned
 	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
-	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
+
+	// txDecoder returns a cosmos-sdk/types.Tx interface that definitely is an StdTx or a MsgEthereumTx
+	txDecoder sdk.TxDecoder
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -165,6 +190,9 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
+
+	checkTxNum        int64
+	wrappedCheckTxNum int64
 }
 
 type recordHandle func(string)
@@ -186,13 +214,14 @@ func NewBaseApp(
 		storeLoader:    DefaultStoreLoader,
 		router:         NewRouter(),
 		queryRouter:    NewQueryRouter(),
-		txDecoder:      txDecoder,
 		fauxMerkleMode: false,
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
+		txDecoder:        txDecoder,
 	}
+
 	for _, option := range options {
 		option(app)
 	}
@@ -484,6 +513,20 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	}
 }
 
+// setTraceState sets the BaseApp's traceState with a cache-wrapped multi-store
+// (i.e. a CacheMultiStore) and a new Context with the cache-wrapped multi-store,
+// and provided header. It is set at the start of trace tx
+func (app *BaseApp) newTraceState(header abci.Header, height int64) (*state, error) {
+	ms, err := app.cms.CacheMultiStoreWithVersion(height)
+	if err != nil {
+		return nil, err
+	}
+	return &state{
+		ms:  ms,
+		ctx: sdk.NewContext(ms, header, false, app.logger),
+	}, nil
+}
+
 // setConsensusParams memoizes the consensus params.
 func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
@@ -569,6 +612,11 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeReCheck {
 		ctx = ctx.WithIsReCheckTx(true)
 	}
+
+	if mode == runTxModeWrappedCheck {
+		ctx = ctx.WithIsWrappedCheckTx(true)
+	}
+
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
@@ -577,6 +625,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
 			ctx = ctx.WithSigCache(s.signCache)
 		}
+		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
 
 	return ctx
@@ -608,24 +657,48 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	return ctx, nil
 }
-
-func GetABCIHeader(height int64) (abci.Header, error) {
+func GetABCITx(hash []byte) (*ctypes.ResultTx, error) {
 	laddr := viper.GetString("rpc.laddr")
 	splits := strings.Split(laddr, ":")
 	if len(splits) < 2 {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
 	}
 
 	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
 	if err != nil {
-		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
+		return nil, fmt.Errorf("get tx failed!")
+	}
+
+	tx, err := rpcCli.Tx(hash, false)
+	if err != nil {
+		return nil, fmt.Errorf("get ABCI tx failed!")
+	}
+
+	return tx, nil
+}
+func GetABCIBlock(height int64) (*ctypes.ResultBlock, error) {
+	laddr := viper.GetString("rpc.laddr")
+	splits := strings.Split(laddr, ":")
+	if len(splits) < 2 {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+
+	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
+	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
 	}
 
 	block, err := rpcCli.Block(&height)
 	if err != nil {
+		return nil, fmt.Errorf("get tendermint Block failed!")
+	}
+	return block, nil
+}
+func GetABCIHeader(height int64) (abci.Header, error) {
+	block, err := GetABCIBlock(height)
+	if err != nil {
 		return abci.Header{}, fmt.Errorf("get ABCI header failed!")
 	}
-
 	return blockHeaderToABCIHeader(block.Block.Header), nil
 }
 
@@ -667,7 +740,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmhash.Sum(txBytes)),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -906,7 +979,7 @@ func (app *BaseApp) runtx_org(mode runTxMode, txBytes []byte, tx sdk.Tx, height 
 	}
 
 	if err != nil {
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
+		if tmtypes.HigherThanMercury(ctx.BlockHeight()) {
 			codeSpace, code, info := sdkerrors.ABCIInfo(err, app.trace)
 			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
 		}
@@ -936,7 +1009,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
-		if mode == runTxModeCheck || mode == runTxModeReCheck {
+		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
 
@@ -1036,9 +1109,8 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize) + int64(1000)
+		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
 }
-

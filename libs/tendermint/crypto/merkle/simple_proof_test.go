@@ -1,7 +1,10 @@
 package merkle
 
 import (
+	"math"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,5 +40,40 @@ func TestSimpleProofValidateBasic(t *testing.T) {
 				assert.Contains(t, err.Error(), tc.errStr)
 			}
 		})
+	}
+}
+
+func TestSimpleProofAmino(t *testing.T) {
+	spTestCases := []SimpleProof{
+		{},
+		{
+			Total:    2,
+			Index:    1,
+			LeafHash: []byte("LeafHash"),
+			Aunts:    [][]byte{[]byte("aunt1"), []byte("aunt2")},
+		},
+		{
+			Total:    math.MaxInt,
+			Index:    math.MaxInt,
+			LeafHash: []byte{},
+			Aunts:    [][]byte{},
+		},
+		{
+			Total: math.MinInt,
+			Index: math.MinInt,
+			Aunts: [][]byte{nil, {}, []byte("uncle")},
+		},
+	}
+
+	for _, sp := range spTestCases {
+		expectData, err := cdc.MarshalBinaryBare(sp)
+		require.NoError(t, err)
+		var expectValue SimpleProof
+		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
+		require.NoError(t, err)
+		var actualValue SimpleProof
+		err = actualValue.UnmarshalFromAmino(cdc, expectData)
+		require.NoError(t, err)
+		require.EqualValues(t, expectValue, actualValue)
 	}
 }

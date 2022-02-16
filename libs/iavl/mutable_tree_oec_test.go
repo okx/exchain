@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	db "github.com/tendermint/tm-db"
 )
 
 func TestSaveVersion(t *testing.T) {

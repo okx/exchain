@@ -63,23 +63,18 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}()
 
 		var handlerFun func() (*sdk.Result, error)
-		var name string
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			name = "handleMsgEthereumTx"
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgEthereumTx(ctx, k, msg)
 			}
 		case types.MsgEthermint:
-			name = "handleMsgEthermint"
 			handlerFun = func() (*sdk.Result, error) {
-				return handleMsgEthermint(ctx, k, msg)
+				return handleSimulation(ctx, k, msg)
 			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-
-		_ = name
 
 		result, err = handlerFun()
 		if err != nil {
@@ -116,7 +111,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StartTxLog(bam.EvmHandler)
 	defer StopTxLog(bam.EvmHandler)
 
-
 	StartTxLog(bam.Txhash)
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -131,7 +125,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	sender := senderSigCache.GetFrom()
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog(bam.Txhash)
 
@@ -148,6 +142,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+		TraceTx:      ctx.IsTraceTx(),
+		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -170,12 +166,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog(bam.SaveTx)
 
 	defer func() {
-
+		pm := k.GenerateCSDBParams()
+		infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+		sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
-			pm := k.GenerateCSDBParams()
-			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
 			//fix sender's balance in watcher with refund fees
 			gasConsumed := ctx.GasMeter().GasConsumed()
 			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
@@ -188,11 +183,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		if e := recover(); e != nil {
 			k.Watcher.Reset()
+			// delete account which is already in Watcher.batch
+			k.Watcher.AddDelAccMsg(sendAcc, true)
 			panic(e)
 		}
 		if !st.Simulate {
 			if err != nil {
 				k.Watcher.Reset()
+				// delete account which is already in Watcher.batch
+				k.Watcher.AddDelAccMsg(sendAcc, true)
 			} else {
 				//save state and account data into batch
 				k.Watcher.Finalize()
@@ -212,6 +211,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	if err != nil {
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+		}
+		if ctx.IsTraceTxLog() {
+			// the result was replaced to trace logs when trace tx even if err != nil
+			executionResult.Result.Data = executionResult.TraceLogs
+			return executionResult.Result, nil
 		}
 		return nil, err
 	}
@@ -265,14 +269,23 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
 	StopTxLog(bam.TransitionDb)
+	if ctx.IsTraceTxLog() {
+		// the result was replaced to trace logs when trace tx
+		executionResult.Result.Data = executionResult.TraceLogs
+	}
 	return executionResult.Result, nil
 }
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
-func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+func handleSimulation(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 
-	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
-		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
+	if !ctx.IsCheckTx() {
+		panic("Invalid Ethermint tx")
+	}
+
+
+	if ctx.IsReCheckTx() || ctx.IsTraceTx() || ctx.IsTraceTxLog() {
+		panic("Invalid Ethermint tx")
 	}
 
 	// parse the chainID from a string to a base-10 integer
@@ -281,7 +294,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, err
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 
 	st := types.StateTransition{
@@ -294,7 +307,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
-		Simulate:     ctx.IsCheckTx(),
+		Simulate:     true,
 	}
 
 	if msg.Recipient != nil {
@@ -302,36 +315,14 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		st.Recipient = &to
 	}
 
-	if !st.Simulate {
-		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
-		st.Csdb.SetLogSize(k.LogSize)
-		k.TxCount++
-	}
-
 	config, found := k.GetChainConfig(ctx)
 	if !found {
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+	executionResult, _, err, _, _ := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
-	}
-
-	if !st.Simulate {
-		if innerTxs != nil {
-			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
-		}
-		if erc20s != nil {
-			k.AddContract(erc20s)
-		}
-	}
-
-	// update block bloom filter
-	if !st.Simulate {
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -357,5 +348,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
+
 	return executionResult.Result, nil
 }

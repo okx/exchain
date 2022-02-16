@@ -9,7 +9,7 @@ import (
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
@@ -178,8 +178,9 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.committedHeightMap[version] = true
 		tree.committedHeightQueue.PushBack(version)
 	}
-	tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
-
+	if len(versionSlice) > 0 {
+		tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
+	}
 }
 
 func (tree *MutableTree) StopTree() {
@@ -277,7 +278,9 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
 				tree.commitOrphans[string(node.hash)] = node.version
-				tree.deltas.CommitOrphansDelta[hex.EncodeToString(node.hash)] = node.version
+
+				commitOrp := &CommitOrphansImp{Key: hex.EncodeToString(node.hash), CommitValue: node.version}
+				tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 			}
 		}
 

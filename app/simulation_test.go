@@ -11,7 +11,7 @@ import (
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
@@ -20,13 +20,13 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution"
-	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
-	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/staking"
 )
 
 func init() {

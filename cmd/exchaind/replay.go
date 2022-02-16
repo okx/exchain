@@ -2,23 +2,26 @@ package main
 
 import (
 	"fmt"
-	gorid "github.com/okex/exchain/libs/goroutine"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/pprof"
 	"time"
 
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
@@ -26,19 +29,20 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	dbm "github.com/tendermint/tm-db"
 )
 
 const (
-	dataDirFlag   = "data_dir"
-	applicationDB = "application"
-	blockStoreDB  = "blockstore"
-	stateDB       = "state"
+	replayedBlockDir = "replayed_block_dir"
+	applicationDB    = "application"
+	blockStoreDB     = "blockstore"
+	stateDB          = "state"
 
-	pprofAddrFlag    = "pprof_addr"
-	runWithPprofFlag = "gen_pprof"
+	pprofAddrFlag       = "pprof_addr"
+	runWithPprofFlag    = "gen_pprof"
+	runWithPprofMemFlag = "gen_pprof_mem"
 
 	saveBlock = "save_block"
 
@@ -50,6 +54,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set external package flags
+			setExternalPackageValue(cmd)
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
@@ -60,21 +69,32 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 				}
 			}()
 
-			dataDir := viper.GetString(dataDirFlag)
+			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
 		},
+		PostRun: func(cmd *cobra.Command, args []string) {
+			if viper.GetBool(runWithPprofMemFlag) {
+				log.Println("--------- gen pprof mem start ---------")
+				err := dumpMemPprof()
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Println("--------- gen pprof mem success ---------")
+				}
+			}
+		},
 	}
-	cmd.Flags().StringP(dataDirFlag, "d", ".exchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(types.FlagDownloadDDS, false, "get delta from dc/redis or not")
 	cmd.Flags().Bool(types.FlagUploadDDS, false, "send delta to dc/redis or not")
-	cmd.Flags().Bool(types.FlagApplyP2PDelta, false, "use delta from bcBlockResponseMessage or not")
-	cmd.Flags().Bool(types.FlagBroadcastP2PDelta, false, "save into deltastore.db, and add delta into bcBlockResponseMessage")
 	cmd.Flags().String(types.FlagRedisUrl, "localhost:6379", "redis url")
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(types.FlagRedisDB, 0, "delta db num")
+	cmd.Flags().Int(types.FlagDeltaVersion, types.DeltaVersion, "Specify delta version")
 
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
@@ -96,16 +116,26 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
-	cmd.Flags().BoolVar(&gorid.EnableGid, gorid.FlagEnableGid, false, "Display goroutine id in log")
+	cmd.Flags().BoolVar(&system.EnableGid, system.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
+	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Int64(config.FlagMaxGasUsedPerBlock, -1, "Maximum gas used of transactions in a block")
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
+	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	return cmd
+}
+
+// setExternalPackageValue set external package config value.
+func setExternalPackageValue(cmd *cobra.Command) {
+	types.DownloadDelta = viper.GetBool(types.FlagDownloadDDS)
+	types.UploadDelta = viper.GetBool(types.FlagUploadDDS)
+	types.FastQuery = viper.GetBool(types.FlagFastQuery)
+	types.DeltaVersion = viper.GetInt(types.FlagDeltaVersion)
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
@@ -261,6 +291,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
+		global.SetGlobalHeight(lastBlockHeight)
 		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
 		panicError(err)
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
@@ -280,6 +311,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
+	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
@@ -291,6 +323,20 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+}
+
+func dumpMemPprof() error {
+	fileName := fmt.Sprintf("replay_pprof_%s.mem.bin", time.Now().Format("20060102150405"))
+	f, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("create mem pprof file %s error: %w", fileName, err)
+	}
+	defer f.Close()
+	runtime.GC() // get up-to-date statistics
+	if err = pprof.WriteHeapProfile(f); err != nil {
+		return fmt.Errorf("could not write memory profile: %w", err)
+	}
+	return nil
 }
 
 func startDumpPprof() {

@@ -3,8 +3,8 @@ package types_test
 import (
 	"testing"
 
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -12,7 +12,8 @@ import (
 
 func newMemTestKVStore(t *testing.T) types.KVStore {
 	db := dbm.NewMemDB()
-	store, err := iavl.LoadStore(db, types.CommitID{}, false, 0)
+	flatKVDB := dbm.NewMemDB()
+	store, err := iavl.LoadStore(db, flatKVDB, types.CommitID{}, false, 0)
 	require.NoError(t, err)
 	return store
 }

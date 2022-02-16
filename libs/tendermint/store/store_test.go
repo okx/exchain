@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	db "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	db "github.com/tendermint/tm-db"
-	dbm "github.com/tendermint/tm-db"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -470,6 +470,92 @@ func TestPruneBlocks(t *testing.T) {
 	assert.Nil(t, bs.LoadBlock(1499))
 	assert.NotNil(t, bs.LoadBlock(1500))
 	assert.Nil(t, bs.LoadBlock(1501))
+}
+
+func TestDeleteBlocksFromTop(t *testing.T) {
+	config := cfg.ResetTestRoot("blockchain_reactor_test")
+	defer os.RemoveAll(config.RootDir)
+	state, err := sm.LoadStateFromDBOrGenesisFile(dbm.NewMemDB(), config.GenesisFile())
+	require.NoError(t, err)
+	db := dbm.NewMemDB()
+	bs := NewBlockStore(db)
+	assert.EqualValues(t, 0, bs.Base())
+	assert.EqualValues(t, 0, bs.Height())
+	assert.EqualValues(t, 0, bs.Size())
+
+	// deleting an empty store should error, even when deleting to 0
+	_, err = bs.DeleteBlocksFromTop(1)
+	require.Error(t, err)
+
+	_, err = bs.DeleteBlocksFromTop(0)
+	require.Error(t, err)
+
+	// make more than 1000 blocks, to test batch deletions
+	for h := int64(1); h <= 1500; h++ {
+		block := makeBlock(h, state, new(types.Commit))
+		partSet := block.MakePartSet(2)
+		seenCommit := makeTestCommit(h, tmtime.Now())
+		bs.SaveBlock(block, partSet, seenCommit)
+	}
+
+	assert.EqualValues(t, 1, bs.Base())
+	assert.EqualValues(t, 1500, bs.Height())
+	assert.EqualValues(t, 1500, bs.Size())
+
+	deletedBlock := bs.LoadBlock(1201)
+
+	// Check that basic pruning works
+	deleted, err := bs.DeleteBlocksFromTop(1200)
+	require.NoError(t, err)
+	assert.EqualValues(t, 300, deleted)
+	assert.EqualValues(t, 1, bs.Base())
+	assert.EqualValues(t, 1200, bs.Height())
+	assert.EqualValues(t, 1200, bs.Size())
+	assert.EqualValues(t, BlockStoreStateJSON{
+		Base:   1,
+		Height: 1200,
+	}, LoadBlockStoreStateJSON(db))
+
+	require.NotNil(t, bs.LoadBlock(1200))
+	require.Nil(t, bs.LoadBlock(1201))
+	require.Nil(t, bs.LoadBlockByHash(deletedBlock.Hash()))
+	require.Nil(t, bs.LoadBlockCommit(1201))
+	require.Nil(t, bs.LoadBlockMeta(1201))
+	require.Nil(t, bs.LoadBlockPart(1201, 1))
+
+	for i := int64(1201); i <= 1500; i++ {
+		require.Nil(t, bs.LoadBlock(i))
+	}
+	for i := int64(1); i <= 1200; i++ {
+		require.NotNil(t, bs.LoadBlock(i))
+	}
+
+	// Deleting up the current height should error
+	_, err = bs.DeleteBlocksFromTop(1201)
+	require.Error(t, err)
+
+	// Deleting down to the current height should work
+	deleted, err = bs.DeleteBlocksFromTop(1200)
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, deleted)
+
+	// Deleting again should work
+	deleted, err = bs.DeleteBlocksFromTop(1100)
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, deleted)
+	assert.EqualValues(t, 1100, bs.Height())
+
+	// Deleting beyond the current height should error
+	_, err = bs.DeleteBlocksFromTop(1101)
+	require.Error(t, err)
+
+	// Deleting to the current base should work
+	deleted, err = bs.DeleteBlocksFromTop(1)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1099, deleted)
+	assert.Nil(t, bs.LoadBlock(2))
+	assert.NotNil(t, bs.LoadBlock(1))
+	assert.Nil(t, bs.LoadBlock(2))
 }
 
 func TestLoadBlockMeta(t *testing.T) {

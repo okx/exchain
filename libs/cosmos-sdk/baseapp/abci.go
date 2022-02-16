@@ -6,16 +6,17 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
-
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/trace"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -86,14 +87,6 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
-	case "ResetDeliverState":
-		// reset deliver state
-
-		// Reset the DeliverTx state. If this is the first block, it should
-		// already be initialized in InitChain. Otherwise app.deliverState will be
-		// nil, since it is reset on Commit.
-		// init chain will set deliverstate without blockHeight
-		app.deliverState = nil
 	default:
 		// do nothing
 	}
@@ -131,7 +124,12 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// Initialize the DeliverTx state. If this is the first block, it should
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
-	if app.deliverState == nil {
+	if req.Header.Height > 1+tmtypes.GetStartBlockHeight() {
+		if app.deliverState != nil {
+			app.logger.Info(
+				"deliverState was not reset by BaseApp.Commit due to the previous prerun task being stopped",
+				"height", req.Header.Height)
+		}
 		app.setDeliverState(req.Header)
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
@@ -180,8 +178,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 // internal CheckTx state if the AnteHandler passes. Otherwise, the ResponseCheckTx
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
-func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.txDecoder(req.Tx)
+func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
+	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
@@ -224,8 +222,6 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-
-
 // Commit implements the ABCI interface. It will commit all state that exists in
 // the deliver state's multi-store and includes the resulting commit ID in the
 // returned abci.ResponseCommit. Commit will set the check state based on the
@@ -234,9 +230,6 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	if req.Deltas == nil {
-		req.Deltas = &abci.Deltas{}
-	}
 	header := app.deliverState.ctx.BlockHeader()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
@@ -244,11 +237,26 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
-	commitID, _, deltas := app.cms.Commit(&iavl.TreeDelta{}, req.Deltas.DeltasByte)
+
+	var input iavl.TreeDeltaMap
+	if tmtypes.DownloadDelta && req.DeltaMap != nil {
+		var ok bool
+		input, ok = req.DeltaMap.(iavl.TreeDeltaMap)
+		if !ok {
+			panic("use TreeDeltaMap failed")
+		}
+	}
+
+	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
 		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
+	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rflat<%d>, rflatTs<%dms>, wflat<%d>, wflatTs<%dms>",
+		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount(), time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds()))
+	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
+	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
@@ -258,6 +266,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Commit. Use the header from this latest block.
 	app.setCheckState(header)
 
+	app.logger.Debug("deliverState reset by BaseApp.Commit", "height", header.Height)
 	// empty/reset the deliver state
 	app.deliverState = nil
 
@@ -280,8 +289,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}
 
 	return abci.ResponseCommit{
-		Data: commitID.Hash,
-		Deltas: &abci.Deltas{DeltasByte: deltas},
+		Data:     commitID.Hash,
+		DeltaMap: output,
 	}
 }
 
@@ -361,6 +370,28 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
 				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
+		case "trace":
+			tmtx, err := GetABCITx(req.Data)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
+			}
+			tx, err := app.txDecoder(tmtx.Tx, tmtx.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+			}
+			block, err := GetABCIBlock(tmtx.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
+			}
+			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
+			}
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    req.Height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(res),
 			}
 
 		case "version":

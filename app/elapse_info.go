@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"strings"
 	"sync"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -16,15 +17,17 @@ var (
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
+		trace.FlatKV,
 		trace.DeliverTxs,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=0",
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
+		trace.FlatKV,
 		trace.DeliverTxs,
 		trace.Round,
 		trace.CommitRound,
@@ -38,7 +41,7 @@ const (
 func init() {
 	once.Do(func() {
 		elapsedInfo := &ElapsedTimeInfos{
-			infoMap:     make(map[string]string),
+			infoMap:   make(map[string]string),
 			schemaMap: make(map[string]bool),
 		}
 
@@ -49,11 +52,11 @@ func init() {
 }
 
 type ElapsedTimeInfos struct {
-	mtx sync.Mutex
-	infoMap         map[string]string
-	schemaMap       map[string]bool
-	initialized     bool
-	elapsedTime     int64
+	mtx         sync.Mutex
+	infoMap     map[string]string
+	schemaMap   map[string]bool
+	initialized bool
+	elapsedTime int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
@@ -81,7 +84,6 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		e.initialized = true
 	}
 
-
 	var detailInfo string
 	for _, k := range CUSTOM_PRINT {
 		if v, ok := e.schemaMap[k]; ok {
@@ -91,11 +93,12 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
+		trace.WtxRatio, e.infoMap[trace.WtxRatio],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		trace.Prerun, e.infoMap[trace.Prerun],

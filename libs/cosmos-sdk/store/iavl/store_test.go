@@ -1,14 +1,21 @@
 package iavl
 
 import (
+	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
@@ -51,6 +58,7 @@ func newAlohaTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, types.CommitID) {
 
 func TestLoadStore(t *testing.T) {
 	db := dbm.NewMemDB()
+	flatKVDB := dbm.NewMemDB()
 	tree, _ := newAlohaTree(t, db)
 	store := UnsafeNewStore(tree)
 
@@ -90,17 +98,17 @@ func TestLoadStore(t *testing.T) {
 	require.Equal(t, string(hcStore.Get([]byte("hello"))), "ciao")
 
 	// Querying a new store at some previous non-pruned height H
-	newHStore, err := LoadStore(db, cIDH, false, 0)
+	newHStore, err := LoadStore(db, flatKVDB, cIDH, false, 0)
 	require.NoError(t, err)
 	require.Equal(t, string(newHStore.Get([]byte("hello"))), "hallo")
 
 	// Querying a new store at some previous pruned height Hp
-	newHpStore, err := LoadStore(db, cIDHp, false, 0)
+	newHpStore, err := LoadStore(db, flatKVDB, cIDHp, false, 0)
 	require.NoError(t, err)
 	require.Equal(t, string(newHpStore.Get([]byte("hello"))), "hola")
 
 	// Querying a new store at current height H
-	newHcStore, err := LoadStore(db, cIDHc, false, 0)
+	newHcStore, err := LoadStore(db, flatKVDB, cIDHc, false, 0)
 	require.NoError(t, err)
 	require.Equal(t, string(newHcStore.Get([]byte("hello"))), "ciao")
 }
@@ -132,7 +140,7 @@ func TestGetImmutable(t *testing.T) {
 
 	require.Panics(t, func() { newStore.Set(nil, nil) })
 	require.Panics(t, func() { newStore.Delete(nil) })
-	require.Panics(t, func() { newStore.Commit(&iavl.TreeDelta{}, nil) })
+	require.Panics(t, func() { newStore.CommitterCommit(nil) })
 }
 
 func TestTestGetImmutableIterator(t *testing.T) {
@@ -426,7 +434,7 @@ func nextVersion(iStore *Store) {
 	key := []byte(fmt.Sprintf("Key for tree: %d", iStore.LastCommitID().Version))
 	value := []byte(fmt.Sprintf("Value for tree: %d", iStore.LastCommitID().Version))
 	iStore.Set(key, value)
-	iStore.Commit(&iavl.TreeDelta{}, nil)
+	iStore.CommitterCommit(nil)
 }
 
 func TestIAVLNoPrune(t *testing.T) {
@@ -473,7 +481,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
 	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
-	cid, _, _ := iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ := iavlStore.CommitterCommit(nil)
 	ver := cid.Version
 	query := abci.RequestQuery{Path: "/key", Data: k1, Height: ver}
 	querySub := abci.RequestQuery{Path: "/subspace", Data: ksub, Height: ver}
@@ -493,7 +501,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Nil(t, qres.Value)
 
 	// commit it, but still don't see on old version
-	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ = iavlStore.CommitterCommit(nil)
 	qres = iavlStore.Query(query)
 	require.Equal(t, uint32(0), qres.Code)
 	require.Nil(t, qres.Value)
@@ -511,7 +519,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 	// modify
 	iavlStore.Set(k1, v3)
-	cid, _, _ = iavlStore.Commit(&iavl.TreeDelta{}, nil)
+	cid, _ = iavlStore.CommitterCommit(nil)
 
 	// query will return old values, as height is fixed
 	qres = iavlStore.Query(query)
@@ -538,6 +546,122 @@ func TestIAVLStoreQuery(t *testing.T) {
 	qres = iavlStore.Query(query0)
 	require.Equal(t, uint32(0), qres.Code)
 	require.Equal(t, v1, qres.Value)
+}
+
+func testCommitDelta(t *testing.T) {
+	emptyDelta := &iavl.TreeDelta{NodesDelta: []*iavl.NodeJsonImp{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: []*iavl.CommitOrphansImp{}}
+	tmtypes.DownloadDelta = true
+	iavl.SetProduceDelta(false)
+
+	db := dbm.NewMemDB()
+	tree, err := iavl.NewMutableTree(db, cacheSize)
+	require.NoError(t, err)
+
+	iavlStore := UnsafeNewStore(tree)
+
+	k1, v1 := []byte("key1"), []byte("val1")
+	k2, v2 := []byte("key2"), []byte("val2")
+
+	// set data
+	iavlStore.Set(k1, v1)
+	iavlStore.Set(k2, v2)
+
+	// normal case (not use delta and not produce delta)
+	cid, treeDelta := iavlStore.CommitterCommit(nil)
+	assert.NotEmpty(t, cid.Hash)
+	assert.EqualValues(t, 1, cid.Version)
+	assert.Equal(t, emptyDelta, treeDelta)
+
+	// not use delta and produce delta
+	iavl.SetProduceDelta(true)
+	cid1, treeDelta1 := iavlStore.CommitterCommit(nil)
+	assert.NotEmpty(t, cid1.Hash)
+	assert.EqualValues(t, 2, cid1.Version)
+	assert.NotEqual(t, emptyDelta, treeDelta1)
+
+	// use delta and produce delta
+	cid2, treeDelta2 := iavlStore.CommitterCommit(treeDelta1)
+	assert.NotEmpty(t, cid2.Hash)
+	assert.EqualValues(t, 3, cid2.Version)
+	assert.NotEqual(t, emptyDelta, treeDelta2)
+	assert.Equal(t, treeDelta1, treeDelta2)
+
+	// use delta and not produce delta
+	iavl.SetProduceDelta(false)
+	cid3, treeDelta3 := iavlStore.CommitterCommit(treeDelta1)
+	assert.NotEmpty(t, cid3.Hash)
+	assert.EqualValues(t, 4, cid3.Version)
+	assert.Equal(t, emptyDelta, treeDelta3)
+}
+func TestCommitDelta(t *testing.T) {
+	if os.Getenv("SUB_PROCESS") == "1" {
+		testCommitDelta(t)
+		return
+	}
+
+	var outb, errb bytes.Buffer
+	cmd := exec.Command(os.Args[0], "-test.run=TestCommitDelta")
+	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		isFailed := false
+		if strings.Contains(outb.String(), "FAIL:") ||
+			strings.Contains(errb.String(), "FAIL:") {
+			fmt.Print(cmd.Stderr)
+			fmt.Print(cmd.Stdout)
+			isFailed = true
+		}
+		assert.Equal(t, isFailed, false)
+
+		return
+	}
+}
+
+func TestIAVLDelta(t *testing.T) {
+	emptyDelta := iavl.TreeDelta{NodesDelta: []*iavl.NodeJsonImp{}, OrphansDelta: []*iavl.NodeJson{}, CommitOrphansDelta: []*iavl.CommitOrphansImp{}}
+
+	db := dbm.NewMemDB()
+	tree, _ := newAlohaTree(t, db)
+
+	// Create non-pruned height H
+	require.True(t, tree.Set([]byte("hello"), []byte("hallo")))
+
+	// normal case (not use delta and not produce delta)
+	iavl.SetProduceDelta(false)
+	h, v, delta, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h)
+	assert.EqualValues(t, 2, v)
+	assert.Equal(t, delta, emptyDelta)
+
+	// not use delta and produce delta
+	iavl.SetProduceDelta(true)
+	h1, v1, delta1, err := tree.SaveVersion(false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h1)
+	assert.EqualValues(t, 3, v1)
+	// delta is empty or not depends on SetProduceDelta()
+	assert.NotEqual(t, delta1, emptyDelta)
+
+	// use delta and produce delta
+	tree.SetDelta(&delta1)
+	h2, v2, delta2, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h2)
+	assert.EqualValues(t, 4, v2)
+	assert.NotEqual(t, delta2, emptyDelta)
+	assert.Equal(t, delta1, delta2)
+
+	// use delta and not produce delta
+	iavl.SetProduceDelta(false)
+	tree.SetDelta(&delta1)
+	h3, v3, delta3, err := tree.SaveVersion(true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, h3)
+	assert.EqualValues(t, 5, v3)
+	assert.Equal(t, delta3, emptyDelta)
 }
 
 func BenchmarkIAVLIteratorNext(b *testing.B) {

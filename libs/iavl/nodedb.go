@@ -11,8 +11,8 @@ import (
 
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
-	dbm "github.com/tendermint/tm-db"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"
@@ -71,9 +71,13 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 	}
 
 	txResult := new(types.TxResult)
-	err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
+	err = txResult.UnmarshalFromAmino(cdc, rawBytes)
 	if err != nil {
-		return nil, fmt.Errorf("error reading TxResult: %v", err)
+		txResult = new(types.TxResult)
+		err = cdc.UnmarshalBinaryBare(rawBytes, &txResult)
+		if err != nil {
+			return nil, fmt.Errorf("error reading TxResult: %v", err)
+		}
 	}
 
 	return txResult, nil
@@ -88,7 +92,7 @@ func (txi *TxIndex) AddBatch(b *txindex.Batch) error {
 	defer storeBatch.Close()
 
 	for _, result := range b.Ops {
-		hash := result.Tx.Hash()
+		hash := result.Tx.Hash(result.Height)
 
 		// index tx by events
 		txi.indexEvents(result, hash, storeBatch)
@@ -118,7 +122,7 @@ func (txi *TxIndex) Index(result *types.TxResult) error {
 	b := txi.store.NewBatch()
 	defer b.Close()
 
-	hash := result.Tx.Hash()
+	hash := result.Tx.Hash(result.Height)
 
 	// index tx by events
 	txi.indexEvents(result, hash, b)

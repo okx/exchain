@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/spf13/viper"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -34,8 +34,10 @@ var (
 type AccType int
 
 const (
-	userAccount AccType = iota
-	contractAccount
+	UserAccount AccType = iota
+	ContractAccount
+	ModuleAccount
+	OtherAccount
 )
 
 func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
@@ -86,9 +88,9 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			return false
 		}
 
-		accType := userAccount
+		accType := UserAccount
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
-			accType = contractAccount
+			accType = ContractAccount
 		}
 
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -28,6 +30,69 @@ type SimpleProof struct {
 	Index    int      `json:"index"`     // Index of item to prove.
 	LeafHash []byte   `json:"leaf_hash"` // Hash of item value.
 	Aunts    [][]byte `json:"aunts"`     // Hashes from leaf's sibling to a root's child.
+}
+
+func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("not enough data for field")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			uvint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			sp.Total = int(uvint)
+			dataLen = uint64(n)
+		case 2:
+			var n int
+			sp.Index, n, err = amino.DecodeInt(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		case 3:
+			sp.LeafHash = make([]byte, dataLen)
+			copy(sp.LeafHash, subData)
+		case 4:
+			var aunt []byte
+			if dataLen > 0 {
+				aunt = make([]byte, dataLen)
+				copy(aunt, subData)
+			}
+			sp.Aunts = append(sp.Aunts, aunt)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 // SimpleProofsFromByteSlices computes inclusion proof for given items.

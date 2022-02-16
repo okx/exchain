@@ -11,7 +11,6 @@ import (
 	flow "github.com/okex/exchain/libs/tendermint/libs/flowrate"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
-
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -116,9 +115,9 @@ func (pool *BlockPool) OnReset() error {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
-    for height, r := range pool.requesters {
-    	r.Stop()
-    	delete(pool.requesters, height)
+	for height, r := range pool.requesters {
+		r.Stop()
+		delete(pool.requesters, height)
 	}
 	pool.numPending = 0
 
@@ -327,7 +326,7 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 	}
 
 	// compute how many peers' height is greater than height
-	if !pool.IsRunning() && storeHeight + maxIntervalForFastSync <= height {
+	if !pool.IsRunning() && storeHeight+maxIntervalForFastSync <= height {
 		count := 0
 		totalNum := len(pool.peers)
 		for _, peer := range pool.peers {
@@ -335,7 +334,7 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 				count++
 			}
 		}
-		if count > int(float32(totalNum) * maxPeersProportionForFastSync) {
+		if count > int(float32(totalNum)*maxPeersProportionForFastSync) {
 			return true
 		}
 	}
@@ -583,10 +582,6 @@ func (bpr *bpRequester) setBlock(block *types.Block, deltas *types.Deltas, peerI
 		return false
 	}
 	bpr.block = block
-
-	if types.EnableApplyP2PDelta() {
-		bpr.deltas = deltas
-	}
 
 	bpr.mtx.Unlock()
 

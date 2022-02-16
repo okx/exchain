@@ -13,8 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pkg/errors"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -22,10 +20,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
 )
 
 type TxInfoParser interface {
@@ -75,6 +73,7 @@ type CListMempool struct {
 
 	// Keep a cache of already-seen txs.
 	// This reduces the pressure on the proxyApp.
+	// Save wtx as value if occurs or save nil as value
 	cache txCache
 
 	eventBus types.TxEventPublisher
@@ -268,6 +267,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -339,15 +339,17 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx})
+	begin := time.Now()
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
+	mem.logger.Info("mempool.CheckTxAsync", "time cost", time.Since(begin))
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
+		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(tx.Hash(mem.height)), r.CheckTx.GasWanted, gasUsed))
 			r.CheckTx.GasWanted = gasUsed
 		}
 	}
-	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))
+	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
 	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
@@ -384,8 +386,7 @@ func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
 // Used in CheckTx to record PeerID who sent us the tx.
 func (mem *CListMempool) reqResCb(
 	tx []byte,
-	peerID uint16,
-	peerP2PID p2p.ID,
+	txInfo TxInfo,
 	externalCb func(*abci.Response),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
@@ -394,7 +395,7 @@ func (mem *CListMempool) reqResCb(
 			panic("recheck cursor is not nil in reqResCb")
 		}
 
-		mem.resCbFirstTime(tx, peerID, peerP2PID, res)
+		mem.resCbFirstTime(tx, txInfo, res)
 
 		// update metrics
 		mem.metrics.Size.Set(float64(mem.Size()))
@@ -424,7 +425,7 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
 	mem.bcTxsMap.Store(txKey(memTx.tx), ele)
 
 	e := mem.txs.AddTxWithExInfo(memTx, info.Sender, info.GasPrice, info.Nonce)
-	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx), e)
+	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx, memTx.height), e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -446,7 +447,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx, info ExTxInfo) error {
 	e := mem.txs.PushBack(memTx)
 	e.Address = info.Sender
 
-	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx), e)
+	mem.addressRecord.AddItem(info.Sender, txID(memTx.tx, memTx.height), e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -511,7 +512,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx, exTxInfo ExTxInfo) error
 	}
 
 	// add tx to PendingPool
-	if err := mem.pendingPool.validate(exTxInfo.Sender, memTx.tx); err != nil {
+	if err := mem.pendingPool.validate(exTxInfo.Sender, memTx.tx, memTx.height); err != nil {
 		return err
 	}
 	pendingTx := &PendingTx{
@@ -544,7 +545,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		mem.logger.Info("Added good transaction",
-			"tx", txID(mempoolTx.tx),
+			"tx", txID(mempoolTx.tx, mempoolTx.height),
 			"height", mempoolTx.height,
 			"total", mem.Size(),
 		)
@@ -560,8 +561,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 // handled by the resCbRecheck callback.
 func (mem *CListMempool) resCbFirstTime(
 	tx []byte,
-	peerID uint16,
-	peerP2PID p2p.ID,
+	txInfo TxInfo,
 	res *abci.Response,
 ) {
 	switch r := res.Value.(type) {
@@ -579,12 +579,6 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Error(err.Error())
 				return
 			}
-			memTx := &mempoolTx{
-				height:    mem.height,
-				gasWanted: r.CheckTx.GasWanted,
-				tx:        tx,
-			}
-			memTx.senders.Store(peerID, true)
 
 			var exTxInfo ExTxInfo
 			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
@@ -598,6 +592,17 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
+			memTx := &mempoolTx{
+				height:    mem.height,
+				gasWanted: r.CheckTx.GasWanted,
+				tx:        tx,
+				nodeKey:   txInfo.wtx.GetNodeKey(),
+				signature: txInfo.wtx.GetSignature(),
+				from:      exTxInfo.Sender,
+			}
+
+			memTx.senders.Store(txInfo.SenderID, true)
+
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx, exTxInfo)
@@ -607,7 +612,7 @@ func (mem *CListMempool) resCbFirstTime(
 
 			if err == nil {
 				mem.logger.Info("Added good transaction",
-					"tx", txID(tx),
+					"tx", txID(tx, mem.height),
 					"res", r,
 					"height", memTx.height,
 					"total", mem.Size(),
@@ -616,7 +621,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+					"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
@@ -627,7 +632,7 @@ func (mem *CListMempool) resCbFirstTime(
 		} else {
 			// ignore bad transaction
 			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx), "peerID", peerP2PID, "res", r, "err", postCheckErr)
+				"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
@@ -660,7 +665,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			// Good, nothing to do.
 		} else {
 			// Tx became invalidated due to newly committed block.
-			mem.logger.Info("Tx is no longer valid", "tx", txID(tx), "res", r, "err", postCheckErr)
+			mem.logger.Info("Tx is no longer valid", "tx", txID(tx, memTx.height), "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.removeTx(tx, mem.recheckCursor, true)
 		}
@@ -790,6 +795,10 @@ func (mem *CListMempool) GetAddressList() []string {
 	return mem.addressRecord.GetAddressList()
 }
 
+func (mem *CListMempool) GetPendingNonce(address string) uint64 {
+	return mem.addressRecord.GetAddressNonce(address)
+}
+
 // Lock() must be help by the caller during execution.
 func (mem *CListMempool) Update(
 	height int64,
@@ -857,7 +866,7 @@ func (mem *CListMempool) Update(
 		addressNonce[addr] = nonce
 
 		if mem.pendingPool != nil {
-			mem.pendingPool.removeTxByHash(txID(tx))
+			mem.pendingPool.removeTxByHash(txID(tx, height))
 		}
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
@@ -1008,6 +1017,9 @@ type mempoolTx struct {
 	height    int64    // height that this tx had been validated in
 	gasWanted int64    // amount of gas this tx states it will require
 	tx        types.Tx //
+	nodeKey   []byte
+	signature []byte
+	from      string
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1103,15 +1115,15 @@ func (nopTxCache) Push(types.Tx) bool { return true }
 func (nopTxCache) Remove(types.Tx)    {}
 
 //--------------------------------------------------------------------------------
-
 // txKey is the fixed length array sha256 hash used as the key in maps.
-func txKey(tx types.Tx) [sha256.Size]byte {
-	return sha256.Sum256(tx)
+func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
+	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+	return
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
-func txID(tx []byte) string {
-	return fmt.Sprintf("%X", types.Tx(tx).Hash())
+func txID(tx []byte, height int64) string {
+	return fmt.Sprintf("%X", types.Tx(tx).Hash(height))
 }
 
 //--------------------------------------------------------------------------------

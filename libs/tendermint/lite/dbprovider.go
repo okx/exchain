@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strconv"
 
+	dbm "github.com/okex/exchain/libs/tm-db"
 	amino "github.com/tendermint/go-amino"
-	dbm "github.com/tendermint/tm-db"
 
 	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	log "github.com/okex/exchain/libs/tendermint/libs/log"

@@ -2,7 +2,6 @@ package app
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/farm"
@@ -14,7 +13,7 @@ import (
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
@@ -47,7 +46,7 @@ func TestModuleManager(t *testing.T) {
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
 	for moduleName, _ := range ModuleBasics {
-		if moduleName == upgrade.ModuleName || moduleName == debug.ModuleName {
+		if moduleName == upgrade.ModuleName {
 			continue
 		}
 		_, found := app.mm.Modules[moduleName]
@@ -58,7 +57,6 @@ func TestModuleManager(t *testing.T) {
 func TestProposalManager(t *testing.T) {
 	db := dbm.NewMemDB()
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
-
 
 	require.True(t, app.GovKeeper.Router().HasRoute(params.RouterKey))
 	require.True(t, app.GovKeeper.Router().HasRoute(dex.RouterKey))

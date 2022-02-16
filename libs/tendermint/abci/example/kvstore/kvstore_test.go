@@ -2,19 +2,14 @@ package kvstore
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/example/code"
-	abciserver "github.com/okex/exchain/libs/tendermint/abci/server"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
@@ -224,69 +219,6 @@ func valsEqual(t *testing.T, vals1, vals2 []types.ValidatorUpdate) {
 			t.Fatalf("vals dont match at index %d. got %X/%d , expected %X/%d", i, v2.PubKey, v2.Power, v1.PubKey, v1.Power)
 		}
 	}
-}
-
-func makeSocketClientServer(app types.Application, name string) (abcicli.Client, service.Service, error) {
-	// Start the listener
-	socket := fmt.Sprintf("unix://%s.sock", name)
-	logger := log.TestingLogger()
-
-	server := abciserver.NewSocketServer(socket, app)
-	server.SetLogger(logger.With("module", "abci-server"))
-	if err := server.Start(); err != nil {
-		return nil, nil, err
-	}
-
-	// Connect to the socket
-	client := abcicli.NewSocketClient(socket, false)
-	client.SetLogger(logger.With("module", "abci-client"))
-	if err := client.Start(); err != nil {
-		server.Stop()
-		return nil, nil, err
-	}
-
-	return client, server, nil
-}
-
-func makeGRPCClientServer(app types.Application, name string) (abcicli.Client, service.Service, error) {
-	// Start the listener
-	socket := fmt.Sprintf("unix://%s.sock", name)
-	logger := log.TestingLogger()
-
-	gapp := types.NewGRPCApplication(app)
-	server := abciserver.NewGRPCServer(socket, gapp)
-	server.SetLogger(logger.With("module", "abci-server"))
-	if err := server.Start(); err != nil {
-		return nil, nil, err
-	}
-
-	client := abcicli.NewGRPCClient(socket, true)
-	client.SetLogger(logger.With("module", "abci-client"))
-	if err := client.Start(); err != nil {
-		server.Stop()
-		return nil, nil, err
-	}
-	return client, server, nil
-}
-
-func TestClientServer(t *testing.T) {
-	// set up socket app
-	kvstore := NewApplication()
-	client, server, err := makeSocketClientServer(kvstore, "kvstore-socket")
-	require.Nil(t, err)
-	defer server.Stop()
-	defer client.Stop()
-
-	runClientTests(t, client)
-
-	// set up grpc app
-	kvstore = NewApplication()
-	gclient, gserver, err := makeGRPCClientServer(kvstore, "kvstore-grpc")
-	require.Nil(t, err)
-	defer gserver.Stop()
-	defer gclient.Stop()
-
-	runClientTests(t, gclient)
 }
 
 func runClientTests(t *testing.T, client abcicli.Client) {

@@ -2,17 +2,16 @@ package app
 
 import (
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/x/common/analyzer"
-	"github.com/okex/exchain/x/evm"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/x/evm"
 )
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	defer analyzer.OnAppBeginBlockExit()
 
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
@@ -22,7 +21,6 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	analyzer.OnAppDeliverTxEnter()
-	defer analyzer.OnAppDeliverTxExit()
 
 	resp := app.BaseApp.DeliverTx(req)
 
@@ -40,18 +38,20 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 // EndBlock implements the Application interface
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
-	analyzer.OnAppEndBlockEnter()
-	defer analyzer.OnAppEndBlockExit()
-
 	return app.BaseApp.EndBlock(req)
 }
 
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
-	analyzer.OnCommitEnter()
-	defer analyzer.OnCommitExit()
+	defer analyzer.OnCommitDone()
 	res := app.BaseApp.Commit(req)
+
+	// we call watch#Commit here ,because
+	// 1. this round commit a valid block
+	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont
+	// 	  call the prerun during commit step(edge case)
+	app.EvmKeeper.Watcher.Commit()
 
 	return res
 }

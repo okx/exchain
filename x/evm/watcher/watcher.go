@@ -1,9 +1,14 @@
 package watcher
 
 import (
-	jsoniter "github.com/json-iterator/go"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sync"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
@@ -33,13 +38,18 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	log           log.Logger
+
 	// for state delta transfering in network
 	watchData *WatchData
+
+	jobChan chan func()
 }
 
 var (
 	watcherEnable  = false
 	watcherLruSize = 1000
+	checkWd        = false
 	onceEnable     sync.Once
 	onceLru        sync.Once
 )
@@ -58,8 +68,9 @@ func GetWatchLruSize() int {
 	return watcherLruSize
 }
 
-func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
+func NewWatcher(logger log.Logger) *Watcher {
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
 
@@ -83,7 +94,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{}
+	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -161,6 +172,21 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 		return
 	}
 	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		if isDirectly {
+			w.batch = append(w.batch, wMsg)
+		} else {
+			w.staleBatch = append(w.staleBatch, wMsg)
+		}
+
+	}
+}
+
+func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewDelAccMsg(account)
 	if wMsg != nil {
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
@@ -349,58 +375,88 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go w.commitBatch(w.batch)
+	w.dispatchJob(func() { w.commitBatch(batch) })
 
+	// we dont do deduplicatie here,we do it in `commit routine`
 	// get centerBatch for sending to DataCenter
-	centerBatch := make([]*Batch, len(batch))
+	ddsBatch := make([]*Batch, len(batch))
 	for i, b := range batch {
-		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
 	}
-	w.watchData.Batches = centerBatch
+	w.watchData.Batches = ddsBatch
 }
 
-func (w *Watcher) CommitWatchData() {
-	if w.watchData == nil || w.watchData.Size() == 0 {
+func (w *Watcher) CommitWatchData(data WatchData) {
+	if data.Size() == 0 {
 		return
 	}
-	if w.watchData.Batches != nil {
-		go w.commitCenterBatch(w.watchData.Batches)
+	if data.Batches != nil {
+		w.commitCenterBatch(data.Batches)
 	}
-	if w.watchData.DirtyAccount != nil {
-		go w.delDirtyAccount(w.watchData.DirtyAccount)
+	if data.DirtyAccount != nil {
+		w.delDirtyAccount(data.DirtyAccount)
 	}
-	if w.watchData.DirtyList != nil {
-		go w.delDirtyList(w.watchData.DirtyList)
+	if data.DirtyList != nil {
+		w.delDirtyList(data.DirtyList)
 	}
-	if w.watchData.BloomData != nil {
-		go w.commitBloomData(w.watchData.BloomData)
+	if data.BloomData != nil {
+		w.commitBloomData(data.BloomData)
+	}
+
+	if checkWd {
+		keys := make([][]byte, len(data.Batches))
+		for i, _ := range data.Batches {
+			keys[i] = data.Batches[i].Key
+		}
+		w.CheckWatchDB(keys, "consumer")
 	}
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
+		filterMap[bytes2Key(b.GetKey())] = b
+	}
+
+	for _, b := range filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
-		w.store.Set(key, value)
-		if typeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(key), value)
+		if typeValue == TypeDelete {
+			w.store.Delete(key)
+		} else {
+			w.store.Set(key, value)
+			if typeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(key), value)
+			}
 		}
+	}
+
+	if checkWd {
+		keys := make([][]byte, len(batch))
+		for i, _ := range batch {
+			keys[i] = batch[i].GetKey()
+		}
+		w.CheckWatchDB(keys, "producer")
 	}
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
 	for _, b := range batch {
-		w.store.Set(b.Key, b.Value)
-		if b.TypeValue == TypeState {
-			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		if b.TypeValue == TypeDelete {
+			w.store.Delete(b.Key)
+		} else {
+			w.store.Set(b.Key, b.Value)
+			if b.TypeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+			}
 		}
 	}
 }
 
 func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	for _, account := range accounts {
-		w.DeleteAccount(*account)
+		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 
@@ -417,33 +473,207 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	}
 }
 
-func (w *Watcher) SetWatchDataFunc() {
-	gwd := func() ([]byte, error) {
-		value := w.watchData
-		value.DelayEraseKey = w.delayEraseKey
-		valueByte, err := itjs.Marshal(value)
+func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
+	value := w.watchData
+	value.DelayEraseKey = w.delayEraseKey
+
+	return func() ([]byte, error) {
+		filterWatcher := filterCopy(value)
+		valueByte, err := filterWatcher.MarshalToAmino(nil)
 		if err != nil {
 			return nil, err
 		}
 		return valueByte, nil
 	}
+}
 
-	uwd := func(wdByte []byte) {
-		if len(wdByte) > 0 {
-			wd := WatchData{}
-			if err := itjs.Unmarshal(wdByte, &wd); err != nil {
-				return
-			}
-			w.watchData = &wd
-			w.delayEraseKey = wd.DelayEraseKey
-		}
-
-		w.CommitWatchData()
+func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
+	if len(wdByte) == 0 {
+		return nil, fmt.Errorf("failed unmarshal watch data: empty data")
 	}
+	wd := WatchData{}
+	if err := wd.UnmarshalFromAmino(nil, wdByte); err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
 
-	tmstate.SetWatchDataFunc(gwd, uwd)
+func (w *Watcher) UseWatchData(watchData interface{}) {
+	wd, ok := watchData.(WatchData)
+	if !ok {
+		panic("use watch data failed")
+	}
+	w.delayEraseKey = wd.DelayEraseKey
+
+	w.dispatchJob(func() { w.CommitWatchData(wd) })
+}
+
+func (w *Watcher) SetWatchDataFunc() {
+	go w.jobRoutine()
+	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
 	return &w.watchData.BloomData
+}
+
+func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
+	output := make(map[string]string, len(keys))
+	kvHash := tmhash.New()
+	for _, key := range keys {
+		value, err := w.store.Get(key)
+		if err != nil {
+			continue
+		}
+		kvHash.Write(key)
+		kvHash.Write(value)
+		output[hex.EncodeToString(key)] = string(value)
+	}
+
+	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+}
+
+func bytes2Key(keyBytes []byte) string {
+	return string(keyBytes)
+}
+
+func key2Bytes(key string) []byte {
+	return []byte(key)
+}
+
+func filterCopy(origin *WatchData) *WatchData {
+	return &WatchData{
+		DirtyAccount:  filterAccount(origin.DirtyAccount),
+		Batches:       filterBatch(origin.Batches),
+		DelayEraseKey: filterDelayEraseKey(origin.DelayEraseKey),
+		BloomData:     filterBloomData(origin.BloomData),
+		DirtyList:     filterDirtyList(origin.DirtyList),
+	}
+}
+
+func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
+	if len(accounts) == 0 {
+		return nil
+	}
+
+	filterAccountMap := make(map[string]*sdk.AccAddress)
+	for _, account := range accounts {
+		filterAccountMap[bytes2Key(account.Bytes())] = account
+	}
+
+	ret := make([]*sdk.AccAddress, len(filterAccountMap))
+	i := 0
+	for _, acc := range filterAccountMap {
+		ret[i] = acc
+		i++
+	}
+
+	return ret
+}
+
+func filterBatch(datas []*Batch) []*Batch {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBatch := make(map[string]*Batch)
+	for _, b := range datas {
+		filterBatch[bytes2Key(b.Key)] = b
+	}
+
+	ret := make([]*Batch, len(filterBatch))
+	i := 0
+	for _, b := range filterBatch {
+		ret[i] = b
+		i++
+	}
+
+	return ret
+}
+
+func filterDelayEraseKey(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDelayEraseKey := make(map[string][]byte, 0)
+	for _, b := range datas {
+		filterDelayEraseKey[bytes2Key(b)] = b
+	}
+
+	ret := make([][]byte, len(filterDelayEraseKey))
+	i := 0
+	for _, k := range filterDelayEraseKey {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+func filterBloomData(datas []*evmtypes.KV) []*evmtypes.KV {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterBloomData := make(map[string]*evmtypes.KV, 0)
+	for _, k := range datas {
+		filterBloomData[bytes2Key(k.Key)] = k
+	}
+
+	ret := make([]*evmtypes.KV, len(filterBloomData))
+	i := 0
+	for _, k := range filterBloomData {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+
+func filterDirtyList(datas [][]byte) [][]byte {
+	if len(datas) == 0 {
+		return nil
+	}
+
+	filterDirtyList := make(map[string][]byte, 0)
+	for _, k := range datas {
+		filterDirtyList[bytes2Key(k)] = k
+	}
+
+	ret := make([][]byte, len(filterDirtyList))
+	i := 0
+	for _, k := range filterDirtyList {
+		ret[i] = k
+		i++
+	}
+
+	return ret
+}
+
+/////////// job
+func (w *Watcher) jobRoutine() {
+	if !w.Enabled() {
+		return
+	}
+
+	w.lazyInitialization()
+
+	for job := range w.jobChan {
+		job()
+	}
+}
+
+func (w *Watcher) lazyInitialization() {
+	// lazy initial:
+	// now we will allocate chan memory
+	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*2)
+}
+
+func (w *Watcher) dispatchJob(f func()) {
+	// if jobRoutine were too slow to write data  to disk
+	// we have to wait
+	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
+	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	w.jobChan <- f
 }

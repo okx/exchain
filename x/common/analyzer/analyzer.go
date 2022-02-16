@@ -5,30 +5,28 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"strings"
+	"sync"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
-var singleAnalys *analyer
+const FlagEnableAnalyzer string = "enable-analyzer"
+
+var (
+	singleAnalys *analyer
+	openAnalyzer bool
+	once         sync.Once
+)
 
 type analyer struct {
-	status          bool
-	currentTxIndex  int64
-	blockHeight     int64
-	startBeginBlock int64
-	beginBlockCost  int64
-	startdelliverTx int64
-	delliverTxCost  int64
-	startEndBlock   int64
-	endBlockCost    int64
-	startCommit     int64
-	commitCost      int64
-	dbRead          int64
-	dbWrite         int64
-	allCost         int64
-	evmCost         int64
-	txs             []*txLog
+	status         bool
+	currentTxIndex int64
+	blockHeight    int64
+	dbRead         int64
+	dbWrite        int64
+	evmCost        int64
+	txs            []*txLog
 }
 
 func init() {
@@ -42,7 +40,13 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
+}
 
+func getOpen() bool {
+	once.Do(func() {
+		openAnalyzer = viper.GetBool(FlagEnableAnalyzer)
+	})
+	return openAnalyzer
 }
 
 func newAnalys(height int64) {
@@ -55,17 +59,13 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
+	if !getOpen() {
+		return
+	}
 	newAnalys(height)
-	singleAnalys.onAppBeginBlockEnter()
 	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
-	}
-}
-
-func OnAppBeginBlockExit() {
-	if singleAnalys != nil {
-		singleAnalys.onAppBeginBlockExit()
 	}
 }
 
@@ -75,33 +75,9 @@ func OnAppDeliverTxEnter() {
 	}
 }
 
-func OnAppDeliverTxExit() {
+func OnCommitDone() {
 	if singleAnalys != nil {
-		singleAnalys.onAppDeliverTxExit()
-	}
-}
-
-func OnAppEndBlockEnter() {
-	if singleAnalys != nil {
-		singleAnalys.onAppEndBlockEnter()
-	}
-}
-
-func OnAppEndBlockExit() {
-	if singleAnalys != nil {
-		singleAnalys.onAppEndBlockExit()
-	}
-}
-
-func OnCommitEnter() {
-	if singleAnalys != nil {
-		singleAnalys.onCommitEnter()
-	}
-}
-
-func OnCommitExit() {
-	if singleAnalys != nil {
-		singleAnalys.onCommitExit()
+		singleAnalys.onCommitDone()
 	}
 	singleAnalys = nil
 }
@@ -118,52 +94,14 @@ func StopTxLog(oper string) {
 	}
 }
 
-func (s *analyer) onAppBeginBlockEnter() {
-	if s.status {
-		s.startBeginBlock = GetNowTimeMs()
-	}
-}
-
-func (s *analyer) onAppBeginBlockExit() {
-	if s.status {
-		s.beginBlockCost = GetNowTimeMs() - s.startBeginBlock
-	}
-}
-
 func (s *analyer) onAppDeliverTxEnter() {
 	if s.status {
-		s.startdelliverTx = GetNowTimeMs()
 		s.newTxLog()
 	}
 }
 
-func (s *analyer) onAppDeliverTxExit() {
+func (s *analyer) onCommitDone() {
 	if s.status {
-		s.delliverTxCost += GetNowTimeMs() - s.startdelliverTx
-	}
-}
-
-func (s *analyer) onAppEndBlockEnter() {
-	if s.status {
-		s.startEndBlock = GetNowTimeMs()
-	}
-}
-
-func (s *analyer) onAppEndBlockExit() {
-	if s.status {
-		s.endBlockCost = GetNowTimeMs() - s.startEndBlock
-	}
-}
-
-func (s *analyer) onCommitEnter() {
-	if s.status {
-		s.startCommit = GetNowTimeMs()
-	}
-}
-
-func (s *analyer) onCommitExit() {
-	if s.status {
-		s.commitCost = GetNowTimeMs() - s.startCommit
 		s.format()
 	}
 	singleAnalys = nil
@@ -191,7 +129,6 @@ func (s *analyer) stopTxLog(oper string) {
 }
 
 func (s *analyer) format() {
-	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	var evmcore int64
 	var format string
 	var record = make(map[string]int64)
@@ -247,5 +184,5 @@ func (s *analyer) format() {
 	format = strings.TrimRight(format, ", ")
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
-	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
+	trace.GetElapsedInfo().AddInfo(trace.DeliverTxs, format)
 }
