@@ -17,8 +17,16 @@ CHAINID=$1
 CHAINDIR=$2
 RPCPORT=$3
 P2PPORT=$4
-PROFPORT=$5
-GRPCPORT=$6
+RESTPORT=$5
+#PROFPORT=$5
+#GRPCPORT=$6
+
+echorun() {
+  echo "------------------------------------------------------------------------------------------------"
+  echo "["$@"]"
+  $@
+  echo "------------------------------------------------------------------------------------------------"
+}
 
 
 killbyname() {
@@ -28,27 +36,31 @@ killbyname() {
   echo "All <$NAME> killed!"
 }
 
-
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-#    exchaind start --pruning=nothing --rpc.unsafe \
-#      --local-rpc-port 26657 \
-#      --log_level $LOG_LEVEL \
-#      --log_file json \
-#      --enable-dynamic-gp=false \
-#      --consensus.timeout_commit 2000ms \
-#      --enable-preruntx=false \
-#      --iavl-enable-async-commit \
-#      --enable-gid \
-#      --append-pid=true \
-#      --iavl-commit-interval-height 10 \
-#      --iavl-output-modules evm=0,acc=0 \
-#      --trace --home $HOME_SERVER --chain-id $CHAINID \
-#      --elapsed Round=1,CommitRound=1,Produce=1 \
-#      --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
+     nohup exchaind start --pruning=nothing --rpc.unsafe \
+      --home=$CHAINDIR/$CHAINID \
+      --local-rpc-port ${RPCPORT} \
+      --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
+      --rpc.external_laddr="0.0.0.0:${RPCPORT}" \
+      --p2p.laddr="tcp://0.0.0.0:${P2PPORT}" \
+      --log_level $LOG_LEVEL \
+      --log_file json \
+      --enable-dynamic-gp=false \
+      --consensus.timeout_commit 2000ms \
+      --enable-preruntx=false \
+      --iavl-enable-async-commit \
+      --enable-gid \
+      --append-pid=true \
+      --iavl-commit-interval-height 10 \
+      --iavl-output-modules evm=0,acc=0 \
+      --trace --home $HOME_SERVER --chain-id $CHAINID \
+      --rest.laddr "tcp://localhost:${RESTPORT}" \
+      --elapsed Round=1,CommitRound=1,Produce=1 >$CHAINDIR/$CHAINID/oec.txt 2>&1 &
     exit
 }
+
 
 
 killbyname exchaind
@@ -108,20 +120,24 @@ fi
 
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a  --home $HOME_SERVER) 100000000okt --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okt --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin17 -a) 900000000okt --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin18 -a) 900000000okt --home $HOME_SERVER
+exchaind add-genesis-account $(exchaincli keys show admin16 -a --home $HOME_SERVER ) 900000000okt --home $HOME_SERVER
+exchaind add-genesis-account $(exchaincli keys show admin17 -a --home $HOME_SERVER) 900000000okt --home $HOME_SERVER
+exchaind add-genesis-account $(exchaincli keys show admin18 -a --home $HOME_SERVER) 900000000okt --home $HOME_SERVER
 
 # Sign genesis transaction
-exchaind gentx --name $KEY --keyring-backend test --home $CHAINDIR/$CHAINID
+rm -rf ~/.exchaind
+mv $CHAINDIR/$CHAINID ~/.exchaind
+#exchaind gentx --name $KEY --keyring-backend test --home $CHAINDIR/$CHAINID
+exchaind gentx --name $KEY --keyring-backend test
 
 # Collect genesis tx
-exchaind collect-gentxs --home $CHAINDIR/$CHAINID
+exchaind collect-gentxs
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
-exchaind validate-genesis --home $CHAINDIR/$CHAINID
-exchaincli config keyring-backend test --home $CHAINDIR/$CHAINID
+exchaind validate-genesis
+exchaincli config keyring-backend test
 
+mv ~/.exchaind $CHAINDIR/$CHAINID
 run
 
 # exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y

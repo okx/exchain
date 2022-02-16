@@ -47,8 +47,8 @@ chainid1="exchain-101"
 
 echo "Generating gaia configurations..."
 mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
-./start.sh $chainid0 ./data 26657 26656 6060 9090
-./start.sh $chainid1 ./data 26557 26556 6061 9091
+./start.sh $chainid0 ./data 26657 26656 6060 9090 8084
+./start.sh $chainid1 ./data 26557 26556 6061 9091 8085
 #
 #[ -f $GAIA_DATA/$chainid0.log ] && echo "$chainid0 initialized. Watch file $GAIA_DATA/$chainid0.log to see its execution."
 #[ -f $GAIA_DATA/$chainid1.log ] && echo "$chainid1 initialized. Watch file $GAIA_DATA/$chainid1.log to see its execution."
