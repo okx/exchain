@@ -59,6 +59,10 @@ func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
+func (tx kvstoreTx) GetType() sdk.TransactionType {
+	return sdk.UnknownType
+}
+
 func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	return mempool.ExTxInfo{
 		Sender:   "",
