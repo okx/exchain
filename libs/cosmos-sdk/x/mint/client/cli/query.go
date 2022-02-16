@@ -113,8 +113,8 @@ func GetCmdQueryAnnualProvisions(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// GetCmdQueryParams implements a command to return the current minting
-// parameters.
+// GetCmdQueryTreasures implements a command to return the current minting
+// treasures.
 func GetCmdQueryTreasures(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "treasures",
