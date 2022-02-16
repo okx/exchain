@@ -37,7 +37,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 				NewAccountSetupDecorator(ak),
-				NewAccountBlockedVerificationDecorator(evmKeeper, tx), //account blocked check AnteDecorator
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				authante.NewMempoolFeeDecorator(),
 				authante.NewValidateBasicDecorator(),
 				authante.NewValidateMemoDecorator(ak),
@@ -66,7 +66,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 					NewEthMempoolFeeDecorator(evmKeeper, &msgEthTx),
 					authante.NewValidateBasicDecorator(),
 					NewEthSigVerificationDecorator(&msgEthTx),
-					NewAccountBlockedVerificationDecorator(evmKeeper, tx), //account blocked check AnteDecorator
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 					NewAccountVerificationDecorator(ak, evmKeeper, &msgEthTx),
 					NewNonceVerificationDecorator(ak, &msgEthTx),
 					NewEthGasConsumeDecorator(ak, sk, evmKeeper, &msgEthTx),
@@ -142,21 +142,21 @@ func setupAccount(ak keeper.AccountKeeper, ctx sdk.Context, addr sdk.AccAddress)
 // AccountBlockedVerificationDecorator check whether signer is blocked.
 type AccountBlockedVerificationDecorator struct {
 	evmKeeper EVMKeeper
-	tx sdk.Tx
 }
 
 // NewAccountBlockedVerificationDecorator creates a new AccountBlockedVerificationDecorator instance
-func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper, tx sdk.Tx) AccountBlockedVerificationDecorator {
+func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedVerificationDecorator {
 	return AccountBlockedVerificationDecorator{
 		evmKeeper: evmKeeper,
-		tx: tx,
 	}
 }
 
 // AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
-func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	signers := abvd.tx.GetSigners()
-
+func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	signers, err := getSigners(tx)
+	if err != nil {
+		return ctx, err
+	}
 	currentGasMeter := ctx.GasMeter()
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
@@ -168,28 +168,28 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, _ sd
 		}
 	}
 	ctx = ctx.WithGasMeter(currentGasMeter)
-	return next(ctx, abvd.tx, simulate)
+	return next(ctx, tx, simulate)
 }
 
 // getSigners get signers of tx(contains cosmos-tx and eth-tx.
-//func getSigners(tx sdk.Tx) ([]sdk.AccAddress, error) {
-//	signers := make([]sdk.AccAddress, 0)
-//	switch tx.GetType() {
-//	case sdk.StdTxType:
-//		sigTx, ok := tx.(authante.SigVerifiableTx)
-//		if !ok {
-//			return signers, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
-//		}
-//		signers = append(signers, sigTx.GetSigners()...)
-//	case sdk.EvmTxType:
-//		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-//		if !ok {
-//			return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
-//		}
-//		signers = append(signers, msgEthTx.GetSigners()...)
-//
-//	default:
-//		return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
-//	}
-//	return signers, nil
-//}
+func getSigners(tx sdk.Tx) ([]sdk.AccAddress, error) {
+	signers := make([]sdk.AccAddress, 0)
+	switch tx.GetType() {
+	case sdk.StdTxType:
+		sigTx, ok := tx.(authante.SigVerifiableTx)
+		if !ok {
+			return signers, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
+		}
+		signers = append(signers, sigTx.GetSigners()...)
+	case sdk.EvmTxType:
+		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+		if !ok {
+			return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
+		}
+		signers = append(signers, msgEthTx.GetSigners()...)
+
+	default:
+		return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
+	}
+	return signers, nil
+}

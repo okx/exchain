@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -14,7 +15,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -91,9 +91,9 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper, evmtx *evmtypes.MsgEthereumTx) EthM
 // proposer.
 //
 // NOTE: This should only be run during a CheckTx mode.
-func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if !ctx.IsCheckTx() {
-		return next(ctx, nil, simulate)
+		return next(ctx, tx, simulate)
 	}
 
 	msgEthTx := emfd.evmtx
@@ -123,7 +123,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulat
 		)
 	}
 
-	return next(ctx, nil, simulate)
+	return next(ctx, tx, simulate)
 }
 
 // EthSigVerificationDecorator validates an ethereum signature
@@ -139,7 +139,7 @@ func NewEthSigVerificationDecorator(evmtx *evmtypes.MsgEthereumTx) EthSigVerific
 }
 
 // AnteHandle validates the signature and returns sender address
-func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
 	msgEthTx := esvd.evmtx
 
@@ -160,7 +160,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, si
 
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
-	return next(newCtx, msgEthTx, simulate)
+	return next(newCtx, tx, simulate)
 }
 
 // AccountVerificationDecorator validates an account balance checks
@@ -180,9 +180,9 @@ func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper, evmtx 
 }
 
 // AnteHandle validates the signature and returns sender address
-func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if !ctx.IsCheckTx() {
-		return next(ctx, nil, simulate)
+		return next(ctx, tx, simulate)
 	}
 
 	msgEthTx := avd.evmtx
@@ -218,7 +218,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, si
 		)
 	}
 
-	return next(ctx, nil, simulate)
+	return next(ctx, tx, simulate)
 }
 
 // NonceVerificationDecorator checks that the account nonce from the transaction matches
@@ -238,7 +238,7 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper, evmtx *evmtypes.MsgEth
 
 // AnteHandle validates that the transaction nonce is valid (equivalent to the sender account’s
 // current nonce).
-func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 
 	msgEthTx := nvd.evmtx
 
@@ -330,7 +330,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simu
 		}
 	}
 
-	return next(ctx, nil, simulate)
+	return next(ctx, tx, simulate)
 }
 
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
@@ -360,7 +360,7 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // that the transaction uses before the transaction is executed. The gas is a
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
-func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	msgEthTx := egcd.evmtx
 
 	// sender address should be in the tx cache from the previous AnteHandle call
@@ -412,7 +412,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulat
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, nil, simulate)
+	return next(newCtx, tx, simulate)
 }
 
 // IncrementSenderSequenceDecorator increments the sequence of the signers. The
@@ -435,7 +435,7 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper, evmtx *evmtypes.
 }
 
 // AnteHandle handles incrementing the sequence of the sender.
-func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
 	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
 	// when mempool is not in enableRecheck mode, we should not increment the nonce
@@ -443,7 +443,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, _ sdk.T
 	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
 	// if IsTraceMode is true,  sequence must be set.
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
-		return next(ctx, nil, simulate)
+		return next(ctx, tx, simulate)
 	}
 
 	// get and set account must be called with an infinite gas meter in order to prevent
@@ -474,7 +474,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, _ sdk.T
 
 	// set the original gas meter
 	ctx = ctx.WithGasMeter(gasMeter)
-	return next(ctx, nil, simulate)
+	return next(ctx, tx, simulate)
 }
 
 // NewGasLimitDecorator creates a new GasLimitDecorator.
@@ -491,11 +491,11 @@ type GasLimitDecorator struct {
 }
 
 // AnteHandle handles incrementing the sequence of the sender.
-func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	msgEthTx := g.evmtx
 
 	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
-	return next(ctx, nil, simulate)
+	return next(ctx, tx, simulate)
 }
