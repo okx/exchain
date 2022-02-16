@@ -639,7 +639,7 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 }
 
 func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
-	return fmt.Sprintf("%s:%s", string(key), string(value))
+	return fmt.Sprintf("paramsKey:%s;value:%s", string(key), string(value))
 }
 
 func accPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
