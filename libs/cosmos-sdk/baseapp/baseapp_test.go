@@ -597,6 +597,10 @@ func (tx txTest) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }
 
+func (tx txTest) GetSigners() []sdk.AccAddress {
+	return nil
+}
+
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"
