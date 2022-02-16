@@ -2,7 +2,6 @@ package ante
 
 import (
 	"fmt"
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -43,10 +42,7 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 // ethereum tx GasLimit.
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// all transactions must implement GasTx
-	gasTx, ok := tx.(authante.GasTx)
-	if !ok {
-		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
-	}
+	gasTx := tx
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
