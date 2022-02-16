@@ -34,8 +34,10 @@ var (
 type AccType int
 
 const (
-	userAccount AccType = iota
-	contractAccount
+	UserAccount AccType = iota
+	ContractAccount
+	ModuleAccount
+	OtherAccount
 )
 
 func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
@@ -86,9 +88,9 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			return false
 		}
 
-		accType := userAccount
+		accType := UserAccount
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
-			accType = contractAccount
+			accType = ContractAccount
 		}
 
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
