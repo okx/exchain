@@ -165,18 +165,18 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
-	var tracer vm.Tracer
-	if st.TraceTxLog || enableDebug {
-		tracer = vm.NewStructLogger(evmLogConfig)
-	} else {
-		tracer = NewNoOpTracer()
-	}
+	//var tracer vm.Tracer
+	//if st.TraceTxLog || enableDebug {
+	//	tracer = vm.NewStructLogger(evmLogConfig)
+	//} else {
+	//	tracer = NewNoOpTracer()
+	//}
 
 	vmConfig := vm.Config{
 		ExtraEips: params.ExtraEIPs,
 		Debug:     st.TraceTxLog || enableDebug,
 		//Tracer:           tracer,
-		ContractVerifier: NewContractVerifier(params),
+		//ContractVerifier: NewContractVerifier(params),
 	}
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
@@ -254,24 +254,24 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 	// return trace log if tracetxlog no matter err = nil  or not nil
 	defer func() {
-		var traceLogs []byte
-		if st.TraceTxLog {
-			result := &core.ExecutionResult{
-				UsedGas:    gasConsumed,
-				Err:        err,
-				ReturnData: ret,
-			}
-			traceLogs, err = GetTracerResult(tracer, result)
-			if err != nil {
-				traceLogs = []byte(err.Error())
-			}
-			if exeRes == nil {
-				exeRes = &ExecutionResult{
-					Result: &sdk.Result{},
-				}
-			}
-			exeRes.TraceLogs = traceLogs
-		}
+		//var traceLogs []byte
+		//if st.TraceTxLog {
+		//	result := &core.ExecutionResult{
+		//		UsedGas:    gasConsumed,
+		//		Err:        err,
+		//		ReturnData: ret,
+		//	}
+		//	traceLogs, err = GetTracerResult(tracer, result)
+		//	if err != nil {
+		//		traceLogs = []byte(err.Error())
+		//	}
+		//	if exeRes == nil {
+		//		exeRes = &ExecutionResult{
+		//			Result: &sdk.Result{},
+		//		}
+		//	}
+		//	exeRes.TraceLogs = traceLogs
+		//}
 	}()
 	if err != nil {
 		// Consume gas before returning

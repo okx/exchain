@@ -9,12 +9,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
 	json "github.com/json-iterator/go"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -43,7 +40,7 @@ var (
 	// trace segment
 	step, total, num int64
 
-	evmLogConfig *vm.LogConfig
+	//evmLogConfig *vm.LogConfig
 )
 
 func CloseTracer() {
@@ -117,33 +114,34 @@ func checkTracesSegment(height int64, from, to string) bool {
 		(len(traceFromAddrs) == 0 || (len(traceFromAddrs) > 0 && fromOk)) &&
 		(len(traceToAddrs) == 0 || to == "" || (len(traceToAddrs) > 0 && toOk))
 }
-func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, error) {
-	var (
-		res []byte
-		err error
-	)
-	// Depending on the tracer type, format and return the output
-	switch tracer := tracer.(type) {
-	case *vm.StructLogger:
-		// If the result contains a revert reason, return it.
-		returnVal := fmt.Sprintf("%x", result.Return())
-		if len(result.Revert()) > 0 {
-			returnVal = fmt.Sprintf("%x", result.Revert())
-		}
-		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
-		})
-	case *tracers.Tracer:
-		res, err = tracer.GetResult()
-	default:
-		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
-	}
-	return res, err
-}
 
+//func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, error) {
+//	var (
+//		res []byte
+//		err error
+//	)
+//	// Depending on the tracer type, format and return the output
+//	switch tracer := tracer.(type) {
+//	case *vm.StructLogger:
+//		// If the result contains a revert reason, return it.
+//		returnVal := fmt.Sprintf("%x", result.Return())
+//		if len(result.Revert()) > 0 {
+//			returnVal = fmt.Sprintf("%x", result.Revert())
+//		}
+//		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
+//			Gas:         result.UsedGas,
+//			Failed:      result.Failed(),
+//			ReturnValue: returnVal,
+//			StructLogs:  FormatLogs(tracer.StructLogs()),
+//		})
+//	case *tracers.Tracer:
+//		res, err = tracer.GetResult()
+//	default:
+//		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
+//	}
+//	return res, err
+//}
+//
 //func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
 //
 //	res, err := GetTracerResult(tracer, result)
