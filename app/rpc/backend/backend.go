@@ -501,3 +501,12 @@ func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.Block
 	}
 	return rpctypes.BlockNumber(out.Number), nil
 }
+
+func (b *EthermintBackend) FeeHistory(
+	userBlockCount rpc.DecimalOrHex, // number blocks to fetch, maximum is 100
+	lastBlock rpc.BlockNumber, // the block to start search , to oldest
+	rewardPercentiles []float64, // percentiles to fetch reward
+) (*rpctypes.FeeHistoryResult, error) {
+
+	return nil, fmt.Errorf("unsupported rpc function: eth_FeeHistory")
+}
