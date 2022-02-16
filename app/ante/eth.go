@@ -75,12 +75,14 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 // meet a minimum threshold defined by the proposer (for mempool purposes during CheckTx).
 type EthMempoolFeeDecorator struct {
 	evmKeeper EVMKeeper
+	evmtx *evmtypes.MsgEthereumTx
 }
 
 // NewEthMempoolFeeDecorator creates a new EthMempoolFeeDecorator
-func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
+func NewEthMempoolFeeDecorator(ek EVMKeeper, evmtx *evmtypes.MsgEthereumTx) EthMempoolFeeDecorator {
 	return EthMempoolFeeDecorator{
 		evmKeeper: ek,
+		evmtx: evmtx,
 	}
 }
 
@@ -89,15 +91,12 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 // proposer.
 //
 // NOTE: This should only be run during a CheckTx mode.
-func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if !ctx.IsCheckTx() {
-		return next(ctx, tx, simulate)
+		return next(ctx, nil, simulate)
 	}
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+	msgEthTx := emfd.evmtx
 
 	evmDenom := sdk.DefaultBondDenom
 
@@ -124,23 +123,25 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		)
 	}
 
-	return next(ctx, tx, simulate)
+	return next(ctx, nil, simulate)
 }
 
 // EthSigVerificationDecorator validates an ethereum signature
-type EthSigVerificationDecorator struct{}
+type EthSigVerificationDecorator struct{
+	evmtx *evmtypes.MsgEthereumTx
+}
 
 // NewEthSigVerificationDecorator creates a new EthSigVerificationDecorator
-func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
-	return EthSigVerificationDecorator{}
+func NewEthSigVerificationDecorator(evmtx *evmtypes.MsgEthereumTx) EthSigVerificationDecorator {
+	return EthSigVerificationDecorator{
+		evmtx:evmtx,
+	}
 }
 
 // AnteHandle validates the signature and returns sender address
-func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+
+	msgEthTx := esvd.evmtx
 
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
@@ -166,26 +167,25 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 type AccountVerificationDecorator struct {
 	ak        auth.AccountKeeper
 	evmKeeper EVMKeeper
+	evmtx *evmtypes.MsgEthereumTx
 }
 
 // NewAccountVerificationDecorator creates a new AccountVerificationDecorator
-func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper) AccountVerificationDecorator {
+func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper, evmtx *evmtypes.MsgEthereumTx) AccountVerificationDecorator {
 	return AccountVerificationDecorator{
 		ak:        ak,
 		evmKeeper: ek,
+		evmtx: evmtx,
 	}
 }
 
 // AnteHandle validates the signature and returns sender address
-func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	if !ctx.IsCheckTx() {
-		return next(ctx, tx, simulate)
+		return next(ctx, nil, simulate)
 	}
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+	msgEthTx := avd.evmtx
 
 	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
@@ -218,29 +218,29 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		)
 	}
 
-	return next(ctx, tx, simulate)
+	return next(ctx, nil, simulate)
 }
 
 // NonceVerificationDecorator checks that the account nonce from the transaction matches
 // the sender account sequence.
 type NonceVerificationDecorator struct {
 	ak auth.AccountKeeper
+	evmtx *evmtypes.MsgEthereumTx
 }
 
 // NewNonceVerificationDecorator creates a new NonceVerificationDecorator
-func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecorator {
+func NewNonceVerificationDecorator(ak auth.AccountKeeper, evmtx *evmtypes.MsgEthereumTx) NonceVerificationDecorator {
 	return NonceVerificationDecorator{
 		ak: ak,
+		evmtx: evmtx,
 	}
 }
 
 // AnteHandle validates that the transaction nonce is valid (equivalent to the sender account’s
 // current nonce).
-func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+
+	msgEthTx := nvd.evmtx
 
 	if ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
@@ -330,7 +330,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		}
 	}
 
-	return next(ctx, tx, simulate)
+	return next(ctx, nil, simulate)
 }
 
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
@@ -339,14 +339,17 @@ type EthGasConsumeDecorator struct {
 	ak        auth.AccountKeeper
 	sk        types.SupplyKeeper
 	evmKeeper EVMKeeper
+	evmtx *evmtypes.MsgEthereumTx
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
-func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
+func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper,
+	evmtx *evmtypes.MsgEthereumTx) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
 		ak:        ak,
 		sk:        sk,
 		evmKeeper: ek,
+		evmtx: evmtx,
 	}
 }
 
@@ -357,11 +360,8 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // that the transaction uses before the transaction is executed. The gas is a
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
-func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	msgEthTx := egcd.evmtx
 
 	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
@@ -412,7 +412,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, tx, simulate)
+	return next(newCtx, nil, simulate)
 }
 
 // IncrementSenderSequenceDecorator increments the sequence of the signers. The
@@ -422,17 +422,20 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 // CONTRACT: must be called after msg.VerifySig in order to cache the sender address.
 type IncrementSenderSequenceDecorator struct {
 	ak auth.AccountKeeper
+	evmtx *evmtypes.MsgEthereumTx
+
 }
 
 // NewIncrementSenderSequenceDecorator creates a new IncrementSenderSequenceDecorator.
-func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderSequenceDecorator {
+func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper, evmtx *evmtypes.MsgEthereumTx) IncrementSenderSequenceDecorator {
 	return IncrementSenderSequenceDecorator{
 		ak: ak,
+		evmtx: evmtx,
 	}
 }
 
 // AnteHandle handles incrementing the sequence of the sender.
-func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
 	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
 	// when mempool is not in enableRecheck mode, we should not increment the nonce
@@ -440,7 +443,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
 	// if IsTraceMode is true,  sequence must be set.
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
-		return next(ctx, tx, simulate)
+		return next(ctx, nil, simulate)
 	}
 
 	// get and set account must be called with an infinite gas meter in order to prevent
@@ -448,11 +451,8 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	gasMeter := ctx.GasMeter()
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		ctx = ctx.WithGasMeter(gasMeter)
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+	msgEthTx := issd.evmtx
+
 
 	if ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
@@ -474,28 +474,28 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	// set the original gas meter
 	ctx = ctx.WithGasMeter(gasMeter)
-	return next(ctx, tx, simulate)
+	return next(ctx, nil, simulate)
 }
 
 // NewGasLimitDecorator creates a new GasLimitDecorator.
-func NewGasLimitDecorator(evm EVMKeeper) GasLimitDecorator {
+func NewGasLimitDecorator(evm EVMKeeper, evmtx *evmtypes.MsgEthereumTx) GasLimitDecorator {
 	return GasLimitDecorator{
 		evm: evm,
+		evmtx: evmtx,
 	}
 }
 
 type GasLimitDecorator struct {
+	evmtx *evmtypes.MsgEthereumTx
 	evm EVMKeeper
 }
 
 // AnteHandle handles incrementing the sequence of the sender.
-func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
+func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, _ sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	msgEthTx := g.evmtx
+
 	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
-	return next(ctx, tx, simulate)
+	return next(ctx, nil, simulate)
 }
