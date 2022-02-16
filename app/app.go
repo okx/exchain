@@ -114,6 +114,7 @@ var (
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 		ibc.AppModuleBasic{},
+		transfer.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -421,6 +422,7 @@ func NewOKExChainApp(
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
 		ibc.NewAppModule(app.IBCKeeper),
+		transfer.NewAppModule(app.TransferKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

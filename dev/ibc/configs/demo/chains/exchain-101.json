@@ -2,7 +2,7 @@
   "type": "cosmos",
   "value": {
     "key": "admin16",
-    "chain-id": "exchain-101",
+    "chain-id": "exchain-100",
     "rpc-addr": "http://localhost:26557",
     "grpc-addr": "",
     "account-prefix": "cosmos",

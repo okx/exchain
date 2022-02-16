@@ -324,6 +324,10 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		return app.handleQueryGRPC(grpcHandler, req)
+	}
+
 	switch path[0] {
 	// "/app" prefix for special application queries
 	case "app":

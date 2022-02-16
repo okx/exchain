@@ -106,8 +106,9 @@ func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 }
 
 // Route implements the AppModule interface
-func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
+func (am AppModule) Route() string {
+	return types.RouterKey
+	//return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
 }
 
 // QuerierRoute implements the AppModule interface
@@ -115,6 +116,13 @@ func (AppModule) QuerierRoute() string {
 	return types.QuerierRoute
 }
 
+func (a AppModule) NewHandler() sdk.Handler {
+	return NewHandler(a.keeper)
+}
+// TODO
+func (a AppModule) NewQuerierHandler() sdk.Querier {
+	return nil
+}
 // LegacyQuerierHandler implements the AppModule interface
 func (am AppModule) LegacyQuerierHandler(codec2 *codec.Codec) sdk.Querier {
 	return nil

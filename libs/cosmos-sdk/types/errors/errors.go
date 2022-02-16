@@ -83,6 +83,7 @@ var (
 	// ErrInvalidRequest defines an ABCI typed error where the request contains
 	// invalid data.
 	ErrInvalidRequest = Register(RootCodespace, 18, "invalid request")
+	ErrKeyNotFound = Register(RootCodespace, 3000, "key not found")
 
 	// ErrTxInMempoolCache defines an ABCI typed error where a tx already exists
 	// in the mempool.
