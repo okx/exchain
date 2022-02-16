@@ -53,7 +53,7 @@ func initLog() {
 	))
 }
 func main() {
-	initLog()
+	//initLog()
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)

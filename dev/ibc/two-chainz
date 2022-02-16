@@ -6,6 +6,15 @@ GAIA_DATA="$(pwd)/data"
 RELAYER_DIR="$(dirname $SCRIPTDIR)"
 RELAYER_CONF="$HOME/.relayer"
 
+
+killbyname() {
+  NAME=$1
+  ps -ef|grep "$NAME"|grep -v grep |awk '{print "kill -9 "$2", "$8}'
+  ps -ef|grep "$NAME"|grep -v grep |awk '{print "kill -9 "$2}' | sh
+  echo "All <$NAME> killed!"
+}
+
+
 # Ensure gaiad is installed
 if ! [ -x "$(which gaiad)" ]; then
   echo "Error: gaiad is not installed. Try running 'make build-gaia'" >&2
@@ -42,6 +51,10 @@ killall akash &> /dev/null
 
 set -e
 
+
+killbyname exchaind
+killbyname exchaincli
+
 chainid0="exchain-100"
 chainid1="exchain-101"
 
@@ -68,3 +81,41 @@ mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
 #echo "Key $(rly keys restore ibc-1 testkey "$SEED1") imported from ibc-1 to relayer..."
 #
 #rly config add-paths configs/demo/paths
+
+#
+pwd=${PWD}
+echo  "relayer"
+relayer_path=${GOPATH}/src/github.com/cosmos/relayer
+if [ ! -d ${relayer_path} ];then
+  mkdir -p ${GOPATH}/src/github.com/cosmos/
+  cd ${GOPATH}/src/github.com/cosmos/
+  git clone https://github.com/cosmos/relayer.git
+fi
+
+cd ${GOPATH}/src/github.com/cosmos/relayer
+git checkout v1.0.0
+if [ $? -ne 0 ]; then
+    echo "checkout failed ,use stash or commit first"
+    exit
+fi
+
+rm -rf vendor
+echo "Building Relayer..."
+make install
+cd ${pwd}
+echo "Generating rly configurations..."
+rly config init
+rly config add-chains configs/demo/chains
+
+SEED0=$(jq -r '.mnemonic' $GAIA_DATA/exchain-100/key_seed.json)
+SEED1=$(jq -r '.mnemonic' $GAIA_DATA/exchain-101/key_seed.json)
+echo "Key $(rly keys restore exchain-100 testkey "$SEED0") imported from exchain-100 to relayer..."
+echo "Key $(rly keys restore exchain-101 testkey "$SEED1") imported from exchain-101 to relayer..."
+
+echo "current chains:"
+rly chains list
+
+
+rly config add-paths configs/demo/paths
+echo "current pathes"
+rly paths list
