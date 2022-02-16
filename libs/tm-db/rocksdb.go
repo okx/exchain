@@ -74,6 +74,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
 	opts.OptimizeForPointLookup(blockCacheSize)
+	opts.SetAllowConcurrentMemtableWrites(false)
 
 	opts.EnableStatistics()
 	if v, ok := params[statistics]; ok {
