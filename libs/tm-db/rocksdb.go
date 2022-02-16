@@ -54,10 +54,9 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetBlockSize(int(size))
 	}
 
-	blockCacheSize := uint64(512 * 1024 * 1024)
-	blockSize := 32 * 1024
+	blockCacheSize := uint64(1024)
+	blockSize := 64 * 1024
 
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(blockCacheSize))
 	bbto.SetBlockSize(blockSize)
 	if v, ok := params[blockCache]; ok {
 		cache, err := toBytes(v)
@@ -66,7 +65,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
-	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
+	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(15))
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
@@ -74,6 +73,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.OptimizeForPointLookup(blockCacheSize)
 
 	opts.EnableStatistics()
 	if v, ok := params[statistics]; ok {
@@ -113,8 +113,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 			opts.SetAllowMmapWrites(enable)
 		}
 	}
-
-	opts.OptimizeForPointLookup(blockCacheSize)
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
