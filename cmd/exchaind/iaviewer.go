@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/tendermint/go-amino"
 
 	"github.com/spf13/viper"
@@ -656,24 +658,32 @@ func accPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case evmtypes.KeyPrefixBlockHash[0]:
-		return fmt.Sprintf("blockHash:%s;height:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		blockHash := key[1:]
+		height := int64(binary.BigEndian.Uint64(value))
+		return fmt.Sprintf("blockHash:%X;height:%d", blockHash, height)
 	case evmtypes.KeyPrefixBloom[0]:
-		return fmt.Sprintf("bloomHeight:%s;data:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		height := int64(binary.BigEndian.Uint64(key[1:]))
+		bloom := ethtypes.BytesToBloom(value)
+		return fmt.Sprintf("bloomHeight:%d;data:%X", height, bloom[:])
 	case evmtypes.KeyPrefixCode[0]:
-		return fmt.Sprintf("code:%s;data:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		return fmt.Sprintf("codeHash:%X;code:%X", key[1:], value)
 	case evmtypes.KeyPrefixStorage[0]:
-		return fmt.Sprintf("stroageHash:%s;keyHash:%s;data:%s", hex.EncodeToString(key[1:40]), hex.EncodeToString(key[41:]), hex.EncodeToString(value))
+		return fmt.Sprintf("stroageAddr:%X;key:%X;data:%X", key[1:21], key[21:], value)
 	case evmtypes.KeyPrefixChainConfig[0]:
-		bz := value
-		var config evmtypes.ChainConfig
-		cdc.MustUnmarshalBinaryBare(bz, &config)
-		return fmt.Sprintf("chainCofig:%s", config.String())
+		if len(value) != 0 {
+			var config evmtypes.ChainConfig
+			cdc.MustUnmarshalBinaryBare(value, &config)
+			return fmt.Sprintf("chainConfig:%s", config.String())
+		} else {
+			return fmt.Sprintf("chainConfig:nil")
+		}
 	case evmtypes.KeyPrefixHeightHash[0]:
-		return fmt.Sprintf("height:%s;blockHash:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		height := binary.BigEndian.Uint64(key[1:])
+		return fmt.Sprintf("height:%d;blockHash:%X", height, value)
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
-		return fmt.Sprintf("whiteAddress:%s", hex.EncodeToString(key[1:]))
+		return fmt.Sprintf("contractWhiteAddress:%X", key[1:])
 	case evmtypes.KeyPrefixContractBlockedList[0]:
-		return fmt.Sprintf("blockedAddres:%s", hex.EncodeToString(key[1:]))
+		return fmt.Sprintf("contractBlockedAddres:%X;methods:%s", key[1:], value)
 	default:
 		return defaultKvFormatter(key, value)
 	}
