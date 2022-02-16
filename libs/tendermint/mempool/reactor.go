@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -119,7 +118,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		mempool:          mempool,
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
-		enableWtx:        viper.GetBool(abci.FlagEnableWrappedTx),
+		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}

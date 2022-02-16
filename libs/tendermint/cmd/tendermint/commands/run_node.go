@@ -161,6 +161,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"The whitelist of nodes whose wtx is confident",
 	)
 
+	cmd.Flags().Bool(
+		"enable-wtx",
+		false,
+		"enable wrapped tx",
+	)
+
 	// db flags
 	cmd.Flags().String(
 		"db_backend",
