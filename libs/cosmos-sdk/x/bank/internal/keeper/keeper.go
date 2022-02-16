@@ -299,7 +299,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	acc := keeper.ak.GetAccount(ctx, addr)
 	if acc != nil {
 		oldCoins = acc.GetCoins()
-		spendableCoins = acc.SpendableCoins(ctx.BlockTime())
+		spendableCoins = acc.SpendableCoins(ctx.BlockHeader().Time)
 	}
 
 	// For non-vesting accounts, spendable coins will simply be the original coins.
