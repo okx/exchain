@@ -6,6 +6,7 @@ import (
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"sync"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -117,24 +118,27 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 	}
 
 	nextTxIndexInGroup := make(map[int]int)
-	//preTxIndexInGroup := make(map[int]int)
+	preTxIndexInGroup := make(map[int]int)
 	//heapList := make([]int, 0)
 	for _, list := range groupList {
 		for index := 0; index < len(list); index++ {
 			if index+1 <= len(list)-1 {
 				nextTxIndexInGroup[list[index]] = list[index+1]
 			}
-			//if index-1 >= 0 {
-			//	preTxIndexInGroup[list[index]] = list[index-1]
-			//}
+			if index-1 >= 0 {
+				preTxIndexInGroup[list[index]] = list[index-1]
+			}
 		}
 		//heapList = append(heapList, list[0])
 	}
+	app.parallelTxManage.nextTxInGroup = nextTxIndexInGroup
+	app.parallelTxManage.preTxInGroup = preTxIndexInGroup
 	return groupList, indexToID, nextTxIndexInGroup
 
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	ts := time.Now()
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
@@ -164,6 +168,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
 
+	fmt.Println("169---", time.Now().Sub(ts).Milliseconds())
 	return app.runTxs(txWithIndex, groupList, indexToID, nextIndexInGroup)
 
 }
@@ -187,10 +192,10 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 }
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[int]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
-	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
-	for _, v := range groupList {
-		fmt.Println("group", len(v), v)
-	}
+	//fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
+	//for _, v := range groupList {
+	//	fmt.Println("group", len(v), v)
+	//}
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -207,7 +212,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	signal := make(chan int, 1)
 	rerunIdx := 0
 	txIndex := 0
-	txReps := make([]*executeResult, len(txs))
+	app.parallelTxManage.txReps = make([]*executeResult, len(txs))
+	txReps := app.parallelTxManage.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
 	asyncCb := func(execRes *executeResult) {
@@ -228,11 +234,12 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		if txIndex != int(receiveTxIndex) {
 			return
 		}
-		fmt.Println("handle", txIndex, receiveTxIndex)
+		//fmt.Println("handle", txIndex, receiveTxIndex)
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
 
+			fmt.Println("checkConflict")
 			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				s.reRun = true
@@ -266,10 +273,10 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	app.parallelTxManage.workgroup.cb = asyncCb
 
 	for _, group := range groupList {
-		for _, txIndex := range group {
-			app.parallelTxManage.setTxStatus(txIndex, true)
-			go app.asyncDeliverTx(txs[txIndex], txIndex)
-		}
+
+		txIndex := group[0]
+		go app.asyncDeliverTx(txs[txIndex], txIndex)
+
 	}
 
 	//for _, tx := range txs {
@@ -287,9 +294,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 			}
 		}
 
-	}
-	if len(txs) == 6000 {
-		panic("sb")
 	}
 	return deliverTxs
 }
@@ -362,6 +366,7 @@ func (e executeResult) Conflict(cache *asyncCache) bool {
 	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 		//the key we have read was wrote by pre txs
 		if cache.Has(key) && !whiteAccountList[hex.EncodeToString(key)] {
+			fmt.Println("key", hex.EncodeToString(key), hex.EncodeToString(value))
 			rerun = true
 			return false // break
 		}
@@ -451,6 +456,9 @@ type parallelTxManager struct {
 
 	currTxFee     sdk.Coins
 	runningStatus map[int]bool
+	txReps        []*executeResult
+	nextTxInGroup map[int]int
+	preTxInGroup  map[int]int
 }
 
 type txStatus struct {
@@ -472,6 +480,9 @@ func newParallelTxManager() *parallelTxManager {
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
 		runningStatus: make(map[int]bool),
+
+		nextTxInGroup: make(map[int]int),
+		preTxInGroup:  make(map[int]int),
 	}
 }
 
@@ -485,6 +496,8 @@ func (f *parallelTxManager) clear() {
 	f.indexMapBytes = make([]string, 0)
 	f.currTxFee = sdk.Coins{}
 	f.runningStatus = make(map[int]bool)
+	f.nextTxInGroup = make(map[int]int)
+	f.preTxInGroup = make(map[int]int)
 	//fmt.Println("CCCCCCCCC--")
 
 }
@@ -529,6 +542,18 @@ func (f *parallelTxManager) isRunning(txIndex int) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.runningStatus[txIndex]
+}
+
+func (f *parallelTxManager) getTxResult(tx []byte) (sdk.CacheMultiStore, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	index := f.txStatus[string(tx)].indexInBlock
+
+	if preIndex, ok := f.preTxInGroup[int(index)]; ok {
+		fmt.Println("index", index, "pre", preIndex)
+		return f.txReps[preIndex].ms.CacheMultiStore(), true
+	}
+	return nil, false // first index in group
 }
 
 type asyncCache struct {

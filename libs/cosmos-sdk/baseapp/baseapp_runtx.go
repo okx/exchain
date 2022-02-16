@@ -124,6 +124,14 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// writes do not happen if aborted/failed.  This may have some
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+
+	if mode == runTxModeDeliverInAsync {
+		msCacheAnte, hasParent := app.parallelTxManage.getTxResult(info.txBytes)
+		if hasParent {
+			info.msCacheAnte = msCacheAnte
+			anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
+		}
+	}
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 
@@ -219,7 +227,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 
 func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, index int) {
 
-	fmt.Println("run-----", index)
+	//fmt.Println("run-----", index)
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
 	if err != nil {
