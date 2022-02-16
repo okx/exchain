@@ -54,7 +54,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetBlockSize(int(size))
 	}
 
-	blockCacheSize := uint64(1024)
+	blockCacheSize := uint64(2048)
 	blockSize := 64 * 1024
 
 	bbto.SetBlockSize(blockSize)
