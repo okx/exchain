@@ -89,7 +89,3 @@ func GetMercuryHeight() int64 {
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
-
-func IsLondon(height int64) bool {
-	return false
-}
