@@ -92,9 +92,9 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			break
 		}
 
-		numTasks, numPending := dm.getLen()
+		//numTasks, numPending := dm.getLen()
 		remaining := taskIndex - (dm.curIndex + 1) //- numTasks - numPending
-		fmt.Printf("taskIndex:%d numTasks:%d numPending:%d remaining:%d\n", taskIndex, numTasks, numPending, remaining)
+		//fmt.Printf("taskIndex:%d numTasks:%d numPending:%d remaining:%d\n", taskIndex, numTasks, numPending, remaining)
 		switch {
 		case remaining >= maxDeliverTxsConcurrentNum:
 			dm.isWaiting = true
@@ -341,11 +341,11 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 	}
 }
 
-func (dm *DeliverTxTasksManager) getLen() (int, int) {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-	return len(dm.tasks), len(dm.pendingTasks)
-}
+//func (dm *DeliverTxTasksManager) getLen() (int, int) {
+//	dm.mtx.Lock()
+//	defer dm.mtx.Unlock()
+//	return len(dm.tasks), len(dm.pendingTasks)
+//}
 
 func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 	dm.mtx.Lock()
