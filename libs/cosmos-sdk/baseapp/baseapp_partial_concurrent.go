@@ -125,8 +125,21 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	dm.mtx.Lock()
 	dm.tasks[task.index] = task
 	dm.mtx.Unlock()
+
+	defer func() {
+		dm.mtx.Lock()
+		defer dm.mtx.Unlock()
+		fmt.Printf("new into pendingTasks. index=%d\n", index)
+		dm.pendingTasks[task.index] = task
+		if dm.executingTask == nil && task.index == dm.curIndex+1 {
+			dm.executeSignal <- 0
+		}
+		delete(dm.tasks, task.index)
+	}()
+
 	if err != nil {
 		task.err = err
+		fmt.Printf("tx decode failed. err: %s\n", err)
 		return
 	}
 
@@ -137,12 +150,14 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
 	task.fee, task.isEvm, task.signCache = dm.app.getTxFee(task.info.ctx, tx)
 	if !task.isEvm {
+		fmt.Printf("is not a evm tx\n")
 		return
 	}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 	if err := validateBasicTxMsgs(task.tx.GetMsgs()); err != nil {
 		task.err = err
+		fmt.Printf("validateBasicTxMsgs failed. err: %s\n", err)
 		return
 	}
 	dm.app.pin(ValTxMsgs, false, mode)
@@ -156,17 +171,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 		}
 	}
 	dm.app.pin(AnteHandler, false, mode)
-
-	defer func() {
-		dm.mtx.Lock()
-		defer dm.mtx.Unlock()
-		fmt.Printf("new into pendingTasks. index=%d\n", index)
-		dm.pendingTasks[task.index] = task
-		if dm.executingTask == nil && task.index == dm.curIndex+1 {
-			dm.executeSignal <- 0
-		}
-		delete(dm.tasks, task.index)
-	}()
 }
 
 func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error {
