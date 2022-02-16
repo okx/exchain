@@ -369,7 +369,7 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 
 func (keeper BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) error {
 	if !amt.IsValid() {
-		sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
 	if acc == nil {
