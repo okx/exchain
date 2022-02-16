@@ -173,8 +173,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	vmConfig := vm.Config{
-		ExtraEips:        params.ExtraEIPs,
-		Debug:            st.TraceTxLog || enableDebug,
+		ExtraEips: params.ExtraEIPs,
+		Debug:     st.TraceTxLog || enableDebug,
 		//Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}

@@ -143,6 +143,7 @@ func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, er
 	}
 	return res, err
 }
+
 //func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
 //
 //	res, err := GetTracerResult(tracer, result)
