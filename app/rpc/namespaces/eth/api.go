@@ -12,10 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
@@ -652,38 +654,20 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 	monitor := monitor.GetMonitor("eth_sign", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
-	height, err := api.BlockNumber()
-	if err != nil {
-		return nil, err
-	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
 	if !exist {
 		return nil, keystore.ErrLocked
 	}
-	var tx = &evmtypes.MsgEthereumTx{}
-	// RLP decode raw transaction bytes
-	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-		// Return nil is for when gasLimit overflows uint64
-		return nil, err
-	}
-	// Sign the requested hash with the wallet
-	if err := tx.Sign(api.chainIDEpoch, key.ToECDSA()); err != nil {
-		api.logger.Debug("failed to sign tx", "error", err)
-		return nil, err
-	}
-	var txEncoder sdk.TxEncoder
-	if tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-	}
 
-	// Encode transaction by RLP encoder
-	txBytes, err := txEncoder(tx)
+	// Sign the requested hash with the wallet
+	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
 	if err != nil {
 		return nil, err
 	}
-	return txBytes, nil
+
+	sig[crypto.RecoveryIDOffset] += 27 // transform V from 0/1 to 27/28
+
+	return sig, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
