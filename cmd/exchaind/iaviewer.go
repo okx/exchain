@@ -13,6 +13,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/okex/exchain/x/gov"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -558,7 +561,12 @@ func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 
 func mainPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	if bytes.Equal(key, []byte("consensus_params")) {
-		return fmt.Sprintf("consensusParams:%s", hex.EncodeToString(value))
+		var cons abci.ConsensusParams
+		err := proto.Unmarshal(value, &cons)
+		if err != nil {
+			return fmt.Sprintf("consensusParams:%X; unmarshal error, %s", value, err)
+		}
+		return fmt.Sprintf("consensusParams:%s", cons.String())
 	}
 	return defaultKvFormatter(key, value)
 }
