@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/okex/exchain/x/gov"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/tendermint/go-amino"
@@ -601,15 +603,21 @@ func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 func govPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	switch key[0] {
 	case govtypes.ProposalsKeyPrefix[0]:
-		return fmt.Sprintf("proposalId:%x;power:%x", binary.BigEndian.Uint64(key[1:]), hex.EncodeToString(value))
+		var prop gov.Proposal
+		cdc.MustUnmarshalBinaryLengthPrefixed(value, &prop)
+		return fmt.Sprintf("proposalId:%d;proposal:%s", binary.BigEndian.Uint64(key[1:]), prop.String())
 	case govtypes.ActiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		return fmt.Sprintf("activeProposalEndTime:%x;proposalId:%x", time.String(), binary.BigEndian.Uint64(value))
+		return fmt.Sprintf("activeProposalEndTime:%s;proposalId:%d", time.String(), binary.BigEndian.Uint64(value))
 	case govtypes.InactiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		return fmt.Sprintf("inactiveProposalEndTime:%x;proposalId:%x", time.String(), binary.BigEndian.Uint64(value))
+		return fmt.Sprintf("inactiveProposalEndTime:%s;proposalId:%d", time.String(), binary.BigEndian.Uint64(value))
 	case govtypes.ProposalIDKey[0]:
-		return fmt.Sprintf("proposalId:%x", hex.EncodeToString(value))
+		if len(value) != 0 {
+			return fmt.Sprintf("proposalId:%d", binary.BigEndian.Uint64(value))
+		} else {
+			return fmt.Sprintf("proposalId:nil")
+		}
 	default:
 		return defaultKvFormatter(key, value)
 	}
