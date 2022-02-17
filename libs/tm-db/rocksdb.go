@@ -61,7 +61,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
 
-	blockSize := 24 * 1024
+	blockSize := 64 * 1024
 	bbto.SetBlockSize(blockSize)
 
 	bbto.SetCacheIndexAndFilterBlocks(true)
