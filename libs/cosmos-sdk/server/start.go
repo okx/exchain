@@ -159,6 +159,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
+	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
@@ -337,4 +338,5 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
+	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 }
