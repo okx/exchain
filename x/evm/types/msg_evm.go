@@ -2,11 +2,14 @@ package types
 
 import (
 	"crypto/ecdsa"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	"github.com/okex/exchain/x/evm/env"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -133,6 +136,11 @@ func newMsgEthereumTx(
 
 func (msg MsgEthereumTx) String() string {
 	return msg.Data.String()
+}
+
+func (msg MsgEthereumTx) hash() string {
+	hash := sha1.Sum([]byte(msg.String()))
+	return fmt.Sprintf("%x", hash)
 }
 
 // Route returns the route value of an MsgEthereumTx.
@@ -301,6 +309,13 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 			return sigCtx, nil
 		}
 	}
+	// get sender from cache
+	msgHash := msg.hash()
+	if sender, ok := env.VerifySigCache.Get(msgHash); ok {
+		sigCache := &ethSigCache{signer: signer, from: sender}
+		msg.from.Store(sigCache)
+		return sigCache, nil
+	}
 
 	V := new(big.Int)
 	var sigHash ethcmn.Hash
@@ -327,6 +342,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
+	env.VerifySigCache.Add(msgHash, sender)
 	return sigCache, nil
 }
 
