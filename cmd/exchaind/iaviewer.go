@@ -620,7 +620,7 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case stakingtypes.LastValidatorPowerKey[0]:
 		var power int64
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
-		return fmt.Sprintf("validatorAddress:%s;power:%x", hex.EncodeToString(key[1:]), power)
+		return fmt.Sprintf("validatorAddress:%X;power:%d", key[1:], power)
 	case stakingtypes.LastTotalPowerKey[0]:
 		var power sdk.Int
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
@@ -628,11 +628,16 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case stakingtypes.ValidatorsKey[0]:
 		var validator stakingtypes.Validator
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &validator)
-		return fmt.Sprintf("validator:%s;info:%s", hex.EncodeToString(key[1:]), validator)
+		return fmt.Sprintf("validatorAddress:%X;validator:%s", key[1:], validator.String())
 	case stakingtypes.ValidatorsByConsAddrKey[0]:
-		return fmt.Sprintf("validatorConsAddrKey:%s;address:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		return fmt.Sprintf("validatorConsAddr:%X;valAddress:%X", key[1:], value)
 	case stakingtypes.ValidatorsByPowerIndexKey[0]:
-		return fmt.Sprintf("validatorPowerIndexKey:%s;address:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		consensusPower := int64(binary.BigEndian.Uint64(key[1:9]))
+		operAddr := key[9:]
+		for i, b := range operAddr {
+			operAddr[i] = ^b
+		}
+		return fmt.Sprintf("validatorPowerIndex consensusPower:%d;operAddr:%X;operatorAddress:%X", consensusPower, operAddr, value)
 	default:
 		return defaultKvFormatter(key, value)
 	}
