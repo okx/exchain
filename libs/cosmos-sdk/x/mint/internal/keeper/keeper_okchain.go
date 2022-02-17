@@ -88,6 +88,7 @@ func (k Keeper) GetTreasures(ctx sdk.Context) (treasures []types.Treasure) {
 // AllocateTokenToTreasure allocate token to treasure and return remain
 func (k Keeper) AllocateTokenToTreasure(ctx sdk.Context, fees sdk.Coins) (remain sdk.Coins, err error) {
 	treasures := k.GetTreasures(ctx)
+	remain = sdk.NewCoins()
 	remain = remain.Add(fees...)
 	for i, _ := range treasures {
 		allocated := fees.MulDecTruncate(treasures[i].Proportion)
