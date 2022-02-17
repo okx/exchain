@@ -548,12 +548,9 @@ func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case tokentypes.TokenNumberKey[0]:
 		var tokenNumber uint64
 		cdc.MustUnmarshalBinaryBare(value, &tokenNumber)
-		return fmt.Sprintf("tokenNumber:%x", tokenNumber)
+		return fmt.Sprintf("tokenNumber:%d", tokenNumber)
 	case tokentypes.PrefixUserTokenKey[0]:
-		var token tokentypes.Token
-		cdc.MustUnmarshalBinaryBare(value, &token)
-		//address-token:tokenInfo
-		return fmt.Sprintf("%s-%s:token:%s", hex.EncodeToString(key[1:21]), string(key[21:]), token.String())
+		return fmt.Sprintf("address:%s;symbol:%s", key[1:21], string(key[21:]))
 	default:
 		return defaultKvFormatter(key, value)
 	}
