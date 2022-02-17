@@ -79,7 +79,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
-	bbto.SetBlockCache(2048 * 1024 * 1024)
+	bbto.SetBlockCache(int(2048 * 1024 * 1024))
 	bbto.SetIndexType(gorocksdb.KHashSearchIndexType)
 
 	opts := gorocksdb.NewDefaultOptions()
