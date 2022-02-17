@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	evmclient "github.com/okex/exchain/x/evm/client"
 
 	"github.com/okex/exchain/app/rpc"
@@ -66,6 +67,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
+			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
 }
