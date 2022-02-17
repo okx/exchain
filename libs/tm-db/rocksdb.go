@@ -61,10 +61,9 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
 
-	blockSize := 32 * 1024
+	blockSize := 24 * 1024
 	bbto.SetBlockSize(blockSize)
 
-	//bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(12))
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
@@ -75,7 +74,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.IncreaseParallelism(runtime.NumCPU())
 	opts.OptimizeForPointLookup(blockCacheSize)
 	opts.SetAllowConcurrentMemtableWrites(false)
-
 	opts.EnableStatistics()
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
