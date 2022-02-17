@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/okex/exchain/libs/tendermint/crypto"
+
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
@@ -576,11 +578,21 @@ func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case slashingtypes.ValidatorSigningInfoKey[0]:
 		var signingInfo slashingtypes.ValidatorSigningInfo
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &signingInfo)
-		return fmt.Sprintf("validatorAddr:%s:signingInfo:%s", hex.EncodeToString(key[1:]), signingInfo.String())
+		return fmt.Sprintf("validatorAddr:%X;signingInfo:%s", key[1:], signingInfo.String())
 	case slashingtypes.ValidatorMissedBlockBitArrayKey[0]:
-		return fmt.Sprintf("validatorMissedBlockAddr:%s:index:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		var index int64
+		index = int64(binary.LittleEndian.Uint64(key[len(key)-8:]))
+		var missed bool
+		cdc.MustUnmarshalBinaryLengthPrefixed(value, &missed)
+		return fmt.Sprintf("validatorMissedBlockAddr:%X;index:%d;missed:%v", key[1:len(key)-8], index, missed)
 	case slashingtypes.AddrPubkeyRelationKey[0]:
-		return fmt.Sprintf("pubkeyAddr:%s:pubkey:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		var pubkey crypto.PubKey
+		err := cdc.UnmarshalBinaryLengthPrefixed(value, &pubkey)
+		if err != nil {
+			return fmt.Sprintf("pubkeyAddr:%X;value %X unmarshal error, %s", key[1:], value, err)
+		} else {
+			return fmt.Sprintf("pubkeyAddr:%X;pubkey:%X", key[1:], pubkey.Bytes())
+		}
 	default:
 		return defaultKvFormatter(key, value)
 	}
