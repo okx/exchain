@@ -137,3 +137,20 @@ func (k Keeper) GetAllSDKDelegations(ctx sdk.Context) (delegations []types.Deleg
 	}
 	return delegations
 }
+
+func (k Keeper) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
+	var curValidators []string
+	// fetch all the bonded validators, insert them into currValidators
+	k.IterateBondedValidatorsByPower(ctx, func(index int64, validator exported.ValidatorI) (stop bool) {
+		curValidators = append(curValidators, validator.GetOperator().String())
+		return false
+	})
+
+	valStr := sdk.ValAddress(addr).String()
+	for _, val := range curValidators {
+		if valStr == val {
+			return true
+		}
+	}
+	return false
+}
