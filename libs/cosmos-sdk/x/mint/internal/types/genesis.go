@@ -43,7 +43,7 @@ func ValidateGenesis(data GenesisState) error {
 		return err
 	}
 	if data.Treasures != nil {
-		if IsTreasureDuplicated(data.Treasures) {
+		if isTreasureDuplicated(data.Treasures) {
 			return ErrDuplicatedTreasure
 		}
 		if err := ValidateTreasures(data.Treasures); err != nil {

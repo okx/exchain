@@ -88,7 +88,7 @@ func (mp ManageTreasuresProposal) ValidateBasic() sdk.Error {
 		return ErrEmptyTreasures
 	}
 
-	if IsTreasureDuplicated(mp.Treasures) {
+	if isTreasureDuplicated(mp.Treasures) {
 		return ErrDuplicatedTreasure
 	}
 	if err := ValidateTreasures(mp.Treasures); err != nil {

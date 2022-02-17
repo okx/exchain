@@ -96,7 +96,7 @@ func TestGetMapFromTreasures(t *testing.T) {
 	excepted[treasure5.Address.String()] = *treasure5
 
 	treasures := []Treasure{*treasure2, *treasure5, *treasure3, *treasure1, *treasure4}
-	actual := GetMapFromTreasures(treasures)
+	actual := getMapFromTreasures(treasures)
 
 	require.Equal(t, excepted, actual)
 }
@@ -116,7 +116,7 @@ func TestGetTreasuresFromMap(t *testing.T) {
 	temp[treasure5.Address.String()] = *treasure5
 
 	expected := []Treasure{*treasure5, *treasure4, *treasure3, *treasure2, *treasure1}
-	actual := GetTreasuresFromMap(temp)
+	actual := getTreasuresFromMap(temp)
 	require.Equal(t, expected, actual)
 }
 
@@ -129,11 +129,11 @@ func TestIsTreasureDuplicated(t *testing.T) {
 	treasures := []Treasure{*treasure5, *treasure4, *treasure3, *treasure2, *treasure1}
 
 	// treasures is not Duplicated
-	require.False(t, IsTreasureDuplicated(treasures))
+	require.False(t, isTreasureDuplicated(treasures))
 
 	treasure5_duplicated := NewTreasure(sdk.AccAddress([]byte{0x05}), sdk.NewDecWithPrec(0, 0))
 	treasures = []Treasure{*treasure5, *treasure4, *treasure3, *treasure2, *treasure1, *treasure5_duplicated}
-	require.True(t, IsTreasureDuplicated(treasures))
+	require.True(t, isTreasureDuplicated(treasures))
 }
 
 func TestInsertAndUpdateTreasures(t *testing.T) {

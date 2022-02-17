@@ -51,7 +51,7 @@ func SortTreasures(treasures []Treasure) {
 	})
 }
 
-func GetMapFromTreasures(treasures []Treasure) map[string]Treasure {
+func getMapFromTreasures(treasures []Treasure) map[string]Treasure {
 	temp := make(map[string]Treasure, 0)
 	for i, _ := range treasures {
 		temp[treasures[i].Address.String()] = treasures[i]
@@ -59,7 +59,7 @@ func GetMapFromTreasures(treasures []Treasure) map[string]Treasure {
 	return temp
 }
 
-func GetTreasuresFromMap(src map[string]Treasure) []Treasure {
+func getTreasuresFromMap(src map[string]Treasure) []Treasure {
 	result := make([]Treasure, 0)
 	for k, _ := range src {
 		result = append(result, src[k])
@@ -68,7 +68,7 @@ func GetTreasuresFromMap(src map[string]Treasure) []Treasure {
 	return result
 }
 
-func IsTreasureDuplicated(treasures []Treasure) bool {
+func isTreasureDuplicated(treasures []Treasure) bool {
 	temp := make(map[string]Treasure, 0)
 	for i, _ := range treasures {
 		key := treasures[i].Address.String()
@@ -81,16 +81,16 @@ func IsTreasureDuplicated(treasures []Treasure) bool {
 }
 
 func InsertAndUpdateTreasures(src, dst []Treasure) []Treasure {
-	temp := GetMapFromTreasures(src)
+	temp := getMapFromTreasures(src)
 	for i, _ := range dst {
 		key := dst[i].Address.String()
 		temp[key] = dst[i]
 	}
-	return GetTreasuresFromMap(temp)
+	return getTreasuresFromMap(temp)
 }
 
 func DeleteTreasures(src, dst []Treasure) ([]Treasure, error) {
-	temp := GetMapFromTreasures(src)
+	temp := getMapFromTreasures(src)
 	for i, _ := range dst {
 		key := dst[i].Address.String()
 		if _, ok := temp[key]; !ok {
@@ -98,5 +98,5 @@ func DeleteTreasures(src, dst []Treasure) ([]Treasure, error) {
 		}
 		delete(temp, key)
 	}
-	return GetTreasuresFromMap(temp), nil
+	return getTreasuresFromMap(temp), nil
 }
