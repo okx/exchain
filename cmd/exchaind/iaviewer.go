@@ -6,8 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"log"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -239,118 +237,83 @@ func iaviewerVersionsCmd(ctx *iaviewerContext) *cobra.Command {
 }
 
 func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
+	var ver2 int
 	cmd := &cobra.Command{
-		Use:   "diff [data_dir] [compare_data_dir] [height] [module]",
-		Short: "Read different key-value from leveldb according two paths",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		Use:   "diff <data_dir> <module> <version1> <version2>",
+		Short: "compare different key-value between two versions",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			iaviewerCmdParseFlags(ctx)
-		},
-		Run: func(cmd *cobra.Command, args []string) {
-			var moduleList []string
-			if len(args) == 4 {
-				moduleList = []string{args[3]}
-			} else {
-				moduleList = make([]string, 0, len(app.ModuleBasics))
-				for m := range app.ModuleBasics {
-					moduleList = append(moduleList, fmt.Sprintf("s/k:%s/", m))
-				}
+			if len(args) != 4 {
+				return fmt.Errorf("must specify data_dir, module, version1 and version2")
 			}
-			height, err := strconv.ParseInt(args[2], 10, 64)
+			ctx.DataDir = args[0]
+			ctx.Module = args[1]
+			if ctx.Module != "" {
+				ctx.Prefix = fmt.Sprintf("s/k:%s/", ctx.Module)
+			}
+
+			ver1, err := strconv.Atoi(args[2])
 			if err != nil {
-				panic("The input height is wrong")
+				return fmt.Errorf("invalid version1: %s, error : %w\n", args[2], err)
 			}
-			iaviewerPrintDiff(ctx.Codec, args[0], ctx.DbBackend, args[1], moduleList, int(height))
+			ctx.Version = ver1
+			ver2, err = strconv.Atoi(args[3])
+			if err != nil {
+				return fmt.Errorf("invalid version2: %s, error : %w\n", args[3], err)
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return iaviewerPrintDiff(ctx, ver2)
 		},
 	}
 	return cmd
 }
 
 // iaviewerPrintDiff reads different key-value from leveldb according two paths
-func iaviewerPrintDiff(cdc *codec.Codec, dataDir string, backend dbm.BackendType, compareDir string, modules []string, height int) {
-	if dataDir == compareDir {
-		log.Fatal("data_dit and compare_data_dir should not be the same")
-	}
-	db, err := OpenDB(dataDir, backend)
+func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
-		log.Fatal("Error opening DB: ", err)
+		return fmt.Errorf("error opening DB: %w", err)
 	}
 	defer db.Close()
 
-	compareDB, err := OpenDB(compareDir, backend)
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
 	if err != nil {
-		log.Fatal("Error opening DB: ", err)
+		return fmt.Errorf("error reading data: %w", err)
 	}
-	defer compareDB.Close()
-
-	for _, module := range modules {
-		//get all key-values
-		tree, err := ReadTree(db, height, []byte(module), DefaultCacheSize)
-		if err != nil {
-			log.Println("Error reading data: ", err)
-			os.Exit(1)
-		}
-		compareTree, err := ReadTree(compareDB, height, []byte(module), DefaultCacheSize)
-		if err != nil {
-			log.Println("Error reading compareTree data: ", err)
-			os.Exit(1)
-		}
-		if bytes.Equal(tree.Hash(), compareTree.Hash()) {
-			continue
-		}
-
-		var wg sync.WaitGroup
-		wg.Add(2)
-		dataMap := make(map[string][32]byte, tree.Size())
-		compareDataMap := make(map[string][32]byte, compareTree.Size())
-		go getKVs(tree, dataMap, &wg)
-		go getKVs(compareTree, compareDataMap, &wg)
-		wg.Wait()
-
-		//get all keys
-		keySize := tree.Size()
-		if compareTree.Size() > keySize {
-			keySize = compareTree.Size()
-		}
-		allKeys := make(map[string]bool, keySize)
-		for k, _ := range dataMap {
-			allKeys[k] = false
-		}
-		for k, _ := range compareDataMap {
-			allKeys[k] = false
-		}
-
-		log.Println(fmt.Sprintf("==================================== %s begin ====================================", module))
-		//find diff value by each key
-		for key, _ := range allKeys {
-			value, ok := dataMap[key]
-			compareValue, compareOK := compareDataMap[key]
-			keyByte, _ := hex.DecodeString(key)
-			if ok && compareOK {
-				if value == compareValue {
-					continue
-				}
-				log.Println("\nvalue is different--------------------------------------------------------------------")
-				log.Println("dir key-value :")
-				printByKey(cdc, tree, module, keyByte)
-				log.Println("compareDir key-value :")
-				printByKey(cdc, compareTree, module, keyByte)
-				log.Println("value is different--------------------------------------------------------------------")
-				continue
-			}
-			if ok {
-				log.Println("\nOnly be in dir--------------------------------------------------------------------")
-				printByKey(cdc, tree, module, keyByte)
-				continue
-			}
-			if compareOK {
-				log.Println("\nOnly be in compare dir--------------------------------------------------------------------")
-				printByKey(cdc, compareTree, module, keyByte)
-				continue
-			}
-
-		}
-		log.Println(fmt.Sprintf("==================================== %s end ====================================", module))
+	compareTree, err := ReadTree(db, version2, []byte(ctx.Prefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
 	}
+	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+	if bytes.Equal(tree.Hash(), compareTree.Hash()) {
+		fmt.Printf("tree version %d and %d are same, root hash: %X\n", ctx.Version, version2, tree.Hash())
+		return nil
+	}
+
+	tree.Iterate(func(key, value []byte) bool {
+		_, v2 := compareTree.Get(key)
+		if v2 == nil {
+			fmt.Printf("---only in ver1 %d, key: %X, value: %X\n", ctx.Version, key, value)
+		} else {
+			if !bytes.Equal(value, v2) {
+				fmt.Printf("---diff ver1 %d, key: %X, value: %X\n", ctx.Version, key, value)
+				fmt.Printf("+++diff ver2 %d, key: %X, value: %X\n", version2, key, v2)
+			}
+		}
+		return false
+	})
+
+	compareTree.Iterate(func(key, value []byte) bool {
+		_, v1 := tree.Get(key)
+		if v1 == nil {
+			fmt.Printf("+++only in ver2 %d, key: %X, value: %X\n", version2, key, value)
+		}
+		return false
+	})
+	return nil
 }
 
 // iaviewerReadData reads key-value from leveldb
