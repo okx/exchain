@@ -61,19 +61,36 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
 
-	blockSize := 32 * 1024
+	/*
+	  block_based_options.data_block_index_type =
+	      BlockBasedTableOptions::kDataBlockBinaryAndHash;
+	  block_based_options.data_block_hash_table_util_ratio = 0.75;
+	  block_based_options.filter_policy.reset(NewBloomFilterPolicy(10));
+	  block_based_options.block_cache =
+	      NewLRUCache(static_cast<size_t>(block_cache_size_mb * 1024 * 1024));
+	  table_factory.reset(new BlockBasedTableFactory(block_based_options));
+	  memtable_prefix_bloom_size_ratio = 0.02;
+	  memtable_whole_key_filtering = true;
+	*/
+
+	blockSize := 64 * 1024
 	bbto.SetBlockSize(blockSize)
 
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
-	blockCacheSize := uint64(2048)
+	bbto.SetBlockCache(2048 * 1024 * 1024)
+	bbto.SetIndexType(gorocksdb.KHashSearchIndexType)
+
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetPrefixExtractor(gorocksdb.NewNoopPrefixTransform())
+	opts.SetMemTablePrefixBloomSizeRatio(0.03)
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
-	opts.OptimizeForPointLookup(blockCacheSize)
+	//opts.OptimizeForPointLookup(blockCacheSize)
 	opts.SetAllowConcurrentMemtableWrites(false)
+
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
 		if err != nil {
