@@ -51,10 +51,10 @@ type Tx interface {
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
 
-	// 0 for StdTxType, 1 for evm tx
 	GetType() TransactionType
 
 	GetSigners() []AccAddress
+	
 	GetGas() uint64
 }
 
@@ -62,9 +62,9 @@ type Tx interface {
 
 type TransactionType int
 const (
-	StdTxType       TransactionType = 0
-	EvmTxType       TransactionType = 1
-	UnknownType     TransactionType = 2
+	UnknownType TransactionType = iota
+	StdTxType
+	EvmTxType
 )
 
 
