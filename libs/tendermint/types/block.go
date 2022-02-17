@@ -615,7 +615,7 @@ func (h *Header) ToProto() *tmproto.Header {
 		return nil
 	}
 	return &tmproto.Header{
-		Version:            tmversion.Consensus{Block: h.Version.App.Uint64(), App: h.Version.App.Uint64()},
+		Version:            tmversion.Consensus{Block: h.Version.Block.Uint64(), App: h.Version.App.Uint64()},
 		ChainID:            h.ChainID,
 		Height:             h.Height,
 		Time:               h.Time,
