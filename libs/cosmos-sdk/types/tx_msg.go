@@ -54,7 +54,7 @@ type Tx interface {
 	GetType() TransactionType
 
 	GetSigners() []AccAddress
-	
+
 	GetGas() uint64
 }
 
