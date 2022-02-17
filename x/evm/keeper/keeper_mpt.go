@@ -120,9 +120,9 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 						break
 					}
 					k.mptCommitMu.Unlock()
-					k.SetLatestStoredBlockHeight(version)
-					k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 				}
+				k.SetLatestStoredBlockHeight(version)
+				k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 			}
 		}
 
@@ -141,16 +141,16 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 	triedb := k.db.TrieDB()
 	if types3.TrieDirtyDisabled {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == types.EmptyRootHash {
-			curMptRoot = (ethcmn.Hash{})
+			curMptRoot = ethcmn.Hash{}
 		} else {
 			k.mptCommitMu.Lock()
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 				panic("fail to commit mpt data: " + err.Error())
 			}
 			k.mptCommitMu.Unlock()
-			k.SetLatestStoredBlockHeight(uint64(curHeight))
-			log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
 		}
+		k.SetLatestStoredBlockHeight(uint64(curHeight))
+		log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
 	} else {
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
@@ -182,13 +182,13 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 			} else {
 				// Flush an entire trie and restart the counters, it's not a thread safe process,
 				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-				ts := time.Now()
 				if err := triedb.Commit(chRoot, true, nil); err != nil {
 					panic("fail to commit mpt data: " + err.Error())
 				}
-				k.SetLatestStoredBlockHeight(uint64(chosen))
-				log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot, "ts", time.Now().Sub(ts).Milliseconds())
 			}
+			k.SetLatestStoredBlockHeight(uint64(chosen))
+			log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
+
 			// Garbage collect anything below our required write retention
 			for !k.triegc.Empty() {
 				root, number := k.triegc.Pop()
@@ -207,6 +207,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 func (k *Keeper) Commit(ctx sdk.Context) {
 	k.mptCommitMu.Lock()
 	defer k.mptCommitMu.Unlock()
+
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 

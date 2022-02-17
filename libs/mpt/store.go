@@ -67,7 +67,7 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 }
 
 func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
-	db := InstanceOfMptStore()
+	db := InstanceOfAccStore()
 	triegc := prque.New(nil)
 
 	mptStore := &MptStore{

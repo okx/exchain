@@ -140,3 +140,23 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 		}
 	}
 }
+
+// IterateAccounts iterates over all the stored accounts and performs a callback function
+func (ak AccountKeeper) MiggrateAccounts(ctx sdk.Context, cb func(account exported.Account, key, value []byte) (stop bool)) {
+	var store sdk.KVStore
+	if types2.HigherThanMars(ctx.BlockHeight()) {
+		store = ctx.KVStore(ak.mptKey)
+	} else {
+		store = ctx.KVStore(ak.key)
+	}
+	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
+
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		account := ak.decodeAccount(iterator.Value())
+
+		if cb(account, iterator.Key(), iterator.Value()) {
+			break
+		}
+	}
+}

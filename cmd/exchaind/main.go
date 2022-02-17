@@ -85,6 +85,7 @@ func main() {
 		replayCmd(ctx),
 		repairStateCmd(ctx),
 		displayStateCmd(ctx),
+		migrateCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),

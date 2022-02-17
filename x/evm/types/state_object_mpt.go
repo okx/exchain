@@ -51,7 +51,12 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 	if enc = so.stateDB.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
 		value.SetBytes(enc)
 	} else {
-		if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
+		tmpKey := key
+		if tmtypes.IsTestNet() {
+			tmpKey = so.GetStorageByAddressKey(key.Bytes())
+		}
+
+		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
 			so.setError(err)
 			return ethcmn.Hash{}
 		}
@@ -127,6 +132,9 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		so.originStorage[key] = value
 
 		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
+		if tmtypes.IsTestNet() {
+			key = so.GetStorageByAddressKey(key.Bytes())
+		}
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
 			so.stateDB.StateCache.Del(prefixKey.Bytes())

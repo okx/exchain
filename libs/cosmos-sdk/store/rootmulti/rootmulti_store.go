@@ -214,6 +214,9 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			}
 		} else if storeParams.typ == types.StoreTypeMPT {
 			mptHeight := int64(GetLatestStoredMptHeight())
+			if !tmtypes.HigherThanMars(mptHeight) {
+				continue
+			}
 			if mptHeight < minVersion {
 				minVersion = mptHeight
 			}
@@ -240,8 +243,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			infos[storeInfo.Name] = storeInfo
 		}
 
-		if !tmtypes.HigherThanMars(ver) && types2.EnableDoubleWrite {
-			mptInfo := infos[mpt.StoreKey]
+		mptInfo := infos[mpt.StoreKey]
+		if mptInfo.Core.CommitID.Version == 0 {
 			mptInfo.Core.CommitID.Version = ver
 			infos[mpt.StoreKey] = mptInfo
 		}
@@ -1271,7 +1274,7 @@ func (rs *Store) SetLogger(log tmlog.Logger) {
 
 // GetLatestStoredMptHeight get latest mpt storage height
 func GetLatestStoredMptHeight() uint64 {
-	db := mpt.InstanceOfMptStore()
+	db := mpt.InstanceOfAccStore()
 	rst, err := db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0

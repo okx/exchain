@@ -54,7 +54,7 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 	for it.Next() {
 		key := ethcmn.BytesToHash(so.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
-			if !cb(key, value) {
+			if cb(key, value) {
 				return nil
 			}
 			continue
@@ -65,7 +65,7 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 			if err != nil {
 				return err
 			}
-			if !cb(key, ethcmn.BytesToHash(content)) {
+			if cb(key, ethcmn.BytesToHash(content)) {
 				return nil
 			}
 		}

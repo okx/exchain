@@ -25,7 +25,7 @@ var (
 	initAccOnce     sync.Once
 )
 
-func InstanceOfMptStore() ethstate.Database {
+func InstanceOfAccStore() ethstate.Database {
 	initAccOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
 		path := filepath.Join(homeDir, AccMptDataDir)
@@ -51,8 +51,8 @@ func InstanceOfMptStore() ethstate.Database {
 }
 
 var (
-	KeyPrefixLatestStoredHeight = []byte{0x01}
-	KeyPrefixRootMptHash        = []byte{0x02}
+	KeyPrefixRootMptHash        = []byte{0x01}
+	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
 
 // GetLatestStoredBlockHeight get latest mpt storage height

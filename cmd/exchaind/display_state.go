@@ -50,7 +50,7 @@ func displayState(ctx *server.Context) {
 
 	_ = dispApp.EvmKeeper.ForEachStorage(dispApp.GetDeliverStateCtx(), addr, func(key, value ethcmn.Hash) bool {
 		fmt.Println("Key is: ", key.String(), ", value is: ", value.String())
-		return true
+		return false
 	})
 }
 
