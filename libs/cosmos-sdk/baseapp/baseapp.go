@@ -753,7 +753,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 
-	if mode != runTxModeDeliver {
+	if mode != runTxModeDeliver || mode != runTxModeDeliverPartConcurrent || mode != runTxModeDeliverInAsync {
 		return
 	}
 
