@@ -455,9 +455,9 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 
 	// Run txs of block.
-	fmt.Println("BeginBlockSync.")
+	//fmt.Println("BeginBlockSync.")
 	for count, tx := range block.Txs {
-		fmt.Printf("DeliverTxAsync. %d\n", count)
+		//fmt.Printf("DeliverTxAsync. %d\n", count)
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
@@ -470,7 +470,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 
 	// End block.
-	fmt.Println("EndBlockSync.")
+	//fmt.Println("EndBlockSync.")
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)

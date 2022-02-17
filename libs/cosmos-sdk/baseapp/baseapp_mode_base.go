@@ -110,7 +110,7 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 		fmt.Println("handleGasConsumed failed.")
 	} else {
 		info.startingGas = info.ctx.BlockGasMeter().GasConsumed()
-		fmt.Printf("info.startingGas=%d\n", info.startingGas)
+		//fmt.Printf("info.startingGas=%d\n", info.startingGas)
 	}
 
 	return err
@@ -153,7 +153,7 @@ func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
 // other members
 func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")
-	fmt.Printf("BlockGasMeter ConsumeGas: %d Limit:%d\n", info.ctx.BlockGasMeter().GasConsumed(), info.ctx.BlockGasMeter().Limit())
+	//fmt.Printf("BlockGasMeter ConsumeGas: %d Limit:%d\n", info.ctx.BlockGasMeter().GasConsumed(), info.ctx.BlockGasMeter().Limit())
 	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
 	}

@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -89,7 +88,7 @@ func (c Context) ConsensusParams() *abci.ConsensusParams {
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
-	fmt.Println("CreateGasMeter.")
+	//fmt.Println("CreateGasMeter.")
 	return Context{
 		ctx:          context.Background(),
 		ms:           ms,
