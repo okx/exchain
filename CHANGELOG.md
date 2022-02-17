@@ -87,16 +87,146 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ## [0.19.17](https://github.com/okex/exchain/compare/v0.19.16...v0.19.17) (2021-11-29)
 
 
+### Features
+
+* Add checkTxCnt and `mempool` txs count to the log ([\#1224](https://github.com/okex/exchain/pull/1224))
+
+
+### Bug fixes
+
+* Fix panic when remove a removed tx ([\#1213](https://github.com/okex/exchain/pull/1213))
+
+* Fix `mempool` full issue ([\#1220](https://github.com/okex/exchain/pull/1220))
+
+* Use Stringer instead of fmt to reduce unnecessary string construction at non-debug levels ([\#1222](https://github.com/okex/exchain/pull/1222))
+
+* Fix not display proposer address when the node is not proposer ([\#1223](https://github.com/okex/exchain/pull/1223))
+
+
+### Performance Improvements
+
+* Optimising API 'eth_getTransactionReceiptsByBlock' ([\#1217](https://github.com/okex/exchain/pull/1217))
+
+* Optimize node mode  ([\#1226](https://github.com/okex/exchain/pull/1226))
+
+
 
 ## [0.19.16](https://github.com/okex/exchain/compare/v0.19.15...v0.19.16) (2021-11-21)
+
+
+### Features
+
+* Add amino custom marshall and unmarshal function in the base types  ([\#1146](https://github.com/okex/exchain/pull/1146))
+
+* Add db to `gasused` for calculation ([\#1165](https://github.com/okex/exchain/pull/1165))
+
+* Add `MaxTxNumPerBlock` and `MaxGasUsedPerBlock` in dynamic config to forced flushing `mempool` ([\#1204](https://github.com/okex/exchain/pull/1204))
+
+* Set the default value of `p2p.seeds` ([\#1206](https://github.com/okex/exchain/pull/1206))
+
+* Display block producer address ([\#1212](https://github.com/okex/exchain/pull/1212))
+
+
+### Bug fixes
+
+* Fix `mempool` config isn't set  ([\#1209](https://github.com/okex/exchain/pull/1209))
+
+
+### Code refactoring
+
+* Change RPC prometheus histogram buckets for monitor ([\#1207](https://github.com/okex/exchain/pull/1207))
 
 
 
 ## [0.19.15](https://github.com/okex/exchain/compare/v0.19.14...v0.19.15) (2021-11-16)
 
 
+### Features
+
+* Support `FlagRocksdbOpts` flag ([\#1203](https://github.com/okex/exchain/pull/1203))
+
+* Add log of `iavl-height` ([\#1208](https://github.com/okex/exchain/pull/1208))
+
+
+### Bug fixes
+
+* Fix p2p sanity error when address ID is same  ([\#1193](https://github.com/okex/exchain/pull/1193))
+
+* Fix panic when checkTx read map ([\#1196](https://github.com/okex/exchain/pull/1196))
+
+* Fix without gracefully exit ([\#1197](https://github.com/okex/exchain/pull/1197))
+
+* Fix the usage of `sed` in Ubuntu when using `start.sh` ([\#1198](https://github.com/okex/exchain/pull/1198))
+
+* Fix consensus issue with repaired state ([\#1199](https://github.com/okex/exchain/pull/1199))
+
+* Add block producer flag to control consensus time ([\#1201](https://github.com/okex/exchain/pull/1201))
+
+
+### Code refactoring
+
+* Use string literals instead of `analyzer.RunFuncName` ([\#1195](https://github.com/okex/exchain/pull/1195))
+
+
+
+### Performance Improvements
+
+* Optimize cache signCache
+
+
 
 ## [0.19.14](https://github.com/okex/exchain/compare/v0.19.13...v0.19.14) (2021-11-13)
+
+
+### Features
+
+* Support batch transaction search ([\#1156](https://github.com/okex/exchain/pull/1156))
+
+* Convert pin keys to const type stored in `libs/cosmos/baseapp/const.go` ([\#1159](https://github.com/okex/exchain/pull/1159))
+
+* Support `innertx` ([\#1161](https://github.com/okex/exchain/pull/1161))
+
+* Add the time of reading database ([\#1170](https://github.com/okex/exchain/pull/1170))
+
+* Get `evm` execute trace and save the trace to database ([\#1171](https://github.com/okex/exchain/pull/1171))
+
+* Add node mode for flags management ([\#1173](https://github.com/okex/exchain/pull/1173))
+
+* Add pruning log and invalid-tx log ([\#1189](https://github.com/okex/exchain/pull/1189))
+
+
+### Bug fixes
+
+* Fix BlockGasMeter show about `ParallelTx` ([\#1154](https://github.com/okex/exchain/pull/1154))
+
+* Fix `gasUsed` when tx isn't used in `x/evm` ([\#1164](https://github.com/okex/exchain/pull/1164))
+
+* Fix mismatched block hash from block filter ([\#1166](https://github.com/okex/exchain/pull/1166))
+
+* Fix bug export height(-1) state failed ([\#1179](https://github.com/okex/exchain/pull/1179))
+
+* Fix `iavl` log not initialized before used ([\#1181](https://github.com/okex/exchain/pull/1181))
+
+* Fix `eth_getBalance` result with refund gas in fast-query mode ([\#1187](https://github.com/okex/exchain/pull/1187))
+
+
+### Code refactoring
+
+* Refine `abci` tracer ([\#1160](https://github.com/okex/exchain/pull/1160))
+
+
+### Performance Improvements
+
+* Optimize holding active objects list in `state objects`  ([\#1178](https://github.com/okex/exchain/pull/1178))
+
+* Disable `trace.GoRId` for better performance ([\#1184](https://github.com/okex/exchain/pull/1184))
+
+* Disable `gid` by default ([\#1190](https://github.com/okex/exchain/pull/1190))
+
+
+### Chores
+
+* Add CI ut ([\#1162](https://github.com/okex/exchain/pull/1162))
 
 
 
@@ -450,7 +580,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Prune and compact app store ([\#955](https://github.com/okex/exchain/pull/955))
 
-* Expand iavl cache size ([\#960](https://github.com/okex/exchain/pull/960))
+* Expand `iavl` cache size ([\#960](https://github.com/okex/exchain/pull/960))
 
 
 ### Chores
