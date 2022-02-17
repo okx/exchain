@@ -605,13 +605,15 @@ func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &feePool)
 		return fmt.Sprintf("feePool:%v", feePool)
 	case distypes.ProposerKey[0]:
-		return fmt.Sprintf("proposerKey:%s", hex.EncodeToString(value))
+		var consAddr sdk.ConsAddress
+		cdc.MustUnmarshalBinaryLengthPrefixed(value, &consAddr)
+		return fmt.Sprintf("proposerKey consAddress:%X", consAddr)
 	case distypes.DelegatorWithdrawAddrPrefix[0]:
-		return fmt.Sprintf("delegatorWithdrawAddr:%s:address:%s", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		return fmt.Sprintf("delegatorWithdrawAddr:%X;address:%X", key[1:], value)
 	case distypes.ValidatorAccumulatedCommissionPrefix[0]:
 		var commission types.ValidatorAccumulatedCommission
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &commission)
-		return fmt.Sprintf("validatorAccumulatedAddr:%s:address:%s", hex.EncodeToString(key[1:]), commission.String())
+		return fmt.Sprintf("validatorAccumulatedAddr:%X;commission:%s", key[1:], commission.String())
 	default:
 		return defaultKvFormatter(key, value)
 	}
