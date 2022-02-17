@@ -67,7 +67,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
-	blockCacheSize := uint64(1024)
+	blockCacheSize := uint64(2048)
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
