@@ -2,7 +2,7 @@ package types
 
 import (
 	"crypto/ecdsa"
-	"crypto/sha1"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"io"
@@ -139,7 +139,7 @@ func (msg MsgEthereumTx) String() string {
 }
 
 func (msg MsgEthereumTx) hash() string {
-	hash := sha1.Sum([]byte(msg.String()))
+	hash := md5.Sum([]byte(msg.String()))
 	return fmt.Sprintf("%x", hash)
 }
 
