@@ -83,6 +83,85 @@ Ref: https://keepachangelog.com/en/1.0.0/
 # [1.0.0](https://github.com/okex/exchain/compare/v0.19.17...v1.0.0) (2021-12-22)
 
 
+### Features
+
+* Delta sync ([\#1153](https://github.com/okex/exchain/pull/1153))
+
+* Support submit an update contract method blocked list proposal  ([\#1182](https://github.com/okex/exchain/pull/1182))
+
+* Support redis dds in `state-delta` ([\#1249](https://github.com/okex/exchain/pull/1249))
+
+* Validate Chain-id and GenesisHeight while app inits and starts ([\#1258](https://github.com/okex/exchain/pull/1258))
+
+* Support proactively run tx in `exchaincli` ([\#1271](https://github.com/okex/exchain/pull/1271))
+
+* Add flag `flagMnemonic` to hard-code the mnemonic of first 4 validators when start testnet ([\#1278](https://github.com/okex/exchain/pull/1278))
+
+* Add dds tools ([\#1279](https://github.com/okex/exchain/pull/1279))
+
+* Add `compress` to compress delta bytes ([\#1287](https://github.com/okex/exchain/pull/1287))
+
+* Add `delta-version` to separate  different encoding delta data  ([\#1297](https://github.com/okex/exchain/pull/1297))
+
+* Add RPC-API `eth_getBalanceBatch` ([\#1288](https://github.com/okex/exchain/pull/1288))
+
+* Add auto test tool ([\#1302](https://github.com/okex/exchain/pull/1302))
+
+* Add `dds` log ([\#1315](https://github.com/okex/exchain/pull/1315))
+
+
+### Bug fixes
+
+* Fix `mempool` mutex ([\#1238](https://github.com/okex/exchain/pull/1238))
+
+* Fix the bug of abnormal gasUsed statistics ([\#1266](https://github.com/okex/exchain/pull/1266))
+
+* Fix bug for cmd(testnet) gov params use cosmos-sdk/x/gov ([\#1298](https://github.com/okex/exchain/pull/1298))
+
+* Fix bug for contract-method delete multiply for change cache struct case to error ([\#1309](https://github.com/okex/exchain/pull/1309))
+
+* Fix bug that enable `fastquery` when don't use delta  ([\#1311](https://github.com/okex/exchain/pull/1311))
+
+
+### Code refactoring
+
+* Move repair state on `exchaindcli` start   ([\#1205](https://github.com/okex/exchain/pull/1205))
+
+* Change flag about `state-delta` ([\#1247](https://github.com/okex/exchain/pull/1247))
+
+* Re-organize `state-delta` code ([\#1277](https://github.com/okex/exchain/pull/1277))
+
+* Change delta from `p2p` to `deltaContext`  ([\#1280](https://github.com/okex/exchain/pull/1280))
+
+* Refine dds  ([\#1284](https://github.com/okex/exchain/pull/1284))
+
+* Get rid of panic when using dds  ([\#1295](https://github.com/okex/exchain/pull/1295))
+
+* Cache `account`, `contract` and `code` multiply ([\#1300](https://github.com/okex/exchain/pull/1300))
+
+* Refactor `runtx`  ([\#1306](https://github.com/okex/exchain/pull/1306))
+
+* Refactor consensus test case ([\#1314](https://github.com/okex/exchain/pull/1314))
+
+* Refactor delta download ([\#1317](https://github.com/okex/exchain/pull/1317))
+
+
+### Performance Improvements
+
+* Reduce the sleepDuration while time for ApplyBlock is less than `CommitTimeout` ([\#1221](https://github.com/okex/exchain/pull/1221))
+
+* Amino codec optimize ([\#1234](https://github.com/okex/exchain/pull/1234))
+
+* GC optimize about amino codec and `iavl` amino ([\#1246](https://github.com/okex/exchain/pull/1246))
+
+* GC optimize about keccak cache  ([\#1261](https://github.com/okex/exchain/pull/1261))
+
+
+### Chores
+
+* Update install-rocksdb.sh ([\#1256](https://github.com/okex/exchain/pull/1256))
+
+
 
 ## [0.19.17](https://github.com/okex/exchain/compare/v0.19.16...v0.19.17) (2021-11-29)
 
@@ -90,6 +169,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ### Features
 
 * Add checkTxCnt and `mempool` txs count to the log ([\#1224](https://github.com/okex/exchain/pull/1224))
+
+* Add flag of max gas used per block to replay ([\#1231](https://github.com/okex/exchain/pull/1231))
+
+* Register oec config to dynamic config ([\#1232](https://github.com/okex/exchain/pull/1232))
+
+* Query the current blocked list of contract addresses during evm calling  ([\#1276](https://github.com/okex/exchain/pull/1276))
 
 
 ### Bug fixes
@@ -102,12 +187,37 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix not display proposer address when the node is not proposer ([\#1223](https://github.com/okex/exchain/pull/1223))
 
+* Fix `eth_getTransactionReceipt` gasUsed ([\#1230](https://github.com/okex/exchain/pull/1230))
+
+* Fix `mempool` mutex ([\#1244](https://github.com/okex/exchain/pull/1244))
+
+
+### Code refactoring
+
+* Close old pruning logic when open ac ([\#1211](https://github.com/okex/exchain/pull/1211))
+
+* Update node cache size dynamically  ([\#1225](https://github.com/okex/exchain/pull/1225))
+
+* Refactor `abci` mutex ([\#1237](https://github.com/okex/exchain/pull/1237))
+
 
 ### Performance Improvements
 
 * Optimising API 'eth_getTransactionReceiptsByBlock' ([\#1217](https://github.com/okex/exchain/pull/1217))
 
 * Optimize node mode  ([\#1226](https://github.com/okex/exchain/pull/1226))
+
+* Optimize pruning ([\#1239](https://github.com/okex/exchain/pull/1239))
+
+
+### Tests
+
+* Benchmark `iavl` ([\#1219](https://github.com/okex/exchain/pull/1219))
+
+
+### Chores
+
+* Update install-rocksdb.sh ([\#1270](https://github.com/okex/exchain/pull/1270))
 
 
 
