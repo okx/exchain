@@ -103,9 +103,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 	}
 
-	blockSize := 64 * 1024
+	blockSize := 32 * 1024
 	bbto.SetBlockSize(blockSize)
-
 	bbto.SetCacheIndexAndFilterBlocks(true)
 	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 
