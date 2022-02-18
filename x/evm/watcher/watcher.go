@@ -193,7 +193,6 @@ func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
-
 	}
 }
 
@@ -376,14 +375,6 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	w.dispatchJob(func() { w.commitBatch(batch) })
-
-	// we dont do deduplicatie here,we do it in `commit routine`
-	// get centerBatch for sending to DataCenter
-	ddsBatch := make([]*Batch, len(batch))
-	for i, b := range batch {
-		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
-	}
-	w.watchData.Batches = ddsBatch
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -477,7 +468,15 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 
+	// hold it in temp
+	batch:=w.batch
 	return func() ([]byte, error) {
+		ddsBatch := make([]*Batch, len(batch))
+		for i, b := range batch {
+			ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+		}
+		value.Batches = ddsBatch
+
 		filterWatcher := filterCopy(value)
 		valueByte, err := filterWatcher.MarshalToAmino(nil)
 		if err != nil {
@@ -541,6 +540,7 @@ func key2Bytes(key string) []byte {
 	return []byte(key)
 }
 
+
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{
 		DirtyAccount:  filterAccount(origin.DirtyAccount),
@@ -570,6 +570,7 @@ func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
 
 	return ret
 }
+
 
 func filterBatch(datas []*Batch) []*Batch {
 	if len(datas) == 0 {
