@@ -30,8 +30,8 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 	}
 
 	for _, msg := range msgs {
-		if msgEthermint, ok := msg.(evmtypes.MsgEthermint); ok {
-			setupAccount(asd.ak, ctx, msgEthermint.From)
+		if msgEthermint, ok := msg.(evmtypes.MsgEthereumTx); ok {
+			setupAccount(asd.ak, ctx, msgEthermint.From())
 		}
 	}
 
