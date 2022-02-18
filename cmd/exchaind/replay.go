@@ -11,6 +11,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/okex/exchain/x/evm/env"
+
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -48,6 +50,9 @@ const (
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
+
+	flagCacheFile   = "cache-file"
+	flagEnableCache = "enable-cache"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -126,6 +131,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
+	cmd.Flags().String(flagCacheFile, "cache.json", "cache file")
+	cmd.Flags().Bool(flagEnableCache, false, "prepare cache")
 
 	return cmd
 }
@@ -140,6 +147,13 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
+	enableCache := viper.GetBool(flagEnableCache)
+	fileName := viper.GetString(flagCacheFile)
+	if enableCache {
+		log.Println("load cache begin", "fileName", fileName)
+		env.VerifySigCache.Load(fileName)
+		log.Println("load cache finished")
+	}
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
@@ -171,6 +185,11 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
+	}
+	if !enableCache {
+		log.Println("save cache begin", "fileName", fileName)
+		env.VerifySigCache.Save(fileName)
+		log.Println("save cache finished")
 	}
 }
 

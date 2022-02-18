@@ -1,7 +1,9 @@
 package env
 
 import (
-	"container/list"
+	"encoding/json"
+	"io/fs"
+	"io/ioutil"
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -21,42 +23,50 @@ func init() {
 }
 
 type Cache struct {
-	mtx   sync.RWMutex
-	data  map[string]*list.Element
-	queue *list.List
-}
-
-type cacheNode struct {
-	key   string
-	value ethcmn.Address
+	mtx  sync.RWMutex
+	data map[string]ethcmn.Address
 }
 
 func newCache() *Cache {
 	return &Cache{
-		data:  make(map[string]*list.Element, cacheSize),
-		queue: list.New(),
+		data: make(map[string]ethcmn.Address, cacheSize),
 	}
 }
 
 func (c *Cache) Get(key string) (ethcmn.Address, bool) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-	if elem, ok := c.data[key]; ok {
-		c.queue.MoveToBack(elem)
-		return elem.Value.(*cacheNode).value, true
+	if value, ok := c.data[key]; ok {
+		return value, true
 	}
 	return ethcmn.Address{}, false
 }
 func (c *Cache) Add(key string, value ethcmn.Address) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	node := &cacheNode{key, value}
-	elem := c.queue.PushBack(node)
-	c.data[key] = elem
+	c.data[key] = value
+}
 
-	for c.queue.Len() > cacheSize {
-		oldest := c.queue.Front()
-		oldKey := c.queue.Remove(oldest).(*cacheNode).key
-		delete(c.data, oldKey)
+func (c *Cache) Load(fileName string) {
+	content, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+	var data map[string]ethcmn.Address
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		panic(err)
+	}
+	c.data = data
+}
+
+func (c *Cache) Save(fileName string) {
+	content, err := json.Marshal(c.data)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(fileName, content, fs.ModePerm)
+	if err != nil {
+		panic(err)
 	}
 }
