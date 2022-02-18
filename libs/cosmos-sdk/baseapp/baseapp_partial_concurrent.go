@@ -7,6 +7,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"sync"
+	"time"
 )
 
 const (
@@ -123,24 +124,11 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	mode := runTxModeDeliverPartConcurrent
 	task.info.handler = dm.app.getModeHandler(mode) //dm.handler
 
-	// todo: execute ante
+	// execute ante
 	task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
 	//task.fee, task.isEvm, task.signCache = dm.app.getTxFee(task.info.ctx, task.tx)
 
-	// todo: move to a position
-	//if !task.isEvm {
-	//	fmt.Printf("is not a evm tx\n")
-	//	return
-	//}
-
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
-	//for _, addr := range from {
-	//	// cache from if exist
-	//	if addr != "" {
-	//		info.ctx = info.ctx.WithFrom(addr)
-	//		break
-	//	}
-	//}
 
 	dm.app.pin(ValTxMsgs, true, mode)
 	if err := validateBasicTxMsgs(task.tx.GetMsgs()); err != nil {
@@ -246,7 +234,10 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 
 		if !dm.extractExecutingTask() {
+			start := time.Now()
 			<-dm.executeSignal
+			elapsed := time.Since(start)
+			fmt.Println("time to waiting for extractExecutingTask: ", elapsed)
 			continue
 		}
 		if dm.isWaiting {
@@ -311,6 +302,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(AnteHandler, true, mode)
 
 			if dm.app.anteHandler != nil {
+				fmt.Printf("rerun Ante. %d\n", dm.executingTask.index)
 				err := dm.app.runAnte(info, mode)
 				if err != nil {
 					fmt.Printf("failed 2. err:%s\n", err)
