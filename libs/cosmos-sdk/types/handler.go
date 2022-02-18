@@ -7,6 +7,8 @@ type Handler func(ctx Context, msg Msg) (*Result, error)
 // If newCtx.IsZero(), ctx is used instead.
 type AnteHandler func(ctx Context, tx Tx, simulate bool) (newCtx Context, err error)
 
+type AntePin func(tag string, start bool)
+
 type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
 type AccHandler func(ctx Context, address AccAddress) (nonce uint64)
@@ -73,4 +75,8 @@ type Terminator struct{}
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	return ctx, nil
+}
+
+func (t Terminator) Type() string {
+	return "terminator"
 }

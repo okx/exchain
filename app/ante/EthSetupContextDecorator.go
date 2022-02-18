@@ -23,6 +23,10 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 // This is undone at the EthGasConsumeDecorator, where the context is set with the
 // ethereum tx GasLimit.
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("EthSetupContextDecorator", true)
+	}
 	// all transactions must implement GasTx
 	gasTx := tx
 
@@ -45,7 +49,8 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 			}
 		}
 	}()
-
+	if pin != nil {
+		pin("EthSetupContextDecorator", false)
+	}
 	return next(ctx, tx, simulate)
 }
-

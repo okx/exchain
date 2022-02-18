@@ -2,12 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"strings"
 	"sync"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
@@ -178,8 +178,26 @@ func (s *analyer) format() {
 		//-----
 	}
 
+	AntePinKeys := []string{"EthSetupContextDecorator", "GasLimitDecorator", "ValidateBasicDecorator", "EthSigVerificationDecorator", "AccountBlockedVerificationDecorator", "NonceVerificationDecorator", "EthGasConsumeDecorator", "IncrementSenderSequenceDecorator"}
+
+	var anteKeys = []string{
+		bam.CacheTxContext,
+		bam.CacheStoreWrite,
+		bam.AnteOther,
+	}
+	anteKeys = append(anteKeys, AntePinKeys...)
+
+	anteFormat := ""
+	for _, v := range anteKeys {
+		anteFormat += fmt.Sprintf("%s(%dms), ", v, record[v])
+	}
 	for _, v := range keys {
-		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
+		if v == bam.AnteHandler {
+			format += fmt.Sprintf("%s<sum:%dms,sub:{%s}>, ", v, record[v], anteFormat)
+		} else {
+			format += fmt.Sprintf("%s<%dms>, ", v, record[v])
+		}
+
 	}
 	format = strings.TrimRight(format, ", ")
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))

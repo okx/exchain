@@ -123,10 +123,22 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// NOTE: Alternatively, we could require that AnteHandler ensures that
 	// writes do not happen if aborted/failed.  This may have some
 	// performance benefits, but it'll be more difficult to get right.
+	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+	app.pin(CacheTxContext, false, mode)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+
+	antePin := func(mode runTxMode) sdk.AntePin {
+		if mode == runTxModeDeliver {
+			return app.antePin
+		} else {
+			return nil
+		}
+	}
+	anteCtx = anteCtx.WithAntePin(antePin(mode))
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 
+	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 
@@ -151,10 +163,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if err != nil {
 		return err
 	}
+	app.pin(AnteOther, false, mode)
 
 	if mode != runTxModeDeliverInAsync {
+		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		app.pin(CacheStoreWrite, false, mode)
 	}
 
 	return nil

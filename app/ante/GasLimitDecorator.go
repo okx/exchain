@@ -12,7 +12,6 @@ type EVMKeeper interface {
 	IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
-
 // NewGasLimitDecorator creates a new GasLimitDecorator.
 func NewGasLimitDecorator(evm EVMKeeper) GasLimitDecorator {
 	return GasLimitDecorator{
@@ -26,12 +25,19 @@ type GasLimitDecorator struct {
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("GasLimitDecorator", true)
+	}
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
+	}
+	if pin != nil {
+		pin("GasLimitDecorator", false)
 	}
 	return next(ctx, tx, simulate)
 }

@@ -26,6 +26,10 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("IncrementSenderSequenceDecorator", true)
+	}
 	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
 	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
 	// when mempool is not in enableRecheck mode, we should not increment the nonce
@@ -67,5 +71,8 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	// set the original gas meter
 	ctx = ctx.WithGasMeter(gasMeter)
+	if pin != nil {
+		pin("IncrementSenderSequenceDecorator", false)
+	}
 	return next(ctx, tx, simulate)
 }

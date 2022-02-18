@@ -12,7 +12,6 @@ import (
 	"math/big"
 )
 
-
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
 // gas consumption.
 type EthGasConsumeDecorator struct {
@@ -38,6 +37,10 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("EthGasConsumeDecorator", true)
+	}
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -92,5 +95,8 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
+	if pin != nil {
+		pin("EthGasConsumeDecorator", false)
+	}
 	return next(newCtx, tx, simulate)
 }

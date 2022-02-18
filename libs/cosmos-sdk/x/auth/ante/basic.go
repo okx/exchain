@@ -26,6 +26,10 @@ func NewValidateBasicDecorator() ValidateBasicDecorator {
 }
 
 func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("ValidateBasicDecorator", true)
+	}
 	// no need to validate basic on recheck tx, call next antehandler
 	if ctx.IsReCheckTx() {
 		return next(ctx, tx, simulate)
@@ -33,7 +37,9 @@ func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulat
 	if err := tx.ValidateBasic(); err != nil {
 		return ctx, err
 	}
-
+	if pin != nil {
+		pin("ValidateBasicDecorator", false)
+	}
 	return next(ctx, tx, simulate)
 }
 

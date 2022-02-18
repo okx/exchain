@@ -14,6 +14,10 @@ const (
 	Refund      = "refund"
 	ConsumeGas  = "ConsumeGas"
 	Recover     = "recover"
+	//------ ante handler
+	CacheTxContext  = "cacheTxContext"
+	CacheStoreWrite = "cacheStoreWrite"
+	AnteOther       = "AnteOther"
 
 	//----- handler
 	EvmHandler   = "evm_handler"

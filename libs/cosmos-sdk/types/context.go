@@ -43,6 +43,7 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
+	antePin        AntePin
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -70,6 +71,7 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) AntePin() AntePin            { return c.antePin }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -298,4 +300,9 @@ func (c Context) WithSigCache(cache SigCache) Context {
 // struct{}.
 func EmptyContext() Context {
 	return Context{}
+}
+
+func (c Context) WithAntePin(pin AntePin) Context {
+	c.antePin = pin
+	return c
 }

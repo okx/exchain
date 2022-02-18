@@ -17,6 +17,10 @@ func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
 
 // AnteHandle validates the signature and returns sender address
 func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	pin := ctx.AntePin()
+	if pin != nil {
+		pin("EthSigVerificationDecorator", true)
+	}
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -37,6 +41,9 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	// update ctx for push signerSigCache
 	newCtx = ctx.WithSigCache(signerSigCache)
 
+	if pin != nil {
+		pin("EthSigVerificationDecorator", false)
+	}
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
 	return next(newCtx, msgEthTx, simulate)
