@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -35,37 +36,63 @@ func getRealTxByte(txByteWithIndex []byte) []byte {
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
-	res := make([]*extraDataForTx, len(txs), len(txs))
-	var wg sync.WaitGroup
+	txSize := len(txs)
+	res := make([]*extraDataForTx, txSize, txSize)
+
+	maxGoRoutine := 32
+	if maxGoRoutine > txSize {
+		maxGoRoutine = txSize
+	}
+
+	var handleTxCnt uint64 = 0
+	stopChan := make(chan struct{}, 1)
+	poolChan := make(chan struct{}, maxGoRoutine)
+
 	for index, txBytes := range txs {
-		wg.Add(1)
-		index := index
-		txBytes := txBytes
-		go func() {
-			defer wg.Done()
+		poolChan <- struct{}{}
+		go func(index int, txBytes []byte) {
+			defer func() {
+				atomic.AddUint64(&handleTxCnt, 1)
+				if atomic.LoadUint64(&handleTxCnt) == uint64(txSize) {
+					stopChan <- struct{}{}
+				}
+				<-poolChan
+			}()
+
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm, s := app.getTxFee(app.checkState.ctx, tx)
 			res[index] = &extraDataForTx{
 				fee:       coin,
 				isEvm:     isEvm,
 				signCache: s,
 			}
-		}()
+		}(index, txBytes)
 	}
-	wg.Wait()
+	<-stopChan
 	return res
 }
 
-func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+	extraData := app.getExtraDataByTxs(txs)
+
+	if onlyCalSender {
+		app.parallelTxManage.ClearSignCache()
+		for i, v := range extraData {
+			if v != nil {
+				app.parallelTxManage.SetTxSignCache(txs[i], v.signCache)
+			}
+		}
+		return nil
+	}
+
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
 	}
-	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -339,6 +366,8 @@ type parallelTxManager struct {
 	indexMapBytes []string
 
 	currTxFee sdk.Coins
+
+	blockTxSender map[string]sdk.SigCache
 }
 
 type txStatus struct {
@@ -402,6 +431,18 @@ func (f *parallelTxManager) isReRun(tx string) bool {
 		return false
 	}
 	return data.reRun
+}
+
+func (f *parallelTxManager) GetTxSignCache(tx []byte) sdk.SigCache {
+	return f.blockTxSender[string(tx)]
+}
+
+func (f *parallelTxManager) SetTxSignCache(tx []byte, s sdk.SigCache) {
+	f.blockTxSender[string(tx)] = s
+}
+
+func (f *parallelTxManager) ClearSignCache() {
+	f.blockTxSender = make(map[string]sdk.SigCache)
 }
 
 type asyncCache struct {

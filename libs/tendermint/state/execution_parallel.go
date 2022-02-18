@@ -12,6 +12,7 @@ import (
 
 var (
 	FlagParalleledTx = "paralleled-tx"
+	FlagParaSender   = "paralleled-sender"
 )
 
 func execBlockOnProxyAppAsync(
@@ -39,7 +40,7 @@ func execBlockOnProxyAppAsync(
 		return nil, err
 	}
 
-	abciResponses.DeliverTxs = proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs))
+	abciResponses.DeliverTxs = proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), false)
 	for _, v := range abciResponses.DeliverTxs {
 		if v.Code == abci.CodeTypeOK {
 			validTxs++

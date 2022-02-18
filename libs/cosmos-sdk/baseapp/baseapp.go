@@ -620,6 +620,13 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
+
+	if mode == runTxModeDeliver {
+		if s := app.parallelTxManage.GetTxSignCache(txBytes); s != nil {
+			ctx = ctx.WithSigCache(s)
+		}
+	}
+
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
