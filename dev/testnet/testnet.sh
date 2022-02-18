@@ -163,7 +163,6 @@ run() {
     ${LOG_SERVER} \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
-    --fast-query \
     --enable-preruntx=$PRERUN \
     --consensus-role=v$index \
     ${Test_CASE} \
