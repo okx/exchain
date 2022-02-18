@@ -43,6 +43,7 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
+	sender         AccAddress // sender commit ethereum tx
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -73,6 +74,7 @@ func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
+func (c Context) Sender() AccAddress { return c.sender }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -238,6 +240,11 @@ func (c Context) WithAccountNonce(nonce uint64) Context {
 
 func (c Context) WithCache(cache *Cache) Context {
 	c.cache = cache
+	return c
+}
+
+func (c Context) WithSender(sender AccAddress) Context {
+	c.sender = sender
 	return c
 }
 

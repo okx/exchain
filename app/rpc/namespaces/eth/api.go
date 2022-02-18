@@ -928,7 +928,7 @@ func (api *PublicEthereumAPI) doCall(
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
 	msgs = append(msgs, msg)
 
-	sim := api.evmFactory.BuildSimulator(api)
+	sim := api.evmFactory.BuildSimulator(api, addr)
 	if sim == nil {
 		return nil, fmt.Errorf("build simulator error nonce: %d, args: %v", nonce, args)
 	}
