@@ -22,6 +22,7 @@ const (
 	FlatKV      = "FlatKV"
 	WtxRatio    = "WtxRatio"
 	DeliverTxs  = "DeliverTxs"
+	AnteHandler = "AnthHandler"
 
 	Delta = "Delta"
 

@@ -19,6 +19,7 @@ var (
 		trace.Iavl,
 		trace.FlatKV,
 		trace.DeliverTxs,
+		trace.AnteHandler,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
@@ -29,6 +30,7 @@ var (
 		trace.Iavl,
 		trace.FlatKV,
 		trace.DeliverTxs,
+		trace.AnteHandler,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce)
