@@ -462,6 +462,7 @@ func (ndb *nodeDB) resetLatestVersion(version int64) {
 }
 
 func (ndb *nodeDB) getPreviousVersion(version int64) int64 {
+	latestVersion := int64(0)
 	itr, err := ndb.db.ReverseIterator(
 		rootKeyFormat.Key(1),
 		rootKeyFormat.Key(version),
@@ -475,10 +476,13 @@ func (ndb *nodeDB) getPreviousVersion(version int64) int64 {
 	for ; itr.Valid(); itr.Next() {
 		k := itr.Key()
 		rootKeyFormat.Scan(k, &pversion)
-		return pversion
+		//return pversion
+		if pversion > latestVersion {
+			latestVersion = pversion
+		}
 	}
 
-	return 0
+	return latestVersion
 }
 
 // deleteRoot deletes the root entry from disk, but not the node it points to.
