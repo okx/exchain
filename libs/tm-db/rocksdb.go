@@ -63,7 +63,19 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	}
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
+	blockSize := 64 * 1024
+	bbto.SetBlockSize(blockSize)
+	bbto.SetCacheIndexAndFilterBlocks(true)
+	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
+
+	blockCacheSize := uint64(2048)
+
 	opts := gorocksdb.NewDefaultOptions()
+	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetCreateIfMissing(true)
+	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.OptimizeForPointLookup(blockCacheSize)
+	opts.SetAllowConcurrentMemtableWrites(false)
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
@@ -102,17 +114,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 			opts.SetAllowMmapWrites(enable)
 		}
 	}
-
-	blockSize := 32 * 1024
-	bbto.SetBlockSize(blockSize)
-	bbto.SetCacheIndexAndFilterBlocks(true)
-	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
-
-	opts.SetBlockBasedTableFactory(bbto)
-	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
-	opts.OptimizeForPointLookup(uint64(2048))
-	opts.SetAllowConcurrentMemtableWrites(false)
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
