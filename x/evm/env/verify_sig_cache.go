@@ -42,7 +42,6 @@ func (c *Cache) Get(key string) (ethcmn.Address, bool) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	if elem, ok := c.data[key]; ok {
-		c.queue.MoveToBack(elem)
 		return elem.Value.(*cacheNode).value, true
 	}
 	return ethcmn.Address{}, false
