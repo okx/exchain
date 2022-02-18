@@ -200,7 +200,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	// create contract or execute call
 	switch contractCreation {
 	case true:
-		if !params.EnableCreate {
+		if !st.Simulate && !params.EnableCreate {
 			return exeRes, resData, ErrCreateDisabled, innerTxs, erc20Contracts
 		}
 
@@ -217,7 +217,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		innertx.UpdateDefaultInnerTx(callTx, contractAddress.String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
-		if !params.EnableCall {
+		if !st.Simulate && !params.EnableCall {
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
 		}
 

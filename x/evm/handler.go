@@ -119,9 +119,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		sender common.Address
 	)
 
-	// IsCheckTx&&k.Watcher.Enable() will Simulate the Transition to get the gas fee
-	// (when --fast-query is set k.Watcher.Enable == true)
-	if ctx.IsCheckTx() && k.Watcher.Enabled() {
+	// IsCheckTx will Simulate the Transition to get the gas fee
+	if ctx.IsCheckTx() {
 		sender = common.BytesToAddress(msg.From().Bytes())
 	} else {
 		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
@@ -280,4 +279,3 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	return executionResult.Result, nil
 }
-

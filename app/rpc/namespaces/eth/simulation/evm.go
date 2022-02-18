@@ -29,9 +29,6 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := ef.makeEvmKeeper(qoc)
 
-	if !watcher.IsWatcherEnabled() {
-		return nil
-	}
 	timestamp := time.Now()
 
 	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
