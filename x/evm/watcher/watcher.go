@@ -393,6 +393,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.Batches != nil {
 		w.commitCenterBatch(data.Batches)
 	}
+
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
 		for i, _ := range data.Batches {
@@ -410,14 +411,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-
-	//if checkWd {
-	//	keys := make([][]byte, len(data.Batches))
-	//	for i, _ := range data.Batches {
-	//		keys[i] = data.Batches[i].Key
-	//	}
-	//	w.CheckWatchDB(keys, "consumer")
-	//}
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
