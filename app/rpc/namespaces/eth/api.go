@@ -882,6 +882,12 @@ func (api *PublicEthereumAPI) doCall(
 	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int, isEstimate bool,
 ) (*sdk.SimulationResponse, error) {
 
+	clientCtx := api.clientCtx
+	// pass the given block height to the context if the height is not pending or latest
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
+	}
+
 	// Set sender address or use a default if none specified
 	var addr common.Address
 	if args.From != nil {
@@ -926,14 +932,41 @@ func (api *PublicEthereumAPI) doCall(
 	var msgs []sdk.Msg
 	// Create new call message
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
+	msg.SetFrom(addr.String())
 	msgs = append(msgs, msg)
 
-	sim := api.evmFactory.BuildSimulator(api, addr)
-	if sim == nil {
-		return nil, fmt.Errorf("build simulator error nonce: %d, args: %v", nonce, args)
+	sim := api.evmFactory.BuildSimulator(api)
+	//only worked when fast-query has been enabled
+	if sim != nil {
+		return sim.DoCall(msg)
 	}
 
-	return sim.DoCall(msg)
+	//Generate tx to be used to simulate (signature isn't needed)
+	var txEncoder sdk.TxEncoder
+	if isEstimate || tmtypes.HigherThanVenus(int64(blockNum)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
+	}
+
+	// rlp encoder need pointer type, amino encoder will first dereference pointers.
+	txBytes, err := txEncoder(&msg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Transaction simulation through query
+	res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var simResponse sdk.SimulationResponse
+	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+		return nil, err
+	}
+
+	return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
@@ -1590,6 +1623,7 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 
 		msg := evmtypes.NewMsgEthereumTx(nonce, pendingTx.To, pendingValue, pendingGas,
 			pendingGasPrice, pendingData)
+		msg.SetFrom(pendingTx.From.String())
 
 		msgs = append(msgs, msg)
 	}

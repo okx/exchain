@@ -26,9 +26,12 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 	return EvmFactory{ChainId: chainId, WrappedQuerier: q}
 }
 
-func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy, sender common.Address) *EvmSimulator {
+func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := ef.makeEvmKeeper(qoc)
 
+	if !watcher.IsWatcherEnabled() {
+		return nil
+	}
 	timestamp := time.Now()
 
 	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
@@ -55,7 +58,6 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy, sender common.Address
 	}
 
 	ctx := ef.makeContext(keeper, req.Header)
-	ctx = ctx.WithSender(sender.Bytes())
 
 	keeper.BeginBlock(ctx, req)
 
