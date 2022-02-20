@@ -25,9 +25,6 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	pinAnte(ctx.AnteTracer(), "EthSetupContextDecorator")
 
-	// all transactions must implement GasTx
-	gasTx := tx
-
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
 	// to know how much gas was used! This is because the GasMeter is created in
@@ -39,7 +36,7 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 			case sdk.ErrorOutOfGas:
 				log := fmt.Sprintf(
 					"out of gas in location: %v; gasLimit: %d, gasUsed: %d",
-					rType.Descriptor, gasTx.GetGas(), ctx.GasMeter().GasConsumed(),
+					rType.Descriptor, tx.GetGas(), ctx.GasMeter().GasConsumed(),
 				)
 				err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, log)
 			default:
