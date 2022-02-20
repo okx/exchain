@@ -64,8 +64,6 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 		}
 	}
 
-	app.anteTracer = trace.NewTracer(trace.AnteHandler)
-
 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
 	// deliverState.
 	return res

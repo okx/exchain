@@ -200,6 +200,7 @@ func (t *Tracer) Reset() {
 	t.lastPinStartTime = 0
 	t.pins = nil
 	t.intervals = nil
+	t.pinMap = make(map[string]int64)
 }
 
 type EmptyTimeInfo struct {
