@@ -766,16 +766,6 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 	}
 }
 
-func (app *BaseApp) antePin(tag string, start bool) {
-	if app.anteTracer == nil {
-		//panic("")
-		return
-	}
-	app.anteTracer.Pin(tag)
-
-	//app.pin(tag, start, runTxModeDeliver)
-}
-
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted

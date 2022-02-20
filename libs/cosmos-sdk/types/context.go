@@ -44,7 +44,6 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
-	antePin        AnteTracer
 	trc            *trace.Tracer
 }
 
@@ -73,7 +72,6 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
-//func (c Context) AnteTracer() AnteTracer            { return c.antePin }
 func (c Context) AnteTracer() *trace.Tracer            { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache

@@ -86,7 +86,6 @@ func (t *Tracer) Pin(format string, args ...interface{}) {
 	t.pinByFormat(fmt.Sprintf(format, args...))
 }
 
-
 func (t *Tracer) pinByFormat(tag string) {
 	if len(tag) == 0 {
 		//panic("invalid tag")
@@ -107,6 +106,7 @@ func (t *Tracer) pinByFormat(tag string) {
 	t.lastPinStartTime = now
 	t.lastPin = tag
 }
+
 func (t *Tracer) Format() string {
 	if len(t.pins) == 0 {
 		now := time.Now().UnixNano()
@@ -119,19 +119,14 @@ func (t *Tracer) Format() string {
 
 	t.Pin("_")
 
-	info := ""
-	if !t.ignoreOverallElapsed {
-		now := time.Now().UnixNano()
-		t.elapsedTime = (now - t.startTime) / 1e6
-		info = fmt.Sprintf("%s<%dms>",
-			t.name,
-			t.elapsedTime,
+	now := time.Now().UnixNano()
+	t.elapsedTime = (now - t.startTime) / 1e6
+	info := fmt.Sprintf("%s<%dms>",
+		t.name,
+		t.elapsedTime,
 		)
-	}
+
 	for i := range t.pins {
-		if t.pins[i] == t.ignoredTags {
-			continue
-		}
 		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i])
 	}
 	return info
