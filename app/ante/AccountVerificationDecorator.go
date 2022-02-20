@@ -23,11 +23,9 @@ func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper) Accoun
 
 // AnteHandle validates the signature and returns sender address
 func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-
 	if !ctx.IsCheckTx() {
 		return next(ctx, tx, simulate)
 	}
-	pinAnte(ctx.AnteTracer(), "AccountVerificationDecorator")
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

@@ -26,12 +26,9 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 //
 // NOTE: This should only be run during a CheckTx mode.
 func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-
 	if !ctx.IsCheckTx() {
 		return next(ctx, tx, simulate)
 	}
-
-	pinAnte(ctx.AnteTracer(), "EthMempoolFeeDecorator")
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
