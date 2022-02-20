@@ -12,7 +12,6 @@ import (
 	"math/big"
 )
 
-
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
 // gas consumption.
 type EthGasConsumeDecorator struct {
@@ -44,6 +43,9 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// sender address should be in the tx cache from the previous AnteHandle call
+	if ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+	}
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")

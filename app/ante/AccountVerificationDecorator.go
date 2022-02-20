@@ -33,6 +33,9 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// sender address should be in the tx cache from the previous AnteHandle call
+	if ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+	}
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")

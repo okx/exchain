@@ -894,12 +894,6 @@ func (api *PublicEthereumAPI) doCall(
 		addr = *args.From
 	}
 
-	nonce := uint64(0)
-	if isEstimate && args.To == nil && args.Data != nil {
-		//only get real nonce when estimate gas and the action is contract deploy
-		nonce, _ = api.accountNonce(api.clientCtx, addr, true)
-	}
-
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
 	gas := uint64(ethermint.DefaultRPCGasLimit)
@@ -929,11 +923,10 @@ func (api *PublicEthereumAPI) doCall(
 		data = []byte(*args.Data)
 	}
 
-	var msgs []sdk.Msg
 	// Create new call message
+	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
 	msg.SetFrom(addr.String())
-	msgs = append(msgs, msg)
 
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
