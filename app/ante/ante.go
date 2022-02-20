@@ -8,7 +8,6 @@ import (
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 func init() {
@@ -31,8 +30,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.(type) {
-		case auth.StdTx:
+		switch tx.GetType() {
+		case sdk.StdTxType:
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 				NewAccountSetupDecorator(ak),
@@ -50,7 +49,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
 			)
 
-		case evmtypes.MsgEthereumTx:
+		case sdk.EvmTxType:
+
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
 					NewNonceVerificationDecorator(ak),
