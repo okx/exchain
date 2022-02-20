@@ -178,19 +178,6 @@ func (s *analyer) format() {
 		//-----
 	}
 
-	AntePinKeys := []string{"EthSetupContextDecorator", "GasLimitDecorator", "ValidateBasicDecorator", "EthSigVerificationDecorator", "AccountBlockedVerificationDecorator", "NonceVerificationDecorator", "EthGasConsumeDecorator", "IncrementSenderSequenceDecorator"}
-
-	var anteKeys = []string{
-		bam.CacheTxContext,
-		bam.CacheStoreWrite,
-		bam.AnteOther,
-	}
-	anteKeys = append(anteKeys, AntePinKeys...)
-
-	anteFormat := ""
-	for _, v := range anteKeys {
-		anteFormat += fmt.Sprintf("%s<%dms>, ", v, record[v])
-	}
 	for _, v := range keys {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 
@@ -199,5 +186,4 @@ func (s *analyer) format() {
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
 	trace.GetElapsedInfo().AddInfo(trace.DeliverTxs, format)
-	trace.GetElapsedInfo().AddInfo(trace.AnteHandler, anteFormat)
 }

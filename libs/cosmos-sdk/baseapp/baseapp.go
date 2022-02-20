@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -193,6 +194,7 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
+	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -765,7 +767,13 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 }
 
 func (app *BaseApp) antePin(tag string, start bool) {
-	app.pin(tag, start, runTxModeDeliver)
+	if app.anteTracer == nil {
+		//panic("")
+		return
+	}
+	app.anteTracer.Pin(tag)
+
+	//app.pin(tag, start, runTxModeDeliver)
 }
 
 // runTx processes a transaction within a given execution mode, encoded transaction

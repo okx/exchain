@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"math/big"
+	"time"
 )
 
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
@@ -37,10 +38,9 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	pin := ctx.AntePin()
-	if pin != nil {
-		pin("EthGasConsumeDecorator", true)
-	}
+	pinAnte(ctx.AnteTracer(), "7-EthGasConsumeDecorator")
+	time.Sleep(700*time.Millisecond)
+
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -95,8 +95,5 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	if pin != nil {
-		pin("EthGasConsumeDecorator", false)
-	}
 	return next(newCtx, tx, simulate)
 }

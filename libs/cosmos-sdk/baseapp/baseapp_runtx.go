@@ -128,14 +128,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(CacheTxContext, false, mode)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 
-	antePin := func(mode runTxMode) sdk.AntePin {
-		if mode == runTxModeDeliver {
-			return app.antePin
-		} else {
-			return nil
-		}
+	if mode == runTxModeDeliver {
+		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
 	}
-	anteCtx = anteCtx.WithAntePin(antePin(mode))
+
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 
 	app.pin(AnteOther, true, mode)

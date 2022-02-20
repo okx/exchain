@@ -7,6 +7,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"time"
 )
 
 // NonceVerificationDecorator checks that the account nonce from the transaction matches
@@ -25,10 +26,9 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecor
 // AnteHandle validates that the transaction nonce is valid (equivalent to the sender account’s
 // current nonce).
 func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	pin := ctx.AntePin()
-	if pin != nil {
-		pin("NonceVerificationDecorator", true)
-	}
+	pinAnte(ctx.AnteTracer(), "1-NonceVerificationDecorator")
+	time.Sleep(100*time.Millisecond)
+
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -122,8 +122,5 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		}
 	}
 
-	if pin != nil {
-		pin("NonceVerificationDecorator", false)
-	}
 	return next(ctx, tx, simulate)
 }

@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"time"
 )
 
 // EthMempoolFeeDecorator validates that sufficient fees have been provided that
@@ -26,9 +27,14 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 //
 // NOTE: This should only be run during a CheckTx mode.
 func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+
+
 	if !ctx.IsCheckTx() {
 		return next(ctx, tx, simulate)
 	}
+
+	pinAnte(ctx.AnteTracer(), "6-EthMempoolFeeDecorator")
+	time.Sleep(600*time.Millisecond)
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

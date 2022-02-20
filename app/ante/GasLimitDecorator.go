@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"time"
 )
 
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler
@@ -25,10 +26,9 @@ type GasLimitDecorator struct {
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	pin := ctx.AntePin()
-	if pin != nil {
-		pin("GasLimitDecorator", true)
-	}
+	pinAnte(ctx.AnteTracer(), "3-GasLimitDecorator")
+
+	time.Sleep(300*time.Millisecond)
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -36,8 +36,7 @@ func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool,
 	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
-	if pin != nil {
-		pin("GasLimitDecorator", false)
-	}
+
 	return next(ctx, tx, simulate)
 }
+

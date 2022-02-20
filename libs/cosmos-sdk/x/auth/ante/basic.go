@@ -3,6 +3,7 @@ package ante
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
@@ -26,19 +27,19 @@ func NewValidateBasicDecorator() ValidateBasicDecorator {
 }
 
 func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	pin := ctx.AntePin()
-	if pin != nil {
-		pin("ValidateBasicDecorator", true)
+	trc := ctx.AnteTracer()
+	if trc != nil {
+		trc.RepeatingPin("11-ValidateBasicDecorator")
+		time.Sleep(1100*time.Millisecond)
 	}
+
+
 	// no need to validate basic on recheck tx, call next antehandler
 	if ctx.IsReCheckTx() {
 		return next(ctx, tx, simulate)
 	}
 	if err := tx.ValidateBasic(); err != nil {
 		return ctx, err
-	}
-	if pin != nil {
-		pin("ValidateBasicDecorator", false)
 	}
 	return next(ctx, tx, simulate)
 }

@@ -66,14 +66,18 @@ type Tracer struct {
 	lastPin          string
 	lastPinStartTime int64
 	pins             []string
+	pinMap           map[string]int64
 	intervals        []int64
 	elapsedTime      int64
+	ignoredTags       string
+	ignoreOverallElapsed bool
 }
 
 func NewTracer(name string) *Tracer {
 	t := &Tracer{
 		startTime: time.Now().UnixNano(),
 		name:      name,
+		pinMap:    make(map[string]int64),
 	}
 	return t
 }
@@ -81,6 +85,7 @@ func NewTracer(name string) *Tracer {
 func (t *Tracer) Pin(format string, args ...interface{}) {
 	t.pinByFormat(fmt.Sprintf(format, args...))
 }
+
 
 func (t *Tracer) pinByFormat(tag string) {
 	if len(tag) == 0 {
@@ -102,7 +107,6 @@ func (t *Tracer) pinByFormat(tag string) {
 	t.lastPinStartTime = now
 	t.lastPin = tag
 }
-
 func (t *Tracer) Format() string {
 	if len(t.pins) == 0 {
 		now := time.Now().UnixNano()
@@ -115,14 +119,78 @@ func (t *Tracer) Format() string {
 
 	t.Pin("_")
 
-	now := time.Now().UnixNano()
-	t.elapsedTime = (now - t.startTime) / 1e6
-	info := fmt.Sprintf("%s<%dms>",
-		t.name,
-		t.elapsedTime,
-	)
+	info := ""
+	if !t.ignoreOverallElapsed {
+		now := time.Now().UnixNano()
+		t.elapsedTime = (now - t.startTime) / 1e6
+		info = fmt.Sprintf("%s<%dms>",
+			t.name,
+			t.elapsedTime,
+		)
+	}
 	for i := range t.pins {
+		if t.pins[i] == t.ignoredTags {
+			continue
+		}
 		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i])
+	}
+	return info
+}
+
+func (t *Tracer) SetIgnoredTag(tag string) {
+	t.ignoredTags = tag
+}
+
+func (t *Tracer) SetIgnoreOverallElapsed() {
+	t.ignoreOverallElapsed = true
+}
+
+
+
+func (t *Tracer) RepeatingPin(format string, args ...interface{}) {
+	t.repeatingPinByFormat(fmt.Sprintf(format, args...))
+}
+
+func (t *Tracer) repeatingPinByFormat(tag string) {
+	if len(tag) == 0 {
+		//panic("invalid tag")
+		return
+	}
+
+	if len(t.pinMap) > 100 {
+		// 100 pins limitation
+		return
+	}
+
+	now := time.Now().UnixNano()
+
+	if len(t.lastPin) > 0 {
+		t.pinMap[t.lastPin] += (now-t.lastPinStartTime)/1e6
+	}
+	t.lastPinStartTime = now
+	t.lastPin = tag
+}
+
+func (t *Tracer) FormatRepeatingPins() string {
+	if len(t.pinMap) == 0 {
+		now := time.Now().UnixNano()
+		t.elapsedTime = (now - t.startTime) / 1e6
+		return fmt.Sprintf("%s<%dms>",
+			t.name,
+			t.elapsedTime,
+		)
+	}
+
+	t.RepeatingPin("_")
+
+	var info, comma string
+
+	for tag, interval := range t.pinMap {
+		if tag == t.ignoredTags {
+			continue
+		}
+		info += fmt.Sprintf("%s%s<%dms>", comma, tag, interval)
+		comma = ", "
 	}
 	return info
 }
