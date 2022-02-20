@@ -261,9 +261,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
 
-	app.anteTracer.SetIgnoreOverallElapsed()
-	app.anteTracer.SetIgnoredTag(sdk.AnteTerminatorTag)
-	trace.GetElapsedInfo().AddInfo(trace.AnteHandler, app.anteTracer.FormatRepeatingPins())
+	trace.GetElapsedInfo().AddInfo(trace.AnteHandler, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
 
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))

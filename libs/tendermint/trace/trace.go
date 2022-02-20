@@ -69,8 +69,6 @@ type Tracer struct {
 	pinMap           map[string]int64
 	intervals        []int64
 	elapsedTime      int64
-	ignoredTags       string
-	ignoreOverallElapsed bool
 }
 
 func NewTracer(name string) *Tracer {
@@ -132,15 +130,6 @@ func (t *Tracer) Format() string {
 	return info
 }
 
-func (t *Tracer) SetIgnoredTag(tag string) {
-	t.ignoredTags = tag
-}
-
-func (t *Tracer) SetIgnoreOverallElapsed() {
-	t.ignoreOverallElapsed = true
-}
-
-
 
 func (t *Tracer) RepeatingPin(format string, args ...interface{}) {
 	t.repeatingPinByFormat(fmt.Sprintf(format, args...))
@@ -166,22 +155,17 @@ func (t *Tracer) repeatingPinByFormat(tag string) {
 	t.lastPin = tag
 }
 
-func (t *Tracer) FormatRepeatingPins() string {
+func (t *Tracer) FormatRepeatingPins(ignoredTags string) string {
+	var info, comma string
+
 	if len(t.pinMap) == 0 {
-		now := time.Now().UnixNano()
-		t.elapsedTime = (now - t.startTime) / 1e6
-		return fmt.Sprintf("%s<%dms>",
-			t.name,
-			t.elapsedTime,
-		)
+		return info
 	}
 
 	t.RepeatingPin("_")
 
-	var info, comma string
-
 	for tag, interval := range t.pinMap {
-		if tag == t.ignoredTags {
+		if tag == ignoredTags {
 			continue
 		}
 		info += fmt.Sprintf("%s%s<%dms>", comma, tag, interval)
