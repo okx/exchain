@@ -3,7 +3,6 @@ package ante
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"time"
 )
 
 // AccountBlockedVerificationDecorator check whether signer is blocked.
@@ -20,8 +19,7 @@ func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedV
 
 // AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
 func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	pinAnte(ctx.AnteTracer(), "10-AccountBlockedVerificationDecorator")
-	time.Sleep(1000*time.Millisecond)
+	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
 
 	signers := tx.GetSigners()
 

@@ -6,7 +6,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"time"
 )
 
 // IncrementSenderSequenceDecorator increments the sequence of the signers. The
@@ -27,8 +26,7 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	pinAnte(ctx.AnteTracer(), "2-IncrementSenderSequenceDecorator")
-	time.Sleep(200*time.Millisecond)
+	pinAnte(ctx.AnteTracer(), "IncrementSenderSequenceDecorator")
 
 	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
 	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode

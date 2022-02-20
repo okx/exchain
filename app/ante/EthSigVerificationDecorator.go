@@ -5,7 +5,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"time"
 )
 
 // EthSigVerificationDecorator validates an ethereum signature
@@ -18,8 +17,7 @@ func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
 
 // AnteHandle validates the signature and returns sender address
 func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	pinAnte(ctx.AnteTracer(), "4-EthSigVerificationDecorator")
-	time.Sleep(400*time.Millisecond)
+	pinAnte(ctx.AnteTracer(), "EthSigVerificationDecorator")
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

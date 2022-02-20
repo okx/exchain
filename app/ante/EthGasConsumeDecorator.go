@@ -10,7 +10,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"math/big"
-	"time"
 )
 
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
@@ -38,8 +37,7 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	pinAnte(ctx.AnteTracer(), "7-EthGasConsumeDecorator")
-	time.Sleep(700*time.Millisecond)
+	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

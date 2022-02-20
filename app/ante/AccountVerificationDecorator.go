@@ -5,7 +5,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"time"
 )
 
 // AccountVerificationDecorator validates an account balance checks
@@ -28,11 +27,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	if !ctx.IsCheckTx() {
 		return next(ctx, tx, simulate)
 	}
-	pinAnte(ctx.AnteTracer(), "8-AccountVerificationDecorator")
-	time.Sleep(800*time.Millisecond)
-
-
-	time.Sleep(2*time.Second)
+	pinAnte(ctx.AnteTracer(), "AccountVerificationDecorator")
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

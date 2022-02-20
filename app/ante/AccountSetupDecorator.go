@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"time"
 )
 
 // AccountSetupDecorator sets an account to state if it's not stored already. This only applies for MsgEthermint.
@@ -25,13 +24,8 @@ func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
 // NOTE: Since the account is set without any funds, the message execution will
 // fail if the validator requires a minimum fee > 0.
 func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	pinAnte(ctx.AnteTracer(), "9-AccountSetupDecorator")
-	time.Sleep(900*time.Millisecond)
-
+	pinAnte(ctx.AnteTracer(), "AccountSetupDecorator")
 	msgs := tx.GetMsgs()
-
-	time.Sleep(3*time.Second)
-
 
 	if len(msgs) == 0 {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
