@@ -335,6 +335,15 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 			return fmt.Errorf("error decoding key: %w", err)
 		}
 		i, value := tree.Get(keyByte)
+
+		if impl, exit := printKeysDict[ctx.Prefix]; exit && !viper.GetBool(flagHex) {
+			kvFormat := impl(ctx.Codec, keyByte, value)
+			if kvFormat != "" {
+				fmt.Println(kvFormat)
+				fmt.Println()
+			}
+		}
+
 		fmt.Printf("key:\t%s\nvalue:\t%X\nindex:\t%d\n", key, value, i)
 		return nil
 	}
