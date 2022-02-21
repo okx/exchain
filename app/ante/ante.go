@@ -8,6 +8,7 @@ import (
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 func init() {
@@ -93,5 +94,11 @@ func sigGasConsumer(
 		return nil
 	default:
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
+	}
+}
+
+func pinAnte(trc *trace.Tracer, tag string)  {
+	if trc != nil {
+		trc.RepeatingPin(tag)
 	}
 }
