@@ -4,7 +4,6 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 )
 
 // EthSetupContextDecorator sets the infinite GasMeter in the Context and wraps
@@ -24,11 +23,7 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 // This is undone at the EthGasConsumeDecorator, where the context is set with the
 // ethereum tx GasLimit.
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	// all transactions must implement GasTx
-	gasTx, ok := tx.(authante.GasTx)
-	if !ok {
-		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
-	}
+	pinAnte(ctx.AnteTracer(), "EthSetupContextDecorator")
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
@@ -41,7 +36,7 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 			case sdk.ErrorOutOfGas:
 				log := fmt.Sprintf(
 					"out of gas in location: %v; gasLimit: %d, gasUsed: %d",
-					rType.Descriptor, gasTx.GetGas(), ctx.GasMeter().GasConsumed(),
+					rType.Descriptor, tx.GetGas(), ctx.GasMeter().GasConsumed(),
 				)
 				err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, log)
 			default:
@@ -49,7 +44,5 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 			}
 		}
 	}()
-
 	return next(ctx, tx, simulate)
 }
-

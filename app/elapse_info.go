@@ -19,16 +19,23 @@ var (
 		trace.Iavl,
 		trace.FlatKV,
 		trace.DeliverTxs,
+		trace.EvmHandlerDetail,
+
+		trace.RunAnteDetail,
+		trace.AnteChainDetail,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
 		trace.FlatKV,
 		trace.DeliverTxs,
+		trace.EvmHandlerDetail,
+		trace.RunAnteDetail,
+		trace.AnteChainDetail,
 		trace.Round,
 		trace.CommitRound,
 		trace.Produce)
