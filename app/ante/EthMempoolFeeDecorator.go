@@ -35,11 +35,6 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// when 'eth_estimateGas' we simulate the sender. now cache it
-	if ctx.From() != "" {
-		msgEthTx.SetFrom(ctx.From())
-	}
-
 	evmDenom := sdk.DefaultBondDenom
 
 	// fee = gas price * gas limit

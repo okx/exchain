@@ -28,11 +28,6 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// when 'eth_estimateGas' we simulate the sender. now cache it
-	if ctx.From() != "" {
-		msgEthTx.SetFrom(ctx.From())
-	}
-
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {

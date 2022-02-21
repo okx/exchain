@@ -3,7 +3,6 @@ package ante
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // AccountBlockedVerificationDecorator check whether signer is blocked.
@@ -26,14 +25,6 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	}
 
 	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
-
-	// when 'eth_estimateGas' we simulate the sender. now cache from
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if ok {
-		if ctx.From() != "" {
-			msgEthTx.SetFrom(ctx.From())
-		}
-	}
 
 	signers := tx.GetSigners()
 
