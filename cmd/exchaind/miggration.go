@@ -23,8 +23,8 @@ import (
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "miggrate-state",
-		Short: "miggrate iavl state to mpt state",
+		Use:   "migrate-state",
+		Short: "migrate iavl state to mpt state",
 	}
 
 	cmd.AddCommand(
@@ -38,12 +38,12 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 
 func migrateAccountCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "miggrate-account",
-		Short: "1. miggrate iavl account to mpt account",
+		Use:   "migrate-account",
+		Short: "1. migrate iavl account to mpt account",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- miggrate account start ---------")
+			log.Println("--------- migrate account start ---------")
 			migrateAccount(ctx)
-			log.Println("--------- miggrate account end ---------")
+			log.Println("--------- migrate account end ---------")
 		},
 	}
 	cmd.Flags().String(FlagDisplayContractAddr, "", "target contract address to display")
@@ -53,8 +53,8 @@ func migrateAccountCmd(ctx *server.Context) *cobra.Command {
 
 func migrateContractCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "miggrate-contract",
-		Short: "2. miggrate iavl contract state to mpt contract state",
+		Use:   "migrate-contract",
+		Short: "2. migrate iavl contract state to mpt contract state",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- display state start ---------")
 			migrateContract(ctx)
@@ -69,7 +69,7 @@ func migrateContractCmd(ctx *server.Context) *cobra.Command {
 func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clean-rawdb",
-		Short: "3. clean up miggrated iavl state",
+		Short: "3. clean up migrated iavl state",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- display state start ---------")
 			cleanRawDB(ctx)
@@ -104,13 +104,14 @@ func migrateAccount(ctx *server.Context) {
 	contractCnt := 0
 	emptyRootHashByte := types.EmptyRootHash.Bytes()
 
-	migApp.AccountKeeper.MiggrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
+	migApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
 		cnt += 1
 		err := accTrie.TryUpdate(key, value)
 		panicError(err)
 
 		if cnt % 100 == 0 {
 			pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight() - 1)
+			fmt.Println(cnt)
 		}
 
 		// contract account
@@ -145,7 +146,7 @@ func migrateAccount(ctx *server.Context) {
 	pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight() - 1)
 	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account)", cnt, contractCnt))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight() - 1))
 }
 
 func migrateContract(ctx *server.Context) {
@@ -172,31 +173,28 @@ func migrateContract(ctx *server.Context) {
 		addrHash := ethcrypto.Keccak256Hash(addr[:])
 		contractTrie := getTrie(evmMptDb, addrHash)
 
-		keyCnt := 0
 		_ = migApp.EvmKeeper.ForEachStorage(cmCtx, addr, func(key, value ethcmn.Hash) bool {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			err := contractTrie.TryUpdate(key[:], v)
 			panicError(err)
 
-			keyCnt += 1
 			return false
 		})
 		rootHash, err := contractTrie.Commit(nil)
 		panicError(err)
-
-		fmt.Println(fmt.Sprintf("migrate contract %s with %d key-value", addr.String(), keyCnt))
 
 		err = evmTrie.TryUpdate(addr[:], rootHash.Bytes())
 		panicError(err)
 
 		if cnt % 100 == 0 {
 			pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
+			fmt.Println(cnt)
 		}
 	}
 	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage", cnt))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight() - 1))
 }
 
 func cleanRawDB(ctx *server.Context) {
@@ -220,8 +218,6 @@ func pushData2Database(db ethstate.Database, tr ethstate.Trie, height int64) {
 	panicError(err)
 
 	setAccMptRootHash(db, uint64(height), root)
-
-	fmt.Println("pushData2Database version: ", height, " root hash is: ", root.String())
 }
 
 func newMigrationApp(ctx *server.Context) *app.OKExChainApp {

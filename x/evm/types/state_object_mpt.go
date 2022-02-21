@@ -52,7 +52,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value.SetBytes(enc)
 	} else {
 		tmpKey := key
-		if tmtypes.IsTestNet() {
+		if !tmtypes.IsMainNet() {
 			tmpKey = so.GetStorageByAddressKey(key.Bytes())
 		}
 
@@ -132,7 +132,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		so.originStorage[key] = value
 
 		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-		if tmtypes.IsTestNet() {
+		if !tmtypes.IsMainNet() {
 			key = so.GetStorageByAddressKey(key.Bytes())
 		}
 		if (value == ethcmn.Hash{}) {
