@@ -359,7 +359,12 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 			}
 
-			gInfo, res, err := app.Simulate(txBytes, tx, req.Height)
+			var from string
+			if len(path) > 2 {
+				from = path[2]
+			}
+
+			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, from)
 			// if path contains mempool, it means to enable MaxGasUsedPerBlock
 			// return the actual gasUsed even though simulate tx failed
 			isMempoolSim := len(path) >= 3 && path[2] == "mempool"

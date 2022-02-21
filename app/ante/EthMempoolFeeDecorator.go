@@ -26,7 +26,6 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 //
 // NOTE: This should only be run during a CheckTx mode.
 func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	// simulate means 'eth_Call' or 'eth_estimateGas', when it means 'eth_eth_estimateGas' we can not 'VerifySig'.so skip here
 	if !ctx.IsCheckTx() || simulate {
 		return next(ctx, tx, simulate)
 	}
@@ -34,6 +33,11 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+	}
+
+	// when 'eth_estimateGas' we simulate the sender. now cache it
+	if ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
 	}
 
 	evmDenom := sdk.DefaultBondDenom
