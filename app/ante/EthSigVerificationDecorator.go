@@ -17,7 +17,8 @@ func NewEthSigVerificationDecorator() EthSigVerificationDecorator {
 
 // AnteHandle validates the signature and returns sender address
 func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	// simulate means 'eth_Call' or 'eth_estimateGas', when it means 'eth_eth_estimateGas' we can not 'VerifySig'.so skip here
+	pinAnte(ctx.AnteTracer(), "EthSigVerificationDecorator")
+  // simulate means 'eth_Call' or 'eth_estimateGas', when it means 'eth_eth_estimateGas' we can not 'VerifySig'.so skip here
 	if simulate {
 		return next(ctx, tx, simulate)
 	}
@@ -40,7 +41,6 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 
 	// update ctx for push signerSigCache
 	newCtx = ctx.WithSigCache(signerSigCache)
-
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
 	return next(newCtx, msgEthTx, simulate)
