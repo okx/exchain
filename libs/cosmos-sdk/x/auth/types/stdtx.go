@@ -174,6 +174,11 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
+
+func (tx StdTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
+
 // GetMemo returns the memo
 func (tx StdTx) GetMemo() string { return tx.Memo }
 

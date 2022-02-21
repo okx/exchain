@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/okex/exchain/x/common/analyzer"
 	"log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -25,5 +26,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(app.FlagStartHeight, 0, "Set the start block height for repair")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	return cmd
 }

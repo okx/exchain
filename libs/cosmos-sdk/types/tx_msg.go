@@ -52,12 +52,36 @@ type Tx interface {
 	GetTxFnSignatureInfo() ([]byte, int)
 
 	GetEthSignInfo(ctx Context) SigCache
+
+	GetType() TransactionType
+
+	GetSigners() []AccAddress
+
+	GetGas() uint64
 }
 
 //__________________________________________________________
 
-//__________________________________________________________
+type TransactionType int
+const (
+	UnknownType TransactionType = iota
+	StdTxType
+	EvmTxType
+)
 
+
+func (t TransactionType) String() (res string) {
+	switch t {
+	case StdTxType:
+		res = "StdTx"
+	case EvmTxType:
+		res = "EvmTx"
+	default:
+		res = "Unknown"
+	}
+	return res
+}
+//__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
 

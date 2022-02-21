@@ -109,13 +109,17 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// load start version
 	startVersion := viper.GetInt64(FlagStartHeight)
 	if startVersion == 0 {
-		if types.HigherThanMars(commitVersion) {
-			lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
-			if lastMptVersion < commitVersion {
-				commitVersion = lastMptVersion
+		if onStart {
+			startVersion = commitVersion
+		} else {
+			if types.HigherThanMars(commitVersion) {
+				lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
+				if lastMptVersion < commitVersion {
+					commitVersion = lastMptVersion
+				}
 			}
+			startVersion = commitVersion - 2 // case: state machine broken
 		}
-		startVersion = commitVersion - 2
 	}
 	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")

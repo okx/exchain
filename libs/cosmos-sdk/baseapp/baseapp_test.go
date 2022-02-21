@@ -597,6 +597,17 @@ func (wtx txTest) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
 	return nil
 }
 
+func (tx txTest) GetGas() uint64 {
+	return 0
+}
+func (tx txTest) GetType() sdk.TransactionType {
+	return sdk.UnknownType
+}
+
+func (tx txTest) GetSigners() []sdk.AccAddress {
+	return nil
+}
+
 const (
 	routeMsgCounter  = "msgCounter"
 	routeMsgCounter2 = "msgCounter2"

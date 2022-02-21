@@ -59,6 +59,10 @@ func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
+func (tx kvstoreTx) GetType() sdk.TransactionType {
+	return sdk.UnknownType
+}
+
 func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	return mempool.ExTxInfo{
 		Sender:   "",
@@ -77,6 +81,10 @@ func (tx kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 
 func (tx kvstoreTx) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
 	return nil
+}
+
+func (tx kvstoreTx) GetGas() uint64 {
+	return 0
 }
 
 // takes raw transaction bytes and decodes them into an sdk.Tx. An sdk.Tx has

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/x/common/analyzer"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -55,6 +57,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set external package flags
+			setExternalPackageValue(cmd)
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
@@ -90,6 +97,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(types.FlagRedisAuth, "", "redis auth")
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 	cmd.Flags().Int(types.FlagRedisDB, 0, "delta db num")
+	cmd.Flags().Int(types.FlagDeltaVersion, types.DeltaVersion, "Specify delta version")
 
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
@@ -122,9 +130,18 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().BoolVar(&sm.EnableParaSender, sm.FlagParaSender, false, "Enable Parallel Sender")
-
 	cmd.Flags().BoolVar(&libTypes.MptAsnyc, libTypes.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	return cmd
+}
+
+// setExternalPackageValue set external package config value.
+func setExternalPackageValue(cmd *cobra.Command) {
+	types.DownloadDelta = viper.GetBool(types.FlagDownloadDDS)
+	types.UploadDelta = viper.GetBool(types.FlagUploadDDS)
+	types.FastQuery = viper.GetBool(types.FlagFastQuery)
+	types.DeltaVersion = viper.GetInt(types.FlagDeltaVersion)
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.

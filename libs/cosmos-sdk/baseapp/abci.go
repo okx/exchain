@@ -156,6 +156,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
+
+	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
+
 	return res
 }
 
@@ -261,6 +264,9 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
 	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
+
+	trace.GetElapsedInfo().AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
+
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
