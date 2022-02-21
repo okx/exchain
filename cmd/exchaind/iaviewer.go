@@ -266,6 +266,8 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 			return iaviewerPrintDiff(ctx, ver2)
 		},
 	}
+	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
+	cmd.PersistentFlags().String(flagKeyPrefix, "", "diff values for keys with specified prefix, prefix must be in hex format.")
 	return cmd
 }
 
@@ -277,11 +279,11 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 	}
 	defer db.Close()
 
-	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize*100)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
-	compareTree, err := ReadTree(db, version2, []byte(ctx.Prefix), DefaultCacheSize)
+	compareTree, err := ReadTree(db, version2, []byte(ctx.Prefix), DefaultCacheSize*100)
 	if err != nil {
 		return fmt.Errorf("error reading data: %w", err)
 	}
@@ -292,26 +294,47 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 		return nil
 	}
 
-	tree.Iterate(func(key, value []byte) bool {
-		_, v2 := compareTree.Get(key)
-		if v2 == nil {
-			fmt.Printf("---only in ver1 %d, key: %X, value: %X\n", ctx.Version, key, value)
-		} else {
-			if !bytes.Equal(value, v2) {
-				fmt.Printf("---diff ver1 %d, key: %X, value: %X\n", ctx.Version, key, value)
-				fmt.Printf("+++diff ver2 %d, key: %X, value: %X\n", version2, key, v2)
-			}
+	var startKey, endKey []byte
+	if keyPrefixStr := viper.GetString(flagKeyPrefix); keyPrefixStr != "" {
+		startKey, err = hex.DecodeString(keyPrefixStr)
+		if err != nil {
+			return fmt.Errorf("invalid key prefix: %s, error: %w", keyPrefixStr, err)
 		}
-		return false
-	})
+		endKey = calcEndKey(startKey)
+	}
 
-	compareTree.Iterate(func(key, value []byte) bool {
-		_, v1 := tree.Get(key)
-		if v1 == nil {
-			fmt.Printf("+++only in ver2 %d, key: %X, value: %X\n", version2, key, value)
-		}
-		return false
-	})
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	go func(wg *sync.WaitGroup) {
+		tree.IterateRange(startKey, endKey, true, func(key, value []byte) bool {
+			_, v2 := compareTree.Get(key)
+			if v2 == nil {
+				fmt.Printf("---only in ver1 %d, %s\n", ctx.Version, formatKV(ctx.Codec, ctx.Prefix, key, value))
+			} else {
+				if !bytes.Equal(value, v2) {
+					fmt.Printf("---diff ver1 %d, %s\n", ctx.Version, formatKV(ctx.Codec, ctx.Prefix, key, value))
+					fmt.Printf("+++diff ver2 %d, %s\n", version2, formatKV(ctx.Codec, ctx.Prefix, key, v2))
+				}
+			}
+			return false
+		})
+		wg.Done()
+	}(wg)
+
+	go func(wg *sync.WaitGroup) {
+		compareTree.IterateRange(startKey, endKey, true, func(key, value []byte) bool {
+			_, v1 := tree.Get(key)
+			if v1 == nil {
+				fmt.Printf("+++only in ver2 %d, %s\n", version2, formatKV(ctx.Codec, ctx.Prefix, key, value))
+			}
+			return false
+		})
+		wg.Done()
+	}(wg)
+
+	wg.Wait()
+
 	return nil
 }
 
@@ -429,16 +452,18 @@ func defaultKvFormatter(key []byte, value []byte) string {
 	return fmt.Sprintf("parsed key:\t%s\nhex key:\t%X\nhex value:\t%X", printKey, key, value)
 }
 
-func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) {
+func formatKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) string {
 	if impl, exit := printKeysDict[modulePrefixKey]; exit && !viper.GetBool(flagHex) {
 		kvFormat := impl(cdc, key, value)
 		if kvFormat != "" {
-			fmt.Println(kvFormat)
-			fmt.Println()
-			return
+			return kvFormat
 		}
 	}
-	fmt.Println(defaultKvFormatter(key, value))
+	return defaultKvFormatter(key, value)
+}
+
+func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte) {
+	fmt.Println(formatKV(cdc, modulePrefixKey, key, value))
 	fmt.Println()
 }
 
