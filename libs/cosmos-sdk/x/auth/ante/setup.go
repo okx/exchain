@@ -5,18 +5,9 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-var (
-	_ GasTx = (*types.StdTx)(nil) // assert StdTx implements GasTx
-)
 
-// GasTx defines a Tx with a GetGas() method which is needed to use SetUpContextDecorator
-type GasTx interface {
-	sdk.Tx
-	GetGas() uint64
-}
 
 // SetUpContextDecorator sets the GasMeter in the Context and wraps the next AnteHandler with a defer clause
 // to recover from any downstream OutOfGas panics in the AnteHandler chain to return an error with information
@@ -31,13 +22,7 @@ func NewSetUpContextDecorator() SetUpContextDecorator {
 
 func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// all transactions must implement GasTx
-	gasTx, ok := tx.(GasTx)
-	if !ok {
-		// Set a gas meter with limit 0 as to prevent an infinite gas meter attack
-		// during runTx.
-		newCtx = SetGasMeter(simulate, ctx, 0)
-		return newCtx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
-	}
+	gasTx := tx
 
 	newCtx = SetGasMeter(simulate, ctx, gasTx.GetGas())
 
