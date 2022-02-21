@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"math/big"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -89,7 +90,23 @@ func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 		return nil, 0
 	}
 }
+func getSender(ctx sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
 
+	if ctx.IsCheckTx() {
+		if from := ctx.From(); len(from) > 0 {
+			sender = common.HexToAddress(from)
+		}
+	}
+
+	if len(sender) == 0 {
+		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+		if err == nil {
+			sender = senderSigCache.GetFrom()
+		}
+	}
+
+	return
+}
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	StartTxLog := func(tag string) {
@@ -114,26 +131,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// Verify signature and retrieve sender address
-
-	var (
-		sender common.Address
-	)
-
-	// IsCheckTx/Simulate the Transition to get the gas fee
-	var isFromCtx bool
-	if ctx.IsCheckTx() {
-		if from := ctx.From(); from != "" {
-			sender = common.HexToAddress(from)
-			isFromCtx = true
-		}
-	}
-
-	if !isFromCtx {
-		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-		if err != nil {
-			return nil, err
-		}
-		sender = senderSigCache.GetFrom()
+	sender, err := getSender(ctx, chainIDEpoch, &msg)
+	if err != nil {
+		return nil, err
 	}
 
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
