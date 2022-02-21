@@ -8,6 +8,7 @@ import (
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 func init() {
@@ -96,3 +97,8 @@ func sigGasConsumer(
 	}
 }
 
+func pinAnte(trc *trace.Tracer, tag string)  {
+	if trc != nil {
+		trc.RepeatingPin(tag)
+	}
+}

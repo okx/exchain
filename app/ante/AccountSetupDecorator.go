@@ -24,7 +24,9 @@ func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
 // NOTE: Since the account is set without any funds, the message execution will
 // fail if the validator requires a minimum fee > 0.
 func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	pinAnte(ctx.AnteTracer(), "AccountSetupDecorator")
 	msgs := tx.GetMsgs()
+
 	if len(msgs) == 0 {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
 	}
