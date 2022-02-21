@@ -6,21 +6,25 @@ const (
 	TxDecoder = "TxDecoder"
 	RunTx     = "RunTx"
 
-	//----- run_tx
-	InitCtx     = "initCtx"
+	//----- RunTx details
 	ValTxMsgs   = "valTxMsgs"
-	AnteHandler = "anteHandler"
-	RunMsgs     = "runMsgs"
+	RunAnte     = "RunAnte"
+	RunMsg      = "RunMsg"
 	Refund      = "refund"
-	ConsumeGas  = "ConsumeGas"
-	Recover     = "recover"
-	//------ ante handler
-	CacheTxContext  = "cacheTxContext"
-	CacheStoreWrite = "cacheStoreWrite"
-	AnteOther       = "AnteOther"
+	EvmHandler  = "EvmHandler"
 
-	//----- handler
-	EvmHandler   = "evm_handler"
+	//------ RunAnte details
+	CacheTxContext  = "cacheTxContext"
+	AnteChain       = "AnteChain"
+	AnteOther       = "AnteOther"
+	CacheStoreWrite = "cacheStoreWrite"
+
+	//----- RunMsgs details
+
+
+
+
+	//----- handler details
 	ParseChainID = "ParseChainID"
 	VerifySig    = "VerifySig"
 	Txhash       = "txhash"

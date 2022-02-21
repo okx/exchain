@@ -22,7 +22,9 @@ const (
 	FlatKV      = "FlatKV"
 	WtxRatio    = "WtxRatio"
 	DeliverTxs  = "DeliverTxs"
-	AnteHandler = "AnthHandler"
+	EvmHandlerDetail  = "EvmHandlerDetail"
+	RunAnteDetail     = "RunAnteDetail"
+	AnteChainDetail   = "AnteChainDetail"
 
 	Delta = "Delta"
 
@@ -66,9 +68,10 @@ type Tracer struct {
 	lastPin          string
 	lastPinStartTime int64
 	pins             []string
-	pinMap           map[string]int64
 	intervals        []int64
 	elapsedTime      int64
+
+	pinMap           map[string]int64
 }
 
 func NewTracer(name string) *Tracer {

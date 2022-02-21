@@ -221,7 +221,7 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
-		anteTracer:       trace.NewTracer(trace.AnteHandler),
+		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
