@@ -22,6 +22,9 @@ const (
 	FlatKV      = "FlatKV"
 	WtxRatio    = "WtxRatio"
 	DeliverTxs  = "DeliverTxs"
+	EvmHandlerDetail  = "EvmHandlerDetail"
+	RunAnteDetail     = "RunAnteDetail"
+	AnteChainDetail   = "AnteChainDetail"
 
 	Delta = "Delta"
 
@@ -67,12 +70,15 @@ type Tracer struct {
 	pins             []string
 	intervals        []int64
 	elapsedTime      int64
+
+	pinMap           map[string]int64
 }
 
 func NewTracer(name string) *Tracer {
 	t := &Tracer{
 		startTime: time.Now().UnixNano(),
 		name:      name,
+		pinMap:    make(map[string]int64),
 	}
 	return t
 }
@@ -119,9 +125,54 @@ func (t *Tracer) Format() string {
 	info := fmt.Sprintf("%s<%dms>",
 		t.name,
 		t.elapsedTime,
-	)
+		)
+
 	for i := range t.pins {
 		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i])
+	}
+	return info
+}
+
+
+func (t *Tracer) RepeatingPin(format string, args ...interface{}) {
+	t.repeatingPinByFormat(fmt.Sprintf(format, args...))
+}
+
+func (t *Tracer) repeatingPinByFormat(tag string) {
+	if len(tag) == 0 {
+		//panic("invalid tag")
+		return
+	}
+
+	if len(t.pinMap) > 100 {
+		// 100 pins limitation
+		return
+	}
+
+	now := time.Now().UnixNano()
+
+	if len(t.lastPin) > 0 {
+		t.pinMap[t.lastPin] += (now-t.lastPinStartTime)/1e6
+	}
+	t.lastPinStartTime = now
+	t.lastPin = tag
+}
+
+func (t *Tracer) FormatRepeatingPins(ignoredTags string) string {
+	var info, comma string
+
+	if len(t.pinMap) == 0 {
+		return info
+	}
+
+	t.RepeatingPin("_")
+
+	for tag, interval := range t.pinMap {
+		if tag == ignoredTags {
+			continue
+		}
+		info += fmt.Sprintf("%s%s<%dms>", comma, tag, interval)
+		comma = ", "
 	}
 	return info
 }
@@ -136,6 +187,7 @@ func (t *Tracer) Reset() {
 	t.lastPinStartTime = 0
 	t.pins = nil
 	t.intervals = nil
+	t.pinMap = make(map[string]int64)
 }
 
 type EmptyTimeInfo struct {
