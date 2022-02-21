@@ -51,32 +51,190 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ## [1.1.4](https://github.com/okex/exchain/compare/v1.1.3...v1.1.4) (2022-01-12)
 
 
+### Bug fixes
+
+* Fix tx decode in query to make compatible with all tx encode ([\#1424](https://github.com/okex/exchain/pull/1424))
+
+
 
 ## [1.1.3](https://github.com/okex/exchain/compare/v1.1.2...v1.1.3) (2022-01-12)
 
+
+### Features
+
+* Support build rocksdb on `m1` ([\#1416](https://github.com/okex/exchain/pull/1416))
+
+
+### Bug fixes 
+
+* Fix `txpool` bug  before venus height ([\#1421](https://github.com/okex/exchain/pull/1421))
+
+
+### Code refactoring
+
+* Change default `MercuryHeight` and `VenusHeight` to 1 to make local code execution consistent with `mainnet` ([\#1413](https://github.com/okex/exchain/pull/1413))
+
+
+### Tests
+
+* Add ut related to `txhash` ([\#1418](https://github.com/okex/exchain/pull/1418))
 
 
 ## [1.1.2](https://github.com/okex/exchain/compare/v1.1.1...v1.1.2) (2022-01-11)
 
 
+### Features
+
+* Support `gen_proof_mem` when using replay ([\#1405](https://github.com/okex/exchain/pull/1405))
+
+* Add 2 hours buffer of `VenusHeight` upgrade to close `txPool` ([\#1415](https://github.com/okex/exchain/pull/1415))
+
 
 ## [1.1.1](https://github.com/okex/exchain/compare/v1.1.0...v1.1.1) (2022-01-10)
+
+
+### Features
+
+* Support `bech32` address convert to other kinds ([\#1384](https://github.com/okex/exchain/pull/1384))
+
+* Add check log of producer and consumer in `wathcdb` ([\#1393](https://github.com/okex/exchain/pull/1393))
+
+* `RLP` encode is not allowed until venus height ([\#1407](https://github.com/okex/exchain/pull/1407))
+
+* `amino` encode for `MsgEthereumTx` is not supported after venus height ([\#1410](https://github.com/okex/exchain/pull/1410))
+
+
+### Bug fixes
+
+* Fix bug that can't find contract address when using counter contract ([\#1392](https://github.com/okex/exchain/pull/1392))
+
+* Fix `chain-id` check ([\#1399](https://github.com/okex/exchain/pull/1399))
+
+
+### Code refactoring
+
+* Update `txpool` encoder ([\#1396](https://github.com/okex/exchain/pull/1396))
+
+* Update `dds` flag code ([\#1398](https://github.com/okex/exchain/pull/1398))
+
+* Refine `RLP` encode and decode function ([\#1400](https://github.com/okex/exchain/pull/1400))
+
+* Change `GetTxEncoder` from `RLP` to `amino` in function `doCall` ([\#1401](https://github.com/okex/exchain/pull/1401))
+
+
+### Tests
+
+* Add contract case in `watchdata` ut ([\#1387](https://github.com/okex/exchain/pull/1387))
 
 
 
 # [1.1.0](https://github.com/okex/exchain/compare/v1.0.3...v1.1.0) (2022-01-05)
 
 
+### Features
+
+* Add flag to close log analyzer ([\#1321](https://github.com/okex/exchain/pull/1321))
+
+
+### Bug fixes
+
+* Fix bug when pre-run with watch data happen  ([\#1386](https://github.com/okex/exchain/pull/1386))
+
+
+### Code refactoring
+
+* Change tx hash to Keccak256 for ethereum compatibility ([\#1350](https://github.com/okex/exchain/pull/1350))
+
+
+### Tests
+
+* Add `watchdata` ut ([\#1364](https://github.com/okex/exchain/pull/1364))
+
+* Close the `WAL` ut of consensus ([\#1371](https://github.com/okex/exchain/pull/1371))
+
+* Fix the  unit test `txhash` ([\#1385](https://github.com/okex/exchain/pull/1385))
+
+
 
 ## [1.0.3](https://github.com/okex/exchain/compare/v1.0.2...v1.0.3) (2022-01-04)
+
+
+### Features
+
+* RPC-API `personal_newaccount` is compatible with eth ([\#1333](https://github.com/okex/exchain/pull/1333))
+
+* Calculate delta-payload hash when marshal and unmarshal ([\#1340](https://github.com/okex/exchain/pull/1340))
+
+* Add standard mode in testing `OIP20` contract  ([\#1359](https://github.com/okex/exchain/pull/1359)) 
+
+* Add `dds` statistics ([\#1368](https://github.com/okex/exchain/pull/1368))
+
+* Support subscribe log event from `kafka` ([\#1376](https://github.com/okex/exchain/pull/1376))
+
+
+### Bug fixes
+
+* Fix `oec` client bugs about deploy contract when switch to fast-sync mode from consensus mode ([\#1354](https://github.com/okex/exchain/pull/1354))
+
+* Fix REST-API  `get blocked list` ([\#1366](https://github.com/okex/exchain/pull/1366))
+
+* Fix `MarshalResponseEndBlockToAmino` bug ([\#1372](https://github.com/okex/exchain/pull/1372))
+
+
+### Documentation
+
+* Add "How to build a private chain" in `README.md` ([\#1369](https://github.com/okex/exchain/pull/1368))
+
+
+### Code refactoring
+
+* Restructure `inner tx `([\#1335](https://github.com/okex/exchain/pull/1335))
+
+* Rename `lrp` flag ([\#1378](https://github.com/okex/exchain/pull/1378))
+
+
+### Tests
+
+* Fix ut ci and tendermint module ut ([\#1334](https://github.com/okex/exchain/pull/1334))
+
+* Disable `TestReactorBroadcastTxMessage` ut function ([\#1365](https://github.com/okex/exchain/pull/1365))
 
 
 
 ## [1.0.2](https://github.com/okex/exchain/compare/v1.0.1...v1.0.2) (2021-12-29)
 
 
+### Features
+
+* Get chain-id from `gendoc` ([\#1346](https://github.com/okex/exchain/pull/1346)
+
+* Add dds statistic ([\#1352](https://github.com/okex/exchain/pull/1352)
+
+
+### Chores
+
+* Refine `rdb` install  ([\#1344](https://github.com/okex/exchain/pull/1344))
+
+* Update `testnet.sh` ([\#1349](https://github.com/okex/exchain/pull/1349))
+
+
 
 ## [1.0.1](https://github.com/okex/exchain/compare/v1.0.0...v1.0.1) (2021-12-28)
+
+
+### Features
+
+* Add flag to init redis params  ([\#1338](https://github.com/okex/exchain/pull/1338))
+
+
+### Bug fixes
+
+* Fix bug that don't upload when is fastSync ([\#1339](https://github.com/okex/exchain/pull/1339))
+
+
+### Code refactoring
+
+* Refactor `prerun` code  ([\#1341](https://github.com/okex/exchain/pull/1341))
 
 
 
