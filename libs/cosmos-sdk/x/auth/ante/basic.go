@@ -24,7 +24,7 @@ func NewValidateBasicDecorator() ValidateBasicDecorator {
 }
 
 func (vbd ValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	// simulate means 'eth_Call' or 'eth_estimateGas', when it means 'eth_eth_estimateGas' we can not 'VerifySig'.so skip here
+	// simulate means 'eth_call' or 'eth_estimateGas', when it means 'eth_estimateGas' we can not 'VerifySig'.so skip here
 	if simulate {
 		return next(ctx, tx, simulate)
 	}

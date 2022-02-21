@@ -32,8 +32,8 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache from the previous AnteHandle call
-	if ctx.From() != "" {
+	// simulate means 'eth_call' or 'eth_estimateGas', when it's 'eth_estimateGas' we set the sender from ctx.
+	if simulate && ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
 	}
 	address := msgEthTx.From()

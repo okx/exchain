@@ -363,7 +363,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			hasExtraPaths := len(path) > 2
 			var from string
 			if hasExtraPaths {
-				if addr, err := sdk.AccAddressFromHex(path[2]); err == nil {
+				if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
 					if err = sdk.VerifyAddressFormat(addr); err == nil {
 						from = path[2]
 					}

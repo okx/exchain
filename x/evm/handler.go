@@ -127,6 +127,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			isFromCtx = true
 		}
 	}
+
 	if !isFromCtx {
 		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 		if err != nil {

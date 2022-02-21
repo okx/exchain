@@ -49,7 +49,6 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache from the previous AnteHandle call
 	if ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
 	}
