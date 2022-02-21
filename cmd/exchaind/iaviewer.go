@@ -372,7 +372,8 @@ func printIaviewerStatus(tree *iavl.MutableTree) {
 	fmt.Printf("iavl tree:\n"+
 		"\troot hash: %X\n"+
 		"\tsize: %d\n"+
-		"\tcurrent version: %d\n", tree.Hash(), tree.Size(), tree.Version())
+		"\tcurrent version: %d\n"+
+		"\theight: %d\n", tree.Hash(), tree.Size(), tree.Version(), tree.Height())
 }
 
 func iaviewerVersions(ctx *iaviewerContext) error {
