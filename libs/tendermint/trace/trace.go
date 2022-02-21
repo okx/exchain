@@ -8,23 +8,23 @@ import (
 )
 
 const (
-	GasUsed     = "GasUsed"
-	Produce     = "Produce"
-	RunTx       = "RunTx"
-	Height      = "Height"
-	Tx          = "Tx"
-	BlockSize   = "BlockSize"
-	Elapsed     = "Elapsed"
-	CommitRound = "CommitRound"
-	Round       = "Round"
-	Evm         = "Evm"
-	Iavl        = "Iavl"
-	FlatKV      = "FlatKV"
-	WtxRatio    = "WtxRatio"
-	DeliverTxs  = "DeliverTxs"
-	EvmHandlerDetail  = "EvmHandlerDetail"
-	RunAnteDetail     = "RunAnteDetail"
-	AnteChainDetail   = "AnteChainDetail"
+	GasUsed          = "GasUsed"
+	Produce          = "Produce"
+	RunTx            = "RunTx"
+	Height           = "Height"
+	Tx               = "Tx"
+	BlockSize        = "BlockSize"
+	Elapsed          = "Elapsed"
+	CommitRound      = "CommitRound"
+	Round            = "Round"
+	Evm              = "Evm"
+	Iavl             = "Iavl"
+	FlatKV           = "FlatKV"
+	WtxRatio         = "WtxRatio"
+	DeliverTxs       = "DeliverTxs"
+	EvmHandlerDetail = "EvmHandlerDetail"
+	RunAnteDetail    = "RunAnteDetail"
+	AnteChainDetail  = "AnteChainDetail"
 
 	Delta = "Delta"
 
@@ -71,7 +71,7 @@ type Tracer struct {
 	intervals        []int64
 	elapsedTime      int64
 
-	pinMap           map[string]int64
+	pinMap map[string]int64
 }
 
 func NewTracer(name string) *Tracer {
@@ -125,14 +125,13 @@ func (t *Tracer) Format() string {
 	info := fmt.Sprintf("%s<%dms>",
 		t.name,
 		t.elapsedTime,
-		)
+	)
 
 	for i := range t.pins {
-		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i])
+		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i]/int64(time.Millisecond))
 	}
 	return info
 }
-
 
 func (t *Tracer) RepeatingPin(format string, args ...interface{}) {
 	t.repeatingPinByFormat(fmt.Sprintf(format, args...))
@@ -152,7 +151,7 @@ func (t *Tracer) repeatingPinByFormat(tag string) {
 	now := time.Now().UnixNano()
 
 	if len(t.lastPin) > 0 {
-		t.pinMap[t.lastPin] += (now-t.lastPinStartTime)/1e6
+		t.pinMap[t.lastPin] += (now - t.lastPinStartTime)
 	}
 	t.lastPinStartTime = now
 	t.lastPin = tag
@@ -171,7 +170,7 @@ func (t *Tracer) FormatRepeatingPins(ignoredTags string) string {
 		if tag == ignoredTags {
 			continue
 		}
-		info += fmt.Sprintf("%s%s<%dms>", comma, tag, interval)
+		info += fmt.Sprintf("%s%s<%dms>", comma, tag, interval/int64(time.Millisecond))
 		comma = ", "
 	}
 	return info
