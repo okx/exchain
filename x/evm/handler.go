@@ -63,38 +63,19 @@ func NewHandler(k *Keeper) sdk.Handler {
 			}
 		}()
 
-
 		evmtx, ok := msg.(types.MsgEthereumTx)
-		if !ok {
-			err = sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
-		} else {
-
+		if ok {
 			result, err = handleMsgEthereumTx(ctx, k, &evmtx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 			}
+		} else {
+			err = sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-
 
 		return result, err
 	}
 }
-
-		//var handlerFun func() (*sdk.Result, error)
-		//switch msg := msg.(type) {
-		//case types.MsgEthereumTx:
-		//	handlerFun = func() (*sdk.Result, error) {
-		//		return handleMsgEthereumTx(ctx, k, msg)
-		//	}
-		//default:
-		//	return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
-		//}
-		//
-		//result, err = handlerFun()
-		//if err != nil {
-		//	err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
-		//}
-
 
 func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	switch msg := msg.(type) {
@@ -105,13 +86,11 @@ func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	}
 }
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-
 	if ctx.IsCheckTx() {
 		if from := ctx.From(); len(from) > 0 {
 			sender = common.HexToAddress(from)
 		}
 	}
-
 	if len(sender) == 0 {
 		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 		if err == nil {
@@ -121,8 +100,6 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 
 	return
 }
-
-
 
 func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
 
