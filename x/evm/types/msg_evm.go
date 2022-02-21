@@ -310,15 +310,14 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 		}
 	}
 	// get sender from cache
-	msgHash := msg.hash()
-	if sender, ok := env.VerifySigCache.Get(msgHash); ok {
+	sigHash := msg.RLPSignBytes(chainID)
+	if sender, ok := env.VerifySigCache.Get(sigHash.String()); ok {
 		sigCache := &ethSigCache{signer: signer, from: sender}
 		msg.from.Store(sigCache)
 		return sigCache, nil
 	}
 
 	V := new(big.Int)
-	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
@@ -329,7 +328,6 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
-		sigHash = msg.RLPSignBytes(chainID)
 	} else {
 		V = msg.Data.V
 
@@ -342,7 +340,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(msgHash, sender)
+	env.VerifySigCache.Add(sigHash.String(), sender)
 	return sigCache, nil
 }
 
