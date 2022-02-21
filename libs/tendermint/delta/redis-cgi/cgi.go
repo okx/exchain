@@ -21,7 +21,9 @@ var (
 
 var once sync.Once
 
-func init() {
+// init initialize the mostRecentHeightKey and deltaLockerKey
+// the keys are based types.DeltaVersion, which can specified by user.
+func (r *RedisClient) init() {
 	const (
 		mostRecentHeight = "MostRecentHeight"
 		deltaLocker      = "DeltaLocker"
@@ -44,7 +46,10 @@ func NewRedisClient(url, auth string, ttl time.Duration, db int, l log.Logger) *
 		Password: auth, // no password set
 		DB:       db,   // use select DB
 	})
-	return &RedisClient{rdb, ttl, l}
+	redisClient := RedisClient{rdb, ttl, l}
+	redisClient.init()
+
+	return &redisClient
 }
 
 func (r *RedisClient) GetLocker() bool {

@@ -15,6 +15,7 @@ const (
 	QueryParameters       = types.QueryParameters
 	QueryInflation        = types.QueryInflation
 	QueryAnnualProvisions = types.QueryAnnualProvisions
+	RouterKey             = types.RouterKey
 )
 
 var (
