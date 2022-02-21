@@ -2,12 +2,13 @@ package eth
 
 import (
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -131,7 +132,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, sdk.EmptyContext().SigCache())
+	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, txBytes, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return common.Hash{}, err
 	}

@@ -36,6 +36,9 @@ func newCache() *Cache {
 func (c *Cache) Get(key string) (ethcmn.Address, bool) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
+	if !validateKey(key) {
+		return ethcmn.Address{}, false
+	}
 	if value, ok := c.data[key]; ok {
 		return value, true
 	}
@@ -44,7 +47,17 @@ func (c *Cache) Get(key string) (ethcmn.Address, bool) {
 func (c *Cache) Add(key string, value ethcmn.Address) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	if !validateKey(key) {
+		return
+	}
 	c.data[key] = value
+}
+
+func validateKey(key string) bool {
+	if key == "" {
+		return false
+	}
+	return true
 }
 
 func (c *Cache) Load(fileName string) {
