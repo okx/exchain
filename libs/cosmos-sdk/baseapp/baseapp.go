@@ -193,7 +193,7 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
-	anteTracer *trace.Tracer
+	anteTracer        *trace.Tracer
 }
 
 type recordHandle func(string)
