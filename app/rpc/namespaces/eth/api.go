@@ -926,7 +926,8 @@ func (api *PublicEthereumAPI) doCall(
 	// Create new call message
 	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
-	msg.SetFrom(addr.String())
+	from := addr.String()
+	msg.SetFrom(from)
 
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
@@ -948,6 +949,8 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
+	// pass from through ctx
+	clientCtx = clientCtx.WithFrom(from)
 	// Transaction simulation through query
 	res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
 	if err != nil {
