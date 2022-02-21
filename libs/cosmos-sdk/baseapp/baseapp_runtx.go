@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type runTxInfo struct {
@@ -96,19 +94,18 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-	app.pin(AnteHandler, true, mode)
-
+	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return err
 		}
 	}
-	app.pin(AnteHandler, false, mode)
+	app.pin(RunAnte, false, mode)
 
-	app.pin(RunMsgs, true, mode)
+	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
-	app.pin(RunMsgs, false, mode)
+	app.pin(RunMsg, false, mode)
 	return err
 }
 
@@ -123,10 +120,24 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// NOTE: Alternatively, we could require that AnteHandler ensures that
 	// writes do not happen if aborted/failed.  This may have some
 	// performance benefits, but it'll be more difficult to get right.
+
+	// 1. CacheTxContext
+	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(CacheTxContext, false, mode)
 
+	// 2. AnteChain
+	app.pin(AnteChain, true, mode)
+	if mode == runTxModeDeliver {
+		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
+	}
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(AnteChain, false, mode)
+
+
+	// 3. AnteOther
+	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 
@@ -151,20 +162,20 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if err != nil {
 		return err
 	}
+	app.pin(AnteOther, false, mode)
 
+
+	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
+		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		app.pin(CacheStoreWrite, false, mode)
 	}
 
 	return nil
 }
 
-func txhash(txbytes []byte) string {
-	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
-	ethHash := common.BytesToHash(txHash)
-	return ethHash.String()
-}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
