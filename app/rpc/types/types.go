@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -160,7 +159,6 @@ type EthHeaderWithBlockHash struct {
 	Nonce       ethtypes.BlockNonce `json:"nonce"`
 	Hash        common.Hash         `json:"hash"`
 }
-
 type FeeHistoryResult struct {
 	OldestBlock  *hexutil.Big     `json:"oldestBlock"`
 	Reward       [][]*hexutil.Big `json:"reward,omitempty"`
@@ -172,10 +170,4 @@ type FeeHistoryResult struct {
 type SignTransactionResult struct {
 	Raw hexutil.Bytes `json:"raw"`
 	Tx  *Transaction  `json:"tx"`
-}
-
-type OneFeeHistory struct {
-	BaseFee      *big.Int   // base fee  for each block
-	Reward       []*big.Int // each element of the array will have the tip provided to miners for the percentile given
-	GasUsedRatio float64    // the ratio of gas used to the gas limit for each block
 }

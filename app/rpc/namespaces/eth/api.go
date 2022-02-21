@@ -1711,7 +1711,7 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 
 func (e *PublicEthereumAPI) FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*rpctypes.FeeHistoryResult, error) {
 	e.logger.Debug("eth_feeHistory")
-	return e.backend.FeeHistory(blockCount, lastBlock, rewardPercentiles)
+	return nil, fmt.Errorf("unsupported rpc function: eth_FeeHistory")
 }
 
 // FillTransaction fills the defaults (nonce, gas, gasPrice or 1559 fields)

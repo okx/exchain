@@ -8,7 +8,6 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
-	"github.com/okex/exchain/app/rpc/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rpc"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -54,7 +52,6 @@ type Backend interface {
 
 	// Used by eip-1898
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
-	FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*types.FeeHistoryResult, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -500,13 +497,4 @@ func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.Block
 		return rpctypes.LatestBlockNumber, rpctypes.ErrResourceNotFound
 	}
 	return rpctypes.BlockNumber(out.Number), nil
-}
-
-func (b *EthermintBackend) FeeHistory(
-	userBlockCount rpc.DecimalOrHex, // number blocks to fetch, maximum is 100
-	lastBlock rpc.BlockNumber, // the block to start search , to oldest
-	rewardPercentiles []float64, // percentiles to fetch reward
-) (*rpctypes.FeeHistoryResult, error) {
-
-	return nil, fmt.Errorf("unsupported rpc function: eth_FeeHistory")
 }
