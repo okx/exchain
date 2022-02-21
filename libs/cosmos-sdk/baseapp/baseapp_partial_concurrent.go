@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 5
+	maxDeliverTxsConcurrentNum = 10
 )
 
 type DeliverTxTask struct {
@@ -150,7 +150,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	//fmt.Printf("runTxPartConcurrent. index=%d\n", index)
+	fmt.Printf("runTxPartConcurrent. index=%d\n", index)
 	tx, err := dm.app.txDecoder(txByte)
 	task := newDeliverTxTask(tx, index)
 	task.info.txBytes = txByte
@@ -174,7 +174,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	//fmt.Printf("new into pendingTasks. index=%d\n", task.index)
+	fmt.Printf("new into pendingTasks. index=%d\n", task.index)
 	dm.pendingTasks[task.index] = task
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
 		dm.executeSignal <- 0
@@ -244,7 +244,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.nextSignal <- 0
 		}
 
-		//fmt.Printf("runTxSerialRoutine. index=%d\n", dm.executingTask.index)
+		fmt.Printf("runTxSerialRoutine. index=%d\n", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
