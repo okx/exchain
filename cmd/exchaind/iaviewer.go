@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,8 +20,6 @@ import (
 	"github.com/okex/exchain/x/gov"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	"github.com/tendermint/go-amino"
 
 	"github.com/spf13/viper"
 
@@ -433,14 +432,46 @@ func printKV(cdc *codec.Codec, modulePrefixKey string, key []byte, value []byte)
 	fmt.Println()
 }
 
+func calcEndKey(key []byte) []byte {
+	if len(key) == 0 {
+		return nil
+	}
+	endKey := make([]byte, len(key))
+	copy(endKey, key)
+	last := len(endKey) - 1
+	endKey[last]++
+	for endKey[last] == 0 {
+		if last == 0 {
+			return nil
+		}
+		last--
+		endKey[last]++
+	}
+	return endKey[0 : last+1]
+}
+
 func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 	startKey := []byte(nil)
 	endKey := []byte(nil)
 
-	var keyPrefix string
-	if keyPrefix = viper.GetString(flagKeyPrefix); keyPrefix != "" {
-		index, _ := tree.Get(amino.StrToBytes(keyPrefix))
+	var keyPrefix []byte
+	var err error
+	var total = tree.Size()
+	if keyPrefixStr := viper.GetString(flagKeyPrefix); keyPrefixStr != "" {
+		keyPrefix, err = hex.DecodeString(keyPrefixStr)
+		if err != nil {
+			fmt.Printf("keyprefix must be in hex format: %s\n", err)
+			os.Exit(1)
+		}
+		index, _ := tree.Get(keyPrefix)
 		ctx.Start += int(index)
+		endKey = calcEndKey(keyPrefix)
+		index2, _ := tree.Get(endKey)
+		total = index2 - index
+		limit := int(total)
+		if ctx.Limit == 0 || limit < ctx.Limit {
+			ctx.Limit = limit
+		}
 	}
 
 	if tree.Size() <= int64(ctx.Start) {
@@ -456,12 +487,12 @@ func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 		printed = int(tree.Size()) - ctx.Start
 	}
 
-	fmt.Printf("total: %d\n", tree.Size())
+	fmt.Printf("total: %d\n", total)
 	fmt.Printf("printed: %d\n\n", printed)
 
 	tree.IterateRange(startKey, endKey, true, func(key []byte, value []byte) bool {
-		if keyPrefix != "" {
-			if !bytes.HasPrefix(key, amino.StrToBytes(keyPrefix)) {
+		if len(keyPrefix) != 0 {
+			if !bytes.HasPrefix(key, keyPrefix) {
 				return true
 			}
 		}
