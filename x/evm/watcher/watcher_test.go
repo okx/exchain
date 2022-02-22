@@ -122,8 +122,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-	err = delDirtyAccount(wd, w)
-	require.Nil(t, err)
+	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -134,6 +133,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
+	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 	time.Sleep(time.Second * 1)
 
 	cWd := getDBKV(store)
@@ -204,11 +204,11 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	}
 }
 
-func TestMsgEthermintByWatcher(t *testing.T) {
+func TestMsgEthereumTxByWatcher(t *testing.T) {
 	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+		tx   types.MsgEthereumTx
+		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
+		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
 	w := setupTest()
 	testCases := []struct {
@@ -219,7 +219,7 @@ func TestMsgEthermintByWatcher(t *testing.T) {
 		{
 			"passed",
 			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				tx = types.NewMsgEthereumTx(0, &to, big.NewInt(1), 100000, big.NewInt(2), []byte("test"))
 				w.app.EvmKeeper.SetBalance(w.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
 			true,
@@ -233,6 +233,7 @@ func TestMsgEthermintByWatcher(t *testing.T) {
 			tc.malleate()
 			w.ctx = w.ctx.WithIsCheckTx(true)
 			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx = w.ctx.WithFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint

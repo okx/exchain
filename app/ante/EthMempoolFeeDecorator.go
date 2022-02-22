@@ -26,7 +26,9 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 //
 // NOTE: This should only be run during a CheckTx mode.
 func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	if !ctx.IsCheckTx() {
+
+	// simulate means 'eth_call' or 'eth_estimateGas', when it means 'eth_estimateGas' we can not 'VerifySig'.so skip here
+	if !ctx.IsCheckTx() || simulate {
 		return next(ctx, tx, simulate)
 	}
 
