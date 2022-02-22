@@ -395,7 +395,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
 
-	app.logger.Info("DeliverTxsConcurrent", "txs count", len(txs))
+	app.logger.Error("DeliverTxsConcurrent", "txs count", len(txs))
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
