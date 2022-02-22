@@ -107,8 +107,12 @@ func NewBlockExecutor(
 
 func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
 	blockExec.isAsync = sw
-
 }
+
+func (blockExec *BlockExecutor) SetDeliverTxsMode(mode uint8) {
+	blockExec.deliverTxsExecMode = DeliverTxsExecMode(mode)
+}
+
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
 }
