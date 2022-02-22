@@ -55,6 +55,7 @@ func TestMsgEthereumTxValidation(t *testing.T) {
 		expectPass bool
 	}{
 		{msg: "pass", amount: big.NewInt(100), gasPrice: big.NewInt(100000), expectPass: true},
+		{msg: "pass amount is zero", amount: big.NewInt(0), gasPrice: big.NewInt(100000), expectPass: true},
 		{msg: "invalid amount", amount: big.NewInt(-1), gasPrice: big.NewInt(100000), expectPass: false},
 		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(-1), expectPass: false},
 		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(0), expectPass: false},
