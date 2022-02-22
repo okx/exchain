@@ -332,7 +332,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
-			dm.app.logger.Error("handleRunMsg failed", "err", err)
+			//dm.app.logger.Error("handleRunMsg failed", "err", err)
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{
@@ -376,7 +376,7 @@ func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 		dm.curIndex++
 		return true
 	} else {
-		dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
+		//dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
 	return false
 }
