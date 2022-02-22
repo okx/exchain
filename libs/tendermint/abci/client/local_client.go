@@ -171,7 +171,6 @@ func (app *localClient) ParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
 func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-	app.Logger.Error("DeliverTxsConcurrent localClient")
 	return app.Application.DeliverTxsConcurrent(txs)
 }
 
