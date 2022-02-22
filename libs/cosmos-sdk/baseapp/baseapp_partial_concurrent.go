@@ -391,6 +391,7 @@ func (dm *DeliverTxTasksManager) resetExecutingTask() {
 //-------------------------------------------------------------
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
+	app.logger.Error("DeliverTxsConcurrent BaseApp")
 	if app.deliverTxsMgr == nil {
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
