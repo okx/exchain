@@ -20,11 +20,11 @@ func NewSubscriber() Subscriber {
 
 type subscriber struct {
 	fileMap map[string]*os.File
-	kafka *logClient
-	logdir string
+	kafka   *logClient
+	logdir  string
 }
 
-func (s* subscriber) Init(urls string, logdir string)  {
+func (s *subscriber) Init(urls string, logdir string) {
 	s.kafka = newLogClient(urls, HeartbeatTopic, OECLogTopic, LogConsumerGroup)
 	s.logdir = logdir
 
@@ -37,12 +37,12 @@ func (s* subscriber) Init(urls string, logdir string)  {
 	}
 }
 
-func (s* subscriber) heartbeatRoutine() {
+func (s *subscriber) heartbeatRoutine() {
 	ticker := time.NewTicker(HeartbeatInterval)
 	pid := system.Getpid()
 	id := 0
 	for range ticker.C {
-		key :=	fmt.Sprintf("%d:%d", pid, id)
+		key := fmt.Sprintf("%d:%d", pid, id)
 		msg := &KafkaMsg{
 			Data: "heartbeat",
 		}
@@ -56,7 +56,7 @@ func (s* subscriber) heartbeatRoutine() {
 	}
 }
 
-func (s* subscriber) Run() {
+func (s *subscriber) Run() {
 	go s.heartbeatRoutine()
 	for {
 		key, m, err := s.kafka.recv()
@@ -72,8 +72,8 @@ func (s* subscriber) Run() {
 	}
 }
 
-func (s* subscriber) onEvent(from, event string) (err error) {
-	from = s.logdir + string(os.PathSeparator) + from+".log"
+func (s *subscriber) onEvent(from, event string) (err error) {
+	from = s.logdir + string(os.PathSeparator) + from + ".log"
 
 	var f *os.File
 	f, err = s.getOsFile(from)
@@ -85,7 +85,7 @@ func (s* subscriber) onEvent(from, event string) (err error) {
 	return
 }
 
-func (s* subscriber) getOsFile(fileName string) (file *os.File, err error) {
+func (s *subscriber) getOsFile(fileName string) (file *os.File, err error) {
 	var ok bool
 	file, ok = s.fileMap[fileName]
 

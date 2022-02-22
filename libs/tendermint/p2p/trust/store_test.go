@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )

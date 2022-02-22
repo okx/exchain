@@ -17,10 +17,10 @@ import (
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
+	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	apptypes "github.com/okex/exchain/app/types"
 )
 
 const (

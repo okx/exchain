@@ -8,9 +8,9 @@ import (
 	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/mosn/holmes"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/spf13/viper"
 )
 
 type PporfConfig struct {

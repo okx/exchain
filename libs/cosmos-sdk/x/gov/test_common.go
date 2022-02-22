@@ -9,8 +9,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/stretchr/testify/require"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"

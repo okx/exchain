@@ -8,9 +8,9 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSimGenesisAccountValidate(t *testing.T) {

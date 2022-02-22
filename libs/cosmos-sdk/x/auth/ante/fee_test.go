@@ -3,8 +3,8 @@ package ante_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/stretchr/testify/require"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"

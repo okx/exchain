@@ -293,8 +293,6 @@ func (app *testApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQue
 	return
 }
 
-
-
 //----------------------------------------------------------------------------------------------------
 // Execute block without state. TODO: eliminate
 
@@ -340,9 +338,9 @@ func execCommitBlockDelta(
 	deltas := &types.Deltas{Height: block.Height, Version: types.DeltaVersion}
 
 	ctx := &executionTask{
-		logger: logger,
-		block: block,
-		db: stateDB,
+		logger:   logger,
+		block:    block,
+		db:       stateDB,
 		proxyApp: appConnConsensus,
 	}
 

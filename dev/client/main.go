@@ -42,7 +42,7 @@ func main() {
 		fmt.Printf("contract: %s\n", CounterTest)
 		testFunc = counterTest
 	}
-	
+
 	for _, k := range privKey {
 		test := func(key string) {
 			testFunc(key, time.Millisecond*5000)

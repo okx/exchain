@@ -553,7 +553,6 @@ func TestMempoolTxsBytes(t *testing.T) {
 	}
 }
 
-
 func checksumIt(data []byte) string {
 	h := sha256.New()
 	h.Write(data)

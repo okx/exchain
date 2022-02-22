@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -34,6 +35,8 @@ type Context struct {
 	checkTx        bool
 	recheckTx      bool // if recheckTx == true, then checkTx must also be true
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
@@ -41,6 +44,7 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
+	trc            *trace.Tracer
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -60,12 +64,15 @@ func (c Context) GasMeter() GasMeter          { return c.gasMeter }
 func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c Context) IsTraceTx() bool             { return c.traceTx }
+func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
 func (c Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
@@ -187,6 +194,20 @@ func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
 	c.recheckTx = isRecheckTx
 	return c
 }
+func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
+	if isTraceTxLog {
+		c.checkTx = true
+	}
+	c.traceTxLog = isTraceTxLog
+	return c
+}
+func (c Context) WithIsTraceTx(isTraceTx bool) Context {
+	if isTraceTx {
+		c.checkTx = true
+	}
+	c.traceTx = isTraceTx
+	return c
+}
 
 // WithIsWrappedCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
@@ -280,4 +301,9 @@ func (c Context) WithSigCache(cache SigCache) Context {
 // struct{}.
 func EmptyContext() Context {
 	return Context{}
+}
+
+func (c Context) WithAnteTracer(trc *trace.Tracer) Context {
+	c.trc = trc
+	return c
 }

@@ -59,8 +59,8 @@ type WatchMessage interface {
 }
 
 type MsgEthTx struct {
+	*baseLazyMarshal
 	Key       []byte
-	JsonEthTx string
 }
 
 func (m MsgEthTx) GetType() uint32 {
@@ -385,23 +385,15 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 	if e != nil {
 		return nil
 	}
-	jsTx, e := json.Marshal(ethTx)
-	if e != nil {
-		return nil
-	}
 	msg := MsgEthTx{
-		Key:       txHash.Bytes(),
-		JsonEthTx: string(jsTx),
+		Key:         txHash.Bytes(),
+		baseLazyMarshal:newBaseLazyMarshal(ethTx),
 	}
 	return &msg
 }
 
 func (m MsgEthTx) GetKey() []byte {
 	return append(prefixTx, m.Key...)
-}
-
-func (m MsgEthTx) GetValue() string {
-	return m.JsonEthTx
 }
 
 type MsgCode struct {
@@ -466,8 +458,8 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
+	*baseLazyMarshal
 	txHash  []byte
-	receipt string
 }
 
 func (m MsgTransactionReceipt) GetType() uint32 {
@@ -511,19 +503,11 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	jsTr, e := json.Marshal(tr)
-	if e != nil {
-		return nil
-	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), receipt: string(jsTr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(),baseLazyMarshal:newBaseLazyMarshal(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
 	return append(prefixReceipt, m.txHash...)
-}
-
-func (m MsgTransactionReceipt) GetValue() string {
-	return m.receipt
 }
 
 type MsgBlock struct {
@@ -670,8 +654,8 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	addr         []byte
-	accountValue string
+	*baseLazyMarshal
+	addr []byte
 }
 
 func (msgAccount *MsgAccount) GetType() uint32 {
@@ -679,13 +663,9 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
-	jsonAcc, err := json.Marshal(acc)
-	if err != nil {
-		return nil
-	}
 	return &MsgAccount{
-		addr:         acc.GetAddress().Bytes(),
-		accountValue: string(jsonAcc),
+		addr:            acc.GetAddress().Bytes(),
+		baseLazyMarshal: newBaseLazyMarshal(acc),
 	}
 }
 
@@ -695,10 +675,6 @@ func GetMsgAccountKey(addr []byte) []byte {
 
 func (msgAccount *MsgAccount) GetKey() []byte {
 	return GetMsgAccountKey(msgAccount.addr)
-}
-
-func (msgAccount *MsgAccount) GetValue() string {
-	return msgAccount.accountValue
 }
 
 type DelAccMsg struct {

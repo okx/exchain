@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type runTxInfo struct {
@@ -39,17 +37,28 @@ func (app *BaseApp) runTx(mode runTxMode,
 
 func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
+	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	return
+}
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
-		return info, err
+		return err
 	}
-	info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	//info with cache saved in app to load predesessor tx state
+	if mode != runTxModeTrace {
+		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
+		//to prevent modifying the deliver state
+		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
+		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+	}
 	for _, addr := range from {
 		// cache from if exist
 		if addr != "" {
@@ -60,7 +69,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
-		return info, err
+		return err
 	}
 
 	defer func() {
@@ -81,25 +90,23 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		return info, err
+		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-	app.pin(AnteHandler, true, mode)
-
+	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			return info, err
+			return err
 		}
 	}
-	app.pin(AnteHandler, false, mode)
+	app.pin(RunAnte, false, mode)
 
-	app.pin(RunMsgs, true, mode)
+	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
-	app.pin(RunMsgs, false, mode)
-
-	return info, err
+	app.pin(RunMsg, false, mode)
+	return err
 }
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
@@ -113,10 +120,24 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// NOTE: Alternatively, we could require that AnteHandler ensures that
 	// writes do not happen if aborted/failed.  This may have some
 	// performance benefits, but it'll be more difficult to get right.
+
+	// 1. CacheTxContext
+	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(CacheTxContext, false, mode)
 
+	// 2. AnteChain
+	app.pin(AnteChain, true, mode)
+	if mode == runTxModeDeliver {
+		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
+	}
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(AnteChain, false, mode)
+
+
+	// 3. AnteOther
+	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 
@@ -141,20 +162,20 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if err != nil {
 		return err
 	}
+	app.pin(AnteOther, false, mode)
 
+
+	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
+		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		app.pin(CacheStoreWrite, false, mode)
 	}
 
 	return nil
 }
 
-func txhash(txbytes []byte) string {
-	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
-	ethHash := common.BytesToHash(txHash)
-	return ethHash.String()
-}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 

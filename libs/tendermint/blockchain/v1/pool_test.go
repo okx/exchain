@@ -459,7 +459,7 @@ func TestBlockPoolAddBlock(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.pool.AddBlock(tt.args.peerID, tt.args.block, nil,  tt.args.blockSize)
+			err := tt.pool.AddBlock(tt.args.peerID, tt.args.block, nil, tt.args.blockSize)
 			assert.Equal(t, tt.errWanted, err)
 			assertBlockPoolEquivalent(t, tt.poolWanted, tt.pool)
 		})

@@ -2,16 +2,16 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 )
 
-
 var dbDir = "testdata"
+
 func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*MutableTree, []string, map[string]string) {
 	moduleName := "test"
 	dir := dbDir
@@ -26,7 +26,7 @@ func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	fmt.Printf("init setting test %d data to MutableTree\n", size)
 	dataSet := make(map[string]string)
 	keySet := make([]string, 0, size)
-	for i:=0;i<size;i++ {
+	for i := 0; i < size; i++ {
 		key := randstr(32)
 		value := randstr(100)
 		dataSet[key] = string(value)
@@ -36,7 +36,7 @@ func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	//recursivePrint(tree.root, 0)
 
 	tree.SaveVersion(false)
-	tree.commitCh <- commitEvent{-1, nil,nil, nil, nil, 0}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
 	fmt.Println("init setting done")
 	return tree, keySet, dataSet
 }
@@ -44,10 +44,10 @@ func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 func benchmarkTreeRead(b *testing.B, tree *MutableTree, keySet []string, readNum int) {
 	fmt.Println("benchmark testing")
 	t1 := time.Now()
-	for i:=0;i<readNum;i++ {
-		idx := rand.Int()%len(keySet)
+	for i := 0; i < readNum; i++ {
+		idx := rand.Int() % len(keySet)
 		key := keySet[idx]
-		_, v :=tree.Get([]byte(key))
+		_, v := tree.Get([]byte(key))
 		require.NotNil(b, v)
 	}
 	duration := time.Since(t1)
@@ -65,7 +65,6 @@ func clearDB(dbName string) {
 	treeMap.mutableTreeSavedMap = make(map[string]bool)
 }
 
-
 func BenchmarkMutableTree_Get(b *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
@@ -76,40 +75,40 @@ func BenchmarkMutableTree_Get(b *testing.B) {
 		CommitIntervalHeight = 100
 	}()
 	testCases := []struct {
-		dbName string
-		openLog bool
+		dbName       string
+		openLog      bool
 		initDataSize int
-		readNum int
+		readNum      int
 	}{
 		{
-			dbName: "13-test",
-			openLog: true,
+			dbName:       "13-test",
+			openLog:      true,
 			initDataSize: 130000,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "10-test",
-			openLog: true,
+			dbName:       "10-test",
+			openLog:      true,
 			initDataSize: 100000,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "8-test",
-			openLog: true,
+			dbName:       "8-test",
+			openLog:      true,
 			initDataSize: 80000,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "5-test",
-			openLog: true,
+			dbName:       "5-test",
+			openLog:      true,
 			initDataSize: 50000,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "3-test",
-			openLog: true,
+			dbName:       "3-test",
+			openLog:      true,
 			initDataSize: 30000,
-			readNum: 100000,
+			readNum:      100000,
 		},
 	}
 	for i, testCase := range testCases {
@@ -120,7 +119,6 @@ func BenchmarkMutableTree_Get(b *testing.B) {
 		fmt.Println()
 	}
 }
-
 
 func BenchmarkMutableTree_Get2(b *testing.B) {
 	EnableAsyncCommit = true
@@ -132,34 +130,34 @@ func BenchmarkMutableTree_Get2(b *testing.B) {
 		CommitIntervalHeight = 100
 	}()
 	testCases := []struct {
-		dbName string
-		openLog bool
+		dbName       string
+		openLog      bool
 		initDataSize int
-		readNum int
+		readNum      int
 	}{
 		{
-			dbName: "16-test",
-			openLog: true,
+			dbName:       "16-test",
+			openLog:      true,
 			initDataSize: 16,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "256-test",
-			openLog: true,
+			dbName:       "256-test",
+			openLog:      true,
 			initDataSize: 256,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "4096-test",
-			openLog: true,
+			dbName:       "4096-test",
+			openLog:      true,
 			initDataSize: 4096,
-			readNum: 100000,
+			readNum:      100000,
 		},
 		{
-			dbName: "65536-test",
-			openLog: true,
+			dbName:       "65536-test",
+			openLog:      true,
 			initDataSize: 65536,
-			readNum: 100000,
+			readNum:      100000,
 		},
 	}
 	for i, testCase := range testCases {
@@ -171,7 +169,6 @@ func BenchmarkMutableTree_Get2(b *testing.B) {
 	}
 }
 
-
 func BenchmarkMutableTree_Get3(b *testing.B) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
@@ -182,16 +179,16 @@ func BenchmarkMutableTree_Get3(b *testing.B) {
 		CommitIntervalHeight = 100
 	}()
 	testCases := []struct {
-		dbName string
-		openLog bool
+		dbName       string
+		openLog      bool
 		initDataSize int
-		readNum int
+		readNum      int
 	}{
 		{
-			dbName: "16-test",
-			openLog: true,
+			dbName:       "16-test",
+			openLog:      true,
 			initDataSize: 16,
-			readNum: 100000,
+			readNum:      100000,
 		},
 	}
 	for i, testCase := range testCases {
@@ -207,7 +204,7 @@ func recursivePrint(node *Node, n int) {
 	if node == nil {
 		return
 	}
-	for i:=0;i<n;i++ {
+	for i := 0; i < n; i++ {
 		fmt.Printf("   ")
 	}
 	fmt.Printf("height:%d key:%s\n", node.height, string(node.key))

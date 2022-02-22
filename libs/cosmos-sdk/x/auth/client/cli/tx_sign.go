@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"

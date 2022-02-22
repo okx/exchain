@@ -15,13 +15,23 @@ func NewQuerier(k Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QueryParameters:
 			return queryParams(ctx, k)
-
+		case types.QueryTreasures:
+			return queryTreasures(ctx, k)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
 		}
 	}
 }
 
+func queryTreasures(ctx sdk.Context, k Keeper) ([]byte, error) {
+	treasures := k.GetTreasures(ctx)
+	res, err := codec.MarshalJSONIndent(k.cdc, treasures)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
 func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 

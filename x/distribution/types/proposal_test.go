@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewCommunityPoolSpendProposal(t *testing.T) {

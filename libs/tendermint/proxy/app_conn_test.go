@@ -32,6 +32,3 @@ func (app *appConnTest) FlushSync() error {
 func (app *appConnTest) InfoSync(req types.RequestInfo) (*types.ResponseInfo, error) {
 	return app.appConn.InfoSync(req)
 }
-
-
-

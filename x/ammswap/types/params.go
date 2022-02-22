@@ -48,7 +48,6 @@ func (p Params) String() string {
   TradeFeeRate: %s`, p.FeeRate)
 }
 
-
 func validateParams(value interface{}) error {
 	v, ok := value.(sdk.Dec)
 	if !ok {

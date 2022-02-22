@@ -16,7 +16,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/app/crypto/hd"
-
 )
 
 const (
@@ -63,8 +62,7 @@ func KeyCommands() *cobra.Command {
 		UnsafeExportEthKeyCommand(),
 		ExportEthCompCommand(),
 		extractNodeKey(),
-
-)
+	)
 	return cmd
 }
 
