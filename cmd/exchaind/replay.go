@@ -401,3 +401,7 @@ func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlo
 func (mock *mockProxyApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	return abci.ResponseCommit{Data: mock.appHash}
 }
+
+func (mock *mockProxyApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
+	return mock.abciResponses.DeliverTxs
+}
