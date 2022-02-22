@@ -1616,7 +1616,6 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 
 		msg := evmtypes.NewMsgEthereumTx(nonce, pendingTx.To, pendingValue, pendingGas,
 			pendingGasPrice, pendingData)
-		msg.SetFrom(pendingTx.From.String())
 
 		msgs = append(msgs, msg)
 	}

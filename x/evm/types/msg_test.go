@@ -193,7 +193,7 @@ func TestMsgEthereumTxGetter(t *testing.T) {
 	require.True(t, expectedS.Cmp(s) == 0)
 }
 
-func TestMsgEthermintTxAmino(t *testing.T) {
+func TestMsgEthereumTx_Amino(t *testing.T) {
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
 	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
@@ -259,7 +259,7 @@ func TestMsgEthermintTxAmino(t *testing.T) {
 	}
 }
 
-func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
+func BenchmarkMsgEthereumTxUnmarshal(b *testing.B) {
 	cdc := ModuleCdc
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
