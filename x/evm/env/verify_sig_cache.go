@@ -83,13 +83,9 @@ func (c *Cache) Load(fileName string) {
 			panic(err)
 		}
 		data[string(k)] = ethcmn.BytesToAddress(v)
-
 	}
 	c.data = data
 	fmt.Println("verify sig cache size:", len(c.data))
-	for k, v := range c.data {
-		fmt.Println(k, v.String())
-	}
 }
 
 func (c *Cache) Save(fileName string) {
@@ -101,11 +97,8 @@ func (c *Cache) Save(fileName string) {
 	defer f.Close()
 	w := bufio.NewWriter(f)
 	for k, v := range c.data {
-		fmt.Println(k, v.String())
 		fmt.Fprintln(w, k)
-
-		w.Write(v[:])
-		w.WriteByte('\n')
+		fmt.Fprintln(w, v.Bytes())
 	}
 	w.Flush()
 }
