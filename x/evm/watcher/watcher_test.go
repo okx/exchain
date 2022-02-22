@@ -204,6 +204,54 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	}
 }
 
+func TestMsgEthereumTxByWatcher(t *testing.T) {
+	var (
+		tx   types.MsgEthereumTx
+		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
+		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
+	)
+	w := setupTest()
+	testCases := []struct {
+		msg      string
+		malleate func()
+		expPass  bool
+	}{
+		{
+			"passed",
+			func() {
+				tx = types.NewMsgEthereumTx(0, &to, big.NewInt(1), 100000, big.NewInt(2), []byte("test"))
+				w.app.EvmKeeper.SetBalance(w.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			w = setupTest() // reset
+			//nolint
+			tc.malleate()
+			w.ctx = w.ctx.WithIsCheckTx(true)
+			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx = w.ctx.WithFrom(from.String())
+			res, err := w.handler(w.ctx, tx)
+
+			//nolint
+			if tc.expPass {
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				var expectedConsumedGas uint64 = 21064
+				require.EqualValues(t, expectedConsumedGas, w.ctx.GasMeter().GasConsumed())
+			} else {
+				require.Error(t, err)
+				require.Nil(t, res)
+			}
+
+			testWatchData(t, w)
+		})
+	}
+}
+
 func TestDeployAndCallContract(t *testing.T) {
 	w := setupTest()
 

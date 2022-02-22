@@ -129,6 +129,16 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			},
 			false,
 		},
+		{
+			"simulate tx",
+			func() {
+				suite.ctx = suite.ctx.WithFrom(sender.String())
+				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCases {
