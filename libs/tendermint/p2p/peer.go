@@ -5,6 +5,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/go-kit/kit/metrics"
+
 	"github.com/okex/exchain/libs/tendermint/libs/cmap"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
@@ -139,6 +141,7 @@ type peer struct {
 
 	metrics       *Metrics
 	metricsTicker *time.Ticker
+	chMetrics     peerChMetric
 }
 
 type PeerOption func(*peer)
@@ -172,6 +175,19 @@ func newPeer(
 	p.BaseService = *service.NewBaseService(nil, "Peer", p)
 	for _, option := range options {
 		option(p)
+	}
+
+	p.chMetrics = peerChMetric{
+		PeerSendBytesTotal:    make(map[byte]metrics.Counter),
+		PeerReceiveBytesTotal: make(map[byte]metrics.Counter),
+	}
+
+	if p.metrics != nil {
+		pid := string(p.ID())
+		for _, ch := range p.channels {
+			p.chMetrics.PeerSendBytesTotal[ch] = p.metrics.PeerSendBytesTotal.With("peer_id", pid, "chID", getChIdStr(ch))
+			p.chMetrics.PeerReceiveBytesTotal[ch] = p.metrics.PeerReceiveBytesTotal.With("peer_id", pid, "chID", getChIdStr(ch))
+		}
 	}
 
 	return p
@@ -273,11 +289,7 @@ func (p *peer) Send(chID byte, msgBytes []byte) bool {
 	}
 	res := p.mconn.Send(chID, msgBytes)
 	if res {
-		labels := []string{
-			"peer_id", string(p.ID()),
-			"chID", getChIdStr(chID),
-		}
-		p.metrics.PeerSendBytesTotal.With(labels...).Add(float64(len(msgBytes)))
+		p.updateSendBytesTotalMetrics(chID, len(msgBytes))
 	}
 	return res
 }
@@ -292,11 +304,7 @@ func (p *peer) TrySend(chID byte, msgBytes []byte) bool {
 	}
 	res := p.mconn.TrySend(chID, msgBytes)
 	if res {
-		labels := []string{
-			"peer_id", string(p.ID()),
-			"chID", getChIdStr(chID),
-		}
-		p.metrics.PeerSendBytesTotal.With(labels...).Add(float64(len(msgBytes)))
+		p.updateSendBytesTotalMetrics(chID, len(msgBytes))
 	}
 	return res
 }
@@ -380,6 +388,18 @@ func (p *peer) metricsReporter() {
 		case <-p.Quit():
 			return
 		}
+	}
+}
+
+func (p *peer) updateSendBytesTotalMetrics(chID byte, msgBytesLen int) {
+	if counter, ok := p.chMetrics.PeerSendBytesTotal[chID]; ok {
+		counter.Add(float64(msgBytesLen))
+	} else {
+		labels := []string{
+			"peer_id", string(p.ID()),
+			"chID", getChIdStr(chID),
+		}
+		p.metrics.PeerSendBytesTotal.With(labels...).Add(float64(msgBytesLen))
 	}
 }
 
