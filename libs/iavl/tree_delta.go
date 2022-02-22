@@ -564,9 +564,11 @@ type NodeJson struct {
 	RightHash    []byte `json:"right_hash"`
 	Version      int64  `json:"version"`
 	Size         int64  `json:"size"`
-	Height       int8   `json:"height"`
-	Persisted    bool   `json:"persisted"`
-	PrePersisted bool   `json:"pre_persisted"`
+	leftNode     *Node
+	rightNode    *Node
+	Height       int8 `json:"height"`
+	Persisted    bool `json:"persisted"`
+	PrePersisted bool `json:"pre_persisted"`
 }
 
 // MarshalToAmino marshal data to amino bytes.
