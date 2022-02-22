@@ -12,7 +12,6 @@ import (
 
 var (
 	FlagParalleledTx = "paralleled-tx"
-	FlagParaSender   = "paralleled-sender"
 )
 
 func execBlockOnProxyAppAsync(
