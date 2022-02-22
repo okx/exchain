@@ -33,6 +33,10 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 			if err := obj.CommitTrie(csdb.db); err != nil {
 				return ethcmn.Hash{}, err
 			}
+
+			if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+				csdb.UpdateAccountStorageInfo(obj)
+			}
 		}
 	}
 

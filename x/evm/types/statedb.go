@@ -891,9 +891,9 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-		csdb.UpdateAccountStorageInfo(so)
-	}
+	//if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+	//	csdb.UpdateAccountStorageInfo(so)
+	//}
 
 	return nil
 }

@@ -110,7 +110,7 @@ func (so *stateObject) updateRoot(db ethstate.Database) {
 	if so.updateTrie(db) == nil {
 		return
 	}
-	so.stateRoot = so.trie.Hash()
+	//so.stateRoot = so.trie.Hash()
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
