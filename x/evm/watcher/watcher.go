@@ -200,9 +200,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
-	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
-	w.delayEraseKey = append(w.delayEraseKey, key)
+	key1 := GetMsgAccountKey(addr.Bytes())
+	key2 := append(prefixRpcDb, key1...)
+	w.delayEraseKey = append(w.delayEraseKey, key1)
+	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {

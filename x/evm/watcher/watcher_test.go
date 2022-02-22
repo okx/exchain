@@ -122,8 +122,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-	err = delDirtyAccount(wd, w)
-	require.Nil(t, err)
+	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -134,6 +133,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
+	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 	time.Sleep(time.Second * 1)
 
 	cWd := getDBKV(store)
