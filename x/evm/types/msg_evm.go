@@ -309,7 +309,6 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		msg.from.Store(sigCache)
 		return sigCache, nil
 	}
-
 	V := new(big.Int)
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
@@ -335,6 +334,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
 	env.VerifySigCache.Add(string(txBytes), sender)
+	fmt.Printf("VerifySig no cache, key=%v, v=%v\n", string(txBytes), sender.Bytes())
 	return sigCache, nil
 }
 
