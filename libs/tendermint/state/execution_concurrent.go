@@ -19,7 +19,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	stateDB dbm.DB,
 	) (*ABCIResponses, error) {
 
-	logger.Error("execBlockOnProxyAppPartConcurrent begin")
 	abciResponses := NewABCIResponses(block)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
@@ -31,17 +30,15 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 		LastCommitInfo:      commitInfo,
 		ByzantineValidators: byzVals,
 	})
-	logger.Error("execBlockOnProxyAppPartConcurrent 2")
 	if err != nil {
 		logger.Error("Error in proxyAppConn.BeginBlock", "err", err)
 		return nil, err
 	}
-	logger.Error("execBlockOnProxyAppPartConcurrent 3")
 
 	// Run txs of block.
 	var validTxs, invalidTxs = 0, 0
 	txs := transTxsToBytes(block.Txs)
-	logger.Error("transTxsToBytes", "origin", len(block.Txs), "after", len(txs))
+	logger.Error("transTxsToBytes", "origin", len(block.Txs), "after", len(txs), "proxyAppConn", proxyAppConn)
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(txs)
 	for _, v := range abciResponses.DeliverTxs {
 		if v.Code == abci.CodeTypeOK {
