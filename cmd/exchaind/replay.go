@@ -287,7 +287,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		panic("haltheight <= startBlockHeight please check data or height")
 	}
 
-	log.Println("replay stop block height", "height", haltheight)
+	log.Println("replay stop block height", "height", haltheight, "lastBlockHeight", lastBlockHeight, "state.LastBlockHeight", state.LastBlockHeight)
 
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
