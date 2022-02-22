@@ -297,7 +297,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
+		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, int8(0))
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
