@@ -111,7 +111,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 		return nil, err
 	}
 
-
 	StartTxLog(bam.SaveTx)
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
@@ -239,21 +238,16 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	return executionResult.Result, nil
 }
 
-
-
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-	var setSender bool
 	if ctx.IsCheckTx() {
 		if from := ctx.From(); len(from) > 0 {
 			sender = common.HexToAddress(from)
-			setSender = true
+			return
 		}
 	}
-	if !setSender {
-		senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
-		if err == nil {
-			sender = senderSigCache.GetFrom()
-		}
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+	if err == nil {
+		sender = senderSigCache.GetFrom()
 	}
 
 	return
