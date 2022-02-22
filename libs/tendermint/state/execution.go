@@ -205,6 +205,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	blockExec.logger.Error("runAbci start")
 	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
 	blockExec.logger.Error("runAbci finished", "abciResponses", len(abciResponses.DeliverTxs), "txs", len(block.Txs))
 	if err != nil {
