@@ -174,7 +174,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	// dm.app.logger.Info("new into pendingTasks", "index", task.index)
+	dm.app.logger.Info("new into pendingTasks", "index", task.index)
 	//fmt.Printf("new into pendingTasks. index=%d\n", task.index)
 	dm.pendingTasks[task.index] = task
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
@@ -246,7 +246,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.nextSignal <- 0
 		}
 
-		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
+		dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
@@ -332,7 +332,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
-			//dm.app.logger.Error("handleRunMsg failed", "err", err)
+			dm.app.logger.Error("handleRunMsg failed", "err", err)
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{
@@ -394,6 +394,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
 
+	app.logger.Info("deliverTxs", "txs", len(txs))
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
