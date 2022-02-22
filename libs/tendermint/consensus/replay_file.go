@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"

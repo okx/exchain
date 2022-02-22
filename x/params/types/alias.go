@@ -5,9 +5,9 @@ import (
 )
 
 type (
-	ParamChange   = types.ParamChange
+	ParamChange = types.ParamChange
 )
 
 var (
-	NewParamChange  = types.NewParamChange
+	NewParamChange = types.NewParamChange
 )

@@ -8,7 +8,7 @@ import (
 )
 
 func TestErrors(t *testing.T) {
-	require.Equal(t, BaseGovError+1, ErrUnknownProposal( 0).(*sdkerror.Error).ABCICode())
+	require.Equal(t, BaseGovError+1, ErrUnknownProposal(0).(*sdkerror.Error).ABCICode())
 	require.Equal(t, BaseGovError+7, ErrInvalidateProposalStatus().(*sdkerror.Error).ABCICode())
 	require.Equal(t, BaseGovError+8, ErrInitialDepositNotEnough("").(*sdkerror.Error).ABCICode())
 	require.Equal(t, BaseGovError+9, ErrInvalidProposer().(*sdkerror.Error).ABCICode())

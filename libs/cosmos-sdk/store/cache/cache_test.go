@@ -8,9 +8,9 @@ import (
 	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetOrSetStoreCache(t *testing.T) {

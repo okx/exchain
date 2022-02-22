@@ -27,8 +27,6 @@ var (
 	commissionRates = NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
 )
 
-
-
 func NewTestMsgCreateValidatorWithMinSelfDelegation(address sdk.ValAddress, pubKey crypto.PubKey,
 	amt sdk.Int, minSelfDelegation sdk.Int) MsgCreateValidator {
 

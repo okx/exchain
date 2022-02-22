@@ -7,7 +7,7 @@ import (
 
 func NewTracer() *Tracer {
 	t := &Tracer{
-		startTime:  time.Now().UnixNano(),
+		startTime: time.Now().UnixNano(),
 	}
 	return t
 }

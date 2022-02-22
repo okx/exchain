@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/stretchr/testify/require"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	keep "github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/keeper"

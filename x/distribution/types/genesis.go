@@ -27,7 +27,7 @@ type GenesisState struct {
 }
 
 // NewGenesisState creates a new object of GenesisState
-func NewGenesisState( params Params, feePool FeePool,
+func NewGenesisState(params Params, feePool FeePool,
 	dwis []DelegatorWithdrawInfo, pp sdk.ConsAddress, acc []ValidatorAccumulatedCommissionRecord) GenesisState {
 
 	return GenesisState{

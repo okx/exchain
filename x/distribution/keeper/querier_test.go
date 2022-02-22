@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestQueryParams(t *testing.T) {
@@ -36,7 +36,7 @@ func TestQueryParams(t *testing.T) {
 func TestQueryValidatorCommission(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
-	k.SetValidatorAccumulatedCommission(ctx,valOpAddr1, NewTestSysCoins(15,1))
+	k.SetValidatorAccumulatedCommission(ctx, valOpAddr1, NewTestSysCoins(15, 1))
 
 	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(valOpAddr1))
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestQueryValidatorCommission(t *testing.T) {
 	var data sdk.SysCoins
 	err = amino.UnmarshalJSON(commission, &data)
 	require.NoError(t, err)
-	require.Equal(t, NewTestSysCoins(15,1), data)
+	require.Equal(t, NewTestSysCoins(15, 1), data)
 }
 
 func TestQueryDelegatorWithdrawAddress(t *testing.T) {
@@ -69,7 +69,7 @@ func TestQueryCommunityPool(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
 	feePool := k.GetFeePool(ctx)
-	feePool.CommunityPool = feePool.CommunityPool.Add(NewTestSysCoins(123,2)...)
+	feePool.CommunityPool = feePool.CommunityPool.Add(NewTestSysCoins(123, 2)...)
 	k.SetFeePool(ctx, feePool)
 
 	communityPool, err := querior(ctx, []string{types.QueryCommunityPool}, abci.RequestQuery{})
@@ -78,5 +78,5 @@ func TestQueryCommunityPool(t *testing.T) {
 	var data sdk.SysCoins
 	err1 := amino.UnmarshalJSON(communityPool, &data)
 	require.NoError(t, err1)
-	require.Equal(t, NewTestSysCoins(123,2), data)
+	require.Equal(t, NewTestSysCoins(123, 2), data)
 }

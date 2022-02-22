@@ -6,10 +6,11 @@ import (
 
 // GenesisState - minter state
 type GenesisState struct {
-	Minter MinterCustom `json:"minter" yaml:"minter"` // minter object
-	Params Params `json:"params" yaml:"params"` // inflation params
+	Minter    MinterCustom `json:"minter" yaml:"minter"`                           // minter object
+	Params    Params       `json:"params" yaml:"params"`                           // inflation params
+	Treasures []Treasure   `json:"treasures,omitempty" yaml:"treasures,omitempty"` // treasures
 
-	OriginalMintedPerBlock sdk.Dec      `json:"original_minted_per_block" yaml:"original_minted_per_block"`
+	OriginalMintedPerBlock sdk.Dec `json:"original_minted_per_block" yaml:"original_minted_per_block"`
 }
 
 // NewGenesisState creates a new GenesisState object
@@ -29,8 +30,8 @@ func DefaultOriginalMintedPerBlock() sdk.Dec {
 // DefaultGenesisState creates a default GenesisState object
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Minter: DefaultInitialMinterCustom(),
-		Params: DefaultParams(),
+		Minter:                 DefaultInitialMinterCustom(),
+		Params:                 DefaultParams(),
 		OriginalMintedPerBlock: DefaultOriginalMintedPerBlock(),
 	}
 }
@@ -40,6 +41,14 @@ func DefaultGenesisState() GenesisState {
 func ValidateGenesis(data GenesisState) error {
 	if err := data.Params.Validate(); err != nil {
 		return err
+	}
+	if data.Treasures != nil {
+		if isTreasureDuplicated(data.Treasures) {
+			return ErrDuplicatedTreasure
+		}
+		if err := ValidateTreasures(data.Treasures); err != nil {
+			return err
+		}
 	}
 
 	return ValidateMinterCustom(data.Minter)

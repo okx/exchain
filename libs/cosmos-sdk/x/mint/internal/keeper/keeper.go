@@ -20,8 +20,9 @@ type Keeper struct {
 	supplyKeeper     types.SupplyKeeper
 	feeCollectorName string
 
-	farmModuleName     string
+	farmModuleName         string
 	originalMintedPerBlock sdk.Dec
+	govKeeper              types.GovKeeper
 }
 
 // NewKeeper creates a new mint Keeper instance
@@ -36,13 +37,13 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		cdc:              cdc,
-		storeKey:         key,
-		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
-		sk:               sk,
-		supplyKeeper:     supplyKeeper,
-		feeCollectorName: feeCollectorName,
-		farmModuleName:   farmModule,
+		cdc:                    cdc,
+		storeKey:               key,
+		paramSpace:             paramSpace.WithKeyTable(types.ParamKeyTable()),
+		sk:                     sk,
+		supplyKeeper:           supplyKeeper,
+		feeCollectorName:       feeCollectorName,
+		farmModuleName:         farmModule,
 		originalMintedPerBlock: types.DefaultOriginalMintedPerBlock(),
 	}
 }
@@ -114,5 +115,14 @@ func (k Keeper) MintCoins(ctx sdk.Context, newCoins sdk.Coins) error {
 // AddCollectedFees implements an alias call to the underlying supply keeper's
 // AddCollectedFees to be used in BeginBlocker.
 func (k Keeper) AddCollectedFees(ctx sdk.Context, fees sdk.Coins) error {
-	return k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, fees)
+	remain, err := k.AllocateTokenToTreasure(ctx, fees)
+	if err != nil {
+		return err
+	}
+	return k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, remain)
+}
+
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
+	k.govKeeper = gk
 }

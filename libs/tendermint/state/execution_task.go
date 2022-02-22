@@ -32,7 +32,7 @@ type executionTask struct {
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
-	ret:=&executionTask{
+	ret := &executionTask{
 		height:         block.Height,
 		block:          block,
 		db:             blockExec.db,
@@ -42,7 +42,7 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		index:          index,
 		isParalleledTx: blockExec.isAsync,
 	}
-	ret.blockHash=hex.EncodeToString(block.Hash())
+	ret.blockHash = hex.EncodeToString(block.Hash())
 
 	return ret
 }

@@ -13,15 +13,15 @@ import (
 )
 
 const (
-	ModuleName                  = types.ModuleName
-	StoreKey                    = types.StoreKey
-	RouterKey                   = types.RouterKey
-	QuerierRoute                = types.QuerierRoute
-	QueryParams                 = types.QueryParams
-	QueryValidatorCommission    = types.QueryValidatorCommission
-	QueryWithdrawAddr           = types.QueryWithdrawAddr
-	ParamWithdrawAddrEnabled    = types.ParamWithdrawAddrEnabled
-	DefaultParamspace           = types.DefaultParamspace
+	ModuleName               = types.ModuleName
+	StoreKey                 = types.StoreKey
+	RouterKey                = types.RouterKey
+	QuerierRoute             = types.QuerierRoute
+	QueryParams              = types.QueryParams
+	QueryValidatorCommission = types.QueryValidatorCommission
+	QueryWithdrawAddr        = types.QueryWithdrawAddr
+	ParamWithdrawAddrEnabled = types.ParamWithdrawAddrEnabled
+	DefaultParamspace        = types.DefaultParamspace
 )
 
 var (

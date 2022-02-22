@@ -3,18 +3,18 @@ package simulation
 import (
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/x/evm"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/evm"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 type EvmFactory struct {
@@ -72,7 +72,7 @@ type EvmSimulator struct {
 	ctx     sdk.Context
 }
 
-func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthereumTx) (*sdk.SimulationResponse, error) {
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e

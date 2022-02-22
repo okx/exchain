@@ -1,29 +1,36 @@
 package baseapp
 
-
 const (
-    //----- DeliverTx
-    DeliverTx = "DeliverTx"
-    TxDecoder = "TxDecoder"
-    RunTx = "RunTx"
+	//----- DeliverTx
+	DeliverTx = "DeliverTx"
+	TxDecoder = "TxDecoder"
+	RunTx     = "RunTx"
 
-    //----- run_tx
-    InitCtx = "initCtx"
-    ValTxMsgs = "valTxMsgs"
-    AnteHandler = "anteHandler"
-    RunMsgs = "runMsgs"
-    Refund = "refund"
-    ConsumeGas = "ConsumeGas"
-    Recover = "recover"
+	//----- RunTx details
+	ValTxMsgs   = "valTxMsgs"
+	RunAnte     = "RunAnte"
+	RunMsg      = "RunMsg"
+	Refund      = "refund"
+	EvmHandler  = "EvmHandler"
 
-    //----- handler
-    EvmHandler = "evm_handler"
-    ParseChainID = "ParseChainID"
-    VerifySig = "VerifySig"
-    Txhash= "txhash"
-    SaveTx = "SaveTx"
-    TransitionDb = "TransitionDb"
-    Bloomfilter = "Bloomfilter"
-    EmitEvents = "EmitEvents"
-    HandlerDefer = "handler_defer"
+	//------ RunAnte details
+	CacheTxContext  = "cacheTxContext"
+	AnteChain       = "AnteChain"
+	AnteOther       = "AnteOther"
+	CacheStoreWrite = "cacheStoreWrite"
+
+	//----- RunMsgs details
+
+
+
+
+	//----- handler details
+	ParseChainID = "ParseChainID"
+	VerifySig    = "VerifySig"
+	Txhash       = "txhash"
+	SaveTx       = "SaveTx"
+	TransitionDb = "TransitionDb"
+	Bloomfilter  = "Bloomfilter"
+	EmitEvents   = "EmitEvents"
+	HandlerDefer = "handler_defer"
 )
