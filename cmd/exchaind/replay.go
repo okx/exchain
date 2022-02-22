@@ -290,20 +290,22 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	log.Println("replay stop block height", "height", haltheight, "lastBlockHeight", lastBlockHeight, "state.LastBlockHeight", state.LastBlockHeight)
 
 	// Replay blocks up to the latest in the blockstore.
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
+
 	if lastBlockHeight == state.LastBlockHeight+1 {
 		global.SetGlobalHeight(lastBlockHeight)
-		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
-		panicError(err)
-		mockApp := newMockProxyApp(lastAppHash, abciResponses)
+		//abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
+		//panicError(err)
+		//mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
+		//blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
 
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
+	//blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()
@@ -312,11 +314,11 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
+	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {
