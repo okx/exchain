@@ -195,6 +195,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}()
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {
+		blockExec.logger.Error("ValidateBlock failed", "err", err)
 		return state, 0, ErrInvalidBlock(err)
 	}
 
