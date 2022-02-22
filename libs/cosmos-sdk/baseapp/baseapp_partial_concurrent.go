@@ -391,17 +391,14 @@ func (dm *DeliverTxTasksManager) resetExecutingTask() {
 //-------------------------------------------------------------
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
-	app.logger.Error("DeliverTxsConcurrent BaseApp")
 	if app.deliverTxsMgr == nil {
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
 
-	app.logger.Error("DeliverTxsConcurrent", "txs count", len(txs))
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
 		//waiting for call back
-		app.logger.Info("")
 		<-app.deliverTxsMgr.done
 	}
 

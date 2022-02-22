@@ -37,9 +37,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 
 	// Run txs of block.
 	var validTxs, invalidTxs = 0, 0
-	txs := transTxsToBytes(block.Txs)
-	logger.Error("transTxsToBytes", "origin", len(block.Txs), "after", len(txs), "proxyAppConn", proxyAppConn)
-	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(txs)
+	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	for _, v := range abciResponses.DeliverTxs {
 		if v.Code == abci.CodeTypeOK {
 			validTxs++
