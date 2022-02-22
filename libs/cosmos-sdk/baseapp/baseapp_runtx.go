@@ -116,6 +116,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunMsgs, true, mode)
 	//fmt.Println("handleRunMsg.")
 	err = handler.handleRunMsg(info)
+	if err != nil {
+		app.logger.Error("handleRunMsg failed", "err", err)
+	}
 	app.pin(RunMsgs, false, mode)
 	return err
 }
