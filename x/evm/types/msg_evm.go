@@ -304,7 +304,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		}
 	}
 	// get sender from cache
-	if sender, ok := env.VerifySigCache.Get(string(txBytes)); ok {
+	txHash := tmtypes.Tx(txBytes).Hash(height)
+	if sender, ok := env.VerifySigCache.Get(string(txHash)); ok {
 		sigCache := &ethSigCache{signer: signer, from: sender}
 		msg.from.Store(sigCache)
 		return sigCache, nil
@@ -333,8 +334,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(string(txBytes), sender)
-	fmt.Printf("VerifySig no cache, key=%v, v=%v\n", string(txBytes), sender.Bytes())
+	env.VerifySigCache.Add(string(txHash), sender)
+	fmt.Printf("VerifySig no cache, key=%v, v=%v\n", string(txHash), sender.Bytes())
 	return sigCache, nil
 }
 
