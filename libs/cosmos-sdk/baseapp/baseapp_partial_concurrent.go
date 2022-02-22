@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/adb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -133,7 +132,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	dm.app.pin(ValTxMsgs, true, mode)
 	if err := validateBasicTxMsgs(task.tx.GetMsgs()); err != nil {
 		task.err = err
-		fmt.Printf("validateBasicTxMsgs failed. err: %s\n", err)
+		dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		return
 	}
 	dm.app.pin(ValTxMsgs, false, mode)
@@ -142,7 +141,8 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	if dm.app.anteHandler != nil {
 		err := dm.runAnte(task.info, mode)
 		if err != nil {
-			fmt.Printf("runAnte failed. err:%s\n", err)
+			//fmt.Printf("runAnte failed. err:%s\n", err)
+			dm.app.logger.Error("runAnte failed", "err", err)
 			task.anteFailed = true
 		}
 	}
@@ -150,14 +150,15 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	fmt.Printf("runTxPartConcurrent. index=%d\n", index)
+	// dm.app.logger.Info("runTxPartConcurrent", "index", index)
 	tx, err := dm.app.txDecoder(txByte)
 	task := newDeliverTxTask(tx, index)
 	task.info.txBytes = txByte
 	if err != nil {
 		task.err = err
 		//task.decodeFailed = true
-		fmt.Printf("tx decode failed. err: %s\n", err)
+		//fmt.Printf("tx decode failed. err: %s\n", err)
+		dm.app.logger.Error("tx decode failed"," err", err)
 	}
 
 	dm.mtx.Lock()
@@ -174,7 +175,8 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	fmt.Printf("new into pendingTasks. index=%d\n", task.index)
+	// dm.app.logger.Info("new into pendingTasks", "index", task.index)
+	//fmt.Printf("new into pendingTasks. index=%d\n", task.index)
 	dm.pendingTasks[task.index] = task
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
 		dm.executeSignal <- 0
@@ -236,15 +238,16 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		if !dm.extractExecutingTask() {
 			start := time.Now()
 			<-dm.executeSignal
-			elapsed := time.Since(start)
-			fmt.Println("time to waiting for extractExecutingTask: ", elapsed)
+			elapsed := time.Since(start).Milliseconds()
+			dm.app.logger.Error("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
+			//fmt.Println("time to waiting for extractExecutingTask: ", elapsed)
 			continue
 		}
 		if dm.isWaiting {
 			dm.nextSignal <- 0
 		}
 
-		fmt.Printf("runTxSerialRoutine. index=%d\n", dm.executingTask.index)
+		// dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
@@ -288,7 +291,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		err := info.handler.handleGasConsumed(info)
 		if err != nil {
-			fmt.Printf("failed 1. err:%s\n", err)
+			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
 			//dm.txExeResults[dm.executingTask.index] = execResult
 
@@ -302,10 +305,10 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(AnteHandler, true, mode)
 
 			if dm.app.anteHandler != nil {
-				fmt.Printf("rerun Ante. %d\n", dm.executingTask.index)
+				// dm.app.logger.Info("rerun Ante", "index", dm.executingTask.index)
 				err := dm.app.runAnte(info, mode)
 				if err != nil {
-					fmt.Printf("failed 2. err:%s\n", err)
+					dm.app.logger.Error("runAnte failed", "err", err)
 					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
 					//dm.txExeResults[dm.executingTask.index] = execResult
 
@@ -330,7 +333,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
-			fmt.Printf("failed 3. err:%s\n", err)
+			dm.app.logger.Error("handleRunMsg failed", "err", err)
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{
@@ -374,7 +377,7 @@ func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 		dm.curIndex++
 		return true
 	} else {
-		fmt.Printf("extractExecutingTask failed. index=%d\n", dm.curIndex+1)
+		dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
 	return false
 }
