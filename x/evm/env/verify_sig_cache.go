@@ -1,10 +1,10 @@
 package env
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
-	"io"
-	"os"
+	"io/fs"
+	"io/ioutil"
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -62,30 +62,17 @@ func validateKey(key string) bool {
 }
 
 func (c *Cache) Load(fileName string) {
-	data := make(map[string]ethcmn.Address)
-	f, err := os.Open(fileName)
+	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		panic(err)
 	}
-
-	defer f.Close()
-	b := bufio.NewReader(f)
-	for {
-		k, _, err := b.ReadLine()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		v, _, err := b.ReadLine()
-		if err != nil {
-			panic(err)
-		}
-		data[string(k)] = ethcmn.HexToAddress(string(v))
-
+	var data map[string]ethcmn.Address
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		panic(err)
 	}
 	c.data = data
+
 	fmt.Println("verify sig cache size:", len(c.data))
 	for k, v := range c.data {
 		fmt.Println(k, v.String())
@@ -94,19 +81,16 @@ func (c *Cache) Load(fileName string) {
 
 func (c *Cache) Save(fileName string) {
 	fmt.Println("verify sig cache size:", len(c.data))
-	f, err := os.Create(fileName)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer f.Close()
-	w := bufio.NewWriter(f)
 	for k, v := range c.data {
 		fmt.Println(k, v.String())
-		w.Write([]byte(k))
-		w.WriteByte('\n')
-
-		w.WriteString(v.String())
-		w.WriteByte('\n')
 	}
-	w.Flush()
+
+	content, err := json.Marshal(c.data)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(fileName, content, fs.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 }
