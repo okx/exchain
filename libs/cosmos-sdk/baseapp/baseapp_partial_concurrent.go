@@ -368,6 +368,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
+	if len(dm.pendingTasks) == 0 {
+		return false
+	}
 	dm.executingTask = dm.pendingTasks[dm.curIndex+1]
 	if dm.executingTask != nil {
 		delete(dm.pendingTasks, dm.curIndex+1)
