@@ -368,9 +368,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	if len(dm.pendingTasks) == 0 {
-		return false
-	}
 	dm.executingTask = dm.pendingTasks[dm.curIndex+1]
 	if dm.executingTask != nil {
 		delete(dm.pendingTasks, dm.curIndex+1)
@@ -398,10 +395,12 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
 
+	app.logger.Info("DeliverTxsConcurrent", "txs count", len(txs))
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
 		//waiting for call back
+		app.logger.Info("")
 		<-app.deliverTxsMgr.done
 	}
 
