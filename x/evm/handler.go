@@ -8,7 +8,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
@@ -112,9 +111,14 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	defer StopTxLog(bam.EvmHandler)
 
 	StartTxLog(bam.Txhash)
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return nil, err
+	var err error
+	chainIDEpoch := ctx.ChainIDEpoch()
+	if chainIDEpoch == nil {
+		chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
+		if err != nil {
+			return nil, err
+		}
+		ctx = ctx.WithChainIDEpoch(chainIDEpoch)
 	}
 
 	// Verify signature and retrieve sender address
@@ -125,8 +129,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	sender := senderSigCache.GetFrom()
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	ethHash := common.BytesToHash(txHash)
+	ethHash := ctx.EthTxHash()
 	StopTxLog(bam.Txhash)
 
 	StartTxLog(bam.SaveTx)
@@ -151,7 +154,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// other nodes, causing a consensus error
 
 	if !st.Simulate {
-		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
+		k.Watcher.SaveEthereumTx(msg, ethHash, uint64(k.TxCount))
 		// Prepare db for logs
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
@@ -210,7 +213,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	if err != nil {
 		if !st.Simulate {
-			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, ethHash, uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
 		if ctx.IsTraceTxLog() {
 			// the result was replaced to trace logs when trace tx even if err != nil
@@ -235,7 +238,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			k.Bloom.Or(k.Bloom, executionResult.Bloom) // not support paralleled-tx´
 		}
 		k.LogSize = st.Csdb.GetLogSize()
-		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, ethHash, uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
 			st.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 				k.Watcher.SaveContractCode(addr, c.Code)
@@ -287,14 +290,13 @@ func handleSimulation(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.
 		panic("Invalid Ethermint tx")
 	}
 
-	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	ethHash := common.BytesToHash(txHash)
+	// parse the chainID from a string to a base-10 integer
+	ethHash := ctx.EthTxHash()
 
 	st := types.StateTransition{
 		AccountNonce: msg.AccountNonce,

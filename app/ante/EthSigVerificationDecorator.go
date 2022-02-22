@@ -25,9 +25,13 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return ctx, err
+	chainIDEpoch := ctx.ChainIDEpoch()
+	if chainIDEpoch == nil {
+		chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
+		if err != nil {
+			return ctx, err
+		}
+		ctx = ctx.WithChainIDEpoch(chainIDEpoch)
 	}
 
 	// validate sender/signature and cache the address

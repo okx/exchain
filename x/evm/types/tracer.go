@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	json "github.com/json-iterator/go"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -149,7 +148,7 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 	if err != nil {
 		res = []byte(err.Error())
 	}
-	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight()), res)
+	saveToDB(ctx.TxHash(), res)
 }
 
 func saveToDB(txHash []byte, value json.RawMessage) {

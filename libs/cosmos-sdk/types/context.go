@@ -2,8 +2,11 @@ package types
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/tendermint/trace"
+	"math/big"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 /*
@@ -26,8 +30,11 @@ type Context struct {
 	ms             MultiStore
 	header         abci.Header
 	chainID        string
+	chainIDEpoch   *big.Int
 	from           string
 	txBytes        []byte
+	txHash         tmtypes.Tx
+	ethTxHash      common.Hash
 	logger         log.Logger
 	voteInfo       []abci.VoteInfo
 	gasMeter       GasMeter
@@ -56,8 +63,11 @@ func (c Context) MultiStore() MultiStore      { return c.ms }
 func (c Context) BlockHeight() int64          { return c.header.Height }
 func (c Context) BlockTime() time.Time        { return c.header.Time }
 func (c Context) ChainID() string             { return c.chainID }
+func (c Context) ChainIDEpoch() *big.Int      { return c.chainIDEpoch }
 func (c Context) From() string                { return c.from }
 func (c Context) TxBytes() []byte             { return c.txBytes }
+func (c Context) TxHash() tmtypes.Tx          { return c.txHash }
+func (c Context) EthTxHash() common.Hash      { return c.ethTxHash }
 func (c Context) Logger() log.Logger          { return c.logger }
 func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
 func (c Context) GasMeter() GasMeter          { return c.gasMeter }
@@ -150,6 +160,11 @@ func (c Context) WithChainID(chainID string) Context {
 	return c
 }
 
+func (c Context) WithChainIDEpoch(chainIDEpoch *big.Int) Context {
+	c.chainIDEpoch = chainIDEpoch
+	return c
+}
+
 func (c Context) WithFrom(from string) Context {
 	c.from = from
 	return c
@@ -157,6 +172,9 @@ func (c Context) WithFrom(from string) Context {
 
 func (c Context) WithTxBytes(txBytes []byte) Context {
 	c.txBytes = txBytes
+	// WithTxBytes is always called after with WithBlockHeight or WithBlockHeader
+	c.txHash = tmtypes.Tx(txBytes).Hash(c.BlockHeight())
+	c.ethTxHash = common.BytesToHash(c.txHash)
 	return c
 }
 
