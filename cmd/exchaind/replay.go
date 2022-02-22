@@ -131,6 +131,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().BoolVar(&sm.EnableParaSender, sm.FlagParaSender, false, "Enable Parallel Sender")
 	cmd.Flags().BoolVar(&libTypes.MptAsnyc, libTypes.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
+	cmd.Flags().UintVar(&libTypes.TrieCacheSize, libTypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	return cmd

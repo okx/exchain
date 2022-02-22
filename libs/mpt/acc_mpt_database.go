@@ -50,11 +50,6 @@ func InstanceOfAccStore() ethstate.Database {
 	return gAccMptDatabase
 }
 
-var (
-	KeyPrefixRootMptHash        = []byte{0x01}
-	KeyPrefixLatestStoredHeight = []byte{0x02}
-)
-
 // GetLatestStoredBlockHeight get latest mpt storage height
 func (ms *MptStore) GetLatestStoredBlockHeight() uint64 {
 	rst, err := ms.db.TrieDB().DiskDB().Get(KeyPrefixLatestStoredHeight)

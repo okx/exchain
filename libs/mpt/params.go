@@ -10,5 +10,11 @@ const (
 	// StoreKey is string representation of the store key for mpt
 	StoreKey = "mpt"
 
-	FlagDBBackend = "db_backend"
+	FlagAccStoreCache = "account-store-cache"
+)
+
+var (
+	KeyPrefixRootMptHash             = []byte{0x01}
+	KeyPrefixLatestStoredHeight      = []byte{0x02}
+	AccStoreCache               uint = 2048 // MB
 )

@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
@@ -14,17 +15,18 @@ import (
 	"time"
 )
 
-var (
-	KeyPrefixRootMptHash        = []byte{0x01}
-	KeyPrefixLatestStoredHeight = []byte{0x02}
+const (
+	FlagContractStateCache = "contract-state-cache"
 )
 
-const TriesInMemory = 100
+var (
+	ContractStateCache uint = 2048 // MB
+)
 
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	hhash := sdk.Uint64ToBigEndian(height)
-	rst, err := k.db.TrieDB().DiskDB().Get(append(KeyPrefixRootMptHash, hhash...))
+	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
 	if err != nil || len(rst) == 0 {
 		return ethcmn.Hash{}
 	}
@@ -34,7 +36,7 @@ func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 // SetMptRootHash sets the mapping from block height to root mpt hash
 func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
-	k.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
+	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, hhash...), hash.Bytes())
 
 	// put root hash to iavl and participate the process of calculate appHash
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
@@ -45,7 +47,7 @@ func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 
 // GetLatestStoredBlockHeight get latest stored mpt storage height
 func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
-	rst, err := k.db.TrieDB().DiskDB().Get(KeyPrefixLatestStoredHeight)
+	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0
 	}
@@ -55,7 +57,7 @@ func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
 // SetLatestStoredBlockHeight sets the latest stored storage height
 func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 	hhash := sdk.Uint64ToBigEndian(height)
-	k.db.TrieDB().DiskDB().Put(KeyPrefixLatestStoredHeight, hhash)
+	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, hhash)
 }
 
 func (k *Keeper) OpenTrie() {
@@ -102,7 +104,7 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
 		latestVersion := uint64(ctx.BlockHeight())
-		offset := uint64(TriesInMemory)
+		offset := uint64(mpt.TriesInMemory)
 		for ; offset > 0; offset-- {
 			if latestVersion > offset {
 				version := latestVersion - offset
@@ -156,7 +158,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 		k.triegc.Push(curMptRoot, -int64(curHeight))
 
-		if curHeight > TriesInMemory {
+		if curHeight > mpt.TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
@@ -167,7 +169,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
-			chosen := curHeight - TriesInMemory
+			chosen := curHeight - mpt.TriesInMemory
 
 			if chosen <= int64(k.startHeight) {
 				return

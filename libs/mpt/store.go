@@ -74,7 +74,7 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 		db:            db,
 		triegc:        triegc,
 		logger:        logger,
-		kvCache:       fastcache.New(2 * 1024 * 1024 * 1024),
+		kvCache:       fastcache.New(int(AccStoreCache) * 1024 * 1024),
 	}
 	err := mptStore.openTrie(id)
 

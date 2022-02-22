@@ -245,10 +245,7 @@ func getTrie(db ethstate.Database, addrHash ethcmn.Hash) ethstate.Trie {
 
 // SetMptRootHash sets the mapping from block height to root mpt hash
 func setAccMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash) {
-	KeyPrefixRootMptHash := []byte{0x01}
-	KeyPrefixLatestStoredHeight := []byte{0x02}
-
 	hhash := sdk.Uint64ToBigEndian(height)
-	db.TrieDB().DiskDB().Put(KeyPrefixLatestStoredHeight, hhash)
-	db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
+	db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, hhash)
+	db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }

@@ -106,7 +106,7 @@ func NewKeeper(
 
 		db:             mpt.InstanceOfEvmStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(2 * 1024 * 1024 * 1024),
+		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		mptCommitMu:    &sync.Mutex{},
 		asyncChain:     make(chan int64, 1000),
@@ -141,7 +141,7 @@ func NewSimulateKeeper(
 
 		db:             mpt.InstanceOfEvmStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(2 * 1024 * 1024 * 1024),
+		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
 
