@@ -315,6 +315,9 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 			case deliverTxsExecModePartConcurrent:
 				blockExec.logger.Error("deliverTxsExecModePartConcurrent")
 				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+				if err != nil {
+					blockExec.logger.Error("execBlockOnProxyAppPartConcurrent failed", "err", err)
+				}
 			case deliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
