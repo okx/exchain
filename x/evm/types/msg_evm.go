@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -304,8 +305,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		}
 	}
 	// get sender from cache
-	txHash := tmtypes.Tx(txBytes).Hash(height)
-	if sender, ok := env.VerifySigCache.Get(string(txHash)); ok {
+	txHash := hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
+	if sender, ok := env.VerifySigCache.Get(txHash); ok {
 		sigCache := &ethSigCache{signer: signer, from: sender}
 		msg.from.Store(sigCache)
 		return sigCache, nil
@@ -334,8 +335,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(string(txHash), sender)
-	fmt.Printf("VerifySig no cache, key=%v, v=%v\n", string(txHash), sender.Bytes())
+	env.VerifySigCache.Add(txHash, sender)
+	fmt.Printf("VerifySig no cache, key=%v, v=%v\n", txHash, sender.Bytes())
 	return sigCache, nil
 }
 
