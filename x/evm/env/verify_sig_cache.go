@@ -102,7 +102,8 @@ func (c *Cache) Save(fileName string) {
 	w := bufio.NewWriter(f)
 	for k, v := range c.data {
 		fmt.Println(k, v.String())
-		fmt.Fprintln(w, k)
+		w.Write([]byte(k))
+		w.WriteByte('\n')
 
 		w.Write(v[:])
 		w.WriteByte('\n')
