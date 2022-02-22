@@ -70,7 +70,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 
 	dm.totalCount = len(txs)
 	dm.curIndex = -1
-	//fmt.Printf("deliverTxs. totalCount:%d\n", dm.totalCount)
+	dm.app.logger.Info("deliverTxs", "totalCount", dm.totalCount)
 
 	dm.tasks = make(map[int]*DeliverTxTask, maxDeliverTxsConcurrentNum)
 	dm.pendingTasks = make(map[int]*DeliverTxTask, maxDeliverTxsConcurrentNum)
@@ -247,7 +247,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.nextSignal <- 0
 		}
 
-		// dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
+		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
