@@ -150,7 +150,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	dm.app.logger.Info("runTxPartConcurrent", "index", index)
+	// dm.app.logger.Info("runTxPartConcurrent", "index", index)
 	tx, err := dm.app.txDecoder(txByte)
 	task := newDeliverTxTask(tx, index)
 	task.info.txBytes = txByte
@@ -175,7 +175,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	dm.app.logger.Info("new into pendingTasks", "index", task.index)
+	// dm.app.logger.Info("new into pendingTasks", "index", task.index)
 	//fmt.Printf("new into pendingTasks. index=%d\n", task.index)
 	dm.pendingTasks[task.index] = task
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
@@ -247,7 +247,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.nextSignal <- 0
 		}
 
-		dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
+		// dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
@@ -305,7 +305,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(AnteHandler, true, mode)
 
 			if dm.app.anteHandler != nil {
-				dm.app.logger.Info("rerun Ante", "index", dm.executingTask.index)
+				// dm.app.logger.Info("rerun Ante", "index", dm.executingTask.index)
 				err := dm.app.runAnte(info, mode)
 				if err != nil {
 					dm.app.logger.Error("runAnte failed", "err", err)

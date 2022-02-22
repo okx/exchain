@@ -168,7 +168,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	}
 
 	// replay
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight, int8(1))
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight, int8(0))
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
