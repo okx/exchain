@@ -139,6 +139,13 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			},
 			true,
 		},
+		{
+			"insufficient balance for transfer",
+			func() {
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			false,
+		},
 	}
 
 	for _, tc := range testCases {
