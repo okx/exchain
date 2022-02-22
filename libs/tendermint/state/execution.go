@@ -109,7 +109,7 @@ func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
 	blockExec.isAsync = sw
 }
 
-func (blockExec *BlockExecutor) SetDeliverTxsMode(mode uint8) {
+func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int8) {
 	blockExec.deliverTxsExecMode = DeliverTxsExecMode(mode)
 }
 
@@ -205,7 +205,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 
 	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
-
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
@@ -312,7 +311,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 			case deliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			case deliverTxsExecModePartConcurrent:
-				blockExec.logger.Error("deliverTxsExecModePartConcurrent")
+				blockExec.logger.Error("deliverTxsExecModePartConcurrent", "height", block.Height)
 				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			case deliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
