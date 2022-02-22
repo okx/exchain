@@ -44,7 +44,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -106,8 +105,6 @@ func NewAPI(
 	module := evm.AppModuleBasic{}
 	api.cdc = codec.New()
 	module.RegisterCodec(api.cdc)
-	api.simulateKeeper = evm.NewSimulateKeeper(api.cdc, sdk.NewKVStoreKey(evm.StoreKey), simulation.NewSubspaceProxy(), simulation.NewAccountKeeperProxy(api), simulation.SupplyKeeperProxy{}, simulation.NewBankKeeperProxy(), simulation.NewInternalDba(api), tmlog.NewNopLogger())
-
 	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
 		if err != nil {
@@ -159,7 +156,7 @@ func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 }
 
 func (api *PublicEthereumAPI) GetSimulateKeeper() *keeper.Keeper {
-	return api.simulateKeeper
+	return evm.NewSimulateKeeper(api.cdc, sdk.NewKVStoreKey(evm.StoreKey), simulation.NewSubspaceProxy(), simulation.NewAccountKeeperProxy(api), simulation.SupplyKeeperProxy{}, simulation.NewBankKeeperProxy(), simulation.NewInternalDba(api), log.NewNopLogger())
 }
 
 // GetKeys returns the Cosmos SDK client context.

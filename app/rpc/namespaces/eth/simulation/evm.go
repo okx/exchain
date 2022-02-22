@@ -27,7 +27,6 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := qoc.GetSimulateKeeper()
-
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
