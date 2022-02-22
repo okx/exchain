@@ -61,12 +61,12 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 			block.ConsensusHash,
 		)
 	}
-	if !bytes.Equal(block.LastResultsHash, state.LastResultsHash) {
-		return fmt.Errorf("wrong Block.Header.LastResultsHash.  Expected %X, got %v",
-			state.LastResultsHash,
-			block.LastResultsHash,
-		)
-	}
+	//if !bytes.Equal(block.LastResultsHash, state.LastResultsHash) {
+	//	return fmt.Errorf("wrong Block.Header.LastResultsHash.  Expected %X, got %v",
+	//		state.LastResultsHash,
+	//		block.LastResultsHash,
+	//	)
+	//}
 	if !bytes.Equal(block.ValidatorsHash, state.Validators.Hash()) {
 		return fmt.Errorf("wrong Block.Header.ValidatorsHash.  Expected %X, got %v",
 			state.Validators.Hash(),
