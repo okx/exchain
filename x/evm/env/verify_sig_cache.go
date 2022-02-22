@@ -82,7 +82,7 @@ func (c *Cache) Load(fileName string) {
 		if err != nil {
 			panic(err)
 		}
-		data[string(k)] = ethcmn.BytesToAddress(v)
+		data[string(k)] = ethcmn.HexToAddress(string(v))
 
 	}
 	c.data = data
@@ -105,7 +105,7 @@ func (c *Cache) Save(fileName string) {
 		w.Write([]byte(k))
 		w.WriteByte('\n')
 
-		w.Write(v[:])
+		w.WriteString(v.String())
 		w.WriteByte('\n')
 	}
 	w.Flush()
