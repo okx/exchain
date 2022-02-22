@@ -114,7 +114,7 @@ func (t *Tracer) Format() string {
 		t.elapsedTime = now.Sub(t.startTime)
 		return fmt.Sprintf("%s<%dms>",
 			t.name,
-			t.elapsedTime,
+			t.elapsedTime.Milliseconds(),
 		)
 	}
 
@@ -124,7 +124,7 @@ func (t *Tracer) Format() string {
 	t.elapsedTime = now.Sub(t.startTime)
 	info := fmt.Sprintf("%s<%dms>",
 		t.name,
-		t.elapsedTime,
+		t.elapsedTime.Milliseconds(),
 	)
 
 	for i := range t.pins {
