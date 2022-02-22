@@ -19,6 +19,13 @@ func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedV
 
 // AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
 func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	// simulate means 'eth_call' or 'eth_estimateGas', when it means 'eth_estimateGas' we can not 'VerifySig'.so skip here
+	if simulate {
+		return next(ctx, tx, simulate)
+	}
+
+	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
+
 	signers := tx.GetSigners()
 
 	currentGasMeter := ctx.GasMeter()
@@ -34,4 +41,3 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	ctx = ctx.WithGasMeter(currentGasMeter)
 	return next(ctx, tx, simulate)
 }
-
