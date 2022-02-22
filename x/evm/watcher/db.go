@@ -6,8 +6,9 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -21,7 +22,9 @@ const (
 )
 
 type WatchStore struct {
-	db dbm.DB
+	db          dbm.DB
+	params      evmtypes.Params
+	paramsMutex sync.RWMutex
 }
 
 var gWatchStore *WatchStore = nil
@@ -30,7 +33,7 @@ var once sync.Once
 func InstanceOfWatchStore() *WatchStore {
 	once.Do(func() {
 		if IsWatcherEnabled() {
-			gWatchStore = &WatchStore{db: initDb()}
+			gWatchStore = &WatchStore{db: initDb(), params: evmtypes.DefaultParams()}
 		}
 	})
 	return gWatchStore
@@ -81,4 +84,16 @@ func (w WatchStore) Iterator(start, end []byte) dbm.Iterator {
 		return nil
 	}
 	return it
+}
+
+func (w WatchStore) GetEvmParams() evmtypes.Params {
+	w.paramsMutex.RLock()
+	defer w.paramsMutex.RUnlock()
+	return w.params
+}
+
+func (w *WatchStore) SetEvmParams(params evmtypes.Params) {
+	w.paramsMutex.Lock()
+	defer w.paramsMutex.Unlock()
+	w.params = params
 }

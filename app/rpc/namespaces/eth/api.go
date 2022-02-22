@@ -74,7 +74,6 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
-	simulateKeeper *keeper.Keeper
 	cdc            *codec.Codec
 }
 

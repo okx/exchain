@@ -402,18 +402,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(prefixParams)
-	if e != nil {
-		return nil, e
-	}
-	if b == nil {
-		return nil, errNotFound
-	}
-	var params evmtypes.Params
-	e = params.UnmarshalJSON(b)
-	if e != nil {
-		return nil, e
-	}
+	params := q.store.GetEvmParams()
 	return &params, nil
 }
 

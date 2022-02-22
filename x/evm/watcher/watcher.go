@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -426,6 +427,12 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			w.store.Delete(key)
 		} else {
 			w.store.Set(key, value)
+			//need update params
+			if bytes.Compare(key, prefixParams) == 0 {
+				if msgParams, ok := b.(*MsgParams); ok {
+					w.store.SetEvmParams(msgParams.Params)
+				}
+			}
 			if typeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(key), value)
 			}
