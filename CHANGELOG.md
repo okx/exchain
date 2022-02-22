@@ -40,11 +40,128 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 
 
+
 ## [1.1.6](https://github.com/okex/exchain/compare/v1.1.5...v1.1.6) (2022-01-29)
+
+
+### Features
+
+* Support handle paralleled-tx error when run `txDecode` failed  ([\#1453](https://github.com/okex/exchain/pull/1453))
+
+* Extract current node key or from specific file ([\#1478](https://github.com/okex/exchain/pull/1478))
+
+* Add `GetUnsafeValue` in database interface ([\#1495](https://github.com/okex/exchain/pull/1495))
+
+* Add `jobChan` to control commit `watchData` ([\#1494](https://github.com/okex/exchain/pull/1494))
+
+
+### Bug fixes
+
+* Fix bug to set global height when repair state ([\#1479](https://github.com/okex/exchain/pull/1479))
+
+* Fix rocksdb out of memory ([\#1483](https://github.com/okex/exchain/pull/1483))
+
+* Fix bug in `x/auth` when using `checkTx` ([\#1485](https://github.com/okex/exchain/pull/1485))
+
+* Fix bug that don't set `query-fast` flag when the node start with archive mode ([\#1496](https://github.com/okex/exchain/pull/1496))
+
+* Fix `dds` check before using `DeltaMap` ([\#1509](https://github.com/okex/exchain/pull/1509))
+
+
+### Code refactoring
+
+* Reorganize `amino` code ([\#1373](https://github.com/okex/exchain/pull/1373))
+
+* Refine `dds` encode and decode code ([\#1482](https://github.com/okex/exchain/pull/1482))
+
+* Refactor  `CheckTx` and `broadcast` in `mempool` ([\#1484](https://github.com/okex/exchain/pull/1484))
+
+* Change `dds` encoder from`json` to `amino` ([\#1510](https://github.com/okex/exchain/pull/1510))
+
+
+### Performance Improvements
+
+* Put marshal into upload routine ([\#1472](https://github.com/okex/exchain/pull/1472))
+
+* Get rid of remote `abci` client ([\#1481](https://github.com/okex/exchain/pull/1481))
+
+* Update `tm-db` to `v0.5.2-oec1` for rocksdb `mmmap` options ([\#1491](https://github.com/okex/exchain/pull/1491))
+
+* Deduplicate in `x/evm/watcher`  ([\#1514](https://github.com/okex/exchain/pull/1514))
+
+* Delete unused code in `wtx` ([\#1516](https://github.com/okex/exchain/pull/1516))
+
+
+### Tests
+
+* Fix TestTxProofs in `libs/tendermint/lite/proxy` ([\#1502](https://github.com/okex/exchain/pull/1502))
+
+
+### Chores
+
+* Add script to test `oec` multiple nodes upgrading ([\#1477](https://github.com/okex/exchain/pull/1477))
+
+* Refactor rocksdb m1 repair patch file path ([\#1511](https://github.com/okex/exchain/pull/1511))
+
+
+### Breaking Changes
+
+* Move `tmdb` to `libs/tm-db` ([\#1493](https://github.com/okex/exchain/pull/1493))
 
 
 
 ## [1.1.5](https://github.com/okex/exchain/compare/v1.1.4...v1.1.5) (2022-01-20)
+
+
+### Features
+
+* Add `flatkv` storage for reading performance ([\#1357](https://github.com/okex/exchain/pull/1357))
+
+* Add `wtx` to reduce checking-signatures time of trustable tx  ([\#1429](https://github.com/okex/exchain/pull/1429))
+
+* Add delta redis-db ([\#1430](https://github.com/okex/exchain/pull/1430))
+
+* Add `blockhash` in the `executionTask` of `prerun` ([\#1448](https://github.com/okex/exchain/pull/1448))
+
+
+### Bug fixes
+
+* Fix `store` and `state` heights unmatched ([\#1432](https://github.com/okex/exchain/pull/1432))
+
+* Fix mismatch hash of pending tx ([\#1435](https://github.com/okex/exchain/pull/1435))
+
+* Removed GetValidator caching to fix concurrency error ([\#1447](https://github.com/okex/exchain/pull/1447))
+
+* Fix missing version when ac enabled ([\#1451](https://github.com/okex/exchain/pull/1451))
+
+* Fix incorrect nonce ([\#1454](https://github.com/okex/exchain/pull/1454))
+
+* Fix `prerun` panic when reset deliverState ([\#1457](https://github.com/okex/exchain/pull/1457))
+
+* Fix wrong AppHash when node has been restarted ([\#1469](https://github.com/okex/exchain/pull/1469))
+
+
+### Performance Improvements
+
+* RPC optimize by using `amino` encoding data ([\#1326](https://github.com/okex/exchain/pull/1326))
+
+* Clear unused code out in the directory `x` ([\#1412](https://github.com/okex/exchain/pull/1412))
+
+
+### Tests
+
+* Add ut of `delta` ([\#1355](https://github.com/okex/exchain/pull/1355))
+
+* Add sub-process ut template ([\#1397](https://github.com/okex/exchain/pull/1397))
+
+* Benchmark test about encoding tx performance among `go-amino`,`rlp`,`exchain-amino` and `json` ([\#1426](https://github.com/okex/exchain/pull/1426))
+
+* Fix ut in the BeginBlock when using `prerun`  ([\#1463](https://github.com/okex/exchain/pull/1463))
+
+
+### Chores
+
+* Update `dockerfile` ([\#1456](https://github.com/okex/exchain/pull/1456))
 
 
 
