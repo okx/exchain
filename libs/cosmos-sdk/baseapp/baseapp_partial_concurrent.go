@@ -41,9 +41,10 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 type DeliverTxTasksManager struct {
 	done       chan int // done for all transactions are executed
 	nextSignal chan int // signal for taking a new tx into tasks
-	//pendingSignal chan int // signal for taking a new task from tasks into pendingTasks
 	executeSignal chan int // signal for taking a new task from pendingTasks to executingTask
 	isWaiting     bool
+	executeSignalCount int
+	mtx           sync.Mutex
 
 	totalCount    int
 	curIndex      int
@@ -66,6 +67,8 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.done = make(chan int, 1)
 	dm.nextSignal = make(chan int, 1)
 	dm.executeSignal = make(chan int, 1)
+	dm.executeSignalCount = 0
+	//dm.isWaiting = false
 
 	dm.totalCount = len(txs)
 	dm.curIndex = -1
@@ -85,18 +88,23 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			break
 		}
 
-		remaining := taskIndex - (dm.curIndex + 1) //- numTasks - numPending
+		remaining := taskIndex - (dm.getCurIndex() + 1) //- numTasks - numPending
 		switch {
 		case remaining >= maxDeliverTxsConcurrentNum:
-			dm.isWaiting = true
+			dm.setIsWaiting(true)
 			<-dm.nextSignal
+			dm.executeSignalCount--
+			if dm.executeSignalCount < 0 {
+				dm.app.logger.Error("dm.executeSignalCount < 0", "count", dm.executeSignalCount)
+			}
+			dm.setIsWaiting(false)
 
 		default:
-			dm.isWaiting = false
 			dm.makeNextTask(txs[taskIndex], taskIndex)
 			taskIndex++
 		}
 	}
+	dm.setIsWaiting(false)
 }
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int) {
@@ -134,7 +142,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	if dm.app.anteHandler != nil {
 		err := dm.runAnte(task.info, mode)
 		if err != nil {
-			dm.app.logger.Error("runAnte failed", "err", err)
+			//dm.app.logger.Error("runAnte failed", "err", err)
 			task.anteFailed = true
 		}
 	}
@@ -224,11 +232,15 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			start := time.Now()
 			<-dm.executeSignal
 			elapsed := time.Since(start).Milliseconds()
-			dm.app.logger.Error("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
+			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
 			continue
 		}
-		if dm.isWaiting {
+		if dm.getIsWaiting() && dm.executeSignalCount < 1 { //dm.executeSignalCount == 0 {
 			dm.nextSignal <- 0
+			dm.executeSignalCount++
+			if dm.executeSignalCount > 1 {
+				dm.app.logger.Error("dm.executeSignalCount > 1", "count", dm.executeSignalCount)
+			}
 		}
 
 		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
@@ -269,9 +281,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			continue
 		}
 
-		//dm.app.logger.Info("handleGasConsumed start")
 		err := info.handler.handleGasConsumed(info)
-		//dm.app.logger.Info("handleGasConsumed finished")
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -287,7 +297,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(AnteHandler, true, mode)
 
 			if dm.app.anteHandler != nil {
-				// dm.app.logger.Info("rerun Ante", "index", dm.executingTask.index)
 				err := dm.app.runAnte(info, mode)
 				if err != nil {
 					dm.app.logger.Error("runAnte failed", "err", err)
@@ -305,20 +314,17 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		//dm.app.logger.Info("runAnte succeed")
 
 		// TODO: execute runMsgs etc.
 		dm.app.pin(RunMsgs, true, mode)
 		err = handler.handleRunMsg(info)
 		dm.app.pin(RunMsgs, false, mode)
-		//dm.app.logger.Info("runMsg succeed")
 
 		handleGasFn()
-		//dm.app.logger.Info("handleGasFn succeed")
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
-			dm.app.logger.Error("handleRunMsg failed", "err", err)
+			//dm.app.logger.Error("handleRunMsg failed", "err", err)
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{
@@ -334,13 +340,13 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		//dm.txExeResults[dm.executingTask.index] = execResult
 		//txRs := execResult.GetResponse()
 		execFinishedFn(resp)
-		//dm.app.logger.Info("execFinishedFn succeed")
 	}
 
 	// all txs are executed
 	if finished == dm.totalCount {
-		//dm.app.logger.Info("runTxSerialRoutine finished")
 		dm.done <- 0
+		close(dm.executeSignal)
+		close(dm.nextSignal)
 	}
 }
 
@@ -349,16 +355,36 @@ func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 	if ok {
 		dm.executingTask = task.(*DeliverTxTask)
 		dm.pendingTasks.Delete(dm.executingTask.index)
+
+		dm.mtx.Lock()
+		defer dm.mtx.Unlock()
 		dm.curIndex++
-		return true
-	} else {
-		dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
+	//} else {
+	//	dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
-	return false
+	return ok
 }
 
 func (dm *DeliverTxTasksManager) resetExecutingTask() {
 	dm.executingTask = nil
+}
+
+func (dm *DeliverTxTasksManager) setIsWaiting(waiting bool) {
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
+	dm.isWaiting = waiting
+}
+
+func (dm *DeliverTxTasksManager) getIsWaiting() bool {
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
+	return dm.isWaiting
+}
+
+func (dm *DeliverTxTasksManager) getCurIndex() int {
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
+	return dm.curIndex
 }
 
 //-------------------------------------------------------------
@@ -368,12 +394,13 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
 	}
 
-	app.logger.Info("deliverTxs", "txs", len(txs))
+	//app.logger.Info("deliverTxs", "txs", len(txs))
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
 		//waiting for call back
 		<-app.deliverTxsMgr.done
+		close(app.deliverTxsMgr.done)
 	}
 
 	return app.deliverTxsMgr.txResponses
