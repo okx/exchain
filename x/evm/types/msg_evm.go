@@ -2,7 +2,7 @@ package types
 
 import (
 	"crypto/ecdsa"
-	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -61,7 +61,7 @@ func (msg MsgEthereumTx) GetFee() sdk.Coins {
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
-	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.SigCache())
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
 	if err != nil {
 		return nil
 	}
@@ -136,11 +136,6 @@ func newMsgEthereumTx(
 
 func (msg MsgEthereumTx) String() string {
 	return msg.Data.String()
-}
-
-func (msg MsgEthereumTx) hash() string {
-	hash := md5.Sum([]byte(msg.String()))
-	return fmt.Sprintf("%x", hash)
 }
 
 // Route returns the route value of an MsgEthereumTx.
@@ -281,7 +276,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.SigCache) (sdk.SigCache, error) {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) (sdk.SigCache, error) {
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
@@ -310,8 +305,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 		}
 	}
 	// get sender from cache
-	msgHash := msg.hash()
-	if sender, ok := env.VerifySigCache.Get(msgHash); ok {
+	txHash := hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
+	if sender, ok := env.VerifySigCache.Get(txHash); ok {
 		sigCache := &ethSigCache{signer: signer, from: sender}
 		msg.from.Store(sigCache)
 		return sigCache, nil
@@ -342,7 +337,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.S
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(msgHash, sender)
+	env.VerifySigCache.Add(txHash, sender)
 	return sigCache, nil
 }
 

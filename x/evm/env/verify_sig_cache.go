@@ -39,6 +39,11 @@ func newCache() *Cache {
 }
 
 func (c *Cache) Get(key string) (ethcmn.Address, bool) {
+	// validate key
+	if !validateKey(key) {
+		return ethcmn.Address{}, false
+	}
+	// get cache
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	if elem, ok := c.data[key]; ok {
@@ -46,7 +51,13 @@ func (c *Cache) Get(key string) (ethcmn.Address, bool) {
 	}
 	return ethcmn.Address{}, false
 }
+
 func (c *Cache) Add(key string, value ethcmn.Address) {
+	// validate key
+	if !validateKey(key) {
+		return
+	}
+	// add cache
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	node := &cacheNode{key, value}
@@ -58,4 +69,11 @@ func (c *Cache) Add(key string, value ethcmn.Address) {
 		oldKey := c.queue.Remove(oldest).(*cacheNode).key
 		delete(c.data, oldKey)
 	}
+}
+
+func validateKey(key string) bool {
+	if key == "" {
+		return false
+	}
+	return true
 }

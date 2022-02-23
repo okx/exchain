@@ -47,7 +47,7 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 // representation, with the given location metadata set (if available).
 func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	fromSigCache, err := tx.VerifySig(tx.ChainID(), int64(blockNumber), sdk.EmptyContext().SigCache())
+	fromSigCache, err := tx.VerifySig(tx.ChainID(), int64(blockNumber), nil, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return nil, err
 	}
