@@ -285,6 +285,12 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
+
+			if block.Height == 5810700 {
+				block.Txs = block.Txs[:4]
+			}
+
+			fmt.Println("ApplyBlock", len(block.Txs))
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
