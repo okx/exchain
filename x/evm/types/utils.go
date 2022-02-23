@@ -659,7 +659,7 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 
 var ethAddrStringPool = &sync.Pool{
 	New: func() interface{} {
-		return make([]byte, 32)
+		return &[32]byte{}
 	},
 }
 
@@ -667,18 +667,17 @@ type EthAddressStringer ethcmn.Address
 
 func (address EthAddressStringer) String() string {
 	var buf [len(address)*2 + 2]byte
-	copy(buf[:2], "0x")
+	buf[0] = '0'
+	buf[1] = 'x'
 	hex.Encode(buf[2:], address[:])
 
 	// compute checksum
 	sha := keccakStatePool.Get().(ethcrypto.KeccakState)
-	defer keccakStatePool.Put(sha)
 	sha.Reset()
 	sha.Write(buf[2:])
 
-	hash := ethAddrStringPool.Get().([]byte)
-	defer ethAddrStringPool.Put(hash)
-	sha.Read(hash)
+	hash := ethAddrStringPool.Get().(*[32]byte)
+	sha.Read(hash[:])
 
 	for i := 2; i < len(buf); i++ {
 		hashByte := hash[(i-2)/2]
@@ -691,6 +690,8 @@ func (address EthAddressStringer) String() string {
 			buf[i] -= 32
 		}
 	}
+	ethAddrStringPool.Put(hash)
+	keccakStatePool.Put(sha)
 	return amino.BytesToStr(buf[:])
 }
 

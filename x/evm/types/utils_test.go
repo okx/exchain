@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -333,10 +334,19 @@ func BenchmarkDecodeResultData(b *testing.B) {
 }
 
 func TestEthStringer(t *testing.T) {
-	addr := GenerateEthAddress()
-	h := addr.Hash()
-	require.Equal(t, addr.String(), EthAddressStringer(addr).String())
-	require.Equal(t, h.String(), EthHashStringer(h).String())
+	max := 10
+	wg := &sync.WaitGroup{}
+	wg.Add(max)
+	for i := 0; i < max; i++ {
+		go func() {
+			addr := GenerateEthAddress()
+			h := addr.Hash()
+			require.Equal(t, addr.String(), EthAddressStringer(addr).String())
+			require.Equal(t, h.String(), EthHashStringer(h).String())
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
 
 func BenchmarkEthAddressStringer(b *testing.B) {
