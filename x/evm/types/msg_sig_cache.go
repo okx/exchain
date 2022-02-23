@@ -7,15 +7,12 @@ import (
 
 var (
 	verifySigCache *Cache
-	cacheOnce      sync.Once
 )
 
 const cacheSize = 1000000
 
 func init() {
-	cacheOnce.Do(func() {
-		verifySigCache = newCache()
-	})
+	verifySigCache = newCache()
 }
 
 type Cache struct {
