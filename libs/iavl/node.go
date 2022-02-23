@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"unsafe"
 
 	"github.com/pkg/errors"
 
@@ -35,18 +36,11 @@ func NodeToNodeJson(node *Node) *NodeJson {
 	if node == nil {
 		return &NodeJson{}
 	}
-	return &NodeJson{
-		Key:          node.key,
-		Value:        node.value,
-		Hash:         node.hash,
-		LeftHash:     node.leftHash,
-		RightHash:    node.rightHash,
-		Version:      node.version,
-		Size:         node.size,
-		Height:       node.height,
-		Persisted:    node.persisted,
-		PrePersisted: node.prePersisted,
-	}
+	return nodeToNodeJsonUnsafe(node)
+}
+
+func nodeToNodeJsonUnsafe(node *Node) *NodeJson {
+	return (*NodeJson)(unsafe.Pointer(node))
 }
 
 // NodeJsonToNode get Node from NodeJson
