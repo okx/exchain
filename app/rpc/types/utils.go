@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -244,12 +243,7 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 			continue
 		}
 
-		switch tx := txi.(type) {
-		case authtypes.StdTx:
-			gasUsed += tx.GetGas()
-		case evmtypes.MsgEthereumTx:
-			gasUsed += tx.GetGas()
-		}
+		gasUsed += txi.GetGas()
 	}
 	return gasUsed
 }
