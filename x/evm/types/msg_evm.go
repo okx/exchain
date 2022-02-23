@@ -48,6 +48,10 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
+func (tx MsgEthereumTx) GetType() sdk.TransactionType {
+	return sdk.EvmTxType
+}
+
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	// only cache from but not signer
 	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
