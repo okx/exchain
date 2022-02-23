@@ -162,7 +162,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 		return
 	}
 
-	dm.app.logger.Info("new into pendingTasks", "index", task.index)
+	//dm.app.logger.Info("new into pendingTasks", "index", task.index)
 	dm.pendingTasks.Store(task.index, task)
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
 		dm.executeSignal <- 0
@@ -217,7 +217,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 	finished := 0
 	for {
 		if finished == dm.totalCount {
-			dm.app.logger.Info("break runTxSerialRoutine")
 			break
 		}
 
@@ -232,7 +231,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.nextSignal <- 0
 		}
 
-		dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
+		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
@@ -270,9 +269,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			continue
 		}
 
-		dm.app.logger.Info("handleGasConsumed start")
+		//dm.app.logger.Info("handleGasConsumed start")
 		err := info.handler.handleGasConsumed(info)
-		dm.app.logger.Info("handleGasConsumed finished")
+		//dm.app.logger.Info("handleGasConsumed finished")
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -306,16 +305,16 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		dm.app.logger.Info("runAnte succeed")
+		//dm.app.logger.Info("runAnte succeed")
 
 		// TODO: execute runMsgs etc.
 		dm.app.pin(RunMsgs, true, mode)
 		err = handler.handleRunMsg(info)
 		dm.app.pin(RunMsgs, false, mode)
-		dm.app.logger.Info("runMsg succeed")
+		//dm.app.logger.Info("runMsg succeed")
 
 		handleGasFn()
-		dm.app.logger.Info("handleGasFn succeed")
+		//dm.app.logger.Info("handleGasFn succeed")
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
@@ -335,12 +334,12 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		//dm.txExeResults[dm.executingTask.index] = execResult
 		//txRs := execResult.GetResponse()
 		execFinishedFn(resp)
-		dm.app.logger.Info("execFinishedFn succeed")
+		//dm.app.logger.Info("execFinishedFn succeed")
 	}
 
 	// all txs are executed
 	if finished == dm.totalCount {
-		dm.app.logger.Info("runTxSerialRoutine finished")
+		//dm.app.logger.Info("runTxSerialRoutine finished")
 		dm.done <- 0
 	}
 }
