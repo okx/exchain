@@ -42,7 +42,7 @@ type DeliverTxTasksManager struct {
 	done       chan int // done for all transactions are executed
 	nextSignal chan int // signal for taking a new tx into tasks
 	executeSignal chan int // signal for taking a new task from pendingTasks to executingTask
-	isWaiting     bool
+	waitingCount     int
 	executeSignalCount int
 	mtx           sync.Mutex
 
@@ -68,7 +68,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.nextSignal = make(chan int, 1)
 	dm.executeSignal = make(chan int, 1)
 	dm.executeSignalCount = 0
-	dm.isWaiting = false
+	dm.waitingCount = 0
 
 	dm.totalCount = len(txs)
 	dm.curIndex = -1
@@ -88,23 +88,22 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			break
 		}
 
-		remaining := taskIndex - (dm.getCurIndex() + 1) //- numTasks - numPending
-		switch {
-		case remaining >= maxDeliverTxsConcurrentNum:
-			dm.setIsWaiting(true)
-			<-dm.nextSignal
-			dm.executeSignalCount--
-			if dm.executeSignalCount < 0 {
-				dm.app.logger.Error("dm.executeSignalCount < 0", "count", dm.executeSignalCount)
-			}
-			dm.setIsWaiting(false)
-
-		default:
+		////remaining := taskIndex - (dm.getCurIndex() + 1) //- numTasks - numPending
+		//switch {
+		////case remaining >= maxDeliverTxsConcurrentNum:
+		//case dm.isWaiting(true):
+		//	<-dm.nextSignal
+		//	dm.executeSignalCount--
+		//	if dm.executeSignalCount < 0 {
+		//		dm.app.logger.Error("dm.executeSignalCount < 0", "count", dm.executeSignalCount)
+		//	}
+		//
+		//default:
 			dm.makeNextTask(txs[taskIndex], taskIndex)
 			taskIndex++
-		}
+			dm.incrementWaitingCount(true)
+		//}
 	}
-	dm.setIsWaiting(false)
 }
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int) {
@@ -235,13 +234,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
 			continue
 		}
-		if dm.getIsWaiting() && dm.executeSignalCount < 1 { //dm.executeSignalCount == 0 {
-			dm.nextSignal <- 0
-			dm.executeSignalCount++
-			if dm.executeSignalCount > 1 {
-				dm.app.logger.Error("dm.executeSignalCount > 1", "count", dm.executeSignalCount)
-			}
-		}
 
 		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 
@@ -356,9 +348,7 @@ func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
 		dm.executingTask = task.(*DeliverTxTask)
 		dm.pendingTasks.Delete(dm.executingTask.index)
 
-		dm.mtx.Lock()
-		defer dm.mtx.Unlock()
-		dm.curIndex++
+		dm.incrementWaitingCount(false)
 	//} else {
 	//	dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
@@ -369,23 +359,52 @@ func (dm *DeliverTxTasksManager) resetExecutingTask() {
 	dm.executingTask = nil
 }
 
-func (dm *DeliverTxTasksManager) setIsWaiting(waiting bool) {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-	dm.isWaiting = waiting
+//func (dm *DeliverTxTasksManager) isWaiting(newTask bool) bool {
+//	dm.mtx.Lock()
+//	defer dm.mtx.Unlock()
+//	if newTask {
+//		return dm.waitingCount >= maxDeliverTxsConcurrentNum
+//	} else {
+//		return dm.waitingCount >= maxDeliverTxsConcurrentNum-1
+//	}
+//}
+
+func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
+	if increment {
+		dm.mtx.Lock()
+		dm.waitingCount++
+		count := dm.waitingCount
+		dm.mtx.Unlock()
+
+		if count >= maxDeliverTxsConcurrentNum{
+			<-dm.nextSignal
+			dm.executeSignalCount--
+			if dm.executeSignalCount < 0 {
+				dm.app.logger.Error("dm.executeSignalCount < 0", "count", dm.executeSignalCount)
+			}
+		}
+	} else {
+		dm.mtx.Lock()
+		dm.curIndex++
+		dm.waitingCount--
+		count := dm.waitingCount
+		dm.mtx.Unlock()
+
+		if count >= maxDeliverTxsConcurrentNum-1 {
+			dm.nextSignal <- 0
+			dm.executeSignalCount++
+			if dm.executeSignalCount > 1 {
+				dm.app.logger.Error("dm.executeSignalCount > 1", "count", dm.executeSignalCount)
+			}
+		}
+	}
 }
 
-func (dm *DeliverTxTasksManager) getIsWaiting() bool {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-	return dm.isWaiting
-}
-
-func (dm *DeliverTxTasksManager) getCurIndex() int {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-	return dm.curIndex
-}
+//func (dm *DeliverTxTasksManager) getCurIndex() int {
+//	dm.mtx.Lock()
+//	defer dm.mtx.Unlock()
+//	return dm.curIndex
+//}
 
 //-------------------------------------------------------------
 
