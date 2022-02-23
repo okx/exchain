@@ -83,7 +83,6 @@ type CListMempool struct {
 	metrics *Metrics
 
 	addressRecord *AddressRecord
-	addAndSortMtx sync.Mutex
 
 	pendingPool       *PendingPool
 	accountRetriever  AccountRetriever
@@ -413,8 +412,6 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
-	mem.addAndSortMtx.Lock()
-	defer mem.addAndSortMtx.Unlock()
 	// Delete the same Nonce transaction from the same account
 	if res := mem.checkRepeatedElement(info); res == -1 {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
@@ -463,12 +460,11 @@ func (mem *CListMempool) addTx(memTx *mempoolTx, info ExTxInfo) error {
 // Called from:
 //  - Update (lock held) if tx was committed
 // 	- resCbRecheck (lock not held) if tx was invalidated
-func (mem *CListMempool) removeTx(tx types.Tx, elem *clist.CElement, removeFromCache bool) {
+func (mem *CListMempool) removeTx(tx types.Tx, elem *clist.CElement, removeFromCache bool, tmp ...bool) {
 	if mem.config.SortTxByGp {
-		if e, ok := mem.bcTxsMap.Load(txKey(tx)); ok {
+		if e, ok := mem.bcTxsMap.LoadAndDelete(txKey(tx)); ok {
 			tmpEle := e.(*clist.CElement)
 			mem.bcTxsList.Remove(tmpEle)
-			mem.bcTxsMap.Delete(txKey(tx))
 			tmpEle.DetachPrev()
 		}
 	}
@@ -476,7 +472,10 @@ func (mem *CListMempool) removeTx(tx types.Tx, elem *clist.CElement, removeFromC
 	mem.txs.Remove(elem)
 	elem.DetachPrev()
 
-	mem.addressRecord.DeleteItem(elem)
+	if len(tmp) == 0 {
+		mem.addressRecord.DeleteItem(elem)
+	}
+
 
 	mem.txsMap.Delete(txKey(tx))
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
@@ -873,12 +872,9 @@ func (mem *CListMempool) Update(
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
-		if txsRecord, ok := mem.addressRecord.GetItem(accAddr); ok {
-			for _, ele := range txsRecord {
-				if ele.Nonce <= accMaxNonce {
-					mem.removeTx(ele.Value.(*mempoolTx).tx, ele, false)
-				}
-			}
+		items := mem.addressRecord.CleanItems(accAddr, accMaxNonce)
+		for _, ele := range items {
+			mem.removeTx(ele.Value.(*mempoolTx).tx, ele, false, true)
 		}
 	}
 
@@ -942,29 +938,16 @@ func (mem *CListMempool) recheckTxs() {
 
 // Reorganize transactions with same address: addr
 func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
-	if userMap, ok := mem.addressRecord.GetItem(addr); ok {
-		if len(userMap) == 0 {
-			return mem
-		}
+	if items := mem.addressRecord.GetItems(addr); len(items) != 0 {
+		// When inserting, strictly order by nonce, otherwise tx will not appear according to nonce,
+		// resulting in execution failure
+		sort.Slice(items, func(i, j int) bool { return items[i].Nonce < items[j].Nonce })
 
-		tmpMap := make(map[uint64]*clist.CElement)
-		var keys []uint64
-
-		for _, node := range userMap {
+		for _, node := range items {
 			mem.txs.DetachElement(node)
 			node.NewDetachPrev()
 			node.NewDetachNext()
-
-			tmpMap[node.Nonce] = node
-			keys = append(keys, node.Nonce)
-		}
-
-		// When inserting, strictly order by nonce, otherwise tx will not appear according to nonce,
-		// resulting in execution failure
-		sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-
-		for _, key := range keys {
-			mem.txs.InsertElement(tmpMap[key])
+			mem.txs.InsertElement(node)
 		}
 	}
 
@@ -973,22 +956,16 @@ func (mem *CListMempool) reOrgTxs(addr string) *CListMempool {
 
 func (mem *CListMempool) checkRepeatedElement(info ExTxInfo) int {
 	repeatElement := 0
-	if userMap, ok := mem.addressRecord.GetItem(info.Sender); ok {
-		for _, node := range userMap {
-			if node.Nonce == info.Nonce {
-				// only replace tx for bigger gas price
-				expectedGasPrice := MultiPriceBump(node.GasPrice, int64(mem.config.TxPriceBump))
-				if info.GasPrice.Cmp(expectedGasPrice) < 0 {
-					mem.logger.Debug("Failed to replace tx", "rawGasPrice", node.GasPrice, "newGasPrice", info.GasPrice, "expectedGasPrice", expectedGasPrice)
-					return -1
-				}
-
-				mem.removeTx(node.Value.(*mempoolTx).tx, node, true)
-
-				repeatElement = 1
-				break
-			}
+	if node := mem.addressRecord.checkRepeatedElement(info); node != nil {
+		// only replace tx for bigger gas price
+		expectedGasPrice := MultiPriceBump(node.GasPrice, int64(mem.config.TxPriceBump))
+		if info.GasPrice.Cmp(expectedGasPrice) < 0 {
+			mem.logger.Debug("Failed to replace tx", "rawGasPrice", node.GasPrice, "newGasPrice", info.GasPrice, "expectedGasPrice", expectedGasPrice)
+			return -1
 		}
+		mem.removeTx(node.Value.(*mempoolTx).tx, node, true)
+
+		repeatElement = 1
 	}
 
 	// If the tx nonce of the same address is duplicated, should delete the duplicate tx, and reorg all other tx
