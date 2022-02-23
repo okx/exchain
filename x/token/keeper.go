@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
 )
@@ -403,7 +404,7 @@ func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 
 // addTokenSuffix add token suffix
 func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
-	hash := fmt.Sprintf("%x", ctx.TxHash())
+	hash := fmt.Sprintf("%x", types2.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight()))
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {
 		name = originalSymbol + "-" + strings.ToLower(hash[3*i:3*i+3])
