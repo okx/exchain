@@ -35,9 +35,101 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+# [](https://github.com/okex/exchain/compare/v1.1.8...v) (2022-02-23)
 
-# [](https://github.com/okex/exchain/compare/v1.1.6...v) (2022-02-07)
 
+### Code refactoring
+
+* Replace `MsgEthermint` to `MsgEthereumTx` ([\#1553](https://github.com/okex/exchain/pull/1533))
+
+
+### Chores
+
+* Support local performance test ([\#1585](https://github.com/okex/exchain/pull/1585))
+
+
+
+## [1.1.8](https://github.com/okex/exchain/compare/v1.1.7...v1.1.8) (2022-02-21)
+
+
+### Features
+
+* Tax rewards distribute to `treasures` proposal ([\#1523](https://github.com/okex/exchain/pull/1523))
+
+* Add flag `r` to set the number of RPC nodes when initialize the testnet  ([\#1535](https://github.com/okex/exchain/pull/1535))
+
+* Add flag for cmd of data query ([\#1538](https://github.com/okex/exchain/pull/1538))
+
+* Support different account type for eth_getBalanceBatch ([\#1540](https://github.com/okex/exchain/pull/1540))
+
+* Add flag `delta-version` to reduce using wrong delta-version cause panic ([\#1546](https://github.com/okex/exchain/pull/1546))
+
+* Refine function `handleSimulation`  ([\#1549](https://github.com/okex/exchain/pull/1549))
+
+* Support `prerun` compatible with parallel tx ([\#1555](https://github.com/okex/exchain/pull/1555))
+
+* Add `GetType` to transaction interface  ([\#1561](https://github.com/okex/exchain/pull/1561))
+
+* Add `ante` statistics log ([\#1572](https://github.com/okex/exchain/pull/1572))
+
+
+### Bug fixes
+
+* Fix repair state on start when state machine broken ([\#1563](https://github.com/okex/exchain/pull/1563))
+
+
+### Styles
+
+* Format all code by `gofmt` ([\#1536](https://github.com/okex/exchain/pull/1536))
+
+
+### Code refactoring
+
+* Full check for cosmos tx when using `wtx` ([\#1545](https://github.com/okex/exchain/pull/1545))
+
+* Reorganize `ante` decorator ([\#1562](https://github.com/okex/exchain/pull/1562))
+
+* Refactor delete `watchdb` data in `x/evm/watcher` ([\#1575](https://github.com/okex/exchain/pull/1575))
+
+* Update baseApp `checkTx` height ([\#1581](https://github.com/okex/exchain/pull/1581))
+
+
+### Performance Improvements
+
+* Optimize `NodeToNodeJson` by using unsafe pointer in `dds` ([\#1551](https://github.com/okex/exchain/pull/1551))
+
+* Optimize for `handleMsgEthereumTx` refund ([\#1552](https://github.com/okex/exchain/pull/1552))
+
+* Optimize ethTx marshal in `x/evm/watcher` ([\#1560](https://github.com/okex/exchain/pull/1560))
+
+
+
+## [1.1.7](https://github.com/okex/exchain/compare/v1.1.6...v1.1.7) (2022-02-07)
+
+
+### Features
+
+* Support for debugging trace tx ([\#1427](https://github.com/okex/exchain/pull/1427))
+
+* Support check flag conflict of `start` command ([\#1504](https://github.com/okex/exchain/pull/1504))
+
+* Add `wtx` whitelist ([\#1532](https://github.com/okex/exchain/pull/1532))
+
+
+### Bug fixes
+
+* Fix `nodeid` and `wtx` statistics ([\#1525](https://github.com/okex/exchain/pull/1525))
+
+* Fix RPC-API `eth_getTransactionCount` method ([\#1530](https://github.com/okex/exchain/pull/1530))
+
+* Fix tx_index DB type ([\#1531](https://github.com/okex/exchain/pull/1531))
+
+
+### Tests
+
+* Add amino ut of state delta ([\#1520](https://github.com/okex/exchain/pull/1520))
+
+* Add `tm-db` ut ([\#1529](https://github.com/okex/exchain/pull/1529))
 
 
 
