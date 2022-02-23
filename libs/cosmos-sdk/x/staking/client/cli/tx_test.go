@@ -3,12 +3,12 @@ package cli
 import (
 	"testing"
 
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"

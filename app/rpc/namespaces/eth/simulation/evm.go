@@ -70,7 +70,7 @@ type EvmSimulator struct {
 	ctx     sdk.Context
 }
 
-func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthereumTx) (*sdk.SimulationResponse, error) {
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e

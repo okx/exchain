@@ -6,14 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"

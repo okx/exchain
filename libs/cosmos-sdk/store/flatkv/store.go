@@ -4,8 +4,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/spf13/viper"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (

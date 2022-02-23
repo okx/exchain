@@ -107,11 +107,11 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 }
 
-func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
+func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgEthTx(&msg, txHash, w.blockHash, w.height, index)
+	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -138,12 +138,12 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, &msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -194,7 +194,6 @@ func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
-
 	}
 }
 
@@ -202,9 +201,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
-	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
-	w.delayEraseKey = append(w.delayEraseKey, key)
+	key1 := GetMsgAccountKey(addr.Bytes())
+	key2 := append(prefixRpcDb, key1...)
+	w.delayEraseKey = append(w.delayEraseKey, key1)
+	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
@@ -377,14 +377,6 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	w.dispatchJob(func() { w.commitBatch(batch) })
-
-	// we dont do deduplicatie here,we do it in `commit routine`
-	// get centerBatch for sending to DataCenter
-	ddsBatch := make([]*Batch, len(batch))
-	for i, b := range batch {
-		ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
-	}
-	w.watchData.Batches = ddsBatch
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -484,7 +476,15 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 
+	// hold it in temp
+	batch:=w.batch
 	return func() ([]byte, error) {
+		ddsBatch := make([]*Batch, len(batch))
+		for i, b := range batch {
+			ddsBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+		}
+		value.Batches = ddsBatch
+
 		filterWatcher := filterCopy(value)
 		valueByte, err := filterWatcher.MarshalToAmino(nil)
 		if err != nil {
@@ -548,6 +548,7 @@ func key2Bytes(key string) []byte {
 	return []byte(key)
 }
 
+
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{
 		DirtyAccount:  filterAccount(origin.DirtyAccount),
@@ -577,6 +578,7 @@ func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
 
 	return ret
 }
+
 
 func filterBatch(datas []*Batch) []*Batch {
 	if len(datas) == 0 {

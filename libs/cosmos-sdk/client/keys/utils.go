@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/99designs/keyring"
-	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"

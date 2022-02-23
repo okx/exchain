@@ -174,6 +174,11 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
+
+func (tx StdTx) GetType() sdk.TransactionType {
+	return sdk.StdTxType
+}
+
 // GetMemo returns the memo
 func (tx StdTx) GetMemo() string { return tx.Memo }
 
@@ -260,7 +265,6 @@ func (tx StdTx) GetGasPrice() *big.Int {
 func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
-
 
 //__________________________________________________________
 
@@ -435,7 +439,6 @@ func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 		return EthereumTxEncode(tx)
 	}
 }
-
 
 func EthereumTxEncode(tx sdk.Tx) ([]byte, error) {
 	return rlp.EncodeToBytes(tx)

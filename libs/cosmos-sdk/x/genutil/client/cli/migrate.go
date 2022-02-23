@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"

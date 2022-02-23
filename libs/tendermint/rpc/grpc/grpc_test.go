@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	core_grpc "github.com/okex/exchain/libs/tendermint/rpc/grpc"
 	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {

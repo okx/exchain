@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"

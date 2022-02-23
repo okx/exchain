@@ -53,7 +53,6 @@ func InitializeNodeValidatorFilesByIndex(config *cfg.Config, index int) (nodeID 
 	return initValidatorFiles(config, nodeKey)
 }
 
-
 // InitializeNodeValidatorFiles creates private validator and p2p configuration files.
 func InitializeNodeValidatorFiles(config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error) {
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
@@ -63,7 +62,6 @@ func InitializeNodeValidatorFiles(config *cfg.Config) (nodeID string, valPubKey 
 
 	return initValidatorFiles(config, nodeKey)
 }
-
 
 func initValidatorFiles(config *cfg.Config, nodeKey *p2p.NodeKey) (nodeID string, valPubKey crypto.PubKey, err error) {
 
