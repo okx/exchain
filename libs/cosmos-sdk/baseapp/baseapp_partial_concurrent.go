@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 10
+	maxDeliverTxsConcurrentNum = 6
 )
 
 type DeliverTxTask struct {
@@ -68,7 +68,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.nextSignal = make(chan int, 1)
 	dm.executeSignal = make(chan int, 1)
 	dm.executeSignalCount = 0
-	//dm.isWaiting = false
+	dm.isWaiting = false
 
 	dm.totalCount = len(txs)
 	dm.curIndex = -1
