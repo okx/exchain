@@ -12,7 +12,6 @@ import (
 	"math/big"
 )
 
-
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
 // gas consumption.
 type EthGasConsumeDecorator struct {
@@ -38,12 +37,17 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // constant value of 21000 plus any cost inccured by additional bytes of data
 // supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
+
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache from the previous AnteHandle call
+	// simulate means 'eth_call' or 'eth_estimateGas', when it's 'eth_estimateGas' we set the sender from ctx.
+	if simulate && ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+	}
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
