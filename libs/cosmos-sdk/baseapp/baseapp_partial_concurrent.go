@@ -44,12 +44,11 @@ type DeliverTxTasksManager struct {
 	//pendingSignal chan int // signal for taking a new task from tasks into pendingTasks
 	executeSignal chan int // signal for taking a new task from pendingTasks to executingTask
 	isWaiting     bool
-	mtx           sync.Mutex
 
 	totalCount    int
 	curIndex      int
-	tasks         map[int]*DeliverTxTask
-	pendingTasks  map[int]*DeliverTxTask
+	tasks         sync.Map
+	pendingTasks  sync.Map
 	executingTask *DeliverTxTask
 
 	txResponses []*abci.ResponseDeliverTx
@@ -71,8 +70,8 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.totalCount = len(txs)
 	dm.curIndex = -1
 
-	dm.tasks = make(map[int]*DeliverTxTask, maxDeliverTxsConcurrentNum)
-	dm.pendingTasks = make(map[int]*DeliverTxTask, maxDeliverTxsConcurrentNum)
+	dm.tasks = sync.Map{}
+	dm.pendingTasks = sync.Map{}
 	dm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 
 	go dm.makeTasksRoutine(txs)
@@ -86,9 +85,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			break
 		}
 
-		//numTasks, numPending := dm.getLen()
 		remaining := taskIndex - (dm.curIndex + 1) //- numTasks - numPending
-		//fmt.Printf("taskIndex:%d numTasks:%d numPending:%d remaining:%d\n", taskIndex, numTasks, numPending, remaining)
 		switch {
 		case remaining >= maxDeliverTxsConcurrentNum:
 			dm.isWaiting = true
@@ -103,9 +100,6 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 }
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int) {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-
 	go dm.runTxPartConcurrent(tx, index)
 }
 
@@ -140,7 +134,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	if dm.app.anteHandler != nil {
 		err := dm.runAnte(task.info, mode)
 		if err != nil {
-			//fmt.Printf("runAnte failed. err:%s\n", err)
 			dm.app.logger.Error("runAnte failed", "err", err)
 			task.anteFailed = true
 		}
@@ -149,20 +142,17 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	// dm.app.logger.Info("runTxPartConcurrent", "index", index)
+	//dm.app.logger.Info("runTxPartConcurrent", "index", index)
 	tx, err := dm.app.txDecoder(txByte)
 	task := newDeliverTxTask(tx, index)
 	task.info.txBytes = txByte
 	if err != nil {
 		task.err = err
 		//task.decodeFailed = true
-		//fmt.Printf("tx decode failed. err: %s\n", err)
 		dm.app.logger.Error("tx decode failed"," err", err)
 	}
 
-	dm.mtx.Lock()
-	dm.tasks[task.index] = task
-	dm.mtx.Unlock()
+	dm.tasks.Store(task.index, task)
 	return task
 }
 
@@ -172,15 +162,12 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 		return
 	}
 
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
 	dm.app.logger.Info("new into pendingTasks", "index", task.index)
-	//fmt.Printf("new into pendingTasks. index=%d\n", task.index)
-	dm.pendingTasks[task.index] = task
+	dm.pendingTasks.Store(task.index, task)
 	if dm.executingTask == nil && task.index == dm.curIndex+1 {
 		dm.executeSignal <- 0
 	}
-	delete(dm.tasks, task.index)
+	dm.tasks.Delete(task.index)
 }
 
 func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error {
@@ -228,9 +215,9 @@ func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error 
 
 func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 	finished := 0
-	//evmIndex := uint32(0)
 	for {
 		if finished == dm.totalCount {
+			dm.app.logger.Info("break runTxSerialRoutine")
 			break
 		}
 
@@ -239,7 +226,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			<-dm.executeSignal
 			elapsed := time.Since(start).Milliseconds()
 			dm.app.logger.Error("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
-			//fmt.Println("time to waiting for extractExecutingTask: ", elapsed)
 			continue
 		}
 		if dm.isWaiting {
@@ -251,10 +237,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
 		handler := info.handler
-		//if dm.executingTask.isEvm {
-		//	dm.executingTask.evmIndex = evmIndex
-		//	evmIndex++
-		//}
 
 		handleGasFn := func() {
 			dm.app.pin(Refund, true, mode)
@@ -288,7 +270,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			continue
 		}
 
+		dm.app.logger.Info("handleGasConsumed start")
 		err := info.handler.handleGasConsumed(info)
+		dm.app.logger.Info("handleGasConsumed finished")
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -322,13 +306,16 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		dm.app.logger.Info("runAnte succeed")
 
 		// TODO: execute runMsgs etc.
 		dm.app.pin(RunMsgs, true, mode)
 		err = handler.handleRunMsg(info)
 		dm.app.pin(RunMsgs, false, mode)
+		dm.app.logger.Info("runMsg succeed")
 
 		handleGasFn()
+		dm.app.logger.Info("handleGasFn succeed")
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
@@ -348,42 +335,30 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		//dm.txExeResults[dm.executingTask.index] = execResult
 		//txRs := execResult.GetResponse()
 		execFinishedFn(resp)
+		dm.app.logger.Info("execFinishedFn succeed")
 	}
 
 	// all txs are executed
 	if finished == dm.totalCount {
-		//fmt.Println("finished == dm.totalCount")
-
+		dm.app.logger.Info("runTxSerialRoutine finished")
 		dm.done <- 0
 	}
 }
 
-//func (dm *DeliverTxTasksManager) getLen() (int, int) {
-//	dm.mtx.Lock()
-//	defer dm.mtx.Unlock()
-//	return len(dm.tasks), len(dm.pendingTasks)
-//}
-
 func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-	dm.executingTask = dm.pendingTasks[dm.curIndex+1]
-	if dm.executingTask != nil {
-		delete(dm.pendingTasks, dm.curIndex+1)
-		//if len(dm.pendingTasks) == maxDeliverTxsConcurrentNum-1 {
-		//	dm.pendingSignal <- 0
-		//}
+	task, ok := dm.pendingTasks.Load(dm.curIndex+1)
+	if ok {
+		dm.executingTask = task.(*DeliverTxTask)
+		dm.pendingTasks.Delete(dm.executingTask.index)
 		dm.curIndex++
 		return true
 	} else {
-		//dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
+		dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
 	return false
 }
 
 func (dm *DeliverTxTasksManager) resetExecutingTask() {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
 	dm.executingTask = nil
 }
 
