@@ -291,7 +291,6 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 
 		signer = ethtypes.HomesteadSigner{}
 	}
-
 	if sc := msg.from.Load(); sc != nil {
 		sigCache := sc.(*ethSigCache)
 		// If the signer used to derive from in a previous call is not the same as
@@ -309,8 +308,11 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		}
 	}
 	// get sender from cache
-	txHash := hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
-	if sender, ok := env.VerifySigCache.Get(txHash); ok {
+	cacheKey := ""
+	if txBytes != nil {
+		cacheKey = hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
+	}
+	if sender, ok := env.VerifySigCache.Get(cacheKey); ok {
 		sigCache := &ethSigCache{signer: signer, from: sender}
 		msg.from.Store(sigCache)
 		return sigCache, nil
@@ -341,7 +343,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(txHash, sender)
+	env.VerifySigCache.Add(cacheKey, sender)
 	return sigCache, nil
 }
 
