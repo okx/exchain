@@ -12,7 +12,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
@@ -20,10 +19,10 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRe
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
-		switch tx.(type) {
-		case evmtypes.MsgEthereumTx:
+
+		if tx.GetType() == sdk.EvmTxType {
 			gasRefundHandler = NewGasRefundDecorator(ak, sk)
-		default:
+		} else {
 			return nil, nil
 		}
 		return gasRefundHandler(ctx, tx)
