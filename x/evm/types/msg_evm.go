@@ -2,7 +2,6 @@ package types
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -282,7 +281,8 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	// get sender from cache
 	cacheKey := ""
 	if txBytes != nil {
-		cacheKey = hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
+		txHash := tmtypes.Tx(txBytes).Hash(height)
+		cacheKey = ethcmn.BytesToHash(txHash).String()
 	}
 	if sigCache, ok := verifySigCache.Get(cacheKey); ok {
 		msg.from.Store(sigCache)
