@@ -332,6 +332,13 @@ func BenchmarkDecodeResultData(b *testing.B) {
 	})
 }
 
+func TestEthStringer(t *testing.T) {
+	addr := GenerateEthAddress()
+	h := addr.Hash()
+	require.Equal(t, addr.String(), EthAddressStringer(addr).String())
+	require.Equal(t, h.String(), EthHashStringer(h).String())
+}
+
 func BenchmarkEthAddressStringer(b *testing.B) {
 	addr := GenerateEthAddress()
 	b.ResetTimer()
@@ -345,6 +352,24 @@ func BenchmarkEthAddressStringer(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			_ = EthAddressStringer(addr).String()
+		}
+	})
+}
+
+func BenchmarkEthHashStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	h := addr.Hash()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = h.String()
+		}
+	})
+	b.Run("oec stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthHashStringer(h).String()
 		}
 	})
 }

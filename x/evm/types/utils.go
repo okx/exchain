@@ -693,3 +693,13 @@ func (address EthAddressStringer) String() string {
 	}
 	return amino.BytesToStr(buf[:])
 }
+
+type EthHashStringer ethcmn.Hash
+
+func (h EthHashStringer) String() string {
+	var enc [len(h)*2 + 2]byte
+	enc[0] = '0'
+	enc[1] = 'x'
+	hex.Encode(enc[2:], h[:])
+	return amino.BytesToStr(enc[:])
+}
