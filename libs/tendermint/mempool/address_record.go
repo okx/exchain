@@ -8,53 +8,83 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+type elementManager interface {
+	removeElement(*clist.CElement)
+	reorganizeElements([]*clist.CElement)
+}
+
 type AddressRecord struct {
-	addrTxs sync.Map // address -> map[txHash]*addrMap
+	addrTxs sync.Map // address -> *addrMap
+
+	elementManager
 }
 
 type addrMap struct {
 	sync.RWMutex
 
-	items map[string]*clist.CElement  // txHash -> *mempoolTx
+	items    map[uint64]*clist.CElement // nonce -> *mempoolTx
 	maxNonce uint64
 }
 
-func newAddressRecord() *AddressRecord {
-	return &AddressRecord{}
+func newAddressRecord(em elementManager) *AddressRecord {
+	return &AddressRecord{elementManager: em}
 }
 
-func (ar *AddressRecord) AddItem(address string, txHash string, cElement *clist.CElement) {
+func (ar *AddressRecord) AddItem(address string, cElement *clist.CElement) {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
 		// LoadOrStore to prevent double storing
-		v, ok = ar.addrTxs.LoadOrStore(address, &addrMap{items:make(map[string]*clist.CElement)})
+		v, ok = ar.addrTxs.LoadOrStore(address, &addrMap{items: make(map[uint64]*clist.CElement)})
 	}
 	am := v.(*addrMap)
 	am.Lock()
 	defer am.Unlock()
-	am.items[txHash] = cElement
+	am.items[cElement.Nonce] = cElement
 	if cElement.Nonce > am.maxNonce {
 		am.maxNonce = cElement.Nonce
 	}
 }
 
-func (ar *AddressRecord) checkRepeatedElement(info ExTxInfo) *clist.CElement {
+func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, info ExTxInfo, txPriceBump int64) *clist.CElement {
+	newElement := clist.NewCElement(memTx, info.Sender, info.GasPrice, info.Nonce)
+
 	v, ok := ar.addrTxs.Load(info.Sender)
 	if !ok {
-		return nil
+		v, ok = ar.addrTxs.LoadOrStore(info.Sender, &addrMap{items: make(map[uint64]*clist.CElement)})
 	}
 	am := v.(*addrMap)
-	am.RLock()
-	defer am.RUnlock()
-	if info.Nonce > am.maxNonce {
-		return nil
+	am.Lock()
+	defer am.Unlock()
+	// do not need to check element nonce
+	if newElement.Nonce > am.maxNonce {
+		am.maxNonce = newElement.Nonce
+		am.items[newElement.Nonce] = newElement
+		return newElement
 	}
-	for _, ele := range am.items {
-		if ele.Nonce == info.Nonce {
-			return ele
+
+	for _, e := range am.items {
+		if e.Nonce == info.Nonce {
+			// only replace tx for bigger gas price
+			expectedGasPrice := MultiPriceBump(e.GasPrice, txPriceBump)
+			if info.GasPrice.Cmp(expectedGasPrice) <= 0 {
+				return nil
+			}
+
+			// delete the old element and reorganize the elements whose nonce is greater the the new element
+			ar.removeElement(e)
+			var items []*clist.CElement
+			for _, item := range am.items {
+				if item.Nonce > info.Nonce {
+					items = append(items, item)
+				}
+			}
+			ar.reorganizeElements(items)
 		}
 	}
-	return nil
+
+	am.items[newElement.Nonce] = newElement
+
+	return newElement
 }
 
 func (ar *AddressRecord) CleanItems(address string, nonce uint64) []*clist.CElement {
@@ -96,11 +126,9 @@ func (ar *AddressRecord) GetItems(address string) []*clist.CElement {
 func (ar *AddressRecord) DeleteItem(e *clist.CElement) {
 	if v, ok := ar.addrTxs.Load(e.Address); ok {
 		am := v.(*addrMap)
-		memTx := e.Value.(*mempoolTx)
-		txHash := txID(memTx.tx, memTx.height)
 		am.Lock()
 		defer am.Unlock()
-		delete(am.items, txHash)
+		delete(am.items, e.Nonce)
 		if len(am.items) == 0 {
 			ar.addrTxs.Delete(e.Address)
 		}
@@ -164,4 +192,3 @@ func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) typ
 	}
 	return txs
 }
-
