@@ -9,8 +9,6 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/okex/exchain/x/evm/env"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -65,7 +63,7 @@ func (msg MsgEthereumTx) GetFee() sdk.Coins {
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
-	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes())
 	if err != nil {
 		return nil
 	}
@@ -280,7 +278,17 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) (sdk.SigCache, error) {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte) (sdk.SigCache, error) {
+	// get sender from cache
+	cacheKey := ""
+	if txBytes != nil {
+		cacheKey = hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
+	}
+	if sigCache, ok := verifySigCache.Get(cacheKey); ok {
+		msg.from.Store(sigCache)
+		return sigCache, nil
+	}
+
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
@@ -296,26 +304,9 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
 		if sigCache.signer.Equal(signer) {
+			verifySigCache.Add(cacheKey, sigCache)
 			return sigCache, nil
 		}
-	} else if sigCtx != nil {
-		// If sig cache is exist in ctx,then need not to excute recover key and sign verify.
-		// PS: The msg from may be non-existent, then store it.
-		if sigCtx.EqualSiger(signer) {
-			sigCache := sigCtx.(*ethSigCache)
-			msg.from.Store(sigCache)
-			return sigCtx, nil
-		}
-	}
-	// get sender from cache
-	cacheKey := ""
-	if txBytes != nil {
-		cacheKey = hex.EncodeToString(tmtypes.Tx(txBytes).Hash(height))
-	}
-	if sender, ok := env.VerifySigCache.Get(cacheKey); ok {
-		sigCache := &ethSigCache{signer: signer, from: sender}
-		msg.from.Store(sigCache)
-		return sigCache, nil
 	}
 
 	V := new(big.Int)
@@ -343,7 +334,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	}
 	sigCache := &ethSigCache{signer: signer, from: sender}
 	msg.from.Store(sigCache)
-	env.VerifySigCache.Add(cacheKey, sender)
+	verifySigCache.Add(cacheKey, sigCache)
 	return sigCache, nil
 }
 

@@ -1,22 +1,20 @@
-package env
+package types
 
 import (
 	"container/list"
 	"sync"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 var (
-	VerifySigCache *Cache
-	once           sync.Once
+	verifySigCache *Cache
+	cacheOnce      sync.Once
 )
 
 const cacheSize = 1000000
 
 func init() {
-	once.Do(func() {
-		VerifySigCache = newCache()
+	cacheOnce.Do(func() {
+		verifySigCache = newCache()
 	})
 }
 
@@ -28,7 +26,7 @@ type Cache struct {
 
 type cacheNode struct {
 	key   string
-	value ethcmn.Address
+	value *ethSigCache
 }
 
 func newCache() *Cache {
@@ -38,28 +36,28 @@ func newCache() *Cache {
 	}
 }
 
-func (c *Cache) Get(key string) (ethcmn.Address, bool) {
-	// validate key
-	if !validateKey(key) {
-		return ethcmn.Address{}, false
-	}
-	// get cache
+func (c *Cache) Get(key string) (*ethSigCache, bool) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
+	// validate key
+	if !validateKey(key) {
+		return nil, false
+	}
+	// get cache
 	if elem, ok := c.data[key]; ok {
 		return elem.Value.(*cacheNode).value, true
 	}
-	return ethcmn.Address{}, false
+	return nil, false
 }
 
-func (c *Cache) Add(key string, value ethcmn.Address) {
+func (c *Cache) Add(key string, value *ethSigCache) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 	// validate key
 	if !validateKey(key) {
 		return
 	}
 	// add cache
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
 	node := &cacheNode{key, value}
 	elem := c.queue.PushBack(node)
 	c.data[key] = elem

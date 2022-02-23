@@ -246,7 +246,7 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 			return
 		}
 	}
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes())
 	if err == nil {
 		sender = senderSigCache.GetFrom()
 	}
