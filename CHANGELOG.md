@@ -54,13 +54,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Tax rewards distribute to `treasures` proposal ([\#1523](https://github.com/okex/exchain/pull/1523))
+* Tax rewards is distributed to `treasures` proposal ([\#1523](https://github.com/okex/exchain/pull/1523))
 
-* Add flag `r` to set the number of RPC nodes when initialize the testnet  ([\#1535](https://github.com/okex/exchain/pull/1535))
+* Add flag `r` to set the number of RPC nodes when initialize the `testnet`  ([\#1535](https://github.com/okex/exchain/pull/1535))
 
-* Add flag for cmd of data query ([\#1538](https://github.com/okex/exchain/pull/1538))
+* Add flag `goleveldb` for cmd of data query ([\#1538](https://github.com/okex/exchain/pull/1538))
 
-* Support different account type for eth_getBalanceBatch ([\#1540](https://github.com/okex/exchain/pull/1540))
+* Support different account type for `eth_getBalanceBatch` ([\#1540](https://github.com/okex/exchain/pull/1540))
 
 * Add flag `delta-version` to reduce using wrong delta-version cause panic ([\#1546](https://github.com/okex/exchain/pull/1546))
 
@@ -122,7 +122,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix RPC-API `eth_getTransactionCount` method ([\#1530](https://github.com/okex/exchain/pull/1530))
 
-* Fix tx_index DB type ([\#1531](https://github.com/okex/exchain/pull/1531))
+* Fix `tx_index` DB type ([\#1531](https://github.com/okex/exchain/pull/1531))
 
 
 ### Tests
@@ -222,7 +222,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix mismatch hash of pending tx ([\#1435](https://github.com/okex/exchain/pull/1435))
 
-* Removed GetValidator caching to fix concurrency error ([\#1447](https://github.com/okex/exchain/pull/1447))
+* Removed `GetValidator` caching to fix concurrency error ([\#1447](https://github.com/okex/exchain/pull/1447))
 
 * Fix missing version when ac enabled ([\#1451](https://github.com/okex/exchain/pull/1451))
 
@@ -230,7 +230,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix `prerun` panic when reset deliverState ([\#1457](https://github.com/okex/exchain/pull/1457))
 
-* Fix wrong AppHash when node has been restarted ([\#1469](https://github.com/okex/exchain/pull/1469))
+* Fix wrong `AppHash` when node has been restarted ([\#1469](https://github.com/okex/exchain/pull/1469))
 
 
 ### Performance Improvements
@@ -352,7 +352,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Code refactoring
 
-* Change tx hash to Keccak256 for ethereum compatibility ([\#1350](https://github.com/okex/exchain/pull/1350))
+* Change tx hash to `Keccak256` for ethereum compatibility ([\#1350](https://github.com/okex/exchain/pull/1350))
 
 
 ### Tests
@@ -392,7 +392,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Documentation
 
-* Add "How to build a private chain" in `README.md` ([\#1369](https://github.com/okex/exchain/pull/1368))
+* Add "How to build a private chain" in `README.md` ([\#1369](https://github.com/okex/exchain/pull/1369))
 
 
 ### Code refactoring
@@ -415,9 +415,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Get chain-id from `gendoc` ([\#1346](https://github.com/okex/exchain/pull/1346)
+* Get chain-id from `gendoc` ([\#1346](https://github.com/okex/exchain/pull/1346))
 
-* Add dds statistic ([\#1352](https://github.com/okex/exchain/pull/1352)
+* Add dds statistic ([\#1352](https://github.com/okex/exchain/pull/1352))
 
 
 ### Chores
@@ -438,7 +438,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Bug fixes
 
-* Fix bug that don't upload when is fastSync ([\#1339](https://github.com/okex/exchain/pull/1339))
+* Fix bug that don't upload when is `fastSync` ([\#1339](https://github.com/okex/exchain/pull/1339))
 
 
 ### Code refactoring
@@ -458,7 +458,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Support redis dds in `state-delta` ([\#1249](https://github.com/okex/exchain/pull/1249))
 
-* Validate Chain-id and GenesisHeight while app inits and starts ([\#1258](https://github.com/okex/exchain/pull/1258))
+* Validate `Chain-id` and `GenesisHeight` while app inits and starts ([\#1258](https://github.com/okex/exchain/pull/1258))
 
 * Support proactively run tx in `exchaincli` ([\#1271](https://github.com/okex/exchain/pull/1271))
 
@@ -483,7 +483,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix the bug of abnormal gasUsed statistics ([\#1266](https://github.com/okex/exchain/pull/1266))
 
-* Fix bug for cmd(testnet) gov params use cosmos-sdk/x/gov ([\#1298](https://github.com/okex/exchain/pull/1298))
+* Fix bug for using `gov` params  from `cosmos-sdk/x/gov` ([\#1298](https://github.com/okex/exchain/pull/1298))
 
 * Fix bug for contract-method delete multiply for change cache struct case to error ([\#1309](https://github.com/okex/exchain/pull/1309))
 
@@ -500,9 +500,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Change delta from `p2p` to `deltaContext`  ([\#1280](https://github.com/okex/exchain/pull/1280))
 
-* Refine dds  ([\#1284](https://github.com/okex/exchain/pull/1284))
+* Refine d`ds  ([\#1284](https://github.com/okex/exchain/pull/1284))
 
-* Get rid of panic when using dds  ([\#1295](https://github.com/okex/exchain/pull/1295))
+* Get rid of panic when using `dds`  ([\#1295](https://github.com/okex/exchain/pull/1295))
 
 * Cache `account`, `contract` and `code` multiply ([\#1300](https://github.com/okex/exchain/pull/1300))
 
@@ -515,7 +515,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Reduce the sleepDuration while time for ApplyBlock is less than `CommitTimeout` ([\#1221](https://github.com/okex/exchain/pull/1221))
+* Reduce the sleep duration while time for `ApplyBlock` is less than `CommitTimeout` ([\#1221](https://github.com/okex/exchain/pull/1221))
 
 * Amino codec optimize ([\#1234](https://github.com/okex/exchain/pull/1234))
 
@@ -526,7 +526,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Chores
 
-* Update install-rocksdb.sh ([\#1256](https://github.com/okex/exchain/pull/1256))
+* Update `install-rocksdb.sh` ([\#1256](https://github.com/okex/exchain/pull/1256))
 
 
 
@@ -537,9 +537,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Add checkTxCnt and `mempool` txs count to the log ([\#1224](https://github.com/okex/exchain/pull/1224))
 
-* Add flag of max gas used per block to replay ([\#1231](https://github.com/okex/exchain/pull/1231))
+* Add the flag of max gas used per block to replay ([\#1231](https://github.com/okex/exchain/pull/1231))
 
-* Register oec config to dynamic config ([\#1232](https://github.com/okex/exchain/pull/1232))
+* Register `oec` config to dynamic config ([\#1232](https://github.com/okex/exchain/pull/1232))
 
 * Query the current blocked list of contract addresses during evm calling  ([\#1276](https://github.com/okex/exchain/pull/1276))
 
@@ -550,7 +550,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix `mempool` full issue ([\#1220](https://github.com/okex/exchain/pull/1220))
 
-* Use Stringer instead of fmt to reduce unnecessary string construction at non-debug levels ([\#1222](https://github.com/okex/exchain/pull/1222))
+* Use `Stringer` instead of `fmt` to reduce unnecessary string construction at non-debug levels ([\#1222](https://github.com/okex/exchain/pull/1222))
 
 * Fix not display proposer address when the node is not proposer ([\#1223](https://github.com/okex/exchain/pull/1223))
 
@@ -584,7 +584,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Chores
 
-* Update install-rocksdb.sh ([\#1270](https://github.com/okex/exchain/pull/1270))
+* Update `install-rocksdb.sh` ([\#1270](https://github.com/okex/exchain/pull/1270))
 
 
 
@@ -629,7 +629,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix p2p sanity error when address ID is same  ([\#1193](https://github.com/okex/exchain/pull/1193))
 
-* Fix panic when checkTx read map ([\#1196](https://github.com/okex/exchain/pull/1196))
+* Fix panic when `checkTx` read map ([\#1196](https://github.com/okex/exchain/pull/1196))
 
 * Fix without gracefully exit ([\#1197](https://github.com/okex/exchain/pull/1197))
 
@@ -637,7 +637,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix consensus issue with repaired state ([\#1199](https://github.com/okex/exchain/pull/1199))
 
-* Add block producer flag to control consensus time ([\#1201](https://github.com/okex/exchain/pull/1201))
+* Add the block producer flag to control consensus time ([\#1201](https://github.com/okex/exchain/pull/1201))
 
 
 ### Code refactoring
@@ -1320,7 +1320,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Enhance websocket handle error ([\#838](https://github.com/okex/exchain/pull/833))
+* Enhance websocket handle error ([\#838](https://github.com/okex/exchain/pull/838))
 
 
 
@@ -1349,7 +1349,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Optimize error of ErrTxTooLarge ([\#820](https://github.com/okex/exchain/pull/820))
+* Optimize error of `ErrTxTooLarge` ([\#820](https://github.com/okex/exchain/pull/820))
 
 * Max world state num ([\#819](https://github.com/okex/exchain/pull/819))
 
@@ -1370,9 +1370,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Optimize performance of the func eth_call ([\#793](https://github.com/okex/exchain/pull/793))
+* Optimize performance of the function `eth_call` ([\#793](https://github.com/okex/exchain/pull/793))
 
-* Enhance websocket ([\#792](https://github.com/okex/exchain/pull/793))
+* Enhance websocket ([\#792](https://github.com/okex/exchain/pull/792))
 
 
 
@@ -1381,7 +1381,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### BREAKING CHANGES
 
-* Rename to exchain ([\#816](https://github.com/okex/exchain/pull/816))
+* Rename to `exchain` ([\#816](https://github.com/okex/exchain/pull/816))
 
 
 
@@ -1390,7 +1390,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add pruning for block state db and add export fro app db ([\#811](https://github.com/okex/exchain/pull/811))
+* Add pruning for block state db and add export from app db ([\#811](https://github.com/okex/exchain/pull/811))
 
 
 ### Build
