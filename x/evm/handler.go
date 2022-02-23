@@ -236,6 +236,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 		// the result was replaced to trace logs when trace tx
 		executionResult.Result.Data = executionResult.TraceLogs
 	}
+
 	return executionResult.Result, nil
 }
 
