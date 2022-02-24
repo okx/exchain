@@ -20,6 +20,10 @@ var (
 const mainnetChainId = "exchain-66"
 const testnetChainId = "exchain-65"
 
+var (
+	chainIdEpoch *big.Int = big.NewInt(-1)
+)
+
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
 func IsValidChainID(chainID string) bool {
 	if len(chainID) > 48 {
@@ -33,6 +37,14 @@ func isMainNetChainID(chainID string) bool {
 }
 func isTestNetChainID(chainID string) bool {
 	return chainID == testnetChainId
+}
+
+func SetChainIdEpoch(epoch *big.Int) {
+	chainIdEpoch = epoch
+}
+func GetChainIdEpoch() (epoch *big.Int) {
+	epoch = chainIdEpoch
+	return
 }
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible

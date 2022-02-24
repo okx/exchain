@@ -57,6 +57,11 @@ func ValidateChainID(baseCmd *cobra.Command) *cobra.Command {
 		if err := ethermint.IsValidateChainIdWithGenesisHeight(chainID); err != nil {
 			return err
 		}
+		chainIDEpoch, err := ethermint.ParseChainID(chainID)
+		if err != nil {
+			return err
+		}
+		ethermint.SetChainIdEpoch(chainIDEpoch)
 		return baseRunE(cmd, args)
 	}
 

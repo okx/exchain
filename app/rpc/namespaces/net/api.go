@@ -19,10 +19,7 @@ type PublicNetAPI struct {
 // NewAPI creates an instance of the public Net Web3 API.
 func NewAPI(clientCtx context.CLIContext, log log.Logger) *PublicNetAPI {
 	// parse the chainID from a integer string
-	chainIDEpoch, err := ethermint.ParseChainID(clientCtx.ChainID)
-	if err != nil {
-		panic(err)
-	}
+	chainIDEpoch := ethermint.GetChainIdEpoch()
 
 	return &PublicNetAPI{
 		networkVersion: chainIDEpoch.Uint64(),

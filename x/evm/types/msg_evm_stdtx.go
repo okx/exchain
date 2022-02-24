@@ -23,10 +23,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 		Nonce:    msg.Data.AccountNonce,
 	}
 
-	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return exTxInfo
-	}
+	chainIDEpoch := types.GetChainIdEpoch()
 
 	if ctx.From() == "" {
 		// Verify signature and retrieve sender address
