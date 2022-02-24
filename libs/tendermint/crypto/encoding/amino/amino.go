@@ -187,3 +187,15 @@ func MarshalPubKeyToAmino(cdc *amino.Codec, key crypto.PubKey) (data []byte, err
 	}
 	return data, nil
 }
+
+func PubKeyAminoSize(pubKey crypto.PubKey, cdc *amino.Codec) int {
+	if sizer, ok := pubKey.(amino.Sizer); ok {
+		return 4 + sizer.AminoSize(cdc)
+	} else {
+		encdoedPubKey, err := cdc.MarshalBinaryBare(pubKey)
+		if err != nil {
+			panic(err)
+		}
+		return len(encdoedPubKey)
+	}
+}

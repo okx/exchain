@@ -75,11 +75,11 @@ type KVPair kv.Pair
 // key and value length prefixed.
 func (kv KVPair) Bytes() []byte {
 	var b bytes.Buffer
-	err := amino.EncodeByteSlice(&b, kv.Key)
+	err := amino.EncodeByteSliceToBuffer(&b, kv.Key)
 	if err != nil {
 		panic(err)
 	}
-	err = amino.EncodeByteSlice(&b, kv.Value)
+	err = amino.EncodeByteSliceToBuffer(&b, kv.Value)
 	if err != nil {
 		panic(err)
 	}
