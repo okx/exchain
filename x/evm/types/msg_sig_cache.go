@@ -2,16 +2,17 @@ package types
 
 import (
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/spf13/viper"
 )
 
 var (
 	verifySigCache *Cache
 )
 
-const cacheSize = 1000000
+const FlagSigCacheSize = "signature-cache-size"
 
-func init() {
-	lruCache, err := lru.New(cacheSize)
+func InitSignatureCache() {
+	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
 	if err != nil {
 		panic(err)
 	}

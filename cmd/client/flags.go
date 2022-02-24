@@ -109,4 +109,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
+	cmd.Flags().Int(evmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 }
