@@ -17,6 +17,7 @@ var totalAnteDuration = int64(0)
 var totalRunMsgsDuration = int64(0)
 var totalSerialDuration = int64(0)
 var totalSavedTime = int64(0)
+var totalWriteTime = int64(0)
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -63,6 +64,7 @@ type DeliverTxTasksManager struct {
 	anteDuration int64
 	runMsgsDuration int64
 	serialDuration int64
+	writeDuration int64
 }
 
 func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
@@ -88,6 +90,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.anteDuration = 0
 	dm.runMsgsDuration = 0
 	dm.serialDuration = 0
+	dm.writeDuration = 0
 
 	go dm.makeTasksRoutine(txs)
 	go dm.runTxSerialRoutine()
@@ -311,9 +314,10 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(RunAnte, true, mode)
 
 			if dm.app.anteHandler != nil {
-				//start := time.Now()
+				start := time.Now()
 				err := dm.app.runAnte(info, mode)
-				//elasped := time.Since(start).Microseconds()
+				elasped := time.Since(start).Microseconds()
+				dm.runMsgsDuration -= elasped
 				if err != nil {
 					dm.app.logger.Error("runAnte failed", "err", err)
 					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -329,8 +333,11 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(RunAnte, false, mode)
 		}
 		// todo: cache is the same for all deliverTx? Maybe it's no need to write cache there.
-		//info.msCacheAnte.Write()
-		//info.ctx.Cache().Write(true)
+		wstart := time.Now()
+		info.msCacheAnte.Write()
+		info.ctx.Cache().Write(true)
+		welasped := time.Since(wstart).Microseconds()
+		dm.writeDuration += welasped
 
 		// TODO: execute runMsgs etc.
 		dm.app.pin(RunMsg, true, mode)
@@ -454,6 +461,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		dur := time.Since(start).Microseconds()
 		totalAnteDuration += app.deliverTxsMgr.anteDuration
 		totalRunMsgsDuration += app.deliverTxsMgr.runMsgsDuration
+		totalWriteTime += app.deliverTxsMgr.writeDuration
 		totalSavedTime = totalSavedTime + (app.deliverTxsMgr.anteDuration + app.deliverTxsMgr.runMsgsDuration - app.deliverTxsMgr.serialDuration)
 		app.logger.Info("totalAnteDuration", "totalAnte", totalAnteDuration,
 			"totalRunMsgs", totalRunMsgsDuration,
@@ -462,6 +470,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 			"curAll", dur,
 			"serialAll", totalSerialDuration,
 			"cur", app.deliverTxsMgr.serialDuration,
+			"write", app.deliverTxsMgr.writeDuration,
+			"writeAll", totalWriteTime,
 			"totalSavedTime", totalSavedTime,
 			"saved", float64(app.deliverTxsMgr.anteDuration) / float64(dur))
 	}
