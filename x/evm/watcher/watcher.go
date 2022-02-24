@@ -106,11 +106,11 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 }
 
-func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
+func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgEthTx(&msg, txHash, w.blockHash, w.height, index)
+	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -137,12 +137,12 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, &msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -200,9 +200,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
-	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
-	w.delayEraseKey = append(w.delayEraseKey, key)
+	key1 := GetMsgAccountKey(addr.Bytes())
+	key2 := append(prefixRpcDb, key1...)
+	w.delayEraseKey = append(w.delayEraseKey, key1)
+	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
