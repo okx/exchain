@@ -40,12 +40,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Code refactoring
 
-* Replace `MsgEthermint` to `MsgEthereumTx` ([\#1553](https://github.com/okex/exchain/pull/1533))
+* Remove the deprecated ethermint transaction handler from the code and remove `handleSimulation` ([\#1553](https://github.com/okex/exchain/pull/1553))
 
 
 ### Chores
 
-* Support local performance test ([\#1585](https://github.com/okex/exchain/pull/1585))
+* Support running high tps test network locally, the highest tps can reach 5800([\#1585](https://github.com/okex/exchain/pull/1585))
 
 
 
@@ -1360,6 +1360,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
+* The websocket interface supports the query of the web3 library ([\#792](https://github.com/okex/exchain/pull/792))
+
 * Support the function of calling web3 api in websocket ([\#795](https://github.com/okex/exchain/pull/795))
 
 
@@ -1371,8 +1373,6 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ### Performance Improvements
 
 * Optimize performance of the function `eth_call` ([\#793](https://github.com/okex/exchain/pull/793))
-
-* Enhance websocket ([\#792](https://github.com/okex/exchain/pull/792))
 
 
 
