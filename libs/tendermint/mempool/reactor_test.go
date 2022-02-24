@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"math/rand"
 	"net"
 	"sync"
 	"testing"
@@ -279,7 +280,9 @@ func TestTxMessageAmino(t *testing.T) {
 	typePrefix = typePrefix[:tpLen]
 
 	for _, tx := range testcases {
-		expectBz, err := cdc.MarshalBinaryBare(tx)
+		var m Message
+		m = tx
+		expectBz, err := cdc.MarshalBinaryBare(m)
 		require.NoError(t, err)
 		actualBz, err := tx.MarshalToAmino(cdc)
 		require.NoError(t, err)
@@ -292,4 +295,30 @@ func TestTxMessageAmino(t *testing.T) {
 
 		require.Equal(t, expectBz, actualBz)
 	}
+}
+
+func BenchmarkTxMessageAminoMarshal(b *testing.B) {
+	var bz = make([]byte, 256)
+	rand.Read(bz)
+	txm := TxMessage{bz}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryBare(txm)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&txm)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
