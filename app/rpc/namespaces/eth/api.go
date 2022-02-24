@@ -930,7 +930,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg)
+		return sim.DoCall(msg, addr.String())
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1255,7 +1255,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1358,7 +1358,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, err
 		}
 
-		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
+		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil)
 		if err != nil {
 			return nil, err
 		}
