@@ -756,7 +756,7 @@ func TestBlockIDAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, tc2, tc3)
-		require.EqualValues(t, len(bz), tc.AminoSize())
+		require.EqualValues(t, len(bz), tc.AminoSize(cdc))
 	}
 }
 
@@ -784,6 +784,8 @@ func TestHeaderAmino(t *testing.T) {
 	for _, header := range headerAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(header)
 		require.NoError(t, err)
+
+		require.Equal(t, len(expectData), header.AminoSize(cdc))
 
 		var expectValue Header
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
@@ -845,6 +847,8 @@ func TestDataAmino(t *testing.T) {
 		expectData, err := cdc.MarshalBinaryBare(d)
 		require.NoError(t, err)
 
+		require.Equal(t, len(expectData), d.AminoSize(cdc))
+
 		var expectValue Data
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
@@ -867,6 +871,8 @@ func TestCommitSigAmino(t *testing.T) {
 	for _, cs := range commitSigAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(cs)
 		require.NoError(t, err)
+
+		require.Equal(t, len(expectData), cs.AminoSize(cdc))
 
 		var expectValue CommitSig
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
@@ -905,6 +911,8 @@ func TestCommitAmino(t *testing.T) {
 		expectData, err := cdc.MarshalBinaryBare(commit)
 		require.NoError(t, err)
 
+		require.Equal(t, len(expectData), commit.AminoSize(cdc))
+
 		var expectValue Commit
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
@@ -934,6 +942,8 @@ func TestEvidenceDataAmino(t *testing.T) {
 	for _, evi := range evidenceDataAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(evi)
 		require.NoError(t, err)
+
+		require.Equal(t, len(expectData), evi.AminoSize(cdc))
 
 		var expectValue EvidenceData
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
@@ -980,6 +990,8 @@ func TestBlockAmino(t *testing.T) {
 	for _, block := range blockAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(block)
 		require.NoError(t, err)
+
+		require.Equal(t, len(expectData), block.AminoSize(cdc))
 
 		var expectValue Block
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
