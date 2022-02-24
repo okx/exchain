@@ -13,7 +13,8 @@ const (
 	maxDeliverTxsConcurrentNum = 10
 )
 
-var totalAnteDuration int64
+var totalAnteDuration = int64(0)
+var totalRunMsgsDuration = int64(0)
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -57,6 +58,8 @@ type DeliverTxTasksManager struct {
 	txResponses []*abci.ResponseDeliverTx
 
 	app *BaseApp
+	anteDuration int64
+	runMsgsDuration int64
 }
 
 func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
@@ -78,6 +81,9 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.tasks = sync.Map{}
 	dm.pendingTasks = sync.Map{}
 	dm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
+	
+	dm.anteDuration = 0
+	dm.runMsgsDuration = 0
 
 	go dm.makeTasksRoutine(txs)
 	go dm.runTxSerialRoutine()
@@ -151,7 +157,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	dm.app.pin(RunAnte, false, mode)
 
 	elapsed := time.Since(start).Microseconds()
-	totalAnteDuration += elapsed
+	dm.anteDuration += elapsed
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
@@ -238,11 +244,12 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			<-dm.executeSignal
 			elapsed := time.Since(start).Microseconds()
 			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us",elapsed)
-			totalAnteDuration -= elapsed
+			dm.anteDuration -= elapsed
 			continue
 		}
 
 		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
+		start := time.Now()
 
 		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
@@ -267,6 +274,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.txResponses[dm.executingTask.index] = &txRs
 			dm.resetExecutingTask()
 			finished++
+
+			elapsed := time.Since(start).Microseconds()
+			dm.runMsgsDuration += elapsed
 		}
 
 		// execute anteHandler failed
@@ -427,7 +437,9 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		//waiting for call back
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
-		app.logger.Info("totalAnteDuration", "us", totalAnteDuration)
+		totalAnteDuration += app.deliverTxsMgr.anteDuration
+		totalRunMsgsDuration += app.deliverTxsMgr.runMsgsDuration
+		app.logger.Info("totalAnteDuration", "totalAnte", totalAnteDuration, "current", app.deliverTxsMgr.anteDuration, "totalRunMsgs", totalRunMsgsDuration, "current", app.deliverTxsMgr.runMsgsDuration)
 	}
 
 	return app.deliverTxsMgr.txResponses
