@@ -22,7 +22,7 @@ const testnetChainId = "exchain-65"
 
 var (
 	chainId      string
-	chainIdEpoch *big.Int = big.NewInt(-1)
+	chainIdEpoch *big.Int
 )
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
@@ -53,6 +53,9 @@ func GetChainId() string {
 	return chainId
 }
 func GetChainIdEpoch() *big.Int {
+	if chainIdEpoch == nil {
+		panic(sdkerrors.Wrap(ErrInvalidChainID, "ChainId is not Init, need to call SetChainId when the app start"))
+	}
 	return chainIdEpoch
 }
 
