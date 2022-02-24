@@ -140,3 +140,12 @@ func (ak AccountKeeper) RetrievalStorageRoot(bz []byte) ethcmn.Hash {
 	}
 	return types4.EmptyRootHash
 }
+
+func (ak AccountKeeper) EncodeAccount(acc exported.Account) ([]byte, error){
+	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	if err != nil {
+		bz, err = ak.cdc.MarshalBinaryBare(acc)
+	}
+
+	return bz, err
+}

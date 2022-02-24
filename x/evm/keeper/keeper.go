@@ -16,6 +16,14 @@ import (
 	"math/big"
 )
 
+const (
+	FlagContractStateCache = "contract-state-cache"
+)
+
+var (
+	ContractStateCache uint = 2048 // MB
+)
+
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
 // to the StateDB interface.
 type Keeper struct {

@@ -110,7 +110,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 
 	k.UpdateInnerBlockData()
 
-	k.Commit(ctx)
+	k.EvmStateDb.WithContext(ctx).Commit(true)
 
 	return []abci.ValidatorUpdate{}
 }
