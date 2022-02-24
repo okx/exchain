@@ -112,11 +112,11 @@ func migrateAccount(ctx *server.Context) {
 		// contract account, migrate contract code
 		switch account.(type) {
 		case *types2.EthAccount:
-			contractCnt += 1
-
 			ethAcc := account.(*types2.EthAccount)
-
 			if len(ethAcc.CodeHash) > 0 {
+				contractCnt += 1
+
+				// migrate code
 				cHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 				codeWriter := mptDb.TrieDB().DiskDB().NewBatch()
 				code := migApp.EvmKeeper.GetCodeByHash(cmCtx, cHash)
@@ -161,7 +161,6 @@ func migrateContract(ctx *server.Context) {
 
 				addr := ethcmn.BytesToAddress(key)
 				addrHash := ethcrypto.Keccak256Hash(addr[:])
-
 				contractTrie, err := mptDb.OpenStorageTrie(addrHash, ethcmn.Hash{})
 				panicError(err)
 
@@ -180,7 +179,8 @@ func migrateContract(ctx *server.Context) {
 				bz, err := migApp.AccountKeeper.EncodeAccount(ethAcc)
 				panicError(err)
 
-				err = mptTrie.TryUpdate(addr[:], bz)
+				// use the FUCK key here, not the addr[:], for application logic will change the the addr with some odd prefix...
+				err = mptTrie.TryUpdate(key, bz)
 				panicError(err)
 
 				if cnt % 100 == 0 {
