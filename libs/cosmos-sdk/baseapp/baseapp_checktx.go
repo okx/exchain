@@ -8,6 +8,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 // CheckTx implements the ABCI interface and executes a tx in CheckTx mode. In
@@ -17,7 +18,7 @@ import (
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
+	tx, err := app.txDecoder(req.Tx, global.GetGlobalHeight())
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}

@@ -15,8 +15,8 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 	return gsInfo, r, e
 }
 
-func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64) (sdk.GasInfo, *sdk.Result, error) {
-	gsInfo, r, _, e := app.runTx(runTxModeSimulate, txBytes, tx, height)
+func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, from ...string) (sdk.GasInfo, *sdk.Result, error) {
+	gsInfo, r, _, e := app.runTx(runTxModeSimulate, txBytes, tx, height, from...)
 	return gsInfo, r, e
 }
 

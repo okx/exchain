@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -74,6 +73,22 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	}
 
 	return rpcTx, nil
+}
+
+func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *Transaction {
+	rpcTx := &Transaction{
+		From:     *from,
+		Gas:      hexutil.Uint64(tx.Data.GasLimit),
+		GasPrice: (*hexutil.Big)(tx.Data.Price),
+		Input:    hexutil.Bytes(tx.Data.Payload),
+		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Data.Amount),
+		V:        (*hexutil.Big)(tx.Data.V),
+		R:        (*hexutil.Big)(tx.Data.R),
+		S:        (*hexutil.Big)(tx.Data.S),
+	}
+	return rpcTx
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
@@ -244,12 +259,7 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 			continue
 		}
 
-		switch tx := txi.(type) {
-		case authtypes.StdTx:
-			gasUsed += tx.GetGas()
-		case evmtypes.MsgEthereumTx:
-			gasUsed += tx.GetGas()
-		}
+		gasUsed += txi.GetGas()
 	}
 	return gasUsed
 }

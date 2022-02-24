@@ -2,12 +2,11 @@ package analyzer
 
 import (
 	"fmt"
-	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
-	"strings"
 	"sync"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
@@ -127,10 +126,29 @@ func (s *analyer) stopTxLog(oper string) {
 		}
 	}
 }
-
 func (s *analyer) format() {
+
+	evmcore, record := s.genRecord()
+
+	formatDeliverTx(record)
+	formatRunAnteDetail(record)
+	formatEvmHandlerDetail(record)
+	// evm
+	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
+}
+
+func addInfo(name string, keys []string, record map[string]int64)  {
+	var comma, format string
+	for _, v := range keys {
+		format += fmt.Sprintf("%s%s<%dms>", comma, v, record[v])
+		comma = ", "
+	}
+	trace.GetElapsedInfo().AddInfo(name, format)
+}
+
+
+func (s *analyer) genRecord() (int64, map[string]int64) {
 	var evmcore int64
-	var format string
 	var record = make(map[string]int64)
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
@@ -152,7 +170,13 @@ func (s *analyer) format() {
 		}
 	}
 
-	var keys = []string{
+	return evmcore, record
+}
+
+func formatDeliverTx(record map[string]int64)  {
+
+	// deliver txs
+	var deliverTxsKeys = []string{
 		//----- DeliverTx
 		//bam.DeliverTx,
 		//bam.TxDecoder,
@@ -160,13 +184,23 @@ func (s *analyer) format() {
 		//----- run_tx
 		//bam.InitCtx,
 		bam.ValTxMsgs,
-		bam.AnteHandler,
-		bam.RunMsgs,
+		bam.RunAnte,
+		bam.RunMsg,
 		bam.Refund,
+		bam.EvmHandler,
+	}
+	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
+}
+
+
+func formatEvmHandlerDetail(record map[string]int64)  {
+
+	// run msg
+	var evmHandlerKeys = []string{
 		//bam.ConsumeGas,
 		//bam.Recover,
 		//----- handler
-		bam.EvmHandler,
+		//bam.EvmHandler,
 		//bam.ParseChainID,
 		//bam.VerifySig,
 		bam.Txhash,
@@ -177,12 +211,18 @@ func (s *analyer) format() {
 		//bam.HandlerDefer,
 		//-----
 	}
+	addInfo(trace.EvmHandlerDetail, evmHandlerKeys, record)
+}
 
-	for _, v := range keys {
-		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
+func formatRunAnteDetail(record map[string]int64)  {
+
+	// ante
+	var anteKeys = []string{
+		bam.CacheTxContext,
+		bam.AnteChain,
+		bam.AnteOther,
+		bam.CacheStoreWrite,
 	}
-	format = strings.TrimRight(format, ", ")
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
+	addInfo(trace.RunAnteDetail, anteKeys, record)
 
-	trace.GetElapsedInfo().AddInfo(trace.DeliverTxs, format)
 }

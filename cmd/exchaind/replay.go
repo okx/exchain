@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/x/common/analyzer"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -95,6 +97,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 	cmd.Flags().Int(types.FlagRedisDB, 0, "delta db num")
 	cmd.Flags().Int(types.FlagDeltaVersion, types.DeltaVersion, "Specify delta version")
+	cmd.Flags().Bool(types.FlagFastQuery, false, "enable watch db or not")
 
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
@@ -126,7 +129,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
-
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	return cmd
 }
 
