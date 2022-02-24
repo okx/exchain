@@ -98,6 +98,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
+			app.logger.Error("runAnte failed", "err", err)
 			return err
 		}
 	}

@@ -238,6 +238,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			<-dm.executeSignal
 			elapsed := time.Since(start).Microseconds()
 			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us",elapsed)
+			totalAnteDuration -= elapsed
 			continue
 		}
 
