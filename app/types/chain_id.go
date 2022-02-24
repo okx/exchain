@@ -21,6 +21,7 @@ const mainnetChainId = "exchain-66"
 const testnetChainId = "exchain-65"
 
 var (
+	chainId      string
 	chainIdEpoch *big.Int = big.NewInt(-1)
 )
 
@@ -39,12 +40,20 @@ func isTestNetChainID(chainID string) bool {
 	return chainID == testnetChainId
 }
 
-func SetChainIdEpoch(epoch *big.Int) {
+func SetChainId(chainid string) error {
+	chainId = chainid
+	epoch, err := ParseChainID(chainid)
+	if err != nil {
+		return err
+	}
 	chainIdEpoch = epoch
+	return nil
 }
-func GetChainIdEpoch() (epoch *big.Int) {
-	epoch = chainIdEpoch
-	return
+func GetChainId() string {
+	return chainId
+}
+func GetChainIdEpoch() *big.Int {
+	return chainIdEpoch
 }
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible

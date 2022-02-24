@@ -456,12 +456,11 @@ func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.Response
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
-		chainIdEpoch, err := okexchain.ParseChainID(req.Value)
+		err := okexchain.SetChainId(req.Value)
 		if err != nil {
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
-		okexchain.SetChainIdEpoch(chainIdEpoch)
 	}
 	return app.BaseApp.SetOption(req)
 }

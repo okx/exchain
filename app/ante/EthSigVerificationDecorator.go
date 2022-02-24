@@ -28,7 +28,11 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// parse the chainID from a string to a base-10 integer
+	// check  chainID is equal to the tendermint consensus state Chain id
+	chainId := ethermint.GetChainId()
+	if chainId != ctx.ChainID() {
+		return ctx, sdkerrors.Wrapf(ethermint.ErrInvalidChainID, "Invalid Chain id : \"%s\",  expected : \"%s\"", ctx.ChainID(), chainId)
+	}
 	chainIDEpoch := ethermint.GetChainIdEpoch()
 
 	// validate sender/signature and cache the address
