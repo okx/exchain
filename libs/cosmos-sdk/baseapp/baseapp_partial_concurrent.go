@@ -16,6 +16,7 @@ const (
 var totalAnteDuration = int64(0)
 var totalRunMsgsDuration = int64(0)
 var totalSerialDuration = int64(0)
+var totalSavedTime = int64(0)
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -61,6 +62,7 @@ type DeliverTxTasksManager struct {
 	app *BaseApp
 	anteDuration int64
 	runMsgsDuration int64
+	serialDuration int64
 }
 
 func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
@@ -85,6 +87,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	
 	dm.anteDuration = 0
 	dm.runMsgsDuration = 0
+	dm.serialDuration = 0
 
 	go dm.makeTasksRoutine(txs)
 	go dm.runTxSerialRoutine()
@@ -358,9 +361,8 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		dm.done <- 0
 		close(dm.executeSignal)
 		close(dm.nextSignal)
-		dur := time.Since(begin).Microseconds()
-		totalSerialDuration += dur
-		dm.app.logger.Info("time for runTxSerialRoutine", "cur", dur)
+		dm.serialDuration = time.Since(begin).Microseconds()
+		totalSerialDuration += dm.serialDuration
 	} else {
 		dm.app.logger.Error("finished count is not equal to total count", "finished", finished, "total", dm.totalCount)
 	}
@@ -449,12 +451,15 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		dur := time.Since(start).Microseconds()
 		totalAnteDuration += app.deliverTxsMgr.anteDuration
 		totalRunMsgsDuration += app.deliverTxsMgr.runMsgsDuration
+		totalSavedTime = totalSavedTime + (app.deliverTxsMgr.anteDuration + app.deliverTxsMgr.runMsgsDuration - app.deliverTxsMgr.serialDuration)
 		app.logger.Info("totalAnteDuration", "totalAnte", totalAnteDuration,
 			"totalRunMsgs", totalRunMsgsDuration,
 			"curAnte", app.deliverTxsMgr.anteDuration,
 			"curMsgs", app.deliverTxsMgr.runMsgsDuration,
 			"curAll", dur,
 			"serialAll", totalSerialDuration,
+			"cur", app.deliverTxsMgr.serialDuration,
+			"totalSavedTime", totalSavedTime,
 			"saved", float64(app.deliverTxsMgr.anteDuration) / float64(dur))
 	}
 
