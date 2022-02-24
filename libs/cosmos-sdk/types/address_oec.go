@@ -55,14 +55,12 @@ func (aa AccAddress) Bech32StringOptimized(bech32PrefixAccAddr string) string {
 // (base32).
 func encode(hrp string, data []byte) (string, error) {
 	// Calculate the checksum of the data and append it at the end.
-	// checksum := bech32Checksum(hrp, data)
-
 	resultLen := len(hrp) + 1 + len(data) + 6
 	var result = make([]byte, resultLen)
 	copy(result, hrp)
 	result[len(hrp)] = '1'
 	copy(result[len(hrp)+1:], data)
-	// copy(result[len(hrp)+1+len(data):], checksum)
+
 	bech32ChecksumTo(hrp, data, result[len(hrp)+1+len(data):])
 
 	err := toChars(result[len(hrp)+1:])
@@ -71,18 +69,6 @@ func encode(hrp string, data []byte) (string, error) {
 			"%v", err)
 	}
 	return amino.BytesToStr(result), nil
-
-	//combined := append(data, checksum...)
-	//
-	//// The resulting bech32 string is the concatenation of the hrp, the
-	//// separator 1, data and checksum. Everything after the separator is
-	//// represented using the specified charset.
-	//dataChars, err := toChars(combined)
-	//if err != nil {
-	//	return "", fmt.Errorf("unable to convert data bytes to chars: "+
-	//		"%v", err)
-	//}
-	//return hrp + "1" + dataChars, nil
 }
 
 func convertBits(data []byte, fromBits, toBits uint8, pad bool) ([]byte, error) {
@@ -246,15 +232,6 @@ func bech32ChecksumTo(hrp string, data []byte, result []byte) {
 // toChars converts the byte slice 'data' to a string where each byte in 'data'
 // encodes the index of a character in 'charset'.
 func toChars(data []byte) error {
-	//result := make([]byte, 0, len(data))
-	//for _, b := range data {
-	//	if int(b) >= len(charset) {
-	//		return "", fmt.Errorf("invalid data byte: %v", b)
-	//	}
-	//	result = append(result, charset[b])
-	//}
-	//return string(result), nil
-
 	for i := 0; i < len(data); i++ {
 		if int(data[i]) >= len(charset) {
 			return fmt.Errorf("invalid data byte: %v", data[i])
