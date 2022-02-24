@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -278,6 +279,7 @@ func InitTestnet(
 		genAccounts = append(genAccounts, ethermint.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
+			StateRoot: types.EmptyRootHash,
 		})
 
 		msg := stakingtypes.NewMsgCreateValidator(

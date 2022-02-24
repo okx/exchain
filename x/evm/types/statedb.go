@@ -5,6 +5,7 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
 	"math/big"
@@ -47,8 +48,6 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB         ethstate.Database
-	Trie       ethstate.Trie
 	StateCache *fastcache.Cache
 }
 
@@ -77,7 +76,6 @@ type CacheCode struct {
 // manner. In otherwords, how this relates to the keeper in this module.
 type CommitStateDB struct {
 	db         ethstate.Database
-	trie       ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
 	StateCache *fastcache.Cache
 
 	// TODO: We need to store the context as part of the structure itself opposed
@@ -162,8 +160,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
-		db:   csdbParams.DB,
-		trie: csdbParams.Trie,
+		db: mpt.InstanceOfMptStore(),
 
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
@@ -759,7 +756,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 					}
 
 					if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-						csdb.UpdateAccountStorageInfo(obj)
+						//csdb.UpdateAccountStorageInfo(obj)
 					}
 				}
 			}
@@ -895,10 +892,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		}
 	}
 
-	//if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-	//	csdb.UpdateAccountStorageInfo(so)
-	//}
-
 	return nil
 }
 
@@ -906,10 +899,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
-
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-		csdb.DeleteAccountStorageInfo(so)
-	}
 }
 
 // ----------------------------------------------------------------------------
@@ -1156,7 +1145,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc, ethtypes.EmptyRootHash)
+	newObj = newStateObject(csdb, acc)
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {

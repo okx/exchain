@@ -1274,7 +1274,7 @@ func (rs *Store) SetLogger(log tmlog.Logger) {
 
 // GetLatestStoredMptHeight get latest mpt storage height
 func GetLatestStoredMptHeight() uint64 {
-	db := mpt.InstanceOfAccStore()
+	db := mpt.InstanceOfMptStore()
 	rst, err := db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0

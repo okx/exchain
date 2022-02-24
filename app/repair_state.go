@@ -112,12 +112,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 		if onStart {
 			startVersion = commitVersion
 		} else {
-			if types.HigherThanMars(commitVersion) {
-				lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
-				if lastMptVersion < commitVersion {
-					commitVersion = lastMptVersion
-				}
-			}
 			startVersion = commitVersion - 2 // case: state machine broken
 		}
 	}
@@ -130,7 +124,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	rawTrieDirtyDisabledFlag :=  viper.GetBool(types2.FlagTrieDirtyDisabled)
 	types2.TrieDirtyDisabled = true
-	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)

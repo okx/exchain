@@ -3,12 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"github.com/VictoriaMetrics/fastcache"
-	"github.com/ethereum/go-ethereum/common/prque"
-	ethstate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/okex/exchain/libs/mpt"
-	"math/big"
-	"sync"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -19,6 +13,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
+	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -55,17 +50,9 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	db          ethstate.Database
-	rootTrie    ethstate.Trie
-	startHeight uint64
-	triegc      *prque.Prque
-	stateCache  *fastcache.Cache
-
+	stateCache     *fastcache.Cache
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
-
-	mptCommitMu *sync.Mutex
-	asyncChain  chan int64
 }
 
 // NewKeeper generates new evm module keeper
@@ -104,19 +91,13 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 
-		db:             mpt.InstanceOfEvmStore(),
-		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
-		mptCommitMu:    &sync.Mutex{},
-		asyncChain:     make(chan int64, 1000),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
 
-	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
-	k.asyncCommit(logger)
 
 	return k
 }
@@ -139,13 +120,10 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             mpt.InstanceOfEvmStore(),
-		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
 
-	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 
 	return k
@@ -172,8 +150,6 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
 		StateCache: k.stateCache,
 	}
 }
@@ -186,8 +162,6 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Ada:      k.Ada,
 		Cdc:      k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
 		StateCache: k.stateCache,
 	}
 }

@@ -1,21 +1,13 @@
 package main
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/app"
-	types2 "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/mpt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 	"log"
 	"path/filepath"
@@ -42,7 +34,7 @@ func migrateAccountCmd(ctx *server.Context) *cobra.Command {
 		Short: "1. migrate iavl account to mpt account",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- migrate account start ---------")
-			migrateAccount(ctx)
+			//migrateAccount(ctx)
 			log.Println("--------- migrate account end ---------")
 		},
 	}
@@ -57,7 +49,7 @@ func migrateContractCmd(ctx *server.Context) *cobra.Command {
 		Short: "2. migrate iavl contract state to mpt contract state",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- display state start ---------")
-			migrateContract(ctx)
+			//migrateContract(ctx)
 			log.Println("--------- display state end ---------")
 		},
 	}
@@ -72,7 +64,7 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 		Short: "3. clean up migrated iavl state",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- display state start ---------")
-			cleanRawDB(ctx)
+			//cleanRawDB(ctx)
 			log.Println("--------- display state end ---------")
 		},
 	}
@@ -82,6 +74,7 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 }
 
 //----------------------------------------------------------------
+/*
 func migrateAccount(ctx *server.Context) {
 	migApp := newMigrationApp(ctx)
 
@@ -92,13 +85,13 @@ func migrateAccount(ctx *server.Context) {
 	migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
 	cmCtx := migApp.GetDeliverStateCtx()
 
-	accMptDb := mpt.InstanceOfAccStore()
+	accMptDb := mpt.InstanceOfMptStore()
 	accTrie, err := accMptDb.OpenTrie(ethcmn.Hash{})
 	panicError(err)
 
-	evmMptDb := mpt.InstanceOfEvmStore()
-	evmTrie, err := evmMptDb.OpenTrie(ethcmn.Hash{})
-	panicError(err)
+	//evmMptDb := mpt.InstanceOfMptStore()
+	//evmTrie, err := evmMptDb.OpenTrie(ethcmn.Hash{})
+	//panicError(err)
 
 	cnt := 0
 	contractCnt := 0
@@ -159,7 +152,7 @@ func migrateContract(ctx *server.Context) {
 	migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
 	cmCtx := migApp.GetDeliverStateCtx()
 
-	evmMptDb := mpt.InstanceOfEvmStore()
+	evmMptDb := mpt.InstanceOfMptStore()
 	rootHash := migApp.EvmKeeper.GetMptRootHash(uint64(cmCtx.BlockHeight() - 1))
 	evmTrie, err := evmMptDb.OpenTrie(rootHash)
 	panicError(err)
@@ -200,7 +193,7 @@ func migrateContract(ctx *server.Context) {
 func cleanRawDB(ctx *server.Context) {
 	fmt.Println("Not implement!!!")
 }
-
+*/
 //----------------------------------------------------------------
 
 func pushData2Database(db ethstate.Database, tr ethstate.Trie, height int64) {

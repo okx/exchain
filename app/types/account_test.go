@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"testing"
 
@@ -44,6 +45,7 @@ func (suite *AccountTestSuite) SetupTest() {
 	suite.account = &EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
+		StateRoot:   types.EmptyRootHash,
 	}
 }
 
@@ -127,6 +129,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   account_number: 10
   sequence: 50
   code_hash: "0102"
+  state_root: 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
 `, suite.account.Address, suite.account.EthAddress().String(), sdk.DefaultBondDenom, bech32pubkey)
 
 	suite.Require().Equal(accountStr, suite.account.String())
@@ -213,6 +216,7 @@ func TestEthAccountAmino(t *testing.T) {
 				1,
 			),
 			ethcrypto.Keccak256(nil),
+			types.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -223,6 +227,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
+			types.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -233,6 +238,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
+			types.EmptyRootHash,
 		},
 		{
 			BaseAccount: &auth.BaseAccount{},
@@ -298,6 +304,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot:   types.EmptyRootHash,
 	}
 
 	data, _ := cdc.MarshalBinaryBare(&testAccount)
@@ -341,6 +348,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot:   types.EmptyRootHash,
 	}
 
 	b.ResetTimer()

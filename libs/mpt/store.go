@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -32,15 +33,17 @@ var (
 	_ types.CommitStore   = (*MptStore)(nil)
 	_ types.CommitKVStore = (*MptStore)(nil)
 	_ types.Queryable     = (*MptStore)(nil)
+
+	AccStoreCache uint = 2048 // MB
 )
 
 // MptStore Implements types.KVStore and CommitKVStore.
 type MptStore struct {
-	trie          ethstate.Trie
-	db            ethstate.Database
-	triegc        *prque.Prque
-	logger        tmlog.Logger
-	kvCache       *fastcache.Cache
+	trie    ethstate.Trie
+	db      ethstate.Database
+	triegc  *prque.Prque
+	logger  tmlog.Logger
+	kvCache *fastcache.Cache
 
 	version      int64
 	startVersion int64
@@ -67,14 +70,14 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 }
 
 func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
-	db := InstanceOfAccStore()
+	db := InstanceOfMptStore()
 	triegc := prque.New(nil)
 
 	mptStore := &MptStore{
-		db:            db,
-		triegc:        triegc,
-		logger:        logger,
-		kvCache:       fastcache.New(int(AccStoreCache) * 1024 * 1024),
+		db:      db,
+		triegc:  triegc,
+		logger:  logger,
+		kvCache: fastcache.New(int(AccStoreCache) * 1024 * 1024),
 	}
 	err := mptStore.openTrie(id)
 
@@ -178,7 +181,19 @@ func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
 func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) {
 	ms.version++
 
-	root, err := ms.trie.Commit(nil)
+	var acc exported.Account
+	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+		//if err := rlp.DecodeBytes(leaf, &account); err != nil {
+		//	return nil
+		//}
+
+		storageRoot := acc.GetStateRoot()
+		if storageRoot != types3.EmptyRootHash {
+			ms.db.TrieDB().Reference(storageRoot, parent)
+		}
+		return nil
+	})
+
 	if err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}

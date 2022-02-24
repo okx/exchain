@@ -105,7 +105,6 @@ type StateObject interface {
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
 	trie      ethstate.Trie // storage trie, which becomes non-nil on first access
-	stateRoot ethcmn.Hash   // merkle root of the storage trie
 
 	code types.Code // contract bytecode, which gets set when code is loaded
 	// State objects are used by the consensus core and VM which are
@@ -134,7 +133,7 @@ type stateObject struct {
 	deleted   bool
 }
 
-func newStateObject(db *CommitStateDB, accProto authexported.Account, stateRoot ethcmn.Hash) *stateObject {
+func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
 	if !ok {
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
@@ -144,14 +143,13 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account, stateRoot 
 	if ethermintAccount.CodeHash == nil {
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
-	if stateRoot == (ethcmn.Hash{}) {
-		stateRoot = types2.EmptyRootHash
+	if ethermintAccount.StateRoot == (ethcmn.Hash{}) {
+		ethermintAccount.StateRoot = types2.EmptyRootHash
 	}
 
 	ethAddr := ethermintAccount.EthAddress()
 	return &stateObject{
 		stateDB:        db,
-		stateRoot:      stateRoot,
 		account:        ethermintAccount,
 		address:        ethAddr,
 		addrHash:       ethcrypto.Keccak256Hash(ethAddr[:]),
@@ -345,7 +343,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				so.setError(tr.TryUpdate(key[:], v))
 			}
 		}
-		//so.stateRoot = so.trie.Hash()
+		so.account.StateRoot = so.trie.Hash()
 	}
 
 	if len(so.pendingStorage) > 0 {
@@ -510,7 +508,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 		if err != nil {
 			return nil
 		}
-		newStateObj := newStateObject(db, newAccount, so.stateRoot)
+		newStateObj := newStateObject(db, newAccount)
 
 		newStateObj.code = make(types.Code, len(so.code))
 		copy(newStateObj.code, so.code)

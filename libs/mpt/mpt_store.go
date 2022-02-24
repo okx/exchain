@@ -16,38 +16,50 @@ import (
 )
 
 const (
-	AccMptDataDir = "data"
-	AccMptSpace   = "acc"
+	MptDataDir = "data"
+	MptSpace   = "mpt"
+
+	StoreTypeMPT = sdk.StoreTypeMPT
+
+	TriesInMemory = 100
+
+	// StoreKey is string representation of the store key for mpt
+	StoreKey = "mpt"
+
+	FlagAccStoreCache = "account-store-cache"
 )
 
 var (
-	gAccMptDatabase ethstate.Database = nil
-	initAccOnce     sync.Once
+	gMptDatabase ethstate.Database = nil
+	initMptOnce  sync.Once
+
+	KeyPrefixRootMptHash        = []byte{0x01}
+	KeyPrefixLatestStoredHeight = []byte{0x02}
 )
 
-func InstanceOfAccStore() ethstate.Database {
-	initAccOnce.Do(func() {
+func InstanceOfMptStore() ethstate.Database {
+	initMptOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
-		path := filepath.Join(homeDir, AccMptDataDir)
+		path := filepath.Join(homeDir, MptDataDir)
 
 		backend := sdk.DBBackend
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}
 
-		kvstore, e := types.CreateKvDB(AccMptSpace, types.BackendType(backend), path)
+		kvstore, e := types.CreateKvDB(MptSpace, types.BackendType(backend), path)
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
 		db := rawdb.NewDatabase(kvstore)
-		gAccMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
+		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(types.TrieCacheSize),
 			Journal:   "",
 			Preimages: true,
 		})
 	})
 
-	return gAccMptDatabase
+	return gMptDatabase
 }
 
 // GetLatestStoredBlockHeight get latest mpt storage height

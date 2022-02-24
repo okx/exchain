@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"encoding/binary"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/x/evm"
 	"sync"
 
@@ -57,6 +58,7 @@ func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccA
 	acc := types.EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot: types2.EmptyRootHash,
 	}
 	acc.SetAddress(addr)
 	a.cachedAcc[addr.String()] = &acc

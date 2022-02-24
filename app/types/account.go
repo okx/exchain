@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -34,7 +35,8 @@ func init() {
 // auth.BaseAccount type. It is compatible with the auth.AccountKeeper.
 type EthAccount struct {
 	*authtypes.BaseAccount `json:"base_account" yaml:"base_account"`
-	CodeHash               []byte `json:"code_hash" yaml:"code_hash"`
+	CodeHash               []byte      `json:"code_hash" yaml:"code_hash"`
+	StateRoot              ethcmn.Hash `json:"state_root" yaml:"state_root"` // merkle root of the storage trie
 }
 
 func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -80,6 +82,8 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		case 2:
 			acc.CodeHash = make([]byte, len(subData))
 			copy(acc.CodeHash, subData)
+		case 3:
+			acc.StateRoot.SetBytes(subData)
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
@@ -91,6 +95,7 @@ func (acc EthAccount) Copy() interface{} {
 	return &EthAccount{
 		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
 		acc.CodeHash,
+		acc.StateRoot,
 	}
 }
 
@@ -99,7 +104,7 @@ var ethAccountBufferPool = amino.NewBufferPool()
 func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = ethAccountBufferPool.Get()
 	defer ethAccountBufferPool.Put(buf)
-	for pos := 1; pos < 3; pos++ {
+	for pos := 1; pos < 4; pos++ {
 		lBeforeKey := buf.Len()
 		var noWrite bool
 		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
@@ -143,6 +148,20 @@ func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+		case 3:
+			stateRootLen := len(acc.StateRoot.Bytes())
+			if stateRootLen == 0 {
+				noWrite = true
+				break
+			}
+			err := amino.EncodeUvarintToBuffer(buf, uint64(stateRootLen))
+			if err != nil {
+				return nil, err
+			}
+			_, err = buf.Write(acc.StateRoot.Bytes())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			panic("unreachable")
 		}
@@ -159,6 +178,7 @@ func ProtoAccount() exported.Account {
 	return &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot:   types.EmptyRootHash,
 	}
 }
 
@@ -204,6 +224,7 @@ type ethermintAccountPretty struct {
 	AccountNumber uint64         `json:"account_number" yaml:"account_number"`
 	Sequence      uint64         `json:"sequence" yaml:"sequence"`
 	CodeHash      string         `json:"code_hash" yaml:"code_hash"`
+	StateRoot     string         `josn:"state_root" yaml:"state_root"`
 }
 
 // MarshalYAML returns the YAML representation of an account.
@@ -215,6 +236,7 @@ func (acc EthAccount) MarshalYAML() (interface{}, error) {
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+		StateRoot:     acc.StateRoot.String(),
 	}
 
 	var err error
@@ -249,6 +271,7 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
 		CodeHash:      ethcmn.Bytes2Hex(acc.CodeHash),
+		StateRoot:     acc.StateRoot.String(),
 	}
 
 	var err error
@@ -312,6 +335,7 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 		Sequence:      alias.Sequence,
 	}
 	acc.CodeHash = ethcmn.Hex2Bytes(alias.CodeHash)
+	acc.StateRoot = ethcmn.HexToHash(alias.StateRoot)
 
 	if alias.PubKey != "" {
 		acc.BaseAccount.PubKey, err = sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeAccPub, alias.PubKey)
@@ -326,4 +350,8 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 func (acc EthAccount) String() string {
 	out, _ := yaml.Marshal(acc)
 	return string(out)
+}
+
+func (acc EthAccount) GetStateRoot() ethcmn.Hash {
+	return acc.StateRoot
 }
