@@ -184,7 +184,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 
 	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
 		storageRoot := ms.retrieval(leaf)
-		if storageRoot != types3.EmptyRootHash {
+		if storageRoot != types3.EmptyRootHash && storageRoot != (ethcmn.Hash{}){
 			ms.db.TrieDB().Reference(storageRoot, parent)
 		}
 		return nil

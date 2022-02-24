@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	types4 "github.com/ethereum/go-ethereum/core/types"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
 
@@ -134,8 +135,8 @@ func (ak AccountKeeper) RetrievalStorageRoot(bz []byte) ethcmn.Hash {
 		return acc.GetStateRoot()
 	}
 	err = ak.cdc.UnmarshalBinaryBare(bz, &acc)
-	if err != nil {
-		panic(err)
+	if err == nil {
+		return acc.GetStateRoot()
 	}
-	return acc.GetStateRoot()
+	return types4.EmptyRootHash
 }
