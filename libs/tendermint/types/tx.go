@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
@@ -17,6 +18,11 @@ import (
 // NOTE: Tx has no types at this level, so when wire encoded it's just length-prefixed.
 // Might we want types here ?
 type Tx []byte
+
+func Bytes2Hash(txBytes []byte, height int64) string {
+	txHash := Tx(txBytes).Hash(height)
+	return ethcmn.BytesToHash(txHash).String()
+}
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
 func (tx Tx) Hash(height int64) []byte {

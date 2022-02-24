@@ -278,11 +278,10 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte) (sdk.SigCache, error) {
+	var cacheKey string
 	// get sender from cache
-	cacheKey := ""
 	if txBytes != nil {
-		txHash := tmtypes.Tx(txBytes).Hash(height)
-		cacheKey = ethcmn.BytesToHash(txHash).String()
+		cacheKey = tmtypes.Bytes2Hash(txBytes, height)
 		if sigCache, ok := verifySigCache.Get(cacheKey); ok {
 			msg.from.Store(sigCache)
 			return sigCache, nil
