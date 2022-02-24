@@ -41,7 +41,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	elapsed := time.Since(start).Microseconds()
 	deliverTxDuration += elapsed
-	logger.Info("DeliverTxs duration", "us", elapsed, "total", deliverTxDuration)
+	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
 
 	var validTxs, invalidTxs = 0, 0
 	for _, v := range abciResponses.DeliverTxs {

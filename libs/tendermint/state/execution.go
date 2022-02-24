@@ -476,7 +476,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	elapsed := time.Since(start).Microseconds()
 	deliverTxDuration += elapsed
-	logger.Info("DeliverTxs duration", "us", elapsed, "total", deliverTxDuration)
+	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
 
 	// End block.
 	//fmt.Println("EndBlockSync.")
