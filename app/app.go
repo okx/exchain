@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -455,6 +456,12 @@ func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.Response
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
+		chainIdEpoch, err := okexchain.ParseChainID(req.Value)
+		if err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
+		okexchain.SetChainIdEpoch(chainIdEpoch)
 	}
 	return app.BaseApp.SetOption(req)
 }
