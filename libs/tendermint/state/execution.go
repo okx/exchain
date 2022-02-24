@@ -30,6 +30,8 @@ const (
 	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
 )
 
+var deliverTxDuration int64
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -459,6 +461,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	// Run txs of block.
 	//fmt.Println("BeginBlockSync.")
+	start := time.Now()
 	for count, tx := range block.Txs {
 		//fmt.Printf("DeliverTxAsync. %d\n", count)
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
@@ -471,6 +474,9 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
+	elapsed := time.Since(start).Microseconds()
+	deliverTxDuration += elapsed
+	logger.Info("DeliverTxs duration", "us", elapsed, "total", deliverTxDuration)
 
 	// End block.
 	//fmt.Println("EndBlockSync.")

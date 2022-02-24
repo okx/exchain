@@ -6,6 +6,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -36,6 +37,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	}
 
 	// Run txs of block.
+	start := time.Now()
 	var validTxs, invalidTxs = 0, 0
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	for _, v := range abciResponses.DeliverTxs {
@@ -45,6 +47,10 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 			invalidTxs++
 		}
 	}
+	elapsed := time.Since(start).Microseconds()
+	deliverTxDuration += elapsed
+	logger.Info("DeliverTxs duration", "us", elapsed, "total", deliverTxDuration)
+
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
