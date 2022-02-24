@@ -1,6 +1,8 @@
 package evm
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
@@ -14,7 +16,6 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"math/big"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -245,7 +246,7 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 			return
 		}
 	}
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes())
 	if err == nil {
 		sender = senderSigCache.GetFrom()
 	}
