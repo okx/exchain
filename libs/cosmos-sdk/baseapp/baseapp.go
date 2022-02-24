@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/okex/exchain/libs/types"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -950,4 +951,8 @@ func txhash(txbytes []byte) string {
 	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
 	ethHash := common.BytesToHash(txHash)
 	return ethHash.String()
+}
+
+func (app *BaseApp) SetStorageRetrievalForCMS(retrieval types.StorageRootRetrieval) {
+	app.cms.SetStorageRootRetrieval(retrieval)
 }

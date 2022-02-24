@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/types"
 	"io"
 
 	"github.com/okex/exchain/libs/iavl"
@@ -190,6 +191,8 @@ type CommitMultiStore interface {
 	StopStore()
 
 	SetLogger(log log.Logger)
+
+	SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval)
 }
 
 //---------subsp-------------------------------

@@ -1,6 +1,7 @@
 package mock
 
 import (
+	types2 "github.com/okex/exchain/libs/types"
 	"io"
 
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -214,5 +215,9 @@ func (ms multiStore) GetCommitVersion() (int64, error) {
 }
 
 func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.CommitID, iavl.TreeDeltaMap) {
+	panic("not implemented")
+}
+
+func (ms multiStore) SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval) {
 	panic("not implemented")
 }

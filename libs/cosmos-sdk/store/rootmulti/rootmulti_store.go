@@ -67,6 +67,7 @@ type Store struct {
 	interBlockCache types.MultiStorePersistentCache
 
 	logger tmlog.Logger
+	retrieval types2.StorageRootRetrieval
 }
 
 var (
@@ -764,7 +765,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return transient.NewStore(), nil
 
 	case types.StoreTypeMPT:
-		return mpt.NewMptStore(rs.logger, id)
+		return mpt.NewMptStore(rs.logger, rs.retrieval, id)
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -1280,4 +1281,8 @@ func GetLatestStoredMptHeight() uint64 {
 		return 0
 	}
 	return binary.BigEndian.Uint64(rst)
+}
+
+func (rs *Store) SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval) {
+	rs.retrieval = retrieval
 }

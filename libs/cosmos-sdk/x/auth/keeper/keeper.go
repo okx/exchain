@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
 
@@ -123,4 +124,18 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 		panic(err)
 	}
 	return
+}
+
+func (ak AccountKeeper) RetrievalStorageRoot(bz []byte) ethcmn.Hash {
+	var acc exported.Account
+	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
+	if err == nil {
+		acc = val.(exported.Account)
+		return acc.GetStateRoot()
+	}
+	err = ak.cdc.UnmarshalBinaryBare(bz, &acc)
+	if err != nil {
+		panic(err)
+	}
+	return acc.GetStateRoot()
 }
