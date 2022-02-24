@@ -140,7 +140,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	}
 	dm.app.pin(ValTxMsgs, false, mode)
 
-	dm.app.pin(AnteHandler, true, mode)
+	dm.app.pin(RunAnte, true, mode)
 	if dm.app.anteHandler != nil {
 		err := dm.runAnte(task.info, mode)
 		if err != nil {
@@ -148,7 +148,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 			task.anteFailed = true
 		}
 	}
-	dm.app.pin(AnteHandler, false, mode)
+	dm.app.pin(RunAnte, false, mode)
 
 	elapsed := time.Since(start).Microseconds()
 	totalAnteDuration += elapsed
@@ -292,7 +292,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		// todo: if ante failed during concurrently executing, try it again
 		if dm.executingTask.anteFailed {
-			dm.app.pin(AnteHandler, true, mode)
+			dm.app.pin(RunAnte, true, mode)
 
 			if dm.app.anteHandler != nil {
 				err := dm.app.runAnte(info, mode)
@@ -304,19 +304,19 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 					txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
 					handleGasFn()
 					execFinishedFn(txRs)
-					dm.app.pin(AnteHandler, false, mode)
+					dm.app.pin(RunAnte, false, mode)
 					continue
 				}
 			}
-			dm.app.pin(AnteHandler, false, mode)
+			dm.app.pin(RunAnte, false, mode)
 		}
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 
 		// TODO: execute runMsgs etc.
-		dm.app.pin(RunMsgs, true, mode)
+		dm.app.pin(RunMsg, true, mode)
 		err = handler.handleRunMsg(info)
-		dm.app.pin(RunMsgs, false, mode)
+		dm.app.pin(RunMsg, false, mode)
 
 		handleGasFn()
 
