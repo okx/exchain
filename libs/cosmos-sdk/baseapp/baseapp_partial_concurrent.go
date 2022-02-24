@@ -329,8 +329,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			}
 			dm.app.pin(RunAnte, false, mode)
 		}
-		info.msCacheAnte.Write()
-		info.ctx.Cache().Write(true)
+		// todo: cache is the same for all deliverTx? Maybe it's no need to write cache there.
+		//info.msCacheAnte.Write()
+		//info.ctx.Cache().Write(true)
 
 		// TODO: execute runMsgs etc.
 		dm.app.pin(RunMsg, true, mode)
