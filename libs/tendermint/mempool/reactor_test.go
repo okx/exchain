@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 
 	"github.com/fortytw2/leaktest"
@@ -262,4 +264,32 @@ func TestVerifyWtx(t *testing.T) {
 	nodeKeyWhitelist[string(p2p.PubKeyToID(nodeKey.PubKey()))] = struct{}{}
 	err = wtx.verify(nodeKeyWhitelist)
 	assert.Nil(t, err)
+}
+
+func TestTxMessageAmino(t *testing.T) {
+	testcases := []TxMessage{
+		{},
+		{[]byte{}},
+		{[]byte{1, 2, 3, 4, 5, 6, 7}},
+	}
+
+	var typePrefix = make([]byte, 8)
+	tpLen, err := cdc.GetTypePrefix(TxMessage{}, typePrefix)
+	require.NoError(t, err)
+	typePrefix = typePrefix[:tpLen]
+
+	for _, tx := range testcases {
+		expectBz, err := cdc.MarshalBinaryBare(tx)
+		require.NoError(t, err)
+		actualBz, err := tx.MarshalToAmino(cdc)
+		require.NoError(t, err)
+
+		require.Equal(t, expectBz, append(typePrefix, actualBz...))
+		require.Equal(t, len(expectBz), tpLen+tx.AminoSize(cdc))
+
+		actualBz, err = cdc.MarshalBinaryBareWithRegisteredMarshaller(tx)
+		require.NoError(t, err)
+
+		require.Equal(t, expectBz, actualBz)
+	}
 }
