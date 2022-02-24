@@ -73,3 +73,46 @@ func TestParseChainID(t *testing.T) {
 		}
 	}
 }
+
+func TestSetChainID(t *testing.T) {
+	type testCase struct {
+		name      string
+		chainID   string
+		chainID_2 string
+		expId     string
+		expEpoch  *big.Int
+	}
+	tc := testCase{
+		"set chain-id twice", "ethermint-123", "exchain-321", "ethermint-123", big.NewInt(123),
+	}
+
+	err := SetChainId(tc.chainID)
+	require.NoError(t, err, tc.name)
+	require.Equal(t, tc.expId, GetChainId(), tc.name)
+	require.Equal(t, tc.expEpoch, GetChainIdEpoch(), tc.name)
+	err = SetChainId(tc.chainID_2)
+	require.NoError(t, err, tc.name)
+	require.Equal(t, tc.expId, GetChainId(), tc.name)
+	require.Equal(t, tc.expEpoch, GetChainIdEpoch(), tc.name)
+}
+
+func TestSetChainID_WithError(t *testing.T) {
+	type testCase struct {
+		name      string
+		chainID   string
+		chainID_2 string
+		expId     string
+		expEpoch  *big.Int
+	}
+	tc := testCase{
+		"set chain-id twice with error", "invalid chain id", "exchain-321", "exchain-321", big.NewInt(321),
+	}
+
+	err := SetChainId(tc.chainID)
+	require.Error(t, err, tc.name)
+
+	err = SetChainId(tc.chainID_2)
+	require.NoError(t, err, tc.name)
+	require.Equal(t, tc.expId, GetChainId(), tc.name)
+	require.Equal(t, tc.expEpoch, GetChainIdEpoch(), tc.name)
+}

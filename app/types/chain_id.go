@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"regexp"
 	"strings"
+	"sync"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
@@ -21,8 +22,9 @@ const mainnetChainId = "exchain-66"
 const testnetChainId = "exchain-65"
 
 var (
-	chainId      string
-	chainIdEpoch *big.Int
+	chainIdSetOnce sync.Once
+	chainId        string
+	chainIdEpoch   *big.Int
 )
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
@@ -41,15 +43,20 @@ func isTestNetChainID(chainID string) bool {
 }
 
 func SetChainId(chainid string) error {
-	chainId = chainid
 	epoch, err := ParseChainID(chainid)
 	if err != nil {
 		return err
 	}
-	chainIdEpoch = epoch
+	chainIdSetOnce.Do(func() {
+		chainId = chainid
+		chainIdEpoch = epoch
+	})
 	return nil
 }
 func GetChainId() string {
+	if chainIdEpoch == nil {
+		panic(sdkerrors.Wrap(ErrInvalidChainID, "ChainId is not Init, need to call SetChainId when the app start"))
+	}
 	return chainId
 }
 func GetChainIdEpoch() *big.Int {
