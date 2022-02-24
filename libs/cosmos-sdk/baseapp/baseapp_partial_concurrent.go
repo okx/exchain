@@ -233,6 +233,7 @@ func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error 
 }
 
 func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
+	begin := time.Now()
 	finished := 0
 	for {
 		if finished == dm.totalCount {
@@ -351,11 +352,15 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		execFinishedFn(resp)
 	}
 
+	dur := time.Since(begin).Microseconds()
+	dm.app.logger.Info("time for runTxSerialRoutine", "us", dur)
 	// all txs are executed
 	if finished == dm.totalCount {
 		dm.done <- 0
 		close(dm.executeSignal)
 		close(dm.nextSignal)
+	} else {
+		dm.app.logger.Error("finished count is not equal to total count", "finished", finished, "total", dm.totalCount)
 	}
 }
 
