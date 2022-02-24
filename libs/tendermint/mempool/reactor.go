@@ -350,6 +350,26 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 }
 
 func (memR *Reactor) encodeMsg(msg Message) []byte {
+	var ok bool
+	var txmp *TxMessage
+	var txm TxMessage
+	if txmp, ok = msg.(*TxMessage); !ok {
+		txmp = nil
+		if txm, ok = msg.(TxMessage); ok {
+			txmp = &txm
+		}
+	}
+	if txmp != nil {
+		buf := &bytes.Buffer{}
+		tp := getTxMessageAminoTypePrefix()
+		buf.Grow(len(tp) + txmp.AminoSize(cdc))
+		// we manually assemble the encoded bytes for performance
+		buf.Write(tp)
+		err := txmp.MarshalAminoTo(cdc, buf)
+		if err == nil {
+			return buf.Bytes()
+		}
+	}
 	return cdc.MustMarshalBinaryBare(msg)
 }
 
@@ -371,14 +391,22 @@ func (m TxMessage) AminoSize(_ *amino.Codec) int {
 func (m TxMessage) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.Grow(m.AminoSize(cdc))
+	err := m.MarshalAminoTo(cdc, buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (m TxMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 	if len(m.Tx) != 0 {
 		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
 		err := amino.EncodeByteSliceWithKeyToBuffer(buf, m.Tx, pbKey)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return buf.Bytes(), nil
+	return nil
 }
 
 // String returns a string representation of the TxMessage.

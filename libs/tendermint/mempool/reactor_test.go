@@ -278,6 +278,7 @@ func TestTxMessageAmino(t *testing.T) {
 	tpLen, err := cdc.GetTypePrefix(TxMessage{}, typePrefix)
 	require.NoError(t, err)
 	typePrefix = typePrefix[:tpLen]
+	reactor := Reactor{}
 
 	for _, tx := range testcases {
 		var m Message
@@ -294,6 +295,8 @@ func TestTxMessageAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, expectBz, actualBz)
+		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(&tx))
+		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(tx))
 	}
 }
 
@@ -301,12 +304,13 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	var bz = make([]byte, 256)
 	rand.Read(bz)
 	txm := TxMessage{bz}
+	reactor := &Reactor{}
 	b.ResetTimer()
 
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBare(txm)
+			_, err := cdc.MarshalBinaryBare(&txm)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -319,6 +323,12 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
+		}
+	})
+	b.Run("encodeMsg", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			reactor.encodeMsg(&txm)
 		}
 	})
 }
