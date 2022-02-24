@@ -297,7 +297,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				}
 			}
 
-			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
+			success := peer.Send(MempoolChannel, memR.encodeMsg(msg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -347,6 +347,10 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 	}
 	err = cdc.UnmarshalBinaryBare(bz, &msg)
 	return
+}
+
+func (memR *Reactor) encodeMsg(msg Message) []byte {
+	return cdc.MustMarshalBinaryBare(msg)
 }
 
 //-------------------------------------
