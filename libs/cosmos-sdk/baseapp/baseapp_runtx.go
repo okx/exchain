@@ -169,13 +169,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(AnteOther, false, mode)
 
 
-	// 4. CacheStoreWrite
-	if mode != runTxModeDeliverInAsync {
-		app.pin(CacheStoreWrite, true, mode)
-		info.msCacheAnte.Write()
-		info.ctx.Cache().Write(true)
-		app.pin(CacheStoreWrite, false, mode)
-	}
+	//// 4. CacheStoreWrite
+	//if mode != runTxModeDeliverInAsync {
+	//	app.pin(CacheStoreWrite, true, mode)
+	//	info.msCacheAnte.Write()
+	//	info.ctx.Cache().Write(true)
+	//	app.pin(CacheStoreWrite, false, mode)
+	//}
 
 	return nil
 }

@@ -311,7 +311,10 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.app.pin(RunAnte, true, mode)
 
 			if dm.app.anteHandler != nil {
-				err := dm.app.runAnte(info, mode)
+				//start := time.Now()
+				//err := dm.app.runAnte(info, mode)
+				//elasped := time.Since(start).Microseconds()
+
 				if err != nil {
 					dm.app.logger.Error("runAnte failed", "err", err)
 					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
