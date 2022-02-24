@@ -283,10 +283,10 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	if txBytes != nil {
 		txHash := tmtypes.Tx(txBytes).Hash(height)
 		cacheKey = ethcmn.BytesToHash(txHash).String()
-	}
-	if sigCache, ok := verifySigCache.Get(cacheKey); ok {
-		msg.from.Store(sigCache)
-		return sigCache, nil
+		if sigCache, ok := verifySigCache.Get(cacheKey); ok {
+			msg.from.Store(sigCache)
+			return sigCache, nil
+		}
 	}
 
 	var signer ethtypes.Signer
