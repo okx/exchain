@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 6
+	maxDeliverTxsConcurrentNum = 10
 )
+
+var totalAnteDuration int64
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -111,6 +113,7 @@ func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int) {
 }
 
 func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
+	start := time.Now()
 	// create a new task
 	task := dm.makeNewTask(txByte, index)
 
@@ -146,6 +149,9 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 		}
 	}
 	dm.app.pin(AnteHandler, false, mode)
+
+	elapsed := time.Since(start).Microseconds()
+	totalAnteDuration += elapsed
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
@@ -230,8 +236,8 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		if !dm.extractExecutingTask() {
 			start := time.Now()
 			<-dm.executeSignal
-			elapsed := time.Since(start).Milliseconds()
-			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "ms",elapsed)
+			elapsed := time.Since(start).Microseconds()
+			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us",elapsed)
 			continue
 		}
 
@@ -420,6 +426,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		//waiting for call back
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
+		app.logger.Info("totalAnteDuration", "us", totalAnteDuration)
 	}
 
 	return app.deliverTxsMgr.txResponses
