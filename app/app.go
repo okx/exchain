@@ -613,5 +613,8 @@ func PreRun(ctx *server.Context) error {
 	if viper.GetBool(FlagEnableRepairState) {
 		repairStateOnStart(ctx)
 	}
+
+	// init tx signature cache
+	tmtypes.InitSignatureCache()
 	return nil
 }

@@ -130,7 +130,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	// Get sender address
 	chainIDEpoch := ethermint.GetChainIdEpoch()
 
-	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, sdk.EmptyContext().SigCache())
+	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, nil)
 	if err != nil {
 		return common.Hash{}, err
 	}

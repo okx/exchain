@@ -217,7 +217,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, st.Sender.String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, types.EthAddressStringer(st.Sender).String()),
 		),
 	})
 
@@ -225,7 +225,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeEthereumTx,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.Data.Recipient.String()),
+				sdk.NewAttribute(types.AttributeKeyRecipient, types.EthAddressStringer(*msg.Data.Recipient).String()),
 			),
 		)
 	}
@@ -246,7 +246,7 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 			return
 		}
 	}
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes())
 	if err == nil {
 		sender = senderSigCache.GetFrom()
 	}

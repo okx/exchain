@@ -21,6 +21,7 @@ const (
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
 	WtxRatio         = "WtxRatio"
+	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
 	RunAnteDetail    = "RunAnteDetail"
