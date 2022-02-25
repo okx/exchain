@@ -888,12 +888,6 @@ func (api *PublicEthereumAPI) doCall(
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	// Set sender address or use a default if none specified
-	var addr common.Address
-	if args.From != nil {
-		addr = *args.From
-	}
-
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
 	gas := uint64(ethermint.DefaultRPCGasLimit)
@@ -923,8 +917,20 @@ func (api *PublicEthereumAPI) doCall(
 		data = []byte(*args.Data)
 	}
 
+	// Set sender address or use a default if none specified
+	var addr common.Address
+	if args.From != nil {
+		addr = *args.From
+	}
+
+	nonce := uint64(0)
+	if isEstimate && args.To == nil && args.Data != nil {
+		//only get real nonce when estimate gas and the action is contract deploy
+		nonce, _ = api.accountNonce(api.clientCtx, addr, true)
+	}
+
 	// Create new call message
-	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
+	//nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
 
 	sim := api.evmFactory.BuildSimulator(api)
@@ -935,7 +941,13 @@ func (api *PublicEthereumAPI) doCall(
 
 	//Generate tx to be used to simulate (signature isn't needed)
 	var txEncoder sdk.TxEncoder
-	if isEstimate || tmtypes.HigherThanVenus(int64(blockNum)) {
+
+	// get block height
+	height, err := api.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
+	if isEstimate || tmtypes.HigherThanVenus(int64(height)) {
 		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	} else {
 		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
@@ -947,8 +959,10 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	// Transaction simulation through query
-	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
+	// Transaction simulation through query. only pass from when eth_estimateGas.
+	// eth_call's from maybe nil
+	var simulatePath string
+	simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
 	res, _, err := clientCtx.QueryWithData(simulatePath, txBytes)
 	if err != nil {
 		return nil, err

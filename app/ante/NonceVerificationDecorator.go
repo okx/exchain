@@ -26,6 +26,9 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecor
 // current nonce).
 func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	pinAnte(ctx.AnteTracer(), "NonceVerificationDecorator")
+	if simulate {
+		return next(ctx, tx, simulate)
+	}
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {

@@ -38,16 +38,15 @@ func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek 
 // supplied with the transaction.
 func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
+	if simulate {
+		return next(ctx, tx, simulate)
+	}
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// simulate means 'eth_call' or 'eth_estimateGas', when it's 'eth_estimateGas' we set the sender from ctx.
-	if simulate && ctx.From() != "" {
-		msgEthTx.SetFrom(ctx.From())
-	}
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
