@@ -139,6 +139,10 @@ func (pub *PubKeyEd25519) UnmarshalFromAmino(bytes []byte) error {
 	return cdc.UnmarshalBinaryBare(bytes, pub)
 }
 
+func (pubKey PubKeyEd25519) AminoSize(_ *amino.Codec) int {
+	return 1 + PubKeyEd25519Size
+}
+
 // Address is the SHA256-20 of the raw pubkey bytes.
 func (pubKey PubKeyEd25519) Address() crypto.Address {
 	return crypto.Address(tmhash.SumTruncated(pubKey[:]))
