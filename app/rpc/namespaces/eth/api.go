@@ -930,7 +930,6 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// Create new call message
-	//nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
 
 	sim := api.evmFactory.BuildSimulator(api)

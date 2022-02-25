@@ -1,6 +1,5 @@
 BIN_NAME=exchaind
-#OKCHAIN_TOP=${GOPATH}/src/github.com/okex/exchain
-OKCHAIN_TOP=/Users/oker/workspace/exchain
+OKCHAIN_TOP=${GOPATH}/src/github.com/okex/exchain
 OKCHAIN_BIN=${OKCHAIN_TOP}/build
 OKCHAIN_BIN=${GOPATH}/bin
 OKCHAIN_NET_TOP=`pwd`
