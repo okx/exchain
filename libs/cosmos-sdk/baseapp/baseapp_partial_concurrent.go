@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 4
+	maxDeliverTxsConcurrentNum = 3
 )
 
 var totalAnteDuration = int64(0)
@@ -22,6 +22,8 @@ var totalDeferGasTime = int64(0)
 var totalHandleGasTime = int64(0)
 var totalRunMsgsTime = int64(0)
 var totalFinishTime = int64(0)
+var totalWaitingTime = int64(0)
+var totalRerunAnteTime = int64(0)
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -265,6 +267,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			elapsed := time.Since(start).Microseconds()
 			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us",elapsed)
 			dm.anteDuration -= elapsed
+			totalWaitingTime += elapsed
 			continue
 		}
 
@@ -291,8 +294,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			}
 			info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 
-			gasE := time.Since(gasStart).Microseconds()
-			dm.deferGasTime += gasE
+			dm.deferGasTime += time.Since(gasStart).Microseconds()
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
@@ -300,8 +302,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			dm.resetExecutingTask()
 			finished++
 
-			elapsed := time.Since(start).Microseconds()
-			dm.gasAndMsgsDuration += elapsed
+			dm.gasAndMsgsDuration += time.Since(start).Microseconds()
 		}
 
 		// execute anteHandler failed
@@ -317,8 +318,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		gasStart := time.Now()
 		err := info.handler.handleGasConsumed(info)
-		gasE := time.Since(gasStart).Microseconds()
-		dm.handleGasTime += gasE
+		dm.handleGasTime += time.Since(gasStart).Microseconds()
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -338,6 +338,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 				err := dm.app.runAnte(info, mode)
 				elasped := time.Since(start).Microseconds()
 				dm.gasAndMsgsDuration -= elasped
+				totalRerunAnteTime += elasped
 				if err != nil {
 					dm.app.logger.Error("runAnte failed", "err", err)
 					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
@@ -356,8 +357,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		wstart := time.Now()
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		welasped := time.Since(wstart).Microseconds()
-		dm.writeDuration += welasped
+		dm.writeDuration += time.Since(wstart).Microseconds()
 
 		// TODO: execute runMsgs etc.
 		runMsgStart := time.Now()
@@ -507,6 +507,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 			"anteAll", totalAnteDuration,
 			"gasAndMsgsAll", totalGasAndMsgsDuration,
 			"serialAll", totalSerialDuration,
+			"waitingAll", totalWaitingTime,
+			"rerunAnteAll", totalRerunAnteTime,
 			"totalSavedTime", totalSavedTime,
 			"saved", float64(app.deliverTxsMgr.anteDuration) / float64(dur))
 	}
