@@ -1236,28 +1236,18 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ## [0.18.6](https://github.com/okex/exchain/compare/v0.18.5...v0.18.6) (2021-05-17)
 
 
-### Build
-
-* Update cosmos version to `v0.39.2-exchain5` and tendermint version to `v0.33.9-exchain4` ([\#869](https://github.com/okex/exchain/pull/869))
-
-
 
 ## [0.18.5](https://github.com/okex/exchain/compare/v0.18.4...v0.18.5) (2021-05-14)
 
 
 ### Features
 
-* Add gas limit buffer ([\#864](https://github.com/okex/exchain/pull/864))
+* Added flag parameter to control the adjustment range of gas limit when starting a node. ([\#864](https://github.com/okex/exchain/pull/864))
 
 
 ### Bug Fixes
 
 *  Fix the `newFilter` don't return `log` ([\#856](https://github.com/okex/exchain/pull/856))
-
-
-### Build
-
-* Update cosmos version to `v0.39.3-0.20210514032300-327d9c09e6b0` ([\#864](https://github.com/okex/exchain/pull/864))
 
 
 
@@ -1266,14 +1256,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Limit the RPC connection number ([\#853](https://github.com/okex/exchain/pull/853))
+* Limit some interfaces that take a long time and are called infrequently to prevent `DDOS` attacks ([\#853](https://github.com/okex/exchain/pull/853))
 
-* Limit the websocket connection number ([\#855](https://github.com/okex/exchain/pull/855))
-
-
-### Build
-
-* Update cosmos version to `v0.39.2-exchain4` and tendermint version to `v0.33.9-exchain3` ([\#855](https://github.com/okex/exchain/pull/855))
+* Limit the number of websocket connections to prevent node memory overflow ([\#855](https://github.com/okex/exchain/pull/855))
 
 
 
@@ -1287,17 +1272,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Update estimateGas upper to 130%  ([\#860](https://github.com/okex/exchain/pull/860))
+* Update `estimateGas` upper to 130%  ([\#860](https://github.com/okex/exchain/pull/860))
 
 * Update default gas price  ([\#862](https://github.com/okex/exchain/pull/862))
 
 
 ## [0.18.2](https://github.com/okex/exchain/compare/v0.18.1...v0.18.2) (2021-04-25)
-
-
-### Build
-
-* Update cosmos version to `v0.39.2-exchain3` and tendermint version to `v0.33.9-exchain2` ([\#837](https://github.com/okex/exchain/pull/837))
 
 
 
@@ -1315,21 +1295,21 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-*  Add v018 migrate ([\#833]((https://github.com/okex/exchain/pull/833)))
+*  Add v018 migrate ([\#833](https://github.com/okex/exchain/pull/833))
 
 
-### Performance Improvements
+### Bug fixes
 
-* Enhance websocket handle error ([\#838](https://github.com/okex/exchain/pull/838))
+* Fixed the bug that the websocket client does not exit normally after an error occurs in the subscription event interface ([\#838](https://github.com/okex/exchain/pull/838))
 
 
 
 ## [0.17.5](https://github.com/okex/exchain/compare/v0.17.4...v0.17.5) (2021-04-22)
 
 
-### Build
+### Features
 
-* Update cosmos version to `v0.39.2-exchain2` and tendermint version to `v0.33.9-exchain1` ([\#837](https://github.com/okex/exchain/pull/837))
+* Tx speed up ([\#831](https://github.com/okex/exchain/pull/831))
 
 
 
@@ -1340,8 +1320,6 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Set the default gas price of `eth_call` to `1 Gwei` ([\#825](https://github.com/okex/exchain/pull/825))
 
-* Remove redundant code ([\#826](https://github.com/okex/exchain/pull/826))
-
 
 
 ## [0.17.3](https://github.com/okex/exchain/compare/v0.17.2...v0.17.3) (2021-04-15)
@@ -1349,9 +1327,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Performance Improvements
 
-* Optimize error of `ErrTxTooLarge` ([\#820](https://github.com/okex/exchain/pull/820))
-
-* Max world state num ([\#819](https://github.com/okex/exchain/pull/819))
+* The `ErrTxTooLarge` message of the transaction response is added to returned log  ([\#820](https://github.com/okex/exchain/pull/820))
 
 
 
@@ -1367,12 +1343,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Code Refactoring
 
-* Change nonce format ([\#785](https://github.com/okex/exchain/pull/785))
+* The nonce type of `ethBlock` is changed from `uint64` to `[8]byte` ([\#785](https://github.com/okex/exchain/pull/785))
 
 
 ### Performance Improvements
 
-* Optimize performance of the function `eth_call` ([\#793](https://github.com/okex/exchain/pull/793))
+* Optimize the processing of the `eth_call` and `eth_estimateGas` API that only the deployed contract will query the nonce of the account ([\#793](https://github.com/okex/exchain/pull/793))
 
 
 
@@ -1381,7 +1357,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### BREAKING CHANGES
 
-* Rename to `exchain` ([\#816](https://github.com/okex/exchain/pull/816))
+* Change the name of this code repository to `exchain` ([\#816](https://github.com/okex/exchain/pull/816))
 
 
 
