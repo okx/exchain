@@ -178,10 +178,3 @@ func (app *BaseApp) AddCustomizeModuleOnStopLogic(cs sdk.CustomizeOnStop) {
 	}
 	app.customizeModuleOnStop = append(app.customizeModuleOnStop, cs)
 }
-
-func (app *BaseApp) SetMptCommitHandler(mch sdk.MptCommitHandler) {
-	if app.sealed {
-		panic("SetMptCommitHandler() on sealed BaseApp")
-	}
-	app.mptCommitHandler = mch
-}

@@ -192,7 +192,7 @@ type CommitMultiStore interface {
 
 	SetLogger(log log.Logger)
 
-	SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval)
+	SetAccountStateRootRetrieval(retrieval types2.AccountStateRootRetrieval)
 }
 
 //---------subsp-------------------------------

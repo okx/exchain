@@ -105,7 +105,7 @@ func migrateAccount(ctx *server.Context) {
 		panicError(err)
 
 		if cnt % 100 == 0 {
-			pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStorageRoot)
+			pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 			fmt.Println(cnt)
 		}
 
@@ -129,7 +129,7 @@ func migrateAccount(ctx *server.Context) {
 		}
 		return false
 	})
-	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStorageRoot)
+	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 
 	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight() - 1))
 }
@@ -184,7 +184,7 @@ func migrateContract(ctx *server.Context) {
 				panicError(err)
 
 				if cnt % 100 == 0 {
-					pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStorageRoot)
+					pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 					fmt.Println(cnt)
 				}
 
@@ -194,7 +194,7 @@ func migrateContract(ctx *server.Context) {
 		}
 		return false
 	})
-	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStorageRoot)
+	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 
 	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight() - 1))
 }
@@ -205,7 +205,7 @@ func cleanRawDB(ctx *server.Context) {
 
 //----------------------------------------------------------------
 
-func pushData2Database(db ethstate.Database, tr ethstate.Trie, height int64, retrieval types3.StorageRootRetrieval) {
+func pushData2Database(db ethstate.Database, tr ethstate.Trie, height int64, retrieval types3.AccountStateRootRetrieval) {
 	var storageRoot ethcmn.Hash
 	root, err := tr.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
 		storageRoot = retrieval(leaf)

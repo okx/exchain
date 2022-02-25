@@ -42,7 +42,7 @@ type MptStore struct {
 	db        ethstate.Database
 	triegc    *prque.Prque
 	logger    tmlog.Logger
-	retrieval types2.StorageRootRetrieval
+	retrieval types2.AccountStateRootRetrieval
 	kvCache   *fastcache.Cache
 
 	version      int64
@@ -69,7 +69,7 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval types2.StorageRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, retrieval types2.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
 	triegc := prque.New(nil)
 

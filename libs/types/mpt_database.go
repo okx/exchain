@@ -14,13 +14,11 @@ const (
 	FlagTrieDirtyDisabled     = "trie-dirty-disabled"
 	FlagTrieCacheSize         = "trie-cache-size"
 	FlagEnableDoubleWrite     = "enable-double-write"
-	FlagEnableTrieCommitAsync = "enable-trie-commit-async"
 )
 
 var (
 	TrieDirtyDisabled      = false
 	TrieCacheSize     uint = 2048 // MB
-	MptAsnyc               = false
 	EnableDoubleWrite      = false
 )
 
@@ -30,7 +28,7 @@ type (
 
 	dbCreator func(name string, dir string) (ethdb.KeyValueStore, error)
 
-	StorageRootRetrieval func([]byte) ethcmn.Hash
+	AccountStateRootRetrieval func([]byte) ethcmn.Hash
 )
 
 // These are valid backend types.

@@ -127,7 +127,7 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	return
 }
 
-func (ak AccountKeeper) RetrievalStorageRoot(bz []byte) ethcmn.Hash {
+func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
 	var acc exported.Account
 	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
 	if err == nil {

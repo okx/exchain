@@ -440,9 +440,7 @@ func NewOKExChainApp(
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
-	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
-	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetStorageRetrievalForCMS(app.AccountKeeper.RetrievalStorageRoot)
+	app.SetAccountStateRetrievalForCMS(app.AccountKeeper.RetrievalStateRoot)
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -616,14 +614,4 @@ func PreRun(ctx *server.Context) error {
 		repairStateOnStart(ctx)
 	}
 	return nil
-}
-
-func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
-	return func(ctx sdk.Context) error {
-		return nil
-	}
-}
-
-func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
-	return func(ctx sdk.Context) {}
 }

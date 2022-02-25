@@ -235,10 +235,6 @@ func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
 
-	if app.mptCommitHandler != nil {
-		app.mptCommitHandler(app.deliverState.ctx)
-	}
-
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.

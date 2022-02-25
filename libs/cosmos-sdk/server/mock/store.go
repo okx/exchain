@@ -218,6 +218,6 @@ func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.Co
 	panic("not implemented")
 }
 
-func (ms multiStore) SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval) {
+func (ms multiStore) SetAccountStateRootRetrieval(retrieval types2.AccountStateRootRetrieval) {
 	panic("not implemented")
 }

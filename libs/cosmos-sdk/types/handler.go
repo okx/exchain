@@ -19,8 +19,6 @@ type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
 
 type CustomizeOnStop func(ctx Context) error
 
-type MptCommitHandler func(ctx Context)
-
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
 	AnteHandle(ctx Context, tx Tx, simulate bool, next AnteHandler) (newCtx Context, err error)

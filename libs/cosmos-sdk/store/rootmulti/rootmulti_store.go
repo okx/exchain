@@ -67,7 +67,7 @@ type Store struct {
 	interBlockCache types.MultiStorePersistentCache
 
 	logger tmlog.Logger
-	retrieval types2.StorageRootRetrieval
+	retrieval types2.AccountStateRootRetrieval
 }
 
 var (
@@ -1283,6 +1283,6 @@ func GetLatestStoredMptHeight() uint64 {
 	return binary.BigEndian.Uint64(rst)
 }
 
-func (rs *Store) SetStorageRootRetrieval(retrieval types2.StorageRootRetrieval) {
+func (rs *Store) SetAccountStateRootRetrieval(retrieval types2.AccountStateRootRetrieval) {
 	rs.retrieval = retrieval
 }

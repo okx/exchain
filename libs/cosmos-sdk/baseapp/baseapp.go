@@ -195,7 +195,6 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
-	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -953,6 +952,6 @@ func txhash(txbytes []byte) string {
 	return ethHash.String()
 }
 
-func (app *BaseApp) SetStorageRetrievalForCMS(retrieval types.StorageRootRetrieval) {
-	app.cms.SetStorageRootRetrieval(retrieval)
+func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval types.AccountStateRootRetrieval) {
+	app.cms.SetAccountStateRootRetrieval(retrieval)
 }
