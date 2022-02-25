@@ -51,7 +51,7 @@ func (tx MsgEthereumTx) GetType() sdk.TransactionType {
 
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	// only cache from but not signer
-	tx.from.Store(&ethSigCache{from: ethcmn.HexToAddress(addr)})
+	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
 }
 
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
@@ -68,25 +68,6 @@ func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	}
 
 	return msg.From()
-}
-
-// ethSigCache is used to cache the derived sender and contains the signer used
-// to derive it.
-type ethSigCache struct {
-	signer ethtypes.Signer
-	from   ethcmn.Address
-}
-
-func (s ethSigCache) GetFrom() ethcmn.Address {
-	return s.from
-}
-
-func (s ethSigCache) GetSigner() ethtypes.Signer {
-	return s.signer
-}
-
-func (s ethSigCache) EqualSiger(siger ethtypes.Signer) bool {
-	return s.signer.Equal(siger)
 }
 
 // NewMsgEthereumTx returns a reference to a new Ethereum transaction message.
@@ -282,7 +263,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	// get sender from cache
 	if txBytes != nil {
 		cacheKey = tmtypes.Bytes2Hash(txBytes, height)
-		if sigCache, ok := verifySigCache.Get(cacheKey); ok {
+		if sigCache, ok := tmtypes.SignatureCache.Get(cacheKey); ok {
 			msg.from.Store(sigCache)
 			return sigCache, nil
 		}
@@ -299,11 +280,11 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		signer = ethtypes.HomesteadSigner{}
 	}
 	if sc := msg.from.Load(); sc != nil {
-		sigCache := sc.(*ethSigCache)
+		sigCache := sc.(*tmtypes.TxSigCache)
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
-		if sigCache.signer.Equal(signer) {
-			verifySigCache.Add(cacheKey, sigCache)
+		if sigCache.Signer.Equal(signer) {
+			tmtypes.SignatureCache.Add(cacheKey, sigCache)
 			return sigCache, nil
 		}
 	}
@@ -331,9 +312,9 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	if err != nil {
 		return nil, err
 	}
-	sigCache := &ethSigCache{signer: signer, from: sender}
+	sigCache := &tmtypes.TxSigCache{Signer: signer, From: sender}
 	msg.from.Store(sigCache)
-	verifySigCache.Add(cacheKey, sigCache)
+	tmtypes.SignatureCache.Add(cacheKey, sigCache)
 	return sigCache, nil
 }
 
@@ -383,13 +364,13 @@ func (msg *MsgEthereumTx) From() sdk.AccAddress {
 		return nil
 	}
 
-	sigCache := sc.(*ethSigCache)
+	sigCache := sc.(*tmtypes.TxSigCache)
 
-	if len(sigCache.from.Bytes()) == 0 {
+	if len(sigCache.From.Bytes()) == 0 {
 		return nil
 	}
 
-	return sdk.AccAddress(sigCache.from.Bytes())
+	return sdk.AccAddress(sigCache.From.Bytes())
 }
 
 // deriveChainID derives the chain id from the given v parameter
