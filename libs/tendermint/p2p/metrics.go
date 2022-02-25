@@ -27,6 +27,11 @@ type Metrics struct {
 	NumTxs metrics.Gauge
 }
 
+type peerChMetric struct {
+	PeerReceiveBytesTotal map[byte]metrics.Counter
+	PeerSendBytesTotal    map[byte]metrics.Counter
+}
+
 // PrometheusMetrics returns Metrics build using Prometheus client library.
 // Optionally, labels can be provided along with their values ("foo",
 // "fooValue").
@@ -48,7 +53,7 @@ func PrometheusMetrics(namespace string, labelsAndValues ...string) *Metrics {
 			Name:      "peer_receive_bytes_total",
 			Help:      "Number of bytes received from a given peer.",
 		}, append(labels, "peer_id", "chID")).With(labelsAndValues...),
-		PeerSendBytesTotal: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+		PeerSendBytesTotal: NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "peer_send_bytes_total",
