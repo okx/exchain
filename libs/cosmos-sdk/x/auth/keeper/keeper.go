@@ -98,7 +98,12 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+		rawGM := ctx.GasMeter()
+
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 		ctx.KVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
+
+		ctx.WithGasMeter(rawGM)
 	}
 
 	return accNumber

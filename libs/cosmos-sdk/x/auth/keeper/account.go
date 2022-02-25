@@ -86,7 +86,12 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	store.Set(types.AddressStoreKey(addr), bz)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+		rawGM := ctx.GasMeter()
+
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 		ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
+
+		ctx.WithGasMeter(rawGM)
 	}
 
 	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
@@ -115,7 +120,12 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 	store.Delete(types.AddressStoreKey(addr))
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+		rawGM := ctx.GasMeter()
+
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 		ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
+
+		ctx.WithGasMeter(rawGM)
 	}
 
 	ctx.Cache().UpdateAccount(addr, nil, 0, true)
