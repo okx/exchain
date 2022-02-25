@@ -183,13 +183,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	delta, deltaInfo := dc.prepareStateDelta(block.Height)
+	deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
+	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -257,17 +257,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, delta, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
+	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
 	if deltaInfo != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deletaLen)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
