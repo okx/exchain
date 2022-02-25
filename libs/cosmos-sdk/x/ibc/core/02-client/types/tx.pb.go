@@ -445,7 +445,7 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 
 func (c *msgClient) CreateClient(ctx context.Context, in *MsgCreateClient, opts ...grpc.CallOption) (*MsgCreateClientResponse, error) {
 	out := new(MsgCreateClientResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Msg/CreateClient", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Msg/CreateClient", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +454,7 @@ func (c *msgClient) CreateClient(ctx context.Context, in *MsgCreateClient, opts 
 
 func (c *msgClient) UpdateClient(ctx context.Context, in *MsgUpdateClient, opts ...grpc.CallOption) (*MsgUpdateClientResponse, error) {
 	out := new(MsgUpdateClientResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Msg/UpdateClient", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Msg/UpdateClient", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +463,7 @@ func (c *msgClient) UpdateClient(ctx context.Context, in *MsgUpdateClient, opts 
 
 func (c *msgClient) UpgradeClient(ctx context.Context, in *MsgUpgradeClient, opts ...grpc.CallOption) (*MsgUpgradeClientResponse, error) {
 	out := new(MsgUpgradeClientResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Msg/UpgradeClient", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Msg/UpgradeClient", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +472,7 @@ func (c *msgClient) UpgradeClient(ctx context.Context, in *MsgUpgradeClient, opt
 
 func (c *msgClient) SubmitMisbehaviour(ctx context.Context, in *MsgSubmitMisbehaviour, opts ...grpc.CallOption) (*MsgSubmitMisbehaviourResponse, error) {
 	out := new(MsgSubmitMisbehaviourResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Msg/SubmitMisbehaviour", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Msg/SubmitMisbehaviour", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +522,7 @@ func _Msg_CreateClient_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Msg/CreateClient",
+		FullMethod: "/ibc.core.client.v1.Msg/CreateClient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).CreateClient(ctx, req.(*MsgCreateClient))
@@ -540,7 +540,7 @@ func _Msg_UpdateClient_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Msg/UpdateClient",
+		FullMethod: "/ibc.core.client.v1.Msg/UpdateClient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).UpdateClient(ctx, req.(*MsgUpdateClient))
@@ -558,7 +558,7 @@ func _Msg_UpgradeClient_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Msg/UpgradeClient",
+		FullMethod: "/ibc.core.client.v1.Msg/UpgradeClient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).UpgradeClient(ctx, req.(*MsgUpgradeClient))
@@ -576,7 +576,7 @@ func _Msg_SubmitMisbehaviour_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Msg/SubmitMisbehaviour",
+		FullMethod: "/ibc.core.client.v1.Msg/SubmitMisbehaviour",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).SubmitMisbehaviour(ctx, req.(*MsgSubmitMisbehaviour))

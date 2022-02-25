@@ -691,7 +691,7 @@ func NewQueryClient(cc grpc1.ClientConn) QueryClient {
 
 func (c *queryClient) ClientState(ctx context.Context, in *QueryClientStateRequest, opts ...grpc.CallOption) (*QueryClientStateResponse, error) {
 	out := new(QueryClientStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Query/ClientState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Query/ClientState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -700,7 +700,7 @@ func (c *queryClient) ClientState(ctx context.Context, in *QueryClientStateReque
 
 func (c *queryClient) ClientStates(ctx context.Context, in *QueryClientStatesRequest, opts ...grpc.CallOption) (*QueryClientStatesResponse, error) {
 	out := new(QueryClientStatesResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Query/ClientStates", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Query/ClientStates", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -709,7 +709,7 @@ func (c *queryClient) ClientStates(ctx context.Context, in *QueryClientStatesReq
 
 func (c *queryClient) ConsensusState(ctx context.Context, in *QueryConsensusStateRequest, opts ...grpc.CallOption) (*QueryConsensusStateResponse, error) {
 	out := new(QueryConsensusStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Query/ConsensusState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Query/ConsensusState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -718,7 +718,7 @@ func (c *queryClient) ConsensusState(ctx context.Context, in *QueryConsensusStat
 
 func (c *queryClient) ConsensusStates(ctx context.Context, in *QueryConsensusStatesRequest, opts ...grpc.CallOption) (*QueryConsensusStatesResponse, error) {
 	out := new(QueryConsensusStatesResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Query/ConsensusStates", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Query/ConsensusStates", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -727,7 +727,7 @@ func (c *queryClient) ConsensusStates(ctx context.Context, in *QueryConsensusSta
 
 func (c *queryClient) ClientParams(ctx context.Context, in *QueryClientParamsRequest, opts ...grpc.CallOption) (*QueryClientParamsResponse, error) {
 	out := new(QueryClientParamsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.client.v1.Query/ClientParams", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.client.v1.Query/ClientParams", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -784,7 +784,7 @@ func _Query_ClientState_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Query/ClientState",
+		FullMethod: "/ibc.core.client.v1.Query/ClientState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ClientState(ctx, req.(*QueryClientStateRequest))
@@ -802,7 +802,7 @@ func _Query_ClientStates_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Query/ClientStates",
+		FullMethod: "/ibc.core.client.v1.Query/ClientStates",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ClientStates(ctx, req.(*QueryClientStatesRequest))
@@ -820,7 +820,7 @@ func _Query_ConsensusState_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Query/ConsensusState",
+		FullMethod: "/ibc.core.client.v1.Query/ConsensusState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ConsensusState(ctx, req.(*QueryConsensusStateRequest))
@@ -838,7 +838,7 @@ func _Query_ConsensusStates_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Query/ConsensusStates",
+		FullMethod: "/ibc.core.client.v1.Query/ConsensusStates",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ConsensusStates(ctx, req.(*QueryConsensusStatesRequest))
@@ -856,7 +856,7 @@ func _Query_ClientParams_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.client.v1.Query/ClientParams",
+		FullMethod: "/ibc.core.client.v1.Query/ClientParams",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ClientParams(ctx, req.(*QueryClientParamsRequest))

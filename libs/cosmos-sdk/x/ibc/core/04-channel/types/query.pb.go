@@ -1856,7 +1856,7 @@ func NewQueryClient(cc grpc1.ClientConn) QueryClient {
 
 func (c *queryClient) Channel(ctx context.Context, in *QueryChannelRequest, opts ...grpc.CallOption) (*QueryChannelResponse, error) {
 	out := new(QueryChannelResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/Channel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/Channel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1865,7 +1865,7 @@ func (c *queryClient) Channel(ctx context.Context, in *QueryChannelRequest, opts
 
 func (c *queryClient) Channels(ctx context.Context, in *QueryChannelsRequest, opts ...grpc.CallOption) (*QueryChannelsResponse, error) {
 	out := new(QueryChannelsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/Channels", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/Channels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1874,7 +1874,7 @@ func (c *queryClient) Channels(ctx context.Context, in *QueryChannelsRequest, op
 
 func (c *queryClient) ConnectionChannels(ctx context.Context, in *QueryConnectionChannelsRequest, opts ...grpc.CallOption) (*QueryConnectionChannelsResponse, error) {
 	out := new(QueryConnectionChannelsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/ConnectionChannels", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/ConnectionChannels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1883,7 +1883,7 @@ func (c *queryClient) ConnectionChannels(ctx context.Context, in *QueryConnectio
 
 func (c *queryClient) ChannelClientState(ctx context.Context, in *QueryChannelClientStateRequest, opts ...grpc.CallOption) (*QueryChannelClientStateResponse, error) {
 	out := new(QueryChannelClientStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/ChannelClientState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/ChannelClientState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1892,7 +1892,7 @@ func (c *queryClient) ChannelClientState(ctx context.Context, in *QueryChannelCl
 
 func (c *queryClient) ChannelConsensusState(ctx context.Context, in *QueryChannelConsensusStateRequest, opts ...grpc.CallOption) (*QueryChannelConsensusStateResponse, error) {
 	out := new(QueryChannelConsensusStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/ChannelConsensusState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/ChannelConsensusState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1901,7 +1901,7 @@ func (c *queryClient) ChannelConsensusState(ctx context.Context, in *QueryChanne
 
 func (c *queryClient) PacketCommitment(ctx context.Context, in *QueryPacketCommitmentRequest, opts ...grpc.CallOption) (*QueryPacketCommitmentResponse, error) {
 	out := new(QueryPacketCommitmentResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/PacketCommitment", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/PacketCommitment", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1910,7 +1910,7 @@ func (c *queryClient) PacketCommitment(ctx context.Context, in *QueryPacketCommi
 
 func (c *queryClient) PacketCommitments(ctx context.Context, in *QueryPacketCommitmentsRequest, opts ...grpc.CallOption) (*QueryPacketCommitmentsResponse, error) {
 	out := new(QueryPacketCommitmentsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/PacketCommitments", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/PacketCommitments", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1919,7 +1919,7 @@ func (c *queryClient) PacketCommitments(ctx context.Context, in *QueryPacketComm
 
 func (c *queryClient) PacketReceipt(ctx context.Context, in *QueryPacketReceiptRequest, opts ...grpc.CallOption) (*QueryPacketReceiptResponse, error) {
 	out := new(QueryPacketReceiptResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/PacketReceipt", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/PacketReceipt", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1928,7 +1928,7 @@ func (c *queryClient) PacketReceipt(ctx context.Context, in *QueryPacketReceiptR
 
 func (c *queryClient) PacketAcknowledgement(ctx context.Context, in *QueryPacketAcknowledgementRequest, opts ...grpc.CallOption) (*QueryPacketAcknowledgementResponse, error) {
 	out := new(QueryPacketAcknowledgementResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/PacketAcknowledgement", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/PacketAcknowledgement", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1937,7 +1937,7 @@ func (c *queryClient) PacketAcknowledgement(ctx context.Context, in *QueryPacket
 
 func (c *queryClient) PacketAcknowledgements(ctx context.Context, in *QueryPacketAcknowledgementsRequest, opts ...grpc.CallOption) (*QueryPacketAcknowledgementsResponse, error) {
 	out := new(QueryPacketAcknowledgementsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/PacketAcknowledgements", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/PacketAcknowledgements", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1946,7 +1946,7 @@ func (c *queryClient) PacketAcknowledgements(ctx context.Context, in *QueryPacke
 
 func (c *queryClient) UnreceivedPackets(ctx context.Context, in *QueryUnreceivedPacketsRequest, opts ...grpc.CallOption) (*QueryUnreceivedPacketsResponse, error) {
 	out := new(QueryUnreceivedPacketsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/UnreceivedPackets", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/UnreceivedPackets", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1955,7 +1955,7 @@ func (c *queryClient) UnreceivedPackets(ctx context.Context, in *QueryUnreceived
 
 func (c *queryClient) UnreceivedAcks(ctx context.Context, in *QueryUnreceivedAcksRequest, opts ...grpc.CallOption) (*QueryUnreceivedAcksResponse, error) {
 	out := new(QueryUnreceivedAcksResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/UnreceivedAcks", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/UnreceivedAcks", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1964,7 +1964,7 @@ func (c *queryClient) UnreceivedAcks(ctx context.Context, in *QueryUnreceivedAck
 
 func (c *queryClient) NextSequenceReceive(ctx context.Context, in *QueryNextSequenceReceiveRequest, opts ...grpc.CallOption) (*QueryNextSequenceReceiveResponse, error) {
 	out := new(QueryNextSequenceReceiveResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Query/NextSequenceReceive", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Query/NextSequenceReceive", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2066,7 +2066,7 @@ func _Query_Channel_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/Channel",
+		FullMethod: "/ibc.core.channel.v1.Query/Channel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Channel(ctx, req.(*QueryChannelRequest))
@@ -2084,7 +2084,7 @@ func _Query_Channels_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/Channels",
+		FullMethod: "/ibc.core.channel.v1.Query/Channels",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Channels(ctx, req.(*QueryChannelsRequest))
@@ -2102,7 +2102,7 @@ func _Query_ConnectionChannels_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/ConnectionChannels",
+		FullMethod: "/ibc.core.channel.v1.Query/ConnectionChannels",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ConnectionChannels(ctx, req.(*QueryConnectionChannelsRequest))
@@ -2120,7 +2120,7 @@ func _Query_ChannelClientState_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/ChannelClientState",
+		FullMethod: "/ibc.core.channel.v1.Query/ChannelClientState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ChannelClientState(ctx, req.(*QueryChannelClientStateRequest))
@@ -2138,7 +2138,7 @@ func _Query_ChannelConsensusState_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/ChannelConsensusState",
+		FullMethod: "/ibc.core.channel.v1.Query/ChannelConsensusState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ChannelConsensusState(ctx, req.(*QueryChannelConsensusStateRequest))
@@ -2156,7 +2156,7 @@ func _Query_PacketCommitment_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/PacketCommitment",
+		FullMethod: "/ibc.core.channel.v1.Query/PacketCommitment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).PacketCommitment(ctx, req.(*QueryPacketCommitmentRequest))
@@ -2174,7 +2174,7 @@ func _Query_PacketCommitments_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/PacketCommitments",
+		FullMethod: "/ibc.core.channel.v1.Query/PacketCommitments",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).PacketCommitments(ctx, req.(*QueryPacketCommitmentsRequest))
@@ -2192,7 +2192,7 @@ func _Query_PacketReceipt_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/PacketReceipt",
+		FullMethod: "/ibc.core.channel.v1.Query/PacketReceipt",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).PacketReceipt(ctx, req.(*QueryPacketReceiptRequest))
@@ -2210,7 +2210,7 @@ func _Query_PacketAcknowledgement_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/PacketAcknowledgement",
+		FullMethod: "/ibc.core.channel.v1.Query/PacketAcknowledgement",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).PacketAcknowledgement(ctx, req.(*QueryPacketAcknowledgementRequest))
@@ -2228,7 +2228,7 @@ func _Query_PacketAcknowledgements_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/PacketAcknowledgements",
+		FullMethod: "/ibc.core.channel.v1.Query/PacketAcknowledgements",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).PacketAcknowledgements(ctx, req.(*QueryPacketAcknowledgementsRequest))
@@ -2246,7 +2246,7 @@ func _Query_UnreceivedPackets_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/UnreceivedPackets",
+		FullMethod: "/ibc.core.channel.v1.Query/UnreceivedPackets",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).UnreceivedPackets(ctx, req.(*QueryUnreceivedPacketsRequest))
@@ -2264,7 +2264,7 @@ func _Query_UnreceivedAcks_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/UnreceivedAcks",
+		FullMethod: "/ibc.core.channel.v1.Query/UnreceivedAcks",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).UnreceivedAcks(ctx, req.(*QueryUnreceivedAcksRequest))
@@ -2282,7 +2282,7 @@ func _Query_NextSequenceReceive_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Query/NextSequenceReceive",
+		FullMethod: "/ibc.core.channel.v1.Query/NextSequenceReceive",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).NextSequenceReceive(ctx, req.(*QueryNextSequenceReceiveRequest))

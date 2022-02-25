@@ -970,7 +970,7 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 
 func (c *msgClient) ChannelOpenInit(ctx context.Context, in *MsgChannelOpenInit, opts ...grpc.CallOption) (*MsgChannelOpenInitResponse, error) {
 	out := new(MsgChannelOpenInitResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelOpenInit", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelOpenInit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -979,7 +979,7 @@ func (c *msgClient) ChannelOpenInit(ctx context.Context, in *MsgChannelOpenInit,
 
 func (c *msgClient) ChannelOpenTry(ctx context.Context, in *MsgChannelOpenTry, opts ...grpc.CallOption) (*MsgChannelOpenTryResponse, error) {
 	out := new(MsgChannelOpenTryResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelOpenTry", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelOpenTry", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -988,7 +988,7 @@ func (c *msgClient) ChannelOpenTry(ctx context.Context, in *MsgChannelOpenTry, o
 
 func (c *msgClient) ChannelOpenAck(ctx context.Context, in *MsgChannelOpenAck, opts ...grpc.CallOption) (*MsgChannelOpenAckResponse, error) {
 	out := new(MsgChannelOpenAckResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelOpenAck", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelOpenAck", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -997,7 +997,7 @@ func (c *msgClient) ChannelOpenAck(ctx context.Context, in *MsgChannelOpenAck, o
 
 func (c *msgClient) ChannelOpenConfirm(ctx context.Context, in *MsgChannelOpenConfirm, opts ...grpc.CallOption) (*MsgChannelOpenConfirmResponse, error) {
 	out := new(MsgChannelOpenConfirmResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelOpenConfirm", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelOpenConfirm", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1006,7 +1006,7 @@ func (c *msgClient) ChannelOpenConfirm(ctx context.Context, in *MsgChannelOpenCo
 
 func (c *msgClient) ChannelCloseInit(ctx context.Context, in *MsgChannelCloseInit, opts ...grpc.CallOption) (*MsgChannelCloseInitResponse, error) {
 	out := new(MsgChannelCloseInitResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelCloseInit", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelCloseInit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1015,7 +1015,7 @@ func (c *msgClient) ChannelCloseInit(ctx context.Context, in *MsgChannelCloseIni
 
 func (c *msgClient) ChannelCloseConfirm(ctx context.Context, in *MsgChannelCloseConfirm, opts ...grpc.CallOption) (*MsgChannelCloseConfirmResponse, error) {
 	out := new(MsgChannelCloseConfirmResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/ChannelCloseConfirm", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/ChannelCloseConfirm", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1024,7 +1024,7 @@ func (c *msgClient) ChannelCloseConfirm(ctx context.Context, in *MsgChannelClose
 
 func (c *msgClient) RecvPacket(ctx context.Context, in *MsgRecvPacket, opts ...grpc.CallOption) (*MsgRecvPacketResponse, error) {
 	out := new(MsgRecvPacketResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/RecvPacket", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/RecvPacket", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1033,7 +1033,7 @@ func (c *msgClient) RecvPacket(ctx context.Context, in *MsgRecvPacket, opts ...g
 
 func (c *msgClient) Timeout(ctx context.Context, in *MsgTimeout, opts ...grpc.CallOption) (*MsgTimeoutResponse, error) {
 	out := new(MsgTimeoutResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/Timeout", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/Timeout", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1042,7 +1042,7 @@ func (c *msgClient) Timeout(ctx context.Context, in *MsgTimeout, opts ...grpc.Ca
 
 func (c *msgClient) TimeoutOnClose(ctx context.Context, in *MsgTimeoutOnClose, opts ...grpc.CallOption) (*MsgTimeoutOnCloseResponse, error) {
 	out := new(MsgTimeoutOnCloseResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/TimeoutOnClose", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/TimeoutOnClose", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1051,7 +1051,7 @@ func (c *msgClient) TimeoutOnClose(ctx context.Context, in *MsgTimeoutOnClose, o
 
 func (c *msgClient) Acknowledgement(ctx context.Context, in *MsgAcknowledgement, opts ...grpc.CallOption) (*MsgAcknowledgementResponse, error) {
 	out := new(MsgAcknowledgementResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.channel.v1.Msg/Acknowledgement", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.channel.v1.Msg/Acknowledgement", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1131,7 +1131,7 @@ func _Msg_ChannelOpenInit_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelOpenInit",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelOpenInit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelOpenInit(ctx, req.(*MsgChannelOpenInit))
@@ -1149,7 +1149,7 @@ func _Msg_ChannelOpenTry_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelOpenTry",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelOpenTry",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelOpenTry(ctx, req.(*MsgChannelOpenTry))
@@ -1167,7 +1167,7 @@ func _Msg_ChannelOpenAck_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelOpenAck",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelOpenAck",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelOpenAck(ctx, req.(*MsgChannelOpenAck))
@@ -1185,7 +1185,7 @@ func _Msg_ChannelOpenConfirm_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelOpenConfirm",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelOpenConfirm",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelOpenConfirm(ctx, req.(*MsgChannelOpenConfirm))
@@ -1203,7 +1203,7 @@ func _Msg_ChannelCloseInit_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelCloseInit",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelCloseInit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelCloseInit(ctx, req.(*MsgChannelCloseInit))
@@ -1221,7 +1221,7 @@ func _Msg_ChannelCloseConfirm_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/ChannelCloseConfirm",
+		FullMethod: "/ibc.core.channel.v1.Msg/ChannelCloseConfirm",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ChannelCloseConfirm(ctx, req.(*MsgChannelCloseConfirm))
@@ -1239,7 +1239,7 @@ func _Msg_RecvPacket_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/RecvPacket",
+		FullMethod: "/ibc.core.channel.v1.Msg/RecvPacket",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).RecvPacket(ctx, req.(*MsgRecvPacket))
@@ -1257,7 +1257,7 @@ func _Msg_Timeout_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/Timeout",
+		FullMethod: "/ibc.core.channel.v1.Msg/Timeout",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).Timeout(ctx, req.(*MsgTimeout))
@@ -1275,7 +1275,7 @@ func _Msg_TimeoutOnClose_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/TimeoutOnClose",
+		FullMethod: "/ibc.core.channel.v1.Msg/TimeoutOnClose",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).TimeoutOnClose(ctx, req.(*MsgTimeoutOnClose))
@@ -1293,7 +1293,7 @@ func _Msg_Acknowledgement_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.channel.v1.Msg/Acknowledgement",
+		FullMethod: "/ibc.core.channel.v1.Msg/Acknowledgement",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).Acknowledgement(ctx, req.(*MsgAcknowledgement))
