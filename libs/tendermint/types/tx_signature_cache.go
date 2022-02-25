@@ -17,6 +17,16 @@ var (
 
 const FlagSigCacheSize = "signature-cache-size"
 
+func init() {
+	// used for ut
+	defaultCache := &Cache{
+		data:      nil,
+		readCount: 0,
+		hitCount:  0,
+	}
+	SignatureCache = defaultCache
+}
+
 func InitSignatureCache() {
 	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
 	if err != nil {
@@ -34,8 +44,8 @@ type Cache struct {
 }
 
 func (c *Cache) Get(key string) (*TxSigCache, bool) {
-	// validate key
-	if !validateKey(key) {
+	// validate
+	if !c.validate(key) {
 		return nil, false
 	}
 	atomic.AddInt64(&c.readCount, 1)
@@ -52,8 +62,8 @@ func (c *Cache) Get(key string) (*TxSigCache, bool) {
 }
 
 func (c *Cache) Add(key string, value *TxSigCache) {
-	// validate key
-	if !validateKey(key) {
+	// validate
+	if !c.validate(key) {
 		return
 	}
 	// add cache
@@ -61,8 +71,8 @@ func (c *Cache) Add(key string, value *TxSigCache) {
 }
 
 func (c *Cache) Remove(key string) {
-	// validate key
-	if !validateKey(key) {
+	// validate
+	if !c.validate(key) {
 		return
 	}
 	c.data.Remove(key)
@@ -76,8 +86,13 @@ func (c *Cache) HitCount() int64 {
 	return atomic.LoadInt64(&c.hitCount)
 }
 
-func validateKey(key string) bool {
+func (c *Cache) validate(key string) bool {
+	// validate key
 	if key == "" {
+		return false
+	}
+	// validate lru cache
+	if c.data == nil {
 		return false
 	}
 	return true
