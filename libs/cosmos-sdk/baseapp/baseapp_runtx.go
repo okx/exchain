@@ -3,6 +3,7 @@ package baseapp
 import (
 	"fmt"
 	"runtime/debug"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -67,26 +68,44 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 	}
 
+	gasStart := time.Now()
 	err = handler.handleGasConsumed(info)
+	gasE := time.Since(gasStart).Microseconds()
+	totalHandleGasTime += gasE
+
 	if err != nil {
 		return err
 	}
 
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		err = app.runTx_defer_recover(r, info)
+	//		info.msCache = nil //TODO msCache not write
+	//		info.result = nil
+	//	}
+	//	info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+	//}()
+	//
+	//defer handler.handleDeferGasConsumed(info)
+
 	defer func() {
+		gasStart := time.Now()
+
+		app.pin(Refund, true, mode)
+		defer app.pin(Refund, false, mode)
+		handler.handleDeferRefund(info)
+
+		handler.handleDeferGasConsumed(info)
+
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-	}()
 
-	defer handler.handleDeferGasConsumed(info)
-
-	defer func() {
-		app.pin(Refund, true, mode)
-		defer app.pin(Refund, false, mode)
-		handler.handleDeferRefund(info)
+		gasE := time.Since(gasStart).Microseconds()
+		totalDeferGasTime += gasE
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
@@ -104,9 +123,13 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
+	wstart := time.Now()
+	info.msCacheAnte.Write()
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
+	welasped := time.Since(wstart).Microseconds()
+	totalRunMsgsTime += welasped
 	if err != nil {
 		//app.logger.Error("handleRunMsg failed", "err", err)
 	}
@@ -172,8 +195,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
+
+		wstart := time.Now()
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		welasped := time.Since(wstart).Microseconds()
+		totalWriteTime += welasped
+
 		app.pin(CacheStoreWrite, false, mode)
 	}
 
