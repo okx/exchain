@@ -149,6 +149,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	groupList, indexToID, nextIndexInGroup := app.calGroup(extraData)
 
 	app.parallelTxManage.isAsyncDeliverTx = true
+	app.parallelTxManage.cms = app.cms.CacheMultiStore()
 	evmIndex := uint32(0)
 	for k := range txs {
 		t := &txStatus{
@@ -208,33 +209,34 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		return false
 	}
 
-	asCache := newAsyncCache()
+	asCache := newAsyncCache(len(txs))
 	signal := make(chan int, 1)
 	rerunIdx := 0
 	txIndex := 0
-	app.parallelTxManage.txReps = make([]*executeResult, len(txs))
-	txReps := app.parallelTxManage.txReps
+
+	pm := app.parallelTxManage
+
+	pm.txReps = make([]*executeResult, len(txs))
+	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
 	asyncCb := func(execRes *executeResult) {
-
 		receiveTxIndex := execRes.GetCounter()
 		txReps[receiveTxIndex] = execRes
-
+		fmt.Println("receiveTxIndex", receiveTxIndex)
 		execRes.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 			if isDirty {
 				//fmt.Println("receiveTxIndex", receiveTxIndex, hex.EncodeToString(key), hex.EncodeToString(value))
 			}
 			return true
 		})
-		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !app.parallelTxManage.isRunning(nextTx) {
-			app.parallelTxManage.setTxStatus(nextTx, true)
+		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !pm.isRunning(nextTx) {
+			pm.setTxStatus(nextTx, true)
 			//fmt.Println("next-Index", nextTx)
 			go app.asyncDeliverTx(txs[nextTx], nextTx)
 		}
-		if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !app.parallelTxManage.isRunning(nextTx) {
-			//fmt.Println("nextdex-2", receiveTxIndex, nextTx)
-			app.parallelTxManage.setTxStatus(nextTx, true)
+		if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !pm.isRunning(nextTx) {
+			pm.setTxStatus(nextTx, true)
 			go app.asyncDeliverTx(txs[nextTx], nextTx)
 		}
 		//fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
@@ -243,11 +245,11 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		}
 		//fmt.Println("handle", txIndex, receiveTxIndex)
 		for txReps[txIndex] != nil {
-			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
+			s := pm.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
 
-			fmt.Println("checkConflict", txIndex)
-			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			//fmt.Println("checkConflict", txIndex)
+			if res.Conflict(pm.getRunBase(int(res.counter)), asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				s.reRun = true
 				fmt.Println("RunRun", txIndex)
@@ -260,13 +262,19 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 			txRs := res.GetResponse()
 			deliverTxs[txIndex] = &txRs
-			res.Collect(asCache)
-			app.parallelTxManage.SetCurrentIndex(txIndex, res)
+			res.Collect(txIndex, asCache)
+			pm.SetCurrentIndex(txIndex, res)
 			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex])
 			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 
+			cnt := 0
+			pm.cms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+				cnt++
+				return true
+			})
+			fmt.Println("End", cnt)
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
@@ -275,16 +283,15 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 				signal <- 0
 				return
 			}
+
 		}
 	}
 
-	app.parallelTxManage.workgroup.cb = asyncCb
+	pm.workgroup.cb = asyncCb
 
 	for _, group := range groupList {
-
 		txIndex := group[0]
 		go app.asyncDeliverTx(txs[txIndex], txIndex)
-
 	}
 
 	//for _, tx := range txs {
@@ -303,6 +310,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		}
 
 	}
+	app.deliverState.ctx.WithMultiStore(pm.cms)
 	return deliverTxs
 }
 
@@ -365,15 +373,16 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 	return e.resp
 }
 
-func (e executeResult) Conflict(cache *asyncCache) bool {
+func (e executeResult) Conflict(from int, cache *asyncCache) bool {
+	fmt.Println("Ready CheckConflict", "base", from, "now", e.counter)
 	rerun := false
 	if e.ms == nil {
 		return true //TODO fix later
 	}
 
 	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		//the key we have read was wrote by pre txs
-		if cache.Has(key) && !whiteAccountList[hex.EncodeToString(key)] {
+		//the key we have read was written by pre txs
+		if cache.Has(key, from, int(e.counter)) && !whiteAccountList[hex.EncodeToString(key)] {
 			fmt.Println("key", hex.EncodeToString(key), hex.EncodeToString(value))
 			rerun = true
 			return false // break
@@ -389,14 +398,14 @@ var (
 	}
 )
 
-func (e executeResult) Collect(cache *asyncCache) {
+func (e executeResult) Collect(index int, cache *asyncCache) {
 	if e.ms == nil {
 		return
 	}
 	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 		if isDirty {
 			//push every data we have written in current tx
-			cache.Push(key, value)
+			cache.Push(index, key)
 		}
 		return true
 	})
@@ -474,7 +483,11 @@ type parallelTxManager struct {
 	txReps        []*executeResult
 	nextTxInGroup map[int]int
 	preTxInGroup  map[int]int
-	currIndex     int
+
+	cms       sdk.CacheMultiStore
+	currIndex int
+
+	runBase map[int]int
 }
 
 type txStatus struct {
@@ -499,6 +512,8 @@ func newParallelTxManager() *parallelTxManager {
 
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
+
+		runBase: make(map[int]int),
 	}
 }
 
@@ -515,6 +530,7 @@ func (f *parallelTxManager) clear() {
 	f.nextTxInGroup = make(map[int]int)
 	f.preTxInGroup = make(map[int]int)
 	//fmt.Println("CCCCCCCCC--")
+	f.runBase = make(map[int]int)
 
 }
 func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
@@ -560,28 +576,26 @@ func (f *parallelTxManager) isRunning(txIndex int) bool {
 	return f.runningStatus[txIndex]
 }
 
-func (f *parallelTxManager) getTxResult(tx []byte) (sdk.CacheMultiStore, bool) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	index := f.txStatus[string(tx)].indexInBlock
 
-	if preIndex, ok := f.preTxInGroup[int(index)]; ok {
-		fmt.Println("getTxResult index", index, "pre", preIndex, "currentIndex", f.currIndex)
-
-		if preIndex <= f.currIndex {
-			return nil, false
-		}
-
-		//f.txReps[preIndex].ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		//	if isDirty {
-		//		fmt.Println("key", hex.EncodeToString(key), hex.EncodeToString(value))
-		//	}
-		//	return true
-		//})
-
-		return f.txReps[preIndex].ms.CacheMultiStore(), true
+	preIndexInGroup, ok := f.preTxInGroup[int(index)]
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	ms := f.cms.CacheMultiStore()
+	base := f.currIndex
+	if ok && preIndexInGroup > f.currIndex {
+		ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
+		base = preIndexInGroup
 	}
-	return nil, false // first index in group
+	f.runBase[int(index)] = base
+	return ms
+}
+
+func (f *parallelTxManager) getRunBase(now int) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.runBase[now]
 }
 
 func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
@@ -592,20 +606,29 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 }
 
 type asyncCache struct {
-	mem map[string][]byte
+	mem []map[string]bool
 }
 
-func newAsyncCache() *asyncCache {
-	return &asyncCache{mem: make(map[string][]byte)}
+func newAsyncCache(txSize int) *asyncCache {
+	tt := make([]map[string]bool, 0)
+	for index := 0; index < txSize; index++ {
+		tt = append(tt, make(map[string]bool))
+	}
+
+	return &asyncCache{mem: tt}
 }
 
-func (a *asyncCache) Push(key, value []byte) {
-	a.mem[string(key)] = value
+func (a *asyncCache) Push(index int, key []byte) {
+	a.mem[index][string(key)] = true
 }
 
-func (a *asyncCache) Has(key []byte) bool {
-	_, ok := a.mem[string(key)]
-	return ok
+func (a *asyncCache) Has(key []byte, from int, to int) bool {
+	for index := from + 1; index < to; index++ {
+		if _, ok := a.mem[index][string(key)]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 var (

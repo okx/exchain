@@ -154,6 +154,15 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
 
+	cnt := 0
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+		if isDirty {
+			cnt++
+			//fmt.Println("BeginBlock", hex.EncodeToString(key), hex.EncodeToString(value))
+		}
+		return true
+	})
+	fmt.Println("BeginBlock", cnt)
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
 
@@ -167,7 +176,16 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
 	}
+	cnt := 0
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+		if isDirty {
+			cnt++
+			//fmt.Println("EndBlock", hex.EncodeToString(key), hex.EncodeToString(value))
+		}
+		return true
+	})
 
+	fmt.Println("EndBlock", cnt)
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
@@ -239,6 +257,16 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
+
+	cnt := 0
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+		cnt++
+		if isDirty {
+			//fmt.Println("commit", hex.EncodeToString(key), hex.EncodeToString(value))
+		}
+		return true
+	})
+	fmt.Println("commit-cnt", cnt)
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
