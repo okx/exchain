@@ -88,6 +88,8 @@ func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 }
 
 // handleMsgEthereumTx handles an Ethereum specific tx
+// 1. txs can be divided into CheckTx/DeliverTx/DeliverTxAsync
+// a tx can be done by prepare/transition/finish
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (*sdk.Result, error) {
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
