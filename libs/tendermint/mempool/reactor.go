@@ -1,12 +1,14 @@
 package mempool
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"math"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -125,6 +127,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
+	memR.press()
 	return memR
 }
 
@@ -295,7 +298,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				}
 			}
 
-			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
+			success := peer.Send(MempoolChannel, memR.encodeMsg(msg))
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -324,6 +327,18 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
 	cdc.RegisterConcrete(&WtxMessage{}, "tendermint/mempool/WtxMessage", nil)
+
+	cdc.RegisterConcreteMarshaller("tendermint/mempool/TxMessage", func(codec *amino.Codec, i interface{}) ([]byte, error) {
+		txmp, ok := i.(*TxMessage)
+		if ok {
+			return txmp.MarshalToAmino(codec)
+		}
+		txm, ok := i.(TxMessage)
+		if ok {
+			return txm.MarshalToAmino(codec)
+		}
+		return nil, fmt.Errorf("%T is not a TxMessage", i)
+	})
 }
 
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
@@ -335,11 +350,64 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 	return
 }
 
+func (memR *Reactor) encodeMsg(msg Message) []byte {
+	var ok bool
+	var txmp *TxMessage
+	var txm TxMessage
+	if txmp, ok = msg.(*TxMessage); !ok {
+		txmp = nil
+		if txm, ok = msg.(TxMessage); ok {
+			txmp = &txm
+		}
+	}
+	if txmp != nil {
+		buf := &bytes.Buffer{}
+		tp := getTxMessageAminoTypePrefix()
+		buf.Grow(len(tp) + txmp.AminoSize(cdc))
+		// we manually assemble the encoded bytes for performance
+		buf.Write(tp)
+		err := txmp.MarshalAminoTo(cdc, buf)
+		if err == nil {
+			return buf.Bytes()
+		}
+	}
+	return cdc.MustMarshalBinaryBare(msg)
+}
+
 //-------------------------------------
 
 // TxMessage is a Message containing a transaction.
 type TxMessage struct {
 	Tx types.Tx
+}
+
+func (m TxMessage) AminoSize(_ *amino.Codec) int {
+	size := 0
+	if len(m.Tx) > 0 {
+		size += 1 + amino.ByteSliceSize(m.Tx)
+	}
+	return size
+}
+
+func (m TxMessage) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	buf.Grow(m.AminoSize(cdc))
+	err := m.MarshalAminoTo(cdc, buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (m TxMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	if len(m.Tx) != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, m.Tx, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // String returns a string representation of the TxMessage.

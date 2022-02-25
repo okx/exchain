@@ -159,3 +159,15 @@ type EthHeaderWithBlockHash struct {
 	Nonce       ethtypes.BlockNonce `json:"nonce"`
 	Hash        common.Hash         `json:"hash"`
 }
+type FeeHistoryResult struct {
+	OldestBlock  *hexutil.Big     `json:"oldestBlock"`
+	Reward       [][]*hexutil.Big `json:"reward,omitempty"`
+	BaseFee      []*hexutil.Big   `json:"baseFeePerGas,omitempty"`
+	GasUsedRatio []float64        `json:"gasUsedRatio"`
+}
+
+// SignTransactionResult represents a RLP encoded signed transaction.
+type SignTransactionResult struct {
+	Raw hexutil.Bytes `json:"raw"`
+	Tx  *Transaction  `json:"tx"`
+}

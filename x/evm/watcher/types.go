@@ -60,7 +60,7 @@ type WatchMessage interface {
 
 type MsgEthTx struct {
 	*baseLazyMarshal
-	Key       []byte
+	Key []byte
 }
 
 func (m MsgEthTx) GetType() uint32 {
@@ -386,8 +386,8 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 		return nil
 	}
 	msg := MsgEthTx{
-		Key:         txHash.Bytes(),
-		baseLazyMarshal:newBaseLazyMarshal(ethTx),
+		Key:             txHash.Bytes(),
+		baseLazyMarshal: newBaseLazyMarshal(ethTx),
 	}
 	return &msg
 }
@@ -459,7 +459,7 @@ func (m MsgCodeByHash) GetValue() string {
 
 type MsgTransactionReceipt struct {
 	*baseLazyMarshal
-	txHash  []byte
+	txHash []byte
 }
 
 func (m MsgTransactionReceipt) GetType() uint32 {
@@ -488,22 +488,22 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
-		TransactionHash:   txHash.String(),
+		TransactionHash:   types.EthHashStringer(txHash).String(),
 		ContractAddress:   &data.ContractAddress,
 		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         blockHash.String(),
+		BlockHash:         types.EthHashStringer(blockHash).String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
+		From:              types.EthAddressStringer(common.BytesToAddress(tx.From().Bytes())).String(),
 		To:                tx.To(),
 	}
 
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
-	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(),baseLazyMarshal:newBaseLazyMarshal(tr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {

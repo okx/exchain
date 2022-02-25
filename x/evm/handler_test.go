@@ -20,7 +20,6 @@ import (
 	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -130,6 +129,23 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			},
 			false,
 		},
+		{
+			"simulate tx",
+			func() {
+				suite.ctx = suite.ctx.WithFrom(sender.String())
+				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			true,
+		},
+		{
+			"insufficient balance for transfer",
+			func() {
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -145,65 +161,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(res)
 				var expectedConsumedGas uint64 = 21000
-				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
-			} else {
-				suite.Require().Error(err)
-				suite.Require().Nil(res)
-			}
-		})
-	}
-}
-
-func (suite *EvmTestSuite) TestMsgEthermint() {
-	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-	)
-
-	testCases := []struct {
-		msg      string
-		malleate func()
-		expPass  bool
-	}{
-		{
-			"passed",
-			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
-				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
-			},
-			true,
-		},
-		{
-			"invalid state transition",
-			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
-			},
-			false,
-		},
-		{
-			"invalid chain ID",
-			func() {
-				suite.ctx = suite.ctx.WithChainID("chainID")
-			},
-			false,
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run("", func() {
-			suite.SetupTest() // reset
-			//nolint
-			tc.malleate()
-			suite.ctx = suite.ctx.WithIsCheckTx(true)
-			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			res, err := suite.handler(suite.ctx, tx)
-
-			//nolint
-			if tc.expPass {
-				suite.Require().NoError(err)
-				suite.Require().NotNil(res)
-				var expectedConsumedGas uint64 = 21064
 				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 			} else {
 				suite.Require().Error(err)
@@ -760,96 +717,6 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 	}
 }
 
-func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControlling_MsgEthermint() {
-	params := suite.app.EvmKeeper.GetParams(suite.ctx)
-
-	addrQualified := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
-	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
-
-	// build a tx with contract deployment
-	payload, err := hexutil.Decode(hexPayloadContractDeployment)
-	suite.Require().NoError(err)
-	tx := types.NewMsgEthermint(0, nil, sdk.ZeroInt(), 3000000, sdk.NewInt(1), payload, addrQualified)
-
-	testCases := []struct {
-		msg                               string
-		enableContractDeploymentWhitelist bool
-		contractDeploymentWhitelist       types.AddressList
-		expPass                           bool
-	}{
-		{
-			"every address could deploy contract when contract deployment whitelist is disabled",
-			false,
-			nil,
-			true,
-		},
-		{
-			"every address could deploy contract when contract deployment whitelist is disabled whatever whitelist members are",
-			false,
-			types.AddressList{addrUnqualified},
-			true,
-		},
-		{
-			"every address in whitelist could deploy contract when contract deployment whitelist is disabled",
-			false,
-			types.AddressList{addrQualified},
-			true,
-		},
-		{
-			"address in whitelist could deploy contract when contract deployment whitelist is enabled",
-			true,
-			types.AddressList{addrQualified},
-			true,
-		},
-		{
-			"no address could deploy contract when contract deployment whitelist is enabled and whitelist is nil",
-			true,
-			nil,
-			false,
-		},
-		{
-			"address not in the whitelist couldn't deploy contract when contract deployment whitelist is enabled",
-			true,
-			types.AddressList{addrUnqualified},
-			false,
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run(tc.msg, func() {
-			suite.SetupTest()
-			suite.ctx = suite.ctx.WithIsCheckTx(true)
-
-			// reset FeeCollector
-			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
-			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
-			// set account sufficient balance for sender
-			suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(addrQualified), sdk.NewDec(1024).BigInt())
-
-			// reset params
-			params.EnableContractDeploymentWhitelist = tc.enableContractDeploymentWhitelist
-			suite.app.EvmKeeper.SetParams(suite.ctx, params)
-
-			// set target whitelist
-			suite.stateDB.SetContractDeploymentWhitelist(tc.contractDeploymentWhitelist)
-
-			// handle tx
-			res, err := suite.handler(suite.ctx, tx)
-
-			//nolint
-			if tc.expPass {
-				suite.Require().NoError(err)
-				suite.Require().NotNil(res)
-			} else {
-				suite.Require().Error(err)
-				suite.Require().Nil(res)
-			}
-		})
-	}
-}
-
 const (
 	// contracts solidity codes:
 	//
@@ -979,14 +846,6 @@ func (suite *EvmContractBlockedListTestSuite) deployOrInvokeContract(source inte
 		err = msgEthereumTx.Sign(suite.chainID, s.ToECDSA())
 		suite.Require().NoError(err)
 		msg = msgEthereumTx
-	case sdk.AccAddress:
-		var toAccAddr sdk.AccAddress
-		if to == nil {
-			toAccAddr = nil
-		} else {
-			toAccAddr = to.Bytes()
-		}
-		msg = types.NewMsgEthermint(nonce, &toAccAddr, sdk.ZeroInt(), 3000000, sdk.OneInt(), payload, s)
 	}
 
 	m, ok := msg.(sdk.Msg)
@@ -1064,84 +923,6 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 
 			// nonce here could be any value
 			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract2HexPayload, 1024, &suite.contract2Addr)
-			if tc.expectedErrorForContract2 {
-				suite.Require().Error(err)
-			} else {
-				suite.Require().NoError(err)
-			}
-		})
-	}
-}
-
-func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedListControlling_MsgEthermint() {
-	callerAddr := sdk.AccAddress(ethcmn.BytesToAddress([]byte{0x0}).Bytes())
-
-	testCases := []struct {
-		msg                       string
-		enableContractBlockedList bool
-		contractBlockedList       types.AddressList
-		expectedErrorForContract1 bool
-		expectedErrorForContract2 bool
-	}{
-		{
-			msg:                       "every contract could be invoked with empty blocked list which is disabled",
-			enableContractBlockedList: false,
-			contractBlockedList:       types.AddressList{},
-			expectedErrorForContract1: false,
-			expectedErrorForContract2: false,
-		},
-		{
-			msg:                       "every contract could be invoked with empty blocked list which is enabled",
-			enableContractBlockedList: true,
-			contractBlockedList:       types.AddressList{},
-			expectedErrorForContract1: false,
-			expectedErrorForContract2: false,
-		},
-		{
-			msg:                       "every contract in the blocked list could be invoked when contract blocked list is disabled",
-			enableContractBlockedList: false,
-			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
-			expectedErrorForContract1: false,
-			expectedErrorForContract2: false,
-		},
-		{
-			msg:                       "Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
-			enableContractBlockedList: true,
-			contractBlockedList:       types.AddressList{suite.contract2Addr.Bytes()},
-			expectedErrorForContract1: false,
-			expectedErrorForContract2: true,
-		},
-		{
-			msg:                       "neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
-			enableContractBlockedList: true,
-			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
-			expectedErrorForContract1: true,
-			expectedErrorForContract2: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run(tc.msg, func() {
-			suite.ctx = suite.ctx.WithIsCheckTx(true)
-			// update params
-			params := suite.app.EvmKeeper.GetParams(suite.ctx)
-			params.EnableContractBlockedList = tc.enableContractBlockedList
-			suite.app.EvmKeeper.SetParams(suite.ctx, params)
-
-			// reset contract blocked list
-			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
-			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
-
-			// nonce here could be any value
-			err := suite.deployOrInvokeContract(callerAddr, invokeContract1HexPayload, 1024, &suite.contract1Addr)
-			if tc.expectedErrorForContract1 {
-				suite.Require().Error(err)
-			} else {
-				suite.Require().NoError(err)
-			}
-
-			// nonce here could be any value
-			err = suite.deployOrInvokeContract(callerAddr, invokeContract2HexPayload, 1024, &suite.contract2Addr)
 			if tc.expectedErrorForContract2 {
 				suite.Require().Error(err)
 			} else {
