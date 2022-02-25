@@ -960,8 +960,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Transaction simulation through query. only pass from when eth_estimateGas.
 	// eth_call's from maybe nil
-	var simulatePath string
-	simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
 	res, _, err := clientCtx.QueryWithData(simulatePath, txBytes)
 	if err != nil {
 		return nil, err
