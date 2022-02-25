@@ -622,16 +622,16 @@ func (m *QueryConnectionConsensusStateResponse) GetProofHeight() types.Height {
 }
 
 func init() {
-	proto.RegisterType((*QueryConnectionRequest)(nil), "oec.ibc.core.connection.v1.QueryConnectionRequest")
-	proto.RegisterType((*QueryConnectionResponse)(nil), "oec.ibc.core.connection.v1.QueryConnectionResponse")
-	proto.RegisterType((*QueryConnectionsRequest)(nil), "oec.ibc.core.connection.v1.QueryConnectionsRequest")
-	proto.RegisterType((*QueryConnectionsResponse)(nil), "oec.ibc.core.connection.v1.QueryConnectionsResponse")
-	proto.RegisterType((*QueryClientConnectionsRequest)(nil), "oec.ibc.core.connection.v1.QueryClientConnectionsRequest")
-	proto.RegisterType((*QueryClientConnectionsResponse)(nil), "oec.ibc.core.connection.v1.QueryClientConnectionsResponse")
-	proto.RegisterType((*QueryConnectionClientStateRequest)(nil), "oec.ibc.core.connection.v1.QueryConnectionClientStateRequest")
-	proto.RegisterType((*QueryConnectionClientStateResponse)(nil), "oec.ibc.core.connection.v1.QueryConnectionClientStateResponse")
-	proto.RegisterType((*QueryConnectionConsensusStateRequest)(nil), "oec.ibc.core.connection.v1.QueryConnectionConsensusStateRequest")
-	proto.RegisterType((*QueryConnectionConsensusStateResponse)(nil), "oec.ibc.core.connection.v1.QueryConnectionConsensusStateResponse")
+	proto.RegisterType((*QueryConnectionRequest)(nil), "ibc.core.connection.v1.QueryConnectionRequest")
+	proto.RegisterType((*QueryConnectionResponse)(nil), "ibc.core.connection.v1.QueryConnectionResponse")
+	proto.RegisterType((*QueryConnectionsRequest)(nil), "ibc.core.connection.v1.QueryConnectionsRequest")
+	proto.RegisterType((*QueryConnectionsResponse)(nil), "ibc.core.connection.v1.QueryConnectionsResponse")
+	proto.RegisterType((*QueryClientConnectionsRequest)(nil), "ibc.core.connection.v1.QueryClientConnectionsRequest")
+	proto.RegisterType((*QueryClientConnectionsResponse)(nil), "ibc.core.connection.v1.QueryClientConnectionsResponse")
+	proto.RegisterType((*QueryConnectionClientStateRequest)(nil), "ibc.core.connection.v1.QueryConnectionClientStateRequest")
+	proto.RegisterType((*QueryConnectionClientStateResponse)(nil), "ibc.core.connection.v1.QueryConnectionClientStateResponse")
+	proto.RegisterType((*QueryConnectionConsensusStateRequest)(nil), "ibc.core.connection.v1.QueryConnectionConsensusStateRequest")
+	proto.RegisterType((*QueryConnectionConsensusStateResponse)(nil), "ibc.core.connection.v1.QueryConnectionConsensusStateResponse")
 }
 
 func init() {
@@ -910,7 +910,7 @@ func _Query_ConnectionConsensusState_Handler(srv interface{}, ctx context.Contex
 }
 
 var _Query_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.connection.v1.Query",
+	ServiceName: "ibc.core.connection.v1.Query",
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

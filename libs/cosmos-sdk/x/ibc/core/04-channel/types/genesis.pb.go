@@ -188,8 +188,8 @@ func (m *PacketSequence) GetSequence() uint64 {
 }
 
 func init() {
-	proto.RegisterType((*GenesisState)(nil), "oec.ibc.core.channel.v1.GenesisState")
-	proto.RegisterType((*PacketSequence)(nil), "oec.ibc.core.channel.v1.PacketSequence")
+	proto.RegisterType((*GenesisState)(nil), "ibc.core.channel.v1.GenesisState")
+	proto.RegisterType((*PacketSequence)(nil), "ibc.core.channel.v1.PacketSequence")
 }
 
 func init() { proto.RegisterFile("ibc/core/channel/v1/genesis.proto", fileDescriptor_cb06ec201f452595) }

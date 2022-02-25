@@ -390,6 +390,13 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
+	//ret := &types.IBCParams{
+	//	UnbondingTime:     params.UnbondingTime,
+	//	MaxValidators:     uint32(params.MaxValidators),
+	//	MaxEntries:        uint32(params.HistoricalEntries),
+	//	HistoricalEntries: uint32(params.HistoricalEntries),
+	//	BondDenom:         params.BondDenom,
+	//}
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

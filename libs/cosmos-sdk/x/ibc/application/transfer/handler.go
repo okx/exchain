@@ -12,7 +12,7 @@ import (
 // NewHandler returns sdk.Handler for IBC token transfer module messages
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, re sdk.Msg) (*sdk.Result, error) {
-		msg,err:=common.UnmarshalMsgAdapter(k.Codec(),re.(*sdk.RelayMsg).Bytes)
+		msg, err := common.UnmarshalGuessss(k.Codec(), re.(*sdk.RelayMsg).Bytes, new(types.MsgTransferAdapter))
 		if nil != err {
 			return nil, err
 		}

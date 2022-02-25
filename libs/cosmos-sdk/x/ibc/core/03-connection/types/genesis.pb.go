@@ -86,7 +86,7 @@ func (m *GenesisState) GetNextConnectionSequence() uint64 {
 }
 
 func init() {
-	proto.RegisterType((*GenesisState)(nil), "oec.ibc.core.connection.v1.GenesisState")
+	proto.RegisterType((*GenesisState)(nil), "ibc.core.connection.v1.GenesisState")
 }
 
 func init() {

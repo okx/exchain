@@ -2,8 +2,12 @@ package types
 
 import (
 	"bytes"
+
+	//"encoding/hex"
 	"errors"
 	"fmt"
+	//logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
+	//"github.com/tendermint/tendermint/types"
 	"time"
 
 	"github.com/tendermint/go-amino"
@@ -11,6 +15,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
+	//tmproto2 "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
 const (
@@ -170,11 +175,70 @@ func (vote *Vote) CommitSig() CommitSig {
 }
 
 func (vote *Vote) SignBytes(chainID string) []byte {
-	bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainID, vote))
-	if err != nil {
-		panic(err)
-	}
-	return bz
+	//ret := types.VoteSignBytes(chainID, &tmproto2.Vote{
+	//	Type:   tmproto2.SignedMsgType(vote.Type),
+	//	Height: vote.Height,
+	//	Round:  int32(vote.Round),
+	//	BlockID: tmproto2.BlockID{
+	//		Hash: vote.BlockID.Hash,
+	//		PartSetHeader: tmproto2.PartSetHeader{
+	//			Total: uint32(vote.BlockID.PartsHeader.Total),
+	//			Hash:  vote.BlockID.PartsHeader.Hash,
+	//		},
+	//	},
+	//	Timestamp:        vote.Timestamp,
+	//	ValidatorAddress: vote.ValidatorAddress,
+	//	ValidatorIndex:   int32(vote.ValidatorIndex),
+	//	Signature:        vote.Signature,
+	//})
+	//if vote.Type == PrecommitType {
+	//	ret = types.VoteSignBytes(chainID, &tmproto2.Vote{
+	//		Type:   tmproto2.SignedMsgType(vote.Type),
+	//		Height: vote.Height,
+	//		Round:  int32(vote.Round),
+	//		BlockID: tmproto2.BlockID{
+	//			Hash: vote.BlockID.Hash,
+	//			PartSetHeader: tmproto2.PartSetHeader{
+	//				Total: uint32(vote.BlockID.PartsHeader.Total),
+	//				Hash:  vote.BlockID.PartsHeader.Hash,
+	//			},
+	//		},
+	//		Timestamp:        vote.Timestamp,
+	//		ValidatorAddress: vote.ValidatorAddress,
+	//		ValidatorIndex:   int32(vote.ValidatorIndex),
+	//		Signature:        vote.Signature,
+	//	})
+	//	logrusplugin.Info("voteSignVyte",
+	//		"height", vote.Height,
+	//		"data", hex.EncodeToString(ret),
+	//		"voteSig", hex.EncodeToString(vote.Signature),
+	//		"blockHash", vote.BlockID.Hash,
+	//		"partSetHeaderHash", vote.BlockID.PartsHeader.Hash,
+	//		"timeStamp", vote.Timestamp.String(),
+	//		"len", len(ret),
+	//	)
+	//
+	//}
+	//return ret
+
+	return VoteSignBytes(chainID,vote)
+
+	//bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainID, vote))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//if vote.Type == PrecommitType {
+	//	logrusplugin.Info("voteSignVyte",
+	//		"height", vote.Height,
+	//		"data", hex.EncodeToString(bz),
+	//		"voteSig", hex.EncodeToString(vote.Signature),
+	//		"blockHash", vote.BlockID.Hash,
+	//		"partSetHeaderHash", vote.BlockID.PartsHeader.Hash,
+	//		"timeStamp", vote.Timestamp.String(),
+	//	)
+	//
+	//}
+	//return bz
 }
 
 func (vote *Vote) Copy() *Vote {

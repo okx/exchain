@@ -135,7 +135,7 @@ func DefaultParams() Params {
 }
 
 // String returns a human readable string representation of the Params
-func (p Params) String() string {
+func (p *Params) String() string {
 	return fmt.Sprintf(`Params:
   Unbonding Time:    		%s
   Max Validators:   	 	%d

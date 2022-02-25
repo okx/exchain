@@ -68,7 +68,7 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	//if nil != err {
 	//	panic(err)
 	//}
-	logrusplugin.Info("获取connection", "id", connectionID, "state", connection.State)
+	logrusplugin.Info("acquire connection", "id", connectionID, "state", connection.State)
 	return connection, true
 }
 

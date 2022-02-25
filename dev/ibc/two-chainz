@@ -7,6 +7,8 @@ RELAYER_DIR="$(dirname $SCRIPTDIR)"
 RELAYER_CONF="$HOME/.relayer"
 
 
+start=$1
+
 killbyname() {
   NAME=$1
   ps -ef|grep "$NAME"|grep -v grep |awk '{print "kill -9 "$2", "$8}'
@@ -22,13 +24,13 @@ if [[ ! -x "$(which jq)" ]]; then
 fi
 
 # Ensure user understands what will be deleted
-if [[ -d $GAIA_DATA ]] && [[ ! "$1" == "skip" ]]; then
-  read -p "$(basename $0) will delete \$(pwd)/data and \$HOME/.relayer folders. Do you wish to continue? (y/n): " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      exit 1
-  fi
-fi
+#if [[ -d $GAIA_DATA ]] && [[ ! "$1" == "skip" ]]; then
+#  read -p "$(basename $0) will delete \$(pwd)/data and \$HOME/.relayer folders. Do you wish to continue? (y/n): " -n 1 -r
+#  echo
+#  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+#      exit 1
+#  fi
+#fi
 
 # Delete data from old runs
 rm -rf $GAIA_DATA &> /dev/null
@@ -47,17 +49,18 @@ chainid0=ibc-0
 chainid1=ibc-1
 echo "Generating gaia configurations..."
 mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
-./one-chain-ibc.sh gaiad $chainid0 ./data 6657 6656 6060 9090
-./one-chain-ibc.sh gaiad $chainid1 ./data 16657 16656 6061 9091
+./one-chain-ibc.sh gaiad $chainid0 ./data 6657 6656 6060 9090 $start
+./one-chain-ibc.sh gaiad $chainid1 ./data 16657 16656 6061 9091 $start
 
 
 chainid0="exchain-100"
 chainid1="exchain-101"
 echo "Generating exchain configurations..."
 mkdir -p $GAIA_DATA && cd $GAIA_DATA && cd ../
-./start.sh $chainid0 ./data 26657 26656 6060 9090 8084
-./start.sh $chainid1 ./data 36657 36656 6060 9090 8084
+./start.sh $chainid0 ./data 26657 26656 6060 9090 8084 $start
+./start.sh $chainid1 ./data 36657 36656 6060 9090 8084 $start
 
+#
 pwd=${PWD}
 if [[ ! -x "$(which rly)" ]]; then
   echo "rly is not installed "

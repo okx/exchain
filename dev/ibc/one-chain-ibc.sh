@@ -26,6 +26,12 @@ P2PPORT=$5
 PROFPORT=$6
 GRPCPORT=$7
 
+startDaenom=true
+
+if  [ -n "$8" ] ;then
+  startDaenom=false
+fi
+
 
 if [ -z "$1" ]; then
   display_usage "[BINARY] ($BINARY|akash)"
@@ -55,7 +61,7 @@ if [ -z "$7" ]; then
   display_usage "[GRPC_PORT]"
 fi
 
-BINARY=./simd
+BINARY=gaiad
 echo "Creating $BINARY instance: home=$CHAINDIR | chain-id=$CHAINID | p2p=:$P2PPORT | rpc=:$RPCPORT | profiling=:$PROFPORT | grpc=:$GRPCPORT"
 
 # Add dir for chain, exit if error
@@ -110,4 +116,6 @@ else
   # sed -i '' 's#index-events = \[\]#index-events = \["message.action","send_packet.packet_src_channel","send_packet.packet_sequence"\]#g' $CHAINDIR/$CHAINID/config/app.toml
 fi
 
-./simd --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
+if [ "$startDaenom" = true ]; then
+gaiad --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
+fi

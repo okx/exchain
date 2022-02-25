@@ -215,6 +215,26 @@ func (psh *PartSetHeader) ToProto() tmproto.PartSetHeader {
 		Hash:  psh.Hash,
 	}
 }
+//func (psh *PartSetHeader) ToIBCProto() tmproto.IBCPartSetHeader {
+//	if psh == nil {
+//		return tmproto.IBCPartSetHeader{}
+//	}
+//	tmmc.PartSetHeader{}
+//	return tmproto.IBCPartSetHeader{
+//		Total: uint32(psh.Total),
+//		Hash:  psh.Hash,
+//	}
+//}
+
+func (psh *PartSetHeader) ToIBCProto() tmproto.PartSetHeader {
+	if psh == nil {
+		return tmproto.PartSetHeader{}
+	}
+	return tmproto.PartSetHeader{
+		Total: int64(psh.Total),
+		Hash:  psh.Hash,
+	}
+}
 
 // FromProto sets a protobuf PartSetHeader to the given pointer
 func PartSetHeaderFromProto(ppsh *tmproto.PartSetHeader) (*PartSetHeader, error) {

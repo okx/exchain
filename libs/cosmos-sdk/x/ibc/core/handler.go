@@ -1,6 +1,7 @@
 package ibc
 
 import (
+	"fmt"
 	"github.com/okex/exchain/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -8,22 +9,45 @@ import (
 	connectiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
 )
 
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {
+	defer func() {
+		if e := recover(); nil != e {
+			fmt.Println(e)
+		}
+	}()
 	//err := unknownproto.RejectUnknownFieldsStrict(msg.Bytes, adapter, cdc.InterfaceRegistry())
 	//if err != nil {
 	//	return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 	//}
-	return common.UnmarshalMsgAdapter(k.Codec(), msg.Bytes)
+	return common.UnmarshalGuessss(k.Codec(), msg.Bytes, new(clienttypes.MsgCreateClient),
+		new(clienttypes.MsgUpdateClient),
+		new(clienttypes.MsgUpgradeClient),
+		new(connectiontypes.MsgConnectionOpenInit),
+		new(connectiontypes.MsgConnectionOpenTry),
+		new(connectiontypes.MsgConnectionOpenAck),
+		new(channeltypes.MsgChannelOpenInit),
+		new(channeltypes.MsgChannelOpenAck),
+		new(channeltypes.MsgChannelCloseConfirm))
+	//return common.UnmarshalMsgAdapter(k.Codec(), msg.Bytes)
 }
 
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, re sdk.Msg) (*sdk.Result, error) {
+		m := re.(*sdk.RelayMsg)
 		msg, err := unmarshalFromRelayMsg(k, re.(*sdk.RelayMsg))
 		if nil != err {
-			return nil, err
+			aaa := new(types.ClientState)
+			err := k.Codec().GetProtocMarshal().UnmarshalBinaryBare(m.Bytes, aaa)
+			err = k.Codec().GetProtocMarshal().UnmarshalInterface(m.Bytes, &aaa)
+			k.Codec().GetProtocMarshal().UnmarshalBinaryLengthPrefixed(m.Bytes, aaa)
+			err = aaa.Unmarshal(m.Bytes)
+			if nil != err {
+				return nil, err
+			}
 		}
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 

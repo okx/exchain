@@ -442,14 +442,14 @@ func (*Acknowledgement) XXX_OneofWrappers() []interface{} {
 }
 
 func init() {
-	proto.RegisterEnum("oec.ibc.core.channel.v1.State", State_name, State_value)
-	proto.RegisterEnum("oec.ibc.core.channel.v1.Order", Order_name, Order_value)
-	proto.RegisterType((*Channel)(nil), "oec.ibc.core.channel.v1.Channel")
-	proto.RegisterType((*IdentifiedChannel)(nil), "oec.ibc.core.channel.v1.IdentifiedChannel")
-	proto.RegisterType((*Counterparty)(nil), "oec.ibc.core.channel.v1.Counterparty")
-	proto.RegisterType((*Packet)(nil), "oec.ibc.core.channel.v1.Packet")
-	proto.RegisterType((*PacketState)(nil), "oec.ibc.core.channel.v1.PacketState")
-	proto.RegisterType((*Acknowledgement)(nil), "oec.ibc.core.channel.v1.Acknowledgement")
+	proto.RegisterEnum("ibc.core.channel.v1.State", State_name, State_value)
+	proto.RegisterEnum("ibc.core.channel.v1.Order", Order_name, Order_value)
+	proto.RegisterType((*Channel)(nil), "ibc.core.channel.v1.Channel")
+	proto.RegisterType((*IdentifiedChannel)(nil), "ibc.core.channel.v1.IdentifiedChannel")
+	proto.RegisterType((*Counterparty)(nil), "ibc.core.channel.v1.Counterparty")
+	proto.RegisterType((*Packet)(nil), "ibc.core.channel.v1.Packet")
+	proto.RegisterType((*PacketState)(nil), "ibc.core.channel.v1.PacketState")
+	proto.RegisterType((*Acknowledgement)(nil), "ibc.core.channel.v1.Acknowledgement")
 }
 
 func init() { proto.RegisterFile("ibc/core/channel/v1/channel.proto", fileDescriptor_c3a07336710636a0) }

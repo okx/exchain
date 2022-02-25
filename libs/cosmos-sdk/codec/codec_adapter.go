@@ -68,5 +68,7 @@ type (
 		MarshalAminoJSON() ([]byte, error)
 		UnmarshalAminoJSON([]byte) error
 	}
+
+
 )
 
