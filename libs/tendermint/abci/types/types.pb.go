@@ -1445,7 +1445,7 @@ type ResponseQuery struct {
 	Index                int64         `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
 	Key                  []byte        `protobuf:"bytes,6,opt,name=key,proto3" json:"key,omitempty"`
 	Value                []byte        `protobuf:"bytes,7,opt,name=value,proto3" json:"value,omitempty"`
-	Proof                *merkle.Proof `protobuf:"bytes,8,opt,name=proof,proto3" json:"proof,omitempty"`
+	Proof                *merkle.Proof `protobuf:"bytes,8,opt,name=proof_ops,json=proofOps,proto3" json:"proof_ops,omitempty"`
 	Height               int64         `protobuf:"varint,9,opt,name=height,proto3" json:"height,omitempty"`
 	Codespace            string        `protobuf:"bytes,10,opt,name=codespace,proto3" json:"codespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`

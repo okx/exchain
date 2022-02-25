@@ -79,6 +79,8 @@ type AppModule struct {
 	accountKeeper AccountKeeper
 }
 
+
+
 // NewAppModule creates a new AppModule object
 func NewAppModule(accountKeeper AccountKeeper) AppModule {
 	return AppModule{

@@ -359,14 +359,14 @@ func (m *MsgSubmitMisbehaviourResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgSubmitMisbehaviourResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgCreateClient)(nil), "oec.ibc.core.client.v1.MsgCreateClient")
-	proto.RegisterType((*MsgCreateClientResponse)(nil), "oec.ibc.core.client.v1.MsgCreateClientResponse")
-	proto.RegisterType((*MsgUpdateClient)(nil), "oec.ibc.core.client.v1.MsgUpdateClient")
-	proto.RegisterType((*MsgUpdateClientResponse)(nil), "oec.ibc.core.client.v1.MsgUpdateClientResponse")
-	proto.RegisterType((*MsgUpgradeClient)(nil), "oec.ibc.core.client.v1.MsgUpgradeClient")
-	proto.RegisterType((*MsgUpgradeClientResponse)(nil), "oec.ibc.core.client.v1.MsgUpgradeClientResponse")
-	proto.RegisterType((*MsgSubmitMisbehaviour)(nil), "oec.ibc.core.client.v1.MsgSubmitMisbehaviour")
-	proto.RegisterType((*MsgSubmitMisbehaviourResponse)(nil), "oec.ibc.core.client.v1.MsgSubmitMisbehaviourResponse")
+	proto.RegisterType((*MsgCreateClient)(nil), "ibc.core.client.v1.MsgCreateClient")
+	proto.RegisterType((*MsgCreateClientResponse)(nil), "ibc.core.client.v1.MsgCreateClientResponse")
+	proto.RegisterType((*MsgUpdateClient)(nil), "ibc.core.client.v1.MsgUpdateClient")
+	proto.RegisterType((*MsgUpdateClientResponse)(nil), "ibc.core.client.v1.MsgUpdateClientResponse")
+	proto.RegisterType((*MsgUpgradeClient)(nil), "ibc.core.client.v1.MsgUpgradeClient")
+	proto.RegisterType((*MsgUpgradeClientResponse)(nil), "ibc.core.client.v1.MsgUpgradeClientResponse")
+	proto.RegisterType((*MsgSubmitMisbehaviour)(nil), "ibc.core.client.v1.MsgSubmitMisbehaviour")
+	proto.RegisterType((*MsgSubmitMisbehaviourResponse)(nil), "ibc.core.client.v1.MsgSubmitMisbehaviourResponse")
 }
 
 func init() { proto.RegisterFile("ibc/core/client/v1/tx.proto", fileDescriptor_cb5dc4651eb49a04) }
@@ -585,7 +585,7 @@ func _Msg_SubmitMisbehaviour_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 var _Msg_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.client.v1.Msg",
+	ServiceName: "ibc.core.client.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

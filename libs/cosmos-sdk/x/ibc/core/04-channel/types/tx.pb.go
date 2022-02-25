@@ -828,26 +828,26 @@ func (m *MsgAcknowledgementResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgAcknowledgementResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgChannelOpenInit)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenInit")
-	proto.RegisterType((*MsgChannelOpenInitResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenInitResponse")
-	proto.RegisterType((*MsgChannelOpenTry)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenTry")
-	proto.RegisterType((*MsgChannelOpenTryResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenTryResponse")
-	proto.RegisterType((*MsgChannelOpenAck)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenAck")
-	proto.RegisterType((*MsgChannelOpenAckResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenAckResponse")
-	proto.RegisterType((*MsgChannelOpenConfirm)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenConfirm")
-	proto.RegisterType((*MsgChannelOpenConfirmResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelOpenConfirmResponse")
-	proto.RegisterType((*MsgChannelCloseInit)(nil), "oec.ibc.core.channel.v1.MsgChannelCloseInit")
-	proto.RegisterType((*MsgChannelCloseInitResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelCloseInitResponse")
-	proto.RegisterType((*MsgChannelCloseConfirm)(nil), "oec.ibc.core.channel.v1.MsgChannelCloseConfirm")
-	proto.RegisterType((*MsgChannelCloseConfirmResponse)(nil), "oec.ibc.core.channel.v1.MsgChannelCloseConfirmResponse")
-	proto.RegisterType((*MsgRecvPacket)(nil), "oec.ibc.core.channel.v1.MsgRecvPacket")
-	proto.RegisterType((*MsgRecvPacketResponse)(nil), "oec.ibc.core.channel.v1.MsgRecvPacketResponse")
-	proto.RegisterType((*MsgTimeout)(nil), "oec.ibc.core.channel.v1.MsgTimeout")
-	proto.RegisterType((*MsgTimeoutResponse)(nil), "oec.ibc.core.channel.v1.MsgTimeoutResponse")
-	proto.RegisterType((*MsgTimeoutOnClose)(nil), "oec.ibc.core.channel.v1.MsgTimeoutOnClose")
-	proto.RegisterType((*MsgTimeoutOnCloseResponse)(nil), "oec.ibc.core.channel.v1.MsgTimeoutOnCloseResponse")
-	proto.RegisterType((*MsgAcknowledgement)(nil), "oec.ibc.core.channel.v1.MsgAcknowledgement")
-	proto.RegisterType((*MsgAcknowledgementResponse)(nil), "oec.ibc.core.channel.v1.MsgAcknowledgementResponse")
+	proto.RegisterType((*MsgChannelOpenInit)(nil), "ibc.core.channel.v1.MsgChannelOpenInit")
+	proto.RegisterType((*MsgChannelOpenInitResponse)(nil), "ibc.core.channel.v1.MsgChannelOpenInitResponse")
+	proto.RegisterType((*MsgChannelOpenTry)(nil), "ibc.core.channel.v1.MsgChannelOpenTry")
+	proto.RegisterType((*MsgChannelOpenTryResponse)(nil), "ibc.core.channel.v1.MsgChannelOpenTryResponse")
+	proto.RegisterType((*MsgChannelOpenAck)(nil), "ibc.core.channel.v1.MsgChannelOpenAck")
+	proto.RegisterType((*MsgChannelOpenAckResponse)(nil), "ibc.core.channel.v1.MsgChannelOpenAckResponse")
+	proto.RegisterType((*MsgChannelOpenConfirm)(nil), "ibc.core.channel.v1.MsgChannelOpenConfirm")
+	proto.RegisterType((*MsgChannelOpenConfirmResponse)(nil), "ibc.core.channel.v1.MsgChannelOpenConfirmResponse")
+	proto.RegisterType((*MsgChannelCloseInit)(nil), "ibc.core.channel.v1.MsgChannelCloseInit")
+	proto.RegisterType((*MsgChannelCloseInitResponse)(nil), "ibc.core.channel.v1.MsgChannelCloseInitResponse")
+	proto.RegisterType((*MsgChannelCloseConfirm)(nil), "ibc.core.channel.v1.MsgChannelCloseConfirm")
+	proto.RegisterType((*MsgChannelCloseConfirmResponse)(nil), "ibc.core.channel.v1.MsgChannelCloseConfirmResponse")
+	proto.RegisterType((*MsgRecvPacket)(nil), "ibc.core.channel.v1.MsgRecvPacket")
+	proto.RegisterType((*MsgRecvPacketResponse)(nil), "ibc.core.channel.v1.MsgRecvPacketResponse")
+	proto.RegisterType((*MsgTimeout)(nil), "ibc.core.channel.v1.MsgTimeout")
+	proto.RegisterType((*MsgTimeoutResponse)(nil), "ibc.core.channel.v1.MsgTimeoutResponse")
+	proto.RegisterType((*MsgTimeoutOnClose)(nil), "ibc.core.channel.v1.MsgTimeoutOnClose")
+	proto.RegisterType((*MsgTimeoutOnCloseResponse)(nil), "ibc.core.channel.v1.MsgTimeoutOnCloseResponse")
+	proto.RegisterType((*MsgAcknowledgement)(nil), "ibc.core.channel.v1.MsgAcknowledgement")
+	proto.RegisterType((*MsgAcknowledgementResponse)(nil), "ibc.core.channel.v1.MsgAcknowledgementResponse")
 }
 
 func init() { proto.RegisterFile("ibc/core/channel/v1/tx.proto", fileDescriptor_bc4637e0ac3fc7b7) }
@@ -1302,7 +1302,7 @@ func _Msg_Acknowledgement_Handler(srv interface{}, ctx context.Context, dec func
 }
 
 var _Msg_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.channel.v1.Msg",
+	ServiceName: "ibc.core.channel.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -216,9 +216,9 @@ func (m *Params) GetReceiveEnabled() bool {
 }
 
 func init() {
-	proto.RegisterType((*FungibleTokenPacketData)(nil), "oec.ibc.applications.transfer.v1.FungibleTokenPacketData")
-	proto.RegisterType((*DenomTrace)(nil), "oec.ibc.applications.transfer.v1.DenomTrace")
-	proto.RegisterType((*Params)(nil), "oec.ibc.applications.transfer.v1.Params")
+	proto.RegisterType((*FungibleTokenPacketData)(nil), "ibc.applications.transfer.v1.FungibleTokenPacketData")
+	proto.RegisterType((*DenomTrace)(nil), "ibc.applications.transfer.v1.DenomTrace")
+	proto.RegisterType((*Params)(nil), "ibc.applications.transfer.v1.Params")
 }
 
 func init() {

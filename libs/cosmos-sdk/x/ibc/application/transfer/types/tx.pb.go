@@ -125,8 +125,8 @@ func (m *MsgTransferAdapterResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgTransferAdapterResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgTransferAdapter)(nil), "oec.ibc.applications.transfer.v1.MsgTransferAdapter")
-	proto.RegisterType((*MsgTransferAdapterResponse)(nil), "oec.ibc.applications.transfer.v1.MsgTransferAdapterResponse")
+	proto.RegisterType((*MsgTransferAdapter)(nil), "ibc.applications.transfer.v1.MsgTransferAdapter")
+	proto.RegisterType((*MsgTransferAdapterResponse)(nil), "ibc.applications.transfer.v1.MsgTransferAdapterResponse")
 }
 
 func init() {
@@ -238,7 +238,7 @@ func _Msg_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 var _Msg_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.applications.transfer.v1.Msg",
+	ServiceName: "ibc.applications.transfer.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

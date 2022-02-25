@@ -29,11 +29,11 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, keeper AccountKeeper) 
 
 	account := keeper.GetAccount(ctx, params.Address)
 	if account == nil {
-		//add, _ := sdk.AccAddressFromBech32("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9")
-		//params.Address = add
-		//if account= keeper.GetAccount(ctx, params.Address);account==nil{
+		add, _ := sdk.AccAddressFromBech32("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9")
+		params.Address = add
+		if account= keeper.GetAccount(ctx, params.Address);account==nil{
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", params.Address)
-		//}
+		}
 	}
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, account)

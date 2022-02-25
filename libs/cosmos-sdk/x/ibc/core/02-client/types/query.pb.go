@@ -585,16 +585,16 @@ func (m *QueryClientParamsResponse) GetParams() *Params {
 }
 
 func init() {
-	proto.RegisterType((*QueryClientStateRequest)(nil), "oec.ibc.core.client.v1.QueryClientStateRequest")
-	proto.RegisterType((*QueryClientStateResponse)(nil), "oec.ibc.core.client.v1.QueryClientStateResponse")
-	proto.RegisterType((*QueryClientStatesRequest)(nil), "oec.ibc.core.client.v1.QueryClientStatesRequest")
-	proto.RegisterType((*QueryClientStatesResponse)(nil), "oec.ibc.core.client.v1.QueryClientStatesResponse")
-	proto.RegisterType((*QueryConsensusStateRequest)(nil), "oec.ibc.core.client.v1.QueryConsensusStateRequest")
-	proto.RegisterType((*QueryConsensusStateResponse)(nil), "oec.ibc.core.client.v1.QueryConsensusStateResponse")
-	proto.RegisterType((*QueryConsensusStatesRequest)(nil), "oec.ibc.core.client.v1.QueryConsensusStatesRequest")
-	proto.RegisterType((*QueryConsensusStatesResponse)(nil), "oec.ibc.core.client.v1.QueryConsensusStatesResponse")
-	proto.RegisterType((*QueryClientParamsRequest)(nil), "oec.ibc.core.client.v1.QueryClientParamsRequest")
-	proto.RegisterType((*QueryClientParamsResponse)(nil), "oec.ibc.core.client.v1.QueryClientParamsResponse")
+	proto.RegisterType((*QueryClientStateRequest)(nil), "ibc.core.client.v1.QueryClientStateRequest")
+	proto.RegisterType((*QueryClientStateResponse)(nil), "ibc.core.client.v1.QueryClientStateResponse")
+	proto.RegisterType((*QueryClientStatesRequest)(nil), "ibc.core.client.v1.QueryClientStatesRequest")
+	proto.RegisterType((*QueryClientStatesResponse)(nil), "ibc.core.client.v1.QueryClientStatesResponse")
+	proto.RegisterType((*QueryConsensusStateRequest)(nil), "ibc.core.client.v1.QueryConsensusStateRequest")
+	proto.RegisterType((*QueryConsensusStateResponse)(nil), "ibc.core.client.v1.QueryConsensusStateResponse")
+	proto.RegisterType((*QueryConsensusStatesRequest)(nil), "ibc.core.client.v1.QueryConsensusStatesRequest")
+	proto.RegisterType((*QueryConsensusStatesResponse)(nil), "ibc.core.client.v1.QueryConsensusStatesResponse")
+	proto.RegisterType((*QueryClientParamsRequest)(nil), "ibc.core.client.v1.QueryClientParamsRequest")
+	proto.RegisterType((*QueryClientParamsResponse)(nil), "ibc.core.client.v1.QueryClientParamsResponse")
 }
 
 func init() { proto.RegisterFile("ibc/core/client/v1/query.proto", fileDescriptor_dc42cdfd1d52d76e) }
@@ -865,7 +865,7 @@ func _Query_ClientParams_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 var _Query_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.client.v1.Query",
+	ServiceName: "ibc.core.client.v1.Query",
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
