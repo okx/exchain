@@ -110,4 +110,4 @@ else
   # sed -i '' 's#index-events = \[\]#index-events = \["message.action","send_packet.packet_src_channel","send_packet.packet_sequence"\]#g' $CHAINDIR/$CHAINID/config/app.toml
 fi
 
-./simd --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
+#./simd --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
