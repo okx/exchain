@@ -263,7 +263,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	// get sender from cache
 	if txBytes != nil {
 		cacheKey = tmtypes.Bytes2Hash(txBytes, height)
-		if sigCache, ok := tmtypes.SignatureCache.Get(cacheKey); ok {
+		if sigCache, ok := tmtypes.SignatureCache().Get(cacheKey); ok {
 			msg.from.Store(sigCache)
 			return sigCache, nil
 		}
@@ -284,7 +284,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
 		if sigCache.Signer.Equal(signer) {
-			tmtypes.SignatureCache.Add(cacheKey, sigCache)
+			tmtypes.SignatureCache().Add(cacheKey, sigCache)
 			return sigCache, nil
 		}
 	}
@@ -314,7 +314,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	}
 	sigCache := &tmtypes.TxSigCache{Signer: signer, From: sender}
 	msg.from.Store(sigCache)
-	tmtypes.SignatureCache.Add(cacheKey, sigCache)
+	tmtypes.SignatureCache().Add(cacheKey, sigCache)
 	return sigCache, nil
 }
 

@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	SignatureCache *Cache
+	signatureCache *Cache
 )
 
 const FlagSigCacheSize = "signature-cache-size"
@@ -24,7 +24,7 @@ func init() {
 		readCount: 0,
 		hitCount:  0,
 	}
-	SignatureCache = defaultCache
+	signatureCache = defaultCache
 }
 
 func InitSignatureCache() {
@@ -32,9 +32,13 @@ func InitSignatureCache() {
 	if err != nil {
 		panic(err)
 	}
-	SignatureCache = &Cache{
+	signatureCache = &Cache{
 		data: lruCache,
 	}
+}
+
+func SignatureCache() *Cache {
+	return signatureCache
 }
 
 type Cache struct {
