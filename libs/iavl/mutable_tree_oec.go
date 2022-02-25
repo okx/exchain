@@ -1,7 +1,6 @@
 package iavl
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -60,7 +59,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+			delete(tree.savedNodes, string(tree.root.hash))
 			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()
 		}
@@ -277,9 +276,9 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			}
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
-				tree.commitOrphans[string(node.hash)] = node.version
-
-				commitOrp := &CommitOrphansImp{Key: hex.EncodeToString(node.hash), CommitValue: node.version}
+				k := string(node.hash)
+				tree.commitOrphans[k] = node.version
+				commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
 				tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 			}
 		}
@@ -304,13 +303,13 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 	node.prePersisted = false
 
 	if node.leftHash != nil {
-		key := hex.EncodeToString(node.leftHash)
+		key := string(node.leftHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.leftHash = tree.updateBranchWithDelta(tree.savedNodes[key])
 		}
 	}
 	if node.rightHash != nil {
-		key := hex.EncodeToString(node.rightHash)
+		key := string(node.rightHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.rightHash = tree.updateBranchWithDelta(tree.savedNodes[key])
 		}
@@ -323,7 +322,7 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	tree.savedNodes[hex.EncodeToString(node.hash)] = node
+	tree.savedNodes[string(node.hash)] = node
 
 	return node.hash
 }

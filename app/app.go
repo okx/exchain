@@ -2,12 +2,18 @@ package app
 
 import (
 	"fmt"
+	"io"
+	"math/big"
+	"os"
+	"sync"
+
+	"github.com/okex/exchain/app/utils/sanity"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -26,10 +32,6 @@ import (
 	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"io"
-	"math/big"
-	"os"
-	"sync"
 
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -613,5 +615,8 @@ func PreRun(ctx *server.Context) error {
 	if viper.GetBool(FlagEnableRepairState) {
 		repairStateOnStart(ctx)
 	}
+
+	// init tx signature cache
+	tmtypes.InitSignatureCache()
 	return nil
 }
