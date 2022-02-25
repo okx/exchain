@@ -261,6 +261,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
 
+	readCache := float64(tmtypes.SignatureCache().ReadCount())
+	hitCache := float64(tmtypes.SignatureCache().HitCount())
+	trace.GetElapsedInfo().AddInfo(trace.SigCacheRatio, fmt.Sprintf("%.2f", hitCache/readCache))
+
 	trace.GetElapsedInfo().AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
 
 	app.cms.ResetCount()
