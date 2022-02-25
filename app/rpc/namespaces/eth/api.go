@@ -935,8 +935,12 @@ func (api *PublicEthereumAPI) doCall(
 
 	//Generate tx to be used to simulate (signature isn't needed)
 	var txEncoder sdk.TxEncoder
-	if isEstimate || tmtypes.HigherThanVenus(int64(blockNum)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	if isEstimate {
+		if tmtypes.HigherThanVenus(int64(blockNum)) {
+			txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+		} else {
+			txEncoder = authtypes.DefaultTxEncoder(clientCtx.Codec)
+		}
 	} else {
 		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
 	}
