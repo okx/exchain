@@ -13,6 +13,10 @@ import (
 	ibcclient "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client"
 	porttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
+
+	//types "github.com/okex/exchain/temp"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 	"io"
 	"math/big"
 	"os"
@@ -271,6 +275,8 @@ func NewOKExChainApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 	}
+	bApp.Cdc = cdc
+	bApp.SetInterceptors(makeInterceptors(cdc))
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -290,7 +296,7 @@ func NewOKExChainApp(
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
-	app.subspaces[ibctransfertypes.ModuleName]=app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
+	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -360,14 +366,14 @@ func NewOKExChainApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		cdc, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper,interfaceReg,
+		cdc, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		cdc, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
-		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper,interfaceReg,
+		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
 
 	// register the proposal types
@@ -397,8 +403,8 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 
 	mm := codec.NewProtoCodec(interfaceReg)
-	proxy:=codec.NewMarshalProxy(mm,cdc)
-	transferModule := transfer.NewAppModule(app.TransferKeeper,proxy)
+	proxy := codec.NewMarshalProxy(mm, cdc)
+	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
@@ -469,7 +475,7 @@ func NewOKExChainApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
-		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,ibctransfertypes.ModuleName,
+		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName, ibctransfertypes.ModuleName,
 		host.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 	)
@@ -609,6 +615,37 @@ func (app *OKExChainApp) Codec() *codec.Codec {
 // NOTE: This is solely to be used for testing purposes.
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
+}
+
+var protoCodec = encoding.GetCodec(proto.Name)
+
+func makeInterceptors(cdc *codec.Codec) map[string]func(req *abci.RequestQuery) error {
+	m := make(map[string]func(req *abci.RequestQuery) error)
+	m["/cosmos.tx.v1beta1.Service/Simulate"] = func(req *abci.RequestQuery) error {
+		req.Path = "app/simulate"
+		return nil
+	}
+	//m["/cosmos.auth.v1beta1.Query/Account"] = func(req *abci.RequestQuery) error {
+	//	var reqA types.QueryAccountRequest
+	//	err := protoCodec.Unmarshal(req.Data, &reqA)
+	//	if nil != err {
+	//		return err
+	//	}
+	//	p := auth.QueryAccountParams{}
+	//	add, err := sdk.AccAddressFromBech32ByPrefix(reqA.Address, "ex")
+	//	if nil != err {
+	//		return err
+	//	}
+	//	p.Address = add
+	//	data, err := cdc.MarshalJSON(p)
+	//	if nil != err {
+	//		return err
+	//	}
+	//	req.Data = data
+	//	req.Path = "custom/acc/account"
+	//	return nil
+	//}
+	return m
 }
 
 // GetMaccPerms returns a copy of the module account permissions

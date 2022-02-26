@@ -2,8 +2,11 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
+	tmmc "github.com/tendermint/tendermint/proto/tendermint/types"
 	"strings"
 	"sync"
 	"time"
@@ -608,6 +611,58 @@ func (h *Header) Hash() tmbytes.HexBytes {
 		cdcEncode(h.EvidenceHash),
 		cdcEncode(h.ProposerAddress),
 	})
+}
+
+func (h *Header) IBCHash() tmbytes.HexBytes {
+	if h == nil || len(h.ValidatorsHash) == 0 {
+		return nil
+	}
+	hbz, err := h.Version.Marshal()
+	if err != nil {
+		return nil
+	}
+	pbt, err := gogotypes.StdTimeMarshal(h.Time)
+	if err != nil {
+		return nil
+	}
+
+	pbbi := h.LastBlockID.ToIBCProto()
+	bzbi, err := pbbi.Marshal()
+	if err != nil {
+		return nil
+	}
+	ret := merkle.HashFromByteSlices([][]byte{
+		hbz,
+		ibccdcEncode(h.ChainID),
+		ibccdcEncode(h.Height),
+		pbt,
+		bzbi,
+		ibccdcEncode(h.LastCommitHash),
+		ibccdcEncode(h.DataHash),
+		ibccdcEncode(h.ValidatorsHash),
+		ibccdcEncode(h.NextValidatorsHash),
+		ibccdcEncode(h.ConsensusHash),
+		ibccdcEncode(h.AppHash),
+		ibccdcEncode(h.LastResultsHash),
+		ibccdcEncode(h.EvidenceHash),
+		ibccdcEncode(h.ProposerAddress),
+	})
+	logrusplugin.Info("info",
+		"chainId", h.ChainID,
+		"height", h.Height,
+		"hbz", hex.EncodeToString(hbz),
+		"pbt", hex.EncodeToString(pbt),
+		"bzbi", hex.EncodeToString(bzbi),
+		"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
+		"dataHash", hex.EncodeToString(h.DataHash),
+		"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
+		"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
+		"AppHash", hex.EncodeToString(h.AppHash),
+		"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
+		"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
+		"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
+		"ret", hex.EncodeToString(ret))
+	return ret
 }
 
 // StringIndented returns a string representation of the header
@@ -1628,6 +1683,26 @@ func (blockID *BlockID) ToProto() tmproto.BlockID {
 	return tmproto.BlockID{
 		Hash:        blockID.Hash,
 		PartsHeader: blockID.PartsHeader.ToProto(),
+	}
+}
+
+//func (blockID *BlockID) ToIBCProto() tmproto.IBCBlockID {
+//	if blockID == nil {
+//		return tmproto.IBCBlockID{}
+//	}
+//	return tmproto.IBCBlockID{
+//		Hash:          blockID.Hash,
+//		IBCPartSetHeader: blockID.PartsHeader.ToIBCProto(),
+//	}
+//}
+
+func (blockID *BlockID) ToIBCProto() tmmc.BlockID {
+	if blockID == nil {
+		return tmmc.BlockID{}
+	}
+	return tmmc.BlockID{
+		Hash:          blockID.Hash,
+		PartSetHeader: blockID.PartsHeader.ToIBCProto(),
 	}
 }
 

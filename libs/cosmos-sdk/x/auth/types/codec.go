@@ -40,3 +40,4 @@ func init() {
 	RegisterCodec(ModuleCdc)
 	codec.RegisterCrypto(ModuleCdc)
 }
+

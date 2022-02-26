@@ -311,12 +311,12 @@ func (m *QueryParamsResponse) GetParams() *Params {
 }
 
 func init() {
-	proto.RegisterType((*QueryDenomTraceRequest)(nil), "oec.ibc.applications.transfer.v1.QueryDenomTraceRequest")
-	proto.RegisterType((*QueryDenomTraceResponse)(nil), "oec.ibc.applications.transfer.v1.QueryDenomTraceResponse")
-	proto.RegisterType((*QueryDenomTracesRequest)(nil), "oec.ibc.applications.transfer.v1.QueryDenomTracesRequest")
-	proto.RegisterType((*QueryDenomTracesResponse)(nil), "oec.ibc.applications.transfer.v1.QueryDenomTracesResponse")
-	proto.RegisterType((*QueryParamsRequest)(nil), "oec.ibc.applications.transfer.v1.QueryParamsRequest")
-	proto.RegisterType((*QueryParamsResponse)(nil), "oec.ibc.applications.transfer.v1.QueryParamsResponse")
+	proto.RegisterType((*QueryDenomTraceRequest)(nil), "ibc.applications.transfer.v1.QueryDenomTraceRequest")
+	proto.RegisterType((*QueryDenomTraceResponse)(nil), "ibc.applications.transfer.v1.QueryDenomTraceResponse")
+	proto.RegisterType((*QueryDenomTracesRequest)(nil), "ibc.applications.transfer.v1.QueryDenomTracesRequest")
+	proto.RegisterType((*QueryDenomTracesResponse)(nil), "ibc.applications.transfer.v1.QueryDenomTracesResponse")
+	proto.RegisterType((*QueryParamsRequest)(nil), "ibc.applications.transfer.v1.QueryParamsRequest")
+	proto.RegisterType((*QueryParamsResponse)(nil), "ibc.applications.transfer.v1.QueryParamsResponse")
 }
 
 func init() {
@@ -498,7 +498,7 @@ func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 var _Query_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.applications.transfer.v1.Query",
+	ServiceName: "ibc.applications.transfer.v1.Query",
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -206,10 +206,10 @@ func (m *MerkleProof) GetProofs() []*_go.CommitmentProof {
 }
 
 func init() {
-	proto.RegisterType((*MerkleRoot)(nil), "oec.ibc.core.commitment.v1.MerkleRoot")
-	proto.RegisterType((*MerklePrefix)(nil), "oec.ibc.core.commitment.v1.MerklePrefix")
-	proto.RegisterType((*MerklePath)(nil), "oec.ibc.core.commitment.v1.MerklePath")
-	proto.RegisterType((*MerkleProof)(nil), "oec.ibc.core.commitment.v1.MerkleProof")
+	proto.RegisterType((*MerkleRoot)(nil), "ibc.core.commitment.v1.MerkleRoot")
+	proto.RegisterType((*MerklePrefix)(nil), "ibc.core.commitment.v1.MerklePrefix")
+	proto.RegisterType((*MerklePath)(nil), "ibc.core.commitment.v1.MerklePath")
+	proto.RegisterType((*MerkleProof)(nil), "ibc.core.commitment.v1.MerkleProof")
 }
 
 func init() {

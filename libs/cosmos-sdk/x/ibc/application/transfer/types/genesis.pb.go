@@ -85,7 +85,7 @@ func (m *GenesisState) GetParams() Params {
 }
 
 func init() {
-	proto.RegisterType((*GenesisState)(nil), "oec.ibc.applications.transfer.v1.GenesisState")
+	proto.RegisterType((*GenesisState)(nil), "ibc.applications.transfer.v1.GenesisState")
 }
 
 func init() {

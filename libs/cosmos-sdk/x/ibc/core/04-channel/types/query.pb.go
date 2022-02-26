@@ -1672,32 +1672,32 @@ func (m *QueryNextSequenceReceiveResponse) GetProofHeight() types.Height {
 }
 
 func init() {
-	proto.RegisterType((*QueryChannelRequest)(nil), "oec.ibc.core.channel.v1.QueryChannelRequest")
-	proto.RegisterType((*QueryChannelResponse)(nil), "oec.ibc.core.channel.v1.QueryChannelResponse")
-	proto.RegisterType((*QueryChannelsRequest)(nil), "oec.ibc.core.channel.v1.QueryChannelsRequest")
-	proto.RegisterType((*QueryChannelsResponse)(nil), "oec.ibc.core.channel.v1.QueryChannelsResponse")
-	proto.RegisterType((*QueryConnectionChannelsRequest)(nil), "oec.ibc.core.channel.v1.QueryConnectionChannelsRequest")
-	proto.RegisterType((*QueryConnectionChannelsResponse)(nil), "oec.ibc.core.channel.v1.QueryConnectionChannelsResponse")
-	proto.RegisterType((*QueryChannelClientStateRequest)(nil), "oec.ibc.core.channel.v1.QueryChannelClientStateRequest")
-	proto.RegisterType((*QueryChannelClientStateResponse)(nil), "oec.ibc.core.channel.v1.QueryChannelClientStateResponse")
-	proto.RegisterType((*QueryChannelConsensusStateRequest)(nil), "oec.ibc.core.channel.v1.QueryChannelConsensusStateRequest")
-	proto.RegisterType((*QueryChannelConsensusStateResponse)(nil), "oec.ibc.core.channel.v1.QueryChannelConsensusStateResponse")
-	proto.RegisterType((*QueryPacketCommitmentRequest)(nil), "oec.ibc.core.channel.v1.QueryPacketCommitmentRequest")
-	proto.RegisterType((*QueryPacketCommitmentResponse)(nil), "oec.ibc.core.channel.v1.QueryPacketCommitmentResponse")
-	proto.RegisterType((*QueryPacketCommitmentsRequest)(nil), "oec.ibc.core.channel.v1.QueryPacketCommitmentsRequest")
-	proto.RegisterType((*QueryPacketCommitmentsResponse)(nil), "oec.ibc.core.channel.v1.QueryPacketCommitmentsResponse")
-	proto.RegisterType((*QueryPacketReceiptRequest)(nil), "oec.ibc.core.channel.v1.QueryPacketReceiptRequest")
-	proto.RegisterType((*QueryPacketReceiptResponse)(nil), "oec.ibc.core.channel.v1.QueryPacketReceiptResponse")
-	proto.RegisterType((*QueryPacketAcknowledgementRequest)(nil), "oec.ibc.core.channel.v1.QueryPacketAcknowledgementRequest")
-	proto.RegisterType((*QueryPacketAcknowledgementResponse)(nil), "oec.ibc.core.channel.v1.QueryPacketAcknowledgementResponse")
-	proto.RegisterType((*QueryPacketAcknowledgementsRequest)(nil), "oec.ibc.core.channel.v1.QueryPacketAcknowledgementsRequest")
-	proto.RegisterType((*QueryPacketAcknowledgementsResponse)(nil), "oec.ibc.core.channel.v1.QueryPacketAcknowledgementsResponse")
-	proto.RegisterType((*QueryUnreceivedPacketsRequest)(nil), "oec.ibc.core.channel.v1.QueryUnreceivedPacketsRequest")
-	proto.RegisterType((*QueryUnreceivedPacketsResponse)(nil), "oec.ibc.core.channel.v1.QueryUnreceivedPacketsResponse")
-	proto.RegisterType((*QueryUnreceivedAcksRequest)(nil), "oec.ibc.core.channel.v1.QueryUnreceivedAcksRequest")
-	proto.RegisterType((*QueryUnreceivedAcksResponse)(nil), "oec.ibc.core.channel.v1.QueryUnreceivedAcksResponse")
-	proto.RegisterType((*QueryNextSequenceReceiveRequest)(nil), "oec.ibc.core.channel.v1.QueryNextSequenceReceiveRequest")
-	proto.RegisterType((*QueryNextSequenceReceiveResponse)(nil), "oec.ibc.core.channel.v1.QueryNextSequenceReceiveResponse")
+	proto.RegisterType((*QueryChannelRequest)(nil), "ibc.core.channel.v1.QueryChannelRequest")
+	proto.RegisterType((*QueryChannelResponse)(nil), "ibc.core.channel.v1.QueryChannelResponse")
+	proto.RegisterType((*QueryChannelsRequest)(nil), "ibc.core.channel.v1.QueryChannelsRequest")
+	proto.RegisterType((*QueryChannelsResponse)(nil), "ibc.core.channel.v1.QueryChannelsResponse")
+	proto.RegisterType((*QueryConnectionChannelsRequest)(nil), "ibc.core.channel.v1.QueryConnectionChannelsRequest")
+	proto.RegisterType((*QueryConnectionChannelsResponse)(nil), "ibc.core.channel.v1.QueryConnectionChannelsResponse")
+	proto.RegisterType((*QueryChannelClientStateRequest)(nil), "ibc.core.channel.v1.QueryChannelClientStateRequest")
+	proto.RegisterType((*QueryChannelClientStateResponse)(nil), "ibc.core.channel.v1.QueryChannelClientStateResponse")
+	proto.RegisterType((*QueryChannelConsensusStateRequest)(nil), "ibc.core.channel.v1.QueryChannelConsensusStateRequest")
+	proto.RegisterType((*QueryChannelConsensusStateResponse)(nil), "ibc.core.channel.v1.QueryChannelConsensusStateResponse")
+	proto.RegisterType((*QueryPacketCommitmentRequest)(nil), "ibc.core.channel.v1.QueryPacketCommitmentRequest")
+	proto.RegisterType((*QueryPacketCommitmentResponse)(nil), "ibc.core.channel.v1.QueryPacketCommitmentResponse")
+	proto.RegisterType((*QueryPacketCommitmentsRequest)(nil), "ibc.core.channel.v1.QueryPacketCommitmentsRequest")
+	proto.RegisterType((*QueryPacketCommitmentsResponse)(nil), "ibc.core.channel.v1.QueryPacketCommitmentsResponse")
+	proto.RegisterType((*QueryPacketReceiptRequest)(nil), "ibc.core.channel.v1.QueryPacketReceiptRequest")
+	proto.RegisterType((*QueryPacketReceiptResponse)(nil), "ibc.core.channel.v1.QueryPacketReceiptResponse")
+	proto.RegisterType((*QueryPacketAcknowledgementRequest)(nil), "ibc.core.channel.v1.QueryPacketAcknowledgementRequest")
+	proto.RegisterType((*QueryPacketAcknowledgementResponse)(nil), "ibc.core.channel.v1.QueryPacketAcknowledgementResponse")
+	proto.RegisterType((*QueryPacketAcknowledgementsRequest)(nil), "ibc.core.channel.v1.QueryPacketAcknowledgementsRequest")
+	proto.RegisterType((*QueryPacketAcknowledgementsResponse)(nil), "ibc.core.channel.v1.QueryPacketAcknowledgementsResponse")
+	proto.RegisterType((*QueryUnreceivedPacketsRequest)(nil), "ibc.core.channel.v1.QueryUnreceivedPacketsRequest")
+	proto.RegisterType((*QueryUnreceivedPacketsResponse)(nil), "ibc.core.channel.v1.QueryUnreceivedPacketsResponse")
+	proto.RegisterType((*QueryUnreceivedAcksRequest)(nil), "ibc.core.channel.v1.QueryUnreceivedAcksRequest")
+	proto.RegisterType((*QueryUnreceivedAcksResponse)(nil), "ibc.core.channel.v1.QueryUnreceivedAcksResponse")
+	proto.RegisterType((*QueryNextSequenceReceiveRequest)(nil), "ibc.core.channel.v1.QueryNextSequenceReceiveRequest")
+	proto.RegisterType((*QueryNextSequenceReceiveResponse)(nil), "ibc.core.channel.v1.QueryNextSequenceReceiveResponse")
 }
 
 func init() { proto.RegisterFile("ibc/core/channel/v1/query.proto", fileDescriptor_1034a1e9abc4cca1) }
@@ -2291,7 +2291,7 @@ func _Query_NextSequenceReceive_Handler(srv interface{}, ctx context.Context, de
 }
 
 var _Query_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.channel.v1.Query",
+	ServiceName: "ibc.core.channel.v1.Query",
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

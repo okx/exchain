@@ -376,14 +376,14 @@ func (m *MsgConnectionOpenConfirmResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgConnectionOpenConfirmResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgConnectionOpenInit)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenInit")
-	proto.RegisterType((*MsgConnectionOpenInitResponse)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenInitResponse")
-	proto.RegisterType((*MsgConnectionOpenTry)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenTry")
-	proto.RegisterType((*MsgConnectionOpenTryResponse)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenTryResponse")
-	proto.RegisterType((*MsgConnectionOpenAck)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenAck")
-	proto.RegisterType((*MsgConnectionOpenAckResponse)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenAckResponse")
-	proto.RegisterType((*MsgConnectionOpenConfirm)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenConfirm")
-	proto.RegisterType((*MsgConnectionOpenConfirmResponse)(nil), "oec.ibc.core.connection.v1.MsgConnectionOpenConfirmResponse")
+	proto.RegisterType((*MsgConnectionOpenInit)(nil), "ibc.core.connection.v1.MsgConnectionOpenInit")
+	proto.RegisterType((*MsgConnectionOpenInitResponse)(nil), "ibc.core.connection.v1.MsgConnectionOpenInitResponse")
+	proto.RegisterType((*MsgConnectionOpenTry)(nil), "ibc.core.connection.v1.MsgConnectionOpenTry")
+	proto.RegisterType((*MsgConnectionOpenTryResponse)(nil), "ibc.core.connection.v1.MsgConnectionOpenTryResponse")
+	proto.RegisterType((*MsgConnectionOpenAck)(nil), "ibc.core.connection.v1.MsgConnectionOpenAck")
+	proto.RegisterType((*MsgConnectionOpenAckResponse)(nil), "ibc.core.connection.v1.MsgConnectionOpenAckResponse")
+	proto.RegisterType((*MsgConnectionOpenConfirm)(nil), "ibc.core.connection.v1.MsgConnectionOpenConfirm")
+	proto.RegisterType((*MsgConnectionOpenConfirmResponse)(nil), "ibc.core.connection.v1.MsgConnectionOpenConfirmResponse")
 }
 
 func init() { proto.RegisterFile("ibc/core/connection/v1/tx.proto", fileDescriptor_5d00fde5fc97399e) }
@@ -622,7 +622,7 @@ func _Msg_ConnectionOpenConfirm_Handler(srv interface{}, ctx context.Context, de
 }
 
 var _Msg_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "oec.ibc.core.connection.v1.Msg",
+	ServiceName: "ibc.core.connection.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

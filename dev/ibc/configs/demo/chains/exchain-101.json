@@ -1,5 +1,5 @@
 {
-  "type": "oec",
+  "type": "cosmos",
   "value": {
     "key": "admin16",
     "chain-id": "exchain-101",
