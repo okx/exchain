@@ -56,12 +56,12 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 }
 
 // Transition execute evm tx
-func (tx *Tx) Transition() (err error) {
+func (tx *Tx) Transition() (result *Result, err error) {
 	config, found := tx.Keeper.GetChainConfig(tx.Ctx)
 	if !found {
-		return types.ErrChainConfigNotFound
+		return nil, types.ErrChainConfigNotFound
 	}
-	tx.Result.ExecResult, tx.Result.ResultData, err, tx.Result.InnerTxs, tx.Result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
+	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 	// async mod goes immediately
 	if tx.Ctx.IsAsync() {
 		tx.Keeper.LogsManages.Set(string(tx.Ctx.TxBytes()), keeper.TxResult{
@@ -73,16 +73,16 @@ func (tx *Tx) Transition() (err error) {
 	return
 }
 
-// DecorateError TraceTxLog situation Decorate the result
+// DecorateResult TraceTxLog situation Decorate the result
 // it was replaced to trace logs when trace tx even if err != nil
-func (tx *Tx) DecorateError(err error) (*sdk.Result, error) {
-	if tx.Ctx.IsTraceTxLog() {
-		// the result was replaced to trace logs when trace tx even if err != nil
-		tx.Result.ExecResult.Result.Data = tx.Result.ExecResult.TraceLogs
-		return tx.Result.ExecResult.Result, nil
-	}
+func (tx *Tx) DecorateResult(result *Result, err error) (*Result, error) {
+	//	if tx.Ctx.IsTraceTxLog() {
+	// the result was replaced to trace logs when trace tx even if err != nil
+	//		result.ExecResult.Result.Data = tx.Result.ExecResult.TraceLogs
+	//		return result.ExecResult.Result, nil
+	//	}
 
-	return nil, err
+	return result, err
 }
 
 func (tx *Tx) Emit(msg *types.MsgEthereumTx) *sdk.Result {
@@ -117,7 +117,6 @@ func (tx *Tx) Emit(msg *types.MsgEthereumTx) *sdk.Result {
 	return tx.Result.ExecResult.Result
 }
 
-//
 func (tx *Tx) Finalize() error {
 	//TODO implement me
 	panic("implement me")
