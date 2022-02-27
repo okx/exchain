@@ -229,7 +229,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ret = []byte{}
 		leftOverGas = gasLimit
 		err = nil
-		fmt.Println("232-----")
+		//fmt.Println("232-----")
 		//ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())

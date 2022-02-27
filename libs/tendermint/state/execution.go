@@ -290,7 +290,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 				block.Txs = block.Txs[:4]
 			}
 
-			fmt.Println("ApplyBlock", len(block.Txs))
+			fmt.Println("ApplyBlock Len(block.Txs)", len(block.Txs))
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {

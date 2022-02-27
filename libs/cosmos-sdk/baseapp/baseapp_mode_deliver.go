@@ -1,8 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -38,14 +36,6 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("????---")
-	info.msCache.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		if isDirty {
-			fmt.Println("refund", hex.EncodeToString(key), hex.EncodeToString(value))
-		}
-		return true
-	})
 
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)

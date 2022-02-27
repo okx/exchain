@@ -186,6 +186,14 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	})
 
 	fmt.Println("EndBlock", cnt)
+
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+		if isDirty {
+			//fmt.Println("endBlock", hex.EncodeToString(key), hex.EncodeToString(value))
+		}
+		return true
+	})
+
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
@@ -260,9 +268,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	cnt := 0
 	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		cnt++
 		if isDirty {
-			//fmt.Println("commit", hex.EncodeToString(key), hex.EncodeToString(value))
+			cnt++
 		}
 		return true
 	})

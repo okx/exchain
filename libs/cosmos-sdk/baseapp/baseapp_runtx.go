@@ -173,6 +173,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
+
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		app.pin(CacheStoreWrite, false, mode)
@@ -233,7 +234,6 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 }
 
 func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, index int) {
-
 	fmt.Println("run-----", index)
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))

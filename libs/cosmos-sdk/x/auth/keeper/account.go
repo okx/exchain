@@ -43,6 +43,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
+
 	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
 	return acc
 }

@@ -149,7 +149,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	groupList, indexToID, nextIndexInGroup := app.calGroup(extraData)
 
 	app.parallelTxManage.isAsyncDeliverTx = true
-	app.parallelTxManage.cms = app.cms.CacheMultiStore()
+	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
+
 	evmIndex := uint32(0)
 	for k := range txs {
 		t := &txStatus{
@@ -174,7 +175,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 }
 
-func (app *BaseApp) fixFeeCollector(txString string) {
+func (app *BaseApp) fixFeeCollector(txString string, ms sdk.CacheMultiStore) {
 	if app.parallelTxManage.txStatus[txString].anteErr != nil {
 		return
 	}
@@ -182,10 +183,11 @@ func (app *BaseApp) fixFeeCollector(txString string) {
 	txFee := app.parallelTxManage.getFee(txString)
 	refundFee := app.parallelTxManage.getRefundFee(txString)
 	txFee = txFee.Sub(refundFee)
-
 	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(txFee...)
 
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+
+	ctx = ctx.WithMultiStore(ms)
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
 		panic(err)
 	}
@@ -220,19 +222,20 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
+	cnt := 0
+	pm.cms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+		if isDirty {
+			cnt++
+		}
+		return true
+	})
+
 	asyncCb := func(execRes *executeResult) {
 		receiveTxIndex := execRes.GetCounter()
 		txReps[receiveTxIndex] = execRes
 		fmt.Println("receiveTxIndex", receiveTxIndex)
-		execRes.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-			if isDirty {
-				//fmt.Println("receiveTxIndex", receiveTxIndex, hex.EncodeToString(key), hex.EncodeToString(value))
-			}
-			return true
-		})
 		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !pm.isRunning(nextTx) {
 			pm.setTxStatus(nextTx, true)
-			//fmt.Println("next-Index", nextTx)
 			go app.asyncDeliverTx(txs[nextTx], nextTx)
 		}
 		if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !pm.isRunning(nextTx) {
@@ -262,19 +265,32 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 			txRs := res.GetResponse()
 			deliverTxs[txIndex] = &txRs
+			cc := 0
+			res.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+				if isDirty {
+					//fmt.Println("data", hex.EncodeToString(key), hex.EncodeToString(value))
+					cc++
+				}
+				return true
+			})
+			fmt.Println("Before Merge", cc)
+
 			res.Collect(txIndex, asCache)
-			pm.SetCurrentIndex(txIndex, res)
-			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex])
+			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex], res.ms)
+
 			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 
 			cnt := 0
 			pm.cms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-				cnt++
+				if isDirty {
+					cnt++
+				}
 				return true
 			})
-			fmt.Println("End", cnt)
+			pm.SetCurrentIndex(txIndex, res) //Commit
+			fmt.Println("End Merge", txIndex, "dirtyIndex", cnt)
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
@@ -291,6 +307,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 	for _, group := range groupList {
 		txIndex := group[0]
+		app.parallelTxManage.setTxStatus(txIndex, true)
 		go app.asyncDeliverTx(txs[txIndex], txIndex)
 	}
 
@@ -310,7 +327,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		}
 
 	}
-	app.deliverState.ctx.WithMultiStore(pm.cms)
+	pm.cms.Write()
 	return deliverTxs
 }
 
