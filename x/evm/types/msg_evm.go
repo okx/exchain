@@ -61,6 +61,9 @@ func (msg MsgEthereumTx) GetFee() sdk.Coins {
 }
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
+	if from := ctx.From(); len(from) > 0 {
+		return sdk.AccAddress(ethcmn.HexToAddress(from).Bytes())
+	}
 
 	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes())
 	if err != nil {
