@@ -19,6 +19,10 @@ var (
 	//	_   Tx  = (*RelayTxMsg)(nil)
 )
 
+type MsgProtoAdapter interface {
+	Msg
+	codec.ProtoMarshaler
+}
 type MsgAdapter interface {
 	Msg
 	proto.Message

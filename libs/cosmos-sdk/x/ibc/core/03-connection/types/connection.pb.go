@@ -354,13 +354,13 @@ func (m *Version) XXX_DiscardUnknown() {
 var xxx_messageInfo_Version proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterEnum("oec.ibc.core.connection.v1.State", State_name, State_value)
-	proto.RegisterType((*ConnectionEnd)(nil), "oec.ibc.core.connection.v1.ConnectionEnd")
-	proto.RegisterType((*IdentifiedConnection)(nil), "oec.ibc.core.connection.v1.IdentifiedConnection")
-	proto.RegisterType((*Counterparty)(nil), "oec.ibc.core.connection.v1.Counterparty")
-	proto.RegisterType((*ClientPaths)(nil), "oec.ibc.core.connection.v1.ClientPaths")
-	proto.RegisterType((*ConnectionPaths)(nil), "oec.ibc.core.connection.v1.ConnectionPaths")
-	proto.RegisterType((*Version)(nil), "oec.ibc.core.connection.v1.Version")
+	proto.RegisterEnum("ibc.core.connection.v1.State", State_name, State_value)
+	proto.RegisterType((*ConnectionEnd)(nil), "ibc.core.connection.v1.ConnectionEnd")
+	proto.RegisterType((*IdentifiedConnection)(nil), "ibc.core.connection.v1.IdentifiedConnection")
+	proto.RegisterType((*Counterparty)(nil), "ibc.core.connection.v1.Counterparty")
+	proto.RegisterType((*ClientPaths)(nil), "ibc.core.connection.v1.ClientPaths")
+	proto.RegisterType((*ConnectionPaths)(nil), "ibc.core.connection.v1.ConnectionPaths")
+	proto.RegisterType((*Version)(nil), "ibc.core.connection.v1.Version")
 }
 
 func init() {

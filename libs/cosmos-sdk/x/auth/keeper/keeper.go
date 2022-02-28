@@ -33,6 +33,7 @@ type AccountKeeper struct {
 	observers []ObserverI
 }
 
+
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
 // (binary) encode and decode concrete sdk.Accounts.
 // nolint

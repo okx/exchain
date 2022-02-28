@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	tmmc "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -212,6 +213,26 @@ func (psh *PartSetHeader) ToProto() tmproto.PartSetHeader {
 
 	return tmproto.PartSetHeader{
 		Total: int64(psh.Total),
+		Hash:  psh.Hash,
+	}
+}
+//func (psh *PartSetHeader) ToIBCProto() tmproto.IBCPartSetHeader {
+//	if psh == nil {
+//		return tmproto.IBCPartSetHeader{}
+//	}
+//	tmmc.PartSetHeader{}
+//	return tmproto.IBCPartSetHeader{
+//		Total: uint32(psh.Total),
+//		Hash:  psh.Hash,
+//	}
+//}
+
+func (psh *PartSetHeader) ToIBCProto() tmmc.PartSetHeader {
+	if psh == nil {
+		return tmmc.PartSetHeader{}
+	}
+	return tmmc.PartSetHeader{
+		Total: uint32(psh.Total),
 		Hash:  psh.Hash,
 	}
 }

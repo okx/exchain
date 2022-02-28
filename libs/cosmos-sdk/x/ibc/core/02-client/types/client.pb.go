@@ -332,12 +332,12 @@ func (m *Params) GetAllowedClients() []string {
 }
 
 func init() {
-	proto.RegisterType((*IdentifiedClientState)(nil), "oec.ibc.core.client.v1.IdentifiedClientState")
-	proto.RegisterType((*ConsensusStateWithHeight)(nil), "oec.ibc.core.client.v1.ConsensusStateWithHeight")
-	proto.RegisterType((*ClientConsensusStates)(nil), "oec.ibc.core.client.v1.ClientConsensusStates")
-	proto.RegisterType((*ClientUpdateProposal)(nil), "oec.ibc.core.client.v1.ClientUpdateProposal")
-	proto.RegisterType((*Height)(nil), "oec.ibc.core.client.v1.Height")
-	proto.RegisterType((*Params)(nil), "oec.ibc.core.client.v1.Params")
+	proto.RegisterType((*IdentifiedClientState)(nil), "ibc.core.client.v1.IdentifiedClientState")
+	proto.RegisterType((*ConsensusStateWithHeight)(nil), "ibc.core.client.v1.ConsensusStateWithHeight")
+	proto.RegisterType((*ClientConsensusStates)(nil), "ibc.core.client.v1.ClientConsensusStates")
+	proto.RegisterType((*ClientUpdateProposal)(nil), "ibc.core.client.v1.ClientUpdateProposal")
+	proto.RegisterType((*Height)(nil), "ibc.core.client.v1.Height")
+	proto.RegisterType((*Params)(nil), "ibc.core.client.v1.Params")
 }
 
 func init() { proto.RegisterFile("ibc/core/client/v1/client.proto", fileDescriptor_b6bc4c8185546947) }

@@ -95,7 +95,7 @@ func (m *GenesisState) GetChannelGenesis() types2.GenesisState {
 }
 
 func init() {
-	proto.RegisterType((*GenesisState)(nil), "oec.ibc.core.types.v1.GenesisState")
+	proto.RegisterType((*GenesisState)(nil), "ibc.core.types.v1.GenesisState")
 }
 
 func init() { proto.RegisterFile("ibc/core/types/v1/genesis.proto", fileDescriptor_b9a49c5663e6fc59) }

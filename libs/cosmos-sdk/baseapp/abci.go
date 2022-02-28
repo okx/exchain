@@ -3,12 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"sort"
-	"strings"
-	"sync/atomic"
-	"syscall"
-	"time"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -16,7 +10,14 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"os"
+	"sort"
+	"strings"
+	"sync/atomic"
+	"syscall"
+	"time"
 )
+
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
@@ -317,9 +318,12 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	if err := app.interceptor(&req); nil != err {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, err.Error()))
+	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
@@ -342,6 +346,13 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 	}
 
 	return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
+}
+
+func (app *BaseApp) interceptor(req *abci.RequestQuery) error {
+	if f := app.interceptors[req.Path]; nil != f {
+		return f(req)
+	}
+	return nil
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {

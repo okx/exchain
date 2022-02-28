@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/okex/exchain/global"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
@@ -46,7 +47,6 @@ const (
 	// only for runTxModeSimulate
 	LatestSimulateTxHeight = 0
 )
-
 var (
 	_ abci.Application = (*BaseApp)(nil)
 
@@ -199,6 +199,11 @@ type BaseApp struct { // nolint: maligned
 	interfaceRegistry types.InterfaceRegistry
 	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
+
+	parseF       map[string]func(str string) string
+	interceptors map[string]func(req *abci.RequestQuery)error
+
+	Cdc *codec.Codec
 }
 
 type recordHandle func(string)
@@ -228,6 +233,7 @@ func NewBaseApp(
 		txDecoder:        txDecoder,
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
+		interceptors:     map[string]func(req *abci.RequestQuery)error{},
 	}
 
 	for _, option := range options {
@@ -242,6 +248,10 @@ func NewBaseApp(
 	app.parallelTxManage.workgroup.Start()
 
 	return app
+}
+
+func(app *BaseApp)SetInterceptors(interceptors map[string]func(req *abci.RequestQuery)error){
+	app.interceptors=interceptors
 }
 
 // Name returns the name of the BaseApp.

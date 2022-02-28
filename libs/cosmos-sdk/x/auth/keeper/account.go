@@ -1,10 +1,15 @@
 package keeper
 
 import (
+	"context"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	types2 "github.com/okex/exchain/temp"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -106,4 +111,68 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	}
 }
 
+var (
+	_ types.QueryServer = (*AccountKeeper)(nil)
+)
 
+func (ak AccountKeeper) Accounts(ctx context.Context, request *types.QueryAccountsRequest) (*types.QueryAccountsResponse, error) {
+	return nil, nil
+}
+
+func (ak AccountKeeper) Account(conte context.Context, req *types.QueryAccountRequest) (*types.QueryAccountResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+	}
+
+	if req.Address == "" {
+		return nil, status.Error(codes.InvalidArgument, "Address cannot be empty")
+	}
+
+	ctx := sdk.UnwrapSDKContext(conte)
+	req.Address = "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9"
+	addr, err := sdk.AccAddressFromBech32(req.Address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	account := ak.GetAccount(ctx, addr)
+	if account == nil {
+		return nil, status.Errorf(codes.NotFound, "account %s not found", req.Address)
+	}
+	//ethA:=account.(*ethermint.EthAccount)
+	ba := &types2.BaseAccount{
+		Address:       account.GetAddress().String(),
+		PubKey:        nil,
+		AccountNumber: account.GetAccountNumber(),
+		Sequence:      account.GetSequence(),
+	}
+	any, err := codectypes.NewAnyWithValue(ba)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	return &types.QueryAccountResponse{Account: any}, nil
+}
+
+//func(ak AccountKeeper)getProtobufAccount(ctx sdk.Context, addr sdk.AccAddress) exported.AccountAdapter{
+//if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
+//		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
+//		if data == nil {
+//			return nil
+//		}
+//
+//		return data.Copy().(exported.AccountAdapter)
+//	}
+//
+//	store := ctx.KVStore(ak.key)
+//	bz := store.Get(types.AddressStoreKey(addr))
+//	if bz == nil {
+//		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
+//		return nil
+//	}
+//	acc := ak.decodeAccount(bz)
+//	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
+//
+//	return acc
+//}

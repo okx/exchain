@@ -16,15 +16,15 @@ var SubModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterInterface(
-		"oec.ibc.core.channel.v1.ChannelI",
+		"ibc.core.channel.v1.ChannelI",
 		(*exported.ChannelI)(nil),
 	)
 	registry.RegisterInterface(
-		"oec.ibc.core.channel.v1.CounterpartyChannelI",
+		"ibc.core.channel.v1.CounterpartyChannelI",
 		(*exported.CounterpartyChannelI)(nil),
 	)
 	registry.RegisterInterface(
-		"oec.ibc.core.channel.v1.PacketI",
+		"ibc.core.channel.v1.PacketI",
 		(*exported.PacketI)(nil),
 	)
 	registry.RegisterImplementations(
@@ -40,7 +40,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&Packet{},
 	)
 	registry.RegisterImplementations(
-		(*sdk.MsgAdapter)(nil),
+		(*sdk.MsgProtoAdapter)(nil),
 		&MsgChannelOpenInit{},
 		&MsgChannelOpenTry{},
 		&MsgChannelOpenAck{},

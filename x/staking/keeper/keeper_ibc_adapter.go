@@ -7,6 +7,7 @@ import (
 	types2 "github.com/okex/exchain/x/staking/types"
 )
 
+
 func (k Keeper) TrackHistoricalInfo(ctx sdk.Context) {
 	entryNum := k.HistoricalEntries(ctx)
 

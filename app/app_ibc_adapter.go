@@ -1,6 +1,8 @@
 package app
 
 import (
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -32,4 +34,8 @@ func (a *OKExChainApp) Upgrade(ctx sdk.Context, req *types2.UpgradeReq) (*types2
 		panic(err)
 	}
 	return resp, nil
+}
+
+func (app *OKExChainApp) RegisterTxService(clientCtx clientCtx.CLIContext) {
+
 }

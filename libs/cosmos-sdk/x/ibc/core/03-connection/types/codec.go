@@ -12,22 +12,22 @@ import (
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterInterface(
-		"oec.ibc.core.connection.v1.ConnectionI",
+		"ibc.core.connection.v1.ConnectionI",
 		(*exported.ConnectionI)(nil),
 		&ConnectionEnd{},
 	)
 	registry.RegisterInterface(
-		"oec.ibc.core.connection.v1.CounterpartyConnectionI",
+		"ibc.core.connection.v1.CounterpartyConnectionI",
 		(*exported.CounterpartyConnectionI)(nil),
 		&Counterparty{},
 	)
 	registry.RegisterInterface(
-		"oec.ibc.core.connection.v1.Version",
+		"ibc.core.connection.v1.Version",
 		(*exported.Version)(nil),
 		&Version{},
 	)
 	registry.RegisterImplementations(
-		(*sdk.MsgAdapter)(nil),
+		(*sdk.MsgProtoAdapter)(nil),
 		&MsgConnectionOpenInit{},
 		&MsgConnectionOpenTry{},
 		&MsgConnectionOpenAck{},
