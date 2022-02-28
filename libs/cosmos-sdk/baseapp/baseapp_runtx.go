@@ -135,7 +135,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
 
-
 	// 3. AnteOther
 	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
@@ -164,7 +163,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	}
 	app.pin(AnteOther, false, mode)
 
-
 	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
@@ -176,7 +174,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	return nil
 }
 
-
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
 	tx, err := app.txDecoder(req.Tx)
@@ -186,6 +183,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
+		app.logger.Error("tx failed", err)
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
 
