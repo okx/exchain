@@ -30,7 +30,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 
 	if ctx.From() == "" {
 		// Verify signature and retrieve sender address
-		fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes())
+		fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
 		if err != nil {
 			return exTxInfo
 		}
