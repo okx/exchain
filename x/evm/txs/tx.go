@@ -25,7 +25,7 @@ type Tx interface {
 	EmitEvent() *sdk.Result
 }
 
-// ExecEvmTx execute evm transition template
+// TransitionEvmTx execute evm transition template
 func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err error) {
 	// Prepare convert msg to state transition
 	err = tx.Prepare(msg)
