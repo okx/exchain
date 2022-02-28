@@ -91,9 +91,9 @@ func (st StateTransition) newEVM(
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     GetHashFn(ctx, csdb),
-		Coinbase:    common.BytesToAddress(ctx.BlockHeader().ProposerAddress),
+		Coinbase:    common.BytesToAddress(ctx.BlockProposerAddress()),
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
-		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
+		Time:        big.NewInt(ctx.BlockTime().Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
 	}
