@@ -1200,8 +1200,6 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Add rpc monitor: register metrics to prometheus ([\#884](https://github.com/okex/exchain/pull/884))
 
-* Add mutex in websocket connection, in case of concurrent write ([\#887](https://github.com/okex/exchain/pull/887))
-
 
 ### Bug Fixes
 
@@ -1211,19 +1209,21 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix invalid state set when the value is zero ([\#881](https://github.com/okex/exchain/pull/881))
 
+* Added mutex to fix concurrent writes to websocket connections ([\#887](https://github.com/okex/exchain/pull/887))
+
 
 ### Code Refactoring
 
 * Refactor RPC `eth_call` to optimize qps ([\#857](https://github.com/okex/exchain/pull/857))
 
-* Compatible with `ether client` ([\#888](https://github.com/okex/exchain/pull/888))
+* Compatible with `ethclient`'s way of calculating hashes of blocks and transactions ([\#888](https://github.com/okex/exchain/pull/888))
 
-* Ensure to concurrent safe `cdc` and config singleton ([\#897](https://github.com/okex/exchain/pull/897))
+* Use `sync.Once` to ensure thread safety of simulation tools ([\#897](https://github.com/okex/exchain/pull/897))
 
 
 ### Performance Improvements
 
-* Optimize rpc eth_getBalance method ([\#891](https://github.com/okex/exchain/pull/891))
+* Improve the performance of API `eth_getBalance`  by recording the account addresses of invalid queries ([\#891](https://github.com/okex/exchain/pull/891))
 
 * Add lru cache for `GetCodeByHash` ([\#893](https://github.com/okex/exchain/pull/893))
 
