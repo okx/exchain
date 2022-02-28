@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -15,9 +14,7 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
-		fmt.Println("----", balance.String())
-		err := bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
-		return err
+		return bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
 	}
 }
 

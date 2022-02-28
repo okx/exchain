@@ -195,6 +195,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 
 		// update block bloom filter
 		if !ctx.IsAsync() {
+			//fmt.Println("index---1", executionResult.Bloom.String())
 			k.Bloom.Or(k.Bloom, executionResult.Bloom) // not support paralleled-tx´
 		}
 		k.LogSize = st.Csdb.GetLogSize()

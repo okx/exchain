@@ -65,11 +65,12 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
-	//fmt.Println("KKKKKKKKK-Refund", gasFees)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
 	}
+	//mm := handler.supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	//fmt.Println("KKKKKKKKK-Refund", gasFees, handler.ak.GetAccount(ctx, mm.GetAddress()).GetCoins().String())
 
 	return gasFees, nil
 }

@@ -303,8 +303,10 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
+		fmt.Println("fakeApply", block.Height)
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
+		//SaveBlock(ctx, originBlockStore, block.Height)
 	}
 
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
@@ -313,8 +315,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		defer stopDumpPprof()
 	}
 
+	fmt.Println("---fuck---")
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
-	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
@@ -323,9 +325,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
-		if needSaveBlock {
-			SaveBlock(ctx, originBlockStore, height)
-		}
+		SaveBlock(ctx, originBlockStore, height)
+
 	}
 }
 

@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -18,7 +19,24 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 
 	info.runMsgFinished = true
 	err = m.checkHigherThanMercury(err, info)
+
+	//app.printMs("RunMsg")
+
 	return
+}
+
+func (a *BaseApp) printMs(extraData string) {
+	if a.parallelTxManage.isAsyncDeliverTx {
+		return
+	}
+	cnt := 0
+	a.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, s sdk.StoreKey) bool {
+		if isDirty {
+			cnt++
+		}
+		return true
+	}, nil)
+	fmt.Println("PrintMsInfo", extraData, cnt)
 }
 
 func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
@@ -39,6 +57,8 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
+
+	app.printMs("Defer")
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {

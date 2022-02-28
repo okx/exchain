@@ -287,7 +287,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 			}
 
 			if block.Height == 5810700 {
-				block.Txs = block.Txs[:4]
+				//block.Txs = block.Txs[:62]
 			}
 
 			fmt.Println("ApplyBlock Len(block.Txs)", len(block.Txs))

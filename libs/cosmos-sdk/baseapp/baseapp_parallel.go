@@ -175,6 +175,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 }
 
+//TODO: fuck
 func (app *BaseApp) fixFeeCollector(txString string, ms sdk.CacheMultiStore) {
 	if app.parallelTxManage.txStatus[txString].anteErr != nil {
 		return
@@ -185,12 +186,21 @@ func (app *BaseApp) fixFeeCollector(txString string, ms sdk.CacheMultiStore) {
 	txFee = txFee.Sub(refundFee)
 	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(txFee...)
 
+	//fmt.Println("txFee", txFee, app.parallelTxManage.currTxFee)
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx = ctx.WithMultiStore(ms)
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
 		panic(err)
 	}
+
+	ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey sdk.StoreKey) bool {
+		if isDirty && hex.EncodeToString(key) == "01f1829676db577682e944fc3493d451b67ff3e29f" {
+			//fmt.Println("value---", hex.EncodeToString(value))
+		}
+		return true
+	}, nil)
+
 	cache.Write()
 }
 
@@ -222,26 +232,44 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
-	cnt := 0
-	pm.cms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		if isDirty {
-			cnt++
-		}
-		return true
-	})
-
 	asyncCb := func(execRes *executeResult) {
-		receiveTxIndex := execRes.GetCounter()
+		receiveTxIndex := int(execRes.GetCounter())
+
+		pm.setTxStatus(int(receiveTxIndex), false)
 		txReps[receiveTxIndex] = execRes
-		fmt.Println("receiveTxIndex", receiveTxIndex)
-		if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && !pm.isRunning(nextTx) {
-			pm.setTxStatus(nextTx, true)
-			go app.asyncDeliverTx(txs[nextTx], nextTx)
+
+		fmt.Println("241----------", receiveTxIndex, pm.runningStats(receiveTxIndex), pm.isFailed(pm.runningStats(receiveTxIndex)))
+		if pm.isFailed(pm.runningStats(int(receiveTxIndex))) {
+			txReps[receiveTxIndex] = nil
+			pm.setTxStatus(receiveTxIndex, true)
+			fmt.Println("already faile:runRUn", receiveTxIndex, "cutt", txIndex)
+			go app.asyncDeliverTx(txs[receiveTxIndex], receiveTxIndex)
+
 		}
-		if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !pm.isRunning(nextTx) {
-			pm.setTxStatus(nextTx, true)
-			go app.asyncDeliverTx(txs[nextTx], nextTx)
+
+		fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
+		if int(receiveTxIndex) >= txIndex || receiveTxIndex == 0 {
+			if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && pm.runningStats(nextTx) == -1 {
+
+				needRun := true
+				if psb, ok := pm.preTxInGroup[int(receiveTxIndex)]; ok {
+					if psb > txIndex {
+						needRun = false
+					}
+				}
+
+				if needRun {
+					pm.setTxStatus(nextTx, true)
+					fmt.Println("scf:receive:next", receiveTxIndex, nextTx, "cutt", txIndex)
+					go app.asyncDeliverTx(txs[nextTx], nextTx)
+				}
+
+			}
 		}
+		//if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !pm.isRunning(nextTx) {
+		//	pm.setTxStatus(nextTx, true)
+		//	go app.asyncDeliverTx(txs[nextTx], nextTx)
+		//}
 		//fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
 		if txIndex != int(receiveTxIndex) {
 			return
@@ -256,7 +284,37 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 				rerunIdx++
 				s.reRun = true
 				fmt.Println("RunRun", txIndex)
+				app.parallelTxManage.setTxStatus(txIndex, true)
 				res = app.deliverTxWithCache(txs[txIndex])
+				app.parallelTxManage.setTxStatus(txIndex, false)
+				txReps[txIndex] = res
+
+				nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
+
+				if ok {
+					pp := nn
+					for true {
+						txReps[pp] = nil
+						pp, ok = app.parallelTxManage.nextTxInGroup[pp]
+						if !ok {
+							break
+						}
+					}
+
+					runningTaskID := pm.runningStats(nn)
+
+					if runningTaskID == -1 {
+						fmt.Println("ReRun Tx", txIndex, nn)
+						txReps[nn] = nil
+						fmt.Println("reRun:next", nn)
+						app.parallelTxManage.setTxStatus(nn, true)
+						app.asyncDeliverTx(txs[nn], nn)
+					} else {
+						fmt.Println("markFailed", nn, runningTaskID)
+						pm.markFailed(runningTaskID)
+					}
+
+				}
 
 			}
 			if s.anteErr != nil {
@@ -265,15 +323,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 			txRs := res.GetResponse()
 			deliverTxs[txIndex] = &txRs
-			cc := 0
-			res.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-				if isDirty {
-					//fmt.Println("data", hex.EncodeToString(key), hex.EncodeToString(value))
-					cc++
-				}
-				return true
-			})
-			fmt.Println("Before Merge", cc)
 
 			res.Collect(txIndex, asCache)
 			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex], res.ms)
@@ -282,15 +331,22 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 
+			pm.SetCurrentIndex(txIndex, res) //Commit
+
 			cnt := 0
-			pm.cms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+
+			app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey sdk.StoreKey) bool {
 				if isDirty {
+					if hex.EncodeToString(key) == "05d45bc5ca334b7c577a24f449d001f90cd963c7b4729e3e4c8ab0c6797119940fad453f8441ff4bbf43f311817ef0eddc430bac10" {
+						//fmt.Println("merge value", hex.EncodeToString(value))
+					}
 					cnt++
 				}
 				return true
-			})
-			pm.SetCurrentIndex(txIndex, res) //Commit
+			}, nil)
+
 			fmt.Println("End Merge", txIndex, "dirtyIndex", cnt)
+
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
@@ -298,6 +354,11 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs), "Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx)
 				signal <- 0
 				return
+			}
+			if txReps[txIndex] == nil && !pm.isRunning(txIndex) {
+				app.parallelTxManage.setTxStatus(txIndex, true)
+				//fmt.Println("scf:mergeEndCommit", txIndex)
+				go app.asyncDeliverTx(txs[txIndex], txIndex)
 			}
 
 		}
@@ -308,6 +369,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	for _, group := range groupList {
 		txIndex := group[0]
 		app.parallelTxManage.setTxStatus(txIndex, true)
+		//fmt.Println("scf:first group", txIndex)
 		go app.asyncDeliverTx(txs[txIndex], txIndex)
 	}
 
@@ -397,7 +459,7 @@ func (e executeResult) Conflict(from int, cache *asyncCache) bool {
 		return true //TODO fix later
 	}
 
-	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	e.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
 		//the key we have read was written by pre txs
 		if cache.Has(key, from, int(e.counter)) && !whiteAccountList[hex.EncodeToString(key)] {
 			fmt.Println("key", hex.EncodeToString(key), hex.EncodeToString(value))
@@ -405,7 +467,7 @@ func (e executeResult) Conflict(from int, cache *asyncCache) bool {
 			return false // break
 		}
 		return true
-	})
+	}, nil)
 	return rerun
 }
 
@@ -419,32 +481,28 @@ func (e executeResult) Collect(index int, cache *asyncCache) {
 	if e.ms == nil {
 		return
 	}
-	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	e.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
 		if isDirty {
 			//push every data we have written in current tx
+			if hex.EncodeToString(key) == "018179d97eb6488860d816e3ecafe694a4153f216c" {
+				fmt.Println("-----collect state", index)
+			}
 			cache.Push(index, key)
 		}
 		return true
-	})
+	}, nil)
 }
 
 func (e executeResult) GetCounter() uint32 {
 	return e.counter
 }
 
-func (e executeResult) Commit() {
-	if e.ms == nil {
-		return
-	}
-	//fmt.Println("Ready to Commit")
-	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		if isDirty {
-			//fmt.Println("commit.write", hex.EncodeToString(key), hex.EncodeToString(value))
-		}
-		return true
-	})
-	e.ms.Write()
-}
+//func (e executeResult) Commit() {
+//	if e.ms == nil {
+//		return
+//	}
+//	e.ms.Write()
+//}
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
 	return &executeResult{
@@ -496,7 +554,9 @@ type parallelTxManager struct {
 	indexMapBytes []string
 
 	currTxFee     sdk.Coins
-	runningStatus map[int]bool
+	runningStatus map[int]int
+	isrunning     map[int]bool
+
 	txReps        []*executeResult
 	nextTxInGroup map[int]int
 	preTxInGroup  map[int]int
@@ -504,7 +564,14 @@ type parallelTxManager struct {
 	cms       sdk.CacheMultiStore
 	currIndex int
 
-	runBase map[int]int
+	runBase         map[int]int
+	indexInAll      int
+	markFailedStats map[int]bool
+}
+
+type runStats struct {
+	base       int
+	indexInAll int
 }
 
 type txStatus struct {
@@ -525,12 +592,14 @@ func newParallelTxManager() *parallelTxManager {
 
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
-		runningStatus: make(map[int]bool),
+		runningStatus: make(map[int]int),
+		isrunning:     make(map[int]bool),
 
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
-		runBase: make(map[int]int),
+		runBase:         make(map[int]int),
+		markFailedStats: make(map[int]bool),
 	}
 }
 
@@ -543,13 +612,29 @@ func (f *parallelTxManager) clear() {
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
 	f.currTxFee = sdk.Coins{}
-	f.runningStatus = make(map[int]bool)
+	f.runningStatus = make(map[int]int)
 	f.nextTxInGroup = make(map[int]int)
 	f.preTxInGroup = make(map[int]int)
 	//fmt.Println("CCCCCCCCC--")
 	f.runBase = make(map[int]int)
-
+	f.currIndex = -1
+	fmt.Println("CCCCCCCC---")
+	f.indexInAll = 0
+	f.markFailedStats = make(map[int]bool)
 }
+
+func (f *parallelTxManager) markFailed(txIndexAll int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.markFailedStats[txIndexAll] = true
+}
+
+func (f *parallelTxManager) isFailed(txindexAll int) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.markFailedStats[txindexAll]
+}
+
 func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -584,13 +669,25 @@ func (f *parallelTxManager) isReRun(tx string) bool {
 func (f *parallelTxManager) setTxStatus(txIndex int, status bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.runningStatus[txIndex] = status
+	if status == true {
+		f.runningStatus[txIndex] = f.indexInAll
+		f.indexInAll++
+		f.isrunning[txIndex] = true
+	} else {
+		f.isrunning[txIndex] = false
+	}
+}
+
+func (f *parallelTxManager) runningStats(txIndex int) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.runningStatus[txIndex]
 }
 
 func (f *parallelTxManager) isRunning(txIndex int) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.runningStatus[txIndex]
+	return f.isrunning[txIndex]
 }
 
 func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
@@ -602,10 +699,19 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
 	if ok && preIndexInGroup > f.currIndex {
+		if f.txReps[preIndexInGroup] == nil {
+			fmt.Println("preIndex-1", index, preIndexInGroup)
+		}
+		if f.txReps[preIndexInGroup].ms == nil {
+			fmt.Println("preIndex-2", index, preIndexInGroup)
+		}
 		ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 		base = preIndexInGroup
 	}
+
 	f.runBase[int(index)] = base
+	fmt.Println("index", index, "base", base)
+
 	return ms
 }
 
@@ -618,7 +724,24 @@ func (f *parallelTxManager) getRunBase(now int) int {
 func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	res.Commit()
+	if res.ms == nil {
+		fmt.Println("parallelTxManager.SetCurrentIndex", d)
+		return
+	}
+
+	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
+		if isDirty {
+			//fmt.Println("---", hex.EncodeToString(key), "value", hex.EncodeToString(value), isdelete)
+			if isdelete {
+				f.cms.GetKVStore(storeKey).Delete(key)
+			} else if value != nil {
+				f.cms.GetKVStore(storeKey).Set(key, value)
+			}
+		}
+		return true
+	}, nil)
+	f.cms.Write()
+
 	f.currIndex = d
 }
 

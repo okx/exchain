@@ -43,6 +43,5 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	if info.msCache != nil {
 		info.msCache.Write()
 	}
-
 	return
 }

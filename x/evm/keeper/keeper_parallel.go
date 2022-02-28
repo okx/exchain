@@ -16,10 +16,12 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 	for index := 0; index < len(execResults); index++ {
 		rs, ok := k.LogsManages.Get(execResults[index][0])
 		if !ok || execResults[index][1] != "" {
+			//fmt.Println("index---", !ok, execResults[index][1])
 			continue
 		}
 		txInBlock++
 		if rs.ResultData == nil {
+			//fmt.Println("index---", "25", rs.ResultData == nil)
 			continue
 		}
 
@@ -29,6 +31,7 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 			logSize++
 		}
 
+		//fmt.Println("index---", rs.ResultData.Bloom.Big().String())
 		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {

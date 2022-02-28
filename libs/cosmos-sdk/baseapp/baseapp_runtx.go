@@ -96,6 +96,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
+		//fmt.Println("txByte", hex.EncodeToString(txBytes))
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return err
@@ -125,7 +126,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 
+	//fmt.Println("runAnte", hex.EncodeToString(info.txBytes))
 	if mode == runTxModeDeliverInAsync {
+		//fmt.Println("txByte---get", hex.EncodeToString(info.txBytes))
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txBytes)
 		info.msCacheAnte = msCacheAnte
 		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
@@ -162,6 +165,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
 	if mode == runTxModeDeliverInAsync {
+		//fmt.Println("SetAnteErr", app.parallelTxManage.txStatus[string(info.txBytes)].indexInBlock, err)
 		app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
 	}
 
@@ -178,6 +182,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		info.ctx.Cache().Write(true)
 		app.pin(CacheStoreWrite, false, mode)
 	}
+
+	//app.printMs("Ante")
 
 	return nil
 }
@@ -224,6 +230,8 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 		)
 
 	default:
+		fmt.Println("fake~!!!!!!!!!!!!!!!!!")
+		debug.PrintStack()
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrPanic, fmt.Sprintf(
 				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
@@ -244,12 +252,14 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, index int) {
 	}
 
 	if !txStatus.isEvmTx {
+		//fmt.Println("251-----", index)
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	var resp abci.ResponseDeliverTx
+	//fmt.Println("ready to runTx", index, hex.EncodeToString(txWithIndex))
 	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)

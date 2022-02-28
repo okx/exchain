@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -155,13 +156,13 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	cnt := 0
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
 		if isDirty {
 			cnt++
 			//fmt.Println("BeginBlock", hex.EncodeToString(key), hex.EncodeToString(value))
 		}
 		return true
-	})
+	}, nil)
 	fmt.Println("BeginBlock", cnt)
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
@@ -177,23 +178,19 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
 	}
 	cnt := 0
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, sKey sdk.StoreKey) bool {
+		if isDirty {
+			//if hex.EncodeToString(key) == "05d45bc5ca334b7c577a24f449d001f90cd963c7b4729e3e4c8ab0c6797119940fad453f8441ff4bbf43f311817ef0eddc430bac10" {
+			//fmt.Println("endBlock", hex.EncodeToString(key), hex.EncodeToString(value))
+			//}
+		}
 		if isDirty {
 			cnt++
-			//fmt.Println("EndBlock", hex.EncodeToString(key), hex.EncodeToString(value))
 		}
 		return true
-	})
+	}, nil)
 
 	fmt.Println("EndBlock", cnt)
-
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		if isDirty {
-			//fmt.Println("endBlock", hex.EncodeToString(key), hex.EncodeToString(value))
-		}
-		return true
-	})
-
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
@@ -266,14 +263,20 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	cnt := 0
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-		if isDirty {
-			cnt++
-		}
-		return true
-	})
-	fmt.Println("commit-cnt", cnt)
+	if header.Height == 5810703 {
+		cnt := 0
+		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, sKey sdk.StoreKey) bool {
+			if isDirty {
+				//fmt.Println("commit", hex.EncodeToString(key), hex.EncodeToString(value))
+				cnt++
+				if hex.EncodeToString(key) == "05d45bc5ca334b7c577a24f449d001f90cd963c7b4729e3e4c8ab0c6797119940fad453f8441ff4bbf43f311817ef0eddc430bac10" {
+					fmt.Println("commit---", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
+				}
+			}
+			return true
+		}, nil)
+		fmt.Println("commit-cnt", cnt)
+	}
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap

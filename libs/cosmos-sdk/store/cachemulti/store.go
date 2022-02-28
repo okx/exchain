@@ -111,16 +111,17 @@ func (cms Store) GetStoreType() types.StoreType {
 func (cms Store) Write() {
 	cms.db.Write()
 	for _, store := range cms.stores {
+		//fmt.Println("key", kk.String())
 		store.Write()
 	}
 }
 
-func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
-	if !cms.db.IteratorCache(cb) {
+func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
+	if !cms.db.IteratorCache(cb, nil) {
 		return false
 	}
-	for _, store := range cms.stores {
-		if !store.IteratorCache(cb) {
+	for key, store := range cms.stores {
+		if !store.IteratorCache(cb, key) {
 			return false
 		}
 	}
