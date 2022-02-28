@@ -1,7 +1,6 @@
 package base
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/refund"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -42,10 +41,9 @@ type Tx struct {
 // DecorateResult TraceTxLog situation Decorate the result
 // it was replaced to trace logs when trace tx even if err != nil
 func (tx *Tx) DecorateResult(inResult *Result, inErr error) (result *sdk.Result, err error) {
-	if inResult == nil || inResult.ExecResult == nil {
-		return nil, fmt.Errorf("result is nil")
+	if inErr != nil {
+		return nil, inErr
 	}
-
 	return inResult.ExecResult.Result, inErr
 }
 
