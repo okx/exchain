@@ -65,7 +65,7 @@ require (
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/tendermint v0.35.1
+	github.com/tendermint/tendermint v0.34.14
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
 	go.etcd.io/bbolt v1.3.6
@@ -173,4 +173,4 @@ replace github.com/itsfunny/go-cell => github.com/itsfunny/go-cell v0.0.3-0.2022
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/tendermint/tendermint => /Users/lvcong/go/src/github.com/tendermint/tendermint
+
