@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/txs/check"
+	"github.com/okex/exchain/x/evm/txs/deliver"
 	"github.com/okex/exchain/x/evm/txs/tracetxlog"
 )
 
@@ -25,5 +26,5 @@ func (factory *factory) CreateTx() (Tx, error) {
 		return check.NewTx(factory.Config), nil
 	}
 
-	return base.NewTx(factory.Config), nil
+	return deliver.NewTx(factory.Config), nil
 }
