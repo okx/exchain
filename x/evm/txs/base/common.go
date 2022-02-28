@@ -5,12 +5,11 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"math/big"
 )
 
-func msg2st(ctx *sdk.Context, k *evm.Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
+func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
 	var chainIDEpoch *big.Int
 	chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
