@@ -26,6 +26,8 @@ func NewAccountAggregateValidateDecorator(ak auth.AccountKeeper, sk types.Supply
 
 // AnteHandle validates the signature and returns sender address
 func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	oldGasMeter := ctx.GasMeter()
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -108,5 +110,7 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 
 	aavd.ak.SetAccount(ctx, acc)
 	aavd.ak.SetAccount(ctx, feeAcc)
+
+	ctx = ctx.WithGasMeter(oldGasMeter)
 	return next(ctx, tx, simulate)
 }
