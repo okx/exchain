@@ -27,6 +27,10 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), nil)
 			toAddress = evmTx.To()
 
+		} else {
+			//if tx.GetType() == sdk.StdTxType {
+			//	signCache = tx.GetSigners()[0]
+			//}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()

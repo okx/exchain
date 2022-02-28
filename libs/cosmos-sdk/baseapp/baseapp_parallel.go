@@ -94,7 +94,10 @@ func Union(x ethcommon.Address, y *ethcommon.Address) {
 
 func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int, map[int]int) {
 	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
-	for _, tx := range txsExtraData {
+	for index, tx := range txsExtraData {
+		if tx.signCache == nil {
+			fmt.Println("signCacheIsNull", index)
+		}
 		Union(tx.signCache.GetFrom(), tx.to)
 	}
 
@@ -705,8 +708,15 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 		if f.txReps[preIndexInGroup].ms == nil {
 			fmt.Println("preIndex-2", index, preIndexInGroup)
 		}
-		ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-		base = preIndexInGroup
+		if f.txStatus[f.indexMapBytes[preIndexInGroup]].anteErr == nil {
+			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
+			base = preIndexInGroup
+		} else {
+			ms = f.cms.CacheMultiStore()
+			base = f.currIndex
+			fmt.Println("UUUUUU-------", index, preIndexInGroup, base)
+		}
+
 	}
 
 	f.runBase[int(index)] = base
