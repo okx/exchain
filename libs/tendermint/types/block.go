@@ -554,53 +554,16 @@ func (h Header) ValidateBasic() error {
 // since a Header is not valid unless there is
 // a ValidatorsHash (corresponding to the validator set).
 
-//func (h *Header) Hash() tmbytes.HexBytes {
-//	if h == nil || len(h.ValidatorsHash) == 0 {
-//		return nil
-//	}
-//	return merkle.SimpleHashFromByteSlices([][]byte{
-//		cdcEncode(h.Version),
-//		cdcEncode(h.ChainID),
-//		cdcEncode(h.Height),
-//		cdcEncode(h.Time),
-//		cdcEncode(h.LastBlockID),
-//		cdcEncode(h.LastCommitHash),
-//		cdcEncode(h.DataHash),
-//		cdcEncode(h.ValidatorsHash),
-//		cdcEncode(h.NextValidatorsHash),
-//		cdcEncode(h.ConsensusHash),
-//		cdcEncode(h.AppHash),
-//		cdcEncode(h.LastResultsHash),
-//		cdcEncode(h.EvidenceHash),
-//		cdcEncode(h.ProposerAddress),
-//	})
-//}
-
 func (h *Header) Hash() tmbytes.HexBytes {
 	if h == nil || len(h.ValidatorsHash) == 0 {
 		return nil
 	}
-	hbz, err := h.Version.Marshal()
-	if err != nil {
-		return nil
-	}
-
-	pbt, err := gogotypes.StdTimeMarshal(h.Time)
-	if err != nil {
-		return nil
-	}
-
-	pbbi := h.LastBlockID.ToProto()
-	bzbi, err := pbbi.Marshal()
-	if err != nil {
-		return nil
-	}
-	return merkle.HashFromByteSlices([][]byte{
-		hbz,
+	return merkle.SimpleHashFromByteSlices([][]byte{
+		cdcEncode(h.Version),
 		cdcEncode(h.ChainID),
 		cdcEncode(h.Height),
-		pbt,
-		bzbi,
+		cdcEncode(h.Time),
+		cdcEncode(h.LastBlockID),
 		cdcEncode(h.LastCommitHash),
 		cdcEncode(h.DataHash),
 		cdcEncode(h.ValidatorsHash),
