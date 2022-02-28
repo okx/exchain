@@ -186,15 +186,6 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 // setState sets a state with a prefixed key and value to the dirty storage.
 func (so *stateObject) setState(key, value ethcmn.Hash) {
-	if so.address.String() == "0xD45bc5ca334B7C577A24f449d001f90Cd963c7B4" {
-		//if key.String() == "0x729e3e4c8ab0c6797119940fad453f8441ff4bbf43f311817ef0eddc430bac10" {
-		//fmt.Println("SetState", so.address.String(), key.String(), value.String())
-		//if value.String() == "0x000000000000000000000000000000000000000000ead0d43d7146d64678264d" {
-		//debug.PrintStack()
-		//}
-		//}
-	}
-
 	idx, ok := so.keyToDirtyStorageIndex[key]
 	if ok {
 		so.dirtyStorage[idx].Value = value
@@ -338,7 +329,6 @@ func (so *stateObject) commitState() {
 		}
 
 		so.originStorage[idx].Value = state.Value
-		//fmt.Println("3233", so.address.String(), state.Key.String(), state.Value.String())
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 		so.stateDB.ctx.Cache().UpdateStorage(so.address, state.Key, state.Value.Bytes(), true)
 		if !so.stateDB.ctx.IsCheckTx() {

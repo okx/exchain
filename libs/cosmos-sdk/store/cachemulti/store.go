@@ -111,7 +111,6 @@ func (cms Store) GetStoreType() types.StoreType {
 func (cms Store) Write() {
 	cms.db.Write()
 	for _, store := range cms.stores {
-		//fmt.Println("key", kk.String())
 		store.Write()
 	}
 }

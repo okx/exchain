@@ -67,23 +67,3 @@ func TestProposalManager(t *testing.T) {
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(dex.RouterKey))
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(farm.RouterKey))
 }
-
-func TestGo(t *testing.T) {
-	maxTask := 6000
-
-	newArray := make([]int, maxTask)
-
-	poolChan := make(chan struct{}, 64)
-	for index := 0; index < maxTask; index++ {
-		poolChan <- struct{}{}
-		index := index
-		go func() {
-			defer func() {
-				<-poolChan
-			}()
-			newArray[index] = index + 1000000
-		}()
-	}
-
-	// TODO 等待 直到newArray全部计算完毕 才执行下一行
-}

@@ -109,5 +109,5 @@ func logStartingFlags(logger log.Logger) {
 		msg += fmt.Sprintf("	%-45s= %v\n", k, kvMap[k])
 	}
 
-	//logger.Info(msg)
+	logger.Info(msg)
 }

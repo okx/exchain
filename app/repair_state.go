@@ -79,7 +79,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	latestBlockHeight := latestBlockHeight(dataDir)
 	startBlockHeight := types.GetStartBlockHeight()
-	fmt.Println("LLLL", latestBlockHeight, types.GetStartBlockHeight())
 	if latestBlockHeight <= startBlockHeight+2 {
 		log.Println(fmt.Sprintf("There is no need to repair data. The latest block height is %d, start block height is %d", latestBlockHeight, startBlockHeight))
 		return

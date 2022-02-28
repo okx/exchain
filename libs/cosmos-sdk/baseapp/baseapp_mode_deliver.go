@@ -19,9 +19,6 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 
 	info.runMsgFinished = true
 	err = m.checkHigherThanMercury(err, info)
-
-	//app.printMs("RunMsg")
-
 	return
 }
 
@@ -54,10 +51,8 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	if err != nil {
 		panic(err)
 	}
-
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
-
 	app.printMs("Defer")
 }
 

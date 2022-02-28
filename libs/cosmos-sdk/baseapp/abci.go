@@ -155,15 +155,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
 
-	cnt := 0
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
-		if isDirty {
-			cnt++
-			//fmt.Println("BeginBlock", hex.EncodeToString(key), hex.EncodeToString(value))
-		}
-		return true
-	}, nil)
-	fmt.Println("BeginBlock", cnt)
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
 
@@ -177,20 +168,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
 	}
-	cnt := 0
-	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, sKey sdk.StoreKey) bool {
-		if isDirty {
-			//if hex.EncodeToString(key) == "05d45bc5ca334b7c577a24f449d001f90cd963c7b4729e3e4c8ab0c6797119940fad453f8441ff4bbf43f311817ef0eddc430bac10" {
-			//fmt.Println("endBlock", hex.EncodeToString(key), hex.EncodeToString(value))
-			//}
-		}
-		if isDirty {
-			cnt++
-		}
-		return true
-	}, nil)
 
-	fmt.Println("EndBlock", cnt)
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}

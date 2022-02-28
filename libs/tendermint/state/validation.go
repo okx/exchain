@@ -47,10 +47,6 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 			block.LastBlockID,
 		)
 	}
-	if block.Height == 5810702 {
-		//fmt.Println("block:", block.AppHash.String(), hex.EncodeToString(state.AppHash))
-		//panic("sb")
-	}
 
 	// Validate app info
 	if !bytes.Equal(block.AppHash, state.AppHash) {

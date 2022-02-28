@@ -94,11 +94,15 @@ func Union(x ethcommon.Address, y *ethcommon.Address) {
 
 func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int, map[int]int) {
 	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
+	app.parallelTxManage.txReps = make([]*executeResult, len(txsExtraData))
 	for index, tx := range txsExtraData {
-		if tx.signCache == nil {
-			fmt.Println("signCacheIsNull", index)
+		fmt.Println("index", index, tx.isEvm, tx.signCache == nil, tx.signCache.GetFrom().String())
+		if tx.isEvm { //evmTx
+			Union(tx.signCache.GetFrom(), tx.to)
+		} else {
+			fmt.Println("not evmTx")
+			app.parallelTxManage.txReps[index] = &executeResult{}
 		}
-		Union(tx.signCache.GetFrom(), tx.to)
 	}
 
 	groupList := make(map[int][]int, 0)
@@ -231,7 +235,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 	pm := app.parallelTxManage
 
-	pm.txReps = make([]*executeResult, len(txs))
 	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
