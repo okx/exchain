@@ -1,10 +1,13 @@
 package keeper
 
 import (
+	"errors"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/tendermint/go-amino"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -104,4 +107,15 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 			break
 		}
 	}
+}
+
+func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) (int, error) {
+	if acc == nil {
+		return 0, errors.New("account should not be nil")
+	}
+	if sizer, ok := acc.(amino.Sizer); ok {
+		// typeprefix + amino bytes
+		return 4 + sizer.AminoSize(ak.cdc), nil
+	}
+	return 0, errors.New("account doesn't implement amino.Sizer")
 }
