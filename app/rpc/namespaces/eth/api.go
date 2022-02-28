@@ -1255,7 +1255,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil)
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1358,7 +1358,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, err
 		}
 
-		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil)
+		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
 		if err != nil {
 			return nil, err
 		}
