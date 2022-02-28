@@ -22,9 +22,9 @@ const mainnetChainId = "exchain-66"
 const testnetChainId = "exchain-65"
 
 var (
-	chainIdSetOnce sync.Once
-	chainId        string
-	chainIdEpoch   *big.Int
+	chainIdSetOnce    sync.Once
+	chainIdCache      string
+	chainIdEpochCache *big.Int
 )
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
@@ -48,8 +48,8 @@ func SetChainId(chainid string) error {
 		return err
 	}
 	chainIdSetOnce.Do(func() {
-		chainId = chainid
-		chainIdEpoch = epoch
+		chainIdCache = chainid
+		chainIdEpochCache = epoch
 	})
 	return nil
 }
@@ -57,8 +57,9 @@ func SetChainId(chainid string) error {
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
 // chain-id in *big.Int format. The function returns an error if the chain-id has an invalid format
 func ParseChainID(chainID string) (*big.Int, error) {
-	if chainID == chainId && chainIdEpoch != nil {
-		return chainIdEpoch, nil
+	//use chainIdEpochCache first.
+	if chainID == chainIdCache && chainIdEpochCache != nil {
+		return chainIdEpochCache, nil
 	}
 	chainID = strings.TrimSpace(chainID)
 	if len(chainID) > 48 {
