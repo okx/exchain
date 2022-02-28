@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
@@ -1176,7 +1177,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 	// otherwise, attempt to fetch the account from the account mapper
 	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 	if acc == nil {
-		csdb.setError(fmt.Errorf("no account found for address: %s", addr.String()))
+		csdb.setError(fmt.Errorf("no account found for address: %s", EthAddressStringer(addr).String()))
 		return nil
 	}
 

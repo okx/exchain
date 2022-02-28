@@ -138,6 +138,10 @@ const PubKeySecp256k1Size = 33
 // This prefix is followed with the x-coordinate.
 type PubKeySecp256k1 [PubKeySecp256k1Size]byte
 
+func (pubKey PubKeySecp256k1) AminoSize(_ *amino.Codec) int {
+	return 1 + PubKeySecp256k1Size
+}
+
 // Address returns a Bitcoin style addresses: RIPEMD160(SHA256(pubkey))
 func (pubKey PubKeySecp256k1) Address() crypto.Address {
 	hasherSHA256 := sha256.New()

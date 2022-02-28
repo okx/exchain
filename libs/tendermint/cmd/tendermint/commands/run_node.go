@@ -167,6 +167,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"enable wrapped tx",
 	)
 
+	cmd.Flags().String(
+		"local_perf",
+		"",
+		"send tx/wtx to mempool, only for local performance test",
+		)
+
 	// db flags
 	cmd.Flags().String(
 		"db_backend",

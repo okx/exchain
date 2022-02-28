@@ -161,9 +161,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	to := ""
 	if st.Recipient != nil {
-		to = st.Recipient.String()
+		to = EthAddressStringer(*st.Recipient).String()
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), EthAddressStringer(st.Sender).String(), to)
 
 	var tracer vm.Tracer
 	if st.TraceTxLog || enableDebug {
@@ -195,7 +195,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, st.Sender.String(), "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, EthAddressStringer(st.Sender).String(), "", "", "", st.Amount, nil)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -215,7 +215,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		innertx.UpdateDefaultInnerTx(callTx, contractAddress.String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
+		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(contractAddress).String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
@@ -229,7 +229,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 
-		innertx.UpdateDefaultInnerTx(callTx, st.Recipient.String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
+		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(*st.Recipient).String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -329,7 +329,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
+		"executed EVM state transition; sender address %s; %s", EthAddressStringer(st.Sender).String(), recipientLog,
 	)
 	exeRes = &ExecutionResult{
 		Logs:  logs,
