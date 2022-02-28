@@ -846,27 +846,29 @@ func (mem *CListMempool) Update(
 		// Mempool after:
 		//   100
 		// https://github.com/tendermint/tendermint/issues/3322.
-		addr := ""
-		nonce := uint64(0)
-		if e, ok := mem.txsMap.Load(txKey(tx)); ok {
-			ele := e.(*clist.CElement)
-			addr = ele.Address
-			nonce = ele.Nonce
-			mem.removeTx(tx, ele, false)
-			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
-		} else if mem.txInfoparser != nil {
-			txInfo := mem.txInfoparser.GetRawTxInfo(tx)
-			addr = txInfo.Sender
-			nonce = txInfo.Nonce
-		}
+		if mem.Size() > 0 || (mem.pendingPool != nil && mem.pendingPool.Size() > 0) {
+			addr := ""
+			nonce := uint64(0)
+			if e, ok := mem.txsMap.Load(txKey(tx)); ok {
+				ele := e.(*clist.CElement)
+				addr = ele.Address
+				nonce = ele.Nonce
+				mem.removeTx(tx, ele, false)
+				mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
+			} else if mem.txInfoparser != nil {
+				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
+				addr = txInfo.Sender
+				nonce = txInfo.Nonce
+			}
 
-		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
-			toCleanAccMap[addr] = nonce
-		}
-		addressNonce[addr] = nonce
+			if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+				toCleanAccMap[addr] = nonce
+			}
+			addressNonce[addr] = nonce
 
-		if mem.pendingPool != nil {
-			mem.pendingPool.removeTxByHash(txID(tx, height))
+			if mem.pendingPool != nil {
+				mem.pendingPool.removeTxByHash(txID(tx, height))
+			}
 		}
 
 		// remove tx signature cache
