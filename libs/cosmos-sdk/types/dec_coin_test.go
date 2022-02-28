@@ -518,6 +518,8 @@ func TestDecCoinAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
+		require.Equal(t, len(expect), test.AminoSize(cdc))
+
 		t.Log(fmt.Sprintf("%d marshal pass", i))
 
 		var dc DecCoin

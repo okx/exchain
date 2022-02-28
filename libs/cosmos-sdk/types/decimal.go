@@ -713,6 +713,17 @@ func (d Dec) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return bz, err
 }
 
+func (d Dec) AminoSize(_ *amino.Codec) int {
+	if d.Int == nil {
+		return len(nilAmino)
+	}
+	bz, err := d.Int.MarshalText()
+	if err != nil {
+		return 0
+	}
+	return len(bz)
+}
+
 // MarshalJSON marshals the decimal
 func (d Dec) MarshalJSON() ([]byte, error) {
 	if d.Int == nil {

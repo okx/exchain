@@ -230,6 +230,17 @@ func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	return amino.GetBytesBufferCopy(buf), nil
 }
 
+func (coin DecCoin) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	if coin.Denom != "" {
+		size += 1 + amino.EncodedStringSize(coin.Denom)
+	}
+	coinSize := coin.Amount.AminoSize(cdc)
+	// coinSize must greater than 0 if coin.Amount.MarshalToAmino() is success
+	size += 1 + amino.UvarintSize(uint64(coinSize)) + coinSize
+	return size
+}
+
 // ----------------------------------------------------------------------------
 // Decimal Coins
 
