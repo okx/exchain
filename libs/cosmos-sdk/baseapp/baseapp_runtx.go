@@ -70,8 +70,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	gasStart := time.Now()
 	err = handler.handleGasConsumed(info)
-	gasE := time.Since(gasStart).Microseconds()
-	totalHandleGasTime += gasE
+	totalHandleGasTime += time.Since(gasStart).Microseconds()
 
 	if err != nil {
 		return err
@@ -89,10 +88,10 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	//defer handler.handleDeferGasConsumed(info)
 
 	defer func() {
-		gasStart := time.Now()
-
 		app.pin(Refund, true, mode)
 		defer app.pin(Refund, false, mode)
+
+		deferGasStart := time.Now()
 		handler.handleDeferRefund(info)
 
 		handler.handleDeferGasConsumed(info)
@@ -104,18 +103,22 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 
-		gasE := time.Since(gasStart).Microseconds()
-		totalDeferGasTime += gasE
+		totalDeferGasTime += time.Since(deferGasStart).Microseconds()
 	}()
 
+	basicStart := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		totalBasicTime += time.Since(basicStart).Microseconds()
 		return err
 	}
+	totalBasicTime += time.Since(basicStart).Microseconds()
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
+	anteStart := time.Now()
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
+		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
 			app.logger.Error("runAnte failed", "err", err)
 			return err
@@ -123,13 +126,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
-	wstart := time.Now()
-	info.msCacheAnte.Write()
 	app.pin(RunMsg, true, mode)
+	wstart := time.Now()
 	err = handler.handleRunMsg(info)
+	totalRunMsgsTime += time.Since(wstart).Microseconds()
 	app.pin(RunMsg, false, mode)
-	welasped := time.Since(wstart).Microseconds()
-	totalRunMsgsTime += welasped
+
 	if err != nil {
 		//app.logger.Error("handleRunMsg failed", "err", err)
 	}
@@ -196,11 +198,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
 
-		wstart := time.Now()
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		welasped := time.Since(wstart).Microseconds()
-		totalWriteTime += welasped
 
 		app.pin(CacheStoreWrite, false, mode)
 	}

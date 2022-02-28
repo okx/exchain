@@ -24,6 +24,7 @@ var totalRunMsgsTime = int64(0)
 var totalFinishTime = int64(0)
 var totalWaitingTime = int64(0)
 var totalRerunAnteTime = int64(0)
+var totalBasicTime = int64(0)
 
 type DeliverTxTask struct {
 	tx            sdk.Tx

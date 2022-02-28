@@ -174,10 +174,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	app.logger.Info("all durations",
 		"handleGasAll", totalHandleGasTime,
-		"writeAll", totalWriteTime,
+		//"writeAll", totalWriteTime,
 		"runMsgsAll", totalRunMsgsTime,
 		"deferGasAll", totalDeferGasTime,
 		"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
+		"validateBasicAll", totalBasicTime,
 		"anteAll", totalAnteDuration)
 
 	return

@@ -461,11 +461,14 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	// Run txs of block.
 	//fmt.Println("BeginBlockSync.")
-	start := time.Now()
+
 	for count, tx := range block.Txs {
 		//fmt.Printf("DeliverTxAsync. %d\n", count)
+		start := time.Now()
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
+		deliverTxDuration += time.Since(start).Microseconds()
 		if err := proxyAppConn.Error(); err != nil {
+			deliverTxDuration += time.Since(start).Microseconds()
 			return nil, err
 		}
 
@@ -474,9 +477,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
-	elapsed := time.Since(start).Microseconds()
-	deliverTxDuration += elapsed
-	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
+	logger.Info("DeliverTxs duration", "total", deliverTxDuration)
 
 	// End block.
 	//fmt.Println("EndBlockSync.")
