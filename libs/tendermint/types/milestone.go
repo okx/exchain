@@ -20,6 +20,9 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
+	MILESTONE_ANTE_HEIGHT string
+	milestoneAnteHeight   int64
+
 	once sync.Once
 )
 
@@ -28,6 +31,7 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneAnteHeight = string2number(MILESTONE_ANTE_HEIGHT)
 	})
 }
 
@@ -83,6 +87,10 @@ func GetVenusHeight() int64 {
 
 func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
+}
+
+func GetAnteHeight() int64 {
+	return 0
 }
 
 // can be used in unit test only

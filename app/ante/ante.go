@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func init() {
@@ -31,49 +32,61 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.GetType() {
-		case sdk.StdTxType:
+		if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && !ctx.IsCheckTx() {
 			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountSetupDecorator(ak),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				authante.NewMempoolFeeDecorator(),
+				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+				NewGasLimitDecorator(evmKeeper),
+				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
-				authante.NewValidateMemoDecorator(ak),
-				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
-				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				authante.NewSigVerificationDecorator(ak),
-				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-				NewValidateMsgHandlerDecorator(validateMsgHandler),
+				NewEthSigVerificationDecorator(),
+				NewAccountBlockedVerificationDecorator(evmKeeper),       //account blocked check AnteDecorator
+				NewAccountAggregateValidateDecorator(ak, sk, evmKeeper), // innermost AnteDecorator.
 			)
-
-		case sdk.EvmTxType:
-
-			if ctx.IsWrappedCheckTx() {
+		} else {
+			switch tx.GetType() {
+			case sdk.StdTxType:
 				anteHandler = sdk.ChainAnteDecorators(
-					NewNonceVerificationDecorator(ak),
-					NewIncrementSenderSequenceDecorator(ak),
-				)
-			} else {
-				anteHandler = sdk.ChainAnteDecorators(
-					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-					NewGasLimitDecorator(evmKeeper),
-					NewEthMempoolFeeDecorator(evmKeeper),
-					authante.NewValidateBasicDecorator(),
-					NewEthSigVerificationDecorator(),
+					authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+					NewAccountSetupDecorator(ak),
 					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					NewAccountVerificationDecorator(ak, evmKeeper),
-					NewNonceVerificationDecorator(ak),
-					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+					authante.NewMempoolFeeDecorator(),
+					authante.NewValidateBasicDecorator(),
+					authante.NewValidateMemoDecorator(ak),
+					authante.NewConsumeGasForTxSizeDecorator(ak),
+					authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+					authante.NewValidateSigCountDecorator(ak),
+					authante.NewDeductFeeDecorator(ak, sk),
+					authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+					authante.NewSigVerificationDecorator(ak),
+					authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+					NewValidateMsgHandlerDecorator(validateMsgHandler),
 				)
-			}
 
-		default:
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+			case sdk.EvmTxType:
+
+				if ctx.IsWrappedCheckTx() {
+					anteHandler = sdk.ChainAnteDecorators(
+						NewNonceVerificationDecorator(ak),
+						NewIncrementSenderSequenceDecorator(ak),
+					)
+				} else {
+					anteHandler = sdk.ChainAnteDecorators(
+						NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+						NewGasLimitDecorator(evmKeeper),
+						NewEthMempoolFeeDecorator(evmKeeper),
+						authante.NewValidateBasicDecorator(),
+						NewEthSigVerificationDecorator(),
+						NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+						NewAccountVerificationDecorator(ak, evmKeeper),
+						NewNonceVerificationDecorator(ak),
+						NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+						NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+					)
+				}
+
+			default:
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+			}
 		}
 
 		return anteHandler(ctx, tx, sim)
@@ -97,7 +110,7 @@ func sigGasConsumer(
 	}
 }
 
-func pinAnte(trc *trace.Tracer, tag string)  {
+func pinAnte(trc *trace.Tracer, tag string) {
 	if trc != nil {
 		trc.RepeatingPin(tag)
 	}

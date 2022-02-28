@@ -1,6 +1,8 @@
 package ethsecp256k1
 
 import (
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -58,4 +60,40 @@ func TestPrivKeyPubKey(t *testing.T) {
 
 	res := pubKey.VerifyBytes(msg, sig)
 	require.True(t, res)
+}
+
+func TestSignatureRecoverPrivateKey(t *testing.T) {
+	privKey, err := GenerateKey()
+	require.NoError(t, err)
+
+	// validate type and equality
+	pubKey := privKey.PubKey().(PubKey)
+	require.Implements(t, (*tmcrypto.PubKey)(nil), pubKey)
+
+	msg := []byte("hello world")
+	sig, err := privKey.Sign(msg)
+	require.NoError(t, err)
+	r, s, v := decodeSignature(sig)
+
+	t.Log("r1", r.String(), r.Int64())
+	t.Log("s1", s.String())
+	t.Log("v1", v.String())
+
+	msg = []byte("lifei")
+	sig, err = privKey.Sign(msg)
+	require.NoError(t, err)
+	r, s, v = decodeSignature(sig)
+	t.Log("r2", r.String(), r.Int64())
+	t.Log("s2", s.String())
+	t.Log("v2", v.String())
+}
+
+func decodeSignature(sig []byte) (r, s, v *big.Int) {
+	if len(sig) != ethcrypto.SignatureLength {
+		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), ethcrypto.SignatureLength))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v
 }
