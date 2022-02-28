@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -273,7 +272,7 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 		//if hex.EncodeToString(value) == "000000000000000000000000000000000000000000ead0d43d7146d64678264d" {
 		//	debug.PrintStack()
 		//}
-		fmt.Println("setCacheValue", hex.EncodeToString(value), deleted, dirty)
+		//fmt.Println("setCacheValue", hex.EncodeToString(value), deleted, dirty)
 		//debug.PrintStack()
 	}
 

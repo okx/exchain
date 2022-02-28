@@ -1,3 +1,4 @@
+killall exchaind
 make mainnet WITH_ROCKSDB=true
 rm -rf /tmp/scf_exchain_data/
 exchaind init tmp --chain-id exchain-66 --home /tmp/scf_exchain_data

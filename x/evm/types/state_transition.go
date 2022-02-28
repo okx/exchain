@@ -225,11 +225,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		StartTxLog(analyzer.EVMCORE)
 		defer StopTxLog(analyzer.EVMCORE)
-
-		//ret = []byte{}
-		//leftOverGas = gasLimit
-		//err = nil
-		//fmt.Println("fake---")
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
@@ -296,13 +291,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	if st.TxHash != nil && !st.Simulate {
 		logs, err = csdb.GetLogs(*st.TxHash)
-
 		if err != nil {
 			return
 		}
 
 		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
-		//fmt.Println("index---", st.Sender.String(), st.TxHash.String(), bloomInt.String(), len(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 

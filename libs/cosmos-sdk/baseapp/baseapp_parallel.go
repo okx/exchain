@@ -92,28 +92,26 @@ func Union(x ethcommon.Address, y *ethcommon.Address) {
 	}
 }
 
-func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int, map[int]int) {
+func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int) {
 	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
 	app.parallelTxManage.txReps = make([]*executeResult, len(txsExtraData))
 	for index, tx := range txsExtraData {
-		fmt.Println("index", index, tx.isEvm, tx.signCache == nil, tx.signCache.GetFrom().String())
 		if tx.isEvm { //evmTx
 			Union(tx.signCache.GetFrom(), tx.to)
 		} else {
-			fmt.Println("not evmTx")
+			fmt.Println("not evmTx", index)
 			app.parallelTxManage.txReps[index] = &executeResult{}
 		}
 	}
 
 	groupList := make(map[int][]int, 0)
 	addrToID := make(map[ethcommon.Address]int, 0)
-	indexToID := make(map[int]int, 0)
 
 	for index, sender := range txsExtraData {
+		if !sender.isEvm {
+			continue
+		}
 		rootAddr := Find(sender.signCache.GetFrom())
-		//if sender.to != nil {
-		//	fmt.Println("sender", sender.signCache.GetFrom().String(), sender.to.String(), rootAddr.String())
-		//}
 		id, exist := addrToID[rootAddr]
 		if !exist {
 			id = len(groupList)
@@ -121,12 +119,10 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 
 		}
 		groupList[id] = append(groupList[id], index)
-		indexToID[index] = id
 	}
 
 	nextTxIndexInGroup := make(map[int]int)
 	preTxIndexInGroup := make(map[int]int)
-	//heapList := make([]int, 0)
 	for _, list := range groupList {
 		for index := 0; index < len(list); index++ {
 			if index+1 <= len(list)-1 {
@@ -140,7 +136,7 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 	}
 	app.parallelTxManage.nextTxInGroup = nextTxIndexInGroup
 	app.parallelTxManage.preTxInGroup = preTxIndexInGroup
-	return groupList, indexToID, nextTxIndexInGroup
+	return groupList, nextTxIndexInGroup
 
 }
 
@@ -153,7 +149,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	extraData := app.getExtraDataByTxs(txs)
 
-	groupList, indexToID, nextIndexInGroup := app.calGroup(extraData)
+	groupList, nextIndexInGroup := app.calGroup(extraData)
 
 	app.parallelTxManage.isAsyncDeliverTx = true
 	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
@@ -177,8 +173,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
 
-	fmt.Println("fenzu time", time.Now().Sub(ts).Milliseconds())
-	return app.runTxs(txWithIndex, groupList, indexToID, nextIndexInGroup)
+	fmt.Println("calGroupTime", time.Now().Sub(ts).Milliseconds())
+	return app.runTxs(txWithIndex, groupList, nextIndexInGroup)
 
 }
 
@@ -193,25 +189,16 @@ func (app *BaseApp) fixFeeCollector(txString string, ms sdk.CacheMultiStore) {
 	txFee = txFee.Sub(refundFee)
 	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(txFee...)
 
-	//fmt.Println("txFee", txFee, app.parallelTxManage.currTxFee)
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx = ctx.WithMultiStore(ms)
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
 		panic(err)
 	}
-
-	ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey sdk.StoreKey) bool {
-		if isDirty && hex.EncodeToString(key) == "01f1829676db577682e944fc3493d451b67ff3e29f" {
-			//fmt.Println("value---", hex.EncodeToString(value))
-		}
-		return true
-	}, nil)
-
 	cache.Write()
 }
 
-func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[int]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
+func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
 	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
 	for index := 0; index < len(groupList); index++ {
 		fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
@@ -244,21 +231,20 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 		pm.setTxStatus(int(receiveTxIndex), false)
 		txReps[receiveTxIndex] = execRes
 
-		fmt.Println("241----------", receiveTxIndex, pm.runningStats(receiveTxIndex), pm.isFailed(pm.runningStats(receiveTxIndex)))
 		if pm.isFailed(pm.runningStats(int(receiveTxIndex))) {
 			txReps[receiveTxIndex] = nil
 			pm.setTxStatus(receiveTxIndex, true)
-			fmt.Println("already faile:runRUn", receiveTxIndex, "cutt", txIndex)
+			fmt.Println("already failed:ReRnn", receiveTxIndex, "current", txIndex)
 			go app.asyncDeliverTx(txs[receiveTxIndex], receiveTxIndex)
 
 		}
 
-		fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
-		if int(receiveTxIndex) >= txIndex || receiveTxIndex == 0 {
-			if nextTx := nextTxInGroup[int(receiveTxIndex)]; nextTx != 0 && pm.runningStats(nextTx) == -1 {
+		fmt.Println("receiveTxIndex", receiveTxIndex, "currNeedTxIndex", txIndex)
+		if receiveTxIndex >= txIndex || receiveTxIndex == 0 {
+			if nextTx := nextTxInGroup[receiveTxIndex]; nextTx != 0 && pm.runningStats(nextTx) == -1 {
 
 				needRun := true
-				if psb, ok := pm.preTxInGroup[int(receiveTxIndex)]; ok {
+				if psb, ok := pm.preTxInGroup[receiveTxIndex]; ok {
 					if psb > txIndex {
 						needRun = false
 					}
@@ -266,30 +252,23 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 
 				if needRun {
 					pm.setTxStatus(nextTx, true)
-					fmt.Println("scf:receive:next", receiveTxIndex, nextTx, "cutt", txIndex)
+					fmt.Println("scf:receive:next", receiveTxIndex, nextTx, "curr", txIndex)
 					go app.asyncDeliverTx(txs[nextTx], nextTx)
 				}
-
 			}
 		}
-		//if nextTx := int(receiveTxIndex + 1); nextTx != 0 && nextTx < len(txs) && !pm.isRunning(nextTx) {
-		//	pm.setTxStatus(nextTx, true)
-		//	go app.asyncDeliverTx(txs[nextTx], nextTx)
-		//}
-		//fmt.Println("receiveTxIndex", receiveTxIndex, txIndex)
-		if txIndex != int(receiveTxIndex) {
+
+		if txIndex != receiveTxIndex {
 			return
 		}
-		//fmt.Println("handle", txIndex, receiveTxIndex)
 		for txReps[txIndex] != nil {
 			s := pm.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
 			res := txReps[txIndex]
 
-			//fmt.Println("checkConflict", txIndex)
 			if res.Conflict(pm.getRunBase(int(res.counter)), asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				s.reRun = true
-				fmt.Println("RunRun", txIndex)
+				fmt.Println("Need ReRun", txIndex)
 				app.parallelTxManage.setTxStatus(txIndex, true)
 				res = app.deliverTxWithCache(txs[txIndex])
 				app.parallelTxManage.setTxStatus(txIndex, false)
@@ -310,9 +289,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 					runningTaskID := pm.runningStats(nn)
 
 					if runningTaskID == -1 {
-						fmt.Println("ReRun Tx", txIndex, nn)
+						fmt.Println("ReRunTxEnd, StartNextInGroup", txIndex, nn)
 						txReps[nn] = nil
-						fmt.Println("reRun:next", nn)
 						app.parallelTxManage.setTxStatus(nn, true)
 						app.asyncDeliverTx(txs[nn], nn)
 					} else {
@@ -363,7 +341,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 			}
 			if txReps[txIndex] == nil && !pm.isRunning(txIndex) {
 				app.parallelTxManage.setTxStatus(txIndex, true)
-				//fmt.Println("scf:mergeEndCommit", txIndex)
 				go app.asyncDeliverTx(txs[txIndex], txIndex)
 			}
 
@@ -375,18 +352,12 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, indexToDB map[
 	for _, group := range groupList {
 		txIndex := group[0]
 		app.parallelTxManage.setTxStatus(txIndex, true)
-		//fmt.Println("scf:first group", txIndex)
 		go app.asyncDeliverTx(txs[txIndex], txIndex)
 	}
-
-	//for _, tx := range txs {
-	//	go app.asyncDeliverTx(tx)
-	//}
 
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
-		//fmt.Println("EEEEEE--")
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
@@ -490,9 +461,6 @@ func (e executeResult) Collect(index int, cache *asyncCache) {
 	e.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
 		if isDirty {
 			//push every data we have written in current tx
-			if hex.EncodeToString(key) == "018179d97eb6488860d816e3ecafe694a4153f216c" {
-				fmt.Println("-----collect state", index)
-			}
 			cache.Push(index, key)
 		}
 		return true
@@ -604,6 +572,7 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
+		currIndex:       -1,
 		runBase:         make(map[int]int),
 		markFailedStats: make(map[int]bool),
 	}
@@ -704,12 +673,13 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	defer f.mu.Unlock()
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
+	//fmt.Println("f.cueeeeee", index, preIndexInGroup, ok, base)
 	if ok && preIndexInGroup > f.currIndex {
 		if f.txReps[preIndexInGroup] == nil {
-			fmt.Println("preIndex-1", index, preIndexInGroup)
+			//fmt.Println("preIndex-1", index, preIndexInGroup)
 		}
 		if f.txReps[preIndexInGroup].ms == nil {
-			fmt.Println("preIndex-2", index, preIndexInGroup)
+			//fmt.Println("preIndex-2", index, preIndexInGroup)
 		}
 		if f.txStatus[f.indexMapBytes[preIndexInGroup]].anteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
@@ -717,14 +687,13 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 		} else {
 			ms = f.cms.CacheMultiStore()
 			base = f.currIndex
-			fmt.Println("UUUUUU-------", index, preIndexInGroup, base)
+			//fmt.Println("UUUUUU-------", index, preIndexInGroup, base)
 		}
 
 	}
 
 	f.runBase[int(index)] = base
 	fmt.Println("index", index, "base", base)
-
 	return ms
 }
 
