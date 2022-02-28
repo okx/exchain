@@ -31,7 +31,7 @@ type Tx interface {
 	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
 
 	// Transition execute evm tx
-	Transition(config types.ChainConfig) (result *base.Result, err error)
+	Transition(config types.ChainConfig) (result base.Result, err error)
 
 	// DecorateResult some case(trace tx log) will modify the inResult to log and swallow inErr
 	DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error)
@@ -72,7 +72,6 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	// execute transition, the result
 	tx.AnalyzeStart(bam.TransitionDb)
 	defer tx.AnalyzeStop(bam.TransitionDb)
-	var baseResult *base.Result
 
 	config, found := tx.GetChainConfig()
 	if !found {
@@ -91,11 +90,12 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	}()
 
 	// execute evm tx
+	var baseResult base.Result
 	baseResult, err = tx.Transition(config)
 	if err != nil {
 		tx.RestoreWatcherTransactionReceipt(msg)
 		// TODO old code path may cause panic
-		result, err = tx.DecorateResult(baseResult, err)
+		result, err = tx.DecorateResult(&baseResult, err)
 		if err != nil {
 			return
 		}
@@ -103,10 +103,10 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	}
 
 	// Commit save the inner tx and contracts
-	tx.Commit(msg, baseResult)
+	tx.Commit(msg, &baseResult)
 
-	tx.EmitEvent(msg, baseResult)
-	result, err = tx.DecorateResult(baseResult, nil)
+	tx.EmitEvent(msg, &baseResult)
+	result, err = tx.DecorateResult(&baseResult, nil)
 
 	return
 }
