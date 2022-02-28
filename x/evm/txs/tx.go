@@ -1,9 +1,12 @@
 package txs
 
 import (
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"math/big"
 )
 
 type Tx interface {
@@ -15,18 +18,48 @@ type Tx interface {
 	// other nodes, causing a consensus error
 	SaveTx(msg *types.MsgEthereumTx)
 
-	// Transition execute evm tx
-	Transition() (result *base.Result, err error)
+	// GetChainConfig get chain config
+	GetChainConfig() (types.ChainConfig, bool)
 
-	// DecorateResultError when
-	DecorateResultError(result *base.Result, err error) (*base.Result, error)
+	// GetSenderAccount get sender account
+	GetSenderAccount() authexported.Account
+
+	// ResetWatcher when panic reset watcher
+	ResetWatcher(account authexported.Account)
+
+	// RefundFeesWatcher fix account balance in watcher with refund fees
+	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
+
+	// Transition execute evm tx
+	Transition(config types.ChainConfig) (result *base.Result, err error)
+
+	// DecorateResult some case(trace tx log) will modify the inResult to log and swallow inErr
+	DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error)
+
+	// RestoreWatcherTransactionReceipt restore watcher TransactionReceipt
+	RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx)
+
+	// Commit save the inner tx and contracts
+	Commit(msg *types.MsgEthereumTx, result *base.Result)
 
 	// EmitEvent emit event
-	EmitEvent() *sdk.Result
+	EmitEvent(msg *types.MsgEthereumTx, result *base.Result)
+
+	// FinalizeWatcher after execute evm tx run here
+	FinalizeWatcher(account authexported.Account, err error)
+
+	// AnalyzeStart start record tag
+	AnalyzeStart(tag string)
+
+	// AnalyzeStop stop record tag
+	AnalyzeStop(tag string)
 }
 
 // TransitionEvmTx execute evm transition template
 func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err error) {
+	tx.AnalyzeStart(bam.EvmHandler)
+	defer tx.AnalyzeStop(bam.EvmHandler)
+
 	// Prepare convert msg to state transition
 	err = tx.Prepare(msg)
 	if err != nil {
@@ -37,14 +70,43 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	tx.SaveTx(msg)
 
 	// execute transition, the result
+	tx.AnalyzeStart(bam.TransitionDb)
+	defer tx.AnalyzeStop(bam.TransitionDb)
 	var baseResult *base.Result
-	baseResult, err = tx.Transition()
-	if err != nil {
-		baseResult, err = tx.DecorateResultError(baseResult, err)
-		return baseResult.ExecResult.Result, err
+
+	config, found := tx.GetChainConfig()
+	if !found {
+		return nil, types.ErrChainConfigNotFound
 	}
 
-	result = tx.EmitEvent()
+	defer func() {
+		senderAccount := tx.GetSenderAccount()
+		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
+		if e := recover(); e != nil {
+			// TODO check old code path, simulate situation should not reset
+			tx.ResetWatcher(senderAccount)
+			panic(e)
+		}
+		tx.FinalizeWatcher(senderAccount, err)
+	}()
+
+	// execute evm tx
+	baseResult, err = tx.Transition(config)
+	if err != nil {
+		tx.RestoreWatcherTransactionReceipt(msg)
+		// TODO old code path may cause panic
+		result, err = tx.DecorateResult(baseResult, err)
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	// Commit save the inner tx and contracts
+	tx.Commit(msg, baseResult)
+
+	tx.EmitEvent(msg, baseResult)
+	result, err = tx.DecorateResult(baseResult, nil)
 
 	return
 }

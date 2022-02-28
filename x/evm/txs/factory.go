@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/txs/check"
+	"github.com/okex/exchain/x/evm/txs/tracetxlog"
 )
 
 type factory struct {
@@ -18,9 +19,11 @@ func (factory *factory) CreateTx() (Tx, error) {
 	if factory == nil {
 		return nil, fmt.Errorf("evm txs factory not inited")
 	}
-	if factory.Ctx.IsCheckTx() {
+	if factory.Ctx.IsTraceTx() {
+		return tracetxlog.NewTx(factory.Config), nil
+	} else if factory.Ctx.IsCheckTx() {
 		return check.NewTx(factory.Config), nil
 	}
 
-	return nil, fmt.Errorf("unkown evm txs")
+	return base.NewTx(factory.Config), nil
 }

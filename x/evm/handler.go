@@ -1,6 +1,8 @@
 package evm
 
 import (
+	"github.com/okex/exchain/x/evm/txs"
+	"github.com/okex/exchain/x/evm/txs/base"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -88,9 +90,21 @@ func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 }
 
 // handleMsgEthereumTx handles an Ethereum specific tx
-// 1. txs can be divided into CheckTx/DeliverTx/DeliverTxAsync
+// 1. txs can be divided into TraceTxLog/CheckTx/DeliverTx
 // a tx can be done by prepare/transition/finish
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (*sdk.Result, error) {
+	txFactory := txs.NewFactory(base.Config{
+		Ctx:    ctx,
+		Keeper: k,
+	})
+	tx, err := txFactory.CreateTx()
+	if err != nil {
+		return nil, err
+	}
+
+	// core logical to handle ethereum tx
+	return txs.TransitionEvmTx(tx, msg)
+
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
 			analyzer.StartTxLog(tag)
