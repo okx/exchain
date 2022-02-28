@@ -2,8 +2,9 @@ package types
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -45,6 +46,7 @@ type Context struct {
 	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
+	fromAccount    interface{}
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -75,6 +77,14 @@ func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
+}
+
+func (c *Context) FromAccount() interface{} {
+	return c.fromAccount
+}
+
+func (c *Context) SetFromAccount(fromAccount interface{}) {
+	c.fromAccount = fromAccount
 }
 
 func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }

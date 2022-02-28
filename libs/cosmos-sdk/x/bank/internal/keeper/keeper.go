@@ -7,7 +7,6 @@ import (
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
@@ -178,8 +177,6 @@ type BaseSendKeeper struct {
 	blacklistedAddrs map[string]bool
 
 	ik innertx.InnerTxKeeper
-
-	gasConfig *storetypes.GasConfig
 }
 
 // NewBaseSendKeeper returns a new BaseSendKeeper.
@@ -187,15 +184,12 @@ func NewBaseSendKeeper(
 	ak types.AccountKeeper, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
 ) BaseSendKeeper {
 
-	k := BaseSendKeeper{
+	return BaseSendKeeper{
 		BaseViewKeeper:   NewBaseViewKeeper(ak),
 		ak:               ak,
 		paramSpace:       paramSpace,
 		blacklistedAddrs: blacklistedAddrs,
 	}
-	gasConfig := storetypes.KVGasConfig()
-	k.gasConfig = &gasConfig
-	return k
 }
 
 // InputOutputCoins handles a list of inputs and outputs
@@ -378,7 +372,8 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || !keeper.tryAddGetAccountGas(&ctx, acc) {
+	sizer, _ := keeper.ak.(authexported.SizerAccountKeeper)
+	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || !authexported.TryAddGetAccountGas(ctx.GasMeter(), sizer, acc) {
 		acc = keeper.ak.GetAccount(ctx, addr)
 	}
 	if acc == nil {
@@ -392,29 +387,6 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 
 	keeper.ak.SetAccount(ctx, acc)
 	return nil
-}
-
-type sizerAccountKeeper interface {
-	types.AccountKeeper
-	GetEncodedAccountSize(acc authexported.Account) (int, error)
-}
-
-// tryAddGetAccountGas attempts to add the gas for getting an account. for compatibility with the old logic.
-func (keeper *BaseSendKeeper) tryAddGetAccountGas(ctx *sdk.Context, acc authexported.Account) bool {
-	if keeper == nil {
-		return false
-	}
-	sizer, ok := keeper.ak.(sizerAccountKeeper)
-	if !ok || acc == nil || keeper.gasConfig == nil {
-		return false
-	}
-	size, err := sizer.GetEncodedAccountSize(acc)
-	if err != nil || size == 0 {
-		return false
-	}
-	gas := keeper.gasConfig.ReadCostFlat + storetypes.Gas(size)*keeper.gasConfig.ReadCostPerByte
-	ctx.GasMeter().ConsumeGas(gas, "x/bank/internal/keeper/keeper.BaseSendKeeper")
-	return true
 }
 
 // GetSendEnabled returns the current SendEnabled
