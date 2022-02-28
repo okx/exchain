@@ -24,8 +24,8 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 
 		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
 			isEvm = true
-			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), nil)
 			toAddress = evmTx.To()
+			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
 
 		} else {
 			//if tx.GetType() == sdk.StdTxType {

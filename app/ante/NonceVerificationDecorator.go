@@ -25,8 +25,11 @@ func NewNonceVerificationDecorator(ak auth.AccountKeeper) NonceVerificationDecor
 // AnteHandle validates that the transaction nonce is valid (equivalent to the sender account’s
 // current nonce).
 func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	pinAnte(ctx.AnteTracer(), "NonceVerificationDecorator")
+	if simulate {
+		return next(ctx, tx, simulate)
+	}
 
+	pinAnte(ctx.AnteTracer(), "NonceVerificationDecorator")
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -86,7 +89,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 					// will also reset checkState), so we will need to add pending txs len to get the right nonce
 					gPool := baseapp.GetGlobalMempool()
 					if gPool != nil {
-						cnt := gPool.GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+						cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(address.Bytes())).String())
 						checkTxModeNonce = seq + uint64(cnt)
 					}
 				}

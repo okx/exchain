@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -607,5 +608,8 @@ func PreRun(ctx *server.Context) error {
 	if viper.GetBool(FlagEnableRepairState) {
 		repairStateOnStart(ctx)
 	}
+
+	// init tx signature cache
+	tmtypes.InitSignatureCache()
 	return nil
 }

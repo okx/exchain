@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -653,7 +654,6 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 	monitor := monitor.GetMonitor("eth_sign", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
-
 	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
 	if !exist {
 		return nil, keystore.ErrLocked
@@ -888,12 +888,6 @@ func (api *PublicEthereumAPI) doCall(
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	// Set sender address or use a default if none specified
-	var addr common.Address
-	if args.From != nil {
-		addr = *args.From
-	}
-
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
 	gas := uint64(ethermint.DefaultRPCGasLimit)
@@ -923,19 +917,36 @@ func (api *PublicEthereumAPI) doCall(
 		data = []byte(*args.Data)
 	}
 
+	// Set sender address or use a default if none specified
+	var addr common.Address
+	if args.From != nil {
+		addr = *args.From
+	}
+
+	nonce := uint64(0)
+	if isEstimate && args.To == nil && args.Data != nil {
+		//only get real nonce when estimate gas and the action is contract deploy
+		nonce, _ = api.accountNonce(api.clientCtx, addr, true)
+	}
+
 	// Create new call message
-	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
 
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg)
+		return sim.DoCall(msg, addr.String())
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
 	var txEncoder sdk.TxEncoder
-	if isEstimate || tmtypes.HigherThanVenus(int64(blockNum)) {
+
+	// get block height
+	height, err := api.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
+	if isEstimate || tmtypes.HigherThanVenus(int64(height)) {
 		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	} else {
 		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
@@ -947,7 +958,8 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	// Transaction simulation through query
+	// Transaction simulation through query. only pass from when eth_estimateGas.
+	// eth_call's from maybe nil
 	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
 	res, _, err := clientCtx.QueryWithData(simulatePath, txBytes)
 	if err != nil {
@@ -1255,7 +1267,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1358,7 +1370,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, err
 		}
 
-		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
+		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -1682,4 +1694,59 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount.SetAddress(address.Bytes())
 	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
 	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
+}
+
+func (e *PublicEthereumAPI) FeeHistory(blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*rpctypes.FeeHistoryResult, error) {
+	e.logger.Debug("eth_feeHistory")
+	return nil, fmt.Errorf("unsupported rpc function: eth_FeeHistory")
+}
+
+// FillTransaction fills the defaults (nonce, gas, gasPrice or 1559 fields)
+// on a given unsigned transaction, and returns it to the caller for further
+// processing (signing + broadcast).
+func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctypes.SignTransactionResult, error) {
+
+	monitor := monitor.GetMonitor("eth_fillTransaction", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("args", args)
+
+	height, err := api.BlockNumber()
+	if err != nil {
+		return nil, err
+	}
+
+	// Mutex lock the address' nonce to avoid assigning it to multiple requests
+	if args.Nonce == nil {
+		api.nonceLock.LockAddr(*args.From)
+		defer api.nonceLock.UnlockAddr(*args.From)
+	}
+
+	// Assemble transaction from fields
+	tx, err := api.generateFromArgs(args)
+	if err != nil {
+		api.logger.Debug("failed to generate tx", "error", err)
+		return nil, err
+	}
+
+	if err := tx.ValidateBasic(); err != nil {
+		api.logger.Debug("tx failed basic validation", "error", err)
+		return nil, err
+	}
+
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
+	}
+
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return nil, err
+	}
+	rpcTx := rpctypes.ToTransaction(tx, args.From)
+	return &rpctypes.SignTransactionResult{
+		Raw: txBytes,
+		Tx:  rpcTx,
+	}, nil
 }

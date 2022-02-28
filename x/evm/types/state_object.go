@@ -32,6 +32,12 @@ var (
 			return ethcrypto.NewKeccakState()
 		},
 	}
+
+	addressKeyBytesPool = &sync.Pool{
+		New: func() interface{} {
+			return &[ethcmn.AddressLength + ethcmn.HashLength]byte{}
+		},
+	}
 )
 
 func keccak256HashWithSyncPool(data ...[]byte) (h ethcmn.Hash) {
@@ -46,11 +52,12 @@ func keccak256HashWithSyncPool(data ...[]byte) (h ethcmn.Hash) {
 }
 
 func keccak256HashWithLruCache(compositeKey []byte) ethcmn.Hash {
-	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
+	cacheKey := string(compositeKey)
+	if value, ok := keccak256HashCache.Get(cacheKey); ok {
 		return value.(ethcmn.Hash)
 	}
 	value := keccak256HashWithSyncPool(compositeKey)
-	keccak256HashCache.Add(string(compositeKey), value)
+	keccak256HashCache.Add(cacheKey, value)
 	return value
 }
 
@@ -63,6 +70,8 @@ func keccak256HashWithFastCache(compositeKey []byte) (hash ethcmn.Hash) {
 	return
 }
 
+// Keccak256HashWithCache returns the Keccak256 hash of the given data.
+// this function should not keep the reference of the input data after return.
 func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
 	// if length of compositeKey + hash size is greater than 128, use lru cache
 	if len(compositeKey) > 128-ethcmn.HashLength {
@@ -526,7 +535,15 @@ func (so *stateObject) touch() {
 // object's storage prefixed with it's address.
 func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	prefix := so.Address().Bytes()
-	compositeKey := make([]byte, len(prefix)+len(key))
+
+	var compositeKey []byte
+	if len(prefix)+len(key) == ethcmn.AddressLength+ethcmn.HashLength {
+		p := addressKeyBytesPool.Get().(*[ethcmn.AddressLength + ethcmn.HashLength]byte)
+		defer addressKeyBytesPool.Put(p)
+		compositeKey = p[:]
+	} else {
+		compositeKey = make([]byte, len(prefix)+len(key))
+	}
 
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
