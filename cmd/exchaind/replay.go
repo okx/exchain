@@ -134,6 +134,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().UintVar(&libTypes.TrieCacheSize, libTypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 	return cmd
 }
 
@@ -147,6 +148,8 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
+	types.InitSignatureCache()
+
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)

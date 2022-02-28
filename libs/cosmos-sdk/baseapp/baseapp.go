@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/types"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -198,9 +196,6 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
-
-	blockTxSender     map[string]sdk.SigCache
-	blockTxSenderLock sync.RWMutex
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
@@ -910,7 +905,6 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 }
 
 func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
-
 	if !smState.EnableParaSender {
 		return
 	}
@@ -919,9 +913,6 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 			return
 		}
 
-		app.blockTxSenderLock.Lock()
-		app.blockTxSender = make(map[string]sdk.SigCache, len(block.Data.Txs))
-		app.blockTxSenderLock.Unlock()
 		poolChan := make(chan struct{}, 64)
 		for _, tx := range block.Data.Txs {
 			poolChan <- struct{}{}
@@ -934,22 +925,11 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 				if err != nil {
 					return
 				}
-				ethSignInfo := cmstx.GetEthSignInfo(app.checkState.ctx)
 
-				app.blockTxSenderLock.Lock()
-				defer app.blockTxSenderLock.Unlock()
-				if ethSignInfo != nil {
-					app.blockTxSender[txhash(tx)] = ethSignInfo
-				}
+				cmstx.GetEthSignInfo(app.checkState.ctx.WithTxBytes(tx))
 			}(tx)
 		}
 	}()
-}
-
-func txhash(txbytes []byte) string {
-	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
-	ethHash := common.BytesToHash(txHash)
-	return ethHash.String()
 }
 
 func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval types.AccountStateRootRetrieval) {
