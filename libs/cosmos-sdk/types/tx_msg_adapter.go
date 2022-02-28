@@ -2,7 +2,9 @@ package types
 
 import (
 	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
 
@@ -14,8 +16,8 @@ import (
 //)
 
 var (
-	//	_   Msg = (*RelayMsg)(nil)
-	cdc = codec.New()
+	_    Msg = (*RelayMsg)(nil)
+	cdc2     = codec.New()
 	//	_   Tx  = (*RelayTxMsg)(nil)
 )
 
@@ -106,7 +108,7 @@ func (r *RelayMsg) ValidateBasic() error {
 }
 
 func (r *RelayMsg) GetSignBytes() []byte {
-	ret, err := cdc.MarshalJSON(r)
+	ret, err := cdc2.MarshalJSON(r)
 	if nil != err {
 		panic(err)
 	}

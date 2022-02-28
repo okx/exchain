@@ -3,6 +3,7 @@ package types
 import (
 	"errors"
 	"fmt"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
@@ -12,6 +13,8 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
+
+	trdtx "github.com/okex/exchain/ibc-3rd/cosmos-v443/types/tx"
 )
 
 const IGNORE_HEIGHT_CHECKING = -1
@@ -71,27 +74,64 @@ var byteTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, err
 	return *tt, err
 }
 
+type kvstoreTx struct {
+	key   []byte
+	value []byte
+	bytes []byte
+}
+
 var relayTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, error) {
-	wp := &sdk.RelayMsgWrapper{}
-	err := wp.UnMarshal(bytes)
-	if nil != err {
-		return nil, err
-	}
-	msgs := make([]sdk.Msg, 0)
-	addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-	for _, v := range wp.Msgs {
-		msgs = append(msgs, v)
-		v.Singers[0] = addr
+
+	simReq := &trdtx.SimulateRequest{}
+	err := simReq.Unmarshal(bytes)
+	if err != nil {
+		return authtypes.StdTx{}, err
 	}
 
-	sis := make([]authtypes.StdSignature, 1)
-	ret := authtypes.StdTx{
-		Msgs:       msgs,
-		Fee:        authtypes.StdFee{},
-		Signatures: sis,
-		Memo:       "okt",
+	return convertTx(simReq.Tx), nil
+}
+
+func convertTx(tx *trdtx.Tx) authtypes.StdTx {
+	amount := tx.AuthInfo.Fee.Amount[0].Amount.BigInt()
+
+	fee := authtypes.StdFee{
+		Amount: []sdk.DecCoin{
+			sdk.DecCoin{
+				Denom:  tx.AuthInfo.Fee.Amount[0].Denom,
+				Amount: sdk.NewDecFromBigInt(amount),
+			},
+		},
 	}
-	return ret, nil
+	signature := []authtypes.StdSignature{}
+	for _, s := range tx.Signatures {
+		signature = append(signature, authtypes.StdSignature{Signature: s})
+	}
+	//tx.Body.Messages
+	signers := []sdk.AccAddress{}
+	ss := tx.GetSigners()
+	for _, v := range ss {
+		signers = append(signers, v.Bytes())
+	}
+
+	m := sdk.RelayMsg{
+		TypeStr: tx.Body.Messages[0].TypeUrl,
+		Bytes:   tx.Body.Messages[0].Value,
+		//RouterStr:
+		Singers: signers,
+	}
+	ms := []sdk.RelayMsg{m}
+
+	msgs := []sdk.Msg{}
+	for _, v := range ms {
+		msgs = append(msgs, &v)
+	}
+
+	return authtypes.StdTx{
+		Msgs:       msgs,
+		Fee:        fee,
+		Signatures: signature,
+		Memo:       tx.GetBody().GetMemo(),
+	}
 }
 
 type decodeFunc func(*codec.Codec, []byte, int64) (sdk.Tx, error)
