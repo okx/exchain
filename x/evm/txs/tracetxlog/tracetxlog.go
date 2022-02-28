@@ -46,7 +46,7 @@ func (t tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, pri
 	t.checkTx.RefundFeesWatcher(account, coins, price)
 }
 
-func (t tx) Transition(config types.ChainConfig) (result *base.Result, err error) {
+func (t tx) Transition(config types.ChainConfig) (result base.Result, err error) {
 	return t.checkTx.Transition(config)
 }
 

@@ -42,7 +42,7 @@ func (t *Tx) ResetWatcher(account authexported.Account) {
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
 func (t *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
 
-func (t *Tx) Transition(config types.ChainConfig) (result *base.Result, err error) {
+func (t *Tx) Transition(config types.ChainConfig) (result base.Result, err error) {
 	return t.baseTx.Transition(config)
 }
 

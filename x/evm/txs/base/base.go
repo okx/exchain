@@ -92,7 +92,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, pr
 }
 
 // Transition execute evm tx
-func (tx *Tx) Transition(config types.ChainConfig) (result *Result, err error) {
+func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 	// async mod goes immediately
 	if tx.Ctx.IsAsync() {
