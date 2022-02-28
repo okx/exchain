@@ -3,7 +3,6 @@ package cachekv
 import (
 	"bytes"
 	"container/list"
-	"encoding/hex"
 	"io"
 	"reflect"
 	"sort"
@@ -129,7 +128,6 @@ func (store *Store) Write() {
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
-		//fmt.Println("toParent", hex.EncodeToString([]byte(key)))
 		cacheValue := store.cache[key]
 		switch {
 		case cacheValue.deleted:
@@ -268,13 +266,13 @@ func (store *Store) dirtyItems(start, end []byte) {
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 
-	if hex.EncodeToString(key) == "0134fd085d4f6420a5429031d55b11d0d3b3245fec" {
-		//if hex.EncodeToString(value) == "000000000000000000000000000000000000000000ead0d43d7146d64678264d" {
-		//	debug.PrintStack()
-		//}
-		//fmt.Println("setCacheValue", hex.EncodeToString(value), deleted, dirty)
-		//debug.PrintStack()
-	}
+	//if hex.EncodeToString(key) == "0134fd085d4f6420a5429031d55b11d0d3b3245fec" {
+	//if hex.EncodeToString(value) == "000000000000000000000000000000000000000000ead0d43d7146d64678264d" {
+	//	debug.PrintStack()
+	//}
+	//fmt.Println("setCacheValue", hex.EncodeToString(value), deleted, dirty)
+	//debug.PrintStack()
+	//}
 
 	keyStr := string(key)
 	store.cache[keyStr] = cValue{

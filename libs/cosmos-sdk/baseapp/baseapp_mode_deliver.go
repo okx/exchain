@@ -53,7 +53,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	}
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
-	app.printMs("Defer")
+	//app.printMs("Defer")
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {
