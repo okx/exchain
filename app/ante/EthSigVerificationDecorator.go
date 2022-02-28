@@ -29,11 +29,11 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// check  chainID is equal to the tendermint consensus state Chain id
-	chainId := ethermint.GetChainId()
-	if chainId != ctx.ChainID() {
-		return ctx, sdkerrors.Wrapf(ethermint.ErrInvalidChainID, "Invalid Chain id : \"%s\",  expected : \"%s\"", ctx.ChainID(), chainId)
+	// parse the chainID from a string to a base-10 integer
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return ctx, err
 	}
-	chainIDEpoch := ethermint.GetChainIdEpoch()
 
 	// validate sender/signature and cache the address
 	signerSigCache, err := msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes())

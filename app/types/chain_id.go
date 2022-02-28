@@ -53,22 +53,13 @@ func SetChainId(chainid string) error {
 	})
 	return nil
 }
-func GetChainId() string {
-	if chainIdEpoch == nil {
-		panic(sdkerrors.Wrap(ErrInvalidChainID, "ChainId is not Init, need to call SetChainId when the app start"))
-	}
-	return chainId
-}
-func GetChainIdEpoch() *big.Int {
-	if chainIdEpoch == nil {
-		panic(sdkerrors.Wrap(ErrInvalidChainID, "ChainId is not Init, need to call SetChainId when the app start"))
-	}
-	return chainIdEpoch
-}
 
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
 // chain-id in *big.Int format. The function returns an error if the chain-id has an invalid format
 func ParseChainID(chainID string) (*big.Int, error) {
+	if chainID == chainId && chainIdEpoch != nil {
+		return chainIdEpoch, nil
+	}
 	chainID = strings.TrimSpace(chainID)
 	if len(chainID) > 48 {
 		return nil, sdkerrors.Wrapf(ErrInvalidChainID, "chain-id '%s' cannot exceed 48 chars", chainID)

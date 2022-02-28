@@ -256,7 +256,11 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 
 func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
 
-	chainIDEpoch := ethermint.GetChainIdEpoch()
+	var chainIDEpoch *big.Int
+	chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return
+	}
 
 	var sender common.Address
 	// Verify signature and retrieve sender address

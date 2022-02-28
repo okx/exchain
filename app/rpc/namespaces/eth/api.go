@@ -82,10 +82,15 @@ func NewAPI(
 	keys ...ethsecp256k1.PrivKey,
 ) *PublicEthereumAPI {
 
+	epoch, err := ethermint.ParseChainID(clientCtx.ChainID)
+	if err != nil {
+		panic(err)
+	}
+
 	api := &PublicEthereumAPI{
 		ctx:            context.Background(),
 		clientCtx:      clientCtx,
-		chainIDEpoch:   ethermint.GetChainIdEpoch(),
+		chainIDEpoch:   epoch,
 		logger:         log.With("module", "json-rpc", "namespace", "eth"),
 		backend:        backend,
 		keys:           keys,
