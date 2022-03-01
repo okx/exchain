@@ -122,6 +122,7 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle1(ctx sdk.Context, tx sd
 }
 
 func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	pinAnte(ctx.AnteTracer(), "AccountAggregateValidateDecorator")
 	//oldGasMeter := ctx.GasMeter()
 	//ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
