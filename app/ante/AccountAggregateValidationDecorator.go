@@ -33,7 +33,7 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	if simulate && ctx.From() != "" {
+	if ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
 	}
 
