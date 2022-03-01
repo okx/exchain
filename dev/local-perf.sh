@@ -30,7 +30,7 @@ run() {
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 100ms \
       --disable-abci-query-mutex=true \
-      --mempool.max_tx_num_per_block=4500 \
+      --mempool.max_tx_num_per_block=7000 \
       --mempool.size=15000 \
       --local_perf=tx \
       --enable-preruntx=false \

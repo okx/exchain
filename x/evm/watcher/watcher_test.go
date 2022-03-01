@@ -3,13 +3,14 @@ package watcher_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -55,13 +56,16 @@ type WatcherTestSt struct {
 func setupTest() *WatcherTestSt {
 	w := &WatcherTestSt{}
 	checkTx := false
+	chain_id := "ethermint-3"
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
 	w.app = app.Setup(checkTx)
-	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
+
+	ethermint.SetChainId(chain_id)
 
 	params := types.DefaultParams()
 	params.EnableCreate = true
