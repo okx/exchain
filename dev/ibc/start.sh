@@ -19,8 +19,11 @@ P2PPORT=$4
 RESTPORT=$5
 #PROFPORT=$5
 #GRPCPORT=$6
+startDaenom=true
 
-
+if  [ -n "$8" ] ;then
+  startDaenom=false
+fi
 
 echorun() {
   echo "------------------------------------------------------------------------------------------------"
@@ -35,26 +38,28 @@ rm -rf ~/.exchaincli
 
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
-
-#     nohup exchaind start --pruning=nothing --rpc.unsafe \
-#      --home=$CHAINDIR/$CHAINID \
-#      --local-rpc-port ${RPCPORT} \
-#      --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
-#      --rpc.external_laddr="0.0.0.0:${RPCPORT}" \
-#      --p2p.laddr="tcp://0.0.0.0:${P2PPORT}" \
-#      --log_level $LOG_LEVEL \
-#      --log_file json \
-#      --enable-dynamic-gp=false \
-#      --consensus.timeout_commit 2000ms \
-#      --enable-preruntx=false \
-#      --iavl-enable-async-commit \
-#      --enable-gid \
-#      --append-pid=true \
-#      --iavl-commit-interval-height 10 \
-#      --iavl-output-modules evm=0,acc=0 \
-#      --trace --home=$CHAINDIR/$CHAINID --chain-id $CHAINID \
-#      --rest.laddr "tcp://localhost:${RESTPORT}" \
-#      --elapsed Round=1,CommitRound=1,Produce=1 >$CHAINDIR/$CHAINID/oec.txt 2>&1 &
+    if [ "$startDaenom" = true ]; then
+      echo "start run "
+         nohup exchaind start --pruning=nothing --rpc.unsafe \
+          --home=$CHAINDIR/$CHAINID \
+          --local-rpc-port ${RPCPORT} \
+          --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
+          --rpc.external_laddr="0.0.0.0:${RPCPORT}" \
+          --p2p.laddr="tcp://0.0.0.0:${P2PPORT}" \
+          --log_level $LOG_LEVEL \
+          --log_file json \
+          --enable-dynamic-gp=false \
+          --consensus.timeout_commit 2000ms \
+          --enable-preruntx=false \
+          --iavl-enable-async-commit \
+          --enable-gid \
+          --append-pid=true \
+          --iavl-commit-interval-height 10 \
+          --iavl-output-modules evm=0,acc=0 \
+          --trace --home=$CHAINDIR/$CHAINID --chain-id $CHAINID \
+          --rest.laddr "tcp://localhost:${RESTPORT}" \
+          --elapsed Round=1,CommitRound=1,Produce=1 >$CHAINDIR/$CHAINID/oec.txt 2>&1 &
+    fi
     exit
 }
 

@@ -5,6 +5,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
 	"time"
 
@@ -78,6 +79,10 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 
 	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, false, log.NewNopLogger())
 	cdc := createTestCodec()
+	reg:=types2.NewInterfaceRegistry()
+	cc:=codec.NewProtoCodec(reg)
+	pro:=codec.NewMarshalProxy(cc,cdc)
+
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	notBondedPool := supply.NewEmptyModuleAccount(staking.NotBondedPoolName, supply.Burner, supply.Staking)
@@ -102,7 +107,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, InitTokens.MulRaw(int64(len(Addrs)))))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	sk := staking.NewKeeper(cdc, keyStaking, nil, paramsKeeper.Subspace(staking.DefaultParamspace))
+	sk := staking.NewKeeper(cdc, pro,keyStaking, nil, paramsKeeper.Subspace(staking.DefaultParamspace))
 	genesis := staking.DefaultGenesisState()
 
 	// set module accounts

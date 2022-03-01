@@ -311,8 +311,10 @@ func NewOKExChainApp(
 	app.SupplyKeeper = supply.NewKeeper(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
+	proxy:=codec.NewMarshalProxy(cc,cdc)
+
 	stakingKeeper := staking.NewKeeper(
-		cdc, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		cdc,proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -402,8 +404,6 @@ func NewOKExChainApp(
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 
-	mm := codec.NewProtoCodec(interfaceReg)
-	proxy := codec.NewMarshalProxy(mm, cdc)
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -619,12 +619,20 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 
 var protoCodec = encoding.GetCodec(proto.Name)
 
-func makeInterceptors(cdc *codec.Codec) map[string]func(req *abci.RequestQuery) error {
-	m := make(map[string]func(req *abci.RequestQuery) error)
-	m["/cosmos.tx.v1beta1.Service/Simulate"] = func(req *abci.RequestQuery) error {
+func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
+	m := make(map[string]bam.Interceptor)
+	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "app/simulate"
 		return nil
-	}
+	}, func(resp *abci.ResponseQuery) {
+
+	})
+	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
+		req.Path = "custom/staking/parameters"
+		return nil
+	}, func(resp *abci.ResponseQuery) {
+		fmt.Println(resp.Value)
+	})
 	//m["/cosmos.auth.v1beta1.Query/Account"] = func(req *abci.RequestQuery) error {
 	//	var reqA types.QueryAccountRequest
 	//	err := protoCodec.Unmarshal(req.Data, &reqA)

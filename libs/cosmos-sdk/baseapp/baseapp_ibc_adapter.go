@@ -16,7 +16,6 @@ func (app *BaseApp) SetInterfaceRegistry(registry types.InterfaceRegistry) {
 	app.msgServiceRouter.SetInterfaceRegistry(registry)
 }
 
-
 // MountMemoryStores mounts all in-memory KVStores with the BaseApp's internal
 // commit multi-store.
 func (app *BaseApp) MountMemoryStores(keys map[string]*sdk.MemoryStoreKey) {
@@ -87,7 +86,6 @@ func checkNegativeHeight(height int64) error {
 	return nil
 }
 
-
 func gRPCErrorToSDKError(err error) error {
 	status, ok := grpcstatus.FromError(err)
 	if !ok {
@@ -106,4 +104,30 @@ func gRPCErrorToSDKError(err error) error {
 	default:
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, err.Error())
 	}
+}
+
+type Interceptor interface {
+	Before(req *abci.RequestQuery) error
+	After(resp *abci.ResponseQuery)
+}
+
+var (
+	_ Interceptor = (*FunctionInterceptor)(nil)
+)
+
+type FunctionInterceptor struct {
+	beforeF func(req *abci.RequestQuery) error
+	afterF  func(resp *abci.ResponseQuery)
+}
+
+func NewFunctionInterceptor(beforeF func(req *abci.RequestQuery) error, afterF func(resp *abci.ResponseQuery)) *FunctionInterceptor {
+	return &FunctionInterceptor{beforeF: beforeF, afterF: afterF}
+}
+
+func (f *FunctionInterceptor) Before(req *abci.RequestQuery) error {
+	return f.beforeF(req)
+}
+
+func (f *FunctionInterceptor) After(resp *abci.ResponseQuery) {
+	f.afterF(resp)
 }
