@@ -96,9 +96,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		tx.RestoreWatcherTransactionReceipt(msg)
 		// TODO old code (tracetxlog situation )path may cause panic
 		result, err = tx.DecorateResult(&baseResult, err)
-		if err != nil {
-			return
-		}
+
 		return
 	}
 
