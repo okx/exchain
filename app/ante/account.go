@@ -188,6 +188,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			}
 		}
 
+		acc = getAccount(&avd.ak, &ctx, address, acc)
 		if acc == nil {
 			return ctx, sdkerrors.Wrapf(
 				sdkerrors.ErrUnknownAddress,
@@ -213,6 +214,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		if err != nil {
 			return ctx, err
 		}
+		acc = nil // account have be updated
 	}
 
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
@@ -226,21 +228,24 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
-		var accCache exported.Account
-		if bytes.Equal(address, addr) {
-			accCache = acc
+		var sacc exported.Account
+		if bytes.Equal(addr.Bytes(), address.Bytes()) {
+			sacc = getAccount(&avd.ak, &ctx, addr, acc)
+			acc = sacc
+		} else {
+			sacc = avd.ak.GetAccount(ctx, addr)
 		}
-		acc = getAccount(&avd.ak, &ctx, addr, accCache)
-		seq := acc.GetSequence()
+		// sacc = avd.ak.GetAccount(ctx, addr)
+		seq := sacc.GetSequence()
 		if !baseapp.IsMempoolEnablePendingPool() {
 			seq++
 		} else if msgEthTx.Data.AccountNonce == seq {
 			seq++
 		}
-		if err := acc.SetSequence(seq); err != nil {
+		if err := sacc.SetSequence(seq); err != nil {
 			panic(err)
 		}
-		avd.ak.SetAccount(ctx, acc)
+		avd.ak.SetAccount(ctx, sacc)
 	}
 
 	// set the original gas meter
