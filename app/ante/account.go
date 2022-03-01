@@ -1,7 +1,6 @@
 package ante
 
 import (
-	"bytes"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -228,14 +227,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
-		var sacc exported.Account
-		if bytes.Equal(addr.Bytes(), address.Bytes()) {
-			sacc = getAccount(&avd.ak, &ctx, addr, acc)
-			acc = sacc
-		} else {
-			sacc = avd.ak.GetAccount(ctx, addr)
-		}
-		// sacc = avd.ak.GetAccount(ctx, addr)
+		var sacc = avd.ak.GetAccount(ctx, addr)
 		seq := sacc.GetSequence()
 		if !baseapp.IsMempoolEnablePendingPool() {
 			seq++
