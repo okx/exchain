@@ -19,7 +19,6 @@ func NewTx(config base.Config) *tx {
 	return &tx{
 		checkTx: check.NewTx(config),
 	}
-
 }
 
 func (t tx) Prepare(msg *types.MsgEthereumTx) (err error) {
