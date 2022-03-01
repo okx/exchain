@@ -3,6 +3,7 @@ package baseapp
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -184,7 +185,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
-		app.logger.Error("tx failed", "runtx", err.Error(), "tx bytes", hexutil.Encode(req.Tx))
+		app.logger.Error("tx failed", "runtx", err.Error(), "tx bytes", hexutil.Encode(req.Tx), "txhash", types.Bytes2Hash(req.Tx, int64(8817284)))
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
 
