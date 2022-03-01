@@ -55,9 +55,8 @@ func (t tx) DecorateResult(inResult *base.Result, inErr error) (result *sdk.Resu
 		return nil, fmt.Errorf("result is nil")
 	}
 	inResult.ExecResult.Result.Data = inResult.ExecResult.TraceLogs
-	err = nil
 
-	return inResult.ExecResult.Result, inErr
+	return inResult.ExecResult.Result, nil
 }
 
 func (t tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
