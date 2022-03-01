@@ -2,6 +2,8 @@ package ante
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	ethcore "github.com/ethereum/go-ethereum/core"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -108,7 +110,7 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle1(ctx sdk.Context, tx sd
 			sdkerrors.ErrInsufficientFunds, "insufficient account funds; %s < %s", feeCoin, feeAmt,
 		)
 	}
-	if err := feeAcc.SetCoins(feeCoin); err != nil {
+	if err := feeAcc.SetCoins(feeNewCoin); err != nil {
 		return ctx, err
 	}
 
@@ -174,7 +176,55 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 	if err := acc.SetSequence(seq); err != nil {
 		panic(err)
 	}
-	aavd.ak.SetAccount(ctx, acc)
+
+	gasLimit := msgEthTx.GetGas()
+	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
+	if err != nil {
+		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+	}
+
+	// intrinsic gas verification during CheckTx
+	if ctx.IsCheckTx() && gasLimit < gas {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+	}
+
+	// Charge sender for gas up to limit
+	if gasLimit != 0 {
+		// Cost calculates the fees paid to validators based on gas limit and price
+		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
+
+		evmDenom := sdk.DefaultBondDenom
+
+		feeAmt := sdk.NewCoins(
+			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
+		)
+
+		if !feeAmt.IsValid() {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", feeAmt)
+		}
+
+		oldCoins := acc.GetCoins()
+		newCoins, hasNeg := oldCoins.SafeSub(feeAmt)
+		if hasNeg {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+				"insufficient funds to pay for fees; %s < %s", oldCoins, feeAmt)
+		}
+		if err := acc.SetCoins(newCoins); err != nil {
+			return ctx, err
+		}
+		aavd.ak.SetAccount(ctx, acc)
+
+		recipientAcc := aavd.sk.GetModuleAccount(ctx, types.FeeCollectorName)
+		if recipientAcc == nil {
+			panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", types.FeeCollectorName))
+		}
+		feeCoin := recipientAcc.GetCoins()
+		feeNewCoin := feeCoin.Add(feeAmt...)
+		if err := recipientAcc.SetCoins(feeNewCoin); err != nil {
+			return ctx, err
+		}
+		aavd.ak.SetAccount(ctx, recipientAcc)
+	}
 
 	ctx = ctx.WithGasMeter(oldGasMeter)
 	return next(ctx, tx, simulate)

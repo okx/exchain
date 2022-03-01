@@ -41,7 +41,6 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewEthSigVerificationDecorator(),
 				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				NewAccountAggregateValidateDecorator(ak, sk, evmKeeper),
-				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 			)
 		} else {
 			switch tx.GetType() {
