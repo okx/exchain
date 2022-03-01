@@ -2,7 +2,6 @@ package ante
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -165,81 +164,17 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 	}
 
 	seq := acc.GetSequence()
-	// if multiple transactions are submitted in succession with increasing nonces,
-	// all will be rejected except the first, since the first needs to be included in a block
-	// before the sequence increments
-	if ctx.IsCheckTx() {
-		ctx = ctx.WithAccountNonce(seq)
-		// will be checkTx and RecheckTx mode
-		if ctx.IsReCheckTx() {
-			// recheckTx mode
-
-			// sequence must strictly increasing
-			if msgEthTx.Data.AccountNonce != seq {
-				return ctx, sdkerrors.Wrapf(
-					sdkerrors.ErrInvalidSequence,
-					"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-				)
-			}
-		} else {
-			if baseapp.IsMempoolEnablePendingPool() {
-				if msgEthTx.Data.AccountNonce < seq {
-					return ctx, sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected %d",
-						msgEthTx.Data.AccountNonce, seq,
-					)
-				}
-			} else {
-				// checkTx mode
-				checkTxModeNonce := seq
-
-				if !baseapp.IsMempoolEnableRecheck() {
-					// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
-					// to add pending txs len in the mempool.
-					// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
-					// will also reset checkState), so we will need to add pending txs len to get the right nonce
-					gPool := baseapp.GetGlobalMempool()
-					if gPool != nil {
-						cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(address.Bytes())).String())
-						checkTxModeNonce = seq + uint64(cnt)
-					}
-				}
-
-				if baseapp.IsMempoolEnableSort() {
-					if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
-						return ctx, sdkerrors.Wrapf(
-							sdkerrors.ErrInvalidSequence,
-							"invalid nonce; got %d, expected in the range of [%d, %d]",
-							msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
-						)
-					}
-				} else {
-					if msgEthTx.Data.AccountNonce != checkTxModeNonce {
-						return ctx, sdkerrors.Wrapf(
-							sdkerrors.ErrInvalidSequence,
-							"invalid nonce; got %d, expected %d",
-							msgEthTx.Data.AccountNonce, checkTxModeNonce,
-						)
-					}
-				}
-			}
-		}
-	} else {
-		// only deliverTx mode
-		if msgEthTx.Data.AccountNonce != seq {
-			return ctx, sdkerrors.Wrapf(
-				sdkerrors.ErrInvalidSequence,
-				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-			)
-		} else {
-			seq++
-			if err := acc.SetSequence(seq); err != nil {
-				panic(err)
-			}
-			aavd.ak.SetAccount(ctx, acc)
-		}
+	if msgEthTx.Data.AccountNonce != seq {
+		return ctx, sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidSequence,
+			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+		)
 	}
+	seq++
+	if err := acc.SetSequence(seq); err != nil {
+		panic(err)
+	}
+	aavd.ak.SetAccount(ctx, acc)
 
 	ctx = ctx.WithGasMeter(oldGasMeter)
 	return next(ctx, tx, simulate)
