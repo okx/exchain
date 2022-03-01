@@ -171,6 +171,7 @@ type BaseSendKeeper struct {
 	BaseViewKeeper
 
 	ak         types.AccountKeeper
+	ask        authexported.SizerAccountKeeper
 	paramSpace params.Subspace
 
 	// list of addresses that are restricted from receiving transactions
@@ -184,12 +185,14 @@ func NewBaseSendKeeper(
 	ak types.AccountKeeper, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
 ) BaseSendKeeper {
 
-	return BaseSendKeeper{
+	bsk := BaseSendKeeper{
 		BaseViewKeeper:   NewBaseViewKeeper(ak),
 		ak:               ak,
 		paramSpace:       paramSpace,
 		blacklistedAddrs: blacklistedAddrs,
 	}
+	bsk.ask, _ = bsk.ak.(authexported.SizerAccountKeeper)
+	return bsk
 }
 
 // InputOutputCoins handles a list of inputs and outputs
@@ -274,12 +277,26 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 		),
 	})
 
-	_, err = keeper.SubtractCoins(ctx, fromAddr, amt)
+	if !amt.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+	}
+
+	var fromAcc, toAcc authexported.Account
+	if ctx.FromAccount() != nil {
+		fromAcc = ctx.FromAccount().(authexported.Account)
+		if ctx.ToAccount() != nil {
+			toAcc = ctx.ToAccount().(authexported.Account)
+		}
+	}
+
+	fromAcc = keeper.getAccount(&ctx, fromAddr, fromAcc)
+	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, amt)
 	if err != nil {
 		return err
 	}
 
-	_, err = keeper.AddCoins(ctx, toAddr, amt)
+	toAcc = keeper.getAccount(&ctx, toAddr, toAcc)
+	_, err = keeper.addCoins(ctx, toAddr, toAcc, amt)
 	if err != nil {
 		return err
 	}
@@ -294,10 +311,12 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	if !amt.IsValid() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
-
-	oldCoins, spendableCoins := sdk.NewCoins(), sdk.NewCoins()
-
 	acc := keeper.ak.GetAccount(ctx, addr)
+	return keeper.subtractCoins(ctx, addr, acc, amt)
+}
+
+func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) (sdk.Coins, error) {
+	oldCoins, spendableCoins := sdk.NewCoins(), sdk.NewCoins()
 	if acc != nil {
 		oldCoins = acc.GetCoins()
 		spendableCoins = acc.SpendableCoins(ctx.BlockTime())
@@ -327,6 +346,10 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	// oldCoins := keeper.GetCoins(ctx, addr)
 
 	acc := keeper.ak.GetAccount(ctx, addr)
+	return keeper.addCoins(ctx, addr, acc, amt)
+}
+
+func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) (sdk.Coins, error) {
 	var oldCoins sdk.Coins
 	if acc == nil {
 		oldCoins = sdk.NewCoins()
@@ -367,15 +390,19 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	return nil
 }
 
+func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, acc authexported.Account) authexported.Account {
+	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || keeper.ask == nil || !authexported.TryAddGetAccountGas(ctx.GasMeter(), keeper.ask, acc) {
+		acc = keeper.ak.GetAccount(*ctx, addr)
+	}
+	return acc
+}
+
 func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) error {
 	if !amt.IsValid() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	sizer, isSizer := keeper.ak.(authexported.SizerAccountKeeper)
-	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || !isSizer || !authexported.TryAddGetAccountGas(ctx.GasMeter(), sizer, acc) {
-		acc = keeper.ak.GetAccount(ctx, addr)
-	}
+	acc = keeper.getAccount(&ctx, addr, acc)
 	if acc == nil {
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
 	}

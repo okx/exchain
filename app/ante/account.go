@@ -150,6 +150,7 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgE
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
+		ctx.SetFromAccount(acc)
 		err = auth.DeductFees(sk, ctx, acc, feeAmt)
 		if err != nil {
 			return ctx, err

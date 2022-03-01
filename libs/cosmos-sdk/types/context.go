@@ -47,6 +47,7 @@ type Context struct {
 	cache          *Cache
 	trc            *trace.Tracer
 	fromAccount    interface{}
+	toAccount      interface{}
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -85,6 +86,14 @@ func (c *Context) FromAccount() interface{} {
 
 func (c *Context) SetFromAccount(fromAccount interface{}) {
 	c.fromAccount = fromAccount
+}
+
+func (c *Context) ToAccount() interface{} {
+	return c.toAccount
+}
+
+func (c *Context) SetToAccount(toAccount interface{}) {
+	c.toAccount = toAccount
 }
 
 func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
