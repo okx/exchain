@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/x/common/analyzer"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,7 +11,11 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/x/common/analyzer"
+
 	"github.com/okex/exchain/app/config"
+	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -223,6 +225,10 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 		AppStateBytes:   genDoc.AppState,
 	}
 	res, err := proxyApp.Consensus().InitChainSync(req)
+	if err != nil {
+		return err
+	}
+	err = okexchain.SetChainId(genDoc.ChainID)
 	if err != nil {
 		return err
 	}
