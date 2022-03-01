@@ -35,9 +35,7 @@ func (t *Tx) GetSenderAccount() authexported.Account {
 	return t.baseTx.GetSenderAccount()
 }
 
-func (t *Tx) ResetWatcher(account authexported.Account) {
-	t.baseTx.ResetWatcher(account)
-}
+func (t *Tx) ResetWatcher(account authexported.Account) {}
 
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
 func (t *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
