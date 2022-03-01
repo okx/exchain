@@ -101,6 +101,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.delayEraseKey = make([][]byte, 0)
 
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
@@ -370,8 +371,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	delayEraseKey := make([][]byte, 0)
-	w.delayEraseKey, delayEraseKey = delayEraseKey, w.delayEraseKey
+	delayEraseKey := w.delayEraseKey
 	w.dispatchJob(func() { w.commitBatch(batch, delayEraseKey) })
 }
 
@@ -388,8 +388,7 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-
-	w.ExecuteDelayEraseKey(delayEraseKey)
+	w.ExecuteDelayEraseKey(data.DelayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -500,7 +499,7 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.dispatchJob(func() { w.CommitWatchData(wd, wd.DelayEraseKey) })
+	w.dispatchJob(func() { w.CommitWatchData(wd, nil) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
