@@ -47,6 +47,7 @@ const (
 	// only for runTxModeSimulate
 	LatestSimulateTxHeight = 0
 )
+
 var (
 	_ abci.Application = (*BaseApp)(nil)
 
@@ -201,7 +202,7 @@ type BaseApp struct { // nolint: maligned
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 
 	parseF       map[string]func(str string) string
-	interceptors map[string]func(req *abci.RequestQuery)error
+	interceptors map[string]Interceptor
 
 	Cdc *codec.Codec
 }
@@ -233,7 +234,7 @@ func NewBaseApp(
 		txDecoder:        txDecoder,
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
-		interceptors:     map[string]func(req *abci.RequestQuery)error{},
+		interceptors:     make(map[string]Interceptor),
 	}
 
 	for _, option := range options {
@@ -250,8 +251,8 @@ func NewBaseApp(
 	return app
 }
 
-func(app *BaseApp)SetInterceptors(interceptors map[string]func(req *abci.RequestQuery)error){
-	app.interceptors=interceptors
+func (app *BaseApp) SetInterceptors(interceptors map[string]Interceptor) {
+	app.interceptors = interceptors
 }
 
 // Name returns the name of the BaseApp.
