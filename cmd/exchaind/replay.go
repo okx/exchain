@@ -15,6 +15,7 @@ import (
 	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/okex/exchain/app/config"
+	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -173,7 +174,11 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 		panicError(err)
 		state = sm.LoadState(stateStoreDB)
 	}
-
+	//cache chain epoch
+	err = okexchain.SetChainId(genDoc.ChainID)
+	if err != nil {
+		panicError(err)
+	}
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 	if viper.GetBool(sm.FlagParalleledTx) {
@@ -229,6 +234,7 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	if err != nil {
 		return err
 	}
+
 	if state.LastBlockHeight == types.GetStartBlockHeight() { //we only update state when we are in initial state
 		// If the app returned validators or consensus params, update the state.
 		if len(res.Validators) > 0 {
