@@ -122,8 +122,8 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle1(ctx sdk.Context, tx sd
 }
 
 func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	oldGasMeter := ctx.GasMeter()
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	//oldGasMeter := ctx.GasMeter()
+	//ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -176,7 +176,6 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 	if err := acc.SetSequence(seq); err != nil {
 		panic(err)
 	}
-
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -221,12 +220,13 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		}
 		feeCoin := recipientAcc.GetCoins()
 		feeNewCoin := feeCoin.Add(feeAmt...)
+		if !feeNewCoin.IsValid() || feeCoin.IsAnyNegative() {
+			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, feeCoin.String())
+		}
 		if err := recipientAcc.SetCoins(feeNewCoin); err != nil {
 			return ctx, err
 		}
 		aavd.ak.SetAccount(ctx, recipientAcc)
 	}
-
-	ctx = ctx.WithGasMeter(oldGasMeter)
 	return next(ctx, tx, simulate)
 }
