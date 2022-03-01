@@ -206,10 +206,6 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
 
-func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
-}
-
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
 	if !w.Enabled() {
 		return
@@ -386,9 +382,6 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 	if data.Batches != nil {
 		w.commitCenterBatch(data.Batches)
 	}
-	if data.DirtyAccount != nil {
-		w.delDirtyAccount(data.DirtyAccount)
-	}
 	if data.DirtyList != nil {
 		w.delDirtyList(data.DirtyList)
 	}
@@ -507,10 +500,7 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.delayEraseKey = wd.DelayEraseKey
-	delayEraseKey := make([][]byte, 0)
-	w.delayEraseKey, delayEraseKey = delayEraseKey, w.delayEraseKey
-	w.dispatchJob(func() { w.CommitWatchData(wd, delayEraseKey) })
+	w.dispatchJob(func() { w.CommitWatchData(wd, wd.DelayEraseKey) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
@@ -549,34 +539,12 @@ func key2Bytes(key string) []byte {
 
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{
-		DirtyAccount:  filterAccount(origin.DirtyAccount),
 		Batches:       filterBatch(origin.Batches),
 		DelayEraseKey: filterDelayEraseKey(origin.DelayEraseKey),
 		BloomData:     filterBloomData(origin.BloomData),
 		DirtyList:     filterDirtyList(origin.DirtyList),
 	}
 }
-
-func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
-	if len(accounts) == 0 {
-		return nil
-	}
-
-	filterAccountMap := make(map[string]*sdk.AccAddress)
-	for _, account := range accounts {
-		filterAccountMap[bytes2Key(account.Bytes())] = account
-	}
-
-	ret := make([]*sdk.AccAddress, len(filterAccountMap))
-	i := 0
-	for _, acc := range filterAccountMap {
-		ret[i] = acc
-		i++
-	}
-
-	return ret
-}
-
 
 func filterBatch(datas []*Batch) []*Batch {
 	if len(datas) == 0 {
