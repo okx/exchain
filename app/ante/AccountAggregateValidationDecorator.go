@@ -228,5 +228,6 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		}
 		aavd.ak.SetAccount(ctx, recipientAcc)
 	}
-	return next(ctx, tx, simulate)
+	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
+	return next(newCtx, tx, simulate)
 }
