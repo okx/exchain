@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/x/common/analyzer"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,6 +10,9 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"time"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -59,6 +60,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// set external package flags
 			setExternalPackageValue(cmd)
+			types.InitSignatureCache()
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -97,6 +99,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(types.FlagRedisExpire, 300, "delta expiration time. unit is second")
 	cmd.Flags().Int(types.FlagRedisDB, 0, "delta db num")
 	cmd.Flags().Int(types.FlagDeltaVersion, types.DeltaVersion, "Specify delta version")
+	cmd.Flags().Bool(types.FlagFastQuery, false, "enable watch db or not")
 
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
@@ -130,6 +133,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 	return cmd
 }
 

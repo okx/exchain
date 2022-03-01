@@ -23,7 +23,7 @@ func NewAccountVerificationDecorator(ak auth.AccountKeeper, ek EVMKeeper) Accoun
 
 // AnteHandle validates the signature and returns sender address
 func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	if !ctx.IsCheckTx() {
+	if !ctx.IsCheckTx() || simulate {
 		return next(ctx, tx, simulate)
 	}
 
@@ -32,7 +32,6 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	// sender address should be in the tx cache from the previous AnteHandle call
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
