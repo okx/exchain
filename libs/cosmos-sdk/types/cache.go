@@ -96,6 +96,10 @@ func NewChainCache() *Cache {
 }
 
 func NewCache(parent *Cache, useCache bool) *Cache {
+	evmParams := EvmParamsCopy{IsUpdate: false}
+	if parent != nil {
+		evmParams = parent.GetEvmParam()
+	}
 	return &Cache{
 		useCache: useCache,
 		parent:   parent,
@@ -104,7 +108,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 		accMap:     make(map[ethcmn.Address]*accountWithCache, 0),
 		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
-		evmParams:  EvmParamsCopy{IsUpdate: true},
+		evmParams:  evmParams,
 	}
 
 }
@@ -222,6 +226,10 @@ func (c *Cache) GetEvmParam() EvmParamsCopy {
 
 func (c *Cache) UpdateEvmParams(paramsCopy EvmParamsCopy) {
 	c.evmParams = paramsCopy
+	if c.parent != nil {
+		c.parent.UpdateEvmParams(paramsCopy)
+	}
+	return
 }
 
 func (c *Cache) writeStorage(updateDirty bool) {

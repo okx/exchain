@@ -528,7 +528,27 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+		evmParams := csdb.ctx.Cache().GetEvmParam()
+		if evmParams.IsUpdate {
+			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+			csdb.params = &params
+			csdb.ctx.Cache().UpdateEvmParams(sdk.EvmParamsCopy{IsUpdate: false,
+				EnableCreate:                      params.EnableCreate,
+				EnableCall:                        params.EnableCall,
+				ExtraEIPs:                         params.ExtraEIPs,
+				EnableContractDeploymentWhitelist: params.EnableContractDeploymentWhitelist,
+				EnableContractBlockedList:         params.EnableContractBlockedList,
+				MaxGasLimitPerTx:                  params.MaxGasLimitPerTx})
+		}
+
+		params = NewParams(
+			evmParams.EnableCreate,
+			evmParams.EnableCall,
+			evmParams.EnableContractDeploymentWhitelist,
+			evmParams.EnableContractBlockedList,
+			evmParams.MaxGasLimitPerTx,
+			evmParams.ExtraEIPs...)
+
 		csdb.params = &params
 	}
 	return *csdb.params
