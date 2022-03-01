@@ -23,7 +23,6 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	if simulate {
 		return next(ctx, tx, simulate)
 	}
-
 	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
 
 	signers := tx.GetSigners()

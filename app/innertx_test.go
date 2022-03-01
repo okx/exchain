@@ -1,6 +1,10 @@
 package app
 
 import (
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
@@ -21,9 +25,6 @@ import (
 	staking_keeper "github.com/okex/exchain/x/staking/keeper"
 	staking_types "github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"testing"
-	"time"
 )
 
 var (
@@ -53,11 +54,15 @@ type InnerTxTestSuite struct {
 
 func (suite *InnerTxTestSuite) SetupTest() {
 	checkTx := false
+	chain_id := "ethermint-3"
 
 	suite.app = Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
 	suite.stateDB = evm_types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.codec = codec.New()
+
+	err := ethermint.SetChainId(chain_id)
+	suite.Nil(err)
 
 	params := evm_types.DefaultParams()
 	params.EnableCreate = true
