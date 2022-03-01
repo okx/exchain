@@ -216,7 +216,8 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 
 		recipientAcc := aavd.sk.GetModuleAccount(ctx, types.FeeCollectorName)
 		if recipientAcc == nil {
-			panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", types.FeeCollectorName))
+			aavd.ak.Logger(ctx).Error("AccountAggregateValidateDecorator", "getfeeacc", "err")
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", types.FeeCollectorName)
 		}
 		feeCoin := recipientAcc.GetCoins()
 		feeNewCoin := feeCoin.Add(feeAmt...)
