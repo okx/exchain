@@ -232,6 +232,12 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 				sdkerrors.ErrInvalidSequence,
 				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
 			)
+		} else {
+			seq++
+			if err := acc.SetSequence(seq); err != nil {
+				panic(err)
+			}
+			aavd.ak.SetAccount(ctx, acc)
 		}
 	}
 
