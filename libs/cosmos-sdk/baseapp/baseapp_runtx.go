@@ -136,7 +136,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
-
+	if err != nil {
+		app.logger.Error("ante", "err", err.Error(), "txhash", types.Bytes2Hash(anteCtx.TxBytes(), anteCtx.BlockHeight()))
+	}
 	// 3. AnteOther
 	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
