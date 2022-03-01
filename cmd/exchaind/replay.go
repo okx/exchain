@@ -61,6 +61,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// set external package flags
 			setExternalPackageValue(cmd)
+			types.InitSignatureCache()
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -133,6 +134,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 	return cmd
 }
 
