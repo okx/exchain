@@ -210,17 +210,16 @@ func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
 	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
 }
 
-func (w *Watcher) ExecuteDelayEraseKey() {
+func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
 	if !w.Enabled() {
 		return
 	}
-	if len(w.delayEraseKey) <= 0 {
+	if len(delayEraseKey) <= 0 {
 		return
 	}
-	for _, k := range w.delayEraseKey {
+	for _, k := range delayEraseKey {
 		w.store.Delete(k)
 	}
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
@@ -375,10 +374,12 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.dispatchJob(func() { w.commitBatch(batch) })
+	delayEraseKey := make([][]byte, 0)
+	w.delayEraseKey, delayEraseKey = delayEraseKey, w.delayEraseKey
+	w.dispatchJob(func() { w.commitBatch(batch, delayEraseKey) })
 }
 
-func (w *Watcher) CommitWatchData(data WatchData) {
+func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 	if data.Size() == 0 {
 		return
 	}
@@ -395,6 +396,8 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.commitBloomData(data.BloomData)
 	}
 
+	w.ExecuteDelayEraseKey(delayEraseKey)
+
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
 		for i, _ := range data.Batches {
@@ -404,7 +407,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	}
 }
 
-func (w *Watcher) commitBatch(batch []WatchMessage) {
+func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
 	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
 		filterMap[bytes2Key(b.GetKey())] = b
@@ -423,6 +426,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			}
 		}
 	}
+	w.ExecuteDelayEraseKey(delayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(batch))
@@ -504,8 +508,9 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 		panic("use watch data failed")
 	}
 	w.delayEraseKey = wd.DelayEraseKey
-
-	w.dispatchJob(func() { w.CommitWatchData(wd) })
+	delayEraseKey := make([][]byte, 0)
+	w.delayEraseKey, delayEraseKey = delayEraseKey, w.delayEraseKey
+	w.dispatchJob(func() { w.CommitWatchData(wd, delayEraseKey) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
