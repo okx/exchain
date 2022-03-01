@@ -298,20 +298,22 @@ func NewOKExChainApp(
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
+	proxy:=codec.NewMarshalProxy(cc,cdc)
+
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
-	bankKeeper := bank.NewBaseKeeper(
-		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
+	bankKeeper := bank.NewBaseKeeperWithMarshal(
+		&app.AccountKeeper,proxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
-	proxy:=codec.NewMarshalProxy(cc,cdc)
+
 
 	stakingKeeper := staking.NewKeeper(
 		cdc,proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
@@ -623,6 +625,12 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 	m := make(map[string]bam.Interceptor)
 	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "app/simulate"
+		return nil
+	}, func(resp *abci.ResponseQuery) {
+
+	})
+	m["/cosmos.bank.v1beta1.Query/AllBalances"]=bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
+		req.Path="custom/bank/grpc_balances"
 		return nil
 	}, func(resp *abci.ResponseQuery) {
 

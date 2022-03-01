@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -34,6 +35,8 @@ type BaseKeeper struct {
 
 	ak         types.AccountKeeper
 	paramSpace params.Subspace
+
+	marshal *codec.MarshalProxy
 }
 
 // NewBaseKeeper returns a new BaseKeeper
@@ -47,6 +50,13 @@ func NewBaseKeeper(
 		ak:             ak,
 		paramSpace:     ps,
 	}
+}
+
+func NewBaseKeeperWithMarshal(ak types.AccountKeeper, marshal *codec.MarshalProxy, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
+) BaseKeeper {
+	ret := NewBaseKeeper(ak, paramSpace, blacklistedAddrs)
+	ret.marshal = marshal
+	return ret
 }
 
 // DelegateCoins performs delegation by deducting amt coins from an account with
