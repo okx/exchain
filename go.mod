@@ -14,14 +14,14 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-	github.com/confio/ics23/go v0.7.0
+	github.com/confio/ics23/go v0.6.6
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/go-errors/errors v1.0.1
-	github.com/go-kit/kit v0.10.0
+	github.com/go-kit/kit v0.12.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gogo/protobuf v1.3.2
