@@ -2,10 +2,8 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"strings"
 	"sync"
 	"time"
@@ -195,7 +193,9 @@ func (b *Block) Hash() tmbytes.HexBytes {
 		return nil
 	}
 	b.fillHeader()
-	return b.Header.Hash()
+	// 这里又需要适配
+	//return b.Header.Hash()
+	return b.Header.IBCHash()
 }
 
 // MakePartSet returns a PartSet containing parts of a serialized block.
@@ -609,21 +609,22 @@ func (h *Header) IBCHash() tmbytes.HexBytes {
 		ibccdcEncode(h.EvidenceHash),
 		ibccdcEncode(h.ProposerAddress),
 	})
-	logrusplugin.Info("info",
-		"chainId", h.ChainID,
-		"height", h.Height,
-		"hbz", hex.EncodeToString(hbz),
-		"pbt", hex.EncodeToString(pbt),
-		"bzbi", hex.EncodeToString(bzbi),
-		"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
-		"dataHash", hex.EncodeToString(h.DataHash),
-		"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
-		"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
-		"AppHash", hex.EncodeToString(h.AppHash),
-		"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
-		"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
-		"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
-		"ret", hex.EncodeToString(ret))
+	//logrusplugin.Info("info",
+	//	"chainId", h.ChainID,
+	//	"height", h.Height,
+	//	"hbz", hex.EncodeToString(hbz),
+	//	"pbt", hex.EncodeToString(pbt),
+	//	"bzbi", hex.EncodeToString(bzbi),
+	//	"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
+	//	"dataHash", hex.EncodeToString(h.DataHash),
+	//	"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
+	//	"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
+	//	"AppHash", hex.EncodeToString(h.AppHash),
+	//	"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
+	//	"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
+	//	"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
+	//	"ret", hex.EncodeToString(ret))
+
 	return ret
 }
 
