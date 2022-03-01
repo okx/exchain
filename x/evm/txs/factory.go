@@ -17,10 +17,10 @@ func NewFactory(config base.Config) *factory {
 }
 
 func (factory *factory) CreateTx() (Tx, error) {
-	if factory == nil {
+	if factory == nil || factory.Keeper == nil {
 		return nil, fmt.Errorf("evm txs factory not inited")
 	}
-	if factory.Ctx.IsTraceTx() {
+	if factory.Ctx.IsTraceTxLog() {
 		return tracetxlog.NewTx(factory.Config), nil
 	} else if factory.Ctx.IsCheckTx() {
 		return check.NewTx(factory.Config), nil

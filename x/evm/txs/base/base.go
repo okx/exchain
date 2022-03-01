@@ -38,22 +38,27 @@ type Tx struct {
 	StateTransition types.StateTransition
 }
 
-// DecorateResult TraceTxLog situation Decorate the result
-// it was replaced to trace logs when trace tx even if err != nil
-func (tx *Tx) DecorateResult(inResult *Result, inErr error) (result *sdk.Result, err error) {
-	if inErr != nil {
-		return nil, inErr
-	}
-	return inResult.ExecResult.Result, inErr
+// Prepare convert msg to state transition
+func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
+	tx.AnalyzeStart(bam.Txhash)
+	defer tx.AnalyzeStop(bam.Txhash)
+
+	tx.StateTransition, err = msg2st(&tx.Ctx, tx.Keeper, msg)
+	return
 }
 
-func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
-	tx.Keeper.Watcher.SaveTransactionReceipt(
-		watcher.TransactionFailed,
-		msg,
-		*tx.StateTransition.TxHash,
-		uint64(tx.Keeper.TxCount-1),
-		&types.ResultData{}, tx.Ctx.GasMeter().GasConsumed())
+// SaveTx since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
+// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different with the
+// other nodes, causing a consensus error
+func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
+	tx.AnalyzeStart(bam.SaveTx)
+	defer tx.AnalyzeStop(bam.SaveTx)
+
+	tx.Keeper.Watcher.SaveEthereumTx(msg, *tx.StateTransition.TxHash, uint64(tx.Keeper.TxCount))
+	// Prepare db for logs
+	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
+	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
+	tx.Keeper.TxCount++
 }
 
 func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
@@ -101,6 +106,24 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	return
+}
+
+// DecorateResult TraceTxLog situation Decorate the result
+// it was replaced to trace logs when trace tx even if err != nil
+func (tx *Tx) DecorateResult(inResult *Result, inErr error) (result *sdk.Result, err error) {
+	if inErr != nil {
+		return nil, inErr
+	}
+	return inResult.ExecResult.Result, inErr
+}
+
+func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
+	tx.Keeper.Watcher.SaveTransactionReceipt(
+		watcher.TransactionFailed,
+		msg,
+		*tx.StateTransition.TxHash,
+		uint64(tx.Keeper.TxCount-1),
+		&types.ResultData{}, tx.Ctx.GasMeter().GasConsumed())
 }
 
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {
@@ -175,27 +198,4 @@ func NewTx(config Config) *Tx {
 		Ctx:    config.Ctx,
 		Keeper: config.Keeper,
 	}
-}
-
-// Prepare convert msg to state transition
-func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
-	tx.AnalyzeStart(bam.Txhash)
-	defer tx.AnalyzeStop(bam.Txhash)
-
-	tx.StateTransition, err = msg2st(&tx.Ctx, tx.Keeper, msg)
-	return
-}
-
-// SaveTx since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
-// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different with the
-// other nodes, causing a consensus error
-func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
-	tx.AnalyzeStart(bam.SaveTx)
-	defer tx.AnalyzeStop(bam.SaveTx)
-
-	tx.Keeper.Watcher.SaveEthereumTx(msg, *tx.StateTransition.TxHash, uint64(tx.Keeper.TxCount))
-	// Prepare db for logs
-	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
-	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
-	tx.Keeper.TxCount++
 }
