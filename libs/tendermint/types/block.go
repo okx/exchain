@@ -6,7 +6,6 @@ import (
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
-	tmmc "github.com/tendermint/tendermint/proto/tendermint/types"
 	"strings"
 	"sync"
 	"time"
@@ -1659,13 +1658,13 @@ func (blockID *BlockID) ToProto() tmproto.BlockID {
 //	}
 //}
 
-func (blockID *BlockID) ToIBCProto() tmmc.BlockID {
+func (blockID *BlockID) ToIBCProto() tmproto.BlockID {
 	if blockID == nil {
-		return tmmc.BlockID{}
+		return tmproto.BlockID{}
 	}
-	return tmmc.BlockID{
-		Hash:          blockID.Hash,
-		PartSetHeader: blockID.PartsHeader.ToIBCProto(),
+	return tmproto.BlockID{
+		Hash:                 blockID.Hash,
+		PartsHeader:          blockID.PartsHeader.ToIBCProto(),
 	}
 }
 
