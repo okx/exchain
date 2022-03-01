@@ -133,7 +133,7 @@ func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegat
 		)
 	}
 
-	if err = keeper.setCoinsToAccount(ctx, moduleAccAddr, moduleAcc, newCoins); err != nil {
+	if err = keeper.SetCoins(ctx, moduleAccAddr, newCoins); err != nil {
 		return err
 	}
 
@@ -372,8 +372,8 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	sizer, _ := keeper.ak.(authexported.SizerAccountKeeper)
-	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || !authexported.TryAddGetAccountGas(ctx.GasMeter(), sizer, acc) {
+	sizer, isSizer := keeper.ak.(authexported.SizerAccountKeeper)
+	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || !isSizer || !authexported.TryAddGetAccountGas(ctx.GasMeter(), sizer, acc) {
 		acc = keeper.ak.GetAccount(ctx, addr)
 	}
 	if acc == nil {

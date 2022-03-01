@@ -174,9 +174,8 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var acc exported.Account
 
 	if !simulate {
-		acc = avd.ak.GetAccount(ctx, address)
-
 		if ctx.IsCheckTx() {
+			acc = avd.ak.GetAccount(ctx, address)
 			if acc == nil {
 				acc = avd.ak.NewAccountWithAddress(ctx, address)
 				avd.ak.SetAccount(ctx, acc)
