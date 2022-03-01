@@ -1342,8 +1342,26 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 	return bc.IsAllMethodBlocked()
 }
 
+var (
+	blockedCache = make(map[string]BlockedContract, 0)
+)
+
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+	if len(blockedCache) == 0 {
+		bcl := csdb.GetContractMethodBlockedList()
+		for i, _ := range bcl {
+			blockedCache[bcl[i].Address.String()] = bcl[i]
+		}
+	} else {
+		bc, ok := blockedCache[contractAddr.String()]
+		if ok {
+			return &bc
+		} else {
+			return nil
+		}
+	}
+
 	//use dbAdapter for watchdb or prefixdb
 	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	vaule := bs.Get(contractAddr)
