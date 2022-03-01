@@ -54,6 +54,17 @@ type codeWithCache struct {
 	isDirty bool
 }
 
+//evm params copy
+type EvmParamsCopy struct {
+	EnableCreate                      bool
+	EnableCall                        bool
+	ExtraEIPs                         []int
+	EnableContractDeploymentWhitelist bool
+	EnableContractBlockedList         bool
+	MaxGasLimitPerTx                  uint64
+	IsUpdate                          bool
+}
+
 type Cache struct {
 	useCache  bool
 	parent    *Cache
@@ -62,6 +73,7 @@ type Cache struct {
 	storageMap map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache
 	accMap     map[ethcmn.Address]*accountWithCache
 	codeMap    map[ethcmn.Hash]*codeWithCache
+	evmParams  EvmParamsCopy
 }
 
 func initCacheParam() {
@@ -92,6 +104,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 		accMap:     make(map[ethcmn.Address]*accountWithCache, 0),
 		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
+		evmParams:  EvmParamsCopy{IsUpdate: true},
 	}
 
 }
@@ -201,6 +214,14 @@ func (c *Cache) Write(updateDirty bool) {
 	c.writeStorage(updateDirty)
 	c.writeAcc(updateDirty)
 	c.writeCode(updateDirty)
+}
+
+func (c *Cache) GetEvmParam() EvmParamsCopy {
+	return c.evmParams
+}
+
+func (c *Cache) UpdateEvmParams(paramsCopy EvmParamsCopy) {
+	c.evmParams = paramsCopy
 }
 
 func (c *Cache) writeStorage(updateDirty bool) {

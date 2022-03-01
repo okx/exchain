@@ -147,25 +147,6 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		)
 	}
 
-	// on InitChain make sure account number == 0
-	if ctx.BlockHeight() == 0 && acc.GetAccountNumber() != 0 {
-		return ctx, sdkerrors.Wrapf(
-			sdkerrors.ErrInvalidSequence,
-			"invalid account number for height zero (got %d)", acc.GetAccountNumber(),
-		)
-	}
-
-	evmDenom := sdk.DefaultBondDenom
-
-	// validate sender has enough funds to pay for gas cost
-	balance := acc.GetCoins().AmountOf(evmDenom)
-	if balance.BigInt().Cmp(msgEthTx.Cost()) < 0 {
-		return ctx, sdkerrors.Wrapf(
-			sdkerrors.ErrInsufficientFunds,
-			"sender balance < tx gas cost (%s%s < %s%s)", balance.String(), evmDenom, sdk.NewDecFromBigIntWithPrec(msgEthTx.Cost(), sdk.Precision).String(), evmDenom,
-		)
-	}
-
 	seq := acc.GetSequence()
 	if msgEthTx.Data.AccountNonce != seq {
 		return ctx, sdkerrors.Wrapf(
