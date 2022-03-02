@@ -22,6 +22,7 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 		}
 		txInBlock++
 		if rs.ResultData == nil {
+			fmt.Println("billll", index)
 			continue
 		}
 
