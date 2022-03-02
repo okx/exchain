@@ -88,7 +88,11 @@ func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Contex
 }
 
 var (
-	pLog *ScfLog
+	pLog = &ScfLog{
+		prePare: time.Duration(0),
+		runTx:   time.Duration(0),
+		async:   time.Duration(0),
+	}
 )
 
 type ScfLog struct {
