@@ -239,8 +239,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 
+	// call evm hooks
 	receipt := &ethtypes.Receipt{
-		//Type:              tx.Type(),
+		//Type:              ethtypes.DynamicFeeTxType,// TODO: hardcode
 		PostState:         nil, // TODO: intermediate state root
 		Status:            ethtypes.ReceiptStatusSuccessful,
 		CumulativeGasUsed: 0, // TODO: cumulativeGasUsed
@@ -251,7 +252,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		GasUsed:           executionResult.GasInfo.GasConsumed,
 		BlockHash:         k.GetHeightHash(ctx, uint64(ctx.BlockHeight())),
 		BlockNumber:       big.NewInt(ctx.BlockHeight()),
-		//TransactionIndex:  txConfig.TxIndex,
+		TransactionIndex:  uint(k.TxCount),
 	}
 	if err = k.PostTxProcessing(tmpCtx, st.Sender, st.Recipient, receipt); err != nil {
 		k.Logger(ctx).Error("tx post processing failed", "error", err)
@@ -260,6 +261,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		commit()
 		ctx.EventManager().EmitEvents(tmpCtx.EventManager().Events())
 	}
+
 	if !st.Simulate {
 		if innerTxs != nil {
 			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
