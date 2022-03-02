@@ -221,25 +221,21 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			)
 		}
 
+		// account would not be updated
 		ctx, err = nounceVertification(ctx, acc, msgEthTx)
 		if err != nil {
 			return ctx, err
 		}
 
-		// fetch sender account from signature
-		acc = getAccount(&avd.ak, &ctx, address, acc)
-		if acc == nil {
-			return ctx, sdkerrors.Wrapf(
-				sdkerrors.ErrUnknownAddress,
-				"sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
-			)
-		}
+		// consume gas for compatible
+		ctx.GasMeter().ConsumeGas(getAccountGas(&avd.ak, acc), "get account")
 
+		// account would be updated
 		ctx, err = ethGasConsume(ctx, acc, msgEthTx, simulate, avd.sk)
 		if err != nil {
 			return ctx, err
 		}
-		acc = nil // account have be updated
+		acc = nil // account has be updated
 	}
 
 	incrementSeq(ctx, msgEthTx, avd.ak)

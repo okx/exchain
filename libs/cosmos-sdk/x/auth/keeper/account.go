@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -109,13 +107,11 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 	}
 }
 
-func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) (int, error) {
-	if acc == nil {
-		return 0, errors.New("account should not be nil")
-	}
+func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) int {
 	if sizer, ok := acc.(amino.Sizer); ok {
 		// typeprefix + amino bytes
-		return 4 + sizer.AminoSize(ak.cdc), nil
+		return 4 + sizer.AminoSize(ak.cdc)
+	} else {
+		return len(ak.cdc.MustMarshalBinaryBare(acc))
 	}
-	return 0, errors.New("account doesn't implement amino.Sizer")
 }
