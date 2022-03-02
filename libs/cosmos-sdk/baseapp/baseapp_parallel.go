@@ -274,33 +274,39 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			fmt.Println("checkConfig", preBase, res.counter)
 			if res.Conflict(preMs, asCache, pm.cms) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				fmt.Println("cocccccccccccccc", txIndex)
-				rerunIdx++
-				s.reRun = true
-				res = app.deliverTxWithCache(txs[txIndex], txIndex)
-				txReps[txIndex] = res
 
-				nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
+				if pm.isRunning(txIndex) {
+					runningTaskID := pm.runningStats(txIndex)
+					pm.markFailed(runningTaskID)
+					break
+				} else {
+					rerunIdx++
+					s.reRun = true
+					res = app.deliverTxWithCache(txs[txIndex], txIndex)
+					txReps[txIndex] = res
 
-				if ok {
-					pp := nn
-					for true {
-						txReps[pp] = nil
-						pp, ok = app.parallelTxManage.nextTxInGroup[pp]
-						if !ok {
-							break
+					nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
+
+					if ok {
+						pp := nn
+						for true {
+							txReps[pp] = nil
+							pp, ok = app.parallelTxManage.nextTxInGroup[pp]
+							if !ok {
+								break
+							}
+						}
+
+						if !pm.isRunning(nn) {
+							txReps[nn] = nil
+							fmt.Println("RRRRRRRRRR-----b chongtu end nextIngroup", nn)
+							app.parallelTxManage.setTxStatus(nn, true)
+							go app.asyncDeliverTx(txs[nn], nn)
+						} else {
+							runningTaskID := pm.runningStats(nn)
+							pm.markFailed(runningTaskID)
 						}
 					}
-
-					if !pm.isRunning(nn) {
-						txReps[nn] = nil
-						fmt.Println("RRRRRRRRRR-----b chongtu end nextIngroup", nn)
-						app.parallelTxManage.setTxStatus(nn, true)
-						go app.asyncDeliverTx(txs[nn], nn)
-					} else {
-						runningTaskID := pm.runningStats(nn)
-						pm.markFailed(runningTaskID)
-					}
-
 				}
 
 			}
