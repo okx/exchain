@@ -61,7 +61,7 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 
 	deltaInfo := &DeltaInfo{
 		from:          "0x01",
-		deletaLen:     1000,
+		deltaLen:      1000,
 		abciResponses: &ABCIResponses{},
 		treeDeltaMap:  iavl.TreeDeltaMap{},
 	}

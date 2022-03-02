@@ -155,7 +155,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 		deltaLen := 0
 		if deltaInfo != nil {
 			applied = true
-			deltaLen = deltaInfo.deletaLen
+			deltaLen = deltaInfo.deltaLen
 		}
 
 		dc.statistic(applied, len(abciResponses.DeliverTxs), deltaInfo)
@@ -369,7 +369,7 @@ func (dc *DeltaContext) downloadRoutine() {
 		// unmarshal delta bytes to delta info
 		deltaInfo := &DeltaInfo{
 			from:        delta.From,
-			deletaLen:   delta.Size(),
+			deltaLen:    delta.Size(),
 			deltaHeight: delta.Height,
 		}
 		err = deltaInfo.bytes2DeltaInfo(&delta.Payload)

@@ -267,7 +267,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 	var err error
 
 	if deltaInfo != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deletaLen)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
