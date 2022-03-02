@@ -228,7 +228,9 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 
 		// consume gas for compatible
-		ctx.GasMeter().ConsumeGas(getAccountGas(&avd.ak, acc), "get account")
+		gas := getAccountGas(&avd.ak, acc)
+		ctx.GasMeter().ConsumeGas(gas, "get account")
+		// fmt.Printf("gas used: %d; changed: %d\n", ctx.GasMeter().GasConsumed(), gas)
 
 		// account would be updated
 		ctx, err = ethGasConsume(ctx, acc, gas, msgEthTx, simulate, avd.sk)
