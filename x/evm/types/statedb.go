@@ -529,7 +529,7 @@ func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
 		evmParams := csdb.ctx.Cache().GetEvmParam()
-		if evmParams.IsUpdate {
+		if evmParams.IsUpdate || evmParams.MaxGasLimitPerTx == 0 {
 			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 			csdb.params = &params
 			csdb.ctx.Cache().UpdateEvmParams(sdk.EvmParamsCopy{IsUpdate: false,
