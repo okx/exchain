@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -241,15 +240,12 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	if header.Height == 5810720 {
+	if header.Height == 5810701 {
 		cnt := 0
 		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, sKey sdk.StoreKey) bool {
 			if isDirty {
 				//fmt.Println("commit", hex.EncodeToString(key), hex.EncodeToString(value))
 				cnt++
-				if hex.EncodeToString(key) == "0134fd085d4f6420a5429031d55b11d0d3b3245fec" {
-					fmt.Println("commit---", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
-				}
 			}
 			return true
 		}, nil)

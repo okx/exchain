@@ -126,6 +126,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 
 	if mode == runTxModeDeliverInAsync {
+		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txBytes)
 		info.msCacheAnte = msCacheAnte
 		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
@@ -222,8 +223,6 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 		)
 
 	default:
-		fmt.Println("fake~!!!!!!!!!!!!!!!!!")
-		debug.PrintStack()
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrPanic, fmt.Sprintf(
 				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
