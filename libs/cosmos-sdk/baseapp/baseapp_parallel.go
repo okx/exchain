@@ -250,7 +250,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 					}
 				}
 
-				if needRun {
+				if needRun && !pm.isRunning(nextTx) {
 					fmt.Println(" RRRRRRRRRR----- needRunNext", nextTx)
 					app.parallelTxManage.setTxStatus(nextTx, true)
 					go app.asyncDeliverTx(txs[nextTx], nextTx)
