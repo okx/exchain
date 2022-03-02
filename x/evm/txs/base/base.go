@@ -42,7 +42,6 @@ func NewTx(config Config) *Tx {
 	}
 }
 
-
 // Prepare convert msg to state transition
 func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	tx.AnalyzeStart(bam.Txhash)

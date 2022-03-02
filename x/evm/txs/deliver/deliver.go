@@ -13,6 +13,7 @@ import (
 	"math/big"
 )
 
+
 type Tx struct {
 	*base.Tx
 }
@@ -115,3 +116,4 @@ func (tx *Tx) AnalyzeStart(tag string) {
 func (tx *Tx) AnalyzeStop(tag string) {
 	analyzer.StopTxLog(tag)
 }
+

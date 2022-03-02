@@ -13,3 +13,4 @@ func NewTx(config base.Config) *Tx {
 		Tx: base.NewTx(config),
 	}
 }
+
