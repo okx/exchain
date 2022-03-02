@@ -240,17 +240,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	if header.Height == 5810727 {
-		cnt := 0
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, sKey sdk.StoreKey) bool {
-			if isDirty {
-				//fmt.Println("commit", hex.EncodeToString(key), hex.EncodeToString(value))
-				cnt++
-			}
-			return true
-		}, nil)
-		fmt.Println("commit-cnt", cnt)
-	}
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
