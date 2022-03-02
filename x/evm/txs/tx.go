@@ -82,7 +82,6 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		senderAccount := tx.GetSenderAccount()
 		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
 		if e := recover(); e != nil {
-			// TODO check old code path, simulate situation should not reset
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
@@ -94,7 +93,6 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	baseResult, err = tx.Transition(config)
 	if err != nil {
 		tx.RestoreWatcherTransactionReceipt(msg)
-		// TODO old code (trace tx log situation )path may cause panic
 		result, err = tx.DecorateResult(&baseResult, err)
 
 		return
