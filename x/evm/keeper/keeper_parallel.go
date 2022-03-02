@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -58,6 +59,9 @@ func NewLogManager() *LogsManager {
 func (l *LogsManager) Set(txBytes string, value TxResult) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if _, ok := l.Results[txBytes]; ok {
+		fmt.Println("attention!!!!!!!!", hex.EncodeToString([]byte(txBytes)), value.Err, value.ResultData.TxHash.String())
+	}
 	l.Results[txBytes] = value
 }
 
