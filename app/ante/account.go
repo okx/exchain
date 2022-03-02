@@ -183,7 +183,7 @@ func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.Acco
 	for _, addr := range msgEthTx.GetSigners() {
 		var sacc exported.Account
 		if bytes.Equal(addr, acc.GetAddress().Bytes()) {
-			sacc = getAccount(&ak, &ctx, addr, sacc)
+			sacc = getAccount(&ak, &ctx, addr, acc)
 		} else {
 			sacc = ak.GetAccount(ctx, addr)
 		}
