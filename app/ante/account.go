@@ -126,7 +126,7 @@ func nounceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtype
 	return ctx, nil
 }
 
-func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (sdk.Context, error) {
+func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (sdk.Context, error) {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -149,7 +149,7 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgE
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		ctx.SetFromAccount(acc)
+		ctx.SetAccountCache(&sdk.AccountCache{FromAcc: acc, FromAccGettedGas: accGetGas})
 		err = auth.DeductFees(sk, ctx, acc, feeAmt)
 		if err != nil {
 			return ctx, err
@@ -231,7 +231,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		ctx.GasMeter().ConsumeGas(getAccountGas(&avd.ak, acc), "get account")
 
 		// account would be updated
-		ctx, err = ethGasConsume(ctx, acc, msgEthTx, simulate, avd.sk)
+		ctx, err = ethGasConsume(ctx, acc, gas, msgEthTx, simulate, avd.sk)
 		if err != nil {
 			return ctx, err
 		}

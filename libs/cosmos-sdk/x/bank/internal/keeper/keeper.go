@@ -282,21 +282,21 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 	}
 
 	var fromAcc, toAcc authexported.Account
-	if ctx.FromAccount() != nil {
-		fromAcc = ctx.FromAccount().(authexported.Account)
-		if ctx.ToAccount() != nil {
-			toAcc = ctx.ToAccount().(authexported.Account)
-		}
+	var fromAccGas, toAccGas sdk.Gas
+	if ctx.AccountCache() != nil {
+		fromAcc, _ = ctx.AccountCache().FromAcc.(authexported.Account)
+		toAcc, _ = ctx.AccountCache().ToAcc.(authexported.Account)
+		fromAccGas, toAccGas = ctx.AccountCache().FromAccGettedGas, ctx.AccountCache().ToAccGettedGas
 	}
 
-	fromAcc = keeper.getAccount(&ctx, fromAddr, fromAcc)
-	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, amt)
+	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
+	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)
 	if err != nil {
 		return err
 	}
 
-	toAcc = keeper.getAccount(&ctx, toAddr, toAcc)
-	_, err = keeper.addCoins(ctx, toAddr, toAcc, amt)
+	toAcc, toAccGas = keeper.getAccount(&ctx, toAddr, toAcc, toAccGas)
+	_, err = keeper.addCoins(ctx, toAddr, toAcc, toAccGas, amt)
 	if err != nil {
 		return err
 	}
@@ -312,10 +312,10 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 	acc := keeper.ak.GetAccount(ctx, addr)
-	return keeper.subtractCoins(ctx, addr, acc, amt)
+	return keeper.subtractCoins(ctx, addr, acc, 0, amt)
 }
 
-func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) (sdk.Coins, error) {
+func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
 	oldCoins, spendableCoins := sdk.NewCoins(), sdk.NewCoins()
 	if acc != nil {
 		oldCoins = acc.GetCoins()
@@ -332,7 +332,7 @@ func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress
 	}
 
 	newCoins := oldCoins.Sub(amt) // should not panic as spendable coins was already checked
-	err := keeper.setCoinsToAccount(ctx, addr, acc, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, accGas, newCoins)
 
 	return newCoins, err
 }
@@ -346,10 +346,10 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	// oldCoins := keeper.GetCoins(ctx, addr)
 
 	acc := keeper.ak.GetAccount(ctx, addr)
-	return keeper.addCoins(ctx, addr, acc, amt)
+	return keeper.addCoins(ctx, addr, acc, 0, amt)
 }
 
-func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) (sdk.Coins, error) {
+func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
 	var oldCoins sdk.Coins
 	if acc == nil {
 		oldCoins = sdk.NewCoins()
@@ -365,7 +365,7 @@ func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc
 		)
 	}
 
-	err := keeper.setCoinsToAccount(ctx, addr, acc, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, accGas, newCoins)
 
 	return newCoins, err
 }
@@ -390,19 +390,29 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	return nil
 }
 
-func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, acc authexported.Account) authexported.Account {
-	if acc == nil || !bytes.Equal(acc.GetAddress(), addr) || keeper.ask == nil || !authexported.TryAddGetAccountGas(ctx.GasMeter(), keeper.ask, acc) {
-		acc = keeper.ak.GetAccount(*ctx, addr)
+func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, acc authexported.Account, getgas sdk.Gas) (authexported.Account, sdk.Gas) {
+	gasMeter := ctx.GasMeter()
+	if acc != nil && bytes.Equal(acc.GetAddress(), addr) {
+		if getgas > 0 {
+			gasMeter.ConsumeGas(getgas, "get account")
+			return acc, getgas
+		}
+		gasBefore := gasMeter.GasConsumed()
+		if authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc) {
+			return acc, gasMeter.GasConsumed() - gasBefore
+		}
 	}
-	return acc
+	gasBefore := gasMeter.GasConsumed()
+	acc = keeper.ak.GetAccount(*ctx, addr)
+	return acc, gasMeter.GasConsumed() - gasBefore
 }
 
-func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, amt sdk.Coins) error {
+func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {
 	if !amt.IsValid() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	acc = keeper.getAccount(&ctx, addr, acc)
+	acc, _ = keeper.getAccount(&ctx, addr, acc, accGas)
 	if acc == nil {
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
 	}

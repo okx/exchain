@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
 )
 
@@ -50,11 +49,22 @@ func (k Keeper) SendCoinsFromAccountToModule(
 	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins,
 ) error {
 
+	gasBefore := ctx.GasMeter().GasConsumed()
 	recipientAcc := k.GetModuleAccount(ctx, recipientModule)
 	if recipientAcc == nil {
 		panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", recipientModule))
 	}
-	ctx.SetToAccount(exported.Account(recipientAcc))
+
+	gasUsed := ctx.GasMeter().GasConsumed() - gasBefore
+	if ctx.AccountCache() != nil {
+		accCache := ctx.AccountCache()
+		accCache.ToAcc = recipientAcc
+		accCache.ToAccGettedGas = gasUsed
+		ctx.SetAccountCache(accCache)
+	} else {
+		ctx.SetAccountCache(&sdk.AccountCache{ToAcc: recipientAcc, ToAccGettedGas: gasUsed})
+	}
+
 	return k.bk.SendCoins(ctx, senderAddr, recipientAcc.GetAddress(), amt)
 }
 

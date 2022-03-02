@@ -46,8 +46,7 @@ type Context struct {
 	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
-	fromAccount    interface{}
-	toAccount      interface{}
+	accountCache   *AccountCache
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -80,20 +79,19 @@ func (c Context) Cache() *Cache {
 	return c.cache
 }
 
-func (c *Context) FromAccount() interface{} {
-	return c.fromAccount
+type AccountCache struct {
+	FromAcc          interface{} // must be auth.Account
+	ToAcc            interface{} // must be auth.Account
+	FromAccGettedGas Gas
+	ToAccGettedGas   Gas
 }
 
-func (c *Context) SetFromAccount(fromAccount interface{}) {
-	c.fromAccount = fromAccount
+func (c *Context) AccountCache() *AccountCache {
+	return c.accountCache
 }
 
-func (c *Context) ToAccount() interface{} {
-	return c.toAccount
-}
-
-func (c *Context) SetToAccount(toAccount interface{}) {
-	c.toAccount = toAccount
+func (c *Context) SetAccountCache(cache *AccountCache) {
+	c.accountCache = cache
 }
 
 func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
