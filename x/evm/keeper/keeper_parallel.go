@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -32,7 +33,11 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 			v.TxIndex = uint(txInBlock)
 			logSize++
 		}
-		//fmt.Println("log", index, rs.ResultData.Bloom.Big().String())
+
+		ss := sha256.New()
+		ss.Write(rs.ResultData.Bloom.Bytes())
+		sum := ss.Sum(nil)
+		fmt.Println("log", index, hex.EncodeToString(sum))
 		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
