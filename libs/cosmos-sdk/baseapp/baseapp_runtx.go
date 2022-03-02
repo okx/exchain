@@ -233,12 +233,6 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 }
 
 func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, index int) {
-	if app.parallelTxManage.isRunning(index) {
-		fmt.Println("isRUnning??", index)
-		return
-	}
-	app.parallelTxManage.setTxStatus(index, true)
-
 	//fmt.Println("run-----", index)
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))

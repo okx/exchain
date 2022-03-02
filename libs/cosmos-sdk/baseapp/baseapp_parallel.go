@@ -235,7 +235,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txReps[receiveTxIndex] = execRes
 		if pm.isFailed(pm.runningStats(receiveTxIndex)) {
 			txReps[receiveTxIndex] = nil
-			fmt.Println("biaoji : receiveTx", "rerun", receiveTxIndex)
+			fmt.Println("RRRRRRRRRR-----biaoji : receiveTx", "rerun", receiveTxIndex)
+			app.parallelTxManage.setTxStatus(receiveTxIndex, true)
 			go app.asyncDeliverTx(txs[receiveTxIndex], receiveTxIndex)
 
 		}
@@ -250,7 +251,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				}
 
 				if needRun {
-					fmt.Println("needRunNext", nextTx)
+					fmt.Println(" RRRRRRRRRR----- needRunNext", nextTx)
+					app.parallelTxManage.setTxStatus(nextTx, true)
 					go app.asyncDeliverTx(txs[nextTx], nextTx)
 				}
 			}
@@ -291,7 +293,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 					if !pm.isRunning(nn) {
 						txReps[nn] = nil
-						fmt.Println("chongtu end nextIngroup", nn)
+						fmt.Println("RRRRRRRRRR-----b chongtu end nextIngroup", nn)
+						app.parallelTxManage.setTxStatus(nn, true)
 						go app.asyncDeliverTx(txs[nn], nn)
 					} else {
 						runningTaskID := pm.runningStats(nn)
@@ -332,7 +335,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				return
 			}
 			if txReps[txIndex] == nil && !pm.isRunning(txIndex) {
-				fmt.Println("Set end", "+1", txIndex)
+				fmt.Println("RRRRRRRRRR-----b Set end", "+1", txIndex)
+				app.parallelTxManage.setTxStatus(txIndex, true)
 				go app.asyncDeliverTx(txs[txIndex], txIndex)
 			}
 
@@ -343,7 +347,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 	for _, group := range groupList {
 		txIndex := group[0]
-		fmt.Println("diyici", txIndex)
+		fmt.Println("RRRRRRRRRR-----b diyici", txIndex)
+		app.parallelTxManage.setTxStatus(txIndex, true)
 		go app.asyncDeliverTx(txs[txIndex], txIndex)
 	}
 
