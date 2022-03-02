@@ -231,9 +231,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		receiveTxIndex := int(execRes.GetCounter())
 
 		fmt.Println("receiveTxIIIIIIII", receiveTxIndex)
-		txReps[receiveTxIndex] = execRes
 		pm.setTxStatus(receiveTxIndex, false)
-
+		txReps[receiveTxIndex] = execRes
 		if pm.isFailed(pm.runningStats(receiveTxIndex)) {
 			txReps[receiveTxIndex] = nil
 			fmt.Println("biaoji : receiveTx", "rerun", receiveTxIndex)
