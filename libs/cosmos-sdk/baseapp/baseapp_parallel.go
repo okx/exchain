@@ -431,7 +431,6 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 
 func (e executeResult) Conflict(preMs sdk.CacheMultiStore, cache *asyncCache, current sdk.CacheMultiStore) bool {
 	if e.ms == nil {
-		fmt.Println("e.ms===nil", e.counter)
 		return true //TODO fix later
 	}
 
