@@ -51,6 +51,7 @@ func CanonicalizeBlockID(blockID BlockID) CanonicalBlockID {
 	}
 }
 
+
 func CanonicalizePartSetHeader(psh PartSetHeader) CanonicalPartSetHeader {
 	return CanonicalPartSetHeader{
 		psh.Hash,
@@ -69,6 +70,8 @@ func CanonicalizeProposal(chainID string, proposal *Proposal) CanonicalProposal 
 		ChainID:   chainID,
 	}
 }
+
+
 
 func CanonicalizeVote(chainID string, vote *Vote) CanonicalVote {
 	return CanonicalVote{
