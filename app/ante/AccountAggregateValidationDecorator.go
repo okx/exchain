@@ -35,6 +35,11 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle1(ctx sdk.Context, tx sd
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
+	evmParams := aavd.evmKeeper.GetParams(ctx)
+	if msgEthTx.GetGas() > evmParams.MaxGasLimitPerTx {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", evmParams.MaxGasLimitPerTx)
+	}
+
 	if ctx.From() != "" {
 		msgEthTx.SetFrom(ctx.From())
 	}
@@ -42,6 +47,10 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle1(ctx sdk.Context, tx sd
 	address := msgEthTx.From()
 	if address.Empty() {
 		panic("sender address cannot be empty")
+	}
+
+	if ok := aavd.evmKeeper.IsContractInBlockedList(ctx, address); ok && evmParams.EnableContractBlockedList {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", address.String())
 	}
 
 	acc := aavd.ak.GetAccount(ctx, address)

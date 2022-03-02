@@ -270,3 +270,8 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
+
+func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.IsContractInBlockedList(addr.Bytes())
+}

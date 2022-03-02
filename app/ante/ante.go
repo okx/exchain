@@ -34,12 +34,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		var anteHandler sdk.AnteHandler
 		if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && !ctx.IsCheckTx() {
 			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-				NewGasLimitDecorator(evmKeeper),
-				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
 				NewEthSigVerificationDecorator(),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				NewAccountAggregateValidateDecorator(ak, sk, evmKeeper),
 			)
 		} else {
