@@ -84,6 +84,7 @@ type AccountCache struct {
 	ToAcc            interface{} // must be auth.Account
 	FromAccGettedGas Gas
 	ToAccGettedGas   Gas
+	IsAnte           bool
 }
 
 func (c *Context) AccountCache() *AccountCache { return c.accountCache }
