@@ -290,16 +290,18 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 
 	atomic.StoreInt64(&dc.lastFetchedHeight, height)
 
-	if deltaInfo.deltaHeight != height {
-		dc.logger.Error("Prepared an invalid delta!!!",
-			"expected-height", height,
-			"mrh", mrh,
-			"delta-height", deltaInfo.deltaHeight)
-		return nil
+	if deltaInfo != nil {
+		if deltaInfo.deltaHeight != height {
+			dc.logger.Error("Prepared an invalid delta!!!",
+				"expected-height", height,
+				"mrh", mrh,
+				"delta-height", deltaInfo.deltaHeight)
+			return nil
+		}
 	}
 
 	dc.logger.Info("Prepare delta", "expected-height", height,
-		"mrh", mrh, "succeed", true, "delta-height", deltaInfo.deltaHeight)
+		"mrh", mrh, "succeed", true)
 	return deltaInfo
 }
 
