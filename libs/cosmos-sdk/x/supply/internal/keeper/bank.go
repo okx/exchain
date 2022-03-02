@@ -56,14 +56,7 @@ func (k Keeper) SendCoinsFromAccountToModule(
 	}
 
 	gasUsed := ctx.GasMeter().GasConsumed() - gasBefore
-	if ctx.AccountCache() != nil {
-		accCache := ctx.AccountCache()
-		accCache.ToAcc = recipientAcc
-		accCache.ToAccGettedGas = gasUsed
-		ctx.SetAccountCache(accCache)
-	} else {
-		ctx.SetAccountCache(&sdk.AccountCache{ToAcc: recipientAcc, ToAccGettedGas: gasUsed})
-	}
+	ctx.UpdateToAccountCache(recipientAcc, gasUsed)
 
 	return k.bk.SendCoins(ctx, senderAddr, recipientAcc.GetAddress(), amt)
 }

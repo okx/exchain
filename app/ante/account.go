@@ -150,14 +150,7 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msg
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		if ctx.AccountCache() != nil {
-			cache := ctx.AccountCache()
-			cache.FromAcc = acc
-			cache.FromAccGettedGas = accGetGas
-			ctx.SetAccountCache(cache)
-		} else {
-			ctx.SetAccountCache(&sdk.AccountCache{FromAcc: acc, FromAccGettedGas: accGetGas})
-		}
+		ctx.UpdateFromAccountCache(acc, accGetGas)
 
 		err = auth.DeductFees(sk, ctx, acc, feeAmt)
 		if err != nil {

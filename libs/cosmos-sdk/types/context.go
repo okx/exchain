@@ -84,15 +84,26 @@ type AccountCache struct {
 	ToAcc            interface{} // must be auth.Account
 	FromAccGettedGas Gas
 	ToAccGettedGas   Gas
-	FromAccSettedGas Gas
 }
 
-func (c *Context) AccountCache() *AccountCache {
-	return c.accountCache
+func (c *Context) AccountCache() *AccountCache { return c.accountCache }
+
+func (c *Context) SetAccountCache(cache *AccountCache) { c.accountCache = cache }
+
+func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
+	if c.accountCache == nil {
+		c.accountCache = &AccountCache{}
+	}
+	c.accountCache.FromAcc = fromAcc
+	c.accountCache.FromAccGettedGas = fromAccGettedGas
 }
 
-func (c *Context) SetAccountCache(cache *AccountCache) {
-	c.accountCache = cache
+func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGettedGas Gas) {
+	if c.accountCache == nil {
+		c.accountCache = &AccountCache{}
+	}
+	c.accountCache.ToAcc = toAcc
+	c.accountCache.ToAccGettedGas = toAccGettedGas
 }
 
 func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }

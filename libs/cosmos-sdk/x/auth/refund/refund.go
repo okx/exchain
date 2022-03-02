@@ -31,13 +31,7 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
 	}
-	if ctx.AccountCache() != nil {
-		cache := ctx.AccountCache()
-		cache.FromAcc = feeCollector
-		cache.FromAccGettedGas = gasUsed
-	} else {
-		ctx.SetAccountCache(&sdk.AccountCache{FromAcc: feeCollector, FromAccGettedGas: gasUsed})
-	}
+	ctx.UpdateFromAccountCache(feeCollector, gasUsed)
 	err := supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.FeeCollectorName, acc, refundFees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())

@@ -297,16 +297,15 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 		return err
 	}
 
+	ctx.UpdateFromAccountCache(fromAcc, 0)
+
 	toAcc, toAccGas = keeper.getAccount(&ctx, toAddr, toAcc, toAccGas)
 	_, err = keeper.addCoins(ctx, toAddr, toAcc, toAccGas, amt)
 	if err != nil {
 		return err
 	}
 
-	ctx.AccountCache().FromAcc = fromAcc
-	ctx.AccountCache().FromAccGettedGas = 0
-	ctx.AccountCache().ToAcc = toAcc
-	ctx.AccountCache().ToAccGettedGas = 0
+	ctx.UpdateToAccountCache(toAcc, 0)
 
 	return nil
 }
