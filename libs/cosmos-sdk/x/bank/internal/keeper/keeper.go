@@ -280,14 +280,16 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 	if !amt.IsValid() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
+	if ctx.AccountCache() == nil {
+		ctx.SetAccountCache(&sdk.AccountCache{})
+	}
 
 	var fromAcc, toAcc authexported.Account
 	var fromAccGas, toAccGas sdk.Gas
-	if ctx.AccountCache() != nil {
-		fromAcc, _ = ctx.AccountCache().FromAcc.(authexported.Account)
-		toAcc, _ = ctx.AccountCache().ToAcc.(authexported.Account)
-		fromAccGas, toAccGas = ctx.AccountCache().FromAccGettedGas, ctx.AccountCache().ToAccGettedGas
-	}
+
+	fromAcc, _ = ctx.AccountCache().FromAcc.(authexported.Account)
+	toAcc, _ = ctx.AccountCache().ToAcc.(authexported.Account)
+	fromAccGas, toAccGas = ctx.AccountCache().FromAccGettedGas, ctx.AccountCache().ToAccGettedGas
 
 	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
 	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)
@@ -300,6 +302,11 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 	if err != nil {
 		return err
 	}
+
+	ctx.AccountCache().FromAcc = fromAcc
+	ctx.AccountCache().FromAccGettedGas = 0
+	ctx.AccountCache().ToAcc = toAcc
+	ctx.AccountCache().ToAccGettedGas = 0
 
 	return nil
 }

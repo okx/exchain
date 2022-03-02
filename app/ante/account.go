@@ -1,6 +1,7 @@
 package ante
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -149,7 +150,15 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msg
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		ctx.SetAccountCache(&sdk.AccountCache{FromAcc: acc, FromAccGettedGas: accGetGas})
+		if ctx.AccountCache() != nil {
+			cache := ctx.AccountCache()
+			cache.FromAcc = acc
+			cache.FromAccGettedGas = accGetGas
+			ctx.SetAccountCache(cache)
+		} else {
+			ctx.SetAccountCache(&sdk.AccountCache{FromAcc: acc, FromAccGettedGas: accGetGas})
+		}
+
 		err = auth.DeductFees(sk, ctx, acc, feeAmt)
 		if err != nil {
 			return ctx, err
@@ -161,7 +170,7 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msg
 	return ctx, nil
 }
 
-func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.AccountKeeper) {
+func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return
 	}
@@ -172,7 +181,12 @@ func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.Acco
 
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
-		var sacc = ak.GetAccount(ctx, addr)
+		var sacc exported.Account
+		if bytes.Equal(addr, acc.GetAddress().Bytes()) {
+			sacc = getAccount(&ak, &ctx, addr, sacc)
+		} else {
+			sacc = ak.GetAccount(ctx, addr)
+		}
 		seq := sacc.GetSequence()
 		if !baseapp.IsMempoolEnablePendingPool() {
 			seq++
@@ -232,15 +246,19 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		ctx.GasMeter().ConsumeGas(gas, "get account")
 		// fmt.Printf("gas used: %d; changed: %d\n", ctx.GasMeter().GasConsumed(), gas)
 
+		ctx.SetAccountCache(&sdk.AccountCache{})
 		// account would be updated
 		ctx, err = ethGasConsume(ctx, acc, gas, msgEthTx, simulate, avd.sk)
 		if err != nil {
 			return ctx, err
 		}
 		acc = nil // account has be updated
+		if ctx.AccountCache() != nil && ctx.AccountCache().FromAcc != nil {
+			acc = ctx.AccountCache().FromAcc.(exported.Account)
+		}
 	}
 
-	incrementSeq(ctx, msgEthTx, avd.ak)
+	incrementSeq(ctx, msgEthTx, avd.ak, acc)
 
 	return next(ctx, tx, simulate)
 }
