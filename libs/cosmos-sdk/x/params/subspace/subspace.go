@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/valyala/fastjson"
+
 	"encoding/json"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -161,6 +163,18 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 			nd, err := sdk.NewDecFromStr(amino.BytesToStr(rawbz))
 			if err == nil {
 				dptr.Int = nd.Int
+				return nil
+			}
+		}
+	}
+	if dec, ok := ptr.(*sdk.DecCoin); ok {
+		v, err := fastjson.Parse(amino.BytesToStr(bz))
+		if err == nil {
+			dec.Denom = string(v.GetStringBytes("denom"))
+			amount := v.GetStringBytes("amount")
+			newDec, err := sdk.NewDecFromStr(amino.BytesToStr(amount))
+			if err == nil {
+				dec.Amount.Int = newDec.Int
 				return nil
 			}
 		}
