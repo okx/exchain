@@ -46,13 +46,17 @@ type EvmTestSuite struct {
 
 func (suite *EvmTestSuite) SetupTest() {
 	checkTx := false
+	chain_id := "ethermint-3"
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
 	suite.codec = codec.New()
+
+	err := ethermint.SetChainId(chain_id)
+	suite.Nil(err)
 
 	params := types.DefaultParams()
 	params.EnableCreate = true

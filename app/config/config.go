@@ -31,7 +31,7 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
-	// nodeKeyWhitelist
+	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 
 	// gas-limit-buffer
@@ -56,6 +56,9 @@ type OecConfig struct {
 
 	// iavl-cache-size
 	iavlCacheSize int
+
+	// enable-wtx
+	enableWtx bool
 }
 
 const (
@@ -71,6 +74,7 @@ const (
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
+	FlagEnableWrappedTx       = "enable-wtx"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -181,6 +185,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
+	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -377,9 +382,18 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 	c.mempoolFlush = value
 }
 
+func (c *OecConfig) GetEnableWtx() bool {
+	return c.enableWtx
+}
+
+func (c *OecConfig) SetEnableWtx(value bool) {
+	c.enableWtx = value
+}
+
 func (c *OecConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
+
 func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 	idList := resolveNodeKeyWhitelist(value)
 
