@@ -275,11 +275,13 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 
 // SetHooks sets the hooks for the EVM module
 // It should be called only once during initialization, it panics if called more than once.
-func (k *Keeper) SetHooks(hooks types.EvmHooks) {
+func (k *Keeper) SetHooks(hooks types.EvmHooks) *Keeper {
 	if k.hooks != nil {
 		panic("cannot set evm hooks twice")
 	}
 	k.hooks = hooks
+
+	return k
 }
 
 // GetHooks gets the hooks for the EVM module
@@ -287,8 +289,8 @@ func (k *Keeper) GetHooks() types.EvmHooks {
 	return k.hooks
 }
 
-// PostTxProcessing delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
-func (k *Keeper) PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
+// CallEvmHooks delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
+func (k *Keeper) CallEvmHooks(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
 	if k.hooks == nil {
 		return nil
 	}

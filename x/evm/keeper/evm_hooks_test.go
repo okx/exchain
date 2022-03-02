@@ -73,7 +73,7 @@ func (suite *KeeperTestSuite) TestEvmHooks() {
 			TxHash: txHash,
 			Logs:   logs,
 		}
-		result := k.PostTxProcessing(ctx, common.Address{}, nil, receipt)
+		result := k.CallEvmHooks(ctx, common.Address{}, nil, receipt)
 
 		tc.expFunc(hook, result)
 	}

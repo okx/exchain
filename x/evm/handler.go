@@ -254,7 +254,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		BlockNumber:       big.NewInt(ctx.BlockHeight()),
 		TransactionIndex:  uint(k.TxCount),
 	}
-	if err = k.PostTxProcessing(tmpCtx, st.Sender, st.Recipient, receipt); err != nil {
+	if err = k.CallEvmHooks(tmpCtx, st.Sender, st.Recipient, receipt); err != nil {
 		k.Logger(ctx).Error("tx post processing failed", "error", err)
 	} else if commit != nil {
 		// PostTxProcessing is successful, commit the tmpCtx

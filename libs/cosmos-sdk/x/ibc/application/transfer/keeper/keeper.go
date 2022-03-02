@@ -28,8 +28,9 @@ type Keeper struct {
 	authKeeper    types.AccountKeeper
 	bankKeeper    types.BankKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
-}
 
+	hooks types.TransferHooks
+}
 
 // NewKeeper creates a new IBC transfer Keeper instance
 func NewKeeper(
@@ -40,7 +41,7 @@ func NewKeeper(
 ) Keeper {
 
 	mm := codec.NewProtoCodec(registry)
-	proxy:=codec.NewMarshalProxy(mm,cdc)
+	proxy := codec.NewMarshalProxy(mm, cdc)
 	// ensure ibc transfer module account is set
 	if addr := authKeeper.GetModuleAddress(types.ModuleName); addr == nil {
 		panic("the IBC transfer module account has not been set")
@@ -62,7 +63,6 @@ func NewKeeper(
 		scopedKeeper:  scopedKeeper,
 	}
 }
-
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
@@ -177,4 +177,3 @@ func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability
 func (k Keeper) Codec() *codec.MarshalProxy {
 	return k.cdc
 }
-
