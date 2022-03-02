@@ -62,7 +62,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 
 	var ethTx MsgEthereumTx
 	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-		tx = ethTx
+		tx = &ethTx
 	}
 	return
 }

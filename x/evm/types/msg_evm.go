@@ -21,9 +21,9 @@ import (
 )
 
 var (
-	_ sdk.Msg    = MsgEthereumTx{}
-	_ sdk.Tx     = MsgEthereumTx{}
-	_ ante.FeeTx = MsgEthereumTx{}
+	_ sdk.Msg    = (*MsgEthereumTx)(nil)
+	_ sdk.Tx     = (*MsgEthereumTx)(nil)
+	_ ante.FeeTx = (*MsgEthereumTx)(nil)
 )
 
 var big8 = big.NewInt(8)
@@ -45,7 +45,7 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
-func (tx MsgEthereumTx) GetType() sdk.TransactionType {
+func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
 	return sdk.EvmTxType
 }
 
@@ -54,13 +54,13 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
 }
 
-func (msg MsgEthereumTx) GetFee() sdk.Coins {
+func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
 	return fee
 }
 
-func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
+func (msg *MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
 	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
 	if err != nil {
@@ -74,7 +74,7 @@ func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 func NewMsgEthereumTx(
 	nonce uint64, to *ethcmn.Address, amount *big.Int,
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
-) MsgEthereumTx {
+) *MsgEthereumTx {
 	return newMsgEthereumTx(nonce, to, amount, gasLimit, gasPrice, payload)
 }
 
@@ -82,14 +82,14 @@ func NewMsgEthereumTx(
 // message designated for contract creation.
 func NewMsgEthereumTxContract(
 	nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, payload []byte,
-) MsgEthereumTx {
+) *MsgEthereumTx {
 	return newMsgEthereumTx(nonce, nil, amount, gasLimit, gasPrice, payload)
 }
 
 func newMsgEthereumTx(
 	nonce uint64, to *ethcmn.Address, amount *big.Int,
 	gasLimit uint64, gasPrice *big.Int, payload []byte,
-) MsgEthereumTx {
+) *MsgEthereumTx {
 	if len(payload) > 0 {
 		payload = ethcmn.CopyBytes(payload)
 	}
@@ -113,22 +113,22 @@ func newMsgEthereumTx(
 		txData.Price.Set(gasPrice)
 	}
 
-	return MsgEthereumTx{Data: txData}
+	return &MsgEthereumTx{Data: txData}
 }
 
-func (msg MsgEthereumTx) String() string {
+func (msg *MsgEthereumTx) String() string {
 	return msg.Data.String()
 }
 
 // Route returns the route value of an MsgEthereumTx.
-func (msg MsgEthereumTx) Route() string { return RouterKey }
+func (msg *MsgEthereumTx) Route() string { return RouterKey }
 
 // Type returns the type value of an MsgEthereumTx.
-func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
+func (msg *MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
-func (msg MsgEthereumTx) ValidateBasic() error {
+func (msg *MsgEthereumTx) ValidateBasic() error {
 	if msg.Data.Price.Cmp(big.NewInt(0)) == 0 {
 		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
 	}
@@ -147,7 +147,7 @@ func (msg MsgEthereumTx) ValidateBasic() error {
 
 // To returns the recipient address of the transaction. It returns nil if the
 // transaction is a contract creation.
-func (msg MsgEthereumTx) To() *ethcmn.Address {
+func (msg *MsgEthereumTx) To() *ethcmn.Address {
 	return msg.Data.Recipient
 }
 
@@ -155,7 +155,7 @@ func (msg MsgEthereumTx) To() *ethcmn.Address {
 // For such a message, there should exist only a single 'signer'.
 //
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
-func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
+func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
 	sender := msg.From()
 	if sender.Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the signer")
@@ -168,13 +168,13 @@ func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
 //
 // NOTE: This method cannot be used as a chain ID is needed to create valid bytes
 // to sign over. Use 'RLPSignBytes' instead.
-func (msg MsgEthereumTx) GetSignBytes() []byte {
+func (msg *MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
-func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
+func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
 		msg.Data.Price,
@@ -188,7 +188,7 @@ func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
-func (msg MsgEthereumTx) HomesteadSignHash() ethcmn.Hash {
+func (msg *MsgEthereumTx) HomesteadSignHash() ethcmn.Hash {
 	return rlpHash([]interface{}{
 		msg.Data.AccountNonce,
 		msg.Data.Price,
@@ -336,12 +336,12 @@ func isProtectedV(V *big.Int) bool {
 }
 
 // GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
-func (msg MsgEthereumTx) GetGas() uint64 {
+func (msg *MsgEthereumTx) GetGas() uint64 {
 	return msg.Data.GasLimit
 }
 
 // Fee returns gasprice * gaslimit.
-func (msg MsgEthereumTx) Fee() *big.Int {
+func (msg *MsgEthereumTx) Fee() *big.Int {
 	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
 }
 
@@ -351,7 +351,7 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 }
 
 // Cost returns amount + gasprice * gaslimit.
-func (msg MsgEthereumTx) Cost() *big.Int {
+func (msg *MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
 	total.Add(total, msg.Data.Amount)
 	return total
@@ -359,7 +359,7 @@ func (msg MsgEthereumTx) Cost() *big.Int {
 
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
-func (msg MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
+func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 	return msg.Data.V, msg.Data.R, msg.Data.S
 }
 

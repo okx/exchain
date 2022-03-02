@@ -11,12 +11,12 @@ import (
 //___________________std tx______________________
 
 // GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
-func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
+func (msg *MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
 }
 
 // Return tx sender and gas price
-func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
+func (msg *MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
 		Sender:   "",
 		GasPrice: big.NewInt(0),
@@ -47,11 +47,11 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 }
 
 // GetGasPrice return gas price
-func (msg MsgEthereumTx) GetGasPrice() *big.Int {
+func (msg *MsgEthereumTx) GetGasPrice() *big.Int {
 	return msg.Data.Price
 }
 
-func (msg MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
+func (msg *MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	// deploy contract case
 	if msg.Data.Recipient == nil {
 		return DefaultDeployContractFnSignature, len(msg.Data.Payload)

@@ -23,7 +23,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 	pinAnte(ctx.AnteTracer(), "EthSigVerificationDecorator")
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}

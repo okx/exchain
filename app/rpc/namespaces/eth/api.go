@@ -951,7 +951,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// rlp encoder need pointer type, amino encoder will first dereference pointers.
-	txBytes, err := txEncoder(&msg)
+	txBytes, err := txEncoder(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -1592,7 +1592,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
-	return &msg, nil
+	return msg, nil
 }
 
 // pendingMsgs constructs an array of sdk.Msg. This method will check pending transactions and convert

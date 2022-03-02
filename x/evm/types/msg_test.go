@@ -203,7 +203,7 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 	require.NoError(t, err)
 	hash := ethcmn.BigToHash(big.NewInt(2))
 
-	testCases := []MsgEthereumTx{
+	testCases := []*MsgEthereumTx{
 		msg,
 		{
 			Data: TxData{
@@ -255,7 +255,7 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 		var msg3 MsgEthereumTx
 		v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
 		require.NoError(t, err)
-		msg3 = v.(MsgEthereumTx)
+		msg3 = *v.(*MsgEthereumTx)
 		require.EqualValues(t, msg2, msg3)
 	}
 }

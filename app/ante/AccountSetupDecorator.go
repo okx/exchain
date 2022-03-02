@@ -32,7 +32,7 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 	}
 
 	for _, msg := range msgs {
-		if msgEthereumTx, ok := msg.(evmtypes.MsgEthereumTx); ok {
+		if msgEthereumTx, ok := msg.(*evmtypes.MsgEthereumTx); ok {
 			setupAccount(asd.ak, ctx, msgEthereumTx.From())
 		}
 	}
