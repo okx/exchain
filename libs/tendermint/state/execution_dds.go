@@ -192,7 +192,6 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 
 	delta4Upload := &types.Deltas{
 		Height:       height,
-		Version:      types.DeltaVersion,
 		CompressType: dc.compressType,
 		CompressFlag: dc.compressFlag,
 		From:         dc.identity,

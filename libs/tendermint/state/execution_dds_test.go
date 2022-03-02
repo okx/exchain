@@ -47,7 +47,6 @@ func deltaEqual(d1, d2 *types.Deltas) bool {
 		return false
 	}
 	return d1.Height == d2.Height &&
-		d1.Version == d2.Version &&
 		d1.From == d2.From &&
 		d1.CompressType == d2.CompressType &&
 		d1.CompressFlag == d2.CompressFlag &&

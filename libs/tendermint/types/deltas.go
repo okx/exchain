@@ -61,7 +61,6 @@ type DeltaPayload struct {
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
 	Height       int64
-	Version      int
 	Payload      DeltaPayload
 	CompressType int
 	CompressFlag int
@@ -123,7 +122,6 @@ func (d *Deltas) Marshal() ([]byte, error) {
 	dt := &DeltasMessage{
 		Metadata:     payload,
 		Height:       d.Height,
-		Version:      d.Version,
 		CompressType: d.CompressType,
 		MetadataHash: payloadHash,
 		From:         d.From,
@@ -169,7 +167,6 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
 	t4 := time.Now()
 
-	d.Version = msg.Version
 	d.Height = msg.Height
 	d.From = msg.From
 
@@ -180,17 +177,15 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 }
 
 func (d *Deltas) String() string {
-	return fmt.Sprintf("height<%d>, version<%d>, size<%d>, from<%s>",
+	return fmt.Sprintf("height<%d>, size<%d>, from<%s>",
 		d.Height,
-		d.Version,
 		d.Size(),
 		d.From,
 	)
 }
 
 func (dds *Deltas) Validate(height int64) bool {
-	if DeltaVersion != dds.Version ||
-		dds.Height != height ||
+	if dds.Height != height ||
 		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
 		len(dds.DeltasBytes()) == 0 {
