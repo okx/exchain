@@ -3,9 +3,13 @@ package subspace
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+
+	"encoding/json"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 )
@@ -102,9 +106,66 @@ func (s Subspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {
 	store := s.kvStore(ctx)
 	bz := store.Get(key)
 
-	if err := s.cdc.UnmarshalJSON(bz, ptr); err != nil {
+	if err := tryParseJSON(bz, ptr, s.cdc); err != nil {
 		panic(err)
 	}
+}
+
+func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
+	if bz[0] == '"' && bz[len(bz)-1] == '"' {
+		rawbz := bz[1 : len(bz)-1] // trim leading & trailing "
+		switch ptr.(type) {
+		case *string:
+			ok := true
+			for _, c := range rawbz {
+				if c < 0x20 || c == '\\' {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				return json.Unmarshal(bz, ptr)
+			}
+			sptr := ptr.(*string)
+			*sptr = string(rawbz)
+			return nil
+		case *uint64:
+			uptr := ptr.(*uint64)
+			ok := true
+			for _, c := range rawbz {
+				if c < '0' || c > '9' {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				return json.Unmarshal(rawbz, ptr)
+			}
+			ui, err := strconv.ParseUint(amino.BytesToStr(rawbz), 10, 64)
+			if err == nil {
+				*uptr = ui
+				return nil
+			}
+		case *sdk.Dec:
+			ok := true
+			for _, c := range rawbz {
+				if c < 0x20 || c == '\\' {
+					ok = false
+					break
+				}
+			}
+			dptr := ptr.(*sdk.Dec)
+			if !ok {
+				return dptr.UnmarshalJSON(bz)
+			}
+			nd, err := sdk.NewDecFromStr(amino.BytesToStr(rawbz))
+			if err == nil {
+				dptr.Int = nd.Int
+				return nil
+			}
+		}
+	}
+	return cdc.UnmarshalJSON(bz, ptr)
 }
 
 // GetIfExists queries for a parameter by key from the Subspace's KVStore and
