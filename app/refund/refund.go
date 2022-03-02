@@ -57,14 +57,17 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
+	gasBefore := ctx.GasMeter().GasConsumed()
 	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
+	getAccountGasUsed := ctx.GasMeter().GasConsumed() - gasBefore
 
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	ctx.SetAccountCache(&sdk.AccountCache{ToAcc: feePayerAcc, ToAccGettedGas: getAccountGasUsed})
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
