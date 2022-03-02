@@ -42,7 +42,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
 	if nil != err {
-		logrusplugin.Error("调用错误", "err", err.Error())
+		logrusplugin.Error("runTxFailed", "err", err.Error())
 	}
 	return
 }
@@ -173,17 +173,17 @@ func txhash(txbytes []byte) string {
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
-		logrusplugin.Error("deliverTx解码失败", "req", req, "err", err)
+		logrusplugin.Error("deliverTx decode failed", "req", req, "err", err)
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
-		logrusplugin.Error("deliverTx执行失败", "req", req, "err", err)
+		logrusplugin.Error("deliverTx failed", "req", req, "err", err)
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
 
-	logrusplugin.Info("deliverTx执行成功")
+	logrusplugin.Info("deliverTx successfully")
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
