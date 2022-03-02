@@ -34,7 +34,7 @@ var (
 	// DeltaVersion do not apply delta if version does not match
 	// if user specify the flag 'FlagDeltaVersion'(--delta-version) use user's setting,
 	// otherwise use the default value
-	DeltaVersion = 8
+	DeltaVersion = 9
 )
 
 var (
@@ -47,7 +47,6 @@ type DeltasMessage struct {
 	Metadata     []byte `json:"metadata"`
 	MetadataHash []byte `json:"metadata_hash"`
 	Height       int64  `json:"height"`
-	Version      int    `json:"version"`
 	CompressType int    `json:"compress_type"`
 	From         string `json:"from"`
 }
