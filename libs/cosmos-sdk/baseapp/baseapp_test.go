@@ -17,7 +17,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -576,14 +575,6 @@ func (tx *txTest) setFailOnHandler(fail bool) {
 // Implements Tx
 func (tx txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
 func (tx txTest) ValidateBasic() error { return nil }
-
-func (tx txTest) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	return mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
-}
 
 func (tx txTest) GetFrom() string {
 	return ""

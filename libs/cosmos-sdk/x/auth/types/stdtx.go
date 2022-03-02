@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/tendermint/go-amino"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -234,22 +233,6 @@ func (tx StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 		return tx.GetSigners()[0]
 	}
 	return sdk.AccAddress{}
-}
-
-// GetTxInfo return tx sender and gas price
-func (tx StdTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	exInfo := mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
-
-	if tx.GetSigners() != nil {
-		exInfo.Sender = tx.FeePayer(ctx).String()
-	}
-	exInfo.GasPrice = tx.Fee.GasPrices()[0].Amount.BigInt()
-
-	return exInfo
 }
 
 // GetGasPrice return gas price

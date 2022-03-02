@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -61,14 +59,6 @@ func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
 
 func (tx kvstoreTx) GetType() sdk.TransactionType {
 	return sdk.UnknownType
-}
-
-func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	return mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
 }
 
 func (tx kvstoreTx) GetFrom() string {
