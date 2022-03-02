@@ -1,7 +1,10 @@
 package evm
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -204,8 +207,19 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 	}()
 
+	// snapshot to contain the tx processing and post processing in same scope
+	var commit func()
+	tmpCtx := ctx
+	if k.GetHooks() != nil {
+		// Create a cache context to revert state when tx hooks fails,
+		// the cache context is only committed when both tx and hooks executed successfully.
+		// Didn't use `Snapshot` because the context stack has exponential complexity on certain operations,
+		// thus restricted to be used only inside `ApplyMessage`.
+		tmpCtx, commit = ctx.CacheContext()
+	}
+
 	StartTxLog(bam.TransitionDb)
-	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(tmpCtx, config)
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
 			ResultData: resultData,
@@ -225,6 +239,27 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 
+	receipt := &ethtypes.Receipt{
+		//Type:              tx.Type(),
+		PostState:         nil, // TODO: intermediate state root
+		Status:            ethtypes.ReceiptStatusSuccessful,
+		CumulativeGasUsed: 0, // TODO: cumulativeGasUsed
+		Bloom:             resultData.Bloom,
+		Logs:              resultData.Logs,
+		TxHash:            resultData.TxHash,
+		ContractAddress:   resultData.ContractAddress,
+		GasUsed:           executionResult.GasInfo.GasConsumed,
+		BlockHash:         k.GetHeightHash(ctx, uint64(ctx.BlockHeight())),
+		BlockNumber:       big.NewInt(ctx.BlockHeight()),
+		//TransactionIndex:  txConfig.TxIndex,
+	}
+	if err = k.PostTxProcessing(tmpCtx, st.Sender, st.Recipient, receipt); err != nil {
+		k.Logger(ctx).Error("tx post processing failed", "error", err)
+	} else if commit != nil {
+		// PostTxProcessing is successful, commit the tmpCtx
+		commit()
+		ctx.EventManager().EmitEvents(tmpCtx.EventManager().Events())
+	}
 	if !st.Simulate {
 		if innerTxs != nil {
 			k.AddInnerTx(st.TxHash.Hex(), innerTxs)

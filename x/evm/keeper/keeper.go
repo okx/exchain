@@ -51,6 +51,8 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	hooks types.EvmHooks
 }
 
 // NewKeeper generates new evm module keeper
@@ -269,4 +271,26 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+}
+
+// SetHooks sets the hooks for the EVM module
+// It should be called only once during initialization, it panics if called more than once.
+func (k *Keeper) SetHooks(hooks types.EvmHooks) {
+	if k.hooks != nil {
+		panic("cannot set evm hooks twice")
+	}
+	k.hooks = hooks
+}
+
+// GetHooks gets the hooks for the EVM module
+func (k *Keeper) GetHooks() types.EvmHooks {
+	return k.hooks
+}
+
+// PostTxProcessing delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
+func (k *Keeper) PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
+	if k.hooks == nil {
+		return nil
+	}
+	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
