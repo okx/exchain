@@ -1,8 +1,6 @@
 package state
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -281,11 +279,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas,
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
 			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
-		}
-
-		if block.Height == 5810727 {
-			//block.Txs = block.Txs[:1]
-			//block.Txs = types.Txs{block.Txs[50]}
 		}
 
 		if abciResponses == nil {
@@ -595,14 +588,14 @@ func updateState(
 
 	// TODO: allow app to upgrade version
 	nextVersion := state.Version
-
-	for index, v := range abciResponses.DeliverTxs {
-		ss := sha256.New()
-		ss.Write(v.Data)
-		sum := ss.Sum(nil)
-
-		fmt.Println("---", index, v.Code, hex.EncodeToString(sum))
-	}
+	//
+	//for index, v := range abciResponses.DeliverTxs {
+	//	ss := sha256.New()
+	//	ss.Write(v.Data)
+	//	sum := ss.Sum(nil)
+	//
+	//	fmt.Println("---", index, v.Code, hex.EncodeToString(sum))
+	//}
 	// NOTE: the AppHash has not been populated.
 	// It will be filled on state.Save.
 	return State{

@@ -311,10 +311,6 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 
 // SetState sets the storage state with a key, value pair for an account.
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
-
-	if addr.String() == "0xadf4916d11F352a2748e19F3056428639313F6E1" && key.String() == "0x000000000000000000000000000000000000000000000000000000000000000c" {
-		//fmt.Println("SetState---", value.String())
-	}
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SetState"
 		analyzer.StartTxLog(funcName)
@@ -663,9 +659,6 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		dd := so.GetState(nil, hash)
-		if addr.String() == "0xadf4916d11F352a2748e19F3056428639313F6E1" && hash.String() == "0x000000000000000000000000000000000000000000000000000000000000000c" {
-			//fmt.Println("GetState", addr.String(), hash.String(), dd.String())
-		}
 		return dd
 	}
 
