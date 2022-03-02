@@ -539,6 +539,7 @@ func (csdb *CommitStateDB) GetParams() Params {
 				EnableContractDeploymentWhitelist: params.EnableContractDeploymentWhitelist,
 				EnableContractBlockedList:         params.EnableContractBlockedList,
 				MaxGasLimitPerTx:                  params.MaxGasLimitPerTx})
+			return *csdb.params
 		}
 
 		params = NewParams(
@@ -1343,7 +1344,7 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 }
 
 var (
-	blockedCache = make(map[string]BlockedContract, 0)
+	blockedCache = make(map[ethcmn.Address]BlockedContract, 0)
 )
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
@@ -1351,10 +1352,11 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 	if len(blockedCache) == 0 {
 		bcl := csdb.GetContractMethodBlockedList()
 		for i, _ := range bcl {
-			blockedCache[bcl[i].Address.String()] = bcl[i]
+			blockedCache[ethcmn.BytesToAddress(bcl[i].Address.Bytes())] = bcl[i]
 		}
+		blockedCache[ethcmn.BytesToAddress([]byte{0x0})] = BlockedContract{}
 	} else {
-		bc, ok := blockedCache[contractAddr.String()]
+		bc, ok := blockedCache[ethcmn.BytesToAddress(contractAddr.Bytes())]
 		if ok {
 			return &bc
 		} else {
