@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -33,10 +34,10 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 			logSize++
 		}
 		//
-		//ss := sha256.New()
-		//ss.Write(rs.ResultData.Bloom.Bytes())
-		//sum := ss.Sum(nil)
-		//fmt.Println("log", index, hex.EncodeToString(sum))
+		ss := sha256.New()
+		ss.Write(rs.ResultData.Bloom.Bytes())
+		sum := ss.Sum(nil)
+		fmt.Println("log", index, hex.EncodeToString(sum))
 		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
@@ -64,7 +65,7 @@ func (l *LogsManager) Set(txBytes string, value TxResult) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if _, ok := l.Results[txBytes]; ok {
-		fmt.Println("attention!!!!!!!!", hex.EncodeToString([]byte(txBytes)), value.Err, value.ResultData.TxHash.String())
+		//fmt.Println("attention!!!!!!!!", hex.EncodeToString([]byte(txBytes)), value.Err, value.ResultData.TxHash.String())
 	}
 	l.Results[txBytes] = value
 }
