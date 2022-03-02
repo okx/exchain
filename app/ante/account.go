@@ -161,6 +161,32 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgE
 	return ctx, nil
 }
 
+func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.AccountKeeper) {
+	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
+		return
+	}
+
+	// get and set account must be called with an infinite gas meter in order to prevent
+	// additional gas from being deducted.
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+
+	// increment sequence of all signers
+	for _, addr := range msgEthTx.GetSigners() {
+		var sacc = ak.GetAccount(ctx, addr)
+		seq := sacc.GetSequence()
+		if !baseapp.IsMempoolEnablePendingPool() {
+			seq++
+		} else if msgEthTx.Data.AccountNonce == seq {
+			seq++
+		}
+		if err := sacc.SetSequence(seq); err != nil {
+			panic(err)
+		}
+		ak.SetAccount(ctx, sacc)
+	}
+	return
+}
+
 func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
@@ -216,31 +242,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		acc = nil // account have be updated
 	}
 
-	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
-		return next(ctx, tx, simulate)
-	}
+	incrementSeq(ctx, msgEthTx, avd.ak)
 
-	// get and set account must be called with an infinite gas meter in order to prevent
-	// additional gas from being deducted.
-	gasMeter := ctx.GasMeter()
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-
-	// increment sequence of all signers
-	for _, addr := range msgEthTx.GetSigners() {
-		var sacc = avd.ak.GetAccount(ctx, addr)
-		seq := sacc.GetSequence()
-		if !baseapp.IsMempoolEnablePendingPool() {
-			seq++
-		} else if msgEthTx.Data.AccountNonce == seq {
-			seq++
-		}
-		if err := sacc.SetSequence(seq); err != nil {
-			panic(err)
-		}
-		avd.ak.SetAccount(ctx, sacc)
-	}
-
-	// set the original gas meter
-	ctx = ctx.WithGasMeter(gasMeter)
 	return next(ctx, tx, simulate)
 }
