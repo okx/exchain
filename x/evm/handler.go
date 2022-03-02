@@ -1,18 +1,13 @@
 package evm
 
 import (
-	"github.com/okex/exchain/x/evm/txs"
-	"github.com/okex/exchain/x/evm/txs/base"
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	common2 "github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/evm/txs"
+	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -101,54 +96,4 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	return txs.TransitionEvmTx(tx, msg)
 }
 
-func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-	if ctx.IsCheckTx() {
-		if from := ctx.From(); len(from) > 0 {
-			sender = common.HexToAddress(from)
-			return
-		}
-	}
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
-	if err == nil {
-		sender = senderSigCache.GetFrom()
-	}
 
-	return
-}
-
-func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
-
-	var chainIDEpoch *big.Int
-	chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return
-	}
-
-	var sender common.Address
-	// Verify signature and retrieve sender address
-	sender, err = getSender(ctx, chainIDEpoch, msg)
-	if err != nil {
-		return
-	}
-
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	ethHash := common.BytesToHash(txHash)
-
-	st = types.StateTransition{
-		AccountNonce: msg.Data.AccountNonce,
-		Price:        msg.Data.Price,
-		GasLimit:     msg.Data.GasLimit,
-		Recipient:    msg.Data.Recipient,
-		Amount:       msg.Data.Amount,
-		Payload:      msg.Data.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx),
-		ChainID:      chainIDEpoch,
-		TxHash:       &ethHash,
-		Sender:       sender,
-		Simulate:     ctx.IsCheckTx(),
-		TraceTx:      ctx.IsTraceTx(),
-		TraceTxLog:   ctx.IsTraceTxLog(),
-	}
-
-	return
-}
