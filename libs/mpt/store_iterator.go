@@ -1,12 +1,9 @@
 package mpt
 
 import (
-	"sync"
-
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 )
 
 var _ types.Iterator = (*mptIterator)(nil)
@@ -21,32 +18,16 @@ type mptIterator struct {
 	// Underlying store
 	iterator *trie.Iterator
 
-	// Channel to push iteration values.
-	iterCh chan tmkv.Pair
-
-	// Close this to release goroutine.
-	quitCh chan struct{}
-
-	// Close this to signal that state is initialized.
-	initCh chan struct{}
-
-	mtx sync.Mutex
-
-	ascending bool // Iteration order
-
-	invalid bool // True once, true forever (mutable)
+	valid bool
 }
 
 func newMptIterator(t ethstate.Trie, start, end []byte) *mptIterator {
 	iter := &mptIterator{
 		iterator: trie.NewIterator(t.NodeIterator(start)),
 
-		start:     types.Cp(start),
-		end:       types.Cp(end),
-		ascending: true,
-		iterCh:    make(chan tmkv.Pair), // Set capacity > 0?
-		quitCh:    make(chan struct{}),
-		initCh:    make(chan struct{}),
+		start: types.Cp(start),
+		end:   types.Cp(end),
+		valid: true,
 	}
 	return iter
 }
@@ -57,11 +38,13 @@ func (it *mptIterator) Domain() (start []byte, end []byte) {
 
 func (it *mptIterator) Valid() bool {
 	// return it.invalid
-	return false
+	return it.valid
 }
 
 func (it *mptIterator) Next() {
-	it.iterator.Next()
+	if !it.iterator.Next() {
+		it.valid = false
+	}
 }
 
 func (it *mptIterator) Key() (key []byte) {

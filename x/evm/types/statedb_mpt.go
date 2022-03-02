@@ -3,6 +3,7 @@ package types
 import (
 	"errors"
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
@@ -199,17 +201,6 @@ func (csdb *CommitStateDB) MarkUpdatedAcc(addList []ethcmn.Address) {
 // Proof related
 // ----------------------------------------------------------------------------
 
-type proofList [][]byte
-
-func (n *proofList) Put(key []byte, value []byte) error {
-	*n = append(*n, value)
-	return nil
-}
-
-func (n *proofList) Delete(key []byte) error {
-	panic("not supported")
-}
-
 // GetProof returns the Merkle proof for a given account.
 func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
 	return csdb.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
@@ -217,14 +208,14 @@ func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
 
 // GetProofByHash returns the Merkle proof for a given account.
 func (csdb *CommitStateDB) GetProofByHash(addrHash ethcmn.Hash) ([][]byte, error) {
-	var proof proofList
+	var proof mpt.ProofList
 	err := csdb.trie.Prove(addrHash[:], 0, &proof)
 	return proof, err
 }
 
 // GetStorageProof returns the Merkle proof for given storage slot.
 func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
-	var proof proofList
+	var proof mpt.ProofList
 	addrTrie := csdb.StorageTrie(a)
 	if addrTrie == nil {
 		return proof, errors.New("storage trie for requested address does not exist")

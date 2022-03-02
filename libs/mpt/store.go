@@ -2,6 +2,8 @@ package mpt
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	types3 "github.com/ethereum/go-ethereum/core/types"
@@ -14,7 +16,6 @@ import (
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
-	"io"
 
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -36,11 +37,11 @@ var (
 
 // MptStore Implements types.KVStore and CommitKVStore.
 type MptStore struct {
-	trie          ethstate.Trie
-	db            ethstate.Database
-	triegc        *prque.Prque
-	logger        tmlog.Logger
-	kvCache       *fastcache.Cache
+	trie    ethstate.Trie
+	db      ethstate.Database
+	triegc  *prque.Prque
+	logger  tmlog.Logger
+	kvCache *fastcache.Cache
 
 	version      int64
 	startVersion int64
@@ -71,10 +72,10 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	triegc := prque.New(nil)
 
 	mptStore := &MptStore{
-		db:            db,
-		triegc:        triegc,
-		logger:        logger,
-		kvCache:       fastcache.New(int(AccStoreCache) * 1024 * 1024),
+		db:      db,
+		triegc:  triegc,
+		logger:  logger,
+		kvCache: fastcache.New(int(AccStoreCache) * 1024 * 1024),
 	}
 	err := mptStore.openTrie(id)
 
@@ -349,11 +350,14 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
+	height := ms.getHeight(req)
+	res.Height = int64(height)
+
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	trie, err := ms.getHeight(req)
+	trie, err := ms.getTrieWithHeight(height)
 	if err != nil {
-		res.Log = iavl.ErrVersionDoesNotExist.Error()
+		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", err)
 		return
 	}
 
@@ -377,13 +381,11 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 			if value != nil {
 				// value was found
 				res.Value = value
-				//TODO: translate proof to RangeProof
-				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewValueOp(key, nil).ProofOp()}}
+				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{newProofOpMptValue(key, proof)}}
 			} else {
 				// value wasn't found
 				res.Value = nil
-				//TODO: translate proof to RangeProof
-				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewAbsenceOp(key, nil).ProofOp()}}
+				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{newProofOpMptAbsence(key, proof)}}
 			}
 		} else {
 			res.Value, _ = getVersioned(trie, key)
@@ -410,14 +412,17 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return res
 }
 
-// Handle gatest the latest height, if height is 0
-func (ms *MptStore) getHeight(req abci.RequestQuery) (ethstate.Trie, error) {
+func (ms *MptStore) getHeight(req abci.RequestQuery) uint64 {
 	height := uint64(req.Height)
 	latestStoredBlockHeight := ms.GetLatestStoredBlockHeight()
 	if height == 0 || height > latestStoredBlockHeight {
 		height = latestStoredBlockHeight
 	}
+	return height
+}
 
+// Handle gatest the latest height, if height is 0
+func (ms *MptStore) getTrieWithHeight(height uint64) (ethstate.Trie, error) {
 	latestRootHash := ms.GetMptRootHash(height)
 	return ms.db.OpenTrie(latestRootHash)
 }
@@ -433,18 +438,7 @@ func getVersionedWithProof(trie ethstate.Trie, key []byte) ([]byte, [][]byte, er
 		return nil, nil, err
 	}
 
-	var proof proofList
+	var proof ProofList
 	err = trie.Prove(crypto.Keccak256(key), 0, &proof)
 	return value, proof, err
-}
-
-type proofList [][]byte
-
-func (n *proofList) Put(key []byte, value []byte) error {
-	*n = append(*n, value)
-	return nil
-}
-
-func (n *proofList) Delete(key []byte) error {
-	panic("not supported")
 }
