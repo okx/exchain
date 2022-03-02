@@ -49,7 +49,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	address := msgEthTx.From()
+	address := msgEthTx.AccountAddress()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}

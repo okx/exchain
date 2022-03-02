@@ -71,6 +71,14 @@ func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 }
 
+func (tx kvstoreTx) GetFrom() string {
+	return ""
+}
+
+func (tx kvstoreTx) GetNonce() uint64 {
+	return 0
+}
+
 func (tx kvstoreTx) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
@@ -82,6 +90,7 @@ func (tx kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 func (tx kvstoreTx) GetGas() uint64 {
 	return 0
 }
+
 // takes raw transaction bytes and decodes them into an sdk.Tx. An sdk.Tx has
 // all the signatures and can be used to authenticate.
 func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {

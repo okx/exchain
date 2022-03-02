@@ -56,17 +56,20 @@ type Tx interface {
 	GetSigners() []AccAddress
 
 	GetGas() uint64
+
+	GetFrom() string
+	GetNonce() uint64
 }
 
 //__________________________________________________________
 
 type TransactionType int
+
 const (
 	UnknownType TransactionType = iota
 	StdTxType
 	EvmTxType
 )
-
 
 func (t TransactionType) String() (res string) {
 	switch t {
@@ -79,6 +82,7 @@ func (t TransactionType) String() (res string) {
 	}
 	return res
 }
+
 //__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)

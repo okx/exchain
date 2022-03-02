@@ -585,6 +585,14 @@ func (tx txTest) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 }
 
+func (tx txTest) GetFrom() string {
+	return ""
+}
+
+func (tx txTest) GetNonce() uint64 {
+	return 0
+}
+
 func (tx txTest) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
@@ -592,7 +600,6 @@ func (tx txTest) GetGasPrice() *big.Int {
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
-
 
 func (tx txTest) GetGas() uint64 {
 	return 0

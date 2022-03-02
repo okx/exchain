@@ -54,6 +54,14 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
 }
 
+func (msg *MsgEthereumTx) GetFrom() string {
+	return msg.evmAddress().String()
+}
+
+func (msg *MsgEthereumTx) GetNonce() uint64 {
+	return msg.Data.AccountNonce
+}
+
 func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
@@ -67,7 +75,7 @@ func (msg *MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 		return nil
 	}
 
-	return msg.From()
+	return msg.AccountAddress()
 }
 
 // NewMsgEthereumTx returns a reference to a new Ethereum transaction message.
@@ -156,11 +164,12 @@ func (msg *MsgEthereumTx) To() *ethcmn.Address {
 //
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
-	sender := msg.From()
-	if sender.Empty() {
+	v := msg.from.Load()
+	signer, ok := v.(*tmtypes.TxSigCache)
+	if !ok || signer.GetSigner() == nil || sdk.AccAddress(signer.From.Bytes()).Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the signer")
 	}
-	return []sdk.AccAddress{sender}
+	return []sdk.AccAddress{signer.From.Bytes()}
 }
 
 // GetSignBytes returns the Amino bytes of an Ethereum transaction message used
@@ -273,17 +282,16 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		sigCache := sc.(*tmtypes.TxSigCache)
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
-		if sigCache.Signer.Equal(signer) {
+		if sigCache.Signer != nil && sigCache.Signer.Equal(signer) {
 			return sigCache, nil
 		}
-	} else if sigCtx != nil {
+	} else if sigCtx != nil && sigCtx.EqualSiger(signer) {
 		// If sig cache is exist in ctx,then need not to excute recover key and sign verify.
 		// PS: The msg from may be non-existent, then store it.
-		if sigCtx.EqualSiger(signer) {
-			sigCache := sigCtx.(*tmtypes.TxSigCache)
-			msg.from.Store(sigCache)
-			return sigCtx, nil
-		}
+		sigCache := sigCtx.(*tmtypes.TxSigCache)
+		msg.from.Store(sigCache)
+		return sigCtx, nil
+
 	}
 
 	var cacheKey string
@@ -365,19 +373,44 @@ func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 
 // From loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
-func (msg *MsgEthereumTx) From() sdk.AccAddress {
+func (msg *MsgEthereumTx) AccountAddress() sdk.AccAddress {
+	sender := msg.evmAddress()
+	return sender.Bytes()
+}
+
+func (msg *MsgEthereumTx) evmAddress() ethcmn.Address {
 	sc := msg.from.Load()
-	if sc == nil {
-		return nil
+	if sc != nil {
+		return sc.(*tmtypes.TxSigCache).From
 	}
 
-	sigCache := sc.(*tmtypes.TxSigCache)
+	var V *big.Int
+	var sigHash ethcmn.Hash
+	chainID := msg.ChainID()
+	if isProtectedV(msg.Data.V) {
+		// do not allow recovery for transactions with an unprotected chainID
+		if chainID.Sign() == 0 {
+			return ethcmn.Address{}
+		}
 
-	if len(sigCache.From.Bytes()) == 0 {
-		return nil
+		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		V.Sub(V, big8)
+
+		sigHash = msg.RLPSignBytes(chainID)
+	} else {
+		V = msg.Data.V
+
+		sigHash = msg.HomesteadSignHash()
 	}
 
-	return sdk.AccAddress(sigCache.From.Bytes())
+	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	if err != nil {
+		return ethcmn.Address{}
+	}
+	sigCache := &tmtypes.TxSigCache{From: sender}
+	msg.from.Store(sigCache)
+	return sender
 }
 
 // deriveChainID derives the chain id from the given v parameter

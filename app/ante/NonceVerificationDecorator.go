@@ -39,7 +39,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		msgEthTx.SetFrom(ctx.From())
 	}
 	// sender address should be in the tx cache from the previous AnteHandle call
-	address := msgEthTx.From()
+	address := msgEthTx.AccountAddress()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}

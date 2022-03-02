@@ -174,7 +174,6 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-
 func (tx StdTx) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }
@@ -264,6 +263,18 @@ func (tx StdTx) GetGasPrice() *big.Int {
 
 func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
+}
+
+func (tx StdTx) GetFrom() string {
+	signers := tx.GetSigners()
+	if len(signers) == 0 {
+		return ""
+	}
+	return signers[0].String()
+}
+
+func (tx StdTx) GetNonce() uint64 {
+	return 0
 }
 
 //__________________________________________________________
