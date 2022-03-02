@@ -31,6 +31,8 @@ func (a *BaseApp) printMs(extraData string) {
 		if isDirty {
 			cnt++
 		}
+
+		//fmt.Println("key---", hex.EncodeToString(key), isDirty)
 		return true
 	}, nil)
 	fmt.Println("PrintMsInfo", extraData, cnt)
@@ -53,7 +55,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	}
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
-	//app.printMs("Defer")
+	app.printMs("Defer")
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {

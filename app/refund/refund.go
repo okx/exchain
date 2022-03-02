@@ -1,6 +1,8 @@
 package refund
 
 import (
+	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -65,6 +67,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	fmt.Println("refund-", ethcommon.BytesToAddress(feePayerAcc.GetAddress()), gasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err

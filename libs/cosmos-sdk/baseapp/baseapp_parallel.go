@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
 	"time"
 
@@ -152,7 +154,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	app.parallelTxManage.isAsyncDeliverTx = true
 	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
-	app.parallelTxManage.backCms = app.deliverState.ms.CacheMultiStore()
+	app.parallelTxManage.backCms = app.checkState.ms.CacheMultiStore()
 
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -267,6 +269,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			if preBase != -1 {
 				preMs = txReps[preBase].ms
 			}
+			fmt.Println("checkConfig", preBase, res.counter)
 			if res.Conflict(preMs, asCache, pm.cms) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				fmt.Println("cocccccccccccccc", txIndex)
 				rerunIdx++
@@ -408,12 +411,18 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte) *executeResult {
 	return asyncExe
 }
 
+type readData struct {
+	value []byte
+	sKey  types.StoreKey
+}
+
 type executeResult struct {
 	resp       abci.ResponseDeliverTx
 	ms         sdk.CacheMultiStore
 	counter    uint32
 	err        error
 	evmCounter uint32
+	readList   map[string]*readData
 }
 
 func (e executeResult) GetResponse() abci.ResponseDeliverTx {
@@ -421,32 +430,25 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 }
 
 func (e executeResult) Conflict(preMs sdk.CacheMultiStore, cache *asyncCache, current sdk.CacheMultiStore) bool {
-	rerun := false
 	if e.ms == nil {
 		fmt.Println("e.ms===nil", e.counter)
 		return true //TODO fix later
 	}
 
-	e.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, s sdk.StoreKey) bool {
-		if whiteAccountList[hex.EncodeToString(key)] {
-			return true
+	for k, v := range e.readList {
+		if whiteAccountList[hex.EncodeToString([]byte(k))] {
+			continue
 		}
-
-		if !bytes.Equal(preMs.GetKVStore(s).Get(key), current.GetKVStore(s).Get(key)) {
-			rerun = true
+		currentKey := current.GetKVStore(v.sKey).Get([]byte(k))
+		if !bytes.Equal(v.value, currentKey) {
+			fmt.Println("preKey", hex.EncodeToString([]byte(k)), hex.EncodeToString(v.value), hex.EncodeToString(currentKey))
+			return true
 			//return false
 		}
-		return true
-		//
-		////the key we have read was written by pre txs
-		//if !whiteAccountList[hex.EncodeToString(key)] && cache.Has(key, value, from, int(e.counter)) {
-		//	rerun = true
-		//	fmt.Println("----conf", hex.EncodeToString(key), hex.EncodeToString(value), from, e.counter)
-		//	//return false // break
-		//}
-		//return true
-	}, nil)
-	return rerun
+
+	}
+
+	return false
 }
 
 var (
@@ -473,12 +475,44 @@ func (e executeResult) GetCounter() uint32 {
 	return e.counter
 }
 
+func loadPreData(ms sdk.CacheMultiStore) map[string]*readData {
+	//mm := make(map[string][]byte, 0)
+
+	if ms == nil {
+		return nil
+	}
+
+	ans := make(map[string]*readData)
+
+	mpStoreFlag := make(map[types.StoreKey]bool, 0)
+	ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+		if mpStoreFlag[storeKey] {
+			return true
+		}
+		mpStoreFlag[storeKey] = true
+
+		hh, ok := ms.GetStore(storeKey).(*cachekv.Store)
+		if ok {
+			for k, v := range hh.ReadList {
+				ans[k] = &readData{
+					value: v,
+					sKey:  storeKey,
+				}
+			}
+		}
+		return true
+	}, nil)
+	return ans
+}
+
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
+	loadPreData(ms)
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
 		counter:    counter,
 		evmCounter: evmCounter,
+		readList:   loadPreData(ms),
 	}
 }
 
