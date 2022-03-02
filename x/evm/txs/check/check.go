@@ -19,21 +19,20 @@ func NewTx(config base.Config) *Tx {
 }
 
 // SaveTx check Tx do not transition state db
-func (t *Tx) SaveTx(msg *types.MsgEthereumTx) {
-	return
-}
+func (t *Tx) SaveTx(msg *types.MsgEthereumTx) {}
+
+func (t *Tx) GetSenderAccount() authexported.Account { return nil }
 
 func (t *Tx) ResetWatcher(account authexported.Account) {}
 
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
 func (t *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
 
-
-
 // RestoreWatcherTransactionReceipt check Tx do not need restore
-func (t *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
-	return
-}
+func (t *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
+
+// Commit check Tx do not need
+func (t *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {}
 
 // FinalizeWatcher check Tx do not need this
 func (t *Tx) FinalizeWatcher(account authexported.Account, err error) {}
