@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -137,11 +138,10 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 	app.parallelTxManage.nextTxInGroup = nextTxIndexInGroup
 	app.parallelTxManage.preTxInGroup = preTxIndexInGroup
 	return groupList, nextTxIndexInGroup
-
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
-	//ts := time.Now()
+	ts := time.Now()
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
@@ -153,7 +153,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	app.parallelTxManage.isAsyncDeliverTx = true
 	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
-	app.parallelTxManage.backCms = app.checkState.ms.CacheMultiStore()
 
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -174,6 +173,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
 
+	sdk.AddPrePare(time.Now().Sub(ts))
 	//fmt.Println("calGroupTime", time.Now().Sub(ts).Milliseconds())
 	return app.runTxs(txWithIndex, groupList, nextIndexInGroup)
 
@@ -200,6 +200,7 @@ func (app *BaseApp) fixFeeCollector(txString string, ms sdk.CacheMultiStore) {
 }
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
+	ts := time.Now()
 	//fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
 	//for index := 0; index < len(groupList); index++ {
 	//	fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
@@ -225,6 +226,11 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
 
 	asyncCb := func(execRes *executeResult) {
+		ts := time.Now()
+		defer func() {
+			sdk.AddAsycn(time.Now().Sub(ts))
+		}()
+
 		receiveTxIndex := int(execRes.GetCounter())
 
 		pm.setTxStatus(receiveTxIndex, false)
@@ -347,6 +353,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 	}
 	pm.cms.Write()
+	sdk.AddRunTx(time.Now().Sub(ts))
 	return deliverTxs
 }
 
@@ -539,9 +546,8 @@ type parallelTxManager struct {
 	nextTxInGroup map[int]int
 	preTxInGroup  map[int]int
 
-	mu      sync.RWMutex
-	cms     sdk.CacheMultiStore
-	backCms sdk.CacheMultiStore
+	mu  sync.RWMutex
+	cms sdk.CacheMultiStore
 
 	currIndex       int
 	runBase         map[int]int

@@ -1,6 +1,10 @@
 package types
 
-import ethcommon "github.com/ethereum/go-ethereum/common"
+import (
+	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"time"
+)
 
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
@@ -73,6 +77,7 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
+
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()
@@ -80,4 +85,32 @@ func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Contex
 		trc.RepeatingPin(AnteTerminatorTag)
 	}
 	return ctx, nil
+}
+
+var (
+	log *ScfLog
+)
+
+type ScfLog struct {
+	prePare time.Duration
+	runTx   time.Duration
+	async   time.Duration
+}
+
+func AddPrePare(ts time.Duration) {
+	log.prePare += ts
+}
+
+func AddRunTx(ts time.Duration) {
+	log.runTx += ts
+}
+
+func AddAsycn(ts time.Duration) {
+	log.async += ts
+}
+
+func PrintTime() {
+	fmt.Println("PrePare", log.prePare.Seconds())
+	fmt.Println("RunTxs", log.runTx.Seconds())
+	fmt.Println("Async", log.async.Seconds())
 }
