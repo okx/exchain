@@ -1,6 +1,8 @@
 package state
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -594,6 +596,13 @@ func updateState(
 	// TODO: allow app to upgrade version
 	nextVersion := state.Version
 
+	for index, v := range abciResponses.DeliverTxs {
+		ss := sha256.New()
+		ss.Write(v.Data)
+		sum := ss.Sum(nil)
+
+		fmt.Println("---", index, v.Code, hex.EncodeToString(sum))
+	}
 	// NOTE: the AppHash has not been populated.
 	// It will be filled on state.Save.
 	return State{
