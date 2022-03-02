@@ -169,7 +169,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
-		info.ctx.Cache().Write(true)
+		info.ctx.Cache().Write(app.accCacheDataHandler, info.ctx,true)
 		app.pin(CacheStoreWrite, false, mode)
 	}
 
@@ -273,17 +273,17 @@ func useCache(mode runTxMode) bool {
 	return false
 }
 
-func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
-	ctx.Cache().Write(true)
-	cache.Write()
-}
+//func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
+//	ctx.Cache().Write( true)
+//	cache.Write()
+//}
 
 func (app *BaseApp) newBlockCache() {
 	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
 	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
 }
 
-func (app *BaseApp) commitBlockCache() {
-	app.blockCache.Write(true)
+func (app *BaseApp) commitBlockCache(ctx sdk.Context) {
+	app.blockCache.Write(app.accCacheDataHandler, ctx, true)
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }

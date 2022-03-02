@@ -97,7 +97,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 
 }
 
-func (c *Cache) skip() bool {
+func (c *Cache) Skip() bool {
 	if c == nil || !c.useCache {
 		return true
 	}
@@ -105,7 +105,7 @@ func (c *Cache) skip() bool {
 }
 
 func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
-	if c.skip() {
+	if c.Skip() {
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
@@ -117,7 +117,7 @@ func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirt
 }
 
 func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
-	if c.skip() {
+	if c.Skip() {
 		return
 	}
 
@@ -131,7 +131,7 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 }
 
 func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
-	if c.skip() {
+	if c.Skip() {
 		return
 	}
 	hash := ethcmn.BytesToHash(key)
@@ -142,7 +142,7 @@ func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
 }
 
 func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
-	if c.skip() {
+	if c.Skip() {
 		return nil, 0, false
 	}
 
@@ -158,7 +158,7 @@ func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
 }
 
 func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) {
-	if c.skip() {
+	if c.Skip() {
 		return nil, false
 	}
 	if _, hasAddr := c.storageMap[addr]; hasAddr {
@@ -175,7 +175,7 @@ func (c *Cache) GetStorage(addr ethcmn.Address, key ethcmn.Hash) ([]byte, bool) 
 }
 
 func (c *Cache) GetCode(key []byte) ([]byte, bool) {
-	if c.skip() {
+	if c.Skip() {
 		return nil, false
 	}
 
@@ -190,8 +190,8 @@ func (c *Cache) GetCode(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-func (c *Cache) Write(updateDirty bool) {
-	if c.skip() {
+func (c *Cache) Write(handler AccCacheDataHandler, ctx Context, updateDirty bool) {
+	if c.Skip() {
 		return
 	}
 
@@ -200,7 +200,7 @@ func (c *Cache) Write(updateDirty bool) {
 	}
 
 	c.writeStorage(updateDirty)
-	c.writeAcc(updateDirty)
+	c.writeAcc(handler, ctx, updateDirty)
 	c.writeCode(updateDirty)
 }
 
@@ -219,10 +219,16 @@ func (c *Cache) writeStorage(updateDirty bool) {
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 }
 
-func (c *Cache) writeAcc(updateDirty bool) {
+func (c *Cache) writeAcc(handler AccCacheDataHandler, ctx Context, updateDirty bool) {
 	for addr, v := range c.accMap {
 		if needWriteToParent(updateDirty, v.isDirty) {
 			c.parent.accMap[addr] = v
+		}
+		if v.isDirty {
+			if handler != nil {
+				accAddr, _ := AccAddressFromBech32(addr.String())
+				handler(ctx, accAddr, v.acc)
+			}
 		}
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
@@ -259,7 +265,7 @@ func (c *Cache) storageSize() int {
 }
 
 func (c *Cache) TryDelete(logger log.Logger, height int64) {
-	if c.skip() {
+	if c.Skip() {
 		return
 	}
 	if height%1000 == 0 {

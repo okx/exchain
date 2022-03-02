@@ -178,3 +178,10 @@ func (app *BaseApp) AddCustomizeModuleOnStopLogic(cs sdk.CustomizeOnStop) {
 	}
 	app.customizeModuleOnStop = append(app.customizeModuleOnStop, cs)
 }
+
+func (app *BaseApp) SetAccCacheDataHandler(acdh sdk.AccCacheDataHandler) {
+	if app.sealed {
+		panic("AddAccCacheDataHandler() on sealed BaseApp")
+	}
+	app.accCacheDataHandler = acdh
+}

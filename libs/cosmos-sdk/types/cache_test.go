@@ -80,6 +80,7 @@ func accountValueFmt(i int) account { return newMockAccount(i) }
 func TestCache(t *testing.T) {
 	parent := newCache(nil)
 	st := newCache(parent)
+	ctx := EmptyContext()
 
 	key1Value, _, _ := st.GetAccount(keyFmt(1))
 	require.Empty(t, key1Value, "should 'key1' to be empty")
@@ -98,15 +99,15 @@ func TestCache(t *testing.T) {
 	require.Equal(t, key1ValueInSt.GetAccountNumber(), uint64(2))
 
 	// write it . should change mem
-	st.Write(true)
+	st.Write(nil, ctx, true)
 	key1ValueInParent, _, _ = parent.GetAccount(keyFmt(1))
 	key1ValueInSt, _, _ = st.GetAccount(keyFmt(1))
 	require.Equal(t, key1ValueInParent.GetAccountNumber(), uint64(2))
 	require.Equal(t, key1ValueInSt.GetAccountNumber(), uint64(2))
 
 	// more writes and checks
-	st.Write(true)
-	st.Write(true)
+	st.Write(nil, ctx, true)
+	st.Write(nil, ctx, true)
 	key1ValueInParent, _, _ = parent.GetAccount(keyFmt(1))
 	key1ValueInSt, _, _ = st.GetAccount(keyFmt(1))
 	require.Equal(t, key1ValueInParent.GetAccountNumber(), uint64(2))
@@ -126,7 +127,7 @@ func TestCache(t *testing.T) {
 	require.Equal(t, key1ValueInParent.GetAccountNumber(), uint64(2))
 
 	// Write. should now be removed from both
-	st.Write(true)
+	st.Write(nil, ctx, true)
 	key1ValueInParent, _, _ = parent.GetAccount(keyFmt(1))
 	key1ValueInSt, _, _ = st.GetAccount(keyFmt(1))
 	require.Empty(t, key1ValueInParent)
@@ -136,6 +137,7 @@ func TestCache(t *testing.T) {
 func TestCacheNested(t *testing.T) {
 	parent := newCache(nil)
 	st := newCache(parent)
+	ctx := EmptyContext()
 
 	// set. check its there on st and not on mem.
 	st.UpdateAccount(keyFmt(1).Bytes(), accountValueFmt(1), 0, true)
@@ -159,14 +161,14 @@ func TestCacheNested(t *testing.T) {
 	require.Equal(t, key1ValueInSt2.GetAccountNumber(), uint64(3))
 
 	// st2 write to its parent, st. doesnt effect parent
-	st2.Write(true)
+	st2.Write(nil, ctx, true)
 	key1ValueInParent, _, _ = parent.GetAccount(keyFmt(1))
 	key1ValueInSt, _, _ = st.GetAccount(keyFmt(1))
 	require.Empty(t, key1ValueInParent)
 	require.Equal(t, key1ValueInSt.GetAccountNumber(), uint64(3))
 
 	// updates parent
-	st.Write(true)
+	st.Write(nil, ctx, true)
 	key1ValueInParent, _, _ = parent.GetAccount(keyFmt(1))
 	require.Equal(t, key1ValueInParent.GetAccountNumber(), uint64(3))
 }

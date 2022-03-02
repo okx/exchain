@@ -238,7 +238,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
-	app.commitBlockCache()
+	app.commitBlockCache(app.deliverState.ctx)
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap

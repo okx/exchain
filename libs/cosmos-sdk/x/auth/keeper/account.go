@@ -67,34 +67,37 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 
 // SetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
-	addr := acc.GetAddress()
+	if ctx.Cache().Skip() {
+		addr := acc.GetAddress()
 
-	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		var store sdk.KVStore
+		if types2.HigherThanMars(ctx.BlockHeight()) {
+			store = ctx.KVStore(ak.mptKey)
+		} else {
+			store = ctx.KVStore(ak.key)
+		}
+
+		bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+		if err != nil {
+			bz, err = ak.cdc.MarshalBinaryBare(acc)
+		}
+		if err != nil {
+			panic(err)
+		}
+
+		store.Set(types.AddressStoreKey(addr), bz)
+		if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+			rawGM := ctx.GasMeter()
+
+			ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
+
+			ctx.WithGasMeter(rawGM)
+		}
 	} else {
-		store = ctx.KVStore(ak.key)
+		ctx.Cache().UpdateAccount(acc.GetAddress(), acc, 100, true)
+		ctx.GasMeter().ConsumeGas(100, "x/auth/keeper/account.go/GetAccount")
 	}
-
-	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
-	if err != nil {
-		bz, err = ak.cdc.MarshalBinaryBare(acc)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	store.Set(types.AddressStoreKey(addr), bz)
-	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
-
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
-
-		ctx.WithGasMeter(rawGM)
-	}
-
-	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {
@@ -111,24 +114,27 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 // NOTE: this will cause supply invariant violation if called
 func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
-	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+	if ctx.Cache().Skip() {
+		var store sdk.KVStore
+		if types2.HigherThanMars(ctx.BlockHeight()) {
+			store = ctx.KVStore(ak.mptKey)
+		} else {
+			store = ctx.KVStore(ak.key)
+		}
+
+		store.Delete(types.AddressStoreKey(addr))
+		if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+			rawGM := ctx.GasMeter()
+
+			ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
+
+			ctx.WithGasMeter(rawGM)
+		}
 	} else {
-		store = ctx.KVStore(ak.key)
+		ctx.Cache().UpdateAccount(addr, nil, 0, true)
+		ctx.GasMeter().ConsumeGas(100, "x/auth/keeper/account.go/GetAccount")
 	}
-
-	store.Delete(types.AddressStoreKey(addr))
-	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
-
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
-
-		ctx.WithGasMeter(rawGM)
-	}
-
-	ctx.Cache().UpdateAccount(addr, nil, 0, true)
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
@@ -167,6 +173,36 @@ func (ak AccountKeeper) MigrateAccounts(ctx sdk.Context, cb func(account exporte
 
 		if cb(account, iterator.Key(), iterator.Value()) {
 			break
+		}
+	}
+}
+
+func (ak AccountKeeper) Write(ctx sdk.Context, addr sdk.AccAddress, acc interface{}) {
+	var store sdk.KVStore
+	if types2.HigherThanMars(ctx.BlockHeight()) {
+		store = ctx.KVStore(ak.mptKey)
+	} else {
+		store = ctx.KVStore(ak.key)
+	}
+
+	if acc == nil {
+		store.Delete(types.AddressStoreKey(addr))
+		if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+			ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
+		}
+	} else {
+		acc = acc.(exported.Account)
+		bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+		if err != nil {
+			bz, err = ak.cdc.MarshalBinaryBare(acc)
+		}
+		if err != nil {
+			panic(err)
+		}
+
+		store.Set(types.AddressStoreKey(addr), bz)
+		if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+			ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
 		}
 	}
 }

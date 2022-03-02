@@ -200,6 +200,8 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
+
+	accCacheDataHandler  sdk.AccCacheDataHandler
 }
 
 type recordHandle func(string)
