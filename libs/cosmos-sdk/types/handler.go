@@ -88,7 +88,7 @@ func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Contex
 }
 
 var (
-	log *ScfLog
+	pLog *ScfLog
 )
 
 type ScfLog struct {
@@ -98,19 +98,19 @@ type ScfLog struct {
 }
 
 func AddPrePare(ts time.Duration) {
-	log.prePare += ts
+	pLog.prePare += ts
 }
 
 func AddRunTx(ts time.Duration) {
-	log.runTx += ts
+	pLog.runTx += ts
 }
 
 func AddAsycn(ts time.Duration) {
-	log.async += ts
+	pLog.async += ts
 }
 
 func PrintTime() {
-	fmt.Println("PrePare", log.prePare.Seconds())
-	fmt.Println("RunTxs", log.runTx.Seconds())
-	fmt.Println("Async", log.async.Seconds())
+	fmt.Println("PrePare", pLog.prePare.Seconds())
+	fmt.Println("RunTxs", pLog.runTx.Seconds())
+	fmt.Println("Async", pLog.async.Seconds())
 }
