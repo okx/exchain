@@ -22,7 +22,7 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 		}
 		txInBlock++
 		if rs.ResultData == nil {
-			fmt.Println("continue-2", "isNull")
+			fmt.Println("continue-2", index, "isNull")
 			continue
 		}
 

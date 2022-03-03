@@ -252,6 +252,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			if receiveTxIndex >= txIndex || receiveTxIndex == 0 {
 				if nextTx, ok := nextTxInGroup[receiveTxIndex]; ok {
 					if !pm.isRunning(nextTx) {
+						txReps[nextTx] = nil
 						app.parallelTxManage.setTxStatus(nextTx, true)
 						fmt.Println("BBBBBBB", "NextInGroup", nextTx)
 						go app.asyncDeliverTx(txs[nextTx], nextTx)
