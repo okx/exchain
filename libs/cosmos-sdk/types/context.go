@@ -77,6 +77,8 @@ func (c Context) Cache() *Cache {
 	return c.cache
 }
 
+func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
+
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
 	var msg = proto.Clone(&c.header).(*abci.Header)

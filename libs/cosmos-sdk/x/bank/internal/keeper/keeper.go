@@ -258,17 +258,18 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, fromAddr, toAddr, innertx.CosmosCallType, innertx.SendCallName, amt, err)
 		}
 	}()
+	fromAddrStr := fromAddr.String()
 	ctx.EventManager().EmitEvents(sdk.Events{
 		// This event should have all info (to, from, amount) without looking at other events
 		sdk.NewEvent(
 			types.EventTypeTransfer,
 			sdk.NewAttribute(types.AttributeKeyRecipient, toAddr.String()),
-			sdk.NewAttribute(types.AttributeKeySender, fromAddr.String()),
+			sdk.NewAttribute(types.AttributeKeySender, fromAddrStr),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, amt.String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
-			sdk.NewAttribute(types.AttributeKeySender, fromAddr.String()),
+			sdk.NewAttribute(types.AttributeKeySender, fromAddrStr),
 		),
 	})
 
@@ -298,7 +299,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	acc := keeper.ak.GetAccount(ctx, addr)
 	if acc != nil {
 		oldCoins = acc.GetCoins()
-		spendableCoins = acc.SpendableCoins(ctx.BlockHeader().Time)
+		spendableCoins = acc.SpendableCoins(ctx.BlockTime())
 	}
 
 	// For non-vesting accounts, spendable coins will simply be the original coins.
