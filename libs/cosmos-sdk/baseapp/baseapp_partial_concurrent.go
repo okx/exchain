@@ -277,7 +277,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		//dm.app.logger.Info("runTxSerialRoutine", "index", dm.executingTask.index)
 		start := time.Now()
 
-		mode := runTxModeDeliverPartConcurrent
 		info := dm.executingTask.info
 		handler := info.handler
 
@@ -333,28 +332,29 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 
 		// todo: if ante failed during concurrently executing, try it again
-		if dm.executingTask.anteFailed {
-			// dm.app.pin(RunAnte, true, mode)
-			if dm.app.anteHandler != nil {
-				start := time.Now()
-				err := dm.app.runAnte(info, mode)
-				elasped := time.Since(start).Microseconds()
-				dm.gasAndMsgsDuration -= elasped
-				totalRerunAnteTime += elasped
-				if err != nil {
-					dm.app.logger.Error("runAnte failed", "err", err)
-					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
-					//dm.txExeResults[dm.executingTask.index] = execResult
-
-					txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
-					handleGasFn()
-					execFinishedFn(txRs)
-					// dm.app.pin(RunAnte, false, mode)
-					continue
-				}
-			}
-			// dm.app.pin(RunAnte, false, mode)
-		}
+		//if dm.executingTask.anteFailed {
+		//	// dm.app.pin(RunAnte, true, mode)
+		//	if dm.app.anteHandler != nil {
+		//		start := time.Now()
+		//		mode := runTxModeDeliverPartConcurrent
+		//		err := dm.app.runAnte(info, mode)
+		//		elasped := time.Since(start).Microseconds()
+		//		dm.gasAndMsgsDuration -= elasped
+		//		totalRerunAnteTime += elasped
+		//		if err != nil {
+		//			dm.app.logger.Error("runAnte failed", "err", err)
+		//			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
+		//			//dm.txExeResults[dm.executingTask.index] = execResult
+		//
+		//			txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
+		//			handleGasFn()
+		//			execFinishedFn(txRs)
+		//			// dm.app.pin(RunAnte, false, mode)
+		//			continue
+		//		}
+		//	}
+		//	// dm.app.pin(RunAnte, false, mode)
+		//}
 		// update fee
 		dm.calculateFeeForCollector(dm.executingTask.fee, true)
 
