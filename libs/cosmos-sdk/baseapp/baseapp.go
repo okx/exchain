@@ -930,7 +930,7 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 					return
 				}
 
-				cmstx.GetEthSignInfo(app.checkState.ctx)
+				cmstx.GetEthSignInfo(app.checkState.ctx.WithTxBytes(tx))
 			}(tx)
 		}
 	}()
