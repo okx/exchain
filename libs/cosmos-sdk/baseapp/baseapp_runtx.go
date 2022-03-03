@@ -52,13 +52,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if err != nil {
 		return err
 	}
-	//info with cache saved in app to load predesessor tx state
-	if mode != runTxModeTrace {
-		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
-		//to prevent modifying the deliver state
-		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
-	}
+
 	for _, addr := range from {
 		// cache from if exist
 		if addr != "" {
