@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/x/evm/types"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -139,6 +140,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+	cmd.Flags().BoolVar(&types2.UseCompositeKey, types2.FlagUseCompositeKey,false, "Use composite key to store contract state")
+
 	return cmd
 }
 

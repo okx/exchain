@@ -10,6 +10,9 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
+const FlagUseCompositeKey string = "use-composite-key"
+var UseCompositeKey = true
+
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
 	newStateObj := newStateObject(db, acc, so.stateRoot)
@@ -52,7 +55,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value.SetBytes(enc)
 	} else {
 		tmpKey := key
-		if !tmtypes.IsMainNet() {
+		if UseCompositeKey {
 			tmpKey = so.GetStorageByAddressKey(key.Bytes())
 		}
 
@@ -132,7 +135,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		so.originStorage[key] = value
 
 		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-		if !tmtypes.IsMainNet() {
+		if UseCompositeKey {
 			key = so.GetStorageByAddressKey(key.Bytes())
 		}
 		if (value == ethcmn.Hash{}) {
