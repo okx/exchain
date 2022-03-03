@@ -144,7 +144,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		// Also, in the case of the tx aborting, we need to track gas consumed via
 		// the instantiated gas meter in the AnteHandler, so we update the context
 		// prior to returning.
+		tmpCache := info.ctx.Cache()
 		info.ctx = newCtx.WithMultiStore(ms)
+		info.ctx = info.ctx.WithCache(tmpCache)
 	}
 
 	// GasMeter expected to be set in AnteHandler
