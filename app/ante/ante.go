@@ -97,7 +97,7 @@ func sigGasConsumer(
 	}
 }
 
-func pinAnte(trc *trace.Tracer, tag string)  {
+func pinAnte(trc *trace.Tracer, tag string) {
 	if trc != nil {
 		trc.RepeatingPin(tag)
 	}

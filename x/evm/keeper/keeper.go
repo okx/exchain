@@ -154,7 +154,6 @@ func NewSimulateKeeper(
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
 func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 	account := acc.GetAddress()
-	k.Watcher.AddDirtyAccount(&account)
 	k.Watcher.DeleteAccount(account)
 
 	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))

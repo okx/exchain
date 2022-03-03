@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/mpt"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -881,7 +882,7 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		return mempool.ExTxInfo{}
 	}
 
-	return app.GetTxInfo(app.checkState.ctx, tx)
+	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
