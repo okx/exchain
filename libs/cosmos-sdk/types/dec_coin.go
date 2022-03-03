@@ -188,7 +188,11 @@ func (coin DecCoin) IsNegative() bool {
 // String implements the Stringer interface for DecCoin. It returns a
 // human-readable representation of a decimal coin.
 func (coin DecCoin) String() string {
-	return fmt.Sprintf("%v%v", coin.Amount, coin.Denom)
+	amountStr := coin.Amount.String()
+	coinStr := make([]byte, len(amountStr)+len(coin.Denom))
+	copy(coinStr, amountStr)
+	copy(coinStr[len(amountStr):], coin.Denom)
+	return amino.BytesToStr(coinStr)
 }
 
 // IsValid returns true if the DecCoin has a non-negative amount and the denom is vaild.
@@ -287,6 +291,9 @@ func NewDecCoinsFromCoins(coins ...Coin) DecCoins {
 func (coins DecCoins) String() string {
 	if len(coins) == 0 {
 		return ""
+	}
+	if len(coins) == 1 {
+		return coins[0].String()
 	}
 
 	out := ""

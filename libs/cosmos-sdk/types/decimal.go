@@ -419,7 +419,7 @@ func (d Dec) IsInteger() bool {
 
 // format decimal state
 func (d Dec) Format(s fmt.State, verb rune) {
-	_, err := s.Write([]byte(d.String()))
+	_, err := s.Write(amino.StrToBytes(d.String()))
 	if err != nil {
 		panic(err)
 	}
@@ -475,7 +475,7 @@ func (d Dec) String() string {
 		return "-" + string(bzStr)
 	}
 
-	return string(bzStr)
+	return amino.BytesToStr(bzStr)
 }
 
 //     ____

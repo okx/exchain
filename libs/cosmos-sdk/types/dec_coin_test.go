@@ -554,3 +554,26 @@ func BenchmarkDecCoinAmino(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkDecCoinString(b *testing.B) {
+	amount := Dec{new(big.Int).SetInt64(math.MaxInt64)}
+	amount.Int.Mul(amount.Int, big.NewInt(2))
+	dc := DecCoin{"okt", amount}
+
+	b.Run("opt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = dc.String()
+		}
+	})
+
+	b.Run("origin", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = fmt.Sprintf("%v%v", dc.Amount, dc.Denom)
+		}
+	})
+
+	require.Equal(b, fmt.Sprintf("%v%v", dc.Amount, dc.Denom), dc.String())
+	b.Log(dc.String())
+}
