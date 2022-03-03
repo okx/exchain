@@ -461,6 +461,11 @@ func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.Response
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
+		err := okexchain.SetChainId(req.Value)
+		if err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
 	}
 	return app.BaseApp.SetOption(req)
 }

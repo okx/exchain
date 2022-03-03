@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/okex/exchain/libs/mpt"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/types"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -878,7 +879,7 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		return mempool.ExTxInfo{}
 	}
 
-	return app.GetTxInfo(app.checkState.ctx, tx)
+	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
@@ -923,6 +924,7 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 				defer func() {
 					<-poolChan
 				}()
+
 				cmstx, err := app.txDecoder(tx)
 				if err != nil {
 					return

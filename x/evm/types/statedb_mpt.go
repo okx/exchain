@@ -3,6 +3,10 @@ package types
 import (
 	"errors"
 	"fmt"
+	ethermint "github.com/okex/exchain/app/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okex/exchain/libs/types"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -10,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
@@ -81,28 +86,6 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 
 	return nil
 }
-
-//func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
-//	// Encode the account and update the account trie
-//	addr := so.Address()
-//
-//	// Encoding []byte cannot fail, ok to ignore the error.
-//	data, err := rlp.EncodeToBytes(so.stateRoot.Bytes())
-//	if err != nil {
-//		csdb.SetError(fmt.Errorf("encode state root (%x) error: %v", so.stateRoot.String(), err))
-//	}
-//	if err := csdb.trie.TryUpdate(addr[:], data); err != nil {
-//		csdb.SetError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
-//	}
-//}
-
-//func (csdb *CommitStateDB) DeleteAccountStorageInfo(so *stateObject) {
-//	// Delete the account from the trie
-//	addr := so.Address()
-//	if err := csdb.trie.TryDelete(addr[:]); err != nil {
-//		csdb.SetError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
-//	}
-//}
 
 func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
 	var (
@@ -176,18 +159,6 @@ func (csdb *CommitStateDB) MarkUpdatedAcc(addList []ethcmn.Address) {
 // ----------------------------------------------------------------------------
 // Proof related
 // ----------------------------------------------------------------------------
-
-type proofList [][]byte
-
-func (n *proofList) Put(key []byte, value []byte) error {
-	*n = append(*n, value)
-	return nil
-}
-
-func (n *proofList) Delete(key []byte) error {
-	panic("not supported")
-}
-
 //// GetProof returns the Merkle proof for a given account.
 //func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
 //	return csdb.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
@@ -195,14 +166,14 @@ func (n *proofList) Delete(key []byte) error {
 //
 //// GetProofByHash returns the Merkle proof for a given account.
 //func (csdb *CommitStateDB) GetProofByHash(addrHash ethcmn.Hash) ([][]byte, error) {
-//	var proof proofList
+//	var proof mpt.ProofList
 //	err := csdb.trie.Prove(addrHash[:], 0, &proof)
 //	return proof, err
 //}
 
 // GetStorageProof returns the Merkle proof for given storage slot.
 func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
-	var proof proofList
+	var proof mpt.ProofList
 	addrTrie := csdb.StorageTrie(a)
 	if addrTrie == nil {
 		return proof, errors.New("storage trie for requested address does not exist")
