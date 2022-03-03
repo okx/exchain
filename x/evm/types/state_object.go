@@ -341,7 +341,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			}
 			so.originStorage[key] = value
 
-			if !tmtypes.IsMainNet() {
+			if UseCompositeKey {
 				key = so.GetStorageByAddressKey(key.Bytes())
 			}
 			if (value == ethcmn.Hash{}) {

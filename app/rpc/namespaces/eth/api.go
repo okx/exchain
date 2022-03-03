@@ -945,8 +945,12 @@ func (api *PublicEthereumAPI) doCall(
 	if err != nil {
 		return nil, err
 	}
-	if isEstimate || tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	if isEstimate{
+		if tmtypes.HigherThanVenus(int64(height)) {
+			txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+		} else {
+			txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
+		}
 	} else {
 		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
 	}

@@ -5,6 +5,7 @@ package server
 import (
 	"fmt"
 	types2 "github.com/okex/exchain/libs/types"
+	types3 "github.com/okex/exchain/x/evm/types"
 	"os"
 	"runtime/pprof"
 
@@ -181,6 +182,7 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().BoolVar(&types3.UseCompositeKey, types3.FlagUseCompositeKey,false, "Use composite key to store contract state")
 
 	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")

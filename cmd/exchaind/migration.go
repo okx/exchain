@@ -24,7 +24,7 @@ import (
 func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "migrate-state",
-		Short: "migrate iavl state to mpt state",
+		Short: "migrate iavl state to mpt state (if use migrate mpt data, then you should set `--use-composite-key true` when you decide to use mpt to store the coming data)",
 	}
 
 	cmd.AddCommand(
@@ -46,8 +46,6 @@ func migrateAccountCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- migrate account end ---------")
 		},
 	}
-	cmd.Flags().String(FlagDisplayContractAddr, "", "target contract address to display")
-	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
 	return cmd
 }
 
@@ -61,8 +59,6 @@ func migrateContractCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- display state end ---------")
 		},
 	}
-	cmd.Flags().String(FlagDisplayContractAddr, "", "target contract address to display")
-	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
 	return cmd
 }
 
@@ -76,8 +72,6 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- display state end ---------")
 		},
 	}
-	cmd.Flags().String(FlagDisplayContractAddr, "", "target contract address to display")
-	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
 	return cmd
 }
 
