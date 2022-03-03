@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -45,7 +46,7 @@ const (
 	defaultPprofFilePerm = 0644
 )
 
-func replayCmd(ctx *server.Context) *cobra.Command {
+func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
@@ -83,6 +84,10 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	server.RegisterServerFlags(cmd)
+	registerAppFlagFn(cmd)
+	// add support for all Tendermint-specific command line options
+	tcmd.AddNodeFlags(cmd)
+	registerReplayFlags(cmd)
 	return cmd
 }
 
@@ -124,6 +129,18 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
+}
+
+func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
+	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
+	cmd.Flags().BoolVarP(&sm.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
+	cmd.Flags().Bool(types.FlagFastQuery, false, "enable watch db or not")
+	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
+	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
+	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Int64(config.FlagMaxGasUsedPerBlock, -1, "Maximum gas used of transactions in a block")
+	return cmd
 }
 
 // panic if error is not nil
