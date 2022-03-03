@@ -296,6 +296,7 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 // WithSigCache set sigCache.
 func (c Context) WithSigCache(cache SigCache) Context {
 	c.sigCache = cache
+	c.from = cache.GetFrom().String()
 	return c
 }
 

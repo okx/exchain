@@ -11,7 +11,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -199,9 +198,6 @@ type BaseApp struct { // nolint: maligned
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
-
-	blockTxSender     map[string]sdk.SigCache
-	blockTxSenderLock sync.RWMutex
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
@@ -920,9 +916,6 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 			return
 		}
 
-		app.blockTxSenderLock.Lock()
-		app.blockTxSender = make(map[string]sdk.SigCache, len(block.Data.Txs))
-		app.blockTxSenderLock.Unlock()
 		poolChan := make(chan struct{}, 64)
 		for _, tx := range block.Data.Txs {
 			poolChan <- struct{}{}
@@ -931,17 +924,13 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 				defer func() {
 					<-poolChan
 				}()
+
 				cmstx, err := app.txDecoder(tx)
 				if err != nil {
 					return
 				}
-				ethSignInfo := cmstx.GetEthSignInfo(app.checkState.ctx)
 
-				app.blockTxSenderLock.Lock()
-				defer app.blockTxSenderLock.Unlock()
-				if ethSignInfo != nil {
-					app.blockTxSender[txhash(tx)] = ethSignInfo
-				}
+				cmstx.GetEthSignInfo(app.checkState.ctx)
 			}(tx)
 		}
 	}()
