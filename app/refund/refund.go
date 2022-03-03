@@ -65,7 +65,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
-	//fmt.Println("refund-", ethcommon.BytesToAddress(feePayerAcc.GetAddress()), gasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err

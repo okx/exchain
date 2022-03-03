@@ -246,7 +246,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			txReps[receiveTxIndex] = nil
 			app.parallelTxManage.setTxStatus(receiveTxIndex, true)
 			//fmt.Println("BBBBBBB", "Already Failed", receiveTxIndex)
-			go app.asyncDeliverTx(txs[receiveTxIndex], receiveTxIndex)
+			go app.asyncDeliverTx(txs[receiveTxIndex])
 
 		} else {
 			//if receiveTxIndex >= txIndex || receiveTxIndex == 0 {
@@ -255,7 +255,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 					txReps[nextTx] = nil
 					app.parallelTxManage.setTxStatus(nextTx, true)
 					//fmt.Println("BBBBBBB", "NextInGroup", nextTx)
-					go app.asyncDeliverTx(txs[nextTx], nextTx)
+					go app.asyncDeliverTx(txs[nextTx])
 				}
 			}
 			//}
@@ -297,7 +297,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 							txReps[nn] = nil
 							app.parallelTxManage.setTxStatus(nn, true)
 							//fmt.Println("BBBBBBB", "EndConflict NextInGroup", nn)
-							go app.asyncDeliverTx(txs[nn], nn)
+							go app.asyncDeliverTx(txs[nn])
 						} else {
 							runningTaskID := pm.runningStats(nn)
 							pm.markFailed(runningTaskID)
@@ -332,7 +332,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			if txReps[txIndex] == nil && !pm.isRunning(txIndex) {
 				app.parallelTxManage.setTxStatus(txIndex, true)
 				//fmt.Println("BBBBBBB", "Merge End next", txIndex)
-				go app.asyncDeliverTx(txs[txIndex], txIndex)
+				go app.asyncDeliverTx(txs[txIndex])
 			}
 
 		}
@@ -344,7 +344,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txIndex := group[0]
 		app.parallelTxManage.setTxStatus(txIndex, true)
 		//fmt.Println("BBBBBBB", "First", txIndex)
-		go app.asyncDeliverTx(txs[txIndex], txIndex)
+		go app.asyncDeliverTx(txs[txIndex])
 	}
 
 	if len(txs) > 0 {
@@ -459,8 +459,6 @@ func (e executeResult) GetCounter() uint32 {
 }
 
 func loadPreData(ms sdk.CacheMultiStore) map[string]*readData {
-	//mm := make(map[string][]byte, 0)
-
 	if ms == nil {
 		return nil
 	}

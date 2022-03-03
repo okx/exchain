@@ -658,8 +658,7 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		dd := so.GetState(nil, hash)
-		return dd
+		return so.GetState(nil, hash)
 	}
 
 	return ethcmn.Hash{}
@@ -685,8 +684,7 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		dd := so.GetCommittedState(nil, hash)
-		return dd
+		return so.GetCommittedState(nil, hash)
 	}
 
 	return ethcmn.Hash{}
