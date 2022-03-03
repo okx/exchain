@@ -65,7 +65,7 @@ func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 		return sdk.AccAddress(ethcmn.HexToAddress(from).Bytes())
 	}
 
-	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes())
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
 	if err != nil {
 		return nil
 	}
@@ -261,17 +261,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte) (sdk.SigCache, error) {
-	var cacheKey string
-	// get sender from cache
-	if txBytes != nil {
-		cacheKey = tmtypes.Bytes2Hash(txBytes, height)
-		if sigCache, ok := tmtypes.SignatureCache().Get(cacheKey); ok {
-			msg.from.Store(sigCache)
-			return sigCache, nil
-		}
-	}
-
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) (sdk.SigCache, error) {
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
@@ -287,7 +277,24 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
 		if sigCache.Signer.Equal(signer) {
-			tmtypes.SignatureCache().Add(cacheKey, sigCache)
+			return sigCache, nil
+		}
+	} else if sigCtx != nil {
+		// If sig cache is exist in ctx,then need not to excute recover key and sign verify.
+		// PS: The msg from may be non-existent, then store it.
+		if sigCtx.EqualSiger(signer) {
+			sigCache := sigCtx.(*tmtypes.TxSigCache)
+			msg.from.Store(sigCache)
+			return sigCtx, nil
+		}
+	}
+
+	var cacheKey string
+	// get sender from cache
+	if txBytes != nil {
+		cacheKey = tmtypes.Bytes2Hash(txBytes, height)
+		if sigCache, ok := tmtypes.SignatureCache().Get(cacheKey); ok {
+			msg.from.Store(sigCache)
 			return sigCache, nil
 		}
 	}
