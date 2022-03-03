@@ -107,6 +107,12 @@ func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirt
 	if c.skip() {
 		return
 	}
+
+	if !isDirty && c.parent != nil {
+		c.parent.UpdateAccount(addr, acc, lenBytes, isDirty)
+		return
+	}
+
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
 	c.accMap[ethAddr] = &accountWithCache{
 		acc:     acc,
@@ -120,6 +126,11 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 		return
 	}
 
+	if !isDirty && c.parent != nil {
+		c.parent.UpdateStorage(addr, key, value, isDirty)
+		return
+	}
+
 	if _, ok := c.storageMap[addr]; !ok {
 		c.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
 	}
@@ -129,14 +140,20 @@ func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte
 	}
 }
 
-func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
+func (c *Cache) UpdateCode(key []byte, value []byte, isDirty bool) {
 	if c.skip() {
 		return
 	}
+
+	if !isDirty && c.parent != nil {
+		c.parent.UpdateCode(key, value, isDirty)
+		return
+	}
+
 	hash := ethcmn.BytesToHash(key)
 	c.codeMap[hash] = &codeWithCache{
 		code:    value,
-		isDirty: isdirty,
+		isDirty: isDirty,
 	}
 }
 

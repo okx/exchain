@@ -273,11 +273,6 @@ func useCache(mode runTxMode) bool {
 	return false
 }
 
-func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
-	ctx.Cache().Write(true)
-	cache.Write()
-}
-
 func (app *BaseApp) newBlockCache() {
 	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
 	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
