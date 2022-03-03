@@ -220,7 +220,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
 			bcR.Logger.Info("ShouldSync.", "Status peer", msg.Height, "now", bcR.store.Height())
-			go bcR.poolRoutine()
+			//go bcR.poolRoutine()
 		}
 	case *bcNoBlockResponseMessage:
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)

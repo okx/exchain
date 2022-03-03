@@ -660,6 +660,18 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 			return
 		}
+
+		// POA: Send the Proposal Message withou signature
+		commit := conR.conS.blockStore.LoadBlockCommit(prs.Height)
+		if (commit == nil) || len(commit.Signatures) == 0 {
+			proposal := types.NewProposal(prs.Height, prs.Round, -1, blockMeta.BlockID)
+			proposalMsg := &ProposalMessage{proposal}
+			logger.Debug("Sending block message for catchup", "height", prs.Height)
+			if !peer.Send(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg)) {
+				logger.Debug("Sending proposal message part for catchup failed")
+			}
+		}
+
 		// Load the part
 		part := conR.conS.blockStore.LoadBlockPart(prs.Height, index)
 		if part == nil {
@@ -681,6 +693,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		} else {
 			logger.Debug("Sending block part for catchup failed")
 		}
+
 		return
 	}
 	//logger.Info("No parts to send in catch-up, sleeping")

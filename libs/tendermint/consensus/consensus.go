@@ -1888,8 +1888,11 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		return ErrInvalidProposalPOLRound
 	}
 
+	//POA: proposal signature length is 0 during catch up
 	// Verify signature
-	if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
+	//if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
+	if (len(proposal.Signature) != 0) &&
+		!cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
 		return ErrInvalidProposalSignature
 	}
 
@@ -1899,6 +1902,11 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
+		//POA: send out NewValidBlockMessage message to get block part again
+		if len(proposal.Signature) == 0 {
+			cs.Step = cstypes.RoundStepCommit
+			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
+		}
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	return nil
@@ -1959,7 +1967,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("[POA]", "Handle Block part, Got Complete Block:", cs.ProposalBlock.String())
 
 		// POA: Commit once get the complete POABlock
-		if (height > types.GetStartBlockHeight()+1) && (cs.ProposalBlock.LastCommit.Size() == 0) {
+		//TODO Here need more logic to distiguish btween normal block and POA block
+		if cs.ProposalBlock.LastCommit.Size() == 0 {
 			cs.Step = cstypes.RoundStepCommit
 			cs.finalizeCommitPOA(height)
 			return added, nil
