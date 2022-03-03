@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	//types2 "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
+	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
