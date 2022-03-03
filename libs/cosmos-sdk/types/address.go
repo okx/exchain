@@ -254,7 +254,7 @@ func (aa AccAddress) String() string {
 		return ""
 	}
 
-	return aa.Bech32String(GetConfig().GetBech32AccountAddrPrefix())
+	return aa.Bech32StringOptimized(GetConfig().GetBech32AccountAddrPrefix())
 }
 
 // Bech32String convert account address to bech32 address.

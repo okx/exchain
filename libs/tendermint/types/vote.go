@@ -64,6 +64,46 @@ type Vote struct {
 	Signature        []byte        `json:"signature"`
 }
 
+func (vote Vote) AminoSize(cdc *amino.Codec) int {
+	var size = 0
+
+	if vote.Type != 0 {
+		size += 1 + amino.UvarintSize(uint64(vote.Type))
+	}
+
+	if vote.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(vote.Height))
+	}
+
+	if vote.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(vote.Round))
+	}
+
+	blockIDSize := vote.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+
+	timestampSize := amino.TimeSize(vote.Timestamp)
+	if timestampSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(timestampSize)) + timestampSize
+	}
+
+	if len(vote.ValidatorAddress) != 0 {
+		size += 1 + amino.ByteSliceSize(vote.ValidatorAddress)
+	}
+
+	if vote.ValidatorIndex != 0 {
+		size += 1 + amino.UvarintSize(uint64(vote.ValidatorIndex))
+	}
+
+	if len(vote.Signature) != 0 {
+		size += 1 + amino.ByteSliceSize(vote.Signature)
+	}
+
+	return size
+}
+
 func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte

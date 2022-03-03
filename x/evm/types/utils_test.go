@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -328,6 +329,57 @@ func BenchmarkDecodeResultData(b *testing.B) {
 			if err != nil {
 				panic("err should be nil")
 			}
+		}
+	})
+}
+
+func TestEthStringer(t *testing.T) {
+	max := 10
+	wg := &sync.WaitGroup{}
+	wg.Add(max)
+	for i := 0; i < max; i++ {
+		go func() {
+			addr := GenerateEthAddress()
+			h := addr.Hash()
+			require.Equal(t, addr.String(), EthAddressStringer(addr).String())
+			require.Equal(t, h.String(), EthHashStringer(h).String())
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkEthAddressStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = addr.String()
+		}
+	})
+	b.Run("oec stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthAddressStringer(addr).String()
+		}
+	})
+}
+
+func BenchmarkEthHashStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	h := addr.Hash()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = h.String()
+		}
+	})
+	b.Run("oec stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthHashStringer(h).String()
 		}
 	})
 }
