@@ -228,6 +228,10 @@ func (c *Cache) writeStorage(updateDirty bool) {
 
 		for key, v := range storages {
 			if needWriteToParent(updateDirty, v.dirty) {
+				if c.parent.parent == nil {
+					// indicate that c.parent is chainCache
+					v.dirty = false
+				}
 				c.parent.storageMap[addr][key] = v
 			}
 		}
@@ -238,6 +242,10 @@ func (c *Cache) writeStorage(updateDirty bool) {
 func (c *Cache) writeAcc(updateDirty bool) {
 	for addr, v := range c.accMap {
 		if needWriteToParent(updateDirty, v.isDirty) {
+			if c.parent.parent == nil {
+				// indicate that c.parent is chainCache
+				v.isDirty = false
+			}
 			c.parent.accMap[addr] = v
 		}
 	}
@@ -247,6 +255,10 @@ func (c *Cache) writeAcc(updateDirty bool) {
 func (c *Cache) writeCode(updateDirty bool) {
 	for hash, v := range c.codeMap {
 		if needWriteToParent(updateDirty, v.isDirty) {
+			if c.parent.parent == nil {
+				// indicate that c.parent is chainCache
+				v.isDirty = false
+			}
 			c.parent.codeMap[hash] = v
 		}
 	}
