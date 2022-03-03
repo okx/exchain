@@ -250,6 +250,7 @@ func NewOKExChainApp(
 	interfaceReg := MakeIBC()
 	bApp.SetInterfaceRegistry(interfaceReg)
 	cc := codec.NewProtoCodec(interfaceReg)
+	proxy:=codec.NewMarshalProxy(cc,cdc)
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
 		ret, err = evm.TxDecoder(cdc)(txBytes, height...)
 		if nil == err {
@@ -302,7 +303,6 @@ func NewOKExChainApp(
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
-	proxy:=codec.NewMarshalProxy(cc,cdc)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -374,12 +374,12 @@ func NewOKExChainApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		cdc, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
+		proxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
-		cdc, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
+		proxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
