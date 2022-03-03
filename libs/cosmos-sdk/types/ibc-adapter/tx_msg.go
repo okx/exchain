@@ -7,7 +7,6 @@ import (
 	costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-type AccAddress []byte
 type (
 	// Msg defines the interface a transaction message must fulfill.
 	Msg interface {
@@ -20,7 +19,7 @@ type (
 		// Signers returns the addrs of signers that must sign.
 		// CONTRACT: All signatures must be present to be valid.
 		// CONTRACT: Returns addrs in some deterministic order.
-		GetSigners() []AccAddress
+		GetSigners() []costypes.AccAddress
 	}
 
 	// Fee defines an interface for an application application-defined concrete
@@ -52,8 +51,8 @@ type (
 		Tx
 		GetGas() uint64
 		GetFee() costypes.CoinAdapters
-		FeePayer() AccAddress
-		FeeGranter() AccAddress
+		FeePayer() costypes.AccAddress
+		FeeGranter() costypes.AccAddress
 	}
 
 	// Tx must have GetMemo() method to use ValidateMemoDecorator

@@ -7,6 +7,11 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
+	//"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+
+	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -102,7 +107,8 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	simReq := &typestx.SimulateRequest{}
 	var err error
 	_ = &typestx.SimulateRequest{}
-	//err := simReq.Unmarshal(bytes)
+	err = simReq.Unmarshal(bytes)
+	fmt.Println(err)
 	// err := protoCodec.Unmarshal(req.Data, i)
 	// if err != nil {
 	// 	return err
@@ -122,8 +128,8 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 		// We used to support passing a `Tx` in req. But if we do that, sig
 		// verification might not pass, because the .Marshal() below might not
 		// be the same marshaling done by the client.
-		var err error
-		//txBytes, err = proto.Marshal(simReq.Tx)
+
+		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
 			return nil, nil //status.Errorf(codes.InvalidArgument, "invalid tx; %v", err)
 		}
@@ -137,10 +143,10 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	//marshaler := ibccodec.NewProtoCodec(interfaceRegistry)
 	//decoder := authtx.DefaultTxDecoder(marshaler)
 	if proxy != nil {
-		// marshaler := proxy.GetProtocMarshal()
-		// //evmtxtypes.DefaultTxDecoder(marshaler)
-		// decode := sdk.DefaultTxDecoder(marshaler)
-		// decode(txBytes)
+		marshaler := proxy.GetProtocMarshal()
+		//evmtxtypes.DefaultTxDecoder(marshaler)
+		decode := ibctxdecoder.IbcTxDecoder(marshaler)
+		decode(txBytes)
 	}
 
 	////authtx.DefaultTxDecoder(marshaler)

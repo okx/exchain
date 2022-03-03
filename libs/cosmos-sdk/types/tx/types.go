@@ -7,6 +7,7 @@ import (
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
 
 // MaxGasWanted defines the max gas allowed.
@@ -19,19 +20,19 @@ var _, _, _, _ codectypes.UnpackInterfacesMessage = &Tx{}, &TxBody{}, &AuthInfo{
 var _ *Tx = &Tx{}
 
 // GetMsgs implements the GetMsgs method on sdk.Tx.
-func (t *Tx) GetMsgs() []sdk.Msg {
+func (t *Tx) GetMsgs() []ibcmsg.Msg {
 	if t == nil || t.Body == nil {
 		return nil
 	}
 
 	anys := t.Body.Messages
-	res := make([]sdk.Msg, len(anys))
+	res := make([]ibcmsg.Msg, len(anys))
 	for i, any := range anys {
 		cached := any.GetCachedValue()
 		if cached == nil {
 			panic("Any cached value is nil. Transaction messages must be correctly packed Any values.")
 		}
-		res[i] = cached.(sdk.Msg)
+		res[i] = cached.(ibcmsg.Msg)
 	}
 	return res
 }
@@ -182,7 +183,7 @@ func (t *Tx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 // UnpackInterfaces implements the UnpackInterfaceMessages.UnpackInterfaces method
 func (m *TxBody) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	for _, any := range m.Messages {
-		var msg sdk.Msg
+		var msg ibcmsg.Msg
 		err := unpacker.UnpackAny(any, &msg)
 		if err != nil {
 			return err
