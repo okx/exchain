@@ -96,9 +96,14 @@ var (
 )
 
 type ScfLog struct {
-	prePare time.Duration
-	runTx   time.Duration
-	async   time.Duration
+	paraAllTime time.Duration
+	prePare     time.Duration
+	runTx       time.Duration
+	async       time.Duration
+}
+
+func AddParaAllTIme(ts time.Duration) {
+	pLog.paraAllTime += ts
 }
 
 func AddPrePare(ts time.Duration) {

@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -16,10 +17,12 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 	for index := 0; index < len(execResults); index++ {
 		rs, ok := k.LogsManages.Get(execResults[index][0])
 		if !ok || execResults[index][1] != "" {
+			fmt.Println("continue-1", index, ok, execResults[index][1])
 			continue
 		}
 		txInBlock++
 		if rs.ResultData == nil {
+			fmt.Println("continue-2", "isNull")
 			continue
 		}
 
@@ -29,6 +32,9 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 			logSize++
 		}
 		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
+		if index == 135 {
+			fmt.Println("135---log", rs.ResultData)
+		}
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
 			panic(err)
