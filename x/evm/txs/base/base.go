@@ -3,9 +3,11 @@ package base
 import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
+	"math/big"
 )
 
 // Keeper alias of keeper.Keeper, to solve import circle. also evm.Keeper is alias keeper.Keeper
@@ -109,3 +111,24 @@ func (tx *Tx) AnalyzeStart(tag string) {
 func (tx *Tx) AnalyzeStop(tag string) {
 	analyzer.StopTxLog(tag)
 }
+
+// SaveTx check Tx do not transition state db
+func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {}
+
+// GetSenderAccount check Tx do not need this
+func (tx *Tx) GetSenderAccount() authexported.Account { return nil }
+
+// ResetWatcher check Tx do not need this
+func (tx *Tx) ResetWatcher(account authexported.Account) {}
+
+// RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
+func (tx *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
+
+// RestoreWatcherTransactionReceipt check Tx do not need restore
+func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
+
+// Commit check Tx do not need
+func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
+
+// FinalizeWatcher check Tx do not need this
+func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
