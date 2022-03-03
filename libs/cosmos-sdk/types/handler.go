@@ -119,6 +119,7 @@ func AddAsycn(ts time.Duration) {
 }
 
 func PrintTime() {
+	fmt.Println("ParaAllTime", pLog.paraAllTime.Seconds())
 	fmt.Println("PrePare", pLog.prePare.Seconds())
 	fmt.Println("RunTxs", pLog.runTx.Seconds())
 	fmt.Println("Async", pLog.async.Seconds())
