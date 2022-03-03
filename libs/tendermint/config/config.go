@@ -826,6 +826,9 @@ type ConsensusConfig struct {
 	// Reactor sleep duration parameters
 	PeerGossipSleepDuration     time.Duration `mapstructure:"peer_gossip_sleep_duration"`
 	PeerQueryMaj23SleepDuration time.Duration `mapstructure:"peer_query_maj23_sleep_duration"`
+
+	// Enable POA consensus
+	POAEnable bool `mapstructure:"poa_enable"`
 }
 
 // DefaultConsensusConfig returns a default configuration for the consensus service
@@ -838,7 +841,8 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrevoteDelta:         500 * time.Millisecond,
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               3000 * time.Millisecond,
+		//TimeoutCommit:               3000 * time.Millisecond,
+		TimeoutCommit:               10000 * time.Millisecond,
 		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
@@ -846,6 +850,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutToFastSync:           30 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
+		POAEnable:                   true,
 	}
 }
 

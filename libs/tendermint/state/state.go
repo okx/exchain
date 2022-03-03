@@ -143,6 +143,12 @@ func (state State) MakeBlock(
 	var timestamp time.Time
 	if height == types.GetStartBlockHeight()+1 {
 		timestamp = state.LastBlockTime // genesis time
+	} else if commit.Size() == 0 {
+		//POA: POABlock's time is prefers to Now
+		timestamp = state.LastBlockTime.Add(1 * time.Second)
+		if time.Now().After(state.LastBlockTime) {
+			timestamp = time.Now()
+		}
 	} else {
 		timestamp = MedianTime(commit, state.LastValidators)
 	}

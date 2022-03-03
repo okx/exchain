@@ -532,7 +532,9 @@ func (cs *State) reconstructLastCommit(state sm.State) {
 			state.LastBlockHeight))
 	}
 	lastPrecommits := types.CommitToVoteSet(state.ChainID, seenCommit, state.LastValidators)
-	if !lastPrecommits.HasTwoThirdsMajority() {
+	//POA:POA Block escape from the +2/3M.
+	//if !lastPrecommits.HasTwoThirdsMajority() {
+	if (seenCommit.Signatures != nil) && !lastPrecommits.HasTwoThirdsMajority() {
 		panic("Failed to reconstruct LastCommit: Does not have +2/3 maj")
 	}
 	cs.LastCommit = lastPrecommits
@@ -728,6 +730,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
+		cs.Logger.Info("[POA]", "Handle Proposal Msg:", msg.Proposal.String())
 		err = cs.setProposal(msg.Proposal)
 	case *BlockPartMessage:
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
@@ -754,7 +757,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 		if added {
 			cs.statsMsgQueue <- mi
 		}
-
 		// if err == ErrAddingVote {
 		// TODO: punish peer
 		// We probably don't want to stop the peer here. The vote does not
@@ -1047,6 +1049,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
+		cs.Logger.Info("[POA]", "Create proposal Block:", block.String())
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -1105,6 +1108,9 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 		// We're creating a proposal for the first block.
 		// The commit is empty, but not nil.
 		commit = types.NewCommit(0, 0, types.BlockID{}, nil)
+	case cs.LastCommit.Size() == 0 || cs.config.POAEnable:
+		//POA, POA Block's last coomit always round 0 without commit sig
+		commit = types.NewCommit(cs.Height, 0, types.BlockID{}, nil)
 	case cs.LastCommit.HasTwoThirdsMajority():
 		// Make the commit from LastCommit
 		commit = cs.LastCommit.MakeCommit()
@@ -1465,6 +1471,154 @@ func (cs *State) tryFinalizeCommit(height int64) {
 	//	go
 	cs.finalizeCommit(height)
 }
+func (cs *State) finalizeCommitPOA(height int64) {
+	cs.Logger.Info("[POA]", "finalizeCommit:")
+	if cs.Height != height || cs.Step != cstypes.RoundStepCommit {
+		cs.Logger.Debug(fmt.Sprintf(
+			"finalizeCommit(%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+
+	block, blockParts := cs.ProposalBlock, cs.ProposalBlockParts
+	blockID := cs.Proposal.BlockID
+
+	if err := cs.blockExec.ValidateBlock(cs.state, block); err != nil {
+		panic(fmt.Sprintf("+2/3 committed an invalid block: %v", err))
+	}
+
+	cs.Logger.Info("Finalizing commit of block with N txs",
+		"height", block.Height,
+		"hash", block.Hash(),
+		"root", block.AppHash,
+		"N", len(block.Txs))
+	cs.Logger.Info(fmt.Sprintf("%v", block))
+
+	fail.Fail() // XXX
+
+	// Save to blockStore.
+	if cs.blockStore.Height() < block.Height {
+		// NOTE: the seenCommit is local justification to commit this block,
+		// but may differ from the LastCommit included in the next block
+		//precommits := cs.Votes.Precommits(cs.CommitRound)
+		////TODO POA MakeCommit
+		//seenCommit := precommits.MakeCommit()
+		//commitSigs := make([]types.CommitSig, 1)
+		//commitSigs[0] = types.CommitSig{
+		//	BlockIDFlag:      types.BlockIDFlagCommit,
+		//	ValidatorAddress: cs.Validators.Proposer.Address,
+		//	Timestamp:        cs.Proposal.Timestamp,
+		//	Signature:        cs.Proposal.Signature,
+		//}
+		seenCommit := types.NewCommit(cs.Height, cs.Round, blockID, nil)
+		cs.blockStore.SaveBlock(block, blockParts, seenCommit)
+	} else {
+		// Happens during replay if we already saved the block but didn't commit
+		cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
+	}
+
+	fail.Fail() // XXX
+
+	// Write EndHeightMessage{} for this height, implying that the blockstore
+	// has saved the block.
+	//
+	// If we crash before writing this EndHeightMessage{}, we will recover by
+	// running ApplyBlock during the ABCI handshake when we restart.  If we
+	// didn't save the block to the blockstore before writing
+	// EndHeightMessage{}, we'd have to change WAL replay -- currently it
+	// complains about replaying for heights where an #ENDHEIGHT entry already
+	// exists.
+	//
+	// Either way, the State should not be resumed until we
+	// successfully call ApplyBlock (ie. later here, or in Handshake after
+	// restart).
+	endMsg := EndHeightMessage{height}
+	if err := cs.wal.WriteSync(endMsg); err != nil { // NOTE: fsync
+		panic(fmt.Sprintf("Failed to write %v msg to consensus wal due to %v. Check your FS and restart the node",
+			endMsg, err))
+	}
+
+	fail.Fail() // XXX
+
+	// Create a copy of the state for staging and an event cache for txs.
+	stateCopy := cs.state.Copy()
+
+	// Execute and commit the block, update and save the state, and update the mempool.
+	// NOTE The block.AppHash wont reflect these txs until the next block.
+
+	var err error
+	var retainHeight int64
+	/*
+		var deltas *types.Deltas
+		if types.EnableApplyP2PDelta() {
+			deltas = cs.Deltas
+		}
+	*/
+
+	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+
+	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
+		stateCopy,
+		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
+		block)
+	if err != nil {
+		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
+		err := tmos.Kill()
+		if err != nil {
+			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
+		}
+		return
+	}
+
+	/*
+		if types.EnableBroadcastP2PDelta() {
+			// persists the given deltas to the underlying db.
+			deltas.Height = block.Height
+			cs.deltaStore.SaveDeltas(deltas, block.Height)
+		}
+	*/
+
+	fail.Fail() // XXX
+
+	// Prune old heights, if requested by ABCI app.
+	if retainHeight > 0 {
+		pruned, err := cs.pruneBlocks(retainHeight)
+		if err != nil {
+			cs.Logger.Error("Failed to prune blocks", "retainHeight", retainHeight, "err", err)
+		} else {
+			cs.Logger.Info("Pruned blocks", "pruned", pruned, "retainHeight", retainHeight)
+		}
+	}
+
+	// must be called before we update state
+	cs.recordMetrics(height, block)
+
+	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
+	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
+
+	// NewHeightStep!
+	cs.updateToState(stateCopy)
+
+	fail.Fail() // XXX
+
+	// Private validator might have changed it's key pair => refetch pubkey.
+	if err := cs.updatePrivValidatorPubKey(); err != nil {
+		cs.Logger.Error("Can't get private validator pubkey", "err", err)
+	}
+
+	cs.trc.Pin("Waiting")
+	// cs.StartTime is already set.
+	// Schedule Round0 to start soon.
+	cs.scheduleRound0(&cs.RoundState)
+
+	// By here,
+	// * cs.Height has been increment to height+1
+	// * cs.Step is now cstypes.RoundStepNewHeight
+	// * cs.StartTime is set to when we will start round0.
+}
 
 // Increment height and goto cstypes.RoundStepNewHeight
 func (cs *State) finalizeCommit(height int64) {
@@ -1642,7 +1796,9 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 	// height=0 -> MissingValidators and MissingValidatorsPower are both 0.
 	// Remember that the first LastCommit is intentionally empty, so it's not
 	// fair to increment missing validators number.
-	if height > types.GetStartBlockHeight()+1 {
+	//if height > types.GetStartBlockHeight()+1 {
+	//POA:  POA Block-> MissingValidators and MissingValidatorsPower are both 0.
+	if (height > types.GetStartBlockHeight()+1) && (block.LastCommit.Size() > 0) {
 		// Sanity check that commit size matches validator set size - only applies
 		// after first block.
 		var (
@@ -1800,7 +1956,14 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())
+		cs.Logger.Info("[POA]", "Handle Block part, Got Complete Block:", cs.ProposalBlock.String())
 
+		// POA: Commit once get the complete POABlock
+		if (height > types.GetStartBlockHeight()+1) && (cs.ProposalBlock.LastCommit.Size() == 0) {
+			cs.Step = cstypes.RoundStepCommit
+			cs.finalizeCommitPOA(height)
+			return added, nil
+		}
 		// Update Valid* if we can.
 		prevotes := cs.Votes.Prevotes(cs.Round)
 		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()

@@ -85,7 +85,8 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 		if len(block.LastCommit.Signatures) != 0 {
 			return errors.New(fmt.Sprintf("block at height %d can't have LastCommit signatures", types.GetStartBlockHeight()+1))
 		}
-	} else {
+	} else if block.LastCommit.Size() != 0 {
+		//POA: POABlock cancel LastCommit check
 		if len(block.LastCommit.Signatures) != state.LastValidators.Size() {
 			return types.NewErrInvalidCommitSignatures(state.LastValidators.Size(), len(block.LastCommit.Signatures))
 		}
@@ -105,12 +106,15 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 			)
 		}
 
-		medianTime := MedianTime(block.LastCommit, state.LastValidators)
-		if !block.Time.Equal(medianTime) {
-			return fmt.Errorf("invalid block time. Expected %v, got %v",
-				medianTime,
-				block.Time,
-			)
+		//POA:No MedianTime for POABlock
+		if block.LastCommit.Size() != 0 {
+			medianTime := MedianTime(block.LastCommit, state.LastValidators)
+			if !block.Time.Equal(medianTime) {
+				return fmt.Errorf("invalid block time. Expected %v, got %v",
+					medianTime,
+					block.Time,
+				)
+			}
 		}
 	} else if block.Height == types.GetStartBlockHeight()+1 {
 		genesisTime := state.LastBlockTime

@@ -480,7 +480,9 @@ func getBeginBlockValidatorInfo(block *types.Block, stateDB dbm.DB) (abci.LastCo
 	// block.Height=1 -> LastCommitInfo.Votes are empty.
 	// Remember that the first LastCommit is intentionally empty, so it makes
 	// sense for LastCommitInfo.Votes to also be empty.
-	if block.Height > types.GetStartBlockHeight()+1 {
+	//if block.Height > types.GetStartBlockHeight()+1 {
+	//POA:  last commit size is 0
+	if (block.Height > types.GetStartBlockHeight()+1) && (block.LastCommit.Size() != 0) {
 		lastValSet, err := LoadValidators(stateDB, block.Height-1)
 		if err != nil {
 			panic(err)

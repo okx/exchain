@@ -154,8 +154,15 @@ func (b *Block) ValidateBasic() error {
 		if b.LastCommit == nil {
 			return errors.New("nil LastCommit")
 		}
-		if err := b.LastCommit.ValidateBasic(); err != nil {
-			return fmt.Errorf("wrong LastCommit: %v", err)
+		//if err := b.LastCommit.ValidateBasic(); err != nil {
+		//	return fmt.Errorf("wrong LastCommit: %v", err)
+		//}
+		//POA: POABlock escape from lastcommit validation
+		if b.LastCommit.Size() != 0 {
+			err := b.LastCommit.ValidateBasic()
+			if err != nil {
+				return fmt.Errorf("wrong LastCommit: %v", err)
+			}
 		}
 	}
 
