@@ -3,6 +3,9 @@ package types
 import (
 	"errors"
 	"fmt"
+	ethermint "github.com/okex/exchain/app/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okex/exchain/libs/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -31,6 +34,14 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 			// Write any storage changes in the state object to its storage trie
 			if err := obj.CommitTrie(csdb.db); err != nil {
 				return ethcmn.Hash{}, err
+			}
+
+			if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+				accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+				if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+					ethermintAccount.StateRoot = obj.account.StateRoot
+					csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
+				}
 			}
 		}
 	}
@@ -72,28 +83,6 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 
 	return nil
 }
-
-//func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
-//	// Encode the account and update the account trie
-//	addr := so.Address()
-//
-//	// Encoding []byte cannot fail, ok to ignore the error.
-//	data, err := rlp.EncodeToBytes(so.stateRoot.Bytes())
-//	if err != nil {
-//		csdb.SetError(fmt.Errorf("encode state root (%x) error: %v", so.stateRoot.String(), err))
-//	}
-//	if err := csdb.trie.TryUpdate(addr[:], data); err != nil {
-//		csdb.SetError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
-//	}
-//}
-
-//func (csdb *CommitStateDB) DeleteAccountStorageInfo(so *stateObject) {
-//	// Delete the account from the trie
-//	addr := so.Address()
-//	if err := csdb.trie.TryDelete(addr[:]); err != nil {
-//		csdb.SetError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
-//	}
-//}
 
 func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
 	var (

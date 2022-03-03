@@ -352,7 +352,6 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				so.setError(tr.TryUpdate(key[:], v))
 			}
 		}
-		so.account.StateRoot = so.trie.Hash()
 	}
 
 	if len(so.pendingStorage) > 0 {

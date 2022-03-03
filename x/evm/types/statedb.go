@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
@@ -754,6 +755,14 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 					// Write any storage changes in the state object to its storage trie
 					if err := obj.CommitTrie(csdb.db); err != nil {
 						return ethcmn.Hash{}, err
+					}
+
+					if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+						accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+						if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+							ethermintAccount.StateRoot = obj.account.StateRoot
+							csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
+						}
 					}
 				}
 			}
