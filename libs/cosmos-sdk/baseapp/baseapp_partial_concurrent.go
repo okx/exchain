@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 4
+	maxDeliverTxsConcurrentNum = 3
 )
 
 var totalAnteDuration = int64(0)
@@ -335,7 +335,6 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		// todo: if ante failed during concurrently executing, try it again
 		if dm.executingTask.anteFailed {
 			// dm.app.pin(RunAnte, true, mode)
-
 			if dm.app.anteHandler != nil {
 				start := time.Now()
 				err := dm.app.runAnte(info, mode)
