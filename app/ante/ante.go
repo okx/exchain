@@ -41,9 +41,9 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewValidateBasicDecorator(),
 				authante.NewValidateMemoDecorator(ak),
 				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
+				authante.NewSetPubKeyDecorator(ak),        // SetPubKeyDecorator must be called before all signature verification decorators
+				authante.NewValidateSigCountDecorator(ak), // TODO: it seems can be merged into NewSetPubKeyDecorator
+				authante.NewDeductFeeDecorator(ak, sk),    // todo: why should put this into AnteHandler as it will change the value of FeeCollector
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
@@ -97,7 +97,7 @@ func sigGasConsumer(
 	}
 }
 
-func pinAnte(trc *trace.Tracer, tag string)  {
+func pinAnte(trc *trace.Tracer, tag string) {
 	if trc != nil {
 		trc.RepeatingPin(tag)
 	}

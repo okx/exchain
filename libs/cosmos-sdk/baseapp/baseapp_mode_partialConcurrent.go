@@ -30,15 +30,15 @@ func (m *modeHandlerDeliverPartConcurrent) handleDeferRefund(info *runTxInfo) {
 	info.ctx.Cache().Write(false)
 	gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 
-	_, err := app.GasRefundHandler(gasRefundCtx, info.tx)
+	refundGas, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)
 	}
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
+	app.deliverTxsMgr.calculateFeeForCollector(refundGas, false)
 }
 
 func (m *modeHandlerDeliverPartConcurrent) handleDeferGasConsumed(info *runTxInfo) {
 	m.setGasConsumed(info)
 }
-

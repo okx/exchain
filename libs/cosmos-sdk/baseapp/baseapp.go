@@ -29,13 +29,13 @@ import (
 )
 
 const (
-	runTxModeCheck          runTxMode = iota // Check a transaction
-	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                        // Simulate a transaction
-	runTxModeDeliver                         // Deliver a transaction
-	runTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
-	runTxModeDeliverPartConcurrent			 // Deliver a transaction partial concurrent
- 	runTxModeTrace                           // Trace a transaction
+	runTxModeCheck                 runTxMode = iota // Check a transaction
+	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                               // Simulate a transaction
+	runTxModeDeliver                                // Deliver a transaction
+	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
+	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
+	runTxModeTrace                                  // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -188,7 +188,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-	deliverTxsMgr *DeliverTxTasksManager
+	deliverTxsMgr    *DeliverTxTasksManager
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -221,9 +221,9 @@ func NewBaseApp(
 		trace:          false,
 
 		//parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewChainCache(),
-		txDecoder:        txDecoder,
-		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+		chainCache: sdk.NewChainCache(),
+		txDecoder:  txDecoder,
+		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
@@ -631,7 +631,6 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		}
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
-
 	return ctx
 }
 

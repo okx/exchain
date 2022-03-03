@@ -2,7 +2,6 @@ package ante
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
@@ -143,6 +142,10 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
+
+	//feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	//feeCoins := feeCollector.GetCoins()
+	//log.Printf("To FeeCollector: %x now:%x\n", fees[0].Amount, feeCoins[0].Amount)
 
 	return nil
 }

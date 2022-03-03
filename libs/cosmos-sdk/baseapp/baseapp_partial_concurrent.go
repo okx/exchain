@@ -37,8 +37,7 @@ type DeliverTxTask struct {
 	//isEvm         bool
 	//signCache     sdk.SigCache
 	//evmIndex      uint32
-	err           error
-	//decodeFailed  bool
+	err error
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
@@ -52,18 +51,19 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 }
 
 type DeliverTxTasksManager struct {
-	done       chan int // done for all transactions are executed
-	nextSignal chan int // signal for taking a new tx into tasks
-	executeSignal chan int // signal for taking a new task from pendingTasks to executingTask
-	waitingCount     int
+	done               chan int // done for all transactions are executed
+	nextSignal         chan int // signal for taking a new tx into tasks
+	executeSignal      chan int // signal for taking a new task from pendingTasks to executingTask
+	waitingCount       int
 	executeSignalCount int
-	mtx           sync.Mutex
+	mtx                sync.Mutex
 
 	totalCount    int
 	curIndex      int
 	tasks         sync.Map
 	pendingTasks  sync.Map
 	executingTask *DeliverTxTask
+	currTxFee     sdk.Coins
 
 	txResponses []*abci.ResponseDeliverTx
 
@@ -96,8 +96,10 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 
 	dm.tasks = sync.Map{}
 	dm.pendingTasks = sync.Map{}
+	dm.currTxFee = sdk.Coins{}
+
 	dm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
-	
+
 	dm.anteDuration = 0
 	dm.gasAndMsgsDuration = 0
 	dm.serialDuration = 0
@@ -129,9 +131,9 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		//	}
 		//
 		//default:
-			dm.makeNextTask(txs[taskIndex], taskIndex)
-			taskIndex++
-			dm.incrementWaitingCount(true)
+		dm.makeNextTask(txs[taskIndex], taskIndex)
+		taskIndex++
+		dm.incrementWaitingCount(true)
 		//}
 	}
 }
@@ -156,7 +158,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 
 	// execute ante
 	task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-	//task.fee, task.isEvm, task.signCache = dm.app.getTxFee(task.info.ctx, task.tx)
+	task.fee, _, _ = dm.app.getTxFee(task.info.ctx, task.tx)
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -190,7 +192,7 @@ func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverT
 	if err != nil {
 		task.err = err
 		//task.decodeFailed = true
-		dm.app.logger.Error("tx decode failed"," err", err)
+		dm.app.logger.Error("tx decode failed", " err", err)
 	}
 
 	dm.tasks.Store(task.index, task)
@@ -266,7 +268,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			start := time.Now()
 			<-dm.executeSignal
 			elapsed := time.Since(start).Microseconds()
-			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us",elapsed)
+			dm.app.logger.Info("time to waiting for extractExecutingTask", "index", dm.curIndex, "us", elapsed)
 			dm.anteDuration -= elapsed
 			totalWaitingTime += elapsed
 			continue
@@ -308,7 +310,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 		// execute anteHandler failed
 		//var execResult *executeResult
-		if dm.executingTask.err != nil {//&& dm.executingTask.decodeFailed {
+		if dm.executingTask.err != nil { //&& dm.executingTask.decodeFailed {
 			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
 			//dm.txExeResults[dm.executingTask.index] = execResult
 
@@ -354,13 +356,16 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			}
 			// dm.app.pin(RunAnte, false, mode)
 		}
+		// update fee
+		dm.calculateFeeForCollector(dm.executingTask.fee, true)
+
 		// todo: cache is the same for all deliverTx? Maybe it's no need to write cache there.
 		wstart := time.Now()
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		dm.writeDuration += time.Since(wstart).Microseconds()
 
-		// TODO: execute runMsgs etc.
+		// execute runMsgs
 		runMsgStart := time.Now()
 		// dm.app.pin(RunMsg, true, mode)
 		err = handler.handleRunMsg(info)
@@ -392,6 +397,9 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 
 	// all txs are executed
 	if finished == dm.totalCount {
+		// update fee collector
+		dm.updateFeeCollector()
+
 		dm.done <- 0
 		close(dm.executeSignal)
 		close(dm.nextSignal)
@@ -402,15 +410,32 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 	}
 }
 
+func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
+	if add {
+		dm.currTxFee = dm.currTxFee.Add(fee...)
+	} else {
+		dm.currTxFee = dm.currTxFee.Sub(fee)
+	}
+}
+
+func (dm *DeliverTxTasksManager) updateFeeCollector() {
+	//dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee[0].Amount)
+	ctx, cache := dm.app.cacheTxContext(dm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	if err := dm.app.updateFeeCollectorAccHandler(ctx, dm.currTxFee); err != nil {
+		panic(err)
+	}
+	cache.Write()
+}
+
 func (dm *DeliverTxTasksManager) extractExecutingTask() bool {
-	task, ok := dm.pendingTasks.Load(dm.curIndex+1)
+	task, ok := dm.pendingTasks.Load(dm.curIndex + 1)
 	if ok {
 		dm.executingTask = task.(*DeliverTxTask)
 		dm.pendingTasks.Delete(dm.executingTask.index)
 
 		dm.incrementWaitingCount(false)
-	//} else {
-	//	dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
+		//} else {
+		//	dm.app.logger.Error("extractExecutingTask failed", "index", dm.curIndex+1)
 	}
 	return ok
 }
@@ -436,7 +461,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		count := dm.waitingCount
 		dm.mtx.Unlock()
 
-		if count >= maxDeliverTxsConcurrentNum{
+		if count >= maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
 			dm.executeSignalCount--
 			if dm.executeSignalCount < 0 {
@@ -511,7 +536,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 			"waitingAll", totalWaitingTime,
 			"rerunAnteAll", totalRerunAnteTime,
 			"totalSavedTime", totalSavedTime,
-			"saved", float64(app.deliverTxsMgr.anteDuration) / float64(dur))
+			"saved", float64(app.deliverTxsMgr.anteDuration)/float64(dur))
 	}
 
 	return app.deliverTxsMgr.txResponses

@@ -48,25 +48,25 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 		)
 	}
 
-	//// Validate app info
-	//if !bytes.Equal(block.AppHash, state.AppHash) {
-	//	return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v",
-	//		state.AppHash,
-	//		block.AppHash,
-	//	)
-	//}
+	// Validate app info
+	if !bytes.Equal(block.AppHash, state.AppHash) {
+		return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v",
+			state.AppHash,
+			block.AppHash,
+		)
+	}
 	if !bytes.Equal(block.ConsensusHash, state.ConsensusParams.Hash()) {
 		return fmt.Errorf("wrong Block.Header.ConsensusHash.  Expected %X, got %v",
 			state.ConsensusParams.Hash(),
 			block.ConsensusHash,
 		)
 	}
-	//if !bytes.Equal(block.LastResultsHash, state.LastResultsHash) {
-	//	return fmt.Errorf("wrong Block.Header.LastResultsHash.  Expected %X, got %v",
-	//		state.LastResultsHash,
-	//		block.LastResultsHash,
-	//	)
-	//}
+	if !bytes.Equal(block.LastResultsHash, state.LastResultsHash) {
+		return fmt.Errorf("wrong Block.Header.LastResultsHash.  Expected %X, got %v",
+			state.LastResultsHash,
+			block.LastResultsHash,
+		)
+	}
 	if !bytes.Equal(block.ValidatorsHash, state.Validators.Hash()) {
 		return fmt.Errorf("wrong Block.Header.ValidatorsHash.  Expected %X, got %v",
 			state.Validators.Hash(),

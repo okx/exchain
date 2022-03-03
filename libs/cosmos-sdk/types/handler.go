@@ -47,6 +47,7 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 	}
 
 	return func(ctx Context, tx Tx, simulate bool) (Context, error) {
+		//ctx.PrintGasInfo(fmt.Sprintf("%v",len(chain)))
 		return chain[0].AnteHandle(ctx, tx, simulate, ChainAnteDecorators(chain[1:]...))
 	}
 }

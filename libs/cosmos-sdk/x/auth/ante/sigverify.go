@@ -133,7 +133,7 @@ func (sgcd SigGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		if err != nil {
 			return ctx, err
 		}
-		pubKey := signerAcc.GetPubKey()
+		pubKey := signerAcc.GetPubKey()	// TODO: what's the difference between signerAcc.GetPubKey && sigTx.GetPubKeys()
 
 		if simulate && pubKey == nil {
 			// In simulate mode the transaction comes with no signatures, thus if the
@@ -202,7 +202,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		signBytes := sigTx.GetSignBytes(ctx, signerAccs[i])
 
 		// retrieve pubkey
-		pubKey := signerAccs[i].GetPubKey()
+		pubKey := signerAccs[i].GetPubKey()	// todo: xxxx.GetPubKey() is called many times during the whole AnteHandler
 		if !simulate && pubKey == nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "pubkey on account is not set")
 		}
@@ -242,7 +242,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	// increment sequence of all signers
-	for index, addr := range sigTx.GetSigners() {
+	for index, addr := range sigTx.GetSigners() { // TODO: XXXX.GetSigners() is called many times during the whole AnteHandler
 		acc := isd.ak.GetAccount(ctx, addr)
 		if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
 			ctx = ctx.WithAccountNonce(acc.GetSequence())
