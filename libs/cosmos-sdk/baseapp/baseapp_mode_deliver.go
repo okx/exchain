@@ -9,10 +9,11 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	mode := m.mode
 
 	info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	info.runMsgCtx = info.runMsgCtx.WithCache(sdk.NewCache(info.ctx.Cache(), useCache(mode)))
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	if err == nil {
 		info.msCache.Write()
-		info.ctx.Cache().Write(true)
+		info.runMsgCtx.Cache().Write(true)
 	}
 
 	info.runMsgFinished = true
@@ -29,13 +30,14 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 
 	var gasRefundCtx sdk.Context
 	gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	gasRefundCtx = gasRefundCtx.WithCache(sdk.NewCache(info.ctx.Cache(), useCache(m.mode)))
 
 	_, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)
 	}
 	info.msCache.Write()
-	info.ctx.Cache().Write(true)
+	gasRefundCtx.Cache().Write(true)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {

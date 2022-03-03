@@ -118,6 +118,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 1. CacheTxContext
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+	anteCtx = anteCtx.WithCache(sdk.NewCache(info.ctx.Cache(), useCache(mode)))
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
 
@@ -163,7 +164,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
-		info.ctx.Cache().Write(true)
+		anteCtx.Cache().Write(true)
 		app.pin(CacheStoreWrite, false, mode)
 	}
 
