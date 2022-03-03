@@ -33,12 +33,13 @@ type Keeper struct {
 
 // NewKeeper creates a new ibc Keeper
 func NewKeeper(
-	cdcc *codec.Codec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
+	proxy *codec.MarshalProxy,
+	key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, scopedKeeper *capabilitykeeper.ScopedKeeper,
 	registry types2.InterfaceRegistry,
 ) *Keeper {
-	mm := codec.NewProtoCodec(registry)
-	proxy:=codec.NewMarshalProxy(mm,cdcc)
+	//mm := codec.NewProtoCodec(registry)
+	//proxy:=codec.NewMarshalProxy(mm,cdcc)
 	clientKeeper := clientkeeper.NewKeeper(proxy, key, paramSpace, stakingKeeper)
 	connectionKeeper := connectionkeeper.NewKeeper(proxy, key, clientKeeper)
 	portKeeper := portkeeper.NewKeeper(scopedKeeper)
