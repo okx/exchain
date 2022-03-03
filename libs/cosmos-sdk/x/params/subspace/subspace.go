@@ -1,6 +1,7 @@
 package subspace
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -114,6 +115,9 @@ func (s Subspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {
 }
 
 func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
+	if len(bz) == 0 || len(bz) < 2 {
+		return cdc.UnmarshalJSON(bz, ptr)
+	}
 	if bz[0] == '"' && bz[len(bz)-1] == '"' {
 		rawbz := bz[1 : len(bz)-1] // trim leading & trailing "
 		switch ptr.(type) {
@@ -148,6 +152,27 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 				*uptr = ui
 				return nil
 			}
+		case *int64:
+			iptr := ptr.(*int64)
+			ok := true
+			rawbz2 := rawbz
+			if rawbz2[0] == '-' {
+				rawbz2 = rawbz[1:]
+			}
+			for _, c := range rawbz2 {
+				if c < '0' || c > '9' {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				return json.Unmarshal(rawbz, ptr)
+			}
+			ui, err := strconv.ParseInt(amino.BytesToStr(rawbz), 10, 64)
+			if err == nil {
+				*iptr = ui
+				return nil
+			}
 		case *sdk.Dec:
 			ok := true
 			for _, c := range rawbz {
@@ -167,7 +192,7 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 			}
 		}
 	}
-	if dec, ok := ptr.(*sdk.DecCoin); ok {
+	if dec, ok := ptr.(*sdk.DecCoin); ok && !bytes.Equal(bz, []byte("null")) {
 		v, err := fastjson.Parse(amino.BytesToStr(bz))
 		if err == nil {
 			dec.Denom = string(v.GetStringBytes("denom"))
@@ -177,6 +202,19 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 				dec.Amount.Int = newDec.Int
 				return nil
 			}
+		}
+	} else if bptr, ok := ptr.(*bool); ok {
+		if bytes.Equal(bz, []byte("true")) {
+			*bptr = true
+			return nil
+		} else if bytes.Equal(bz, []byte("false")) {
+			*bptr = false
+			return nil
+		}
+	} else if ints, ok := ptr.(*[]int); ok {
+		if bytes.Equal(bz, []byte("null")) {
+			*ints = nil
+			return nil
 		}
 	}
 	return cdc.UnmarshalJSON(bz, ptr)
