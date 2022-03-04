@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 	"strconv"
 	"sync"
@@ -942,11 +943,8 @@ func (api *PublicEthereumAPI) doCall(
 	var txEncoder sdk.TxEncoder
 
 	// get block height
-	height, err := api.BlockNumber()
-	if err != nil {
-		return nil, err
-	}
-	if isEstimate || tmtypes.HigherThanVenus(int64(height)) {
+	height := global.GetGlobalHeight()
+	if tmtypes.HigherThanVenus(height) {
 		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	} else {
 		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
