@@ -735,7 +735,7 @@ func NewQueryClient(cc grpc1.ClientConn) QueryClient {
 
 func (c *queryClient) Connection(ctx context.Context, in *QueryConnectionRequest, opts ...grpc.CallOption) (*QueryConnectionResponse, error) {
 	out := new(QueryConnectionResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Query/Connection", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Query/Connection", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -744,7 +744,7 @@ func (c *queryClient) Connection(ctx context.Context, in *QueryConnectionRequest
 
 func (c *queryClient) Connections(ctx context.Context, in *QueryConnectionsRequest, opts ...grpc.CallOption) (*QueryConnectionsResponse, error) {
 	out := new(QueryConnectionsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Query/Connections", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Query/Connections", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +753,7 @@ func (c *queryClient) Connections(ctx context.Context, in *QueryConnectionsReque
 
 func (c *queryClient) ClientConnections(ctx context.Context, in *QueryClientConnectionsRequest, opts ...grpc.CallOption) (*QueryClientConnectionsResponse, error) {
 	out := new(QueryClientConnectionsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Query/ClientConnections", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Query/ClientConnections", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -762,7 +762,7 @@ func (c *queryClient) ClientConnections(ctx context.Context, in *QueryClientConn
 
 func (c *queryClient) ConnectionClientState(ctx context.Context, in *QueryConnectionClientStateRequest, opts ...grpc.CallOption) (*QueryConnectionClientStateResponse, error) {
 	out := new(QueryConnectionClientStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Query/ConnectionClientState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Query/ConnectionClientState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +771,7 @@ func (c *queryClient) ConnectionClientState(ctx context.Context, in *QueryConnec
 
 func (c *queryClient) ConnectionConsensusState(ctx context.Context, in *QueryConnectionConsensusStateRequest, opts ...grpc.CallOption) (*QueryConnectionConsensusStateResponse, error) {
 	out := new(QueryConnectionConsensusStateResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Query/ConnectionConsensusState", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Query/ConnectionConsensusState", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -829,7 +829,7 @@ func _Query_Connection_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Query/Connection",
+		FullMethod: "/ibc.core.connection.v1.Query/Connection",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Connection(ctx, req.(*QueryConnectionRequest))
@@ -847,7 +847,7 @@ func _Query_Connections_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Query/Connections",
+		FullMethod: "/ibc.core.connection.v1.Query/Connections",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Connections(ctx, req.(*QueryConnectionsRequest))
@@ -865,7 +865,7 @@ func _Query_ClientConnections_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Query/ClientConnections",
+		FullMethod: "/ibc.core.connection.v1.Query/ClientConnections",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ClientConnections(ctx, req.(*QueryClientConnectionsRequest))
@@ -883,7 +883,7 @@ func _Query_ConnectionClientState_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Query/ConnectionClientState",
+		FullMethod: "/ibc.core.connection.v1.Query/ConnectionClientState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ConnectionClientState(ctx, req.(*QueryConnectionClientStateRequest))
@@ -901,7 +901,7 @@ func _Query_ConnectionConsensusState_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Query/ConnectionConsensusState",
+		FullMethod: "/ibc.core.connection.v1.Query/ConnectionConsensusState",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ConnectionConsensusState(ctx, req.(*QueryConnectionConsensusStateRequest))

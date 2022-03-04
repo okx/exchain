@@ -390,7 +390,7 @@ func NewQueryClient(cc grpc1.ClientConn) QueryClient {
 
 func (c *queryClient) DenomTrace(ctx context.Context, in *QueryDenomTraceRequest, opts ...grpc.CallOption) (*QueryDenomTraceResponse, error) {
 	out := new(QueryDenomTraceResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.applications.transfer.v1.Query/DenomTrace", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.applications.transfer.v1.Query/DenomTrace", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +399,7 @@ func (c *queryClient) DenomTrace(ctx context.Context, in *QueryDenomTraceRequest
 
 func (c *queryClient) DenomTraces(ctx context.Context, in *QueryDenomTracesRequest, opts ...grpc.CallOption) (*QueryDenomTracesResponse, error) {
 	out := new(QueryDenomTracesResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.applications.transfer.v1.Query/DenomTraces", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.applications.transfer.v1.Query/DenomTraces", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +408,7 @@ func (c *queryClient) DenomTraces(ctx context.Context, in *QueryDenomTracesReque
 
 func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error) {
 	out := new(QueryParamsResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.applications.transfer.v1.Query/Params", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.applications.transfer.v1.Query/Params", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +453,7 @@ func _Query_DenomTrace_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.applications.transfer.v1.Query/DenomTrace",
+		FullMethod: "/ibc.applications.transfer.v1.Query/DenomTrace",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).DenomTrace(ctx, req.(*QueryDenomTraceRequest))
@@ -471,7 +471,7 @@ func _Query_DenomTraces_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.applications.transfer.v1.Query/DenomTraces",
+		FullMethod: "/ibc.applications.transfer.v1.Query/DenomTraces",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).DenomTraces(ctx, req.(*QueryDenomTracesRequest))
@@ -489,7 +489,7 @@ func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.applications.transfer.v1.Query/Params",
+		FullMethod: "/ibc.applications.transfer.v1.Query/Params",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Params(ctx, req.(*QueryParamsRequest))

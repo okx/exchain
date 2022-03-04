@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	MsgCreateClient       = "MsgCreateClient"
 	MsgDetailUpdateClient = "MsgDetailUpdateClient"
 
 	MsgConnectionOpenInit    = "MsgConnectionOpenInit"
@@ -23,6 +24,9 @@ var (
 	MsgChannelOpenTry     = "MsgChannelOpenTry"
 	MsgChannelOpenAck     = "MsgChannelOpenAck"
 	MsgChannelOpenConfirm = "MsgChannelOpenConfirm"
+
+	MsgRecvPacket      = "MsgRecvPacket"
+	MsgAcknowledgement = "MsgAcknowledgement"
 )
 
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {
@@ -38,6 +42,8 @@ func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, 
 	ms := make([]sdk.MsgProtoAdapter, 0)
 
 	switch msg.MsgType {
+	case MsgCreateClient:
+		ms = append(ms, new(clienttypes.MsgCreateClient))
 	case MsgDetailUpdateClient:
 		ms = append(ms, new(clienttypes.MsgUpdateClient))
 	case MsgConnectionOpenTry:
@@ -57,7 +63,10 @@ func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, 
 		ms = append(ms, new(channeltypes.MsgChannelOpenAck))
 	case MsgChannelOpenConfirm:
 		ms = append(ms, new(channeltypes.MsgChannelOpenConfirm))
-
+	case MsgRecvPacket:
+		ms = append(ms, new(channeltypes.MsgRecvPacket))
+	case MsgAcknowledgement:
+		ms = append(ms, new(channeltypes.MsgAcknowledgement))
 	default:
 		ms = append(ms, new(clienttypes.MsgCreateClient),
 			new(channeltypes.MsgChannelCloseConfirm),
