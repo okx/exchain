@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -1006,7 +1007,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (blo
 	}
 	defer func() {
 		if err == nil {
-			api.queryCache.UpdateBlock(hash, blockRes)
+			api.queryCache.AddOrUpdateBlock(hash, blockRes)
 		}
 	}()
 	blockRes, err = api.backend.GetBlockByHash(hash, fullTx)
@@ -1030,8 +1031,8 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		}
 		defer func() {
 			if err == nil {
-				api.queryCache.UpdateBlockInfo(blockNumber, blockHash)
-				api.queryCache.UpdateBlock(blockHash, blockRes)
+				api.queryCache.AddOrUpdateBlockInfo(blockNumber, blockHash)
+				api.queryCache.AddOrUpdateBlock(blockHash, blockRes)
 			}
 		}()
 
@@ -1096,11 +1097,11 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (resultTx *
 	if err == nil {
 		return resultTx, nil
 	}
-	defer func(hash common.Hash, queryTx *rpctypes.Transaction, e error) {
-		if e == nil && queryTx != nil {
-			api.queryCache.UpdateTransaction(hash, queryTx)
+	defer func() {
+		if err == nil && resultTx != nil {
+			api.queryCache.AddOrUpdateTransaction(hash, resultTx)
 		}
-	}(hash, resultTx, err)
+	}()
 
 	resultTx, err = api.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {

@@ -81,7 +81,7 @@ func (alc *ApiLruCache) GetBlockByNumber(number uint64, fullTx bool) (interface{
 func (alc *ApiLruCache) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
 	return alc.getDataFromLru(LruKeyBlock, hash)
 }
-func (alc *ApiLruCache) UpdateBlock(hash common.Hash, block interface{}) {
+func (alc *ApiLruCache) AddOrUpdateBlock(hash common.Hash, block interface{}) {
 	alc.addDataToLru(LruKeyBlock, hash, block)
 }
 func (alc *ApiLruCache) GetTransaction(hash common.Hash) (*rpctypes.Transaction, error) {
@@ -95,7 +95,7 @@ func (alc *ApiLruCache) GetTransaction(hash common.Hash) (*rpctypes.Transaction,
 	}
 	return tx, nil
 }
-func (alc *ApiLruCache) UpdateTransaction(hash common.Hash, tx *rpctypes.Transaction) {
+func (alc *ApiLruCache) AddOrUpdateTransaction(hash common.Hash, tx *rpctypes.Transaction) {
 	alc.addDataToLru(LruKeyTx, hash, tx)
 }
 func (alc *ApiLruCache) GetBlockHash(number uint64) (common.Hash, error) {
@@ -109,6 +109,6 @@ func (alc *ApiLruCache) GetBlockHash(number uint64) (common.Hash, error) {
 	}
 	return dataHash, nil
 }
-func (alc *ApiLruCache) UpdateBlockInfo(number uint64, hash common.Hash) {
+func (alc *ApiLruCache) AddOrUpdateBlockInfo(number uint64, hash common.Hash) {
 	alc.addDataToLru(LruKeyBlockInfo, number, hash)
 }
