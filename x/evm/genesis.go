@@ -14,7 +14,7 @@ import (
 )
 
 // InitGenesis initializes genesis state based on exported genesis
-func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+func InitGenesis(ctx sdk.Context, k *Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	k.SetParams(ctx, data.Params)
@@ -61,9 +61,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				storageCount++
 			}
 		case filesMode:
-			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
+			importFromFile(ctx, logger, *k, address, ethAcc.CodeHash)
 		case dbMode:
-			importFromDB(ctx, k, address, ethAcc.CodeHash)
+			importFromDB(ctx, *k, address, ethAcc.CodeHash)
 		default:
 			panic("unsupported import mode")
 		}

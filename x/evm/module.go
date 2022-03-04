@@ -126,7 +126,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
-	return InitGenesis(ctx, *am.keeper, am.ak, genesisState)
+	return InitGenesis(ctx, am.keeper, am.ak, genesisState)
 }
 
 // ExportGenesis exports the genesis state to be used by daemon
