@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ./two-chainz
-sleep 1
+sleep 5
 rly q bal ibc-1 testkey
 sleep 1
 rly q bal exchain-101 admin16
