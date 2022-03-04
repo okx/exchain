@@ -26,6 +26,7 @@ import (
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/api_cache"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
@@ -74,6 +75,7 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
+	queryCache     api_cache.ApiCache
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -98,6 +100,7 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(log),
+		queryCache:     api_cache.NewApiLruCache(),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -995,23 +998,47 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (blockRes interface{}, err error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	block, err := api.backend.GetBlockByHash(hash, fullTx)
+
+	blockRes, err = api.queryCache.GetBlockByHash(hash, fullTx)
+	if err == nil {
+		return blockRes, err
+	}
+	defer func() {
+		if err == nil {
+			api.queryCache.UpdateBlock(hash, blockRes)
+		}
+	}()
+	blockRes, err = api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
 	}
-	return block, nil
+	return
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes interface{}, err error) {
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 	var blockTxs interface{}
+	var blockHash common.Hash
+	var blockNumber uint64 = uint64(blockNum)
 	if blockNum != rpctypes.PendingBlockNumber {
-		return api.backend.GetBlockByNumber(blockNum, fullTx)
+		blockRes, err = api.queryCache.GetBlockByNumber(blockNumber, fullTx)
+		if err == nil {
+			return blockRes, err
+		}
+		defer func() {
+			if err == nil {
+				api.queryCache.UpdateBlockInfo(blockNumber, blockHash)
+				api.queryCache.UpdateBlock(blockHash, blockRes)
+			}
+		}()
+
+		blockRes, err = api.backend.GetBlockByNumber(blockNum, fullTx)
+		return
 	}
 
 	height, err := api.backend.LatestBlockNumber()
@@ -1042,7 +1069,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		blockTxs = pendingTxs
 	}
 
-	return rpctypes.FormatBlock(
+	blockRes = rpctypes.FormatBlock(
 		tmtypes.Header{
 			Version:         latestBlock.Block.Version,
 			ChainID:         api.clientCtx.ChainID,
@@ -1058,17 +1085,28 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		gasUsed,
 		blockTxs,
 		ethtypes.Bloom{},
-	), nil
-
+	)
+	return
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
-func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (resultTx *rpctypes.Transaction, err error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
-	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
+
+	resultTx, err = api.queryCache.GetTransaction(hash)
 	if err == nil {
-		return rawTx, nil
+		return resultTx, nil
+	}
+	defer func(hash common.Hash, queryTx *rpctypes.Transaction, e error) {
+		if e == nil && queryTx != nil {
+			api.queryCache.UpdateTransaction(hash, queryTx)
+		}
+	}(hash, resultTx, err)
+
+	resultTx, err = api.wrappedBackend.GetTransactionByHash(hash)
+	if err == nil {
+		return
 	}
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
@@ -1095,7 +1133,8 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	}
 
 	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
+	resultTx, err = rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
+	return
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
