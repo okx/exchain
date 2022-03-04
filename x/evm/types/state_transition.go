@@ -83,7 +83,7 @@ func (st StateTransition) newEVM(
 	csdb *CommitStateDB,
 	gasLimit uint64,
 	gasPrice *big.Int,
-	config ChainConfig,
+	config *ChainConfig,
 	vmConfig vm.Config,
 ) *vm.EVM {
 	// Create context for evm
@@ -109,7 +109,7 @@ func (st StateTransition) newEVM(
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config *ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked

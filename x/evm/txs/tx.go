@@ -31,7 +31,7 @@ type Tx interface {
 	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
 
 	// Transition execute evm tx
-	Transition(config types.ChainConfig) (result base.Result, err error)
+	Transition(config *types.ChainConfig) (result base.Result, err error)
 
 	// DecorateResult some case(trace tx log) will modify the inResult to log and swallow inErr
 	DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error)
@@ -56,7 +56,7 @@ type Tx interface {
 }
 
 // TransitionEvmTx execute evm transition template
-func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err error) {
+func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx, config *types.ChainConfig) (result *sdk.Result, err error) {
 	tx.AnalyzeStart(bam.EvmHandler)
 	defer tx.AnalyzeStop(bam.EvmHandler)
 
@@ -73,10 +73,10 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	tx.AnalyzeStart(bam.TransitionDb)
 	defer tx.AnalyzeStop(bam.TransitionDb)
 
-	config, found := tx.GetChainConfig()
-	if !found {
-		return nil, types.ErrChainConfigNotFound
-	}
+	//config, found := tx.GetChainConfig()
+	//if !found {
+	//	return nil, types.ErrChainConfigNotFound
+	//}
 
 	defer func() {
 		senderAccount := tx.GetSenderAccount()
