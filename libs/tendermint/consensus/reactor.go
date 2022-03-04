@@ -568,7 +568,6 @@ OUTER_LOOP:
 					Part:   part,
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
-				logger.Info("[POA]", "Send out Block Part to network:", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
 					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
 				}
@@ -615,7 +614,6 @@ OUTER_LOOP:
 			{
 				msg := &ProposalMessage{Proposal: rs.Proposal}
 				logger.Debug("Sending proposal", "height", prs.Height, "round", prs.Round)
-				logger.Info("[POA]", "Send out proposal to network:", msg.String())
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
 					// NOTE[ZM]: A peer might have received different proposal msg so this Proposal msg will be rejected!
 					ps.SetHasProposal(rs.Proposal)
@@ -693,7 +691,6 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		} else {
 			logger.Debug("Sending block part for catchup failed")
 		}
-
 		return
 	}
 	//logger.Info("No parts to send in catch-up, sleeping")

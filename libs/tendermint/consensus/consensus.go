@@ -730,7 +730,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
-		cs.Logger.Info("[POA]", "Handle Proposal Msg:", msg.Proposal.String())
 		err = cs.setProposal(msg.Proposal)
 	case *BlockPartMessage:
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
@@ -757,6 +756,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		if added {
 			cs.statsMsgQueue <- mi
 		}
+
 		// if err == ErrAddingVote {
 		// TODO: punish peer
 		// We probably don't want to stop the peer here. The vote does not
@@ -991,8 +991,11 @@ func (cs *State) enterPropose(height int64, round int) {
 		}
 	}()
 
-	// If we don't get the proposal and all block parts quick enough, enterPrevote
-	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	//POA: always stop at Propose step unless getting block
+	if !cs.config.POAEnable {
+		// If we don't get the proposal and all block parts quick enough, enterPrevote
+		cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	}
 
 	// Nothing more to do if we're not a validator
 	if cs.privValidator == nil {
@@ -1049,7 +1052,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
-		cs.Logger.Info("[POA]", "Create proposal Block:", block.String())
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -1109,8 +1111,8 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 		// The commit is empty, but not nil.
 		commit = types.NewCommit(0, 0, types.BlockID{}, nil)
 	case cs.LastCommit.Size() == 0 || cs.config.POAEnable:
-		//POA, POA Block's last coomit always round 0 without commit sig
-		commit = types.NewCommit(cs.Height, 0, types.BlockID{}, nil)
+		//POA, POA Block's last coomit always without commit sig
+		commit = types.NewCommit(cs.Height, cs.Round, types.BlockID{}, nil)
 	case cs.LastCommit.HasTwoThirdsMajority():
 		// Make the commit from LastCommit
 		commit = cs.LastCommit.MakeCommit()
@@ -1964,11 +1966,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())
-		cs.Logger.Info("[POA]", "Handle Block part, Got Complete Block:", cs.ProposalBlock.String())
 
 		// POA: Commit once get the complete POABlock
 		//TODO Here need more logic to distiguish btween normal block and POA block
-		if cs.ProposalBlock.LastCommit.Size() == 0 {
+		if cs.ProposalBlock.LastCommit.Size() == 0 && cs.config.POAEnable {
 			cs.Step = cstypes.RoundStepCommit
 			cs.finalizeCommitPOA(height)
 			return added, nil
@@ -2074,6 +2075,10 @@ func (cs *State) addVote(
 			// fmt.Errorf("tryAddVote: Wrong height, not a LastCommit straggler commit.")
 			return added, ErrVoteHeightMismatch
 		}
+		if cs.LastCommit.Size() == 0 {
+			return false, nil
+		}
+
 		added, err = cs.LastCommit.AddVote(vote)
 		if !added {
 			return added, err

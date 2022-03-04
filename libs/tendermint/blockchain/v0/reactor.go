@@ -220,7 +220,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
 			bcR.Logger.Info("ShouldSync.", "Status peer", msg.Height, "now", bcR.store.Height())
-			//go bcR.poolRoutine()
+			go bcR.poolRoutine()
 		}
 	case *bcNoBlockResponseMessage:
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)
@@ -341,8 +341,14 @@ FOR_LOOP:
 			// NOTE: we can probably make this more efficient, but note that calling
 			// first.Hash() doesn't verify the tx contents, so MakePartSet() is
 			// currently necessary.
-			err := bcR.curState.Validators.VerifyCommit(
-				chainID, firstID, first.Height, second.LastCommit)
+			//POA: cancel commit verification if it's nil
+			//err := bcR.curState.Validators.VerifyCommit(
+			//	chainID, firstID, first.Height, second.LastCommit)
+			var err error
+			if len(second.LastCommit.Signatures) != 0 {
+				err = bcR.curState.Validators.VerifyCommit(
+					chainID, firstID, first.Height, second.LastCommit)
+			}
 			if err != nil {
 				bcR.Logger.Error("Error in validation", "err", err)
 				peerID := bcR.pool.RedoRequest(first.Height)
