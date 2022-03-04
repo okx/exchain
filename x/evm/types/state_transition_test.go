@@ -505,7 +505,8 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		_, _, err, _, _ = tc.state.TransitionDb(suite.ctx, types.DefaultChainConfig())
+		cc := types.DefaultChainConfig()
+		_, _, err, _, _ = tc.state.TransitionDb(suite.ctx, &cc)
 
 		if tc.expPass {
 			suite.Require().NoError(err, tc.name)
