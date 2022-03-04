@@ -717,11 +717,7 @@ func (d Dec) AminoSize(_ *amino.Codec) int {
 	if d.Int == nil {
 		return len(nilAmino)
 	}
-	bz, err := d.Int.MarshalText()
-	if err != nil {
-		return 0
-	}
-	return len(bz)
+	return amino.CalcBigIntTextSize(d.Int)
 }
 
 // MarshalJSON marshals the decimal
