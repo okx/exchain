@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/mpt"
 	"io/ioutil"
 	"os"
@@ -934,10 +933,4 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 			}(tx)
 		}
 	}()
-}
-
-func txhash(txbytes []byte) string {
-	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
-	ethHash := common.BytesToHash(txHash)
-	return ethHash.String()
 }
