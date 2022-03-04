@@ -267,6 +267,16 @@ func (aa AccAddress) Bech32String(bech32PrefixAccAddr string) string {
 	return bech32Addr
 }
 
+func Bech32ifyAddressBytes(prefix string, bs []byte) (string, error) {
+	if len(bs) == 0 {
+		return "", nil
+	}
+	if len(prefix) == 0 {
+		return "", errors.New("prefix cannot be empty")
+	}
+	return bech32.ConvertAndEncode(prefix, bs)
+}
+
 // Format implements the fmt.Formatter interface.
 // nolint: errcheck
 func (aa AccAddress) Format(s fmt.State, verb rune) {

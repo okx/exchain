@@ -98,8 +98,8 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 	feePayerAcc := dfd.ak.GetAccount(ctx, feePayer)
 
 	if feePayerAcc == nil {
-		addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-		feePayerAcc = dfd.ak.GetAccount(ctx, addr)
+		//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
+		//feePayerAcc = dfd.ak.GetAccount(ctx, addr)
 		if nil != err {
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 		}

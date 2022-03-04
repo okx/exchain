@@ -110,7 +110,7 @@ redirect  exchaind init $MONIKER --chain-id $CHAINID
 exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" --output json > ${HOME_SERVER}/validator_seed.json 2>&1
 
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
-exchaincli keys add  --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" --output json > ${HOME_SERVER}/key_seed.json 2>&1
+exchaincli keys add  --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" --hd-path "m/44'/118'/0'/0/0" --algo secp256k1 --coin-type 118 --output json > ${HOME_SERVER}/key_seed.json 2>&1
 
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 
