@@ -322,6 +322,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []by
 	sigCache := &tmtypes.TxSigCache{Signer: signer, From: sender}
 	msg.from.Store(sigCache)
 	tmtypes.SignatureCache().Add(cacheKey, sigCache)
+	fmt.Printf("VerifySig no cache, key=%s, v=%s\n", cacheKey, sender.String())
 	return sigCache, nil
 }
 

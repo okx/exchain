@@ -1,6 +1,10 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/spf13/viper"
@@ -80,6 +84,34 @@ func (c *Cache) Remove(key string) {
 		return
 	}
 	c.data.Remove(key)
+}
+
+func (c *Cache) Load(fileName string) {
+	content, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(err)
+	}
+	var data map[string]ethcmn.Address
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("verify sig cache size:", len(data))
+
+	cacheData, err := lru.New(1000000)
+	if err != nil {
+		panic(err)
+	}
+	chainID := big.NewInt(65)
+	for k, v := range data {
+		fmt.Println(k, v.String())
+		txSigCache := &TxSigCache{
+			Signer: ethtypes.NewEIP155Signer(chainID),
+			From:   v,
+		}
+		cacheData.Add(k, txSigCache)
+	}
+	c.data = cacheData
 }
 
 func (c *Cache) ReadCount() int64 {

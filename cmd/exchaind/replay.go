@@ -52,6 +52,9 @@ const (
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
+
+	flagCacheFile   = "cache-file"
+	flagEnableCache = "enable-cache"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -135,6 +138,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+	cmd.Flags().String(flagCacheFile, "cache.json", "cache file")
+	cmd.Flags().Bool(flagEnableCache, false, "prepare cache")
 	return cmd
 }
 
@@ -148,6 +153,13 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
+	enableCache := viper.GetBool(flagEnableCache)
+	fileName := viper.GetString(flagCacheFile)
+	if enableCache {
+		log.Println("load cache begin", "fileName", fileName)
+		types.SignatureCache().Load(fileName)
+		log.Println("load cache finished")
+	}
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
