@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,6 +10,8 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"time"
+
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
