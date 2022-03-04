@@ -159,6 +159,9 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for key, cacheValue := range store.cache {
+		if !cacheValue.dirty {
+			continue
+		}
 		switch {
 		case cacheValue.deleted:
 			parent.Delete(amino.StrToBytes(key))
