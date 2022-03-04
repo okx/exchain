@@ -24,15 +24,20 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	sender sdk.AccAddress,
 	receiver string,
 	isSource bool) {
-
+	// TODO
 }
+
 func (iths IBCTransferHooks) AfterRecvTransfer(
 	ctx sdk.Context,
 	destPort, destChannel string,
 	token sdk.SysCoin,
 	receiver string,
 	isSource bool) {
-
+	// only after minting vouchers on this chain
+	// the native coin come from other chain with ibc
+	if !isSource {
+		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver)
+	}
 }
 
 func (iths IBCTransferHooks) AfterRefundTransfer(
@@ -41,5 +46,9 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	token sdk.SysCoin,
 	sender string,
 	isSource bool) {
-
+	// only after minting vouchers on this chain
+	// the native coin come from other chain with ibc
+	if !isSource {
+		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender)
+	}
 }

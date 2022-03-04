@@ -1,6 +1,7 @@
 package evm
 
 import (
+	ethcmm "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/types"
@@ -12,68 +13,84 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
 		switch content := proposal.Content.(type) {
 		case types.ManageContractDeploymentWhitelistProposal:
-			return handleManageContractDeploymentWhitelistProposal(ctx, k, proposal)
+			return handleManageContractDeploymentWhitelistProposal(ctx, k, content)
 		case types.ManageContractBlockedListProposal:
-			return handleManageContractBlockedlListProposal(ctx, k, proposal)
+			return handleManageContractBlockedlListProposal(ctx, k, content)
 		case types.ManageContractMethodBlockedListProposal:
-			return handleManageContractMethodBlockedlListProposal(ctx, k, proposal)
+			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
+		case types.TokenMappingProposal:
+			return handleTokenMappingProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
 	}
 }
 
-func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, p types.ManageContractDeploymentWhitelistProposal) sdk.Error {
 	// check
-	manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
-	if !ok {
-		return types.ErrUnexpectedProposalType
-	}
+	//manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
+	//if !ok {
+	//	return types.ErrUnexpectedProposalType
+	//}
 
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if manageContractDeploymentWhitelistProposal.IsAdded {
+	if p.IsAdded {
 		// add deployer addresses into whitelist
-		csdb.SetContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
+		csdb.SetContractDeploymentWhitelist(p.DistributorAddrs)
 		return nil
 	}
 
 	// remove deployer addresses from whitelist
-	csdb.DeleteContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
+	csdb.DeleteContractDeploymentWhitelist(p.DistributorAddrs)
 	return nil
 }
 
-func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractBlockedListProposal) sdk.Error {
 	// check
-	manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
-	if !ok {
-		return types.ErrUnexpectedProposalType
-	}
+	//manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
+	//if !ok {
+	//	return types.ErrUnexpectedProposalType
+	//}
 
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if manageContractBlockedListProposal.IsAdded {
+	if p.IsAdded {
 		// add contract addresses into blocked list
-		csdb.SetContractBlockedList(manageContractBlockedListProposal.ContractAddrs)
+		csdb.SetContractBlockedList(p.ContractAddrs)
 		return nil
 	}
 
 	// remove contract addresses from blocked list
-	csdb.DeleteContractBlockedList(manageContractBlockedListProposal.ContractAddrs)
+	csdb.DeleteContractBlockedList(p.ContractAddrs)
 	return nil
 }
 
-func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractMethodBlockedListProposal) sdk.Error {
 	// check
-	manageContractMethodBlockedListProposal, ok := proposal.Content.(types.ManageContractMethodBlockedListProposal)
-	if !ok {
-		return types.ErrUnexpectedProposalType
-	}
+	//manageContractMethodBlockedListProposal, ok := proposal.Content.(types.ManageContractMethodBlockedListProposal)
+	//if !ok {
+	//	return types.ErrUnexpectedProposalType
+	//}
 
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if manageContractMethodBlockedListProposal.IsAdded {
+	if p.IsAdded {
 		// add contract method into blocked list
-		return csdb.InsertContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+		return csdb.InsertContractMethodBlockedList(p.ContractList)
 	}
 
 	// remove contract method from blocked list
-	return csdb.DeleteContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+	return csdb.DeleteContractMethodBlockedList(p.ContractList)
+}
+
+func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
+	if len(p.Contract) == 0 {
+		// delete existing mapping
+		k.DeleteExternalContractForDenom(ctx, p.Denom)
+	} else {
+		// update the mapping
+		contract := ethcmm.HexToAddress(p.Contract)
+		if err := k.SetExternalContractForDenom(ctx, p.Denom, contract); err != nil {
+			return err
+		}
+	}
+	return nil
 }
