@@ -19,7 +19,7 @@ type Tx interface {
 	SaveTx(msg *types.MsgEthereumTx)
 
 	// GetChainConfig get chain config
-	GetChainConfig() (types.ChainConfig, bool)
+	GetChainConfig() (*types.ChainConfig, bool)
 
 	// GetSenderAccount get sender account
 	GetSenderAccount() authexported.Account
@@ -56,7 +56,7 @@ type Tx interface {
 }
 
 // TransitionEvmTx execute evm transition template
-func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx, config *types.ChainConfig) (result *sdk.Result, err error) {
+func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err error) {
 	tx.AnalyzeStart(bam.EvmHandler)
 	defer tx.AnalyzeStop(bam.EvmHandler)
 
@@ -73,10 +73,10 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx, config *types.ChainConfig)
 	tx.AnalyzeStart(bam.TransitionDb)
 	defer tx.AnalyzeStop(bam.TransitionDb)
 
-	//config, found := tx.GetChainConfig()
-	//if !found {
-	//	return nil, types.ErrChainConfigNotFound
-	//}
+	config, found := tx.GetChainConfig()
+	if !found {
+		return nil, types.ErrChainConfigNotFound
+	}
 
 	defer func() {
 		senderAccount := tx.GetSenderAccount()

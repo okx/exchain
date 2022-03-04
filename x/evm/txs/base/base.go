@@ -44,8 +44,7 @@ func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	return
 }
 
-func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
-
+func (tx *Tx) GetChainConfig() (*types.ChainConfig, bool) {
 	return tx.Keeper.GetChainConfig(tx.Ctx)
 }
 

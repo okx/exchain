@@ -99,12 +99,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-	OevChainConfig = data.ChainConfig
 
 	return []abci.ValidatorUpdate{}
 }
 
-var OevChainConfig types.ChainConfig
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	logger := ctx.Logger().With("module", types.ModuleName)
@@ -174,7 +172,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	}
 	return GenesisState{
 		Accounts:                    ethGenAccounts,
-		ChainConfig:                 config,
+		ChainConfig:                 *config,
 		Params:                      k.GetParams(ctx),
 		ContractDeploymentWhitelist: csdb.GetContractDeploymentWhitelist(),
 		ContractBlockedList:         csdb.GetContractBlockedList(),

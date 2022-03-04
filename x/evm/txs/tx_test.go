@@ -47,16 +47,16 @@ func (e EmptyTx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	return nil
 }
 func (e EmptyTx) SaveTx(msg *types.MsgEthereumTx) {}
-func (e EmptyTx) GetChainConfig() (types.ChainConfig, bool) {
+func (e EmptyTx) GetChainConfig() (*types.ChainConfig, bool) {
 	if e.GetChainConfigFail {
-		return types.ChainConfig{}, false
+		return &types.ChainConfig{}, false
 	}
-	return types.ChainConfig{}, true
+	return &types.ChainConfig{}, true
 }
 func (e EmptyTx) GetSenderAccount() authexported.Account                                          { return EmptyAccount{} }
 func (e EmptyTx) ResetWatcher(account authexported.Account)                                       {}
 func (e EmptyTx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
-func (e EmptyTx) Transition(config types.ChainConfig) (result base.Result, err error) {
+func (e EmptyTx) Transition(config *types.ChainConfig) (result base.Result, err error) {
 	if e.TransitionFail {
 		err = fmt.Errorf("transition error")
 		return

@@ -51,6 +51,8 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	cc *types.ChainConfig
 }
 
 // NewKeeper generates new evm module keeper
@@ -234,12 +236,17 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 }
 
 // GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k Keeper) GetChainConfig(ctx sdk.Context) (*types.ChainConfig, bool) {
+
+	if ctx.BlockHeight() < 0 {
+		return k.cc, true
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
 	if len(bz) == 0 {
-		return types.ChainConfig{}, false
+		return &types.ChainConfig{}, false
 	}
 
 	var config types.ChainConfig
@@ -248,15 +255,16 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
-	return config, true
+	return &config, true
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+	k.cc = &config
 }
 
 // SetGovKeeper sets keeper of gov
