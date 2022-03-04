@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -247,6 +248,16 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
+
+	if header.Height == 5810737 {
+		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+			if isDirty {
+				app.logger.Error("commit--", hex.EncodeToString(key), hex.EncodeToString(value), isDirty)
+			}
+			return true
+		})
+	}
+
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
