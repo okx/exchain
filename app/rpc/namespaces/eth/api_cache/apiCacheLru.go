@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	MsgLruNotInitialized = "Lru has not been Initialized"
+	MsgLruNotInitialized = "lru has not been Initialized"
 	MsgLruDataNotFound   = "lru : not found"
 	MsgLruDataWrongType  = "lru : wrong type"
 )
@@ -51,17 +51,6 @@ func NewApiLruCache() *ApiLruCache {
 	return &ApiLruCache{lruMap: lruMap}
 }
 
-func (alc *ApiLruCache) getBytesFromLru(lruKey string, cacheKey interface{}) ([]byte, error) {
-	data, err := alc.getDataFromLru(lruKey, cacheKey)
-	if err != nil {
-		return nil, err
-	}
-	dataBytes := data.([]byte)
-	if alc == nil {
-		return nil, errors.New(MsgLruDataWrongType)
-	}
-	return dataBytes, nil
-}
 func (alc *ApiLruCache) getDataFromLru(lruKey string, cacheKey interface{}) (interface{}, error) {
 
 	lru, ok := alc.lruMap[lruKey]
@@ -80,7 +69,7 @@ func (alc *ApiLruCache) addDataToLru(lruKey string, cacheKey interface{}, cacheD
 	if ok {
 		return
 	}
-	lru.Add(cacheKey, cacheData)
+	lru.PeekOrAdd(cacheKey, cacheData)
 }
 func (alc *ApiLruCache) GetBlockByNumber(number uint64, fullTx bool) (interface{}, error) {
 	hash, err := alc.GetBlockHash(number)
@@ -105,12 +94,10 @@ func (alc *ApiLruCache) GetTransaction(hash common.Hash) (*rpctypes.Transaction,
 		return nil, errors.New(MsgLruDataWrongType)
 	}
 	return tx, nil
-
 }
 func (alc *ApiLruCache) UpdateTransaction(hash common.Hash, tx *rpctypes.Transaction) {
 	alc.addDataToLru(LruKeyTx, hash, tx)
 }
-
 func (alc *ApiLruCache) GetBlockHash(number uint64) (common.Hash, error) {
 	data, err := alc.getDataFromLru(LruKeyBlockInfo, number)
 	if err != nil {
@@ -121,7 +108,6 @@ func (alc *ApiLruCache) GetBlockHash(number uint64) (common.Hash, error) {
 		return common.Hash{}, errors.New(MsgLruDataWrongType)
 	}
 	return dataHash, nil
-
 }
 func (alc *ApiLruCache) UpdateBlockInfo(number uint64, hash common.Hash) {
 	alc.addDataToLru(LruKeyBlockInfo, number, hash)
