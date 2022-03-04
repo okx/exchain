@@ -121,7 +121,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		err = app.runAnte(info, mode)
 		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
-			app.logger.Error("runAnte failed", "err", err)
+			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}

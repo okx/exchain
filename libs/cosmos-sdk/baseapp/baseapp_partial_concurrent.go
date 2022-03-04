@@ -174,7 +174,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	if dm.app.anteHandler != nil {
 		err := dm.runAnte(task.info, mode)
 		if err != nil {
-			//dm.app.logger.Error("runAnte failed", "err", err)
+			dm.app.logger.Error("ante failed 1", "err", err)
 			task.anteFailed = true
 		}
 	}
@@ -342,7 +342,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 				dm.gasAndMsgsDuration -= elasped
 				totalRerunAnteTime += elasped
 				if err != nil {
-					dm.app.logger.Error("runAnte failed", "err", err)
+					dm.app.logger.Error("ante failed 2", "err", err)
 					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
 					//dm.txExeResults[dm.executingTask.index] = execResult
 
@@ -419,7 +419,7 @@ func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add boo
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
-	dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee[0].Amount)
+	//dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee[0].Amount)
 	ctx, cache := dm.app.cacheTxContext(dm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if err := dm.app.updateFeeCollectorAccHandler(ctx, dm.currTxFee); err != nil {
 		panic(err)
