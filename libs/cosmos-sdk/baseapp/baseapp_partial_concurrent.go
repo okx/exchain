@@ -337,7 +337,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 			if dm.app.anteHandler != nil {
 				start := time.Now()
 				mode := runTxModeDeliverPartConcurrent
-				err := dm.app.runAnte(info, mode)
+				err := dm.runAnte(info, mode)
 				elasped := time.Since(start).Microseconds()
 				dm.gasAndMsgsDuration -= elasped
 				totalRerunAnteTime += elasped
@@ -393,7 +393,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		//txRs := execResult.GetResponse()
 		execFinishedFn(resp)
 	}
-	dm.app.logger.Error("BlockGasMeter", "v", dm.app.deliverState.ctx.BlockGasMeter().GasConsumed())
+	//dm.app.logger.Error("BlockGasMeter", "v", dm.app.deliverState.ctx.BlockGasMeter().GasConsumed())
 
 	// all txs are executed
 	if finished == dm.totalCount {
