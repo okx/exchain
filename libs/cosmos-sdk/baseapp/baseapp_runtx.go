@@ -102,6 +102,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		app.logger.Error("BlockGasMeter", "v", app.deliverState.ctx.BlockGasMeter().GasConsumed())
 
 		totalDeferGasTime += time.Since(deferGasStart).Microseconds()
 	}()
