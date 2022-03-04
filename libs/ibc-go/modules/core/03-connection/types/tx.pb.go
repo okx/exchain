@@ -482,7 +482,7 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 
 func (c *msgClient) ConnectionOpenInit(ctx context.Context, in *MsgConnectionOpenInit, opts ...grpc.CallOption) (*MsgConnectionOpenInitResponse, error) {
 	out := new(MsgConnectionOpenInitResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Msg/ConnectionOpenInit", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Msg/ConnectionOpenInit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +491,7 @@ func (c *msgClient) ConnectionOpenInit(ctx context.Context, in *MsgConnectionOpe
 
 func (c *msgClient) ConnectionOpenTry(ctx context.Context, in *MsgConnectionOpenTry, opts ...grpc.CallOption) (*MsgConnectionOpenTryResponse, error) {
 	out := new(MsgConnectionOpenTryResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Msg/ConnectionOpenTry", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Msg/ConnectionOpenTry", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +500,7 @@ func (c *msgClient) ConnectionOpenTry(ctx context.Context, in *MsgConnectionOpen
 
 func (c *msgClient) ConnectionOpenAck(ctx context.Context, in *MsgConnectionOpenAck, opts ...grpc.CallOption) (*MsgConnectionOpenAckResponse, error) {
 	out := new(MsgConnectionOpenAckResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Msg/ConnectionOpenAck", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Msg/ConnectionOpenAck", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -509,7 +509,7 @@ func (c *msgClient) ConnectionOpenAck(ctx context.Context, in *MsgConnectionOpen
 
 func (c *msgClient) ConnectionOpenConfirm(ctx context.Context, in *MsgConnectionOpenConfirm, opts ...grpc.CallOption) (*MsgConnectionOpenConfirmResponse, error) {
 	out := new(MsgConnectionOpenConfirmResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.core.connection.v1.Msg/ConnectionOpenConfirm", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.core.connection.v1.Msg/ConnectionOpenConfirm", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func _Msg_ConnectionOpenInit_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Msg/ConnectionOpenInit",
+		FullMethod: "/ibc.core.connection.v1.Msg/ConnectionOpenInit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ConnectionOpenInit(ctx, req.(*MsgConnectionOpenInit))
@@ -577,7 +577,7 @@ func _Msg_ConnectionOpenTry_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Msg/ConnectionOpenTry",
+		FullMethod: "/ibc.core.connection.v1.Msg/ConnectionOpenTry",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ConnectionOpenTry(ctx, req.(*MsgConnectionOpenTry))
@@ -595,7 +595,7 @@ func _Msg_ConnectionOpenAck_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Msg/ConnectionOpenAck",
+		FullMethod: "/ibc.core.connection.v1.Msg/ConnectionOpenAck",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ConnectionOpenAck(ctx, req.(*MsgConnectionOpenAck))
@@ -613,7 +613,7 @@ func _Msg_ConnectionOpenConfirm_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.core.connection.v1.Msg/ConnectionOpenConfirm",
+		FullMethod: "/ibc.core.connection.v1.Msg/ConnectionOpenConfirm",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).ConnectionOpenConfirm(ctx, req.(*MsgConnectionOpenConfirm))

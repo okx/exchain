@@ -194,7 +194,7 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 
 func (c *msgClient) Transfer(ctx context.Context, in *MsgTransferAdapter, opts ...grpc.CallOption) (*MsgTransferAdapterResponse, error) {
 	out := new(MsgTransferAdapterResponse)
-	err := c.cc.Invoke(ctx, "/oec.ibc.applications.transfer.v1.Msg/Transfer", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/ibc.applications.transfer.v1.Msg/Transfer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func _Msg_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/oec.ibc.applications.transfer.v1.Msg/Transfer",
+		FullMethod: "/ibc.applications.transfer.v1.Msg/Transfer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).Transfer(ctx, req.(*MsgTransferAdapter))
