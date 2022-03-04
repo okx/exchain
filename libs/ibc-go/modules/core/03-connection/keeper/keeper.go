@@ -82,7 +82,7 @@ func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection t
 	//	panic(err)
 	//}
 	store.Set(host.ConnectionKey(connectionID), bz)
-	logrusplugin.Info("写入connection", "connectionId", connectionID, "state", connection.State)
+	logrusplugin.Info("write connection", "connectionId", connectionID, "state", connection.State)
 }
 
 // GetTimestampAtHeight returns the timestamp in nanoseconds of the consensus state at the
