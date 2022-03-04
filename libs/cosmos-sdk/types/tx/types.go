@@ -3,11 +3,13 @@ package tx
 import (
 	"fmt"
 
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	ibckeys "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
 
 // MaxGasWanted defines the max gas allowed.
@@ -212,5 +214,7 @@ func (m *SignerInfo) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 // RegisterInterfaces registers the sdk.Tx interface.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterInterface("cosmos.tx.v1beta1.Tx", (*sdk.Tx)(nil))
+	//registry.RegisterInterface("cosmos.tx.v1beta1.Coin", (*sdk.Coin)(nil))
+	registry.RegisterInterface("cosmos.crypto.secp256k1.PubKey", (*ibckeys.PubKey)(nil))
 	registry.RegisterImplementations((*sdk.Tx)(nil), &Tx{})
 }

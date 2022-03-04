@@ -84,51 +84,17 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 }
 
 var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
-	// wp := &sdk.RelayMsgWrapper{}
-	// err := wp.UnMarshal(bytes)
-	// if nil != err {
-	// 	return nil, err
-	// }
-	// msgs := make([]sdk.Msg, 0)
-	// addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-	// for _, v := range wp.Msgs {
-	// 	msgs = append(msgs, v)
-	// 	v.Singers[0] = addr
-	// }
 
-	// sis := make([]authtypes.StdSignature, 1)
-	// ret := authtypes.StdTx{
-	// 	Msgs:       msgs,
-	// 	Fee:        authtypes.StdFee{},
-	// 	Signatures: sis,
-	// 	Memo:       "okt",
-	// }
-	// return ret, nil
 	simReq := &typestx.SimulateRequest{}
 	var err error
 	_ = &typestx.SimulateRequest{}
 	err = simReq.Unmarshal(bytes)
-	fmt.Println(err)
-	// err := protoCodec.Unmarshal(req.Data, i)
-	// if err != nil {
-	// 	return err
-	// }
-	// if qrt.interfaceRegistry != nil {
-	// 	return codectypes.UnpackInterfaces(i, qrt.interfaceRegistry)
-	// }
-	// 	return nil
-
 	if err != nil {
 		return authtypes.StdTx{}, err
 	}
 
 	txBytes := simReq.TxBytes
 	if txBytes == nil && simReq.Tx != nil {
-		// This block is for backwards-compatibility.
-		// We used to support passing a `Tx` in req. But if we do that, sig
-		// verification might not pass, because the .Marshal() below might not
-		// be the same marshaling done by the client.
-
 		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
 			return nil, nil //status.Errorf(codes.InvalidArgument, "invalid tx; %v", err)
@@ -138,39 +104,14 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	if txBytes == nil {
 		return nil, nil //status.Errorf(codes.InvalidArgument, "empty txBytes is not allowed")
 	}
-	//amino := ibccodec.NewLegacyAmino()
-	// interfaceRegistry := codestypes.NewInterfaceRegistry() //codectypes.NewInterfaceRegistry()
-	//marshaler := ibccodec.NewProtoCodec(interfaceRegistry)
-	//decoder := authtx.DefaultTxDecoder(marshaler)
-	if proxy != nil {
-		marshaler := proxy.GetProtocMarshal()
-		//evmtxtypes.DefaultTxDecoder(marshaler)
-		decode := ibctxdecoder.IbcTxDecoder(marshaler)
-		decode(txBytes)
+
+	if proxy == nil {
+		//return
 	}
-
-	////authtx.DefaultTxDecoder(marshaler)
-	// ec := EncodingConfig{
-	// 	InterfaceRegistry: interfaceRegistry,
-	// 	Marshaler:         marshaler,
-	// 	//Amino:             amino,
-	// }
-
-	// ibcstd.RegisterLegacyAminoCodec(ec.Amino)
-	//ibcstd.RegisterInterfaces(ec.InterfaceRegistry)
-	// ModuleBasics.RegisterLegacyAminoCodec(ec.Amino)
-	// ModuleBasics.RegisterInterfaces(ec.InterfaceRegistry)
-
-	// txz, err := decoder(txBytes)
-	// if err != nil {
-	// 	return authtypes.StdTx{}, nil
-	// }
-	// //wrappered tx
-	// fmt.Println(txz)
-	// msgs := txz.GetMsgs()
-	// if err := validateBasicTxMsgs(msgs); err != nil {
-	// 	return authtypes.StdTx{}, err
-	// }
+	marshaler := proxy.GetProtocMarshal()
+	decode := ibctxdecoder.IbcTxDecoder(marshaler)
+	tx, err := decode(txBytes)
+	fmt.Println(tx, err)
 
 	return convertTx(simReq.Tx), nil
 }

@@ -11,14 +11,14 @@ import (
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
 //func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
-func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
-	return func(txBytes []byte) (ibcadapter.Tx, error) {
+func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
+	return func(txBytes []byte) (ibctx.Tx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
