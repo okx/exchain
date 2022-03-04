@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"log"
 )
 
 func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
@@ -31,8 +32,8 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 	}
 
 	err := supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.FeeCollectorName, acc, refundFees)
-	//feeCoins := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins()
-	//log.Printf("From FeeCollector: %x origin:%x now:%x\n", refundFees[0].Amount, coins[0].Amount, feeCoins[0].Amount)
+	feeCoins := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins()
+	log.Printf("From FeeCollector: %x origin:%x now:%x\n", refundFees[0].Amount, coins[0].Amount, feeCoins[0].Amount)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}

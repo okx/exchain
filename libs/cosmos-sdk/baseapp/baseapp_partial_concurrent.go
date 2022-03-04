@@ -419,7 +419,7 @@ func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add boo
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
-	//dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee[0].Amount)
+	dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee[0].Amount)
 	ctx, cache := dm.app.cacheTxContext(dm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if err := dm.app.updateFeeCollectorAccHandler(ctx, dm.currTxFee); err != nil {
 		panic(err)
