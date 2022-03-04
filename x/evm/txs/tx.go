@@ -91,18 +91,13 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	// execute evm tx
 	var baseResult base.Result
 	baseResult, err = tx.Transition(config)
-	if err != nil {
+	if err == nil {
+		// Commit save the inner tx and contracts
+		tx.Commit(msg, &baseResult)
+		tx.EmitEvent(msg, &baseResult)
+	} else {
 		tx.RestoreWatcherTransactionReceipt(msg)
-		result, err = tx.DecorateResult(&baseResult, err)
-
-		return
 	}
 
-	// Commit save the inner tx and contracts
-	tx.Commit(msg, &baseResult)
-
-	tx.EmitEvent(msg, &baseResult)
-	result, err = tx.DecorateResult(&baseResult, nil)
-
-	return
+	return tx.DecorateResult(&baseResult, err)
 }
