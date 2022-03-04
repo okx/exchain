@@ -140,8 +140,15 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	store.cache = make(map[string]cValue)
-	store.unsortedCache = make(map[string]struct{})
+
+	// https://github.com/golang/go/issues/20138
+	for key := range store.cache {
+		delete(store.cache, key)
+	}
+	for key := range store.unsortedCache {
+		delete(store.unsortedCache, key)
+	}
+
 	store.sortedCache.Init()
 }
 
