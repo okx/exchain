@@ -1,7 +1,6 @@
 package ibc
 
 import (
-	"fmt"
 	"github.com/okex/exchain/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -12,25 +11,62 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 )
 
+var (
+	MsgDetailUpdateClient = "MsgDetailUpdateClient"
+
+	MsgConnectionOpenInit    = "MsgConnectionOpenInit"
+	MsgConnectionOpenTry     = "MsgConnectionOpenTry"
+	MsgConnectionOpenConfirm = "MsgConnectionOpenConfirm"
+	MsgConnectionOpenAck     = "MsgConnectionOpenAck"
+
+	MsgChannelOpenInit    = "MsgChannelOpenInit"
+	MsgChannelOpenTry     = "MsgChannelOpenTry"
+	MsgChannelOpenAck     = "MsgChannelOpenAck"
+	MsgChannelOpenConfirm = "MsgChannelOpenConfirm"
+)
+
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {
 	defer func() {
 		if e := recover(); nil != e {
-			fmt.Println(e)
+			panic(e)
 		}
 	}()
 	//err := unknownproto.RejectUnknownFieldsStrict(msg.Bytes, adapter, cdc.InterfaceRegistry())
 	//if err != nil {
 	//	return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 	//}
-	return common.UnmarshalGuessss(k.Codec(), msg.Bytes, new(clienttypes.MsgCreateClient),
-		new(clienttypes.MsgUpdateClient),
-		new(clienttypes.MsgUpgradeClient),
-		new(connectiontypes.MsgConnectionOpenInit),
-		new(connectiontypes.MsgConnectionOpenTry),
-		new(connectiontypes.MsgConnectionOpenAck),
-		new(channeltypes.MsgChannelOpenInit),
-		new(channeltypes.MsgChannelOpenAck),
-		new(channeltypes.MsgChannelCloseConfirm))
+	ms := make([]sdk.MsgProtoAdapter, 0)
+
+	switch msg.MsgType {
+	case MsgDetailUpdateClient:
+		ms = append(ms, new(clienttypes.MsgUpdateClient))
+	case MsgConnectionOpenTry:
+		ms = append(ms, new(connectiontypes.MsgConnectionOpenTry))
+	case MsgConnectionOpenConfirm:
+		ms = append(ms, new(connectiontypes.MsgConnectionOpenConfirm))
+	case MsgConnectionOpenInit:
+		ms = append(ms, new(connectiontypes.MsgConnectionOpenInit))
+
+	case MsgChannelOpenInit:
+		ms = append(ms, new(channeltypes.MsgChannelOpenInit))
+	case MsgChannelOpenTry:
+		ms = append(ms, new(channeltypes.MsgChannelOpenTry))
+	case MsgConnectionOpenAck:
+		ms = append(ms, new(connectiontypes.MsgConnectionOpenAck))
+	case MsgChannelOpenAck:
+		ms = append(ms, new(channeltypes.MsgChannelOpenAck))
+	case MsgChannelOpenConfirm:
+		ms = append(ms, new(channeltypes.MsgChannelOpenConfirm))
+
+	default:
+		ms = append(ms, new(clienttypes.MsgCreateClient),
+			new(channeltypes.MsgChannelCloseConfirm),
+			new(clienttypes.MsgUpgradeClient),
+			new(channeltypes.MsgChannelOpenAck),
+		)
+	}
+	return common.UnmarshalGuessss(k.Codec(), msg.Bytes, ms...,
+	)
 	//return common.UnmarshalMsgAdapter(k.Codec(), msg.Bytes)
 }
 
@@ -40,6 +76,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		m := re.(*sdk.RelayMsg)
 		msg, err := unmarshalFromRelayMsg(k, re.(*sdk.RelayMsg))
 		if nil != err {
+			panic(err)
 			aaa := new(types.ClientState)
 			err := k.Codec().GetProtocMarshal().UnmarshalBinaryBare(m.Bytes, aaa)
 			err = k.Codec().GetProtocMarshal().UnmarshalInterface(m.Bytes, &aaa)
