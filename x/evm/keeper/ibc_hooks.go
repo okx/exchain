@@ -24,7 +24,7 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	sender sdk.AccAddress,
 	receiver string,
 	isSource bool) {
-	// TODO
+	return
 }
 
 func (iths IBCTransferHooks) AfterRecvTransfer(

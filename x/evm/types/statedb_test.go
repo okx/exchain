@@ -118,9 +118,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs, err := suite.stateDB.GetLogs(tHash)
+		logs := suite.stateDB.GetLogs()
 		if !tc.isBloom {
-			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
 				suite.Require().Equal(log, *logs[0], tc.name)
@@ -284,27 +283,22 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		err := suite.stateDB.SetLogs(hash, logs)
-		suite.Require().NoError(err, tc.name)
-		dbLogs, err := suite.stateDB.GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
+		suite.stateDB.SetLogs(logs)
+		dbLogs := suite.stateDB.GetLogs()
 		suite.Require().Equal(logs, dbLogs, tc.name)
 
-		suite.stateDB.DeleteLogs(hash)
-		dbLogs, err = suite.stateDB.GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
+		suite.stateDB.DeleteLogs()
+		dbLogs = suite.stateDB.GetLogs()
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
-		newLogs, err := suite.stateDB.GetLogs(hash)
-		suite.Require().Nil(err)
+		newLogs := suite.stateDB.GetLogs()
 		suite.Require().Equal(logs, newLogs, tc.name)
 
 		//resets state but checking to see if storekey still persists.
-		err = suite.stateDB.Reset(hash)
+		err := suite.stateDB.Reset(hash)
 		suite.Require().NoError(err, tc.name)
-		newLogs, err = suite.stateDB.GetLogs(hash)
-		suite.Require().Nil(err)
+		newLogs = suite.stateDB.GetLogs()
 		suite.Require().Equal(logs, newLogs, tc.name)
 	}
 }

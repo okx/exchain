@@ -52,7 +52,8 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	hooks types.EvmHooks
+	transferKeeper types.TransferKeeper
+	hooks          types.EvmHooks
 }
 
 // NewKeeper generates new evm module keeper
@@ -271,6 +272,11 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+}
+
+func (k *Keeper) SetTransferKeeper(tk types.TransferKeeper) *Keeper {
+	k.transferKeeper = tk
+	return k
 }
 
 // SetHooks sets the hooks for the EVM module
