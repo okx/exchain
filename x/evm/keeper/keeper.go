@@ -54,6 +54,10 @@ type Keeper struct {
 	innerBlockData BlockInnerData
 
 	// cache chain config
+	chainConfigInfo *chainConfigInfo
+}
+
+type chainConfigInfo struct {
 	chainConfig      *types.ChainConfig
 	chainConfigMutex sync.Mutex
 }
@@ -92,7 +96,8 @@ func NewKeeper(
 		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
 
-		innerBlockData: defaultBlockInnerData(),
+		innerBlockData:  defaultBlockInnerData(),
+		chainConfigInfo: &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -239,10 +244,10 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 }
 
 // GetChainConfig gets block height from block consensus hash
-func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
-	if k.chainConfig != nil {
-		return *k.chainConfig, true
+	if k.chainConfigInfo.chainConfig != nil {
+		return *k.chainConfigInfo.chainConfig, true
 	}
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
@@ -258,24 +263,24 @@ func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
 	// add lock for k.chainConfig. and cache the chain config
-	k.chainConfigMutex.Lock()
-	defer k.chainConfigMutex.Unlock()
-	k.chainConfig = &config
+	k.chainConfigInfo.chainConfigMutex.Lock()
+	defer k.chainConfigInfo.chainConfigMutex.Unlock()
+	k.chainConfigInfo.chainConfig = &config
 
 	return config, true
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.chainConfigMutex.Lock()
-	defer k.chainConfigMutex.Unlock()
-	k.chainConfig = nil
+	k.chainConfigInfo.chainConfigMutex.Lock()
+	defer k.chainConfigInfo.chainConfigMutex.Unlock()
+	k.chainConfigInfo.chainConfig = nil
 }
 
 // SetGovKeeper sets keeper of gov
