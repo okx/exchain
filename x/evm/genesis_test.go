@@ -32,7 +32,7 @@ func (suite *EvmTestSuite) TestExportImport() {
 		genState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
 	})
 
-	_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, genState)
+	_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, genState)
 }
 
 func (suite *EvmTestSuite) TestInitGenesis() {
@@ -230,13 +230,13 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			if tc.expPanic {
 				suite.Require().Panics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, tc.genState)
+						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, tc.genState)
 					},
 				)
 			} else {
 				suite.Require().NotPanics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, tc.genState)
+						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, tc.genState)
 					},
 				)
 				// status check after genesis initialization
@@ -370,7 +370,7 @@ func (suite *EvmTestSuite) TestExport() {
 		ContractDeploymentWhitelist: types.AddressList{address.Bytes()},
 		ContractBlockedList:         types.AddressList{address.Bytes()},
 	}
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	suite.Require().NotPanics(func() {
 		evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
@@ -436,7 +436,7 @@ func (suite *EvmTestSuite) TestExport1() {
 			},
 		},
 	}
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	suite.Require().NotPanics(func() {
 		evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper)
@@ -482,7 +482,7 @@ func (suite *EvmTestSuite) TestExport_db() {
 		Accounts: []types.GenesisAccount{evmAcc},
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
 	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
@@ -527,7 +527,7 @@ func testImport_db(suite *EvmTestSuite,
 	suite.Require().DirExists(filepath.Join(dbPath, "evm_bytecode.db"))
 	suite.Require().DirExists(filepath.Join(dbPath, "evm_state.db"))
 	suite.Require().NotPanics(func() {
-		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, exportState)
+		evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, exportState)
 		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, ethAccount.EthAddress()), code)
 		suite.app.EvmKeeper.ForEachStorage(suite.ctx, ethAccount.EthAddress(), func(key, value ethcmn.Hash) bool {
 			suite.Require().Contains(storage, types.State{key, value})
@@ -579,7 +579,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 		ContractBlockedList:         expectedAddrList,
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
 	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
@@ -666,7 +666,7 @@ func (suite *EvmTestSuite) TestExport_files1() {
 		ContractMethodBlockedList:   expectedContractMethodBlockedList,
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
 	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
@@ -750,7 +750,7 @@ func (suite *EvmTestSuite) TestExport_files2() {
 		ContractMethodBlockedList:   expectedContractMethodBlockedList,
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
+	evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
 	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
@@ -798,7 +798,7 @@ func testImport_files(suite *EvmTestSuite,
 	suite.Require().DirExists(filepath.Join(filePath, "code"))
 	suite.Require().DirExists(filepath.Join(filePath, "storage"))
 	suite.Require().NotPanics(func() {
-		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, exportState)
+		evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, &suite.app.AccountKeeper, exportState)
 		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, ethAccount.EthAddress()), code)
 		suite.app.EvmKeeper.ForEachStorage(suite.ctx, ethAccount.EthAddress(), func(key, value ethcmn.Hash) bool {
 			suite.Require().Contains(storage, types.State{key, value})
