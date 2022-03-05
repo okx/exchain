@@ -166,11 +166,11 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 func (suite *KeeperTestSuite) TestChainConfig() {
 	config, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
 	suite.Require().True(found)
-	suite.Require().Equal(types.DefaultChainConfig(), config)
+	suite.Require().Equal(types.DefaultChainConfig(), *config)
 
 	config.EIP150Block = sdk.NewInt(100)
 	suite.app.EvmKeeper.SetChainConfig(suite.ctx, *config)
 	newConfig, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
 	suite.Require().True(found)
-	suite.Require().Equal(config, newConfig)
+	suite.Require().Equal(*config, *newConfig)
 }
