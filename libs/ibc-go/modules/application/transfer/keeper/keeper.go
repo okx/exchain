@@ -8,11 +8,11 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
@@ -28,8 +28,9 @@ type Keeper struct {
 	authKeeper    types.AccountKeeper
 	bankKeeper    types.BankKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
-}
 
+	hooks types.TransferHooks
+}
 
 // NewKeeper creates a new IBC transfer Keeper instance
 func NewKeeper(
@@ -62,7 +63,6 @@ func NewKeeper(
 		scopedKeeper:  scopedKeeper,
 	}
 }
-
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
@@ -177,4 +177,3 @@ func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability
 func (k Keeper) Codec() *codec.MarshalProxy {
 	return k.cdc
 }
-
