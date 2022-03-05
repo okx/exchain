@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -51,6 +52,10 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	// cache chain config
+	chainConfig      *types.ChainConfig
+	chainConfigMutex sync.Mutex
 }
 
 // NewKeeper generates new evm module keeper
@@ -234,7 +239,11 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 }
 
 // GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately
+	if k.chainConfig != nil {
+		return *k.chainConfig, true
+	}
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -248,6 +257,11 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
+	// add lock for k.chainConfig. and cache the chain config
+	k.chainConfigMutex.Lock()
+	defer k.chainConfigMutex.Unlock()
+	k.chainConfig = &config
+
 	return config, true
 }
 
