@@ -7,7 +7,6 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -80,11 +79,11 @@ var relayTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, er
 		return nil, err
 	}
 	msgs := make([]sdk.Msg, 0)
-	addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-	for _, v := range wp.Msgs {
-		msgs = append(msgs, v)
-		v.Singers[0] = addr
-	}
+	//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
+	//for _, v := range wp.Msgs {
+	//	msgs = append(msgs, v)
+	//	v.Singers[0] = addr
+	//}
 
 	sis := make([]authtypes.StdSignature, 1)
 	ret := authtypes.StdTx{
