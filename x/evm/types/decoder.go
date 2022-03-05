@@ -3,8 +3,10 @@ package types
 import (
 	"errors"
 	"fmt"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -132,7 +134,7 @@ func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err e
 }
 
 func sanityCheck(tx sdk.Tx, height int64) (sdk.Tx, error) {
-	if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
 		return nil, fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
 	}
 	return tx, nil

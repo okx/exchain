@@ -5,11 +5,9 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"runtime/debug"
 
-	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type runTxInfo struct {
@@ -42,7 +40,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
 	if nil != err {
-		logrusplugin.Error("调用错误", "err", err.Error())
+		logrusplugin.Error("runTxFailed", "err", err.Error())
 	}
 	return
 }
@@ -100,19 +98,18 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-	app.pin(AnteHandler, true, mode)
-
+	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return err
 		}
 	}
-	app.pin(AnteHandler, false, mode)
+	app.pin(RunAnte, false, mode)
 
-	app.pin(RunMsgs, true, mode)
+	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
-	app.pin(RunMsgs, false, mode)
+	app.pin(RunMsg, false, mode)
 	return err
 }
 
@@ -127,10 +124,24 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// NOTE: Alternatively, we could require that AnteHandler ensures that
 	// writes do not happen if aborted/failed.  This may have some
 	// performance benefits, but it'll be more difficult to get right.
+
+	// 1. CacheTxContext
+	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(CacheTxContext, false, mode)
 
+	// 2. AnteChain
+	app.pin(AnteChain, true, mode)
+	if mode == runTxModeDeliver {
+		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
+	}
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	app.pin(AnteChain, false, mode)
+
+
+	// 3. AnteOther
+	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 
@@ -155,35 +166,35 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if err != nil {
 		return err
 	}
+	app.pin(AnteOther, false, mode)
 
+
+	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
+		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
+		app.pin(CacheStoreWrite, false, mode)
 	}
 
 	return nil
 }
 
-func txhash(txbytes []byte) string {
-	txHash := tmtypes.Tx(txbytes).Hash(tmtypes.GetVenusHeight())
-	ethHash := common.BytesToHash(txHash)
-	return ethHash.String()
-}
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
-		logrusplugin.Error("deliverTx解码失败", "req", req, "err", err)
+		logrusplugin.Error("deliverTx decode failed", "req", req, "err", err)
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
-		logrusplugin.Error("deliverTx执行失败", "req", req, "err", err)
+		logrusplugin.Error("deliverTx failed", "req", req, "err", err)
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
 
-	logrusplugin.Info("deliverTx执行成功")
+	logrusplugin.Info("deliverTx successfully")
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?

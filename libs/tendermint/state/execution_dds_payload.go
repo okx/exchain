@@ -25,6 +25,9 @@ func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
 }
 
 type DeltaInfo struct {
+	from          string
+	deltaLen      int
+	deltaHeight   int64
 	abciResponses *ABCIResponses
 	treeDeltaMap  interface{}
 	watchData     interface{}

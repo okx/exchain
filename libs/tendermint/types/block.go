@@ -2,11 +2,8 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
-	tmmc "github.com/tendermint/tendermint/proto/tendermint/types"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +47,32 @@ type Block struct {
 	Data       `json:"data"`
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
+}
+
+func (b *Block) AminoSize(cdc *amino.Codec) int {
+	var size = 0
+
+	headerSize := b.Header.AminoSize(cdc)
+	if headerSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(headerSize)) + headerSize
+	}
+
+	dataSize := b.Data.AminoSize(cdc)
+	if dataSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(dataSize)) + dataSize
+	}
+
+	evidenceSize := b.Evidence.AminoSize(cdc)
+	if evidenceSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(evidenceSize)) + evidenceSize
+	}
+
+	if b.LastCommit != nil {
+		commitSize := b.LastCommit.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(commitSize)) + commitSize
+	}
+
+	return size
 }
 
 func (b *Block) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -196,7 +219,9 @@ func (b *Block) Hash() tmbytes.HexBytes {
 		return nil
 	}
 	b.fillHeader()
-	return b.Header.Hash()
+	// 这里又需要适配
+	//return b.Header.Hash()
+	return b.Header.IBCHash()
 }
 
 // MakePartSet returns a PartSet containing parts of a serialized block.
@@ -237,6 +262,19 @@ func (b *Block) Size() int {
 		return 0
 	}
 	return len(bz)
+}
+
+// TODO : Replace the original logic of Size with the logic of FastSize
+
+// FastSize returns size of the block in bytes. and more efficient than Size().
+// But we can't make sure it's completely correct yet, when we're done testing, we'll replace Size with FastSize
+func (b *Block) FastSize() (size int) {
+	defer func() {
+		if r := recover(); r != nil {
+			size = 0
+		}
+	}()
+	return b.AminoSize(cdc)
 }
 
 // String returns a string representation of the block
@@ -372,6 +410,71 @@ type Header struct {
 	// consensus info
 	EvidenceHash    tmbytes.HexBytes `json:"evidence_hash"`    // evidence included in the block
 	ProposerAddress Address          `json:"proposer_address"` // original proposer of the block
+}
+
+func (h Header) AminoSize(cdc *amino.Codec) int {
+	var size int
+
+	versionSize := h.Version.AminoSize()
+	if versionSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(versionSize)) + versionSize
+	}
+
+	if h.ChainID != "" {
+		size += 1 + amino.UvarintSize(uint64(len(h.ChainID))) + len(h.ChainID)
+	}
+
+	if h.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(h.Height))
+	}
+
+	timeSize := amino.TimeSize(h.Time)
+	if timeSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(timeSize)) + timeSize
+	}
+
+	blockIDSize := h.LastBlockID.AminoSize(cdc)
+	if blockIDSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+
+	if len(h.LastCommitHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.LastCommitHash)
+	}
+
+	if len(h.DataHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.DataHash)
+	}
+
+	if len(h.ValidatorsHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.ValidatorsHash)
+	}
+
+	if len(h.NextValidatorsHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.NextValidatorsHash)
+	}
+
+	if len(h.ConsensusHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.ConsensusHash)
+	}
+
+	if len(h.AppHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.AppHash)
+	}
+
+	if len(h.LastResultsHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.LastResultsHash)
+	}
+
+	if len(h.EvidenceHash) != 0 {
+		size += 1 + amino.ByteSliceSize(h.EvidenceHash)
+	}
+
+	if len(h.ProposerAddress) != 0 {
+		size += 1 + amino.ByteSliceSize(h.ProposerAddress)
+	}
+
+	return size
 }
 
 func (h *Header) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -610,21 +713,22 @@ func (h *Header) IBCHash() tmbytes.HexBytes {
 		ibccdcEncode(h.EvidenceHash),
 		ibccdcEncode(h.ProposerAddress),
 	})
-	logrusplugin.Info("info",
-		"chainId", h.ChainID,
-		"height", h.Height,
-		"hbz", hex.EncodeToString(hbz),
-		"pbt", hex.EncodeToString(pbt),
-		"bzbi", hex.EncodeToString(bzbi),
-		"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
-		"dataHash", hex.EncodeToString(h.DataHash),
-		"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
-		"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
-		"AppHash", hex.EncodeToString(h.AppHash),
-		"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
-		"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
-		"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
-		"ret", hex.EncodeToString(ret))
+	//logrusplugin.Info("info",
+	//	"chainId", h.ChainID,
+	//	"height", h.Height,
+	//	"hbz", hex.EncodeToString(hbz),
+	//	"pbt", hex.EncodeToString(pbt),
+	//	"bzbi", hex.EncodeToString(bzbi),
+	//	"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
+	//	"dataHash", hex.EncodeToString(h.DataHash),
+	//	"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
+	//	"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
+	//	"AppHash", hex.EncodeToString(h.AppHash),
+	//	"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
+	//	"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
+	//	"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
+	//	"ret", hex.EncodeToString(ret))
+
 	return ret
 }
 
@@ -742,6 +846,29 @@ type CommitSig struct {
 	ValidatorAddress Address     `json:"validator_address"`
 	Timestamp        time.Time   `json:"timestamp"`
 	Signature        []byte      `json:"signature"`
+}
+
+func (cs CommitSig) AminoSize(_ *amino.Codec) int {
+	var size = 0
+
+	if cs.BlockIDFlag != 0 {
+		size += 1 + amino.UvarintSize(uint64(cs.BlockIDFlag))
+	}
+
+	if len(cs.ValidatorAddress) != 0 {
+		size += 1 + amino.ByteSliceSize(cs.ValidatorAddress)
+	}
+
+	timestampSize := amino.TimeSize(cs.Timestamp)
+	if timestampSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(timestampSize)) + timestampSize
+	}
+
+	if len(cs.Signature) != 0 {
+		size += 1 + amino.ByteSliceSize(cs.Signature)
+	}
+
+	return size
 }
 
 func (cs *CommitSig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
@@ -942,6 +1069,30 @@ type Commit struct {
 	// unmarshaling.
 	hash     tmbytes.HexBytes
 	bitArray *bits.BitArray
+}
+
+func (commit Commit) AminoSize(cdc *amino.Codec) int {
+	var size int = 0
+
+	if commit.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(commit.Height))
+	}
+
+	if commit.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(commit.Round))
+	}
+
+	blockIDSize := commit.BlockID.AminoSize(cdc)
+	if blockIDSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+
+	for _, sig := range commit.Signatures {
+		sigSize := sig.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(sigSize)) + sigSize
+	}
+
+	return size
 }
 
 func (commit *Commit) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -1356,6 +1507,16 @@ type Data struct {
 	hash tmbytes.HexBytes
 }
 
+func (d Data) AminoSize(_ *amino.Codec) int {
+	var size = 0
+
+	for _, tx := range d.Txs {
+		size += 1 + amino.ByteSliceSize(tx)
+	}
+
+	return size
+}
+
 func (d *Data) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -1439,6 +1600,26 @@ type EvidenceData struct {
 
 	// Volatile
 	hash tmbytes.HexBytes
+}
+
+func (d EvidenceData) AminoSize(cdc *amino.Codec) int {
+	var size = 0
+
+	for _, ev := range d.Evidence {
+		if ev != nil {
+			var evSize int
+			if sizer, ok := ev.(amino.Sizer); ok {
+				evSize = 4 + sizer.AminoSize(cdc)
+			} else {
+				evSize = len(cdc.MustMarshalBinaryBare(ev))
+			}
+			size += 1 + amino.UvarintSize(uint64(evSize)) + evSize
+		} else {
+			size += 1 + amino.UvarintSize(0)
+		}
+	}
+
+	return size
 }
 
 func (d *EvidenceData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -1533,7 +1714,7 @@ type BlockID struct {
 	PartsHeader PartSetHeader    `json:"parts"`
 }
 
-func (blockID BlockID) AminoSize() int {
+func (blockID BlockID) AminoSize(_ *amino.Codec) int {
 	var size int
 	if len(blockID.Hash) > 0 {
 		size += 1 + amino.UvarintSize(uint64(len(blockID.Hash))) + len(blockID.Hash)
@@ -1659,13 +1840,13 @@ func (blockID *BlockID) ToProto() tmproto.BlockID {
 //	}
 //}
 
-func (blockID *BlockID) ToIBCProto() tmmc.BlockID {
+func (blockID *BlockID) ToIBCProto() tmproto.BlockID {
 	if blockID == nil {
-		return tmmc.BlockID{}
+		return tmproto.BlockID{}
 	}
-	return tmmc.BlockID{
-		Hash:          blockID.Hash,
-		PartSetHeader: blockID.PartsHeader.ToIBCProto(),
+	return tmproto.BlockID{
+		Hash:                 blockID.Hash,
+		PartsHeader:          blockID.PartsHeader.ToIBCProto(),
 	}
 }
 

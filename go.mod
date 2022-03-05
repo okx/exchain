@@ -14,7 +14,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
-	github.com/confio/ics23/go v0.6.6
+	github.com/confio/ics23/go v0.7.0
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
@@ -26,6 +26,8 @@ require (
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.6.0
+	github.com/gogo/protobuf v1.3.2
+	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/btree v1.0.0
 	github.com/google/uuid v1.3.0
@@ -35,14 +37,16 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/gtank/merlin v0.1.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/itsfunny/go-cell v0.0.2
+	github.com/itsfunny/go-cell v0.0.0-00010101000000-000000000000
 	github.com/jmhodges/levigo v1.0.0
 	github.com/json-iterator/go v1.1.12
+	github.com/json-iterator/go v1.1.10
 	github.com/libp2p/go-buffer-pool v0.0.2
 	github.com/magiconair/properties v1.8.5
 	github.com/mattn/go-isatty v0.0.14
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20210614093730-56a4d342a6ff
 	github.com/minio/highwayhash v1.0.2
+	github.com/minio/highwayhash v1.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mosn/holmes v0.0.0-20210830110104-685dc05437bf
 	github.com/nacos-group/nacos-sdk-go v1.0.0
@@ -53,6 +57,11 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/rs/cors v1.8.2
+	github.com/prometheus/client_golang v1.8.0
+	github.com/rakyll/statik v0.1.6
+	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
+	github.com/regen-network/cosmos-proto v0.3.1
+	github.com/rs/cors v1.7.0
 	github.com/segmentio/kafka-go v0.2.2
 	github.com/snikch/goodman v0.0.0-20171125024755-10e37e294daa
 	github.com/spf13/cobra v1.3.0
@@ -75,19 +84,28 @@ require (
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
+	google.golang.org/grpc v1.42.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
+	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 )
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.18 // indirect
-	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/cosmos/cosmos-sdk v0.39.2 // indirect
 	github.com/cosmos/ledger-go v0.9.2 // indirect
 	github.com/danieljoos/wincred v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -107,7 +125,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
-	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.0 // indirect
@@ -131,8 +148,8 @@ require (
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.32.1 // indirect
-	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/prometheus/common v0.14.0 // indirect
+	github.com/prometheus/procfs v0.2.0 // indirect
 	github.com/prometheus/tsdb v0.7.1 // indirect
 	github.com/rjeczalik/notify v0.9.1 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
@@ -142,10 +159,8 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/tendermint/iavl v0.14.1 // indirect
-	github.com/tendermint/tm-db v0.6.6 // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.5 // indirect
+	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/toolkits/concurrent v0.0.0-20150624120057-a4371d70e3e3 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	github.com/zondax/hid v0.9.0 // indirect

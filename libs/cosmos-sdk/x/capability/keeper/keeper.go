@@ -250,7 +250,7 @@ func (sk ScopedKeeper) NewCapability(ctx sdk.Context, name string) (*types.Capab
 	sk.capMap[index] = cap
 
 	logger(ctx).Info("created new capability", "module", sk.module, "name", name)
-	logrusplugin.Info("添加新的capability", "capabilityName", name, "module", sk.module)
+	logrusplugin.Info("created new capability", "capabilityName", name, "module", sk.module)
 
 	return cap, nil
 }

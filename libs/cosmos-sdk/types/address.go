@@ -254,7 +254,7 @@ func (aa AccAddress) String() string {
 		return ""
 	}
 
-	return aa.Bech32String(GetConfig().GetBech32AccountAddrPrefix())
+	return aa.Bech32StringOptimized(GetConfig().GetBech32AccountAddrPrefix())
 }
 
 // Bech32String convert account address to bech32 address.
@@ -265,6 +265,16 @@ func (aa AccAddress) Bech32String(bech32PrefixAccAddr string) string {
 	}
 
 	return bech32Addr
+}
+
+func Bech32ifyAddressBytes(prefix string, bs []byte) (string, error) {
+	if len(bs) == 0 {
+		return "", nil
+	}
+	if len(prefix) == 0 {
+		return "", errors.New("prefix cannot be empty")
+	}
+	return bech32.ConvertAndEncode(prefix, bs)
 }
 
 // Format implements the fmt.Formatter interface.

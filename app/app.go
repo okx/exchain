@@ -2,21 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/utils/sanity"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer"
-	ibctransferkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/keeper"
-	ibctransfertypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/types"
-	ibc "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core"
-	ibcclient "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client"
-	porttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/05-port/types"
-	host "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/24-host"
-
-	//types "github.com/okex/exchain/temp"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 	"io"
 	"math/big"
 	"os"
@@ -27,6 +12,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -35,12 +21,23 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
+	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -68,6 +65,8 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -105,6 +104,7 @@ var (
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
+			govclient.ManageTreasuresProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -246,6 +246,7 @@ func NewOKExChainApp(
 	interfaceReg := MakeIBC()
 	bApp.SetInterfaceRegistry(interfaceReg)
 	cc := codec.NewProtoCodec(interfaceReg)
+	proxy := codec.NewMarshalProxy(cc, cdc)
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
 		ret, err = evm.TxDecoder(cdc)(txBytes, height...)
 		if nil == err {
@@ -303,18 +304,17 @@ func NewOKExChainApp(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
-	bankKeeper := bank.NewBaseKeeper(
-		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
+	bankKeeper := bank.NewBaseKeeperWithMarshal(
+		&app.AccountKeeper, proxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
-	proxy:=codec.NewMarshalProxy(cc,cdc)
 
 	stakingKeeper := staking.NewKeeper(
-		cdc,proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		cdc, proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -368,12 +368,12 @@ func NewOKExChainApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		cdc, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
+		proxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
-		cdc, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
+		proxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
@@ -387,13 +387,15 @@ func NewOKExChainApp(
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
+		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		// ibc
 		AddRoute(host.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
-		AddRoute(evm.RouterKey, app.EvmKeeper)
+		AddRoute(evm.RouterKey, app.EvmKeeper).
+		AddRoute(mint.RouterKey, &app.MintKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -403,6 +405,7 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
+	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
@@ -541,6 +544,11 @@ func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.Response
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
+		err := okexchain.SetChainId(req.Value)
+		if err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
 	}
 	return app.BaseApp.SetOption(req)
 }
@@ -627,6 +635,14 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 	}, func(resp *abci.ResponseQuery) {
 
 	})
+
+	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
+		req.Path = "custom/bank/grpc_balances"
+		return nil
+	}, func(resp *abci.ResponseQuery) {
+
+	})
+
 	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "custom/staking/parameters"
 		return nil
@@ -689,10 +705,6 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 				if len(msgs) > 1 {
 					return wrongMsgErr
 				}
-			case evmtypes.MsgEthermint:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
 			}
 
 			if err != nil {
@@ -736,5 +748,8 @@ func PreRun(ctx *server.Context) error {
 	if viper.GetBool(FlagEnableRepairState) {
 		repairStateOnStart(ctx)
 	}
+
+	// init tx signature cache
+	tmtypes.InitSignatureCache()
 	return nil
 }

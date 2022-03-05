@@ -61,7 +61,7 @@ if [ -z "$7" ]; then
   display_usage "[GRPC_PORT]"
 fi
 
-BINARY=./simd
+BINARY=gaiad
 echo "Creating $BINARY instance: home=$CHAINDIR | chain-id=$CHAINID | p2p=:$P2PPORT | rpc=:$RPCPORT | profiling=:$PROFPORT | grpc=:$GRPCPORT"
 
 # Add dir for chain, exit if error
@@ -117,5 +117,5 @@ else
 fi
 
 if [ "$startDaenom" = true ]; then
-./simd --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
+gaiad --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc-web.enable=false --grpc.address="0.0.0.0:$GRPCPORT" --rpc.laddr="tcp://0.0.0.0:$RPCPORT" --p2p.laddr="tcp://0.0.0.0:$P2PPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
 fi

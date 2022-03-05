@@ -9,9 +9,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	types3 "github.com/okex/exchain/temp"
-	//clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
-	//connectiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/03-connection/types"
-	//channeltypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/04-channel/types"
+	//clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	//connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	//channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 )
 
 //// RegisterServices registers a GRPC query service to respond to the

@@ -71,6 +71,25 @@ type IBCCommit struct {
 }
 
 
+//func (commit *IBCCommit) VoteSignBytes(chainID string, valIdx int32) []byte {
+//	v := commit.GetVote(valIdx).ToProto()
+//	return VoteSignBytes(chainID, v)
+//}
+//func (commit *IBCCommit) GetVote(valIdx int32) *Vote {
+//	commitSig := commit.Signatures[valIdx]
+//	return &Vote{
+//		Type:             PrecommitType,
+//		Height:           commit.Height,
+//		Round:            int(commit.Round),
+//		BlockID:          BlockID(commitSig.BlockID),
+//		Timestamp:        commitSig.Timestamp,
+//		ValidatorAddress: commitSig.ValidatorAddress,
+//		ValidatorIndex:   int(valIdx),
+//		Signature:        commitSig.Signature,
+//	}
+//}
+
+
 //func (blockID *IBCBlockID) ToProto() tmproto.BlockID {
 //	if blockID == nil {
 //		return tmproto.BlockID{}
