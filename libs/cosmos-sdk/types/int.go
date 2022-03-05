@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/tendermint/go-amino"
@@ -370,6 +371,17 @@ func (i *Int) UnmarshalAmino(text string) error {
 func (i *Int) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	if i.i == nil { // Necessary since default Int initialization has i.i as nil
 		i.i = new(big.Int)
+	}
+
+	sLen := len(data)
+	if strconv.IntSize == 64 && (0 < sLen && sLen < 19) ||
+		strconv.IntSize == 32 && (0 < sLen && sLen < 10) {
+		// small int
+		num, err := strconv.Atoi(amino.BytesToStr(data))
+		if err == nil {
+			i.i.SetInt64(int64(num))
+			return nil
+		}
 	}
 
 	if err := i.i.UnmarshalText(data); err != nil {
