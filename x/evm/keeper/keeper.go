@@ -3,9 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
-	"sync"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -17,6 +14,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
+	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -54,18 +52,18 @@ type Keeper struct {
 	innerBlockData BlockInnerData
 
 	// cache chain config
-	chainConfigInfo *chainConfigInfo
+	chainConfigInfo chainConfigInfo
 }
 
 type chainConfigInfo struct {
-	chainConfig      *types.ChainConfig
-	chainConfigMutex sync.Mutex
+	chainConfig *types.ChainConfig
 }
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
 	logger log.Logger) *Keeper {
+
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -97,7 +95,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData:  defaultBlockInnerData(),
-		chainConfigInfo: &chainConfigInfo{},
+		chainConfigInfo: chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -262,10 +260,8 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
-	// add lock for k.chainConfig. and cache the chain config
-	k.chainConfigInfo.chainConfigMutex.Lock()
-	defer k.chainConfigInfo.chainConfigMutex.Unlock()
-	k.chainConfigInfo.chainConfig = &config
+	// and cache the chain config
+	k.chainConfigInfo = chainConfigInfo{chainConfig: &config}
 
 	return config, true
 }
@@ -278,9 +274,7 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.chainConfigInfo.chainConfigMutex.Lock()
-	defer k.chainConfigInfo.chainConfigMutex.Unlock()
-	k.chainConfigInfo.chainConfig = nil
+	k.chainConfigInfo = chainConfigInfo{}
 }
 
 // SetGovKeeper sets keeper of gov
