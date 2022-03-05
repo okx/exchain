@@ -51,6 +51,12 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	cci *chainConfigInfo
+}
+
+type chainConfigInfo struct {
+	cc *types.ChainConfig
 }
 
 // NewKeeper generates new evm module keeper
@@ -86,6 +92,7 @@ func NewKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
+		cci:		   &chainConfigInfo{},
 
 		innerBlockData: defaultBlockInnerData(),
 	}
@@ -235,6 +242,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	if k.cci.cc != nil {
+		return *k.cci.cc, true
+	}
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -257,6 +267,7 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+	k.cci.cc = &config
 }
 
 // SetGovKeeper sets keeper of gov
