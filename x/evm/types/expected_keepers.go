@@ -4,8 +4,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	clienttypes "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/02-client/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 )
 
 // AccountKeeper defines the expected account keeper interface

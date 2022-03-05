@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	transferType "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/application/transfer/types"
+	transferType "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
