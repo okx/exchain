@@ -413,6 +413,10 @@ func (i *Int) UnmarshalJSON(bz []byte) error {
 // MarshalYAML returns Ythe AML representation.
 func (i Int) MarshalYAML() (interface{}, error) { return i.String(), nil }
 
+func (i Int) SetBigInt(i2 *big.Int) {
+	i.i = i2
+}
+
 // intended to be used with require/assert:  require.True(IntEq(...))
 func IntEq(t *testing.T, exp, got Int) (*testing.T, bool, string, string, string) {
 	return t, exp.Equal(got), "expected:\t%v\ngot:\t\t%v", exp.String(), got.String()

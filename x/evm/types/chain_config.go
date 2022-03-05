@@ -161,6 +161,11 @@ func (config *ChainConfig) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 	var dataLen uint64 = 0
 	var subData []byte
 
+	var bigIntPool *[12]big.Int
+	if len(data) > 0 {
+		bigIntPool = new([12]big.Int)
+	}
+
 	for {
 		data = data[dataLen:]
 
@@ -186,11 +191,13 @@ func (config *ChainConfig) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 
 		switch pos {
 		case 1:
+			config.HomesteadBlock.SetBigInt(&bigIntPool[0])
 			err = config.HomesteadBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 2:
+			config.DAOForkBlock.SetBigInt(&bigIntPool[1])
 			err = config.DAOForkBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
@@ -202,6 +209,7 @@ func (config *ChainConfig) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			config.DAOForkSupport = data[0] == 1
 			dataLen = 1
 		case 4:
+			config.EIP150Block.SetBigInt(&bigIntPool[2])
 			err = config.EIP150Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
@@ -209,46 +217,55 @@ func (config *ChainConfig) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 		case 5:
 			config.EIP150Hash = string(subData)
 		case 6:
+			config.EIP155Block.SetBigInt(&bigIntPool[3])
 			err = config.EIP155Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 7:
+			config.EIP158Block.SetBigInt(&bigIntPool[4])
 			err = config.EIP158Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 8:
+			config.ByzantiumBlock.SetBigInt(&bigIntPool[5])
 			err = config.ByzantiumBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 9:
+			config.ConstantinopleBlock.SetBigInt(&bigIntPool[6])
 			err = config.ConstantinopleBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 10:
+			config.PetersburgBlock.SetBigInt(&bigIntPool[7])
 			err = config.PetersburgBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 11:
+			config.IstanbulBlock.SetBigInt(&bigIntPool[8])
 			err = config.IstanbulBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 12:
+			config.MuirGlacierBlock.SetBigInt(&bigIntPool[9])
 			err = config.MuirGlacierBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 13:
+			config.YoloV2Block.SetBigInt(&bigIntPool[10])
 			err = config.YoloV2Block.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
 		case 14:
+			config.EWASMBlock.SetBigInt(&bigIntPool[11])
 			err = config.EWASMBlock.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
