@@ -266,11 +266,16 @@ func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+
+	// invalid the chainConfig
+	k.chainConfigMutex.Lock()
+	defer k.chainConfigMutex.Unlock()
+	k.chainConfig = nil
 }
 
 // SetGovKeeper sets keeper of gov
