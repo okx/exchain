@@ -374,8 +374,8 @@ func (i *Int) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	}
 
 	sLen := len(data)
-	if strconv.IntSize == 64 && (0 < sLen && sLen < 19) ||
-		strconv.IntSize == 32 && (0 < sLen && sLen < 10) {
+	if strconv.IntSize == 64 && (sLen < 19) ||
+		strconv.IntSize == 32 && (sLen < 10) {
 		// small int
 		num, err := strconv.Atoi(amino.BytesToStr(data))
 		if err == nil {

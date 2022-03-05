@@ -681,13 +681,13 @@ func (d Dec) MarshalAmino() (string, error) {
 		return nilAmino, nil
 	}
 	bz, err := d.Int.MarshalText()
-	return string(bz), err
+	return amino.BytesToStr(bz), err
 }
 
 // requires a valid JSON string - strings quotes and calls UnmarshalText
 func (d *Dec) UnmarshalAmino(text string) (err error) {
 	tempInt := new(big.Int)
-	err = tempInt.UnmarshalText([]byte(text))
+	err = tempInt.UnmarshalText(amino.StrToBytes(text))
 	if err != nil {
 		return err
 	}
@@ -697,6 +697,17 @@ func (d *Dec) UnmarshalAmino(text string) (err error) {
 
 func (d *Dec) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	tempInt := new(big.Int)
+
+	if strconv.IntSize == 64 && (len(data) < 19) {
+		// small int
+		num, err := strconv.Atoi(amino.BytesToStr(data))
+		if err == nil {
+			tempInt.SetInt64(int64(num))
+			d.Int = tempInt
+			return nil
+		}
+	}
+
 	err := tempInt.UnmarshalText(data)
 	if err != nil {
 		return err
