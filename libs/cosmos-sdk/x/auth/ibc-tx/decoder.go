@@ -9,20 +9,22 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
 //func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
 func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
-	return func(txBytes []byte) (ibctx.Tx, error) {
+	return func(txBytes []byte) (authtypes.StdTx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		var raw tx.TxRaw
@@ -30,12 +32,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// reject all unknown proto fields in the root TxRaw
 		err = unknownproto.RejectUnknownFieldsStrict(txBytes, &raw, cdc.InterfaceRegistry())
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(txBytes, &raw)
 		if err != nil {
-			return nil, err
+			return authtypes.StdTx{}, err
 		}
 
 		var body tx.TxBody
@@ -43,12 +45,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// allow non-critical unknown fields in TxBody
 		txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		var authInfo tx.AuthInfo
@@ -56,26 +58,57 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// reject all unknown proto fields in AuthInfo
 		err = unknownproto.RejectUnknownFieldsStrict(raw.AuthInfoBytes, &authInfo, cdc.InterfaceRegistry())
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(raw.AuthInfoBytes, &authInfo)
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 		fmt.Println(body, txBodyHasUnknownNonCriticals, authInfo, raw)
-		//theTx := &tx.Tx{
-		// 	Body:       &body,
-		// 	AuthInfo:   &authInfo,
-		// 	Signatures: raw.Signatures,
-		// }
-		return nil, nil
-		// return &wrapper{
-		// 	tx:                           theTx,
-		// 	bodyBz:                       raw.BodyBytes,
-		// 	authInfoBz:                   raw.AuthInfoBytes,
-		// 	txBodyHasUnknownNonCriticals: txBodyHasUnknownNonCriticals,
-		// }, nil
+		ibcTx := &tx.Tx{
+			Body:       &body,
+			AuthInfo:   &authInfo,
+			Signatures: raw.Signatures,
+		}
+
+		amount := authInfo.Fee.Amount[0].Amount.BigInt()
+
+		fee := authtypes.StdFee{
+			Amount: []sdk.DecCoin{
+				sdk.DecCoin{
+					Denom:  ibcTx.AuthInfo.Fee.Amount[0].Denom,
+					Amount: sdk.NewDecFromBigInt(amount),
+				},
+			},
+			//Gas:
+		}
+		signatures := []authtypes.StdSignature{}
+		for _, s := range ibcTx.Signatures {
+			signatures = append(signatures, authtypes.StdSignature{Signature: s})
+		}
+
+		relayMsgs := []*sdk.RelayMsg{}
+		for _, ibcmsg := range ibcTx.Body.Messages {
+			//relayMsgs = append(relayMsgs, &sdk.RelayMsg{
+			relayMsgs = append(relayMsgs,
+				sdk.NewRelayMsg(
+					ibcmsg.Value, ibcTx.GetSigners(),
+				),
+			)
+		}
+		stdmsgs := []sdk.Msg{}
+		for _, v := range relayMsgs {
+			stdmsgs = append(stdmsgs, v)
+		}
+		stx := authtypes.StdTx{
+			Msgs:       stdmsgs,
+			Fee:        fee,
+			Signatures: signatures,
+			Memo:       ibcTx.Body.Memo,
+		}
+
+		return stx, nil
 	}
 }
 

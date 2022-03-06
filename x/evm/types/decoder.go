@@ -15,7 +15,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+
+	//ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+
 	typestx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -86,9 +88,8 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
 
 	simReq := &typestx.SimulateRequest{}
-	var err error
-	_ = &typestx.SimulateRequest{}
-	err = simReq.Unmarshal(bytes)
+
+	err := simReq.Unmarshal(bytes)
 	if err != nil {
 		return authtypes.StdTx{}, err
 	}
@@ -97,23 +98,25 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	if txBytes == nil && simReq.Tx != nil {
 		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
-			return nil, nil //status.Errorf(codes.InvalidArgument, "invalid tx; %v", err)
+			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
 		}
 	}
 
 	if txBytes == nil {
-		return nil, nil //status.Errorf(codes.InvalidArgument, "empty txBytes is not allowed")
+		return nil, errors.New("relayTx empty txBytes is not allowed")
 	}
 
 	if proxy == nil {
-		//return
+		return nil, errors.New("relayTx proxy decoder not provided")
 	}
 	marshaler := proxy.GetProtocMarshal()
 	decode := ibctxdecoder.IbcTxDecoder(marshaler)
-	tx, err := decode(txBytes)
-	fmt.Println(tx, err)
+	txdata, err := decode(txBytes)
+	if err != nil {
+		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
+	}
 
-	return convertTx(simReq.Tx), nil
+	return txdata, nil
 }
 
 // func validateBasicTxMsgs(msgs []ibcsdk.Msg) error {
@@ -130,49 +133,6 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 
 // 	return nil
 // }
-
-func convertTx(tx *ibctx.Tx) authtypes.StdTx {
-	amount := tx.AuthInfo.Fee.Amount[0].Amount.BigInt()
-
-	fee := authtypes.StdFee{
-		Amount: []sdk.DecCoin{
-			sdk.DecCoin{
-				Denom:  tx.AuthInfo.Fee.Amount[0].Denom,
-				Amount: sdk.NewDecFromBigInt(amount),
-			},
-		},
-	}
-	signature := []authtypes.StdSignature{}
-	for _, s := range tx.Signatures {
-		signature = append(signature, authtypes.StdSignature{Signature: s})
-	}
-	//tx.Body.Messages
-	signers := []sdk.AccAddress{}
-	ss := tx.GetSigners()
-	for _, v := range ss {
-		signers = append(signers, v.Bytes())
-	}
-
-	m := sdk.RelayMsg{
-		TypeStr: tx.Body.Messages[0].TypeUrl,
-		Bytes:   tx.Body.Messages[0].Value,
-		//RouterStr:
-		Singers: signers,
-	}
-	ms := []sdk.RelayMsg{m}
-
-	msgs := []sdk.Msg{}
-	for _, v := range ms {
-		msgs = append(msgs, &v)
-	}
-
-	return authtypes.StdTx{
-		Msgs:       msgs,
-		Fee:        fee,
-		Signatures: signature,
-		Memo:       tx.GetBody().GetMemo(),
-	}
-}
 
 type decodeFunc func(*codec.Codec, *codec.CodecProxy, []byte, int64) (sdk.Tx, error)
 

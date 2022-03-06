@@ -5,6 +5,7 @@ import (
 
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
+	stdtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 type (
@@ -71,7 +72,8 @@ type (
 )
 
 // TxDecoder unmarshals transaction bytes
-type TxDecoder func(txBytes []byte) (Tx, error)
+//type TxDecoder func(txBytes []byte) (costypes.Tx, error)
+type TxDecoder func(txBytes []byte) (stdtx.StdTx, error)
 
 // TxEncoder marshals transaction to bytes
 type TxEncoder func(tx Tx) ([]byte, error)
