@@ -43,7 +43,6 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
-	defer types.EvmParamsCache.SetNeedBlockedUpdate()
 	// check
 	manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
 	if !ok {
@@ -63,7 +62,6 @@ func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, propos
 }
 
 func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
-	defer types.EvmParamsCache.SetNeedBlockedUpdate()
 	// check
 	manageContractMethodBlockedListProposal, ok := proposal.Content.(types.ManageContractMethodBlockedListProposal)
 	if !ok {
