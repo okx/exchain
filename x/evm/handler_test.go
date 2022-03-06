@@ -625,7 +625,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 22336
+	var expectedGas uint64 = 21000
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
