@@ -52,7 +52,7 @@ type Keeper struct {
 	innerBlockData BlockInnerData
 
 	// cache chain config
-	chainConfigInfo chainConfigInfo
+	chainConfigInfo *chainConfigInfo
 }
 
 type chainConfigInfo struct {
@@ -95,7 +95,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData:  defaultBlockInnerData(),
-		chainConfigInfo: chainConfigInfo{},
+		chainConfigInfo: &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -261,7 +261,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
 	// and cache the chain config
-	k.chainConfigInfo = chainConfigInfo{chainConfig: &config}
+	k.chainConfigInfo.chainConfig = &config
 
 	return config, true
 }
@@ -274,7 +274,7 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.chainConfigInfo = chainConfigInfo{}
+	k.chainConfigInfo.chainConfig = nil
 }
 
 // SetGovKeeper sets keeper of gov
