@@ -528,27 +528,12 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		evmParams := csdb.ctx.Cache().GetEvmParam()
-		if evmParams.IsUpdate || evmParams.MaxGasLimitPerTx == 0 {
+		if EvmParamsCache.IsNeedUpdate() {
 			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
-			csdb.params = &params
-			csdb.ctx.Cache().UpdateEvmParams(sdk.EvmParamsCopy{IsUpdate: false,
-				EnableCreate:                      params.EnableCreate,
-				EnableCall:                        params.EnableCall,
-				ExtraEIPs:                         params.ExtraEIPs,
-				EnableContractDeploymentWhitelist: params.EnableContractDeploymentWhitelist,
-				EnableContractBlockedList:         params.EnableContractBlockedList,
-				MaxGasLimitPerTx:                  params.MaxGasLimitPerTx})
-			return *csdb.params
+			EvmParamsCache.UpdateParams(params)
+		} else {
+			params = EvmParamsCache.GetParams()
 		}
-
-		params = NewParams(
-			evmParams.EnableCreate,
-			evmParams.EnableCall,
-			evmParams.EnableContractDeploymentWhitelist,
-			evmParams.EnableContractBlockedList,
-			evmParams.MaxGasLimitPerTx,
-			evmParams.ExtraEIPs...)
 
 		csdb.params = &params
 	}
@@ -1343,57 +1328,44 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 	return bc.IsAllMethodBlocked()
 }
 
-var (
-	blockedCache = make(map[ethcmn.Address]BlockedContract, 0)
-)
-
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
-	if len(blockedCache) == 0 {
+	if EvmParamsCache.IsNeedUpdate() {
 		bcl := csdb.GetContractMethodBlockedList()
-		for i, _ := range bcl {
-			blockedCache[ethcmn.BytesToAddress(bcl[i].Address.Bytes())] = bcl[i]
-		}
-		blockedCache[ethcmn.BytesToAddress([]byte{0x0})] = BlockedContract{}
-	} else {
-		bc, ok := blockedCache[ethcmn.BytesToAddress(contractAddr.Bytes())]
-		if ok {
-			return &bc
-		} else {
-			return nil
-		}
+		EvmParamsCache.UpdateBlockedContractMethod(bcl)
 	}
+	return EvmParamsCache.GetBlockedContractMethod(contractAddr.String())
 
-	//use dbAdapter for watchdb or prefixdb
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
-	vaule := bs.Get(contractAddr)
-	if vaule == nil {
-		// address is not exist
-		return nil
-	} else {
-		methods := ContractMethods{}
-		var bc *BlockedContract
-		if len(vaule) == 0 {
-			//address is exist,but the blocked is old version.
-			bc = NewBlockContract(contractAddr, methods)
-		} else {
-			// get block contract from cache without anmio
-			if contractMethodBlockedCache != nil {
-				if cm, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
-					return NewBlockContract(contractAddr, cm)
-				}
-			}
-			//address is exist,but the blocked is new version.
-			csdb.cdc.MustUnmarshalJSON(vaule, &methods)
-			bc = NewBlockContract(contractAddr, methods)
-
-			// write block contract into cache
-			if contractMethodBlockedCache != nil {
-				contractMethodBlockedCache.SetContractMethod(vaule, methods)
-			}
-		}
-		return bc
-	}
+	////use dbAdapter for watchdb or prefixdb
+	//bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	//vaule := bs.Get(contractAddr)
+	//if vaule == nil {
+	//	// address is not exist
+	//	return nil
+	//} else {
+	//	methods := ContractMethods{}
+	//	var bc *BlockedContract
+	//	if len(vaule) == 0 {
+	//		//address is exist,but the blocked is old version.
+	//		bc = NewBlockContract(contractAddr, methods)
+	//	} else {
+	//		// get block contract from cache without anmio
+	//		if contractMethodBlockedCache != nil {
+	//			if cm, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
+	//				return NewBlockContract(contractAddr, cm)
+	//			}
+	//		}
+	//		//address is exist,but the blocked is new version.
+	//		csdb.cdc.MustUnmarshalJSON(vaule, &methods)
+	//		bc = NewBlockContract(contractAddr, methods)
+	//
+	//		// write block contract into cache
+	//		if contractMethodBlockedCache != nil {
+	//			contractMethodBlockedCache.SetContractMethod(vaule, methods)
+	//		}
+	//	}
+	//	return bc
+	//}
 }
 
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
