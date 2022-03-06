@@ -32,6 +32,7 @@ type Context struct {
 	voteInfo       []abci.VoteInfo
 	gasMeter       GasMeter
 	blockGasMeter  GasMeter
+	isDeliver      bool
 	checkTx        bool
 	recheckTx      bool // if recheckTx == true, then checkTx must also be true
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
@@ -63,7 +64,7 @@ func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c Context) IsDeliverorAsync() bool {
-	return !c.IsTraceTx() && !c.IsCheckTx() && !c.IsWrappedCheckTx() && !c.IsReCheckTx()
+	return c.isAsync || c.isDeliver
 }
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
@@ -121,6 +122,11 @@ func (c Context) WithMultiStore(ms MultiStore) Context {
 
 func (c Context) WithAsync() Context {
 	c.isAsync = true
+	return c
+}
+
+func (c Context) WithDeliver() Context {
+	c.isDeliver = true
 	return c
 }
 
