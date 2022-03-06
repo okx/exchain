@@ -22,23 +22,21 @@ const (
 // Transient store persists for a block, so we use it for
 // recording whether the parameter has been changed or not
 type Subspace struct {
-	cdc     *codec.Codec
-	key     sdk.StoreKey // []byte -> []byte, stores parameter
-	tkey    sdk.StoreKey // []byte -> bool, stores parameter change
-	name    []byte
-	table   KeyTable
-	signals []func()
+	cdc   *codec.Codec
+	key   sdk.StoreKey // []byte -> []byte, stores parameter
+	tkey  sdk.StoreKey // []byte -> bool, stores parameter change
+	name  []byte
+	table KeyTable
 }
 
 // NewSubspace constructs a store with namestore
 func NewSubspace(cdc *codec.Codec, key sdk.StoreKey, tkey sdk.StoreKey, name string) Subspace {
 	return Subspace{
-		cdc:     cdc,
-		key:     key,
-		tkey:    tkey,
-		name:    []byte(name),
-		table:   NewKeyTable(),
-		signals: make([]func(), 0),
+		cdc:   cdc,
+		key:   key,
+		tkey:  tkey,
+		name:  []byte(name),
+		table: NewKeyTable(),
 	}
 }
 
@@ -187,7 +185,6 @@ func (s Subspace) Set(ctx sdk.Context, key []byte, value interface{}) {
 // key or if the new value is invalid as determined by the registered type's
 // validation function.
 func (s Subspace) Update(ctx sdk.Context, key, value []byte) error {
-	defer s.signalUpdate()
 	attr, ok := s.table.m[string(key)]
 	if !ok {
 		panic(fmt.Sprintf("parameter %s not registered", string(key)))
@@ -210,15 +207,6 @@ func (s Subspace) Update(ctx sdk.Context, key, value []byte) error {
 
 	s.Set(ctx, key, dest)
 	return nil
-}
-
-func (s Subspace) RegisterSignal(handler func()) {
-	s.signals = append(s.signals, handler)
-}
-func (s Subspace) signalUpdate() {
-	for i, _ := range s.signals {
-		s.signals[i]()
-	}
 }
 
 // GetParamSet iterates through each ParamSetPair where for each pair, it will

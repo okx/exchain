@@ -32,7 +32,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && !ctx.IsCheckTx() {
+		if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && ctx.IsDeliverorAsync() {
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewValidateBasicDecorator(),
 				NewEthSigVerificationDecorator(),

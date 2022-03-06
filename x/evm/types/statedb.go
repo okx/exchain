@@ -529,7 +529,7 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		if EvmParamsCache.IsNeedParamsUpdate() {
+		if EvmParamsCache.IsNeedParamsUpdate() && csdb.ctx.IsDeliverorAsync() {
 			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 			EvmParamsCache.UpdateParams(params)
 		} else {

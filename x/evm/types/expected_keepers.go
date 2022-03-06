@@ -25,7 +25,6 @@ type SupplyKeeper interface {
 type Subspace interface {
 	GetParamSet(ctx sdk.Context, ps params.ParamSet)
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
-	RegisterSignal(handler func())
 }
 
 type BankKeeper interface {
