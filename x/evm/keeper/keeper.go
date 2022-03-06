@@ -72,7 +72,7 @@ func NewKeeper(
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}
-
+	paramSpace.RegisterSignal(types.SetEvmParamsNeedUpdate)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -102,6 +102,7 @@ func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
+	paramSpace.RegisterSignal(types.SetEvmParamsNeedUpdate)
 	return &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,

@@ -81,3 +81,7 @@ func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList) {
 	c.blockedMutex.Unlock()
 	c.needBlockedUpdate = false
 }
+
+func SetEvmParamsNeedUpdate() {
+	EvmParamsCache.SetNeedParamsUpdate()
+}
