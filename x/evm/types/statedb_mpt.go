@@ -18,9 +18,6 @@ import (
 )
 
 func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	// Finalize any pending changes and merge everything into the tries
-	csdb.IntermediateRoot(deleteEmptyObjects)
-
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 	for addr := range csdb.stateObjectsDirty {
@@ -181,4 +178,25 @@ func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([
 
 func (csdb *CommitStateDB) Logger() log.Logger {
 	return csdb.ctx.Logger().With("module", ModuleName)
+}
+
+// StartPrefetcher initializes a new trie prefetcher to pull in nodes from the
+// state trie concurrently while the state is mutated so that when we reach the
+// commit phase, most of the needed data is already hot.
+func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
+	if csdb.prefetcher != nil {
+		csdb.prefetcher.close()
+		csdb.prefetcher = nil
+	}
+
+	csdb.prefetcher = newTriePrefetcher(csdb.db, csdb.originalRoot, namespace)
+}
+
+// StopPrefetcher terminates a running prefetcher and reports any leftover stats
+// from the gathered metrics.
+func (csdb *CommitStateDB) StopPrefetcher() {
+	if csdb.prefetcher != nil {
+		csdb.prefetcher.close()
+		csdb.prefetcher = nil
+	}
 }

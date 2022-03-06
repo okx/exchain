@@ -79,6 +79,8 @@ type CacheCode struct {
 type CommitStateDB struct {
 	db         ethstate.Database
 	StateCache *fastcache.Cache
+	prefetcher   *triePrefetcher
+	originalRoot ethcmn.Hash // The pre-state root, before any changes were made
 
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
@@ -163,6 +165,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
 		db: mpt.InstanceOfMptStore(),
+		originalRoot: mpt.GMptRootHash,
 
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
@@ -736,9 +739,17 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.IntermediateRoot(deleteEmptyObjects)
+	if csdb.prefetcher != nil {
+		defer func() {
+			csdb.prefetcher.close()
+			csdb.prefetcher = nil
+		}()
+	}
 
+	// Finalize any pending changes and merge everything into the tries
+	csdb.IntermediateRoot(deleteEmptyObjects)
+
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		if types2.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
@@ -799,6 +810,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // removing the csdb destructed objects and clearing the journal as well as the
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
+	addressesToPrefetch := make([][]byte, 0, len(csdb.journal.dirties))
 	for addr := range csdb.journal.dirties {
 		obj, exist := csdb.stateObjects[addr]
 		if !exist {
@@ -817,6 +829,14 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 		}
 		csdb.stateObjectsPending[addr] = struct{}{}
 		csdb.stateObjectsDirty[addr] = struct{}{}
+
+		// At this point, also ship the address off to the precacher. The precacher
+		// will start loading tries, and when the change is eventually committed,
+		// the commit-phase will be a lot faster
+		addressesToPrefetch = append(addressesToPrefetch, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+	}
+	if csdb.prefetcher != nil && len(addressesToPrefetch) > 0 {
+		csdb.prefetcher.prefetch(csdb.originalRoot, addressesToPrefetch)
 	}
 
 	// Invalidate journal because reverting across transactions is not allowed.
@@ -853,12 +873,36 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		}
 	}
 
+	// If there was a trie prefetcher operating, it gets aborted and irrevocably
+	// modified after we start retrieving tries. Remove it from the statedb after
+	// this round of use.
+	//
+	// This is weird pre-byzantium since the first tx runs with a prefetcher and
+	// the remainder without, but pre-byzantium even the initial prefetcher is
+	// useless, so no sleep lost.
+	prefetcher := csdb.prefetcher
+
+	// Now we're about to start to write changes to the trie. The trie is so far
+	// _untouched_. We can check with the prefetcher, if it can give us a trie
+	// which has the same root, but also has some content loaded into it.
+	if prefetcher != nil {
+		if trie := prefetcher.trie(csdb.originalRoot); trie != nil {
+			//TODO: csdb.trie = trie
+		}
+	}
+
+	usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
 	for addr := range csdb.stateObjectsPending {
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
 			csdb.updateStateObject(obj)
 		}
+		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+	}
+
+	if prefetcher != nil {
+		prefetcher.used(csdb.originalRoot, usedAddrs)
 	}
 
 	if len(csdb.stateObjectsPending) > 0 {

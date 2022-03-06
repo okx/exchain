@@ -334,6 +334,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 
 	if types3.EnableDoubleWrite {
 		tr := so.getTrie(db)
+		usedStorage := make([][]byte, 0, len(so.pendingStorage))
 		for key, value := range so.pendingStorage {
 			// Skip noop changes, persist actual changes
 			if value == so.originStorage[key] {
@@ -351,6 +352,11 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 				so.setError(tr.TryUpdate(key[:], v))
 			}
+
+			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
+		}
+		if so.stateDB.prefetcher != nil {
+			so.stateDB.prefetcher.used(so.account.StateRoot, usedStorage)
 		}
 	}
 

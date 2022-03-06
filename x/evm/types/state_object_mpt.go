@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -95,13 +96,23 @@ func (so *stateObject) CodeMpt(db ethstate.Database) []byte {
 
 func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 	if so.trie == nil {
-		var err error
-		so.trie, err = db.OpenStorageTrie(so.addrHash, so.account.StateRoot)
-		if err != nil {
-			so.setError(fmt.Errorf("failed to open storage trie: %v for addr: %s", err, so.account.EthAddress().String()))
+		// Try fetching from prefetcher first
+		// We don't prefetch empty tries
+		if so.account.StateRoot != types2.EmptyRootHash && so.stateDB.prefetcher != nil {
+			// When the miner is creating the pending state, there is no
+			// prefetcher
+			so.trie = so.stateDB.prefetcher.trie(so.account.StateRoot)
+		}
 
-			so.trie, _ = db.OpenStorageTrie(so.addrHash, ethcmn.Hash{})
-			so.setError(fmt.Errorf("can't create storage trie: %v", err))
+		if so.trie == nil {
+			var err error
+			so.trie, err = db.OpenStorageTrie(so.addrHash, so.account.StateRoot)
+			if err != nil {
+				so.setError(fmt.Errorf("failed to open storage trie: %v for addr: %s", err, so.account.EthAddress().String()))
+
+				so.trie, _ = db.OpenStorageTrie(so.addrHash, ethcmn.Hash{})
+				so.setError(fmt.Errorf("can't create storage trie: %v", err))
+			}
 		}
 	}
 	return so.trie
@@ -126,6 +137,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 
 	// Insert all the pending updates into the trie
 	tr := so.getTrie(db)
+	usedStorage := make([][]byte, 0, len(so.pendingStorage))
 	for key, value := range so.pendingStorage {
 		// Skip noop changes, persist actual changes
 		if value == so.originStorage[key] {
@@ -146,6 +158,11 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 			so.setError(tr.TryUpdate(key[:], v))
 			so.stateDB.StateCache.Set(prefixKey.Bytes(), value.Bytes())
 		}
+
+		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
+	}
+	if so.stateDB.prefetcher != nil {
+		so.stateDB.prefetcher.used(so.account.StateRoot, usedStorage)
 	}
 
 	if len(so.pendingStorage) > 0 {
@@ -175,8 +192,15 @@ func (so *stateObject) CommitTrie(db ethstate.Database) error {
 // finalise moves all dirty storage slots into the pending area to be hashed or
 // committed later. It is invoked at the end of every transaction.
 func (so *stateObject) finalise(prefetch bool) {
+	slotsToPrefetch := make([][]byte, 0, len(so.dirtyStorage))
 	for key, value := range so.dirtyStorage {
 		so.pendingStorage[key] = value
+		if value != so.originStorage[key] {
+			slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
+		}
+	}
+	if so.stateDB.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && so.account.StateRoot != types2.EmptyRootHash {
+		so.stateDB.prefetcher.prefetch(so.account.StateRoot, slotsToPrefetch)
 	}
 
 	if len(so.dirtyStorage) > 0 {
