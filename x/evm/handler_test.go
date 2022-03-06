@@ -145,6 +145,16 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			true,
 		},
 		{
+			"trace log tx",
+			func() {
+				suite.ctx = suite.ctx.WithFrom(sender.String())
+				suite.ctx = suite.ctx.WithIsTraceTxLog(true)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			true,
+		},
+		{
 			"insufficient balance for transfer",
 			func() {
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
