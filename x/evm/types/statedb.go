@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sort"
 	"sync"
@@ -528,7 +529,7 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		if EvmParamsCache.IsNeedUpdate() {
+		if EvmParamsCache.IsNeedParamsUpdate() {
 			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 			EvmParamsCache.UpdateParams(params)
 		} else {
@@ -1330,42 +1331,44 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
-	if EvmParamsCache.IsNeedUpdate() {
-		bcl := csdb.GetContractMethodBlockedList()
-		EvmParamsCache.UpdateBlockedContractMethod(bcl)
+	if csdb.ctx.BlockHeight() > types2.GetAnteHeight() && csdb.ctx.IsDeliverorAsync() {
+		if EvmParamsCache.IsNeedBlockedUpdate() {
+			bcl := csdb.GetContractMethodBlockedList()
+			EvmParamsCache.UpdateBlockedContractMethod(bcl)
+		}
+		return EvmParamsCache.GetBlockedContractMethod(contractAddr.String())
 	}
-	return EvmParamsCache.GetBlockedContractMethod(contractAddr.String())
 
-	////use dbAdapter for watchdb or prefixdb
-	//bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
-	//vaule := bs.Get(contractAddr)
-	//if vaule == nil {
-	//	// address is not exist
-	//	return nil
-	//} else {
-	//	methods := ContractMethods{}
-	//	var bc *BlockedContract
-	//	if len(vaule) == 0 {
-	//		//address is exist,but the blocked is old version.
-	//		bc = NewBlockContract(contractAddr, methods)
-	//	} else {
-	//		// get block contract from cache without anmio
-	//		if contractMethodBlockedCache != nil {
-	//			if cm, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
-	//				return NewBlockContract(contractAddr, cm)
-	//			}
-	//		}
-	//		//address is exist,but the blocked is new version.
-	//		csdb.cdc.MustUnmarshalJSON(vaule, &methods)
-	//		bc = NewBlockContract(contractAddr, methods)
-	//
-	//		// write block contract into cache
-	//		if contractMethodBlockedCache != nil {
-	//			contractMethodBlockedCache.SetContractMethod(vaule, methods)
-	//		}
-	//	}
-	//	return bc
-	//}
+	//use dbAdapter for watchdb or prefixdb
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	vaule := bs.Get(contractAddr)
+	if vaule == nil {
+		// address is not exist
+		return nil
+	} else {
+		methods := ContractMethods{}
+		var bc *BlockedContract
+		if len(vaule) == 0 {
+			//address is exist,but the blocked is old version.
+			bc = NewBlockContract(contractAddr, methods)
+		} else {
+			// get block contract from cache without anmio
+			if contractMethodBlockedCache != nil {
+				if cm, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
+					return NewBlockContract(contractAddr, cm)
+				}
+			}
+			//address is exist,but the blocked is new version.
+			csdb.cdc.MustUnmarshalJSON(vaule, &methods)
+			bc = NewBlockContract(contractAddr, methods)
+
+			// write block contract into cache
+			if contractMethodBlockedCache != nil {
+				contractMethodBlockedCache.SetContractMethod(vaule, methods)
+			}
+		}
+		return bc
+	}
 }
 
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store

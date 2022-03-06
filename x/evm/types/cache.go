@@ -7,61 +7,77 @@ import (
 var EvmParamsCache = NewCache()
 
 type Cache struct {
-	paramsCache                 Params
+	paramsCache      Params
+	needParamsUpdate bool
+	paramsMutex      sync.RWMutex
+
 	blockedContractMethodsCache map[string]BlockedContract
-	needUpdate                  bool
-	mutex                       sync.RWMutex
+	needBlockedUpdate           bool
+	blockedMutex                sync.RWMutex
 }
 
 func NewCache() *Cache {
 	return &Cache{
 		paramsCache:                 DefaultParams(),
 		blockedContractMethodsCache: make(map[string]BlockedContract, 0),
-		needUpdate:                  true,
+		needParamsUpdate:            true,
+		needBlockedUpdate:           true,
 	}
 }
 
 func (c *Cache) UpdateParams(params Params) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.paramsMutex.Lock()
+	defer c.paramsMutex.Unlock()
 	c.paramsCache = params
-	c.needUpdate = false
+	c.needParamsUpdate = false
 }
 
-func (c *Cache) SetNeedUpdate() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.needUpdate = true
+func (c *Cache) SetNeedParamsUpdate() {
+	c.paramsMutex.Lock()
+	defer c.paramsMutex.Unlock()
+	c.needParamsUpdate = true
 }
 
-func (c *Cache) IsNeedUpdate() bool {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return c.needUpdate
+func (c *Cache) IsNeedParamsUpdate() bool {
+	c.paramsMutex.RLock()
+	defer c.paramsMutex.RUnlock()
+	return c.needParamsUpdate
 }
 
 func (c Cache) GetParams() Params {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.paramsMutex.RLock()
+	defer c.paramsMutex.RUnlock()
 	return NewParams(c.paramsCache.EnableCreate, c.paramsCache.EnableCall, c.paramsCache.EnableContractDeploymentWhitelist, c.paramsCache.EnableContractBlockedList, c.paramsCache.MaxGasLimitPerTx, c.paramsCache.ExtraEIPs...)
 }
 
+func (c *Cache) SetNeedBlockedUpdate() {
+	c.blockedMutex.Lock()
+	defer c.blockedMutex.Unlock()
+	c.needBlockedUpdate = true
+}
+
+func (c *Cache) IsNeedBlockedUpdate() bool {
+	c.blockedMutex.RLock()
+	defer c.blockedMutex.RUnlock()
+	return c.needBlockedUpdate
+}
+
 func (c *Cache) GetBlockedContractMethod(addr string) (contract *BlockedContract) {
-	c.mutex.RLock()
+	c.blockedMutex.RLock()
 	bc, ok := c.blockedContractMethodsCache[addr]
-	c.mutex.RUnlock()
+	c.blockedMutex.RUnlock()
 	if ok {
-		NewBlockContract(bc.Address, bc.BlockMethods)
+		return NewBlockContract(bc.Address, bc.BlockMethods)
 	}
 	return nil
 }
 
 func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList) {
-	c.mutex.Lock()
+	c.blockedMutex.Lock()
 	c.blockedContractMethodsCache = make(map[string]BlockedContract, 0)
 	for i, _ := range bcl {
-		c.blockedContractMethodsCache[bcl[i].String()] = bcl[i]
+		c.blockedContractMethodsCache[bcl[i].Address.String()] = bcl[i]
 	}
-	c.mutex.Unlock()
-	c.needUpdate = false
+	c.blockedMutex.Unlock()
+	c.needBlockedUpdate = false
 }

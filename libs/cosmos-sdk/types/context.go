@@ -51,17 +51,20 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context    { return c.ctx }
-func (c Context) MultiStore() MultiStore      { return c.ms }
-func (c Context) BlockHeight() int64          { return c.header.Height }
-func (c Context) BlockTime() time.Time        { return c.header.Time }
-func (c Context) ChainID() string             { return c.chainID }
-func (c Context) From() string                { return c.from }
-func (c Context) TxBytes() []byte             { return c.txBytes }
-func (c Context) Logger() log.Logger          { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
-func (c Context) GasMeter() GasMeter          { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
+func (c Context) Context() context.Context   { return c.ctx }
+func (c Context) MultiStore() MultiStore     { return c.ms }
+func (c Context) BlockHeight() int64         { return c.header.Height }
+func (c Context) BlockTime() time.Time       { return c.header.Time }
+func (c Context) ChainID() string            { return c.chainID }
+func (c Context) From() string               { return c.from }
+func (c Context) TxBytes() []byte            { return c.txBytes }
+func (c Context) Logger() log.Logger         { return c.logger }
+func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
+func (c Context) GasMeter() GasMeter         { return c.gasMeter }
+func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+func (c Context) IsDeliverorAsync() bool {
+	return !c.IsTraceTx() && !c.IsCheckTx() && !c.IsWrappedCheckTx() && !c.IsReCheckTx()
+}
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c Context) IsTraceTx() bool             { return c.traceTx }

@@ -3,16 +3,11 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
-	"sync"
-)
-
-var (
-	once sync.Once
 )
 
 // GetParams returns the total set of evm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	if types.EvmParamsCache.IsNeedUpdate() {
+	if types.EvmParamsCache.IsNeedParamsUpdate() {
 		k.paramSpace.GetParamSet(ctx, &params)
 		types.EvmParamsCache.UpdateParams(params)
 	} else {
@@ -24,5 +19,5 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 // SetParams sets the evm parameters to the param space.
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
-	types.EvmParamsCache.SetNeedUpdate()
+	types.EvmParamsCache.SetNeedParamsUpdate()
 }
