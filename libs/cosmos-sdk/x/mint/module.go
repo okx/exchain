@@ -3,6 +3,7 @@ package mint
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -37,7 +38,9 @@ func (AppModuleBasic) Name() string {
 }
 
 // RegisterCodec registers the mint module's types for the given codec.
-func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {}
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	types.RegisterCodec(cdc)
+}
 
 // DefaultGenesis returns default genesis state as raw bytes for the mint
 // module.

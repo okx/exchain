@@ -2,6 +2,7 @@
 package keys
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -324,4 +325,30 @@ func TestLazySeedPhraseKeyRing(t *testing.T) {
 	require.Equal(t, n2, newInfo.GetName())
 	require.Equal(t, info.GetPubKey().Address(), newInfo.GetPubKey().Address())
 	require.Equal(t, info.GetPubKey(), newInfo.GetPubKey())
+}
+
+func TestCosmosKey(t *testing.T) {
+	mne := "palace cube bitter light woman side pave cereal donor bronze twice work"
+	//ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq
+	hdPath := "m/44'/118'/0'/0/0"
+	//ex1kyh26rw89f8a4ym4p49g5z59mcj0xs4j9xcvw3
+	//cosmos1kyh26rw89f8a4ym4p49g5z59mcj0xs4jd0wf8x
+	//hdPath := keys.CreateHDPath(0, 0).String()
+	//m/44'/118'/0'/0/0
+	dir, cleanup := tests.NewTestCaseDir(t)
+	defer cleanup()
+	kb, err := NewKeyring("keybasename", "test", dir, nil)
+	require.NoError(t, err)
+	info, err := kb.CreateAccount("admin16", mne, "", "12345678", hdPath, Secp256k1)
+	if err != nil {
+		panic(err)
+	}
+	addr := info.GetAddress()
+	fmt.Println(addr.String())
+
+	oecAddr, err := sdk.Bech32ifyAddressBytes("ex", addr.Bytes())
+	if nil != err {
+		panic(err)
+	}
+	fmt.Println(oecAddr)
 }

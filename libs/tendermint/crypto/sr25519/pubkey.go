@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 
@@ -17,6 +19,10 @@ const PubKeySr25519Size = 32
 
 // PubKeySr25519 implements crypto.PubKey for the Sr25519 signature scheme.
 type PubKeySr25519 [PubKeySr25519Size]byte
+
+func (pubKey PubKeySr25519) AminoSize(_ *amino.Codec) int {
+	return 1 + PubKeySr25519Size
+}
 
 // Address is the SHA256-20 of the raw pubkey bytes.
 func (pubKey PubKeySr25519) Address() crypto.Address {

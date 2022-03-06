@@ -7,7 +7,7 @@ import (
 )
 
 func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
-	blockTime := ctx.BlockHeader().Time
+	blockTime := ctx.BlockTime()
 	feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
 	coins := feeCollector.GetCoins()
 

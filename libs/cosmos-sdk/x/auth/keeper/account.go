@@ -129,7 +129,7 @@ func (ak AccountKeeper) Account(conte context.Context, req *types.QueryAccountRe
 	}
 
 	ctx := sdk.UnwrapSDKContext(conte)
-	req.Address = "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9"
+	//req.Address = "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9"
 	addr, err := sdk.AccAddressFromBech32(req.Address)
 
 	if err != nil {

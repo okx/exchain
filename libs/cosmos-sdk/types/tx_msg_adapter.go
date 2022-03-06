@@ -69,6 +69,7 @@ type RelayMsg struct {
 	Signers   []AccAddress
 	RouterStr string
 	TypeStr   string
+	MsgType   string
 }
 type RelayMsgOption func(m *RelayMsg)
 
@@ -80,6 +81,11 @@ var WithRouter = func(r string) RelayMsgOption {
 var WithType = func(t string) RelayMsgOption {
 	return func(m *RelayMsg) {
 		m.TypeStr = t
+	}
+}
+var WithMsgDetailType = func(msgDetailType string) RelayMsgOption {
+	return func(m *RelayMsg) {
+		m.MsgType = msgDetailType
 	}
 }
 

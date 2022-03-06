@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -43,6 +44,7 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
+	trc            *trace.Tracer
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -70,9 +72,12 @@ func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
+
+func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -301,6 +306,7 @@ func EmptyContext() Context {
 }
 
 
+
 // ContextKey defines a type alias for a stdlib Context key.
 type ContextKey string
 
@@ -321,3 +327,7 @@ func WrapSDKContext(ctx Context) context.Context {
 func UnwrapSDKContext(ctx context.Context) Context {
 	return ctx.Value(SdkContextKey).(Context)
 }
+func (c Context)WithAnteTracer(trc *trace.Tracer) Context {c.trc = trc
+	return c
+}
+

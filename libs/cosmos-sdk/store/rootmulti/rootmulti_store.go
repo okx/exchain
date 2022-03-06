@@ -6,7 +6,7 @@ import (
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 
-	//types2 "github.com/okex/exchain/libs/cosmos-sdk/x/ibc/core/23-commitment/types"
+	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"io"
 	"log"
 	"path/filepath"

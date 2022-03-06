@@ -98,8 +98,8 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 	feePayerAcc := dfd.ak.GetAccount(ctx, feePayer)
 
 	if feePayerAcc == nil {
-		addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-		feePayerAcc = dfd.ak.GetAccount(ctx, addr)
+		//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
+		//feePayerAcc = dfd.ak.GetAccount(ctx, addr)
 		if nil != err {
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 		}
@@ -121,7 +121,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
 func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
-	blockTime := ctx.BlockHeader().Time
+	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
 	if !fees.IsValid() {

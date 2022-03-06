@@ -159,6 +159,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmtypes.FlagDDSCompressFlag, 0, "delta compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
+	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
@@ -168,7 +169,6 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
-	cmd.Flags().Bool(abci.FlagEnableWrappedTx, false, "Wrapped tx")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
@@ -346,4 +346,5 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
+	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 }
