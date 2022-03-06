@@ -2,17 +2,23 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
 // GetParams returns the total set of evm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	if types.EvmParamsCache.IsNeedParamsUpdate() && ctx.IsDeliverorAsync() {
-		k.paramSpace.GetParamSet(ctx, &params)
-		types.EvmParamsCache.UpdateParams(params)
+	if ctx.BlockHeight() > types2.GetAnteHeight() && ctx.IsDeliverorAsync() {
+		if types.EvmParamsCache.IsNeedParamsUpdate() {
+			k.paramSpace.GetParamSet(ctx, &params)
+			types.EvmParamsCache.UpdateParams(params)
+		} else {
+			params = types.EvmParamsCache.GetParams()
+		}
 	} else {
-		params = types.EvmParamsCache.GetParams()
+		k.paramSpace.GetParamSet(ctx, &params)
 	}
+
 	return
 }
 
