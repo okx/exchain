@@ -111,11 +111,19 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		for _, ibcmsg := range ibcTx.Body.Messages {
 			//ibcTx.Body.UnpackInterfaces(i)
 			//relayMsgs = append(relayMsgs, &sdk.RelayMsg{
-			relayMsgs = append(relayMsgs,
-				sdk.NewRelayMsg(
-					ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl),
-				),
-			)
+			if ibcmsg.TypeUrl == "/ibc.applications.transfer.v1.MsgTransfer" {
+				relayMsgs = append(relayMsgs,
+					sdk.NewRelayMsg(
+						ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl), sdk.WithRouter("transfer"),
+					),
+				)
+			} else {
+				relayMsgs = append(relayMsgs,
+					sdk.NewRelayMsg(
+						ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl),
+					),
+				)
+			}
 		}
 		stdmsgs := []sdk.Msg{}
 		for _, v := range relayMsgs {

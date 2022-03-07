@@ -126,6 +126,7 @@ var xxx_messageInfo_MsgTransferAdapterResponse proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*MsgTransferAdapter)(nil), "ibc.applications.transfer.v1.MsgTransferAdapter")
+	proto.RegisterType((*MsgTransferAdapter)(nil), "ibc.applications.transfer.v1.MsgTransfer")
 	proto.RegisterType((*MsgTransferAdapterResponse)(nil), "ibc.applications.transfer.v1.MsgTransferAdapterResponse")
 }
 
