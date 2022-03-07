@@ -57,6 +57,8 @@ type Keeper struct {
 
 type chainConfigInfo struct {
 	chainConfig *types.ChainConfig
+	// cached chain config reduces gas costs.so cache here to recover when use cached chain config
+	gasReduced sdk.Gas
 }
 
 // NewKeeper generates new evm module keeper
@@ -241,12 +243,8 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 	return storage, nil
 }
 
-// GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
-	if k.chainConfigInfo.chainConfig != nil {
-		return *k.chainConfigInfo.chainConfig, true
-	}
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -260,10 +258,26 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
-	// and cache the chain config
-	k.chainConfigInfo.chainConfig = &config
 
 	return config, true
+}
+
+// GetChainConfig gets block height from block consensus hash
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately
+	if k.chainConfigInfo.chainConfig != nil {
+		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
+		return *k.chainConfigInfo.chainConfig, true
+	}
+	gasStart := ctx.GasMeter().GasConsumed()
+	chainConfig, found := k.getChainConfig(ctx)
+	if found {
+		k.chainConfigInfo.chainConfig = &chainConfig
+		gasStop := ctx.GasMeter().GasConsumed()
+		k.chainConfigInfo.gasReduced = gasStop - gasStart
+	}
+
+	return chainConfig, found
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
