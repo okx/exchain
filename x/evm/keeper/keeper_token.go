@@ -39,7 +39,7 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 		switch c.Denom {
 		case params.IbcDenom:
 			// oec1:okt----->oec2:ibc/okt---->oec2:okt
-			if err := k.ConvertVoucherToNative(ctx, fromAddr, c); err != nil {
+			if err := k.ConvertVoucherToEvmDenom(ctx, fromAddr, c); err != nil {
 				return err
 			}
 		default:
@@ -53,9 +53,9 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 	return nil
 }
 
-// ConvertVoucherToNative convert vouchers into native coins.
-func (k Keeper) ConvertVoucherToNative(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin) error {
-	// TODO
+// ConvertVoucherToEvmDenom convert vouchers into evm denom.
+func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin) error {
+	// TODO Not supported at the moment
 	return nil
 }
 
@@ -97,14 +97,31 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 
 // deployModuleERC20 deploy an embed erc20 contract
 func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
-	// TODO
-	//k.callEvmByModule(ctx,nil,big.NewInt(0),data)
-	return common.Address{}, nil
+	byteCode := common.Hex2Bytes(types.ModuleCRC20Contract.Bin)
+	input, err := types.ModuleCRC20Contract.ABI.Pack("", denom, uint8(0))
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	data := append(byteCode, input...)
+	_, res, err := k.callEvmByModule(ctx, nil, big.NewInt(0), data)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return res.ContractAddress, nil
 }
 
 // callModuleERC20 call a method of ModuleERC20 contract
 func (k Keeper) callModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
-	// TODO
+	data, err := types.ModuleCRC20Contract.ABI.Pack(method, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	_, _, err = k.callEvmByModule(ctx, &contract, big.NewInt(0), data)
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -121,7 +138,6 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	}
 
 	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
-
 	st := types.StateTransition{
 		AccountNonce: acc.GetSequence(),
 		Price:        big.NewInt(0),
@@ -176,7 +192,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 }
 
 func (k Keeper) ibcSendEvmDenom(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin) error {
-	// TODO
+	// TODO Not supported at the moment
 	return nil
 }
 
