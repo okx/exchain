@@ -53,8 +53,9 @@ const (
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
 
-	flagCacheFile   = "cache-file"
-	flagEnableCache = "enable-cache"
+	flagSigCacheFile = "signature-cache-file"
+	flagLoadSigCache = "load-signature-cache"
+	flagSaveSigCache = "save-signature-cache"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -138,8 +139,9 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
 	cmd.Flags().Int(types.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
-	cmd.Flags().String(flagCacheFile, "cache.json", "cache file")
-	cmd.Flags().Bool(flagEnableCache, false, "prepare cache")
+	cmd.Flags().String(flagSigCacheFile, "cache.json", "signature cache file path")
+	cmd.Flags().Bool(flagLoadSigCache, false, "load signature cache file")
+	cmd.Flags().Bool(flagSaveSigCache, false, "save signature cache file")
 	return cmd
 }
 
@@ -153,12 +155,12 @@ func setExternalPackageValue(cmd *cobra.Command) {
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
-	enableCache := viper.GetBool(flagEnableCache)
-	fileName := viper.GetString(flagCacheFile)
-	if enableCache {
-		log.Println("load cache begin", "fileName", fileName)
-		types.SignatureCache().Load(fileName)
-		log.Println("load cache finished")
+	loadSigCache := viper.GetBool(flagLoadSigCache)
+	sigCacheFile := viper.GetString(flagSigCacheFile)
+	if loadSigCache {
+		log.Println("load signature cache begin", "fileName", sigCacheFile)
+		types.SignatureCache().Load(sigCacheFile)
+		log.Println("load signature cache finished")
 	}
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	proxyApp, err := createProxyApp(ctx)
@@ -195,6 +197,13 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
+	}
+
+	saveSigCache := viper.GetBool(flagSaveSigCache)
+	if saveSigCache {
+		log.Println("save signature cache begin", "fileName", sigCacheFile)
+		types.SignatureCache().Save(sigCacheFile)
+		log.Println("save signature cache finished")
 	}
 }
 

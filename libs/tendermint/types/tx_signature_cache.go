@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"math/big"
 	"sync/atomic"
@@ -112,6 +113,29 @@ func (c *Cache) Load(fileName string) {
 		cacheData.Add(k, txSigCache)
 	}
 	c.data = cacheData
+}
+
+func (c *Cache) Save(fileName string) {
+
+	fmt.Println("verify sig cache size:", c.data.Len())
+	keys := c.data.Keys()
+	data := make(map[string]ethcmn.Address)
+	for _, key := range keys {
+		strKey := key.(string)
+		if sigCache, ok := c.Get(strKey); ok {
+			data[strKey] = sigCache.From
+		} else {
+			panic(fmt.Sprintf("key %s not exist", strKey))
+		}
+	}
+	content, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(fileName, content, fs.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *Cache) ReadCount() int64 {
