@@ -99,7 +99,7 @@ func (c *Cache) Load(fileName string) {
 	}
 	fmt.Println("verify sig cache size:", len(data))
 
-	cacheData, err := lru.New(1000000)
+	cacheData, err := lru.New(viper.GetInt(FlagSigCacheSize))
 	if err != nil {
 		panic(err)
 	}
