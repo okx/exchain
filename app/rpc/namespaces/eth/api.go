@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -993,23 +994,50 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*rpctypes.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	block, err := api.backend.GetBlockByHash(hash, fullTx)
+	block, err := api.backend.GetBlockByHash(hash)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
 	}
-	return block, nil
+	if !fullTx {
+		txs := block.Transactions.([]*rpctypes.Transaction)
+		if txs != nil {
+			var txHashs []common.Hash
+			for _, tx := range txs {
+				txHashs = append(txHashs, tx.Hash)
+			}
+			block.Transactions = txHashs
+		} else {
+			block.Transactions = []common.Hash{}
+		}
+	}
+	return &block, nil
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes *rpctypes.Block, err error) {
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
-	var blockTxs interface{}
+
+	defer func() {
+		//extract tx hashs when not fullTx
+		if err == nil && !fullTx {
+			txs := blockRes.Transactions.([]*rpctypes.Transaction)
+			if txs != nil {
+				var txHashs []common.Hash
+				for _, tx := range txs {
+					txHashs = append(txHashs, tx.Hash)
+				}
+				blockRes.Transactions = txHashs
+			}
+		}
+	}()
+
 	if blockNum != rpctypes.PendingBlockNumber {
-		return api.backend.GetBlockByNumber(blockNum, fullTx)
+		*blockRes, err = api.backend.GetBlockByNumber(blockNum)
+		return
 	}
 
 	height, err := api.backend.LatestBlockNumber()
@@ -1029,15 +1057,9 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		return nil, err
 	}
 
-	pendingTxs, gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
+	gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
 	if err != nil {
 		return nil, err
-	}
-
-	if fullTx {
-		blockTxs = ethTxs
-	} else {
-		blockTxs = pendingTxs
 	}
 
 	return rpctypes.FormatBlock(
@@ -1054,7 +1076,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		latestBlock.Block.Hash(),
 		0,
 		gasUsed,
-		blockTxs,
+		ethTxs,
 		ethtypes.Bloom{},
 	), nil
 

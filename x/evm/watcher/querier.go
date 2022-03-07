@@ -65,11 +65,11 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	return &receipt, nil
 }
 
-func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error) {
+func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*rpctypes.Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var block EthBlock
+	var block rpctypes.Block
 	b, e := q.store.Get(append(prefixBlock, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -124,7 +124,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	return common.HexToHash(string(hash)), e
 }
 
-func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error) {
+func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*rpctypes.Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -248,7 +248,7 @@ func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (
 	return q.getTransactionByBlockAndIndex(block, idx)
 }
 
-func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpctypes.Transaction, error) {
+func (q Querier) getTransactionByBlockAndIndex(block *rpctypes.Block, idx uint) (*rpctypes.Transaction, error) {
 	if block.Transactions == nil {
 		return nil, errors.New("no such transaction in target block")
 	}

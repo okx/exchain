@@ -2,7 +2,6 @@ package watcher
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 
@@ -519,62 +518,12 @@ func (m MsgBlock) GetType() uint32 {
 	return TypeOthers
 }
 
-// A BlockNonce is a 64-bit hash which proves (combined with the
-// mix-hash) that a sufficient amount of computation has been carried
-// out on a block.
-type BlockNonce [8]byte
-
-// EncodeNonce converts the given integer to a block nonce.
-func EncodeNonce(i uint64) BlockNonce {
-	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
-	return n
-}
-
-// Uint64 returns the integer value of a block nonce.
-func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
-}
-
-// MarshalText encodes n as a hex string with 0x prefix.
-func (n BlockNonce) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(n[:]).MarshalText()
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (n *BlockNonce) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
-}
-
-type EthBlock struct {
-	Number           hexutil.Uint64 `json:"number"`
-	Hash             common.Hash    `json:"hash"`
-	ParentHash       common.Hash    `json:"parentHash"`
-	Nonce            BlockNonce     `json:"nonce"`
-	UncleHash        common.Hash    `json:"sha3Uncles"`
-	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
-	TransactionsRoot common.Hash    `json:"transactionsRoot"`
-	StateRoot        common.Hash    `json:"stateRoot"`
-	Miner            common.Address `json:"miner"`
-	MixHash          common.Hash    `json:"mixHash"`
-	Difficulty       hexutil.Uint64 `json:"difficulty"`
-	TotalDifficulty  hexutil.Uint64 `json:"totalDifficulty"`
-	ExtraData        hexutil.Bytes  `json:"extraData"`
-	Size             hexutil.Uint64 `json:"size"`
-	GasLimit         hexutil.Uint64 `json:"gasLimit"`
-	GasUsed          *hexutil.Big   `json:"gasUsed"`
-	Timestamp        hexutil.Uint64 `json:"timestamp"`
-	Uncles           []common.Hash  `json:"uncles"`
-	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
-	Transactions     interface{}    `json:"transactions"`
-}
-
 func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := EthBlock{
+	b := rpctypes.Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
-		Nonce:            BlockNonce{},
+		Nonce:            rpctypes.BlockNonce{},
 		UncleHash:        common.Hash{},
 		LogsBloom:        blockBloom,
 		TransactionsRoot: common.BytesToHash(header.DataHash),

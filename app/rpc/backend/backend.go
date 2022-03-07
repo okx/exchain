@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
+	"github.com/okex/exchain/app/rpc/backend_cache"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
@@ -30,8 +31,8 @@ type Backend interface {
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
-	GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber) (rpctypes.Block, error)
+	GetBlockByHash(hash common.Hash) (rpctypes.Block, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -67,6 +68,7 @@ type EthermintBackend struct {
 	wrappedBackend    *watcher.Querier
 	rateLimiters      map[string]*rate.Limiter
 	disableAPI        map[string]bool
+	backendCache      backend_cache.BackendCache
 }
 
 // New creates a new EthermintBackend instance
@@ -81,6 +83,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		wrappedBackend:    watcher.NewQuerier(),
 		rateLimiters:      rateLimiters,
 		disableAPI:        disableAPI,
+		backendCache:      backend_cache.NewBackendLruCache(),
 	}
 }
 
@@ -107,52 +110,71 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
-	ethBlock, err := b.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
+func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (rpctypes.Block, error) {
+	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
 	if err == nil {
-		return ethBlock, nil
+		return *block, nil
+	}
+
+	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
+	if err == nil {
+		b.backendCache.AddOrUpdateBlock(block.Hash, block)
+		return *block, nil
 	}
 	height := blockNum.Int64()
 	if height <= 0 {
 		// get latest block height
 		num, err := b.BlockNumber()
 		if err != nil {
-			return nil, err
+			return rpctypes.Block{}, err
 		}
-
 		height = int64(num)
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
 	if err != nil {
-		return nil, nil
+		return rpctypes.Block{}, nil
 	}
 
-	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block, fullTx)
+	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
+	if err != nil {
+		return rpctypes.Block{}, err
+	}
+	b.backendCache.AddOrUpdateBlock(block.Hash, block)
+	return *block, nil
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
-	ethBlock, err := b.wrappedBackend.GetBlockByHash(hash, fullTx)
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (rpctypes.Block, error) {
+	block, err := b.backendCache.GetBlockByHash(hash)
 	if err == nil {
-		return ethBlock, nil
+		return *block, err
+	}
+	block, err = b.wrappedBackend.GetBlockByHash(hash, true)
+	if err == nil {
+		b.backendCache.AddOrUpdateBlock(hash, block)
+		return *block, nil
 	}
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return nil, err
+		return rpctypes.Block{}, err
 	}
 
 	var out evmtypes.QueryResBlockNumber
 	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
+		return rpctypes.Block{}, err
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return nil, nil
+		return rpctypes.Block{}, nil
 	}
 
-	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block, fullTx)
+	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
+	if err != nil {
+		return rpctypes.Block{}, err
+	}
+	return *block, nil
 }
 
 // HeaderByNumber returns the block header identified by height.
