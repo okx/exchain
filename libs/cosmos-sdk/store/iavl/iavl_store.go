@@ -281,7 +281,8 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	if global.IBCEnable{
+	// TODO ,fork
+	if global.IBCEnable {
 		return st.queryKeyForIBC(req)
 	}
 	if len(req.Data) == 0 {
@@ -349,7 +350,6 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 
 	return res
 }
-
 
 func getProofFromTree(tree *iavl.MutableTree, key []byte, exists bool) *merkle.Proof {
 
