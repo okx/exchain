@@ -12,6 +12,7 @@ import (
 
 type MsgTransferResponse struct {
 }
+
 // Transfer defines a rpc handler method for MsgTransfer.
 func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTransferResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
@@ -21,7 +22,12 @@ func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTra
 		return nil, err
 	}
 	if err := k.SendTransfer(
-		ctx, msg.SourcePort, msg.SourceChannel, msg.Token, sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
+		ctx, msg.SourcePort, msg.SourceChannel, sdk.Coin{
+			Denom: msg.Token.Denom,
+			Amount: sdk.Dec{
+				Int: msg.Token.Amount.BigInt(),
+			},
+		}, sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
 	); err != nil {
 		return nil, err
 	}
