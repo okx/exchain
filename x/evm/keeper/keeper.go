@@ -56,11 +56,11 @@ type Keeper struct {
 }
 
 type chainConfigInfo struct {
-	// found chainConfig is found.
+	// found chainConfig is meaningful(not empty).
 	found bool
 
 	// 	chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
-	//	nil means we should invalid the cache
+	//	nil means invalid the cache, we should cache it again.
 	chainConfig *types.ChainConfig
 
 	// gasReduced: cached chain config reduces gas costs.
