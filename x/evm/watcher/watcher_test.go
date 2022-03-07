@@ -373,6 +373,8 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a1, true)
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
+	// waiting 1 second for initializing jobChan
+	time.Sleep(time.Second)
 	w.Commit()
 	time.Sleep(time.Second)
 	store := watcher.InstanceOfWatchStore()
