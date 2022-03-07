@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
@@ -86,6 +87,10 @@ func (k Keeper) SendTransfer(
 	fullDenomPath := token.Denom
 
 	var err error
+	k.IterateDenomTraces(ctx, func(denomTrace types.DenomTrace) bool {
+		fmt.Println(denomTrace.Path)
+		return true
+	})
 
 	// deconstruct the token denomination into the denomination trace info
 	// to determine if the sender is the source chain
@@ -226,7 +231,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
 		token := sdk.NewIBCCoin(denom, sdk.NewIntFromUint64(data.Amount))
-
+		logrusplugin.Info("new denomTrace","tracePath",denomTrace.Path,"baseDenom",denomTrace.BaseDenom)
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
@@ -265,8 +270,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 
 	// construct the denomination trace from the full raw denomination
 	denomTrace := types.ParseDenomTrace(prefixedDenom)
-
 	traceHash := denomTrace.Hash()
+	logrusplugin.Info("new denomTrace","tracePath",denomTrace.Path,"baseDenom",denomTrace.BaseDenom,"traceHash",traceHash)
 	if !k.HasDenomTrace(ctx, traceHash) {
 		k.SetDenomTrace(ctx, denomTrace)
 	}
