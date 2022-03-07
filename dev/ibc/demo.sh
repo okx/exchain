@@ -49,3 +49,12 @@ sleep 1
 rly tx relay-pkts ibc1_oec101 -d
 sleep 1
 qualBal
+
+
+rly tx transfer exchain-101 ibc-1 1000000ibc/27A6394C3F9FF9C9DCF5DFFADF9BB5FE9A37C7E92B006199894CF1824DF9AC7C $(rly chains addr  ibc-1) --path oec101_ibc1
+sleep 1
+rly tx relay-pkts oec101_ibc1 -d
+sleep 1
+qualBal
+sleep 1
+qualBal
