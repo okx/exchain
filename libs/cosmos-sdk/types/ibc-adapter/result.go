@@ -15,8 +15,6 @@ import (
 	costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-//Ywmet todo add LegacyAmino
-//var cdc = codec.NewLegacyAmino()
 var cdc = codec.New()
 
 func (gi GasInfo) String() string {
