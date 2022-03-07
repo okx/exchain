@@ -13,24 +13,20 @@ func init() {
 	kvGasConfig = storetypes.KVGasConfig()
 }
 
-func getAccount(ak *auth.AccountKeeper, ctx *sdk.Context, addr sdk.AccAddress, accCache auth.Account) auth.Account {
+func getAccount(ak *auth.AccountKeeper, ctx *sdk.Context, addr sdk.AccAddress, accCache auth.Account) (auth.Account, sdk.Gas) {
 	var acc auth.Account
+	gasMeter := ctx.GasMeter()
+	gasBefore := gasMeter.GasConsumed()
+	var gasUsed sdk.Gas
 	if accCache != nil {
-		if exported.TryAddGetAccountGas(ctx.GasMeter(), ak, accCache) {
+		if exported.TryAddGetAccountGas(gasMeter, ak, accCache) {
 			acc = accCache
+			gasUsed = gasMeter.GasConsumed() - gasBefore
 		}
 	}
 	if acc == nil {
 		acc = ak.GetAccount(*ctx, addr)
+		gasUsed = gasMeter.GasConsumed() - gasBefore
 	}
-	return acc
-}
-
-func getAccountGas(ak *auth.AccountKeeper, acc auth.Account) sdk.Gas {
-	if acc == nil || ak == nil {
-		panic("nil pinter")
-	}
-	size := ak.GetEncodedAccountSize(acc)
-	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
-	return gas
+	return acc, gasUsed
 }

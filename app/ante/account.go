@@ -211,6 +211,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	}
 
 	var acc exported.Account
+	var getAccGasUsed sdk.Gas
 
 	if !simulate {
 		if ctx.IsCheckTx() {
@@ -226,7 +227,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			}
 		}
 
-		acc = getAccount(&avd.ak, &ctx, address, acc)
+		acc, getAccGasUsed = getAccount(&avd.ak, &ctx, address, acc)
 		if acc == nil {
 			return ctx, sdkerrors.Wrapf(
 				sdkerrors.ErrUnknownAddress,
@@ -241,13 +242,12 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 
 		// consume gas for compatible
-		gas := getAccountGas(&avd.ak, acc)
-		ctx.GasMeter().ConsumeGas(gas, "get account")
+		ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
 		// fmt.Printf("gas used: %d; changed: %d\n", ctx.GasMeter().GasConsumed(), gas)
 
 		ctx.SetAccountCache(&sdk.AccountCache{IsAnte: true})
 		// account would be updated
-		ctx, err = ethGasConsume(ctx, acc, gas, msgEthTx, simulate, avd.sk)
+		ctx, err = ethGasConsume(ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.sk)
 		if err != nil {
 			return ctx, err
 		}
