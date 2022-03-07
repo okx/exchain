@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
@@ -123,6 +124,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 	)
