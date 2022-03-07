@@ -57,7 +57,8 @@ type Keeper struct {
 
 type chainConfigInfo struct {
 	chainConfig *types.ChainConfig
-	// cached chain config reduces gas costs.so cache here to recover when use cached chain config
+	// gasReduced: cached chain config reduces gas costs.
+	// when use cached chain config, we restore the gas cost(gasReduced)
 	gasReduced sdk.Gas
 }
 
