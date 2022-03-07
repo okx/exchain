@@ -56,3 +56,5 @@ sleep 1
 rly tx relay-pkts oec101_ibc1 -d
 sleep 1
 qualBal
+sleep 1
+qualBal
