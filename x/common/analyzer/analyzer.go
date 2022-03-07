@@ -57,10 +57,6 @@ func init() {
 	}
 }
 
-func getOpen() bool {
-	return dynamicConfig.GetEnableAnalyzer()
-}
-
 func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
@@ -71,7 +67,7 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	if !getOpen() {
+	if !dynamicConfig.GetEnableAnalyzer() {
 		return
 	}
 	newAnalys(height)

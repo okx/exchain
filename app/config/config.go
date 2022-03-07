@@ -61,6 +61,7 @@ type OecConfig struct {
 	// enable-wtx
 	enableWtx bool
 
+	// enable-analyzer
 	enableAnalyzer bool
 }
 
@@ -226,7 +227,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit_delta: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %d`,
+	enable-analyzer: %v`,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
