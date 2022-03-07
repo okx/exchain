@@ -53,6 +53,61 @@ func accountVertification(ctx *sdk.Context, acc exported.Account, tx evmtypes.Ms
 	return nil
 }
 
+func nonceVertificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isReCheckTx bool) error {
+	if isReCheckTx {
+		// recheckTx mode
+		// sequence must strictly increasing
+		if msgEthTx.Data.AccountNonce != seq {
+			return sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
+	} else {
+		if baseapp.IsMempoolEnablePendingPool() {
+			if msgEthTx.Data.AccountNonce < seq {
+				return sdkerrors.Wrapf(
+					sdkerrors.ErrInvalidSequence,
+					"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+				)
+			}
+		} else {
+			// checkTx mode
+			checkTxModeNonce := seq
+			if !baseapp.IsMempoolEnableRecheck() {
+				// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
+				// to add pending txs len in the mempool.
+				// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
+				// will also reset checkState), so we will need to add pending txs len to get the right nonce
+				gPool := baseapp.GetGlobalMempool()
+				if gPool != nil {
+					cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.From().Bytes())).String())
+					checkTxModeNonce = seq + uint64(cnt)
+				}
+			}
+
+			if baseapp.IsMempoolEnableSort() {
+				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
+					return sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected in the range of [%d, %d]",
+						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
+					)
+				}
+			} else {
+				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
+					return sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected %d",
+						msgEthTx.Data.AccountNonce, checkTxModeNonce,
+					)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func nonceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
 	seq := acc.GetSequence()
 	// if multiple transactions are submitted in succession with increasing nonces,
@@ -61,59 +116,9 @@ func nonceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes
 	if ctx.IsCheckTx() {
 		ctx = ctx.WithAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
-		if ctx.IsReCheckTx() {
-			// recheckTx mode
-
-			// sequence must strictly increasing
-			if msgEthTx.Data.AccountNonce != seq {
-				return ctx, sdkerrors.Wrapf(
-					sdkerrors.ErrInvalidSequence,
-					"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-				)
-			}
-		} else {
-			if baseapp.IsMempoolEnablePendingPool() {
-				if msgEthTx.Data.AccountNonce < seq {
-					return ctx, sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected %d",
-						msgEthTx.Data.AccountNonce, seq,
-					)
-				}
-			} else {
-				// checkTx mode
-				checkTxModeNonce := seq
-
-				if !baseapp.IsMempoolEnableRecheck() {
-					// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
-					// to add pending txs len in the mempool.
-					// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
-					// will also reset checkState), so we will need to add pending txs len to get the right nonce
-					gPool := baseapp.GetGlobalMempool()
-					if gPool != nil {
-						cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.From().Bytes())).String())
-						checkTxModeNonce = seq + uint64(cnt)
-					}
-				}
-
-				if baseapp.IsMempoolEnableSort() {
-					if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
-						return ctx, sdkerrors.Wrapf(
-							sdkerrors.ErrInvalidSequence,
-							"invalid nonce; got %d, expected in the range of [%d, %d]",
-							msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
-						)
-					}
-				} else {
-					if msgEthTx.Data.AccountNonce != checkTxModeNonce {
-						return ctx, sdkerrors.Wrapf(
-							sdkerrors.ErrInvalidSequence,
-							"invalid nonce; got %d, expected %d",
-							msgEthTx.Data.AccountNonce, checkTxModeNonce,
-						)
-					}
-				}
-			}
+		err := nonceVertificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
+		if err != nil {
+			return ctx, err
 		}
 	} else {
 		// only deliverTx mode
