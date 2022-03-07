@@ -243,6 +243,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 	return storage, nil
 }
 
+// getChainConfig get raw chain config and unmarshal it
 func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
@@ -262,9 +263,11 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	return config, true
 }
 
-// GetChainConfig gets block height from block consensus hash
+// GetChainConfig gets chain config, the result if from cached result, or
+// it gains chain config and gas costs from getChainConfig, then
+// cache the chain config and gas costs.
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	// if keeper has cached the chain config, return immediately
+	// if keeper has cached the chain config, return immediately, and increase gas costs.
 	if k.chainConfigInfo.chainConfig != nil {
 		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
 		return *k.chainConfigInfo.chainConfig, true
