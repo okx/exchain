@@ -87,7 +87,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	if _, err := k.callModuleERC20(
 		ctx,
 		contract,
-		"mint_by_oec_module",
+		"mint_by_cronos_module",
 		common.BytesToAddress(from.Bytes()),
 		voucher.Amount.BigInt()); err != nil {
 		return err
@@ -137,9 +137,13 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		return nil, nil, err
 	}
 
+	nonce := uint64(0)
 	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
+	if acc != nil {
+		nonce = acc.GetSequence()
+	}
 	st := types.StateTransition{
-		AccountNonce: acc.GetSequence(),
+		AccountNonce: nonce,
 		Price:        big.NewInt(0),
 		GasLimit:     types.DefaultMaxGasLimitPerTx,
 		Recipient:    to,

@@ -20,9 +20,9 @@ var (
 	EVMModuleETHAddr  common.Address
 	EVMModuleBechAddr sdk.AccAddress
 
-	// TODO cronos ---> oec
 	// ModuleERC20Contract is the compiled cronos erc20 contract
 	ModuleERC20Contract CompiledContract
+	// TODO cronos ---> oec
 
 	//go:embed contracts/ModuleERC20.json
 	moduleERC20Json []byte
@@ -31,6 +31,7 @@ var (
 func init() {
 	EVMModuleBechAddr = authtypes.NewModuleAddress(ModuleName)
 	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
+	// 0x603871c2ddd41c26Ee77495E2E31e6De7f9957e0
 
 	if err := json.Unmarshal(moduleERC20Json, &ModuleERC20Contract); err != nil {
 		panic(err)

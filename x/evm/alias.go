@@ -17,9 +17,10 @@ const (
 
 // nolint
 var (
-	NewKeeper         = keeper.NewKeeper
-	TxDecoder         = types.TxDecoder
-	NewSimulateKeeper = keeper.NewSimulateKeeper
+	NewKeeper           = keeper.NewKeeper
+	TxDecoder           = types.TxDecoder
+	NewSimulateKeeper   = keeper.NewSimulateKeeper
+	NewIBCTransferHooks = keeper.NewIBCTransferHooks
 )
 
 //nolint

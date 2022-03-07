@@ -405,8 +405,11 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetTransferKeeper(app.TransferKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
+	// Set IBC hooks
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
