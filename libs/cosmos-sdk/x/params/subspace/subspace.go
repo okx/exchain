@@ -1,7 +1,6 @@
 package subspace
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -114,109 +113,154 @@ func (s Subspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {
 	}
 }
 
+func isJsonString(bz []byte) bool {
+	return len(bz) >= 2 && bz[0] == '"' && bz[len(bz)-1] == '"'
+}
+
+func getString(rawbz []byte, tptr *string) bool {
+	ok := true
+	for _, c := range rawbz {
+		if c < 0x20 || c == '\\' {
+			ok = false
+			break
+		}
+	}
+	if !ok {
+		return false
+	}
+	*tptr = string(rawbz)
+	return true
+}
+
+func getUint64(rawbz []byte, tptr *uint64) bool {
+	ok := true
+	for _, c := range rawbz {
+		if c < '0' || c > '9' {
+			ok = false
+			break
+		}
+	}
+	if !ok {
+		return false
+	}
+	ui, err := strconv.ParseUint(amino.BytesToStr(rawbz), 10, 64)
+	if err == nil {
+		*tptr = ui
+		return true
+	}
+	return false
+}
+
+func getInt64(rawbz []byte, tptr *int64) bool {
+	ok := true
+	rawbz2 := rawbz
+	if rawbz2[0] == '-' {
+		rawbz2 = rawbz[1:]
+	}
+	for _, c := range rawbz2 {
+		if c < '0' || c > '9' {
+			ok = false
+			break
+		}
+	}
+	if !ok {
+		return false
+	}
+	ui, err := strconv.ParseInt(amino.BytesToStr(rawbz), 10, 64)
+	if err == nil {
+		*tptr = ui
+		return true
+	}
+	return false
+}
+
+func getDec(rawbz []byte, tptr *sdk.Dec) bool {
+	ok := true
+	for _, c := range rawbz {
+		if c < 0x20 || c == '\\' {
+			ok = false
+			break
+		}
+	}
+	if !ok {
+		return false
+	}
+	nd, err := sdk.NewDecFromStr(amino.BytesToStr(rawbz))
+	if err == nil {
+		tptr.Int = nd.Int
+		return true
+	}
+	return false
+}
+
+func getDecCoin(bz []byte, tptr *sdk.DecCoin) bool {
+	if amino.BytesToStr(bz) == "null" {
+		return false
+	}
+	v, err := fastjson.Parse(amino.BytesToStr(bz))
+	if err == nil {
+		tptr.Denom = string(v.GetStringBytes("denom"))
+		amount := v.GetStringBytes("amount")
+		newDec, err := sdk.NewDecFromStr(amino.BytesToStr(amount))
+		if err == nil {
+			tptr.Amount.Int = newDec.Int
+			return true
+		}
+	}
+	return false
+}
+
 func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
-	if len(bz) == 0 || len(bz) < 2 {
+	if len(bz) < 2 {
 		return cdc.UnmarshalJSON(bz, ptr)
 	}
-	if bz[0] == '"' && bz[len(bz)-1] == '"' {
+	if isJsonString(bz) {
 		rawbz := bz[1 : len(bz)-1] // trim leading & trailing "
-		switch ptr.(type) {
+		switch tptr := ptr.(type) {
 		case *string:
-			ok := true
-			for _, c := range rawbz {
-				if c < 0x20 || c == '\\' {
-					ok = false
-					break
-				}
+			if getString(rawbz, tptr) {
+				return nil
 			}
-			if !ok {
-				return json.Unmarshal(bz, ptr)
-			}
-			sptr := ptr.(*string)
-			*sptr = string(rawbz)
-			return nil
+			return json.Unmarshal(bz, ptr)
 		case *uint64:
-			uptr := ptr.(*uint64)
-			ok := true
-			for _, c := range rawbz {
-				if c < '0' || c > '9' {
-					ok = false
-					break
-				}
-			}
-			if !ok {
-				return json.Unmarshal(rawbz, ptr)
-			}
-			ui, err := strconv.ParseUint(amino.BytesToStr(rawbz), 10, 64)
-			if err == nil {
-				*uptr = ui
+			if getUint64(rawbz, tptr) {
 				return nil
 			}
+			return json.Unmarshal(rawbz, ptr)
 		case *int64:
-			iptr := ptr.(*int64)
-			ok := true
-			rawbz2 := rawbz
-			if rawbz2[0] == '-' {
-				rawbz2 = rawbz[1:]
-			}
-			for _, c := range rawbz2 {
-				if c < '0' || c > '9' {
-					ok = false
-					break
-				}
-			}
-			if !ok {
-				return json.Unmarshal(rawbz, ptr)
-			}
-			ui, err := strconv.ParseInt(amino.BytesToStr(rawbz), 10, 64)
-			if err == nil {
-				*iptr = ui
+			if getInt64(rawbz, tptr) {
 				return nil
 			}
+			return json.Unmarshal(rawbz, ptr)
 		case *sdk.Dec:
-			ok := true
-			for _, c := range rawbz {
-				if c < 0x20 || c == '\\' {
-					ok = false
-					break
-				}
+			if getDec(rawbz, tptr) {
+				return nil
 			}
-			dptr := ptr.(*sdk.Dec)
-			if !ok {
-				return dptr.UnmarshalJSON(bz)
+			return tptr.UnmarshalJSON(bz)
+		}
+	} else {
+		switch tptr := ptr.(type) {
+		case *sdk.DecCoin:
+			if getDecCoin(bz, tptr) {
+				return nil
 			}
-			nd, err := sdk.NewDecFromStr(amino.BytesToStr(rawbz))
-			if err == nil {
-				dptr.Int = nd.Int
+		case *bool:
+			switch amino.BytesToStr(bz) {
+			case "true":
+				*tptr = true
+				return nil
+			case "false":
+				*tptr = false
+				return nil
+			}
+		case *[]int:
+			if amino.BytesToStr(bz) == "null" {
+				*tptr = nil
 				return nil
 			}
 		}
 	}
-	if dec, ok := ptr.(*sdk.DecCoin); ok && !bytes.Equal(bz, []byte("null")) {
-		v, err := fastjson.Parse(amino.BytesToStr(bz))
-		if err == nil {
-			dec.Denom = string(v.GetStringBytes("denom"))
-			amount := v.GetStringBytes("amount")
-			newDec, err := sdk.NewDecFromStr(amino.BytesToStr(amount))
-			if err == nil {
-				dec.Amount.Int = newDec.Int
-				return nil
-			}
-		}
-	} else if bptr, ok := ptr.(*bool); ok {
-		if bytes.Equal(bz, []byte("true")) {
-			*bptr = true
-			return nil
-		} else if bytes.Equal(bz, []byte("false")) {
-			*bptr = false
-			return nil
-		}
-	} else if ints, ok := ptr.(*[]int); ok {
-		if bytes.Equal(bz, []byte("null")) {
-			*ints = nil
-			return nil
-		}
-	}
+
 	return cdc.UnmarshalJSON(bz, ptr)
 }
 
