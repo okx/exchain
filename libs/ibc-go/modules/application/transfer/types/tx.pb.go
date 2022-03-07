@@ -125,8 +125,13 @@ func (m *MsgTransferResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgTransferResponse proto.InternalMessageInfo
 
 func init() {
+
+	proto.RegisterType((*MsgTransfer)(nil), "ibc.applications.transfer.v1.MsgTransferAdapter")
+	proto.RegisterType((*MsgTransfer)(nil), "ibc.applications.transfer.v1.MsgTransfer")
+	proto.RegisterType((*MsgTransferResponse)(nil), "ibc.applications.transfer.v1.MsgTransferAdapterResponse")
 	proto.RegisterType((*MsgTransfer)(nil), "ibc.applications.transfer.v1.MsgTransfer")
 	proto.RegisterType((*MsgTransferResponse)(nil), "ibc.applications.transfer.v1.MsgTransferResponse")
+
 }
 
 func init() {

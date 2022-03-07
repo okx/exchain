@@ -4,6 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
@@ -28,6 +29,13 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 	registry.RegisterImplementations(
 		(*sdk.MsgProtoAdapter)(nil),
+		&MsgConnectionOpenInit{},
+		&MsgConnectionOpenTry{},
+		&MsgConnectionOpenAck{},
+		&MsgConnectionOpenConfirm{},
+	)
+	registry.RegisterImplementations(
+		(*txmsg.Msg)(nil),
 		&MsgConnectionOpenInit{},
 		&MsgConnectionOpenTry{},
 		&MsgConnectionOpenAck{},

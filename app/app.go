@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
+
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
@@ -14,13 +16,14 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
 	//types "github.com/okex/exchain/temp"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/okex/exchain/app/utils/sanity"
 
@@ -121,6 +124,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 	)
@@ -250,9 +254,13 @@ func NewOKExChainApp(
 	interfaceReg := MakeIBC()
 	bApp.SetInterfaceRegistry(interfaceReg)
 	cc := codec.NewProtoCodec(interfaceReg)
-	proxy:=codec.NewMarshalProxy(cc,cdc)
+
+	ibcCodec := codec.NewProtoCodec(interfaceReg)
+	cdcproxy := codec.NewCodecProxy(ibcCodec, cdc)
+
+	//proxy := codec.NewMarshalProxy(cc, cdc)
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		ret, err = evm.TxDecoder(cdc)(txBytes, height...)
+		ret, err = evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
 		if nil == err {
 			return ret, err
 		}
@@ -303,6 +311,7 @@ func NewOKExChainApp(
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
+	proxy := codec.NewMarshalProxy(cc, cdc)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -310,7 +319,7 @@ func NewOKExChainApp(
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
-		&app.AccountKeeper,proxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
+		&app.AccountKeeper, proxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
@@ -318,9 +327,8 @@ func NewOKExChainApp(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
-
 	stakingKeeper := staking.NewKeeper(
-		cdc,proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		cdc, proxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -641,8 +649,8 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 	}, func(resp *abci.ResponseQuery) {
 
 	})
-	m["/cosmos.bank.v1beta1.Query/AllBalances"]=bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path="custom/bank/grpc_balances"
+	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
+		req.Path = "custom/bank/grpc_balances"
 		return nil
 	}, func(resp *abci.ResponseQuery) {
 

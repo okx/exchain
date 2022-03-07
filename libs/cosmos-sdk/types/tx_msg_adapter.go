@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
@@ -12,6 +13,10 @@ import (
 //	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 //	"math/big"
 //)
+
+const (
+	IBCROUTER = "ibc"
+)
 
 var (
 	//	_   Msg = (*RelayMsg)(nil)
@@ -61,7 +66,7 @@ func (this *RelayMsgWrapper) Marshal() ([]byte, error) {
 
 type RelayMsg struct {
 	Bytes     []byte
-	Singers   []AccAddress
+	Signers   []AccAddress
 	RouterStr string
 	TypeStr   string
 	MsgType   string
@@ -86,11 +91,11 @@ var WithMsgDetailType = func(msgDetailType string) RelayMsgOption {
 
 func NewRelayMsg(data []byte, ss []AccAddress, ops ...RelayMsgOption) *RelayMsg {
 	if len(ops) == 0 {
-		ops = []RelayMsgOption{WithRouter("ibc"), WithType("ibc")}
+		ops = []RelayMsgOption{WithRouter(IBCROUTER), WithType(IBCROUTER)}
 	}
 	ret := &RelayMsg{}
 	ret.Bytes = data
-	ret.Singers = ss
+	ret.Signers = ss
 	for _, o := range ops {
 		o(ret)
 	}
@@ -99,14 +104,14 @@ func NewRelayMsg(data []byte, ss []AccAddress, ops ...RelayMsgOption) *RelayMsg 
 
 func (r *RelayMsg) Route() string {
 	if len(r.RouterStr) == 0 {
-		return "ibc"
+		return IBCROUTER
 	}
 	return r.RouterStr
 }
 
 func (r *RelayMsg) Type() string {
 	if len(r.TypeStr) == 0 {
-		return "ibc"
+		return IBCROUTER
 	}
 	return r.TypeStr
 }
@@ -124,5 +129,5 @@ func (r *RelayMsg) GetSignBytes() []byte {
 }
 
 func (r *RelayMsg) GetSigners() []AccAddress {
-	return r.Singers
+	return r.Signers
 }

@@ -12,21 +12,21 @@ import (
 )
 
 var (
-	MsgCreateClient       = "MsgCreateClient"
-	MsgDetailUpdateClient = "MsgDetailUpdateClient"
+	MsgCreateClient       = "/ibc.core.client.v1.MsgCreateClient" //"MsgCreateClient"
+	MsgDetailUpdateClient = "/ibc.core.client.v1.MsgUpdateClient" //"MsgDetailUpdateClient"
 
-	MsgConnectionOpenInit    = "MsgConnectionOpenInit"
-	MsgConnectionOpenTry     = "MsgConnectionOpenTry"
-	MsgConnectionOpenConfirm = "MsgConnectionOpenConfirm"
-	MsgConnectionOpenAck     = "MsgConnectionOpenAck"
+	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"    //"MsgConnectionOpenInit"
+	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"     //"MsgConnectionOpenTry"
+	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm" // "MsgConnectionOpenConfirm"
+	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"     //"MsgConnectionOpenAck"
 
-	MsgChannelOpenInit    = "MsgChannelOpenInit"
-	MsgChannelOpenTry     = "MsgChannelOpenTry"
-	MsgChannelOpenAck     = "MsgChannelOpenAck"
-	MsgChannelOpenConfirm = "MsgChannelOpenConfirm"
+	MsgChannelOpenInit    = "/ibc.core.channel.v1.MsgChannelOpenInit"    //"MsgChannelOpenInit"
+	MsgChannelOpenTry     = "/ibc.core.channel.v1.MsgChannelOpenTry"     //"MsgChannelOpenTry"
+	MsgChannelOpenAck     = "/ibc.core.channel.v1.MsgChannelOpenAck"     //"MsgChannelOpenAck"
+	MsgChannelOpenConfirm = "/ibc.core.channel.v1.MsgChannelOpenConfirm" //"MsgChannelOpenConfirm"
 
-	MsgRecvPacket      = "MsgRecvPacket"
-	MsgAcknowledgement = "MsgAcknowledgement"
+	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"      // "MsgRecvPacket"
+	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement" //"MsgAcknowledgement"
 )
 
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {

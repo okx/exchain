@@ -5,6 +5,7 @@ import (
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	cryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	types2 "github.com/okex/exchain/libs/tendermint/abci/types"
 	//sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -14,6 +15,8 @@ import (
 func MakeIBC() types.InterfaceRegistry {
 	interfaceReg := types.NewInterfaceRegistry()
 	ModuleBasics.RegisterInterfaces(interfaceReg)
+	cryptocodec.RegisterInterfaces(interfaceReg)
+
 	return interfaceReg
 }
 

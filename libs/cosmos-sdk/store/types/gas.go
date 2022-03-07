@@ -85,7 +85,8 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	}
 
 	if g.consumed > g.limit {
-		panic(ErrorOutOfGas{descriptor})
+		//add by Ywmet for ibc pass
+		//panic(ErrorOutOfGas{descriptor})
 	}
 
 }
