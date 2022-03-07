@@ -117,7 +117,6 @@ func (k Keeper) GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) 
 	if bz == nil {
 		return types.DenomTrace{}, false
 	}
-
 	denomTrace := k.MustUnmarshalDenomTrace(bz)
 	return denomTrace, true
 }
