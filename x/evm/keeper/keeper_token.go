@@ -97,8 +97,8 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 
 // deployModuleERC20 deploy an embed erc20 contract
 func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
-	byteCode := common.Hex2Bytes(types.ModuleCRC20Contract.Bin)
-	input, err := types.ModuleCRC20Contract.ABI.Pack("", denom, uint8(0))
+	byteCode := common.Hex2Bytes(types.ModuleERC20Contract.Bin)
+	input, err := types.ModuleERC20Contract.ABI.Pack("", denom, uint8(0))
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -113,7 +113,7 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 
 // callModuleERC20 call a method of ModuleERC20 contract
 func (k Keeper) callModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
-	data, err := types.ModuleCRC20Contract.ABI.Pack(method, args...)
+	data, err := types.ModuleERC20Contract.ABI.Pack(method, args...)
 	if err != nil {
 		return nil, err
 	}
