@@ -31,8 +31,10 @@ type Backend interface {
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (rpctypes.Block, error)
-	GetBlockByHash(hash common.Hash) (rpctypes.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error)
+	GetBlockByHash(hash common.Hash) (*rpctypes.Block, error)
+
+	GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -110,71 +112,73 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (rpctypes.Block, error) {
+func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error) {
 	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
 	if err == nil {
-		return *block, nil
+		return block, nil
 	}
 
 	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
 	if err == nil {
 		b.backendCache.AddOrUpdateBlock(block.Hash, block)
-		return *block, nil
+		b.backendCache.AddOrUpdateBlockHash(uint64(blockNum), block.Hash)
+		return block, nil
 	}
 	height := blockNum.Int64()
 	if height <= 0 {
 		// get latest block height
 		num, err := b.BlockNumber()
 		if err != nil {
-			return rpctypes.Block{}, err
+			return nil, err
 		}
 		height = int64(num)
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
 	if err != nil {
-		return rpctypes.Block{}, nil
+		return nil, nil
 	}
 
 	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
 	if err != nil {
-		return rpctypes.Block{}, err
+		return nil, err
 	}
 	b.backendCache.AddOrUpdateBlock(block.Hash, block)
-	return *block, nil
+	b.backendCache.AddOrUpdateBlockHash(uint64(blockNum), block.Hash)
+	return block, nil
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (rpctypes.Block, error) {
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*rpctypes.Block, error) {
 	block, err := b.backendCache.GetBlockByHash(hash)
 	if err == nil {
-		return *block, err
+		return block, err
 	}
 	block, err = b.wrappedBackend.GetBlockByHash(hash, true)
 	if err == nil {
 		b.backendCache.AddOrUpdateBlock(hash, block)
-		return *block, nil
+		return block, nil
 	}
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return rpctypes.Block{}, err
+		return nil, err
 	}
 
 	var out evmtypes.QueryResBlockNumber
 	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return rpctypes.Block{}, err
+		return nil, err
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return rpctypes.Block{}, nil
+		return nil, nil
 	}
 
 	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
 	if err != nil {
-		return rpctypes.Block{}, err
+		return nil, err
 	}
-	return *block, nil
+	return block, nil
 }
 
 // HeaderByNumber returns the block header identified by height.
@@ -369,6 +373,43 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 		return nil, err
 	}
 	return rpcTx, nil
+}
+
+func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+	tx, err := b.backendCache.GetTransaction(hash)
+	if err == nil {
+		return tx, err
+	}
+	tx, err = b.wrappedBackend.GetTransactionByHash(hash)
+	if err == nil {
+		return tx, nil
+	}
+
+	txRes, err := b.clientCtx.Client.Tx(hash.Bytes(), false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Can either cache or just leave this out if not necessary
+	block, err := b.clientCtx.Client.Block(&txRes.Height)
+	if err != nil {
+		return nil, err
+	}
+
+	blockHash := common.BytesToHash(block.Block.Hash())
+
+	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, txRes.Tx)
+	if err != nil {
+		return nil, err
+	}
+
+	height := uint64(txRes.Height)
+	tx, err = rpctypes.NewTransaction(ethTx, common.BytesToHash(txRes.Tx.Hash(txRes.Height)), blockHash, height, uint64(txRes.Index))
+	if err != nil {
+		return nil, err
+	}
+	b.backendCache.AddOrUpdateTransaction(hash, tx)
+	return tx, nil
 }
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.

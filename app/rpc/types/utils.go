@@ -217,7 +217,7 @@ func FormatBlock(
 	if !reflect.ValueOf(transactions).IsNil() {
 		ret.Transactions = transactions
 	} else {
-		ret.Transactions = []common.Hash{}
+		ret.Transactions = []*Transaction{}
 	}
 	return ret
 }

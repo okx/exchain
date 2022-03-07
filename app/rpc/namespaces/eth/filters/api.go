@@ -29,7 +29,7 @@ var ErrMethodNotAllowed = errors.New("the method is not allowed")
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (rpctypes.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)

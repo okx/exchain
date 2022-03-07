@@ -143,6 +143,7 @@ run() {
   LOG_LEVEL=main:info,*:error,consensus:error,state:info
 
   echorun nohup exchaind start \
+    --pruning=nothing \
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
@@ -166,6 +167,7 @@ run() {
     --enable-preruntx=$PRERUN \
     --consensus-role=v$index \
     ${Test_CASE} \
+    --debug-api=true \
     --keyring-backend test >cache/val${index}.log 2>&1 &
 
 #     --iavl-enable-async-commit \    --consensus-testcase case12.json \

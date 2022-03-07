@@ -994,26 +994,36 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*rpctypes.Block, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (blockRes *rpctypes.Block, err error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	block, err := api.backend.GetBlockByHash(hash)
+	blockRes, err = api.backend.GetBlockByHash(hash)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
 	}
-	if !fullTx {
-		txs := block.Transactions.([]*rpctypes.Transaction)
-		if txs != nil {
-			var txHashs []common.Hash
-			for _, tx := range txs {
-				txHashs = append(txHashs, tx.Hash)
-			}
-			block.Transactions = txHashs
-		} else {
-			block.Transactions = []common.Hash{}
+	defer func() {
+		//extract tx hashs when not fullTx
+		if err == nil && blockRes != nil && !fullTx {
+			blockRes = modifyTransactions(blockRes)
 		}
+	}()
+	return
+}
+func modifyTransactions(blockIn *rpctypes.Block) *rpctypes.Block {
+	block := *blockIn
+	if block.Transactions == nil {
+		block.Transactions = []common.Hash{}
+		return &block
 	}
-	return &block, nil
+	txs, ok := block.Transactions.([]*rpctypes.Transaction)
+	if ok {
+		var txHashs []common.Hash
+		for _, tx := range txs {
+			txHashs = append(txHashs, tx.Hash)
+		}
+		block.Transactions = txHashs
+	}
+	return &block
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -1023,20 +1033,13 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 
 	defer func() {
 		//extract tx hashs when not fullTx
-		if err == nil && !fullTx {
-			txs := blockRes.Transactions.([]*rpctypes.Transaction)
-			if txs != nil {
-				var txHashs []common.Hash
-				for _, tx := range txs {
-					txHashs = append(txHashs, tx.Hash)
-				}
-				blockRes.Transactions = txHashs
-			}
+		if err == nil && blockRes != nil && !fullTx {
+			blockRes = modifyTransactions(blockRes)
 		}
 	}()
 
 	if blockNum != rpctypes.PendingBlockNumber {
-		*blockRes, err = api.backend.GetBlockByNumber(blockNum)
+		blockRes, err = api.backend.GetBlockByNumber(blockNum)
 		return
 	}
 
@@ -1086,36 +1089,17 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
-	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
+	rawTx, err := api.backend.GetTransactionByHash(hash)
 	if err == nil {
 		return rawTx, nil
 	}
-	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
-	if err != nil {
-		// check if the tx is on the mempool
-		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
-		if pendingErr != nil {
-			//to keep consistent with rpc of ethereum, should be return nil
-			return nil, nil
-		}
-		return pendingTx, nil
+	// check if the tx is on the mempool
+	pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
+	if pendingErr != nil {
+		//to keep consistent with rpc of ethereum, should be return nil
+		return nil, nil
 	}
-
-	// Can either cache or just leave this out if not necessary
-	block, err := api.clientCtx.Client.Block(&tx.Height)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHash := common.BytesToHash(block.Block.Hash())
-
-	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
-	if err != nil {
-		return nil, err
-	}
-
-	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
+	return pendingTx, nil
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.

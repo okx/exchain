@@ -67,9 +67,8 @@ func (alc *BackendLruCache) getDataFromLru(lruKey string, cacheKey interface{}) 
 func (alc *BackendLruCache) addDataToLru(lruKey string, cacheKey interface{}, cacheData interface{}) {
 	lru, ok := alc.lruMap[lruKey]
 	if ok {
-		return
+		lru.PeekOrAdd(cacheKey, cacheData)
 	}
-	lru.PeekOrAdd(cacheKey, cacheData)
 }
 func (alc *BackendLruCache) GetBlockByNumber(number uint64) (*rpctypes.Block, error) {
 	hash, err := alc.GetBlockHash(number)
@@ -91,9 +90,13 @@ func (alc *BackendLruCache) GetBlockByHash(hash common.Hash) (*rpctypes.Block, e
 }
 func (alc *BackendLruCache) AddOrUpdateBlock(hash common.Hash, block *rpctypes.Block) {
 	alc.addDataToLru(LruKeyBlock, hash, block)
-	txs := block.Transactions.([]*rpctypes.Transaction)
-	for _, tx := range txs {
-		alc.AddOrUpdateTransaction(tx.Hash, tx)
+	if block.Transactions != nil {
+		txs, ok := block.Transactions.([]*rpctypes.Transaction)
+		if ok {
+			for _, tx := range txs {
+				alc.AddOrUpdateTransaction(tx.Hash, tx)
+			}
+		}
 	}
 }
 func (alc *BackendLruCache) GetTransaction(hash common.Hash) (*rpctypes.Transaction, error) {
