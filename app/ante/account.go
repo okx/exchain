@@ -53,7 +53,7 @@ func accountVertification(ctx *sdk.Context, acc exported.Account, tx evmtypes.Ms
 	return nil
 }
 
-func nounceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
+func nonceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
 	seq := acc.GetSequence()
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
@@ -230,7 +230,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 
 		// account would not be updated
-		ctx, err = nounceVertification(ctx, acc, msgEthTx)
+		ctx, err = nonceVertification(ctx, acc, msgEthTx)
 		if err != nil {
 			return ctx, err
 		}
