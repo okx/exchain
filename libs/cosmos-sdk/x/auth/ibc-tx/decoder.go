@@ -11,10 +11,12 @@ import (
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
+	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
@@ -45,7 +47,8 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// allow non-critical unknown fields in TxBody
 		txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			//Ywmet todo couldnot decode
+			//return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
@@ -84,16 +87,33 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 			//Gas:
 		}
 		signatures := []authtypes.StdSignature{}
-		for _, s := range ibcTx.Signatures {
-			signatures = append(signatures, authtypes.StdSignature{Signature: s})
+		for i, s := range ibcTx.Signatures {
+			pk := &ibckey.PubKey{}
+			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+
+			//convert crypto pubkey to tm pubkey
+			tmPubKey := tmtypes.PubKeySecp256k1{}
+			copy(tmPubKey[:], pk.Bytes())
+
+			fmt.Println(pk, tmPubKey)
+
+			signatures = append(signatures,
+				authtypes.StdSignature{
+					Signature: s,
+					PubKey:    tmPubKey,
+					//PubKey:    ibcTx.AuthInfo.SignerInfos[0].PublicKey,
+				},
+			)
 		}
 
+		//relayMsgs := []*sdk.RelayMsg{}
 		relayMsgs := []*sdk.RelayMsg{}
 		for _, ibcmsg := range ibcTx.Body.Messages {
+			//ibcTx.Body.UnpackInterfaces(i)
 			//relayMsgs = append(relayMsgs, &sdk.RelayMsg{
 			relayMsgs = append(relayMsgs,
 				sdk.NewRelayMsg(
-					ibcmsg.Value, ibcTx.GetSigners(),
+					ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl),
 				),
 			)
 		}

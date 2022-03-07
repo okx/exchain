@@ -86,17 +86,27 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 }
 
 var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
-
+	tx := &typestx.Tx{}
 	simReq := &typestx.SimulateRequest{}
+	txBytes := bytes
 
 	err := simReq.Unmarshal(bytes)
 	if err != nil {
-		return authtypes.StdTx{}, err
+		//return authtypes.StdTx{}, err
+
+		broadcastReq := &typestx.BroadcastTxRequest{}
+		err = broadcastReq.Unmarshal(bytes)
+		fmt.Println("broadcastReq unmarshal", err)
+
+	} else {
+		tx = simReq.Tx
+		txBytes = simReq.TxBytes
 	}
 
-	txBytes := simReq.TxBytes
+	//txBytes := simReq.TxBytes
 	if txBytes == nil && simReq.Tx != nil {
-		txBytes, err = proto.Marshal(simReq.Tx)
+		//txBytes, err = proto.Marshal(simReq.Tx)
+		txBytes, err = proto.Marshal(tx)
 		if err != nil {
 			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
 		}
