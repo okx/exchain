@@ -32,10 +32,10 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// MsgTransferAdapter defines a msg to transfer fungible tokens (i.e Coins) between
+// MsgTransfer defines a msg to transfer fungible tokens (i.e Coins) between
 // ICS20 enabled chains. See ICS Spec here:
 // https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer#data-structures
-type MsgTransferAdapter struct {
+type MsgTransfer struct {
 	// the port on which the packet will be sent
 	SourcePort string `protobuf:"bytes,1,opt,name=source_port,json=sourcePort,proto3" json:"source_port,omitempty" yaml:"source_port"`
 	// the channel by which the packet will be sent
@@ -54,18 +54,18 @@ type MsgTransferAdapter struct {
 	TimeoutTimestamp uint64 `protobuf:"varint,7,opt,name=timeout_timestamp,json=timeoutTimestamp,proto3" json:"timeout_timestamp,omitempty" yaml:"timeout_timestamp"`
 }
 
-func (m *MsgTransferAdapter) Reset()         { *m = MsgTransferAdapter{} }
-func (m *MsgTransferAdapter) String() string { return proto.CompactTextString(m) }
-func (*MsgTransferAdapter) ProtoMessage()    {}
-func (*MsgTransferAdapter) Descriptor() ([]byte, []int) {
+func (m *MsgTransfer) Reset()         { *m = MsgTransfer{} }
+func (m *MsgTransfer) String() string { return proto.CompactTextString(m) }
+func (*MsgTransfer) ProtoMessage()    {}
+func (*MsgTransfer) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7401ed9bed2f8e09, []int{0}
 }
-func (m *MsgTransferAdapter) XXX_Unmarshal(b []byte) error {
+func (m *MsgTransfer) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgTransferAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgTransfer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgTransferAdapter.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgTransfer.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -75,34 +75,34 @@ func (m *MsgTransferAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return b[:n], nil
 	}
 }
-func (m *MsgTransferAdapter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgTransferAdapter.Merge(m, src)
+func (m *MsgTransfer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgTransfer.Merge(m, src)
 }
-func (m *MsgTransferAdapter) XXX_Size() int {
+func (m *MsgTransfer) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgTransferAdapter) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgTransferAdapter.DiscardUnknown(m)
+func (m *MsgTransfer) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgTransfer.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgTransferAdapter proto.InternalMessageInfo
+var xxx_messageInfo_MsgTransfer proto.InternalMessageInfo
 
-// MsgTransferAdapterResponse defines the Msg/Transfer response type.
-type MsgTransferAdapterResponse struct {
+// MsgTransferResponse defines the Msg/Transfer response type.
+type MsgTransferResponse struct {
 }
 
-func (m *MsgTransferAdapterResponse) Reset()         { *m = MsgTransferAdapterResponse{} }
-func (m *MsgTransferAdapterResponse) String() string { return proto.CompactTextString(m) }
-func (*MsgTransferAdapterResponse) ProtoMessage()    {}
-func (*MsgTransferAdapterResponse) Descriptor() ([]byte, []int) {
+func (m *MsgTransferResponse) Reset()         { *m = MsgTransferResponse{} }
+func (m *MsgTransferResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgTransferResponse) ProtoMessage()    {}
+func (*MsgTransferResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7401ed9bed2f8e09, []int{1}
 }
-func (m *MsgTransferAdapterResponse) XXX_Unmarshal(b []byte) error {
+func (m *MsgTransferResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgTransferAdapterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgTransferResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgTransferAdapterResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgTransferResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -112,21 +112,21 @@ func (m *MsgTransferAdapterResponse) XXX_Marshal(b []byte, deterministic bool) (
 		return b[:n], nil
 	}
 }
-func (m *MsgTransferAdapterResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgTransferAdapterResponse.Merge(m, src)
+func (m *MsgTransferResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgTransferResponse.Merge(m, src)
 }
-func (m *MsgTransferAdapterResponse) XXX_Size() int {
+func (m *MsgTransferResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgTransferAdapterResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgTransferAdapterResponse.DiscardUnknown(m)
+func (m *MsgTransferResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgTransferResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgTransferAdapterResponse proto.InternalMessageInfo
+var xxx_messageInfo_MsgTransferResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgTransferAdapter)(nil), "ibc.applications.transfer.v1.MsgTransferAdapter")
-	proto.RegisterType((*MsgTransferAdapterResponse)(nil), "ibc.applications.transfer.v1.MsgTransferAdapterResponse")
+	proto.RegisterType((*MsgTransfer)(nil), "ibc.applications.transfer.v1.MsgTransfer")
+	proto.RegisterType((*MsgTransferResponse)(nil), "ibc.applications.transfer.v1.MsgTransferResponse")
 }
 
 func init() {
@@ -180,8 +180,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
-	// Transfer defines a rpc handler method for MsgTransferAdapter.
-	Transfer(ctx context.Context, in *MsgTransferAdapter, opts ...grpc.CallOption) (*MsgTransferAdapterResponse, error)
+	// Transfer defines a rpc handler method for MsgTransfer.
+	Transfer(ctx context.Context, in *MsgTransfer, opts ...grpc.CallOption) (*MsgTransferResponse, error)
 }
 
 type msgClient struct {
@@ -192,8 +192,8 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 	return &msgClient{cc}
 }
 
-func (c *msgClient) Transfer(ctx context.Context, in *MsgTransferAdapter, opts ...grpc.CallOption) (*MsgTransferAdapterResponse, error) {
-	out := new(MsgTransferAdapterResponse)
+func (c *msgClient) Transfer(ctx context.Context, in *MsgTransfer, opts ...grpc.CallOption) (*MsgTransferResponse, error) {
+	out := new(MsgTransferResponse)
 	err := c.cc.Invoke(ctx, "/ibc.applications.transfer.v1.Msg/Transfer", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -203,15 +203,15 @@ func (c *msgClient) Transfer(ctx context.Context, in *MsgTransferAdapter, opts .
 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
-	// Transfer defines a rpc handler method for MsgTransferAdapter.
-	Transfer(context.Context, *MsgTransferAdapter) (*MsgTransferAdapterResponse, error)
+	// Transfer defines a rpc handler method for MsgTransfer.
+	Transfer(context.Context, *MsgTransfer) (*MsgTransferResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
 type UnimplementedMsgServer struct {
 }
 
-func (*UnimplementedMsgServer) Transfer(ctx context.Context, req *MsgTransferAdapter) (*MsgTransferAdapterResponse, error) {
+func (*UnimplementedMsgServer) Transfer(ctx context.Context, req *MsgTransfer) (*MsgTransferResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Transfer not implemented")
 }
 
@@ -220,7 +220,7 @@ func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
 }
 
 func _Msg_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MsgTransferAdapter)
+	in := new(MsgTransfer)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func _Msg_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interf
 		FullMethod: "/ibc.applications.transfer.v1.Msg/Transfer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MsgServer).Transfer(ctx, req.(*MsgTransferAdapter))
+		return srv.(MsgServer).Transfer(ctx, req.(*MsgTransfer))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -250,7 +250,7 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 	Metadata: "ibc/applications/transfer/v1/tx.proto",
 }
 
-func (m *MsgTransferAdapter) Marshal() (dAtA []byte, err error) {
+func (m *MsgTransfer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -260,12 +260,12 @@ func (m *MsgTransferAdapter) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgTransferAdapter) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgTransfer) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgTransferAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgTransfer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -326,7 +326,7 @@ func (m *MsgTransferAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MsgTransferAdapterResponse) Marshal() (dAtA []byte, err error) {
+func (m *MsgTransferResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -336,12 +336,12 @@ func (m *MsgTransferAdapterResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgTransferAdapterResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgTransferResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgTransferAdapterResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgTransferResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -360,7 +360,7 @@ func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *MsgTransferAdapter) Size() (n int) {
+func (m *MsgTransfer) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -392,7 +392,7 @@ func (m *MsgTransferAdapter) Size() (n int) {
 	return n
 }
 
-func (m *MsgTransferAdapterResponse) Size() (n int) {
+func (m *MsgTransferResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -407,7 +407,7 @@ func sovTx(x uint64) (n int) {
 func sozTx(x uint64) (n int) {
 	return sovTx(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *MsgTransferAdapter) Unmarshal(dAtA []byte) error {
+func (m *MsgTransfer) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -430,10 +430,10 @@ func (m *MsgTransferAdapter) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgTransferAdapter: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgTransfer: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgTransferAdapter: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgTransfer: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -670,7 +670,7 @@ func (m *MsgTransferAdapter) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MsgTransferAdapterResponse) Unmarshal(dAtA []byte) error {
+func (m *MsgTransferResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -693,10 +693,10 @@ func (m *MsgTransferAdapterResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgTransferAdapterResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgTransferResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgTransferAdapterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgTransferResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
