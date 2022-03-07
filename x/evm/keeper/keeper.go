@@ -59,8 +59,8 @@ type chainConfigInfo struct {
 	// found chainConfig is meaningful(not empty).
 	found bool
 
-	// 	chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
-	//	nil means invalid the cache, we should cache it again.
+	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
+	// nil means invalid the cache, we should cache it again.
 	chainConfig *types.ChainConfig
 
 	// gasReduced: cached chain config reduces gas costs.
@@ -72,7 +72,6 @@ type chainConfigInfo struct {
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
 	logger log.Logger) *Keeper {
-
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
