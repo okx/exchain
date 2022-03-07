@@ -90,7 +90,7 @@ func GetMercuryHeight() int64 {
 }
 
 func GetAnteHeight() int64 {
-	return 0
+	return milestoneAnteHeight
 }
 
 // can be used in unit test only
