@@ -80,6 +80,7 @@ func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	}
 }
 
+// handleMsgEthereumTx handles an Ethereum specific tx
 // 1. txs can be divided into TraceTxLog/CheckTx/DeliverTx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (*sdk.Result, error) {
 	txFactory := txs.NewFactory(base.Config{
