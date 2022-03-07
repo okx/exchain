@@ -4,6 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
 
 // RegisterLegacyAminoCodec registers the necessary x/ibc transfer interfaces and concrete types
@@ -16,6 +17,10 @@ func RegisterLegacyAminoCodec(cdc *codec.Codec) {
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations((*types.MsgProtoAdapter)(nil), &MsgTransferAdapter{})
+	registry.RegisterImplementations(
+		(*txmsg.Msg)(nil),
+		&MsgTransferAdapter{},
+	)
 	//msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
