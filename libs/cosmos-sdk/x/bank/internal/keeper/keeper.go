@@ -289,7 +289,7 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 
 	fromAcc, _ = ctx.AccountCache().FromAcc.(authexported.Account)
 	toAcc, _ = ctx.AccountCache().ToAcc.(authexported.Account)
-	fromAccGas, toAccGas = ctx.AccountCache().FromAccGettedGas, ctx.AccountCache().ToAccGettedGas
+	fromAccGas, toAccGas = ctx.AccountCache().FromAccGotGas, ctx.AccountCache().ToAccGotGas
 
 	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
 	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)

@@ -32,7 +32,7 @@ func NewAccountAnteDecorator(ak auth.AccountKeeper, ek EVMKeeper, sk types.Suppl
 	}
 }
 
-func accountVertification(ctx *sdk.Context, acc exported.Account, tx evmtypes.MsgEthereumTx) error {
+func accountVerification(ctx *sdk.Context, acc exported.Account, tx evmtypes.MsgEthereumTx) error {
 	if ctx.BlockHeight() == 0 && acc.GetAccountNumber() != 0 {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidSequence,
@@ -53,7 +53,7 @@ func accountVertification(ctx *sdk.Context, acc exported.Account, tx evmtypes.Ms
 	return nil
 }
 
-func nonceVertificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isReCheckTx bool) error {
+func nonceVerificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isReCheckTx bool) error {
 	if isReCheckTx {
 		// recheckTx mode
 		// sequence must strictly increasing
@@ -108,7 +108,7 @@ func nonceVertificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, is
 	return nil
 }
 
-func nonceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
+func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
 	seq := acc.GetSequence()
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
@@ -116,7 +116,7 @@ func nonceVertification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes
 	if ctx.IsCheckTx() {
 		ctx = ctx.WithAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
-		err := nonceVertificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
+		err := nonceVerificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
 		if err != nil {
 			return ctx, err
 		}
@@ -221,7 +221,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 				avd.ak.SetAccount(ctx, acc)
 			}
 			// on InitChain make sure account number == 0
-			err = accountVertification(&ctx, acc, msgEthTx)
+			err = accountVerification(&ctx, acc, msgEthTx)
 			if err != nil {
 				return ctx, err
 			}
@@ -236,14 +236,13 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 
 		// account would not be updated
-		ctx, err = nonceVertification(ctx, acc, msgEthTx)
+		ctx, err = nonceVerification(ctx, acc, msgEthTx)
 		if err != nil {
 			return ctx, err
 		}
 
 		// consume gas for compatible
 		ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
-		// fmt.Printf("gas used: %d; changed: %d\n", ctx.GasMeter().GasConsumed(), gas)
 
 		ctx.SetAccountCache(&sdk.AccountCache{IsAnte: true})
 		// account would be updated
