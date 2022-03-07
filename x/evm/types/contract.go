@@ -20,9 +20,8 @@ var (
 	EVMModuleETHAddr  common.Address
 	EVMModuleBechAddr sdk.AccAddress
 
-	// ModuleERC20Contract is the compiled cronos erc20 contract
+	// ModuleERC20Contract is the compiled oec erc20 contract
 	ModuleERC20Contract CompiledContract
-	// TODO cronos ---> oec
 
 	//go:embed contracts/ModuleERC20.json
 	moduleERC20Json []byte

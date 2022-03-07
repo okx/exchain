@@ -87,7 +87,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	if _, err := k.callModuleERC20(
 		ctx,
 		contract,
-		"mint_by_cronos_module",
+		"mint_by_oec_module",
 		common.BytesToAddress(from.Bytes()),
 		voucher.Amount.BigInt()); err != nil {
 		return err

@@ -16,11 +16,11 @@ var (
 )
 
 const (
-	SendToIbcEventName = "__CronosSendToIbc"
+	SendToIbcEventName = "__OecSendToIbc"
 )
 
 // SendToIbcEvent represent the signature of
-// `event __CronosSendToIbc(string recipient, uint256 amount)`
+// `event __OecSendToIbc(string recipient, uint256 amount)`
 var SendToIbcEvent abi.Event
 
 func init() {
