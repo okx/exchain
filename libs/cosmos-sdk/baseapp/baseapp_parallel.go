@@ -3,9 +3,9 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
 	"time"
@@ -313,7 +313,8 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			txIndex++
 			if txIndex == len(txs) {
 				ParaLog.Update(uint64(app.deliverState.ctx.BlockHeight()), len(txs), rerunIdx)
-				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs), "Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx)
+				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs),
+					"Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx, "len(group)", len(groupList))
 				signal <- 0
 				return
 			}
@@ -327,6 +328,9 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 	pm.workgroup.resultCb = asyncCb
 	pm.workgroup.taskRun = app.asyncDeliverTx
 
+	if groupList[0][0] != 0 {
+		pm.workgroup.AddTask(txs[0], 0)
+	}
 	for _, group := range groupList {
 		txIndex := group[0]
 		pm.workgroup.AddTask(txs[txIndex], txIndex)
@@ -433,12 +437,6 @@ func (e executeResult) Conflict(cc *conflictCheck) bool {
 
 	return false
 }
-
-var (
-	whiteAccountList = map[string]bool{
-		"01f1829676db577682e944fc3493d451b67ff3e29f": true, //fee
-	}
-)
 
 func (e executeResult) GetCounter() uint32 {
 	return e.counter
@@ -593,8 +591,12 @@ func (c *conflictCheck) clear() {
 	c.items = make(map[string][]byte, 0)
 }
 
+var (
+	whiteAcc = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
+)
+
 func (c *conflictCheck) isConflict(key string, vaule []byte) bool {
-	if whiteAccountList[hex.EncodeToString([]byte(key))] {
+	if key == whiteAcc {
 		return false
 	}
 
@@ -746,9 +748,7 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		return true
 	}, nil)
 	f.currIndex = d
-	f.cms.Write()
 	f.mu.Unlock()
-
 	<-chanStop
 }
 

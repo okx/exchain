@@ -132,11 +132,12 @@ func (store *Store) Write() {
 
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
-	keys := make([]string, 0, len(store.dirty))
-	for key, dbValue := range store.dirty {
-		if dbValue.dirty {
-			keys = append(keys, key)
-		}
+	keys := make([]string, len(store.dirty))
+	index := 0
+	for key, _ := range store.dirty {
+		keys[index] = key
+		index++
+
 	}
 
 	sort.Strings(keys)
