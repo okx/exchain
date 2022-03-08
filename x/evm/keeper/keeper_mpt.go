@@ -15,14 +15,6 @@ import (
 	"time"
 )
 
-const (
-	FlagContractStateCache = "contract-state-cache"
-)
-
-var (
-	ContractStateCache uint = 2048 // MB
-)
-
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	hhash := sdk.Uint64ToBigEndian(height)

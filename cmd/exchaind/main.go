@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/app/logevents"
-	"github.com/okex/exchain/libs/mpt"
-	"github.com/okex/exchain/libs/types"
-	"github.com/okex/exchain/x/evm/keeper"
 	"io"
 
 	"github.com/okex/exchain/app/rpc"
@@ -84,7 +81,7 @@ func main() {
 		),
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
-		replayCmd(ctx),
+		replayCmd(ctx, client.RegisterAppFlag),
 		repairStateCmd(ctx),
 		displayStateCmd(ctx),
 		migrateCmd(ctx),
@@ -108,11 +105,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
-	rootCmd.PersistentFlags().BoolVar(&types.TrieDirtyDisabled, types.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	rootCmd.PersistentFlags().BoolVar(&types.EnableDoubleWrite, types.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
-	rootCmd.PersistentFlags().BoolVar(&types.MptAsnyc, types.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
-	rootCmd.PersistentFlags().UintVar(&keeper.ContractStateCache, keeper.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
-	rootCmd.PersistentFlags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
+
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
