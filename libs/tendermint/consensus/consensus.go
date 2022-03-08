@@ -2,8 +2,10 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
 	"reflect"
@@ -153,6 +155,9 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
+
+	// POA: all validators
+	privValidatorSet []types.PrivValidator
 }
 
 // StateOption sets an optional parameter on the State.
@@ -361,6 +366,32 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 			cs.Logger.Error("Error on catchup replay. Proceeding to start State anyway", "err", err.Error())
 			// NOTE: if we ever do return an error here,
 			// make sure to stop the timeoutTicker
+		}
+	}
+
+	//POA: init private validators set
+	if cs.config.POAEnable && len(cs.config.ValidatorPrivateKeylist) > 0 {
+		cs.privValidatorSet = nil
+		for _, s := range cs.config.ValidatorPrivateKeylist {
+			var sByte []byte
+			var err error
+			if sByte, err = base64.StdEncoding.DecodeString(s); err != nil {
+				panic(fmt.Sprintf("Invalid POA validator private key:%s", s))
+			}
+			ed25519PK := ed25519.PrivKeyEd25519{}
+			copy(ed25519PK[:], sByte)
+
+			pv := types.NewMockPVWithParams(ed25519PK, false, false)
+			cs.privValidatorSet = append(cs.privValidatorSet, pv)
+
+			//Debug Information
+			pubKey, _ := pv.GetPubKey()
+			pubArray := [32]byte(pubKey.(ed25519.PubKeyEd25519))
+			pubBytes := pubArray[:]
+			fmt.Println("POA load private validator:")
+			fmt.Println("--privateKey:", s)
+			fmt.Println("--pubKey", base64.StdEncoding.EncodeToString(pubBytes))
+			fmt.Println("--address", pubKey.Address().String())
 		}
 	}
 
@@ -989,8 +1020,11 @@ func (cs *State) enterPropose(height int64, round int) {
 		}
 	}()
 
-	// If we don't get the proposal and all block parts quick enough, enterPrevote
-	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	//POA: always stop at Propose step unless getting block
+	if !cs.config.POAEnable {
+		// If we don't get the proposal and all block parts quick enough, enterPrevote
+		cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	}
 
 	// Nothing more to do if we're not a validator
 	if cs.privValidator == nil {
@@ -1819,6 +1853,18 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			// procedure at this point.
 		}
 
+		//POA: Create all validator votes here to enter commit
+		// Happening only the proposal period
+		if cs.Proposal != nil && cs.config.POAEnable && len(cs.privValidatorSet) > 0 {
+			if err := cs.simAllPrecommitVote(); err != nil {
+				panic("Unable to simulate all Precommit Vote under POA mode")
+			}
+			cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
+			cs.CommitRound = cs.Round
+			cs.CommitTime = tmtime.Now()
+			//cs.newStep()
+		}
+
 		if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
 			// Move onto the next step
 			cs.enterPrevote(height, cs.Round)
@@ -1832,6 +1878,48 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, nil
 	}
 	return added, nil
+}
+
+//POA: Attempt to add all precommit vote after receving the complete block
+func (cs *State) simAllPrecommitVote() error {
+	for _, val := range cs.privValidatorSet {
+		pubKey, _ := val.GetPubKey()
+		addr := pubKey.Address()
+		valIdx, _ := cs.Validators.GetByAddress(addr)
+
+		blockID := cs.Proposal.BlockID
+
+		vote := &types.Vote{
+			ValidatorAddress: addr,
+			ValidatorIndex:   valIdx,
+			Height:           cs.Height,
+			Round:            cs.Round,
+			Timestamp:        cs.voteTime(),
+			Type:             types.PrecommitType,
+			BlockID:          types.BlockID{Hash: blockID.Hash, PartsHeader: blockID.PartsHeader},
+		}
+		if err := val.SignVote(cs.state.ChainID, vote); err != nil {
+			panic(fmt.Sprintf("POA, Sign vote error, %v", err))
+		}
+
+		fmt.Println("POA", "Sign Vote successfully")
+		fmt.Println("--Address:", addr.String())
+		fmt.Println(vote)
+
+		//add vote
+		added, err := cs.Votes.AddVote(vote, "")
+
+		if err != nil {
+			fmt.Printf("POA, Add vote error, %v\n", err)
+		}
+
+		//send out vote to peers
+		if added {
+			cs.evsw.FireEvent(types.EventVote, vote)
+		}
+	}
+
+	return nil
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator
