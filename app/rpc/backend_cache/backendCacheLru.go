@@ -90,6 +90,7 @@ func (alc *BackendLruCache) GetBlockByHash(hash common.Hash) (*rpctypes.Block, e
 }
 func (alc *BackendLruCache) AddOrUpdateBlock(hash common.Hash, block *rpctypes.Block) {
 	alc.addDataToLru(LruKeyBlock, hash, block)
+	alc.AddOrUpdateBlockHash(uint64(block.Number), hash)
 	if block.Transactions != nil {
 		txs, ok := block.Transactions.([]*rpctypes.Transaction)
 		if ok {

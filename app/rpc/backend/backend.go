@@ -113,17 +113,19 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error) {
+	//query block in cache first
 	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
 	if err == nil {
 		return block, nil
 	}
-
+	//query block from watch db
 	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
 	if err == nil {
+		//update block to cache
 		b.backendCache.AddOrUpdateBlock(block.Hash, block)
-		b.backendCache.AddOrUpdateBlockHash(uint64(blockNum), block.Hash)
 		return block, nil
 	}
+	//query block from db
 	height := blockNum.Int64()
 	if height <= 0 {
 		// get latest block height
@@ -144,21 +146,23 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpc
 		return nil, err
 	}
 	b.backendCache.AddOrUpdateBlock(block.Hash, block)
-	b.backendCache.AddOrUpdateBlockHash(uint64(blockNum), block.Hash)
 	return block, nil
 }
 
 // GetBlockByHash returns the block identified by hash.
 func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*rpctypes.Block, error) {
+	//query block in cache first
 	block, err := b.backendCache.GetBlockByHash(hash)
 	if err == nil {
 		return block, err
 	}
+	//query block from watch db
 	block, err = b.wrappedBackend.GetBlockByHash(hash, true)
 	if err == nil {
 		b.backendCache.AddOrUpdateBlock(hash, block)
 		return block, nil
 	}
+	//query block from tendermint
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
@@ -178,6 +182,7 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*rpctypes.Block, er
 	if err != nil {
 		return nil, err
 	}
+	b.backendCache.AddOrUpdateBlock(hash, block)
 	return block, nil
 }
 
@@ -376,15 +381,18 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 }
 
 func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+	// query tx in cache first
 	tx, err := b.backendCache.GetTransaction(hash)
 	if err == nil {
 		return tx, err
 	}
+	// query tx in watch db
 	tx, err = b.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {
+		b.backendCache.AddOrUpdateTransaction(hash, tx)
 		return tx, nil
 	}
-
+	// query tx in tendermint
 	txRes, err := b.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		return nil, err
