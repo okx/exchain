@@ -425,11 +425,13 @@ func (e executeResult) Conflict(currentDirty map[string][]byte) bool {
 		if whiteAccountList[hex.EncodeToString([]byte(k))] {
 			continue
 		}
-		current := currentDirty[k]
-		if !bytes.Equal(v.value, current) {
-			return true
-		}
 
+		if dirtyItem, ok := currentDirty[k]; ok {
+			if !bytes.Equal(v.value, dirtyItem) {
+				//fm/**/t.Println("------conflict------", "key", hex.EncodeToString(byteK), "readvalue", hex.EncodeToString(v), "currValue", hex.EncodeToString(dirtyItem.Value), dirtyItem.Dirty, dirtyItem.Deleted)
+				return true
+			}
+		}
 	}
 
 	return false
