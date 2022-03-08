@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/global"
 	"math/big"
 	"regexp"
 )
@@ -97,16 +96,20 @@ func ZeroFee() Coin {
 // ValidateDenom validates a denomination string returning an error if it is
 // invalid.
 func ValidateDenom(denom string) error {
-	// TODO
-	if global.IBCEnable{
-		if !validIBCCoinDenom(denom){
-			return fmt.Errorf("invalid denom: %s", denom)
-		}
-	}else{
-		if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
-			return fmt.Errorf("invalid denom: %s", denom)
-		}
+	// TODO ,height
+	if !validIBCCoinDenom(denom) {
+		return fmt.Errorf("invalid denom: %s", denom)
 	}
+
+	//if global.IBCEnable{
+	//	if !validIBCCoinDenom(denom){
+	//		return fmt.Errorf("invalid denom: %s", denom)
+	//	}
+	//}else{
+	//	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
+	//		return fmt.Errorf("invalid denom: %s", denom)
+	//	}
+	//}
 	return nil
 }
 

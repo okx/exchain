@@ -806,7 +806,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 				break
 			}
 		}
-
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {

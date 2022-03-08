@@ -8,7 +8,7 @@
     "account-prefix": "ex",
     "keyring-backend": "test",
     "gas-adjustment": 1.5,
-    "gas-prices": "0.001okt",
+    "gas-prices": "0.000001okt",
     "debug": true,
     "timeout": "10s",
     "output-format": "json",
