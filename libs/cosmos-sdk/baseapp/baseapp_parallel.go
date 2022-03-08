@@ -140,7 +140,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				rerunIdx++
 				s.reRun = true
 				res = app.deliverTxWithCache(txs[txIndex])
-
 			}
 			if s.anteErr != nil {
 				res.ms = nil

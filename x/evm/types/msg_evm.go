@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"sync/atomic"
 
@@ -51,7 +52,14 @@ func (tx MsgEthereumTx) GetType() sdk.TransactionType {
 
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	// only cache from but not signer
+	log.Printf("SetFrom %s\n", addr)
 	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
+}
+
+func (tx *MsgEthereumTx) SetFromUseSigCache(sigCache sdk.SigCache) {
+	// only cache from but not signer
+	//log.Printf("SetFrom %s\n")
+	tx.from.Store(sigCache)
 }
 
 func (msg MsgEthereumTx) GetFee() sdk.Coins {

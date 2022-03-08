@@ -1,10 +1,13 @@
 package baseapp
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/adb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"sync"
 	"time"
 )
@@ -34,8 +37,8 @@ type DeliverTxTask struct {
 	info          *runTxInfo
 	from          adb.Address
 	fee           sdk.Coins
-	//isEvm         bool
-	//signCache     sdk.SigCache
+	isEvm         bool
+	signCache     sdk.SigCache
 	//evmIndex      uint32
 	err error
 }
@@ -119,22 +122,9 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		if taskIndex == dm.totalCount {
 			break
 		}
-
-		////remaining := taskIndex - (dm.getCurIndex() + 1) //- numTasks - numPending
-		//switch {
-		////case remaining >= maxDeliverTxsConcurrentNum:
-		//case dm.isWaiting(true):
-		//	<-dm.nextSignal
-		//	dm.executeSignalCount--
-		//	if dm.executeSignalCount < 0 {
-		//		dm.app.logger.Error("dm.executeSignalCount < 0", "count", dm.executeSignalCount)
-		//	}
-		//
-		//default:
 		dm.makeNextTask(txs[taskIndex], taskIndex)
 		taskIndex++
 		dm.incrementWaitingCount(true)
-		//}
 	}
 }
 
@@ -158,27 +148,26 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 
 	// execute ante
 	task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-	task.fee, _, _ = dm.app.getTxFee(task.info.ctx, task.tx)
-
+	task.fee, task.isEvm, task.signCache = dm.app.getTxFee(task.info.ctx, task.tx)
+	task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
-	// dm.app.pin(ValTxMsgs, true, mode)
 	if err := validateBasicTxMsgs(task.tx.GetMsgs()); err != nil {
 		task.err = err
 		dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		return
 	}
-	// dm.app.pin(ValTxMsgs, false, mode)
 
-	// dm.app.pin(RunAnte, true, mode)
-	if dm.app.anteHandler != nil {
-		err := dm.runAnte(task.info, mode)
+	if dm.app.anteAuthHandler != nil {
+		//if global.GetGlobalHeight() == 5810736 {
+		//	dm.app.logger.Info("runAnte 1", "index", task.index)
+		//}
+		err := dm.runAnte(task, mode) // dm.app.runAnte(task.info, mode)
 		if err != nil {
 			dm.app.logger.Error("ante failed 1", "err", err)
 			task.anteFailed = true
 		}
 	}
-	// dm.app.pin(RunAnte, false, mode)
 
 	elapsed := time.Since(start).Microseconds()
 	dm.anteDuration += elapsed
@@ -213,8 +202,8 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.tasks.Delete(task.index)
 }
 
-func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error {
-	//fmt.Printf("runAnte start. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
+func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask, mode runTxMode) error {
+	info := task.info
 	var anteCtx sdk.Context
 
 	// Cache wrap context before AnteHandler call in case it aborts.
@@ -226,9 +215,7 @@ func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error 
 	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = dm.app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-	//fmt.Printf("runAnte 1. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
-	newCtx, err := dm.app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
-	//fmt.Printf("runAnte 2. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
+	newCtx, err := dm.app.anteAuthHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
@@ -242,18 +229,24 @@ func (dm *DeliverTxTasksManager) runAnte(info *runTxInfo, mode runTxMode) error 
 		// the instantiated gas meter in the AnteHandler, so we update the context
 		// prior to returning.
 		info.ctx = newCtx.WithMultiStore(ms)
+		dm.updateEvmTxFrom(task)
 	}
-	//fmt.Printf("runAnte 3. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
-
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
-	//fmt.Printf("runAnte 4. gasWanted:%d, startingGas:%d, gasMeter:%d, gasMLimit:%d, bGasMeter:%d\n", info.gasWanted, info.startingGas, info.ctx.GasMeter().GasConsumed(), info.ctx.GasMeter().Limit(), info.ctx.BlockGasMeter().GasConsumed())
-
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (dm *DeliverTxTasksManager) updateEvmTxFrom(task *DeliverTxTask) {
+	if task.isEvm && dm.app.evmTxFromHandler != nil {
+		evmTx, ok := dm.app.evmTxFromHandler(task.info.ctx, task.tx)
+		if ok {
+			task.info.tx = evmTx
+		}
+	}
 }
 
 func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
@@ -283,9 +276,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		handleGasFn := func() {
 			gasStart := time.Now()
 
-			// dm.app.pin(Refund, true, mode)
 			handler.handleDeferRefund(info)
-			// dm.app.pin(Refund, false, mode)
 
 			handler.handleDeferGasConsumed(info)
 
@@ -308,11 +299,7 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		}
 
 		// execute anteHandler failed
-		//var execResult *executeResult
-		if dm.executingTask.err != nil { //&& dm.executingTask.decodeFailed {
-			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
-			//dm.txExeResults[dm.executingTask.index] = execResult
-
+		if dm.executingTask.err != nil {
 			txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
 			execFinishedFn(txRs)
 			continue
@@ -323,52 +310,88 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 		dm.handleGasTime += time.Since(gasStart).Microseconds()
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
-			//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
-			//dm.txExeResults[dm.executingTask.index] = execResult
 
-			txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace)
+			txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace)
 			execFinishedFn(txRs)
 			continue
 		}
 
 		// todo: if ante failed during concurrently executing, try it again
-		if dm.executingTask.anteFailed {
-			// dm.app.pin(RunAnte, true, mode)
-			if dm.app.anteHandler != nil {
-				start := time.Now()
-				mode := runTxModeDeliverPartConcurrent
-				err := dm.runAnte(info, mode)
-				elasped := time.Since(start).Microseconds()
-				dm.gasAndMsgsDuration -= elasped
-				totalRerunAnteTime += elasped
-				if err != nil {
-					dm.app.logger.Error("ante failed 2", "err", err)
-					//execResult = newExecuteResult(sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace), nil, uint32(dm.executingTask.index), uint32(0))
-					//dm.txExeResults[dm.executingTask.index] = execResult
+		if dm.executingTask.anteFailed && dm.app.anteAuthHandler != nil {
+			start := time.Now()
+			//if global.GetGlobalHeight() == 5810736 {
+			//	dm.app.logger.Info("runAnte 2", "index", dm.executingTask.index)
+			//}
+			err := dm.runAnte(dm.executingTask, runTxModeDeliverPartConcurrent) // dm.app.runAnte(info, mode)
+			elasped := time.Since(start).Microseconds()
+			dm.gasAndMsgsDuration -= elasped
+			totalRerunAnteTime += elasped
+			if err != nil {
+				dm.app.logger.Error("ante failed 2", "err", err)
+				//if dm.app.deductFeeHandler != nil {
+				//	err = dm.app.deductFeeHandler(info.ctx, info.tx)
+				//}
 
-					txRs := sdkerrors.ResponseDeliverTx(dm.executingTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
+				txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace) //execResult.GetResponse()
+				handleGasFn()
+				execFinishedFn(txRs)
+				continue
+			}
+		}
+		// update fee
+		txType := dm.executingTask.tx.GetType()
+		switch txType {
+		case sdk.StdTxType:
+			if dm.app.deductFeeHandler != nil {
+				//if global.GetGlobalHeight() == 5810736 {
+				//	dm.app.logger.Info("deductFee", "index", dm.executingTask.index)
+				//}
+				err := dm.app.deductFeeHandler(info.ctx, info.tx)
+				if err != nil {
+					dm.app.logger.Error("ante failed 3", "err", err)
+					txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace) //execResult.GetResponse()
 					handleGasFn()
 					execFinishedFn(txRs)
-					// dm.app.pin(RunAnte, false, mode)
 					continue
 				}
 			}
-			// dm.app.pin(RunAnte, false, mode)
+		case sdk.EvmTxType:
+			if dm.app.ethGasConsumeHandler != nil {
+				if !dm.executingTask.isEvm {
+					dm.app.logger.Error("is not an evm tx")
+				}
+				//if global.GetGlobalHeight() == 5810736 {
+				//	dm.app.logger.Info("ethGasConsume", "index", dm.executingTask.index)
+				//}
+				newCtx, err := dm.app.ethGasConsumeHandler(info.ctx, info.tx)
+				if err != nil {
+					dm.app.logger.Error("ante failed 3", "err", err)
+					txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace) //execResult.GetResponse()
+					handleGasFn()
+					execFinishedFn(txRs)
+					continue
+				} else {
+					dm.executingTask.info.ctx = newCtx
+				}
+			}
+		default:
+
 		}
-		// update fee
+
 		dm.calculateFeeForCollector(dm.executingTask.fee, true)
 
-		// todo: cache is the same for all deliverTx? Maybe it's no need to write cache there.
-		wstart := time.Now()
+		//// todo:
+		//wstart := time.Now()
+		//if global.GetGlobalHeight() == 5810736 {
+		//	printLog("msCacheAnte", info.msCacheAnte)
+		//}
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		dm.writeDuration += time.Since(wstart).Microseconds()
+		//dm.writeDuration += time.Since(wstart).Microseconds()
 
 		// execute runMsgs
 		runMsgStart := time.Now()
-		// dm.app.pin(RunMsg, true, mode)
 		err = handler.handleRunMsg(info)
-		// dm.app.pin(RunMsg, false, mode)
 		runMsgE := time.Since(runMsgStart).Microseconds()
 		dm.runMsgsTime += runMsgE
 
@@ -387,13 +410,8 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 				Events:    info.result.Events.ToABCIEvents(),
 			}
 		}
-		//execResult = newExecuteResult(resp, info.msCache, uint32(dm.executingTask.index), dm.executingTask.evmIndex)
-		//execResult.err = err
-		//dm.txExeResults[dm.executingTask.index] = execResult
-		//txRs := execResult.GetResponse()
 		execFinishedFn(resp)
 	}
-	//dm.app.logger.Error("BlockGasMeter", "v", dm.app.deliverState.ctx.BlockGasMeter().GasConsumed())
 
 	// all txs are executed
 	if finished == dm.totalCount {
@@ -408,6 +426,10 @@ func (dm *DeliverTxTasksManager) runTxSerialRoutine() {
 	} else {
 		dm.app.logger.Error("finished count is not equal to total count", "finished", finished, "total", dm.totalCount)
 	}
+}
+
+func (dm *DeliverTxTasksManager) consumeGas()  {
+
 }
 
 func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
@@ -444,15 +466,19 @@ func (dm *DeliverTxTasksManager) resetExecutingTask() {
 	dm.executingTask = nil
 }
 
-//func (dm *DeliverTxTasksManager) isWaiting(newTask bool) bool {
-//	dm.mtx.Lock()
-//	defer dm.mtx.Unlock()
-//	if newTask {
-//		return dm.waitingCount >= maxDeliverTxsConcurrentNum
-//	} else {
-//		return dm.waitingCount >= maxDeliverTxsConcurrentNum-1
-//	}
-//}
+func printLog(msg string, cache sdk.CacheMultiStore) {
+	height := global.GetGlobalHeight()
+	if height == 5810736 {
+		//fmt.Println(msg)
+		cache.IteratorCache(func(key, value []byte, isDirty bool) bool {
+			if isDirty {
+				fmt.Println(msg, hex.EncodeToString(key), hex.EncodeToString(value))
+			}
+			return true
+		})
+		fmt.Println("---------------------------------------------------------------------")
+	}
+}
 
 func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 	if increment {
@@ -484,12 +510,6 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		}
 	}
 }
-
-//func (dm *DeliverTxTasksManager) getCurIndex() int {
-//	dm.mtx.Lock()
-//	defer dm.mtx.Unlock()
-//	return dm.curIndex
-//}
 
 //-------------------------------------------------------------
 

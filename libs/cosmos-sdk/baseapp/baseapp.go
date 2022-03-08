@@ -146,6 +146,11 @@ type BaseApp struct { // nolint: maligned
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
 
+	anteAuthHandler  sdk.AnteHandler
+	deductFeeHandler sdk.DeductFeeHandler
+	ethGasConsumeHandler sdk.EthGasConsumeHandler
+	evmTxFromHandler sdk.EvmTxFromHandler
+
 	// volatile states:
 	//
 	// checkState is set on InitChain and reset on Commit

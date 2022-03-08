@@ -30,9 +30,14 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
 	}
 
+	//if global.GetGlobalHeight() == 5810736 {
+	//	hexacc := hex.EncodeToString(acc)
+	//	if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+	//		feeCoins := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins()
+	//		log.Printf("From FeeCollector: %x origin:%x now:%x\n", refundFees[0].Amount, coins[0].Amount, feeCoins[0].Amount)
+	//	}
+	//}
 	err := supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.FeeCollectorName, acc, refundFees)
-	//feeCoins := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins()
-	//log.Printf("From FeeCollector: %x origin:%x now:%x\n", refundFees[0].Amount, coins[0].Amount, feeCoins[0].Amount)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}

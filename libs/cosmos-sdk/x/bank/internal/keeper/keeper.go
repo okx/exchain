@@ -351,7 +351,6 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	if err != nil {
 		panic(err)
 	}
-
 	keeper.ak.SetAccount(ctx, acc)
 	return nil
 }

@@ -171,3 +171,31 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.getTxFee = txFee
 	app.logFix = fixLog
 }
+
+func (app *BaseApp) SetAnteAuthHandler(aah sdk.AnteHandler) {
+	if app.sealed {
+		panic("SetAnteAuthHandler() on sealed BaseApp")
+	}
+	app.anteAuthHandler = aah
+}
+
+func (app *BaseApp) SetDeductFeeHandler(deductFeeh sdk.DeductFeeHandler)  {
+	if app.sealed {
+		panic("SetDeductFeeHandler() on sealed BaseApp")
+	}
+	app.deductFeeHandler = deductFeeh
+}
+
+func (app *BaseApp) SetEthGasConsumeHandler(ethGasConsumeH sdk.EthGasConsumeHandler)  {
+	if app.sealed {
+		panic("SetEthGasConsumeHandler() on sealed BaseApp")
+	}
+	app.ethGasConsumeHandler = ethGasConsumeH
+}
+
+func (app *BaseApp) SetEvmTxFromHandler(evmTxFromH sdk.EvmTxFromHandler)  {
+	if app.sealed {
+		panic("SetEvmTxFromHandler() on sealed BaseApp")
+	}
+	app.evmTxFromHandler = evmTxFromH
+}

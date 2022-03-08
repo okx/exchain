@@ -1,10 +1,12 @@
 package ante
 
 import (
+	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"log"
 )
 
 // EthMempoolFeeDecorator validates that sufficient fees have been provided that
@@ -33,6 +35,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	log.Printf("EthMempoolFee from: %s\n", hex.EncodeToString(msgEthTx.From().Bytes()))
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}

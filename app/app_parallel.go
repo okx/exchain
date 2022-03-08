@@ -13,6 +13,8 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
+		//feeCollectorAcc := sk.GetModuleAddress(auth.FeeCollectorName)
+		//fmt.Println("FeeCollectorAcc", feeCollectorAcc)
 		return bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
 	}
 }
@@ -37,5 +39,21 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(execResults [][]string) (logs [][]byte) {
 		return ek.FixLog(execResults)
+	}
+}
+
+
+// evmTxFromHandler get tx fee for evm tx
+func evmTxFromHandler() sdk.EvmTxFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (sdk.Tx, bool) {
+		if ctx.SigCache() != nil {
+			if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
+				evmTx.SetFromUseSigCache(ctx.SigCache())
+				//log.Printf("evmTxFromHandler from: %s\n", hex.EncodeToString(evmTx.From().Bytes()))
+				return evmTx, true
+			}
+		}
+
+		return evmtypes.MsgEthereumTx{}, false
 	}
 }

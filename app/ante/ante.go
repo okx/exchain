@@ -80,6 +80,60 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 	}
 }
 
+func NewAnteAuthHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
+	return func(
+		ctx sdk.Context, tx sdk.Tx, sim bool,
+	) (newCtx sdk.Context, err error) {
+		var anteHandler sdk.AnteHandler
+		switch tx.GetType() {
+		case sdk.StdTxType:
+			anteHandler = sdk.ChainAnteDecorators(
+				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+				NewAccountSetupDecorator(ak),
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+				authante.NewMempoolFeeDecorator(),
+				authante.NewValidateBasicDecorator(),
+				authante.NewValidateMemoDecorator(ak),
+				authante.NewConsumeGasForTxSizeDecorator(ak),
+				authante.NewSetPubKeyDecorator(ak),        // SetPubKeyDecorator must be called before all signature verification decorators
+				authante.NewValidateSigCountDecorator(ak), // TODO: it seems can be merged into NewSetPubKeyDecorator
+				//authante.NewDeductFeeDecorator(ak, sk),    // todo: why should put this into AnteHandler as it will change the value of FeeCollector
+				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+				authante.NewSigVerificationDecorator(ak),
+				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				NewValidateMsgHandlerDecorator(validateMsgHandler),
+			)
+
+		case sdk.EvmTxType:
+
+			if ctx.IsWrappedCheckTx() {
+				anteHandler = sdk.ChainAnteDecorators(
+					NewNonceVerificationDecorator(ak),
+					NewIncrementSenderSequenceDecorator(ak),
+				)
+			} else {
+				anteHandler = sdk.ChainAnteDecorators(
+					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+					NewGasLimitDecorator(evmKeeper),
+					NewEthMempoolFeeDecorator(evmKeeper),
+					authante.NewValidateBasicDecorator(),
+					NewEthSigVerificationDecorator(),
+					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+					NewAccountVerificationDecorator(ak, evmKeeper),
+					NewNonceVerificationDecorator(ak),
+					//NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+				)
+			}
+
+		default:
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+		}
+
+		return anteHandler(ctx, tx, sim)
+	}
+}
+
 // sigGasConsumer overrides the DefaultSigVerificationGasConsumer from the x/auth
 // module on the SDK. It doesn't allow ed25519 nor multisig thresholds.
 func sigGasConsumer(
