@@ -11,8 +11,15 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
-const FlagUseCompositeKey string = "use-composite-key"
-var UseCompositeKey = true
+const (
+	FlagContractStateCache = "contract-state-cache"
+	FlagUseCompositeKey string = "use-composite-key"
+)
+
+var (
+	ContractStateCache uint = 2048 // MB
+	UseCompositeKey = true
+)
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)

@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"github.com/VictoriaMetrics/fastcache"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -14,14 +15,6 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
 	"math/big"
-)
-
-const (
-	FlagContractStateCache = "contract-state-cache"
-)
-
-var (
-	ContractStateCache uint = 2048 // MB
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -61,6 +54,22 @@ type Keeper struct {
 	stateCache     *fastcache.Cache
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
+
+	// cache chain config
+	chainConfigInfo *chainConfigInfo
+}
+
+type chainConfigInfo struct {
+	// found chainConfig is meaningful(not empty).
+	found bool
+
+	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
+	// nil means invalid the cache, we should cache it again.
+	chainConfig *types.ChainConfig
+
+	// gasReduced: cached chain config reduces gas costs.
+	// when use cached chain config, we restore the gas cost(gasReduced)
+	gasReduced sdk.Gas
 }
 
 // NewKeeper generates new evm module keeper
@@ -99,8 +108,9 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 
-		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
+		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
+		chainConfigInfo: &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -128,7 +138,7 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		stateCache:     fastcache.New(int(ContractStateCache) * 1024 * 1024),
+		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
 
@@ -260,8 +270,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address ethcmn.Address) (type
 	return storage, nil
 }
 
-// GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+// getChainConfig get raw chain config and unmarshal it
+func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -275,7 +286,30 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
+
 	return config, true
+}
+
+// GetChainConfig gets chain config, the result if from cached result, or
+// it gains chain config and gas costs from getChainConfig, then
+// cache the chain config and gas costs.
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately, and increase gas costs.
+	if k.chainConfigInfo.chainConfig != nil {
+		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
+		return *k.chainConfigInfo.chainConfig, k.chainConfigInfo.found
+	}
+
+	gasStart := ctx.GasMeter().GasConsumed()
+	chainConfig, found := k.getChainConfig(ctx)
+	gasStop := ctx.GasMeter().GasConsumed()
+
+	// cache chain config result
+	k.chainConfigInfo.found = found
+	k.chainConfigInfo.chainConfig = &chainConfig
+	k.chainConfigInfo.gasReduced = gasStop - gasStart
+
+	return chainConfig, found
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
@@ -284,6 +318,9 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+
+	// invalid the chainConfig
+	k.chainConfigInfo.chainConfig = nil
 }
 
 // SetGovKeeper sets keeper of gov
