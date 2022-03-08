@@ -380,16 +380,21 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 	return rpcTx, nil
 }
 
-func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *rpctypes.Transaction, err error) {
 	// query tx in cache first
-	tx, err := b.backendCache.GetTransaction(hash)
+	tx, err = b.backendCache.GetTransaction(hash)
 	if err == nil {
 		return tx, err
 	}
+	defer func() {
+		if err == nil && tx != nil {
+			b.backendCache.AddOrUpdateTransaction(hash, tx)
+		}
+	}()
+
 	// query tx in watch db
 	tx, err = b.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {
-		b.backendCache.AddOrUpdateTransaction(hash, tx)
 		return tx, nil
 	}
 	// query tx in tendermint
@@ -413,11 +418,17 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (*rpctypes.Tra
 
 	height := uint64(txRes.Height)
 	tx, err = rpctypes.NewTransaction(ethTx, common.BytesToHash(txRes.Tx.Hash(txRes.Height)), blockHash, height, uint64(txRes.Index))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return tx, nil
 	}
-	b.backendCache.AddOrUpdateTransaction(hash, tx)
-	return tx, nil
+
+	// check if the tx is on the mempool
+	pendingTx, pendingErr := b.PendingTransactionsByHash(hash)
+	if pendingErr != nil {
+		//to keep consistent with rpc of ethereum, should be return nil
+		return nil, nil
+	}
+	return pendingTx, nil
 }
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.

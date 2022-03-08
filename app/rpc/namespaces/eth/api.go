@@ -1004,12 +1004,16 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (blo
 	defer func() {
 		//extract tx hashs when not fullTx
 		if err == nil && blockRes != nil && !fullTx {
-			blockRes = modifyTransactions(blockRes)
+			blockRes = modifyTransactionsInBlock(blockRes)
 		}
 	}()
 	return
 }
-func modifyTransactions(blockIn *rpctypes.Block) *rpctypes.Block {
+
+//modifyTransactionsInBlock modifies the block.Transactions from  []Transaction to []common.hash
+//only when the fullTx is false.
+func modifyTransactionsInBlock(blockIn *rpctypes.Block) *rpctypes.Block {
+	//make a shallow copy of Block to modify block.Transactions from  []Transaction to []common.hash
 	block := *blockIn
 	if block.Transactions == nil {
 		block.Transactions = []common.Hash{}
@@ -1032,9 +1036,9 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 
 	defer func() {
-		//extract tx hashs when not fullTx
+		//modify block.Transactions to hashs when not fullTx
 		if err == nil && blockRes != nil && !fullTx {
-			blockRes = modifyTransactions(blockRes)
+			blockRes = modifyTransactionsInBlock(blockRes)
 		}
 	}()
 
@@ -1089,17 +1093,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
-	rawTx, err := api.backend.GetTransactionByHash(hash)
-	if err == nil {
-		return rawTx, nil
-	}
-	// check if the tx is on the mempool
-	pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
-	if pendingErr != nil {
-		//to keep consistent with rpc of ethereum, should be return nil
-		return nil, nil
-	}
-	return pendingTx, nil
+	return api.backend.GetTransactionByHash(hash)
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
