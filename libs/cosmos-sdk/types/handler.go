@@ -96,6 +96,7 @@ var (
 
 		conflictTime: time.Duration(0),
 		mergeTime:    time.Duration(0),
+		endTime:      time.Duration(0),
 	}
 )
 
@@ -107,6 +108,7 @@ type ScfLog struct {
 
 	conflictTime time.Duration
 	mergeTime    time.Duration
+	endTime      time.Duration
 }
 
 func AddParaAllTIme(ts time.Duration) {
@@ -133,6 +135,9 @@ func AddMergeTime(ts time.Duration) {
 	pLog.mergeTime += ts
 }
 
+func AddEndTime(ts time.Duration) {
+	pLog.endTime += ts
+}
 func PrintTime() {
 	fmt.Println("ParaAllTime", pLog.paraAllTime.Seconds())
 	fmt.Println("PrePare", pLog.prePare.Seconds())
@@ -141,4 +146,5 @@ func PrintTime() {
 
 	fmt.Println("Conflict", pLog.conflictTime.Seconds())
 	fmt.Println("MergeTime", pLog.mergeTime.Seconds())
+	fmt.Println("EndTIme", pLog.endTime.Seconds())
 }

@@ -335,11 +335,13 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txIndex := group[0]
 		pm.workgroup.AddTask(txs[txIndex], txIndex)
 	}
+	var tsEnd time.Time
 
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
 		app.fixFeeCollector(txs, pm.cms)
+		tsEnd = time.Now()
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
@@ -349,6 +351,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 	}
 	pm.cms.Write()
+	sdk.AddEndTime(time.Now().Sub(tsEnd))
 	sdk.AddRunTx(time.Now().Sub(ts))
 	return deliverTxs
 }
