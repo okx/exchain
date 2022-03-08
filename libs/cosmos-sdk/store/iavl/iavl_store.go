@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	ics23 "github.com/confio/ics23/go"
-	"github.com/okex/exchain/global"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"io"
 	"sync"
 
@@ -281,8 +281,7 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	// TODO ,fork
-	if global.IBCEnable {
+	if types2.HigherThanIBCHeight(req.Height) {
 		return st.queryKeyForIBC(req)
 	}
 	if len(req.Data) == 0 {
