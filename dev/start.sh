@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KEY="captain"
-CHAINID="exchain-99"
+CHAINID="exchain-67"
 
 MONIKER="oec"
 CURDIR=`dirname $0`
@@ -28,7 +28,8 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
-      --consensus.timeout_commit 4000ms \
+      --enable-dynamic-gp=false \
+      --consensus.timeout_commit 2000ms \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
@@ -37,11 +38,6 @@ run() {
       --iavl-output-modules evm=0,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
-      --evm-trace-debug=true \
-      --evm-trace-enable=true \
-      --evm-trace-nostack=true \
-      --evm-trace-nostorage=true \
-      --debug-api=true \
       --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
 
 # --iavl-commit-interval-height \
