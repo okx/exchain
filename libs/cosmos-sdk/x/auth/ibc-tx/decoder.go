@@ -84,7 +84,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 					Amount: sdk.NewDecFromBigInt(amount),
 				},
 			},
-			Gas: authInfo.Fee.GasLimit,
+			Gas: ibcTx.AuthInfo.Fee.GasLimit,
 		}
 		signatures := []authtypes.StdSignature{}
 		for i, s := range ibcTx.Signatures {
