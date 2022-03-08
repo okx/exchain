@@ -264,7 +264,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			s := pm.txStatus[txBytes]
 			res := txReps[txIndex]
 
-			if res.Conflict(pm.cms) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			if res.Conflict(pm.currentDirty) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				if pm.workgroup.isRunning(txIndex) {
 					runningTaskID := pm.workgroup.runningStats(txIndex)
 					pm.markFailed(runningTaskID)
@@ -416,7 +416,7 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 	return e.resp
 }
 
-func (e executeResult) Conflict(current sdk.CacheMultiStore) bool {
+func (e executeResult) Conflict(currentDirty map[string][]byte) bool {
 	if e.ms == nil {
 		return true //TODO fix later
 	}
@@ -425,8 +425,8 @@ func (e executeResult) Conflict(current sdk.CacheMultiStore) bool {
 		if whiteAccountList[hex.EncodeToString([]byte(k))] {
 			continue
 		}
-		currentKey := current.GetKVStore(v.sKey).Get([]byte(k))
-		if !bytes.Equal(v.value, currentKey) {
+		current := currentDirty[k]
+		if !bytes.Equal(v.value, current) {
 			return true
 		}
 
@@ -586,6 +586,7 @@ type parallelTxManager struct {
 	mu  sync.RWMutex
 	cms sdk.CacheMultiStore
 
+	currentDirty    map[string][]byte
 	currIndex       int
 	runBase         map[int]int
 	markFailedStats map[int]bool
@@ -620,6 +621,7 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
+		currentDirty:    make(map[string][]byte),
 		currIndex:       -1,
 		runBase:         make(map[int]int),
 		markFailedStats: make(map[int]bool),
@@ -636,6 +638,7 @@ func (f *parallelTxManager) clear() {
 	f.preTxInGroup = make(map[int]int)
 	f.runBase = make(map[int]int)
 	f.currIndex = -1
+	f.currentDirty = make(map[string][]byte, 0)
 	f.markFailedStats = make(map[int]bool)
 
 	f.workgroup.runningStatus = make(map[int]int)
@@ -713,6 +716,7 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 			} else if value != nil {
 				f.cms.GetKVStore(storeKey).Set(key, value)
 			}
+			f.currentDirty[string(key)] = value
 		}
 		return true
 	}, nil)
