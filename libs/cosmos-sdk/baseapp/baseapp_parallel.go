@@ -348,6 +348,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				deliverTxs[index].Data = v
 			}
 		}
+		sdk.AddFixTime(time.Now().Sub(tsEnd))
 
 	}
 	pm.cms.Write()
