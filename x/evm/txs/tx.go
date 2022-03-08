@@ -18,7 +18,7 @@ type Tx interface {
 	// other nodes, causing a consensus error
 	SaveTx(msg *types.MsgEthereumTx)
 
-	// GetChainConfig get chain config
+	// GetChainConfig get chain config(the chain config may cached)
 	GetChainConfig() (types.ChainConfig, bool)
 
 	// GetSenderAccount get sender account
