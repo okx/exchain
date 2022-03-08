@@ -99,7 +99,7 @@ func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas G
 }
 
 func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
-	if c.accountCache == nil && c.accountCache.Enable {
+	if c.accountCache != nil && c.accountCache.Enable {
 		c.accountCache.ToAcc = toAcc
 		c.accountCache.ToAccGotGas = toAccGotGas
 	}
