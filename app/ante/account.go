@@ -244,15 +244,17 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		// consume gas for compatible
 		ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
 
-		ctx.SetAccountCache(&sdk.AccountCache{IsAnte: true})
+		ctx.SetAccountCache(&sdk.AccountCache{Enable: true})
 		// account would be updated
 		ctx, err = ethGasConsume(ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.sk)
+		accCache := ctx.AccountCache()
+		ctx.SetAccountCache(nil)
 		if err != nil {
 			return ctx, err
 		}
 		acc = nil // account has be updated
-		if ctx.AccountCache() != nil && ctx.AccountCache().FromAcc != nil {
-			acc = ctx.AccountCache().FromAcc.(exported.Account)
+		if accCache != nil && accCache.FromAcc != nil {
+			acc = accCache.FromAcc.(exported.Account)
 		}
 	}
 
