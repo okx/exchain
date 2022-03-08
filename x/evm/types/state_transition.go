@@ -13,7 +13,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/x/common/analyzer"
 )
@@ -106,10 +105,8 @@ func (st StateTransition) newEVM(
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
-// TransitionDb will transition the state by applying the current transaction and
-// returning the evm execution result.
-// NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+func (st StateTransition) GenEvm(ctx sdk.Context, config ChainConfig) (evm *vm.EVM, currentGasMeter sdk.GasMeter,
+	gasLimit sdk.Gas, csdb *CommitStateDB, params Params, tracer vm.Tracer, enableDebug bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
@@ -127,7 +124,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
-		return exeRes, resData, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction"), innerTxs, erc20Contracts
+		return
 	}
 
 	consumedGas := ctx.GasMeter().GasConsumed()
@@ -138,34 +135,22 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
-	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
+	gasLimit = st.GasLimit - ctx.GasMeter().GasConsumed()
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
-	currentGasMeter := ctx.GasMeter()
+	currentGasMeter = ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(evmGasMeter)
-	csdb := st.Csdb.WithContext(ctx)
+	csdb = st.Csdb.WithContext(ctx)
 
-	StartTxLog := func(tag string) {
-		if !ctx.IsCheckTx() {
-			analyzer.StartTxLog(tag)
-		}
-	}
-	StopTxLog := func(tag string) {
-		if !ctx.IsCheckTx() {
-			analyzer.StopTxLog(tag)
-		}
-	}
-
-	params := csdb.GetParams()
+	params = csdb.GetParams()
 
 	to := ""
 	if st.Recipient != nil {
 		to = EthAddressStringer(*st.Recipient).String()
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), EthAddressStringer(st.Sender).String(), to)
+	enableDebug = checkTracesSegment(ctx.BlockHeight(), EthAddressStringer(st.Sender).String(), to)
 
-	var tracer vm.Tracer
 	if st.TraceTxLog || enableDebug {
 		tracer = vm.NewStructLogger(evmLogConfig)
 	} else {
@@ -179,7 +164,51 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ContractVerifier: NewContractVerifier(params),
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
+	evm = st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
+
+	return
+}
+
+// TransitionDb will transition the state by applying the current transaction and
+// returning the evm execution result.
+// NOTE: State transition checks are run during AnteHandler execution.
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+	defer func() {
+		if e := recover(); e != nil {
+			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
+			// contract calling
+			switch rType := e.(type) {
+			case ErrContractBlockedVerify:
+				err = ErrCallBlockedContract(rType.Descriptor)
+			default:
+				panic(e)
+			}
+		}
+	}()
+	var (
+		evm             *vm.EVM
+		currentGasMeter sdk.GasMeter
+		gasLimit        sdk.Gas
+		csdb            *CommitStateDB
+		params          Params
+		tracer          vm.Tracer
+		enableDebug     bool
+	)
+
+	evm, currentGasMeter, gasLimit, csdb, params, tracer, enableDebug, err = st.GenEvm(ctx, config)
+
+	contractCreation := st.Recipient == nil
+
+	StartTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StartTxLog(tag)
+		}
+	}
+	StopTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StopTxLog(tag)
+		}
+	}
 
 	var (
 		ret             []byte
