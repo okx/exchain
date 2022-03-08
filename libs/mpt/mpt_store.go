@@ -37,6 +37,7 @@ var (
 	KeyPrefixLatestStoredHeight = []byte{0x02}
 
 	GMptRootHash = ethcmn.Hash{}
+	GMptTrie ethstate.Trie = nil
 )
 
 func InstanceOfMptStore() ethstate.Database {

@@ -888,6 +888,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 	if prefetcher != nil {
 		if trie := prefetcher.trie(csdb.originalRoot); trie != nil {
 			//TODO: csdb.trie = trie
+			mpt.GMptTrie = trie
 		}
 	}
 

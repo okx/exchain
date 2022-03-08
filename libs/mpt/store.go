@@ -184,6 +184,10 @@ func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
 func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) {
 	ms.version++
 
+	if GMptTrie != nil {
+		ms.trie = GMptTrie
+	}
+
 	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
 		storageRoot := ms.retrieval(leaf)
 		if storageRoot != types3.EmptyRootHash && storageRoot != (ethcmn.Hash{}){
@@ -197,6 +201,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
 	GMptRootHash = root
+	GMptTrie = nil
 
 	// TODO: use a thread to push data to database
 	// push data to database
