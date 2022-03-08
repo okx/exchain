@@ -79,7 +79,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
-		nodeCache:               make(map[string]*list.Element),
+		nodeCache:               make(map[string]*list.Element, cacheSize),
 		nodeCacheSize:           cacheSize,
 		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
