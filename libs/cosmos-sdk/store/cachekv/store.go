@@ -58,10 +58,15 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	cacheValue, ok := store.dirty[string(key)]
+	sKey := string(key)
+	cacheValue, ok := store.dirty[sKey]
 	if !ok {
-		value = store.parent.Get(key)
-		store.setCacheValue(key, value, false, false)
+		if c, ok := store.ReadList[sKey]; ok {
+			value = c
+		} else {
+			value = store.parent.Get(key)
+			store.setCacheValue(key, value, false, false)
+		}
 	} else {
 		value = cacheValue.value
 	}
@@ -149,6 +154,7 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.dirty = make(map[string]cValue)
+	store.ReadList = make(map[string][]byte)
 	store.unsortedCache = make(map[string]struct{})
 	store.sortedCache.Init()
 }
