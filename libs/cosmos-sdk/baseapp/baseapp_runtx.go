@@ -134,10 +134,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode == runTxModeDeliver {
 		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
 	}
-	txHASH := types.Bytes2Hash(anteCtx.TxBytes(), anteCtx.BlockHeight())
-	if txHASH == "0xb0c6ff518f265525656db83c9017e1219d6d17e2b250421c4b050708692be00d" {
-		app.logger.Error("ante error", "txhash", txHASH)
-	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
 	if err != nil {

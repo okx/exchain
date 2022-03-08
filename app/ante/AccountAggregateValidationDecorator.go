@@ -33,10 +33,12 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
+	pinAnte(ctx.AnteTracer(), "AccountAggregateValidateDecorator-getParams")
 	evmParams := aavd.evmKeeper.GetParams(ctx)
 	if msgEthTx.GetGas() > evmParams.MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", evmParams.MaxGasLimitPerTx)
 	}
+	pinAnte(ctx.AnteTracer(), "AccountAggregateValidateDecorator-getFrom")
 
 	// simulate means 'eth_call' or 'eth_estimateGas', when it's 'eth_estimateGas' we set the sender from ctx.
 	if ctx.From() != "" {
@@ -47,11 +49,13 @@ func (aavd AccountAggregateValidateDecorator) AnteHandle(ctx sdk.Context, tx sdk
 		panic("sender address cannot be empty")
 	}
 
+	pinAnte(ctx.AnteTracer(), "AccountAggregateValidateDecorator-isContractBlocked")
 	if evmParams.EnableContractBlockedList {
 		if ok := aavd.evmKeeper.IsContractInBlockedList(ctx, address); ok {
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", address.String())
 		}
 	}
+	pinAnte(ctx.AnteTracer(), "AccountAggregateValidateDecorator-Set/GetAccount")
 
 	acc := aavd.ak.GetAccount(ctx, address)
 	if acc == nil {
