@@ -591,7 +591,6 @@ type parallelTxManager struct {
 }
 
 type conflictCheck struct {
-	mu    sync.RWMutex
 	items map[string][]byte
 }
 
@@ -602,8 +601,6 @@ func newConflictCheck() *conflictCheck {
 }
 
 func (c *conflictCheck) update(key []byte, value []byte) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.items[string(key)] = value
 }
 func (c *conflictCheck) clear() {
@@ -741,21 +738,14 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	}()
 
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	if res.ms == nil {
-		f.mu.Unlock()
 		return
 	}
 
-	cnt := 0
-	stopC := make(chan struct{})
-
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
-			cnt++
-			go func() {
-				f.cc.update(key, value)
-				stopC <- struct{}{}
-			}()
+			f.cc.update(key, value)
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
 			} else if value != nil {
@@ -766,12 +756,6 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	}, nil)
 	f.cms.Write()
 	f.currIndex = d
-	f.mu.Unlock()
-
-	for index := 0; index < cnt; index++ {
-		<-stopC
-	}
-	close(stopC)
 }
 
 var (
