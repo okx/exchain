@@ -60,22 +60,22 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 
 			case sdk.EvmTxType:
 
-			if ctx.IsWrappedCheckTx() {
-				anteHandler = sdk.ChainAnteDecorators(
-					NewNonceVerificationDecorator(ak),
-					NewIncrementSenderSequenceDecorator(ak),
-				)
-			} else {
-				anteHandler = sdk.ChainAnteDecorators(
-					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-					NewGasLimitDecorator(evmKeeper),
-					NewEthMempoolFeeDecorator(evmKeeper),
-					authante.NewValidateBasicDecorator(),
-					NewEthSigVerificationDecorator(),
-					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					NewAccountAnteDecorator(ak, evmKeeper, sk),
-				)
-			}
+				if ctx.IsWrappedCheckTx() {
+					anteHandler = sdk.ChainAnteDecorators(
+						NewNonceVerificationDecorator(ak),
+						NewIncrementSenderSequenceDecorator(ak),
+					)
+				} else {
+					anteHandler = sdk.ChainAnteDecorators(
+						NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+						NewGasLimitDecorator(evmKeeper),
+						NewEthMempoolFeeDecorator(evmKeeper),
+						authante.NewValidateBasicDecorator(),
+						NewEthSigVerificationDecorator(),
+						NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+						NewAccountAnteDecorator(ak, evmKeeper, sk),
+					)
+				}
 
 			default:
 				return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
