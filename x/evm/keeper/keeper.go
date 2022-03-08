@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/mpt"
-	"math/big"
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -19,6 +18,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
+	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -66,6 +66,21 @@ type Keeper struct {
 
 	mptCommitMu *sync.Mutex
 	asyncChain  chan int64
+	// cache chain config
+	chainConfigInfo *chainConfigInfo
+}
+
+type chainConfigInfo struct {
+	// found chainConfig is meaningful(not empty).
+	found bool
+
+	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
+	// nil means invalid the cache, we should cache it again.
+	chainConfig *types.ChainConfig
+
+	// gasReduced: cached chain config reduces gas costs.
+	// when use cached chain config, we restore the gas cost(gasReduced)
+	gasReduced sdk.Gas
 }
 
 // NewKeeper generates new evm module keeper
@@ -110,6 +125,7 @@ func NewKeeper(
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		mptCommitMu:    &sync.Mutex{},
 		asyncChain:     make(chan int64, 1000),
+		chainConfigInfo: &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -278,8 +294,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address ethcmn.Address) (type
 	return storage, nil
 }
 
-// GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+// getChainConfig get raw chain config and unmarshal it
+func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -293,7 +310,30 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
+
 	return config, true
+}
+
+// GetChainConfig gets chain config, the result if from cached result, or
+// it gains chain config and gas costs from getChainConfig, then
+// cache the chain config and gas costs.
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately, and increase gas costs.
+	if k.chainConfigInfo.chainConfig != nil {
+		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
+		return *k.chainConfigInfo.chainConfig, k.chainConfigInfo.found
+	}
+
+	gasStart := ctx.GasMeter().GasConsumed()
+	chainConfig, found := k.getChainConfig(ctx)
+	gasStop := ctx.GasMeter().GasConsumed()
+
+	// cache chain config result
+	k.chainConfigInfo.found = found
+	k.chainConfigInfo.chainConfig = &chainConfig
+	k.chainConfigInfo.gasReduced = gasStop - gasStart
+
+	return chainConfig, found
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
@@ -302,6 +342,9 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+
+	// invalid the chainConfig
+	k.chainConfigInfo.chainConfig = nil
 }
 
 // SetGovKeeper sets keeper of gov
