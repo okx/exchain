@@ -417,6 +417,10 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 }
 
 func (e executeResult) Conflict(currentDirty map[string][]byte) bool {
+	ts := time.Now()
+	defer func() {
+		sdk.AddConflictTime(time.Now().Sub(ts))
+	}()
 	if e.ms == nil {
 		return true //TODO fix later
 	}
@@ -476,7 +480,6 @@ func loadPreData(ms sdk.CacheMultiStore) map[string]*readData {
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
-	loadPreData(ms)
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
@@ -594,6 +597,27 @@ type parallelTxManager struct {
 	markFailedStats map[int]bool
 }
 
+//type conflictCheck struct {
+//	mu    sync.RWMutex
+//	items map[string][]byte
+//}
+//
+//func newConflictCheck() *conflictCheck {
+//	return &conflictCheck{
+//		items: make(map[string][]byte),
+//	}
+//}
+//
+//func (c *conflictCheck) update(key []byte, value []byte) {
+//	c.mu.Lock()
+//	defer c.mu.Unlock()
+//	c.items[string(key)] = value
+//}
+//
+//func (c *conflictCheck) isConflict(key []byte, vaule []byte) {
+//
+//}
+
 type task struct {
 	txBytes []byte
 	index   int
@@ -705,6 +729,11 @@ func (f *parallelTxManager) getRunBase(now int) int {
 }
 
 func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
+	ts := time.Now()
+	defer func() {
+		sdk.AddMergeTime(time.Now().Sub(ts))
+	}()
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if res.ms == nil {
@@ -723,7 +752,6 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		return true
 	}, nil)
 	f.cms.Write()
-
 	f.currIndex = d
 }
 

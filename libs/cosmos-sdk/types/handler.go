@@ -89,9 +89,13 @@ func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Contex
 
 var (
 	pLog = &ScfLog{
-		prePare: time.Duration(0),
-		runTx:   time.Duration(0),
-		async:   time.Duration(0),
+		paraAllTime: time.Duration(0),
+		prePare:     time.Duration(0),
+		runTx:       time.Duration(0),
+		async:       time.Duration(0),
+
+		conflictTime: time.Duration(0),
+		mergeTime:    time.Duration(0),
 	}
 )
 
@@ -100,6 +104,9 @@ type ScfLog struct {
 	prePare     time.Duration
 	runTx       time.Duration
 	async       time.Duration
+
+	conflictTime time.Duration
+	mergeTime    time.Duration
 }
 
 func AddParaAllTIme(ts time.Duration) {
@@ -118,9 +125,20 @@ func AddAsycn(ts time.Duration) {
 	pLog.async += ts
 }
 
+func AddConflictTime(ts time.Duration) {
+	pLog.conflictTime += ts
+}
+
+func AddMergeTime(ts time.Duration) {
+	pLog.mergeTime += ts
+}
+
 func PrintTime() {
 	fmt.Println("ParaAllTime", pLog.paraAllTime.Seconds())
 	fmt.Println("PrePare", pLog.prePare.Seconds())
 	fmt.Println("RunTxs", pLog.runTx.Seconds())
 	fmt.Println("Async", pLog.async.Seconds())
+
+	fmt.Println("Conflict", pLog.conflictTime.Seconds())
+	fmt.Println("MergeTime", pLog.mergeTime.Seconds())
 }
