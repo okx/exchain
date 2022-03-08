@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -608,7 +610,7 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
 				return
 			}
-			if exTxInfo.GasPrice.Cmp(big.NewInt(0)) <= 0 {
+			if exTxInfo.GasPrice.Sign() <= 0 {
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
@@ -622,6 +624,13 @@ func (mem *CListMempool) resCbFirstTime(
 				signature: txInfo.wtx.GetSignature(),
 				from:      exTxInfo.Sender,
 			}
+
+			fmt.Println("debug tx:")
+			fmt.Println("evm addr:", ethcmn.BytesToAddress([]byte{}))
+			fmt.Println("evm addr2:", ethcmn.BytesToAddress(nil))
+			fmt.Println("exInfo:", exTxInfo)
+			realTx := r.CheckTx.Tx
+			fmt.Println("sender:", realTx.GetFrom(), "nonce:", realTx.GetNonce(), "gas price:", realTx.GetGasPrice(), "raw:", len(realTx.GetRaw()))
 
 			memTx.senders.Store(txInfo.SenderID, true)
 

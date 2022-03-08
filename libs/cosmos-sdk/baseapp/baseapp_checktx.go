@@ -47,7 +47,9 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		data, _ := json.Marshal(exTxInfo)
 
 		return abci.ResponseCheckTx{
-			Data: data,
+			Tx:          tx,
+			SenderNonce: exTxInfo.SenderNonce,
+			Data:        data,
 		}
 	}
 
@@ -57,6 +59,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 
 	return abci.ResponseCheckTx{
+		Tx:        tx,
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
 		Log:       result.Log,

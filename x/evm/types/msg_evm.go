@@ -60,10 +60,6 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
 }
 
-func (msg *MsgEthereumTx) GetFrom() string {
-	return msg.evmAddress().String()
-}
-
 func (msg *MsgEthereumTx) GetNonce() uint64 {
 	return msg.Data.AccountNonce
 }
@@ -268,6 +264,44 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	msg.Data.V = v
 	msg.Data.R = r
 	msg.Data.S = s
+	return nil
+}
+
+func (msg *MsgEthereumTx) firstVerifySig() error {
+	chainID := msg.ChainID()
+	var signer ethtypes.Signer
+	if isProtectedV(msg.Data.V) {
+		signer = ethtypes.NewEIP155Signer(chainID)
+	} else {
+		signer = ethtypes.HomesteadSigner{}
+	}
+
+	V := new(big.Int)
+	var sigHash ethcmn.Hash
+	if isProtectedV(msg.Data.V) {
+		// do not allow recovery for transactions with an unprotected chainID
+		if chainID.Sign() == 0 {
+			return errors.New("chainID cannot be zero")
+		}
+
+		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		V.Sub(V, big8)
+
+		sigHash = msg.RLPSignBytes(chainID)
+	} else {
+		V = msg.Data.V
+
+		sigHash = msg.HomesteadSignHash()
+	}
+
+	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	if err != nil {
+		return err
+	}
+	msg.BaseTx.From = sender.String()
+	sigCache := &tmtypes.TxSigCache{Signer: signer, From: sender}
+	msg.from.Store(sigCache)
 	return nil
 }
 

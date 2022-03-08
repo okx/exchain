@@ -41,6 +41,14 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			ubDecoder,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
+				tx.GetBase().Raw = txBytes
+				tx.GetBase().Hash = types.Tx(txBytes).Hash(height)
+				if evmTx, ok := tx.(*MsgEthereumTx); ok {
+					err = evmTx.firstVerifySig()
+					if err != nil {
+						return nil, err
+					}
+				}
 				return tx, nil
 			}
 		}
