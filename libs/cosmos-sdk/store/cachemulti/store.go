@@ -124,9 +124,9 @@ func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDelete
 	return true
 }
 
-func (cms Store) GetRWSet(rSet map[string][]byte) {
+func (cms Store) GetRWSet(rSet map[string][]byte, wSet map[string][]byte) {
 	for _, store := range cms.stores {
-		store.GetRWSet(rSet)
+		store.GetRWSet(rSet, wSet)
 	}
 }
 

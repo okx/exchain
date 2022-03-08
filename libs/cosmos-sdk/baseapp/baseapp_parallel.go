@@ -409,6 +409,7 @@ type executeResult struct {
 	err        error
 	evmCounter uint32
 	readList   map[string][]byte
+	writeList  map[string][]byte
 }
 
 func (e executeResult) GetResponse() abci.ResponseDeliverTx {
@@ -443,24 +444,27 @@ func (e executeResult) GetCounter() uint32 {
 	return e.counter
 }
 
-func loadPreData(ms sdk.CacheMultiStore) map[string][]byte {
+func loadPreData(ms sdk.CacheMultiStore) (map[string][]byte, map[string][]byte) {
 	if ms == nil {
-		return nil
+		return nil, nil
 	}
 
-	ans := make(map[string][]byte)
+	rSet := make(map[string][]byte)
+	wSet := make(map[string][]byte)
 
-	ms.GetRWSet(ans)
-	return ans
+	ms.GetRWSet(rSet, wSet)
+	return rSet, wSet
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
+	rSet, wSet := loadPreData(ms)
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
 		counter:    counter,
 		evmCounter: evmCounter,
-		readList:   loadPreData(ms),
+		readList:   rSet,
+		writeList:  wSet,
 	}
 }
 
@@ -582,8 +586,8 @@ func newConflictCheck() *conflictCheck {
 	}
 }
 
-func (c *conflictCheck) update(key []byte, value []byte) {
-	c.items[string(key)] = value
+func (c *conflictCheck) update(key string, value []byte) {
+	c.items[key] = value
 }
 func (c *conflictCheck) clear() {
 	c.items = make(map[string][]byte, 0)
@@ -596,7 +600,6 @@ func (c *conflictCheck) isConflict(key string, vaule []byte) bool {
 
 	if dirtyItem, ok := c.items[key]; ok {
 		if !bytes.Equal(vaule, dirtyItem) {
-			//fm/**/t.Println("------conflict------", "key", hex.EncodeToString(byteK), "readvalue", hex.EncodeToString(v), "currValue", hex.EncodeToString(dirtyItem.Value), dirtyItem.Dirty, dirtyItem.Deleted)
 			return true
 		}
 	}
@@ -719,15 +722,21 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		sdk.AddMergeTime(time.Now().Sub(ts))
 	}()
 
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	chanStop := make(chan struct{}, 0)
+	go func() {
+		for k, v := range res.writeList {
+			f.cc.update(k, v)
+		}
+		chanStop <- struct{}{}
+	}()
+
 	if res.ms == nil {
 		return
 	}
+	f.mu.Lock()
 
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
-			f.cc.update(key, value)
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
 			} else if value != nil {
@@ -738,6 +747,9 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	}, nil)
 	f.cms.Write()
 	f.currIndex = d
+	f.mu.Unlock()
+
+	<-chanStop
 }
 
 var (
