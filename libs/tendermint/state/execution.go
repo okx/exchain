@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"strconv"
 	"time"
 
@@ -434,7 +433,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	ts := time.Now()
+	//ts := time.Now()
 	// Run txs of block.
 	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
@@ -447,7 +446,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
-	sdk.AddPrePare(time.Now().Sub(ts))
+	//sdk.AddPrePare(time.Now().Sub(ts))
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
