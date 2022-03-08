@@ -27,7 +27,7 @@ type cValue struct {
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
-	cache         map[string]cValue
+	dirty         map[string]cValue
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
@@ -38,7 +38,7 @@ var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		cache:         make(map[string]cValue),
+		dirty:         make(map[string]cValue),
 		ReadList:      make(map[string][]byte),
 		unsortedCache: make(map[string]struct{}),
 		sortedCache:   list.New(),
@@ -58,7 +58,7 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	cacheValue, ok := store.cache[string(key)]
+	cacheValue, ok := store.dirty[string(key)]
 	if !ok {
 		value = store.parent.Get(key)
 		store.setCacheValue(key, value, false, false)
@@ -70,18 +70,24 @@ func (store *Store) Get(key []byte) (value []byte) {
 }
 
 func (store *Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDelete bool, sKey types.StoreKey) bool, sKey types.StoreKey) bool {
-	if cb == nil || len(store.cache) == 0 {
+	if cb == nil {
 		return true
 	}
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
-	for key, v := range store.cache {
+	for key, v := range store.dirty {
 		if !cb([]byte(key), v.value, v.dirty, v.deleted, sKey) {
 			return false
 		}
 	}
 	return true
+}
+
+func (store *Store) GetRWSet(rSet map[string][]byte) {
+	for k, v := range store.ReadList {
+		rSet[k] = v
+	}
 }
 
 // Implements types.KVStore.
@@ -118,8 +124,8 @@ func (store *Store) Write() {
 
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
-	keys := make([]string, 0, len(store.cache))
-	for key, dbValue := range store.cache {
+	keys := make([]string, 0, len(store.dirty))
+	for key, dbValue := range store.dirty {
 		if dbValue.dirty {
 			keys = append(keys, key)
 		}
@@ -130,7 +136,7 @@ func (store *Store) Write() {
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
-		cacheValue := store.cache[key]
+		cacheValue := store.dirty[key]
 		switch {
 		case cacheValue.deleted:
 			store.parent.Delete([]byte(key))
@@ -142,7 +148,7 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	store.cache = make(map[string]cValue)
+	store.dirty = make(map[string]cValue)
 	store.unsortedCache = make(map[string]struct{})
 	store.sortedCache.Init()
 }
@@ -220,7 +226,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 	n := len(store.unsortedCache)
 	for key := range store.unsortedCache {
 		if dbm.IsKeyInDomain(strToByte(key), start, end) {
-			cacheValue := store.cache[key]
+			cacheValue := store.dirty[key]
 			unsorted = append(unsorted, &tmkv.Pair{Key: []byte(key), Value: cacheValue.value})
 		}
 	}
@@ -270,9 +276,10 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	keyStr := string(key)
 	if !dirty {
 		store.ReadList[keyStr] = value
+		return
 	}
 
-	store.cache[keyStr] = cValue{
+	store.dirty[keyStr] = cValue{
 		value:   value,
 		deleted: deleted,
 		dirty:   dirty,

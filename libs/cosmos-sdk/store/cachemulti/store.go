@@ -116,15 +116,18 @@ func (cms Store) Write() {
 }
 
 func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
-	if !cms.db.IteratorCache(cb, nil) {
-		return false
-	}
 	for key, store := range cms.stores {
 		if !store.IteratorCache(cb, key) {
 			return false
 		}
 	}
 	return true
+}
+
+func (cms Store) GetRWSet(rSet map[string][]byte) {
+	for _, store := range cms.stores {
+		store.GetRWSet(rSet)
+	}
 }
 
 // Implements CacheWrapper.
