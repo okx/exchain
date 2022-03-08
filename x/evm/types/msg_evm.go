@@ -38,11 +38,17 @@ const (
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
+	sdk.BaseTx
+
 	Data TxData
 
 	// caches
 	size atomic.Value
 	from atomic.Value
+}
+
+func (tx *MsgEthereumTx) GetBase() *sdk.BaseTx {
+	return &tx.BaseTx
 }
 
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {

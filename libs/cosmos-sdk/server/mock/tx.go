@@ -12,6 +12,8 @@ import (
 
 // An sdk.Tx which is its own sdk.Msg.
 type kvstoreTx struct {
+	sdk.BaseTx
+
 	key   []byte
 	value []byte
 	bytes []byte
@@ -26,6 +28,10 @@ func NewTx(key, value string) kvstoreTx {
 		value: []byte(value),
 		bytes: []byte(bytes),
 	}
+}
+
+func (tx kvstoreTx) GetBase() *sdk.BaseTx {
+	return &tx.BaseTx
 }
 
 func (tx kvstoreTx) Route() string {
@@ -89,10 +95,10 @@ func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 	split := bytes.Split(txBytes, []byte("="))
 	if len(split) == 1 {
 		k := split[0]
-		tx = kvstoreTx{k, k, txBytes}
+		tx = kvstoreTx{key: k, value: k, bytes: txBytes}
 	} else if len(split) == 2 {
 		k, v := split[0], split[1]
-		tx = kvstoreTx{k, v, txBytes}
+		tx = kvstoreTx{key: k, value: v, bytes: txBytes}
 	} else {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "too many '='")
 	}

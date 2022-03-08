@@ -26,10 +26,16 @@ var (
 // StdTx is a standard way to wrap a Msg with Fee and Signatures.
 // NOTE: the first signature is the fee payer (Signatures must not be nil).
 type StdTx struct {
+	sdk.BaseTx
+
 	Msgs       []sdk.Msg      `json:"msg" yaml:"msg"`
 	Fee        StdFee         `json:"fee" yaml:"fee"`
 	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
 	Memo       string         `json:"memo" yaml:"memo"`
+}
+
+func (tx StdTx) GetBase() *sdk.BaseTx {
+	return &tx.BaseTx
 }
 
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {

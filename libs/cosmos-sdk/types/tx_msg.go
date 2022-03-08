@@ -52,9 +52,32 @@ type Tx interface {
 
 	GetGas() uint64
 
+	GetBase() *BaseTx
+	GetRaw() []byte
 	GetFrom() string
 	GetNonce() uint64
+	TxHash() []byte
 }
+
+type BaseTx struct {
+	Raw   []byte
+	Hash  []byte
+	From  string
+	Nonce uint64
+}
+
+func (tx BaseTx) GetBase() *BaseTx                    { return &tx }
+func (tx BaseTx) GetMsgs() []Msg                      { return nil }
+func (tx BaseTx) ValidateBasic() error                { return nil }
+func (tx BaseTx) GetGasPrice() *big.Int               { return big.NewInt(0) }
+func (tx BaseTx) GetTxFnSignatureInfo() ([]byte, int) { return nil, 0 }
+func (tx BaseTx) GetType() TransactionType            { return UnknownType }
+func (tx BaseTx) GetSigners() []AccAddress            { return nil }
+func (tx BaseTx) GetGas() uint64                      { return 0 }
+func (tx BaseTx) GetNonce() uint64                    { return tx.Nonce }
+func (tx BaseTx) GetFrom() string                     { return tx.From }
+func (tx BaseTx) GetRaw() []byte                      { return tx.Raw }
+func (tx BaseTx) TxHash() []byte                      { return tx.Hash }
 
 //__________________________________________________________
 
