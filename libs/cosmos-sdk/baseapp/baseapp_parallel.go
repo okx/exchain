@@ -722,6 +722,10 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		sdk.AddMergeTime(time.Now().Sub(ts))
 	}()
 
+	if res.ms == nil {
+		return
+	}
+
 	chanStop := make(chan struct{}, 0)
 	go func() {
 		for k, v := range res.writeList {
@@ -730,11 +734,7 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		chanStop <- struct{}{}
 	}()
 
-	if res.ms == nil {
-		return
-	}
 	f.mu.Lock()
-
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
 			if isdelete {
@@ -745,8 +745,8 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		}
 		return true
 	}, nil)
-	f.cms.Write()
 	f.currIndex = d
+	f.cms.Write()
 	f.mu.Unlock()
 
 	<-chanStop
