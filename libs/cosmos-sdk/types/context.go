@@ -84,22 +84,48 @@ type AccountCache struct {
 	ToAcc         interface{} // must be auth.Account
 	FromAccGotGas Gas
 	ToAccGotGas   Gas
-	Enable        bool
 }
 
-func (c *Context) AccountCache() *AccountCache          { return c.accountCache }
-func (c *Context) InitAccountCache(cache *AccountCache) { c.accountCache = cache }
-func (c *Context) ClearAccountCache()                   { c.accountCache = nil }
+func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
+func (c *Context) DisableAccountCache() { c.accountCache = nil }
+
+func (c *Context) GetFromAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.FromAcc
+}
+
+func (c *Context) GetFromAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.FromAccGotGas
+}
+
+func (c *Context) GetToAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.ToAcc
+}
+
+func (c *Context) GetToAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.ToAccGotGas
+}
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
-	if c.accountCache != nil && c.accountCache.Enable {
+	if c.accountCache != nil {
 		c.accountCache.FromAcc = fromAcc
 		c.accountCache.FromAccGotGas = fromAccGettedGas
 	}
 }
 
 func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
-	if c.accountCache != nil && c.accountCache.Enable {
+	if c.accountCache != nil {
 		c.accountCache.ToAcc = toAcc
 		c.accountCache.ToAccGotGas = toAccGotGas
 	}

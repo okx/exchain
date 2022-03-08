@@ -67,7 +67,8 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
-	ctx.InitAccountCache(&sdk.AccountCache{ToAcc: feePayerAcc, ToAccGotGas: getAccountGasUsed, Enable: true})
+	ctx.EnableAccountCache()
+	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err

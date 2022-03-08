@@ -280,16 +280,10 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 	if !amt.IsValid() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
-	if ctx.AccountCache() == nil {
-		ctx.InitAccountCache(&sdk.AccountCache{})
-	}
 
-	var fromAcc, toAcc authexported.Account
-	var fromAccGas, toAccGas sdk.Gas
-
-	fromAcc, _ = ctx.AccountCache().FromAcc.(authexported.Account)
-	toAcc, _ = ctx.AccountCache().ToAcc.(authexported.Account)
-	fromAccGas, toAccGas = ctx.AccountCache().FromAccGotGas, ctx.AccountCache().ToAccGotGas
+	fromAcc, _ := ctx.GetFromAccountCacheData().(authexported.Account)
+	toAcc, _ := ctx.GetToAccountCacheData().(authexported.Account)
+	fromAccGas, toAccGas := ctx.GetFromAccountCacheGas(), ctx.GetToAccountCacheGas()
 
 	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
 	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)
