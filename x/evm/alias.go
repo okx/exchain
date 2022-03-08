@@ -17,10 +17,12 @@ const (
 
 // nolint
 var (
-	NewKeeper           = keeper.NewKeeper
-	TxDecoder           = types.TxDecoder
-	NewSimulateKeeper   = keeper.NewSimulateKeeper
-	NewIBCTransferHooks = keeper.NewIBCTransferHooks
+	NewKeeper                = keeper.NewKeeper
+	TxDecoder                = types.TxDecoder
+	NewSimulateKeeper        = keeper.NewSimulateKeeper
+	NewIBCTransferHooks      = keeper.NewIBCTransferHooks
+	NewLogProcessEvmHook     = keeper.NewLogProcessEvmHook
+	NewSendToIbcEventHandler = keeper.NewSendToIbcEventHandler
 )
 
 //nolint

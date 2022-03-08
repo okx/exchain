@@ -77,7 +77,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
-		k.Logger(ctx).Info(fmt.Sprintf("contract address %s created for coin denom %s", contract.String(), voucher.Denom))
+		k.Logger(ctx).Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
@@ -210,7 +210,8 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
-	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano())
+	// TODO use params --1 day
+	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
 	timeoutHeight := ibcclienttypes.ZeroHeight()
 	return k.transferKeeper.SendTransfer(
 		ctx,

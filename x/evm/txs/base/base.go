@@ -117,6 +117,9 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			Err:        err,
 		})
 	}
+	if err != nil {
+		return
+	}
 
 	// call evm hooks
 	receipt := &ethtypes.Receipt{
