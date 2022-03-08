@@ -1,4 +1,3 @@
-
 BIN_NAME=exchaind
 OKCHAIN_TOP=${GOPATH}/src/github.com/okex/exchain
 OKCHAIN_BIN=${OKCHAIN_TOP}/build
