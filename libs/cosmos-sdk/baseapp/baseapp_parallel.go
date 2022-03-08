@@ -264,7 +264,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			s := pm.txStatus[txBytes]
 			res := txReps[txIndex]
 
-			if res.Conflict(pm.currentDirty) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			if res.Conflict(pm.cc) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				if pm.workgroup.isRunning(txIndex) {
 					runningTaskID := pm.workgroup.runningStats(txIndex)
 					pm.markFailed(runningTaskID)
@@ -416,7 +416,7 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 	return e.resp
 }
 
-func (e executeResult) Conflict(currentDirty map[string][]byte) bool {
+func (e executeResult) Conflict(cc *conflictCheck) bool {
 	ts := time.Now()
 	defer func() {
 		sdk.AddConflictTime(time.Now().Sub(ts))
@@ -426,15 +426,8 @@ func (e executeResult) Conflict(currentDirty map[string][]byte) bool {
 	}
 
 	for k, v := range e.readList {
-		if whiteAccountList[hex.EncodeToString([]byte(k))] {
-			continue
-		}
-
-		if dirtyItem, ok := currentDirty[k]; ok {
-			if !bytes.Equal(v.value, dirtyItem) {
-				//fm/**/t.Println("------conflict------", "key", hex.EncodeToString(byteK), "readvalue", hex.EncodeToString(v), "currValue", hex.EncodeToString(dirtyItem.Value), dirtyItem.Dirty, dirtyItem.Deleted)
-				return true
-			}
+		if cc.isConflict(k, v.value) {
+			return true
 		}
 	}
 
@@ -591,32 +584,45 @@ type parallelTxManager struct {
 	mu  sync.RWMutex
 	cms sdk.CacheMultiStore
 
-	currentDirty    map[string][]byte
+	cc              *conflictCheck
 	currIndex       int
 	runBase         map[int]int
 	markFailedStats map[int]bool
 }
 
-//type conflictCheck struct {
-//	mu    sync.RWMutex
-//	items map[string][]byte
-//}
-//
-//func newConflictCheck() *conflictCheck {
-//	return &conflictCheck{
-//		items: make(map[string][]byte),
-//	}
-//}
-//
-//func (c *conflictCheck) update(key []byte, value []byte) {
-//	c.mu.Lock()
-//	defer c.mu.Unlock()
-//	c.items[string(key)] = value
-//}
-//
-//func (c *conflictCheck) isConflict(key []byte, vaule []byte) {
-//
-//}
+type conflictCheck struct {
+	mu    sync.RWMutex
+	items map[string][]byte
+}
+
+func newConflictCheck() *conflictCheck {
+	return &conflictCheck{
+		items: make(map[string][]byte),
+	}
+}
+
+func (c *conflictCheck) update(key []byte, value []byte) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items[string(key)] = value
+}
+func (c *conflictCheck) clear() {
+	c.items = make(map[string][]byte, 0)
+}
+
+func (c *conflictCheck) isConflict(key string, vaule []byte) bool {
+	if whiteAccountList[hex.EncodeToString([]byte(key))] {
+		return false
+	}
+
+	if dirtyItem, ok := c.items[key]; ok {
+		if !bytes.Equal(vaule, dirtyItem) {
+			//fm/**/t.Println("------conflict------", "key", hex.EncodeToString(byteK), "readvalue", hex.EncodeToString(v), "currValue", hex.EncodeToString(dirtyItem.Value), dirtyItem.Dirty, dirtyItem.Deleted)
+			return true
+		}
+	}
+	return false
+}
 
 type task struct {
 	txBytes []byte
@@ -647,7 +653,7 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
-		currentDirty:    make(map[string][]byte),
+		cc:              newConflictCheck(),
 		currIndex:       -1,
 		runBase:         make(map[int]int),
 		markFailedStats: make(map[int]bool),
@@ -664,7 +670,7 @@ func (f *parallelTxManager) clear() {
 	f.preTxInGroup = make(map[int]int)
 	f.runBase = make(map[int]int)
 	f.currIndex = -1
-	f.currentDirty = make(map[string][]byte, 0)
+	f.cc.clear()
 	f.markFailedStats = make(map[int]bool)
 
 	f.workgroup.runningStatus = make(map[int]int)
@@ -735,24 +741,37 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	}()
 
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	if res.ms == nil {
+		f.mu.Unlock()
 		return
 	}
 
+	cnt := 0
+	stopC := make(chan struct{})
+
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
+			cnt++
+			go func() {
+				f.cc.update(key, value)
+				stopC <- struct{}{}
+			}()
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
 			} else if value != nil {
 				f.cms.GetKVStore(storeKey).Set(key, value)
 			}
-			f.currentDirty[string(key)] = value
 		}
 		return true
 	}, nil)
 	f.cms.Write()
 	f.currIndex = d
+	f.mu.Unlock()
+
+	for index := 0; index < cnt; index++ {
+		<-stopC
+	}
+	close(stopC)
 }
 
 var (
