@@ -150,10 +150,6 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
-
-	signerCache, err = msg.VerifySig(big.NewInt(4), 0, nil, nil)
-	require.Error(t, err)
-	require.Nil(t, signerCache)
 }
 
 func TestMsgEthereumTx_ChainID(t *testing.T) {

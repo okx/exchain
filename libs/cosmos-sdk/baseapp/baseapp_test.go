@@ -557,6 +557,8 @@ func TestInitChainer(t *testing.T) {
 
 // Simple tx with a list of Msgs.
 type txTest struct {
+	sdk.BaseTx
+
 	Msgs       []sdk.Msg
 	Counter    int64
 	FailOnAnte bool
@@ -633,7 +635,7 @@ func newTxCounter(counter int64, msgCounters ...int64) *txTest {
 		msgs = append(msgs, msgCounter{c, false})
 	}
 
-	return &txTest{msgs, counter, false}
+	return &txTest{Msgs: msgs, Counter: counter, FailOnAnte: false}
 }
 
 // a msg we dont know how to route
@@ -1074,7 +1076,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 	// transaction with no known route
 	{
-		unknownRouteTx := txTest{[]sdk.Msg{msgNoRoute{}}, 0, false}
+		unknownRouteTx := txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err := app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1083,7 +1085,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
 
-		unknownRouteTx = txTest{[]sdk.Msg{msgCounter{}, msgNoRoute{}}, 0, false}
+		unknownRouteTx = txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)

@@ -13,8 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -413,13 +411,13 @@ func (mem *CListMempool) reqResCb(
 
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
-func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
+func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 
 	// Replace the same Nonce transaction from the same account
-	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, info, int64(mem.config.TxPriceBump))
+	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, int64(mem.config.TxPriceBump))
 	if elem == nil {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
-			"the provided gas price %d is not bigger enough", info.Sender, info.Nonce, info.GasPrice))
+			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice()))
 	}
 
 	mem.txs.InsertElement(elem)
@@ -465,14 +463,14 @@ func (mem *CListMempool) reorganizeElements(items []*clist.CElement) {
 
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
-func (mem *CListMempool) addTx(memTx *mempoolTx, info ExTxInfo) error {
+func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if mem.config.SortTxByGp {
-		return mem.addAndSortTx(memTx, info)
+		return mem.addAndSortTx(memTx)
 	}
 	e := mem.txs.PushBack(memTx)
-	e.Address = info.Sender
+	e.Address = memTx.from
 
-	mem.addressRecord.AddItem(info.Sender, e)
+	mem.addressRecord.AddItem(e.Address, e)
 
 	mem.txsMap.Store(txKey(memTx.tx), e)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -524,24 +522,23 @@ func (mem *CListMempool) isFull(txSize int) error {
 	return nil
 }
 
-func (mem *CListMempool) addPendingTx(memTx *mempoolTx, exTxInfo ExTxInfo) error {
+func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
-	pendingCnt := mem.GetUserPendingTxsCnt(exTxInfo.Sender)
-	if exTxInfo.Nonce == exTxInfo.SenderNonce+uint64(pendingCnt) {
-		err := mem.addTx(memTx, exTxInfo)
+	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
+	if memTx.realTx.GetNonce() == memTx.senderNonce+uint64(pendingCnt) {
+		err := mem.addTx(memTx)
 		if err == nil {
-			go mem.consumePendingTx(exTxInfo.Sender, exTxInfo.Nonce+1)
+			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
 		}
 		return err
 	}
 
 	// add tx to PendingPool
-	if err := mem.pendingPool.validate(exTxInfo.Sender, memTx.tx, memTx.height); err != nil {
+	if err := mem.pendingPool.validate(memTx.from, memTx.tx, memTx.height); err != nil {
 		return err
 	}
 	pendingTx := &PendingTx{
 		mempoolTx: memTx,
-		exTxInfo:  exTxInfo,
 	}
 	mem.pendingPool.addTx(pendingTx)
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
@@ -562,7 +559,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 
 		mempoolTx := pendingTx.mempoolTx
 		mempoolTx.height = mem.height
-		if err := mem.addTx(mempoolTx, pendingTx.exTxInfo); err != nil {
+		if err := mem.addTx(mempoolTx); err != nil {
 			mem.logger.Error(fmt.Sprintf("Pending Pool add tx failed:%s", err.Error()))
 			mem.pendingPool.removeTx(address, nonce)
 			return
@@ -610,35 +607,30 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
 				return
 			}
-			if exTxInfo.GasPrice.Sign() <= 0 {
+			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
 			}
 
 			memTx := &mempoolTx{
-				height:    mem.height,
-				gasWanted: r.CheckTx.GasWanted,
-				tx:        tx,
-				nodeKey:   txInfo.wtx.GetNodeKey(),
-				signature: txInfo.wtx.GetSignature(),
-				from:      exTxInfo.Sender,
+				height:      mem.height,
+				gasWanted:   r.CheckTx.GasWanted,
+				tx:          tx,
+				realTx:      r.CheckTx.Tx,
+				nodeKey:     txInfo.wtx.GetNodeKey(),
+				signature:   txInfo.wtx.GetSignature(),
+				from:        r.CheckTx.Tx.GetFrom(),
+				senderNonce: r.CheckTx.SenderNonce,
 			}
-
-			fmt.Println("debug tx:")
-			fmt.Println("evm addr:", ethcmn.BytesToAddress([]byte{}))
-			fmt.Println("evm addr2:", ethcmn.BytesToAddress(nil))
-			fmt.Println("exInfo:", exTxInfo)
-			realTx := r.CheckTx.Tx
-			fmt.Println("sender:", realTx.GetFrom(), "nonce:", realTx.GetNonce(), "gas price:", realTx.GetGasPrice(), "raw:", len(realTx.GetRaw()))
 
 			memTx.senders.Store(txInfo.SenderID, true)
 
 			var err error
 			if mem.pendingPool != nil {
-				err = mem.addPendingTx(memTx, exTxInfo)
+				err = mem.addPendingTx(memTx)
 			} else {
-				err = mem.addTx(memTx, exTxInfo)
+				err = mem.addTx(memTx)
 			}
 
 			if err == nil {
@@ -987,12 +979,14 @@ func MultiPriceBump(rawPrice *big.Int, priceBump int64) *big.Int {
 
 // mempoolTx is a transaction that successfully ran
 type mempoolTx struct {
-	height    int64    // height that this tx had been validated in
-	gasWanted int64    // amount of gas this tx states it will require
-	tx        types.Tx //
-	nodeKey   []byte
-	signature []byte
-	from      string
+	height      int64    // height that this tx had been validated in
+	gasWanted   int64    // amount of gas this tx states it will require
+	tx          types.Tx //
+	realTx      abci.Tx
+	nodeKey     []byte
+	signature   []byte
+	from        string
+	senderNonce uint64
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool

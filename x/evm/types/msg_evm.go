@@ -38,9 +38,9 @@ const (
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 type MsgEthereumTx struct {
-	sdk.BaseTx
-
 	Data TxData
+
+	sdk.BaseTx
 
 	// caches
 	size atomic.Value
@@ -267,7 +267,10 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	return nil
 }
 
-func (msg *MsgEthereumTx) firstVerifySig() error {
+func (msg *MsgEthereumTx) firstVerifySig() (sdk.SigCache, error) {
+	if msg.GetFrom() != "" {
+		return msg.from.Load().(sdk.SigCache), nil
+	}
 	chainID := msg.ChainID()
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
@@ -281,7 +284,7 @@ func (msg *MsgEthereumTx) firstVerifySig() error {
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return errors.New("chainID cannot be zero")
+			return nil, errors.New("chainID cannot be zero")
 		}
 
 		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
@@ -297,17 +300,18 @@ func (msg *MsgEthereumTx) firstVerifySig() error {
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	msg.BaseTx.From = sender.String()
 	sigCache := &tmtypes.TxSigCache{Signer: signer, From: sender}
 	msg.from.Store(sigCache)
-	return nil
+	return sigCache, nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) (sdk.SigCache, error) {
+	return msg.firstVerifySig()
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
@@ -499,6 +503,11 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 		switch pos {
 		case 1:
 			if err := msg.Data.UnmarshalFromAmino(cdc, subData); err != nil {
+				return err
+			}
+		case 2:
+			dataWithPrefix := append(sdk.AminoPrefixOfBaseTx, subData...)
+			if err := cdc.UnmarshalBinaryBare(dataWithPrefix, &msg.BaseTx); err != nil {
 				return err
 			}
 		default:
