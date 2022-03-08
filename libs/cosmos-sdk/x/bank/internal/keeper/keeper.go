@@ -281,7 +281,7 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 	if ctx.AccountCache() == nil {
-		ctx.SetAccountCache(&sdk.AccountCache{})
+		ctx.InitAccountCache(&sdk.AccountCache{})
 	}
 
 	var fromAcc, toAcc authexported.Account

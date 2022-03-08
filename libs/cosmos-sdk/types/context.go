@@ -87,9 +87,9 @@ type AccountCache struct {
 	Enable        bool
 }
 
-func (c *Context) AccountCache() *AccountCache { return c.accountCache }
-
-func (c *Context) SetAccountCache(cache *AccountCache) { c.accountCache = cache }
+func (c *Context) AccountCache() *AccountCache          { return c.accountCache }
+func (c *Context) InitAccountCache(cache *AccountCache) { c.accountCache = cache }
+func (c *Context) ClearAccountCache()                   { c.accountCache = nil }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
 	if c.accountCache != nil && c.accountCache.Enable {
