@@ -335,24 +335,20 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txIndex := group[0]
 		pm.workgroup.AddTask(txs[txIndex], txIndex)
 	}
-	var tsEnd time.Time
 
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
 		app.fixFeeCollector(txs, pm.cms)
-		tsEnd = time.Now()
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
 				deliverTxs[index].Data = v
 			}
 		}
-		sdk.AddFixTime(time.Now().Sub(tsEnd))
 
 	}
 	pm.cms.Write()
-	sdk.AddEndTime(time.Now().Sub(tsEnd))
 	sdk.AddRunTx(time.Now().Sub(ts))
 	return deliverTxs
 }
@@ -576,6 +572,7 @@ type parallelTxManager struct {
 	currIndex       int
 	runBase         map[int]int
 	markFailedStats map[int]bool
+	commitDone      chan struct{}
 }
 
 type conflictCheck struct {
@@ -645,6 +642,8 @@ func newParallelTxManager() *parallelTxManager {
 		currIndex:       -1,
 		runBase:         make(map[int]int),
 		markFailedStats: make(map[int]bool),
+
+		commitDone: make(chan struct{}, 1),
 	}
 }
 
