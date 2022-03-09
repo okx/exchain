@@ -10,6 +10,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
@@ -19,8 +20,8 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
-	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"math/rand"
 )
@@ -103,7 +104,6 @@ func NewAppModule(k *keeper.Keeper) AppModule {
 	}
 }
 
-
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
 	return nil, nil
 }
@@ -172,6 +172,9 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 
 // BeginBlock returns the begin blocker for the ibc module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	if !tmtypes.HigherThanIBCHeight(req.Header.Height) {
+		return
+	}
 	ibcclient.BeginBlocker(ctx, am.keeper.ClientKeeper)
 }
 
