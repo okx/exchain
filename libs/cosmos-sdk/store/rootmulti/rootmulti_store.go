@@ -4,6 +4,7 @@ import (
 	"fmt"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"io"
@@ -881,6 +882,10 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
+	if tmtypes.HigherThanIBCHeight(ci.Version) {
+		return ci.ibcHash()
+	}
+	return ci.originHash()
 	//// TODO: cache to ci.hash []byte
 	//m := make(map[string][]byte, len(ci.StoreInfos))
 	//for _, storeInfo := range ci.StoreInfos {
@@ -888,11 +893,23 @@ func (ci commitInfo) Hash() []byte {
 	//}
 	//
 	//return merkle.SimpleHashFromMap(m)
-	// we need a special case for empty set, as SimpleProofsFromMap requires at least one entry
-	if len(ci.StoreInfos) == 0 {
-		return nil
-	}
 
+	// we need a special case for empty set, as SimpleProofsFromMap requires at least one entry
+	//if len(ci.StoreInfos) == 0 {
+	//	return nil
+	//}
+	//
+	//rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
+	//return rootHash
+}
+func (ci commitInfo) originHash() []byte {
+	m := make(map[string][]byte, len(ci.StoreInfos))
+	for _, storeInfo := range ci.StoreInfos {
+		m[storeInfo.Name] = storeInfo.Hash()
+	}
+	return merkle.SimpleHashFromMap(m)
+}
+func (ci commitInfo) ibcHash() []byte {
 	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
 	return rootHash
 }

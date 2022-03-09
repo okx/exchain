@@ -589,6 +589,9 @@ func updateState(
 
 	// TODO: allow app to upgrade version
 	nextVersion := state.Version
+	if types.HigherThanIBCHeight(header.Height) && !state.Version.IsUpgraded() {
+		nextVersion = state.Version.UpgradeToIBCVersion()
+	}
 
 	// NOTE: the AppHash has not been populated.
 	// It will be filled on state.Save.

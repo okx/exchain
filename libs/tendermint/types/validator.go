@@ -113,6 +113,16 @@ func (v *Validator) Bytes() []byte {
 	return bz
 }
 
+func (v *Validator) OriginBytes() []byte {
+	return cdcEncode(struct {
+		PubKey      crypto.PubKey
+		VotingPower int64
+	}{
+		v.PubKey,
+		v.VotingPower,
+	})
+}
+
 // ToProto converts Valiator to protobuf
 func (v *Validator) ToProto() (*tmproto.Validator, error) {
 	if v == nil {
