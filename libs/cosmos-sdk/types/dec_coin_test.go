@@ -518,6 +518,8 @@ func TestDecCoinAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
+		require.Equal(t, len(expect), test.AminoSize(cdc))
+
 		t.Log(fmt.Sprintf("%d marshal pass", i))
 
 		var dc DecCoin
@@ -551,4 +553,27 @@ func BenchmarkDecCoinAmino(b *testing.B) {
 			_, _ = coin.MarshalToAmino(cdc)
 		}
 	})
+}
+
+func BenchmarkDecCoinString(b *testing.B) {
+	amount := Dec{new(big.Int).SetInt64(math.MaxInt64)}
+	amount.Int.Mul(amount.Int, big.NewInt(2))
+	dc := DecCoin{"okt", amount}
+
+	b.Run("opt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = dc.String()
+		}
+	})
+
+	b.Run("origin", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = fmt.Sprintf("%v%v", dc.Amount, dc.Denom)
+		}
+	})
+
+	require.Equal(b, fmt.Sprintf("%v%v", dc.Amount, dc.Denom), dc.String())
+	b.Log(dc.String())
 }

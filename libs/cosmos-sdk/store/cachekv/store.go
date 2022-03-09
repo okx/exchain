@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/tendermint/go-amino"
+
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
@@ -127,6 +129,12 @@ func (store *Store) Delete(key []byte) {
 
 // Implements Cachetypes.KVStore.
 func (store *Store) Write() {
+	// if parent is cachekv.Store, we can write kv more efficiently
+	if pStore, ok := store.parent.(*Store); ok {
+		store.writeToCacheKv(pStore)
+		return
+	}
+
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
@@ -157,9 +165,47 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	store.dirty = make(map[string]cValue)
-	store.ReadList = make(map[string][]byte)
-	store.unsortedCache = make(map[string]struct{})
+	store.clearCache()
+}
+
+// writeToCacheKv will write cached kv to the parent Store, then clear the cache.
+func (store *Store) writeToCacheKv(parent *Store) {
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	// TODO: Consider allowing usage of Batch, which would allow the write to
+	// at least happen atomically.
+	for key, cacheValue := range store.dirty {
+		if !cacheValue.dirty {
+			continue
+		}
+		switch {
+		case cacheValue.deleted:
+			parent.Delete(amino.StrToBytes(key))
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			parent.Set(amino.StrToBytes(key), cacheValue.value)
+		}
+	}
+
+	// Clear the cache
+	store.clearCache()
+}
+
+func (store *Store) clearCache() {
+	// https://github.com/golang/go/issues/20138
+	for key := range store.dirty {
+		delete(store.dirty, key)
+	}
+
+	for Key := range store.ReadList {
+		delete(store.ReadList, Key)
+	}
+	for key := range store.unsortedCache {
+		delete(store.unsortedCache, key)
+	}
+
 	store.sortedCache.Init()
 }
 
