@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"fmt"
+	"strings"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -9,7 +11,6 @@ import (
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"strings"
 )
 
 // SendTransfer handles transfer sending logic. There are 2 possible cases:
@@ -110,7 +111,8 @@ func (k Keeper) SendTransfer(
 	// chain inside the packet data. The receiving chain will perform denom
 	// prefixing as necessary.
 
-	if types.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath) {
+	isSource := types.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath)
+	if isSource {
 		//labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
 
 		// create the escrow address for the tokens
@@ -122,7 +124,6 @@ func (k Keeper) SendTransfer(
 		); err != nil {
 			return err
 		}
-
 	} else {
 		//labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "false"))
 
@@ -166,7 +167,7 @@ func (k Keeper) SendTransfer(
 		//telemetry.SetGaugeWithLabels(
 		//	[]string{"tx", "msg", "ibc", "transfer"},
 		//	float32(token.Amount.Int64()),
-			//[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, fullDenomPath)},
+		//[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, fullDenomPath)},
 		//)
 
 		//telemetry.IncrCounterWithLabels(
@@ -176,6 +177,7 @@ func (k Keeper) SendTransfer(
 		//)
 	}()
 
+	k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
 	return nil
 }
 
@@ -213,7 +215,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	// chain would have prefixed with DestPort and DestChannel when originally
 	// receiving this coin as seen in the "sender chain is the source" condition.
 
-	if types.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
+	isSource := types.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom)
+	if isSource {
 		// sender chain is not the source, unescrow tokens
 
 		// remove prefix added by sender chain
@@ -231,7 +234,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
 		token := sdk.NewIBCCoin(denom, sdk.NewIntFromUint64(data.Amount))
-		logrusplugin.Info("new denomTrace","tracePath",denomTrace.Path,"baseDenom",denomTrace.BaseDenom)
+		logrusplugin.Info("new denomTrace", "tracePath", denomTrace.Path, "baseDenom", denomTrace.BaseDenom)
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
@@ -258,6 +261,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			//)
 		}()
 
+		k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource)
 		return nil
 	}
 
@@ -271,7 +275,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	// construct the denomination trace from the full raw denomination
 	denomTrace := types.ParseDenomTrace(prefixedDenom)
 	traceHash := denomTrace.Hash()
-	logrusplugin.Info("new denomTrace","tracePath",denomTrace.Path,"baseDenom",denomTrace.BaseDenom,"traceHash",traceHash)
+	logrusplugin.Info("new denomTrace", "tracePath", denomTrace.Path, "baseDenom", denomTrace.BaseDenom, "traceHash", traceHash)
 	if !k.HasDenomTrace(ctx, traceHash) {
 		k.SetDenomTrace(ctx, denomTrace)
 	}
@@ -317,6 +321,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		//)
 	}()
 
+	k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource)
 	return nil
 }
 
@@ -359,7 +364,8 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		return err
 	}
 
-	if types.SenderChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
+	isSource := types.SenderChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom)
+	if isSource {
 		// unescrow tokens back to sender
 		escrowAddress := types.GetEscrowAddress(packet.GetSourcePort(), packet.GetSourceChannel())
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, sender, sdk.NewCoins(token)); err != nil {
@@ -370,6 +376,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
+		k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
 		return nil
 	}
 
@@ -384,6 +391,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
+	k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
 	return nil
 }
 

@@ -26,6 +26,7 @@ const (
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
 	QueryContractBlockedList         = "contract-blocked-list"
 	QueryContractMethodBlockedList   = "contract-method-blocked-list"
+	QueryAllMapping                  = "all-mapping"
 )
 
 // QueryResBalance is response type for balance query
@@ -105,3 +106,7 @@ type QueryResAccount struct {
 }
 
 type QueryResExportAccount = GenesisAccount
+
+type QueryResAllMapping struct {
+	Mapping map[string]string `json:"mapping"`
+}

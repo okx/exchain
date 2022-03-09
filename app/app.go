@@ -2,36 +2,17 @@ package app
 
 import (
 	"fmt"
-
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
-	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
-	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
-	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-
-	//types "github.com/okex/exchain/temp"
-
 	"io"
 	"math/big"
 	"os"
 	"sync"
-
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
-
-	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -40,13 +21,24 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
+	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -73,7 +65,10 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+
 	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -259,6 +254,7 @@ func NewOKExChainApp(
 	cdcproxy := codec.NewCodecProxy(ibcCodec, cdc)
 
 	//proxy := codec.NewMarshalProxy(cc, cdc)
+
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
 		ret, err = evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
 		if nil == err {
@@ -419,8 +415,13 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetTransferKeeper(app.TransferKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
+	// Set EVM hooks
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(evm.NewSendToIbcEventHandler(*app.EvmKeeper)))
+	// Set IBC hooks
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -649,12 +650,14 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 	}, func(resp *abci.ResponseQuery) {
 
 	})
+
 	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "custom/bank/grpc_balances"
 		return nil
 	}, func(resp *abci.ResponseQuery) {
 
 	})
+
 	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "custom/staking/parameters"
 		return nil

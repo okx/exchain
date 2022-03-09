@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 )
 
 // AccountKeeper defines the expected account keeper interface
@@ -29,4 +30,19 @@ type Subspace interface {
 
 type BankKeeper interface {
 	BlacklistedAddr(addr sdk.AccAddress) bool
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+}
+
+type TransferKeeper interface {
+	SendTransfer(
+		ctx sdk.Context,
+		sourcePort,
+		sourceChannel string,
+		token sdk.Coin,
+		sender sdk.AccAddress,
+		receiver string,
+		timeoutHeight clienttypes.Height,
+		timeoutTimestamp uint64,
+	) error
+	DenomPathFromHash(ctx sdk.Context, denom string) (string, error)
 }

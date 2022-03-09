@@ -15,6 +15,7 @@ const (
 
 	ManageContractDeploymentWhitelistProposalName = "okexchain/evm/ManageContractDeploymentWhitelistProposal"
 	ManageContractBlockedListProposalName         = "okexchain/evm/ManageContractBlockedListProposal"
+	TokenMappingProposalName                      = "okexchain/evm/TokenMappingProposal"
 )
 
 // RegisterCodec registers all the necessary types and interfaces for the
@@ -26,6 +27,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, ManageContractDeploymentWhitelistProposalName, nil)
 	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, ManageContractBlockedListProposalName, nil)
 	cdc.RegisterConcrete(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal", nil)
+	cdc.RegisterConcrete(TokenMappingProposal{}, TokenMappingProposalName, nil)
 
 	cdc.RegisterConcreteUnmarshaller(ChainConfigName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var cc ChainConfig
