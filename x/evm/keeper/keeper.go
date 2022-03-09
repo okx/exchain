@@ -52,7 +52,7 @@ type Keeper struct {
 	innerBlockData BlockInnerData
 
 	// cache chain config
-	chainConfigInfo *chainConfigInfo
+	cci *chainConfigInfo
 }
 
 type chainConfigInfo struct {
@@ -61,7 +61,7 @@ type chainConfigInfo struct {
 
 	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
 	// nil means invalid the cache, we should cache it again.
-	chainConfig *types.ChainConfig
+	cc *types.ChainConfig
 
 	// gasReduced: cached chain config reduces gas costs.
 	// when use cached chain config, we restore the gas cost(gasReduced)
@@ -102,8 +102,8 @@ func NewKeeper(
 		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
 
-		innerBlockData:  defaultBlockInnerData(),
-		chainConfigInfo: &chainConfigInfo{},
+		innerBlockData: defaultBlockInnerData(),
+		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -274,19 +274,20 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // cache the chain config and gas costs.
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
-	if k.chainConfigInfo.chainConfig != nil {
-		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
-		return *k.chainConfigInfo.chainConfig, k.chainConfigInfo.found
+	if k.cci.cc != nil {
+		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
+		return *k.cci.cc, k.cci.found
 	}
 
 	gasStart := ctx.GasMeter().GasConsumed()
 	chainConfig, found := k.getChainConfig(ctx)
 	gasStop := ctx.GasMeter().GasConsumed()
 
-	// cache chain config result
-	k.chainConfigInfo.found = found
-	k.chainConfigInfo.chainConfig = &chainConfig
-	k.chainConfigInfo.gasReduced = gasStop - gasStart
+	// only cache chain config result when we found it, or try to found again.
+	if found {
+		k.cci.found = found
+		k.cci.gasReduced = gasStop - gasStart
+	}
 
 	return chainConfig, found
 }
@@ -299,7 +300,7 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.chainConfigInfo.chainConfig = nil
+	k.cci.cc = nil
 }
 
 // SetGovKeeper sets keeper of gov
