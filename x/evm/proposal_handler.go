@@ -27,12 +27,6 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 }
 
 func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, p types.ManageContractDeploymentWhitelistProposal) sdk.Error {
-	// check
-	//manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
-	//if !ok {
-	//	return types.ErrUnexpectedProposalType
-	//}
-
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if p.IsAdded {
 		// add deployer addresses into whitelist
@@ -46,12 +40,6 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractBlockedListProposal) sdk.Error {
-	// check
-	//manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
-	//if !ok {
-	//	return types.ErrUnexpectedProposalType
-	//}
-
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if p.IsAdded {
 		// add contract addresses into blocked list
@@ -65,12 +53,6 @@ func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, p type
 }
 
 func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractMethodBlockedListProposal) sdk.Error {
-	// check
-	//manageContractMethodBlockedListProposal, ok := proposal.Content.(types.ManageContractMethodBlockedListProposal)
-	//if !ok {
-	//	return types.ErrUnexpectedProposalType
-	//}
-
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if p.IsAdded {
 		// add contract method into blocked list
