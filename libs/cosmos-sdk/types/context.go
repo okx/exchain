@@ -2,8 +2,9 @@ package types
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -45,6 +46,7 @@ type Context struct {
 	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
+	accountCache   *AccountCache
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -75,6 +77,58 @@ func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
+}
+
+type AccountCache struct {
+	FromAcc       interface{} // must be auth.Account
+	ToAcc         interface{} // must be auth.Account
+	FromAccGotGas Gas
+	ToAccGotGas   Gas
+}
+
+func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
+func (c *Context) DisableAccountCache() { c.accountCache = nil }
+
+func (c *Context) GetFromAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.FromAcc
+}
+
+func (c *Context) GetFromAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.FromAccGotGas
+}
+
+func (c *Context) GetToAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.ToAcc
+}
+
+func (c *Context) GetToAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.ToAccGotGas
+}
+
+func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.FromAcc = fromAcc
+		c.accountCache.FromAccGotGas = fromAccGettedGas
+	}
+}
+
+func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.ToAcc = toAcc
+		c.accountCache.ToAccGotGas = toAccGotGas
+	}
 }
 
 func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }

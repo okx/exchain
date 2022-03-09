@@ -8,7 +8,9 @@ import (
 
 func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
 	blockTime := ctx.BlockTime()
+	gasBefore := ctx.GasMeter().GasConsumed()
 	feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	gasUsed := ctx.GasMeter().GasConsumed() - gasBefore
 	coins := feeCollector.GetCoins()
 
 	if !refundFees.IsValid() {
@@ -29,6 +31,7 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
 	}
+	ctx.UpdateFromAccountCache(feeCollector, gasUsed)
 
 	//if global.GetGlobalHeight() == 5810736 {
 	//	hexacc := hex.EncodeToString(acc)
