@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -17,8 +20,10 @@ import (
 	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
-	"log"
-	"path/filepath"
+)
+
+var (
+	accountCodeHash = ethcmn.HexToHash("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
 )
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
@@ -103,21 +108,22 @@ func migrateAccount(ctx *server.Context) {
 		err := accTrie.TryUpdate(key, value)
 		panicError(err)
 
-		if cnt % 100 == 0 {
-			pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight() - 1)
+		if cnt%100 == 0 {
+			pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight()-1)
 			fmt.Println(cnt)
 		}
 
 		// contract account
 		switch account.(type) {
 		case *types2.EthAccount:
-			contractCnt += 1
-
 			ethAcc := account.(*types2.EthAccount)
-			err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
-			panicError(err)
+			cHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 
-			if len(ethAcc.CodeHash) > 0 {
+			if cHash != accountCodeHash {
+				contractCnt += 1
+				err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
+				panicError(err)
+
 				cHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 
 				// migrate code
@@ -128,8 +134,8 @@ func migrateAccount(ctx *server.Context) {
 				panicError(err)
 			}
 
-			if contractCnt % 100 == 0 {
-				pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
+			if contractCnt%100 == 0 {
+				pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
 			}
 		default:
 			//do nothing
@@ -137,10 +143,10 @@ func migrateAccount(ctx *server.Context) {
 
 		return false
 	})
-	pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight() - 1)
-	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
+	pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight()-1)
+	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight() - 1))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight()-1))
 }
 
 func migrateContract(ctx *server.Context) {
@@ -181,14 +187,14 @@ func migrateContract(ctx *server.Context) {
 		err = evmTrie.TryUpdate(addr[:], rootHash.Bytes())
 		panicError(err)
 
-		if cnt % 100 == 0 {
-			pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
+		if cnt%100 == 0 {
+			pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
 			fmt.Println(cnt)
 		}
 	}
-	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight() - 1)
+	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight() - 1))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight()-1))
 }
 
 func cleanRawDB(ctx *server.Context) {
