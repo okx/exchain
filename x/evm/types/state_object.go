@@ -3,12 +3,13 @@ package types
 import (
 	"bytes"
 	"fmt"
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
 	"io"
 	"math/big"
 	"sync"
+
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types3 "github.com/okex/exchain/libs/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -337,16 +338,17 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-
-		if UseCompositeKey {
-			key = prefixKey
-		}
-		if (value == ethcmn.Hash{}) {
-			so.setError(tr.TryDelete(key[:]))
-		} else {
-			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-			so.setError(tr.TryUpdate(key[:], v))
+		if types3.EnableDoubleWrite {
+			if UseCompositeKey {
+				key = prefixKey
+			}
+			if (value == ethcmn.Hash{}) {
+				so.setError(tr.TryDelete(key[:]))
+			} else {
+				// Encoding []byte cannot fail, ok to ignore the error.
+				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+				so.setError(tr.TryUpdate(key[:], v))
+			}
 		}
 	}
 
