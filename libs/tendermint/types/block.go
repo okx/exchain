@@ -219,9 +219,11 @@ func (b *Block) Hash() tmbytes.HexBytes {
 		return nil
 	}
 	b.fillHeader()
-	// 这里又需要适配
-	//return b.Header.Hash()
-	return b.Header.IBCHash()
+
+	if HigherThanIBCHeight(b.Height) {
+		return b.Header.IBCHash()
+	}
+	return b.Header.Hash()
 }
 
 // MakePartSet returns a PartSet containing parts of a serialized block.
@@ -1845,8 +1847,8 @@ func (blockID *BlockID) ToIBCProto() tmproto.BlockID {
 		return tmproto.BlockID{}
 	}
 	return tmproto.BlockID{
-		Hash:                 blockID.Hash,
-		PartsHeader:          blockID.PartsHeader.ToIBCProto(),
+		Hash:        blockID.Hash,
+		PartsHeader: blockID.PartsHeader.ToIBCProto(),
 	}
 }
 

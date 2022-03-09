@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-	"github.com/okex/exchain/global"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 
@@ -679,7 +678,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	if global.IBCEnable {
+	if tmtypes.HigherThanIBCHeight(req.Height) {
 		queryIbcProof(&res, &commitInfo, storeName)
 	} else {
 		// Restore origin path and append proof op.

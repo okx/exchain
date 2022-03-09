@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/global"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
@@ -198,7 +197,6 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 
-
 	interfaceRegistry types.InterfaceRegistry
 	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
@@ -208,8 +206,7 @@ type BaseApp struct { // nolint: maligned
 
 	Cdc *codec.Codec
 
-	anteTracer        *trace.Tracer
-
+	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -242,8 +239,7 @@ func NewBaseApp(
 		grpcQueryRouter:  NewGRPCQueryRouter(),
 		interceptors:     make(map[string]Interceptor),
 
-		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
-
+		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
@@ -805,10 +801,11 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
-		if !global.IBCEnable && (mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck) {
-			break
+		if _, ok := msg.(sdk.MsgProtoAdapter); !ok {
+			if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
+				break
+			}
 		}
-
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {

@@ -195,7 +195,8 @@ func (m *CoinAdapter) GetDenom() string {
 //var xxx_messageInfo_DecProto proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*CoinAdapter)(nil), "oec.cosmos.base.v1beta1.CoinAdapter")
+	//proto.RegisterType((*CoinAdapter)(nil), "oec.cosmos.base.v1beta1.CoinAdapter")
+	proto.RegisterType((*CoinAdapter)(nil), "cosmos.base.v1beta1.Coin")
 	//proto.RegisterType((*DecCoinAdapter)(nil), "cosmos.base.v1beta1.DecCoinAdapter")
 	//proto.RegisterType((*IntProto)(nil), "cosmos.base.v1beta1.IntProto")
 	//proto.RegisterType((*DecProto)(nil), "cosmos.base.v1beta1.DecProto")

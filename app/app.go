@@ -23,6 +23,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
@@ -117,6 +118,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 	)
@@ -246,9 +248,14 @@ func NewOKExChainApp(
 	interfaceReg := MakeIBC()
 	bApp.SetInterfaceRegistry(interfaceReg)
 	cc := codec.NewProtoCodec(interfaceReg)
-	proxy := codec.NewMarshalProxy(cc, cdc)
+
+	ibcCodec := codec.NewProtoCodec(interfaceReg)
+	cdcproxy := codec.NewCodecProxy(ibcCodec, cdc)
+
+	//proxy := codec.NewMarshalProxy(cc, cdc)
+
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		ret, err = evm.TxDecoder(cdc)(txBytes, height...)
+		ret, err = evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
 		if nil == err {
 			return ret, err
 		}
@@ -298,6 +305,8 @@ func NewOKExChainApp(
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
+
+	proxy := codec.NewMarshalProxy(cc, cdc)
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(

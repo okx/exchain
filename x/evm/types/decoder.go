@@ -7,9 +7,17 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
+	//"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+
+	//ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+
+	typestx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -19,7 +27,7 @@ const IGNORE_HEIGHT_CHECKING = -1
 
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
 			return nil, fmt.Errorf("to many height parameters")
@@ -36,6 +44,10 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		} else {
 			height = global.GetGlobalHeight()
 		}
+		proxyCodec := &codec.CodecProxy{}
+		if len(proxy) > 0 {
+			proxyCodec = proxy[0]
+		}
 
 		for _, f := range []decodeFunc{
 			evmDecoder,
@@ -44,7 +56,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			byteTx,
 			relayTx,
 		} {
-			if tx, err = f(cdc, txBytes, height); err == nil {
+			if tx, err = f(cdc, proxyCodec, txBytes, height); err == nil {
 				return tx, nil
 			}
 		}
@@ -56,7 +68,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 // Unmarshaler is a generic type for Unmarshal functions
 type Unmarshaler func(bytes []byte, ptr interface{}) error
 
-var byteTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, error) {
+var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
 	bw := new(sdk.BytesWrapper)
 	txBytes, err := bw.UnmarshalToTx(bytes)
 	if nil != err {
@@ -72,33 +84,76 @@ var byteTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, err
 	return *tt, err
 }
 
-var relayTx decodeFunc = func(c *codec.Codec, bytes []byte, i int64) (sdk.Tx, error) {
-	wp := &sdk.RelayMsgWrapper{}
-	err := wp.UnMarshal(bytes)
-	if nil != err {
-		return nil, err
+var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
+	tx := &typestx.Tx{}
+	simReq := &typestx.SimulateRequest{}
+	txBytes := bytes
+
+	err := simReq.Unmarshal(bytes)
+	if err != nil {
+		//return authtypes.StdTx{}, err
+
+		broadcastReq := &typestx.BroadcastTxRequest{}
+		err = broadcastReq.Unmarshal(bytes)
+		fmt.Println("broadcastReq unmarshal", err)
+
+	} else {
+		tx = simReq.Tx
+		txBytes = simReq.TxBytes
 	}
-	msgs := make([]sdk.Msg, 0)
+
+	//txBytes := simReq.TxBytes
+	if txBytes == nil && simReq.Tx != nil {
+		//txBytes, err = proto.Marshal(simReq.Tx)
+		txBytes, err = proto.Marshal(tx)
+		if err != nil {
+			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
+		}
+	}
+
+	//msgs := make([]sdk.Msg, 0)
 	//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
 	//for _, v := range wp.Msgs {
 	//	msgs = append(msgs, v)
 	//	v.Singers[0] = addr
 	//}
 
-	sis := make([]authtypes.StdSignature, 1)
-	ret := authtypes.StdTx{
-		Msgs:       msgs,
-		Fee:        authtypes.StdFee{},
-		Signatures: sis,
-		Memo:       "okt",
+	if txBytes == nil {
+		return nil, errors.New("relayTx empty txBytes is not allowed")
 	}
-	return ret, nil
+
+	if proxy == nil {
+		return nil, errors.New("relayTx proxy decoder not provided")
+	}
+	marshaler := proxy.GetProtocMarshal()
+	decode := ibctxdecoder.IbcTxDecoder(marshaler)
+	txdata, err := decode(txBytes)
+	if err != nil {
+		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
+	}
+
+	return txdata, nil
 }
 
-type decodeFunc func(*codec.Codec, []byte, int64) (sdk.Tx, error)
+// func validateBasicTxMsgs(msgs []ibcsdk.Msg) error {
+// 	if len(msgs) == 0 {
+// 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "must contain at least one message")
+// 	}
+
+// 	for _, msg := range msgs {
+// 		err := msg.ValidateBasic()
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	return nil
+// }
+
+type decodeFunc func(*codec.Codec, *codec.CodecProxy, []byte, int64) (sdk.Tx, error)
 
 // 1. Try to decode as MsgEthereumTx by RLP
-func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func evmDecoder(_ *codec.Codec, proxy *codec.CodecProxy, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 
 	// bypass height checking in case of a negative number
 	if height >= 0 && !types.HigherThanVenus(height) {
@@ -114,7 +169,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 }
 
 // 2. try customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
-func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func ubruDecoder(cdc *codec.Codec, proxy *codec.CodecProxy, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	var v interface{}
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err != nil {
 		return nil, err
@@ -124,7 +179,7 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
 // 3. the original amino way, decode by reflection.
-func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func ubDecoder(cdc *codec.Codec, proxy *codec.CodecProxy, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil {
 		return nil, err

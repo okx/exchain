@@ -44,7 +44,7 @@ rly tx relay-pkts oec101_ibc1 -d
 sleep 1
 qualBal
 
-rly tx transfer ibc-1 exchain-101 1000000samoleans $(rly chains address exchain-101) --path ibc1_oec101
+rly tx transfer ibc-1 exchain-101 1000000samoleans raw:$(rly chains address exchain-101) --path ibc1_oec101
 sleep 1
 rly tx relay-pkts ibc1_oec101 -d
 sleep 1
