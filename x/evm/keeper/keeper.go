@@ -56,10 +56,7 @@ type Keeper struct {
 }
 
 type chainConfigInfo struct {
-	// found chainConfig is meaningful(not empty).
-	found bool
-
-	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
+	// chainConfig cached chain config
 	// nil means invalid the cache, we should cache it again.
 	cc *types.ChainConfig
 
@@ -276,7 +273,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
 	if k.cci.cc != nil {
 		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
-		return *k.cci.cc, k.cci.found
+		return *k.cci.cc, true
 	}
 
 	gasStart := ctx.GasMeter().GasConsumed()
@@ -285,7 +282,6 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 	// only cache chain config result when we found it, or try to found again.
 	if found {
-		k.cci.found = found
 		k.cci.cc = &chainConfig
 		k.cci.gasReduced = gasStop - gasStart
 	}
