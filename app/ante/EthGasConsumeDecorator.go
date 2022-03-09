@@ -100,6 +100,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, err
 	}
 	if feeAmt != nil {
+		//fmt.Println(hex.EncodeToString(senderAcc.GetAddress()), feeAmt[0].Amount)
 		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
 		if err != nil {
 			return ctx, err
@@ -107,8 +108,8 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, tx, simulate)
+	ctx = auth.SetGasMeter(simulate, ctx, gasLimit)
+	return next(ctx, tx, simulate)
 }
 
 func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (uint64, exported.Account, sdk.Coins, error) {
@@ -163,13 +164,14 @@ func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (u
 }
 
 
-func NewEthGasConsumeHandler(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) sdk.EthGasConsumeHandler {
+func NewEthGasConsumeHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.EthGasConsumeHandler {
 	return func(ctx sdk.Context, tx sdk.Tx) (sdk.Context, error) {
 		gasLimit, senderAcc, feeAmt, err := EthGasConsumePreCheck(ak, ctx, tx)
 		if err != nil {
 			return ctx, err
 		}
 		if feeAmt != nil {
+			//fmt.Println(hex.EncodeToString(senderAcc.GetAddress()), feeAmt[0].Amount)
 			err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 			if err != nil {
 				return ctx, err

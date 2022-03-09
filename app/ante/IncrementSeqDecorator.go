@@ -69,6 +69,5 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	// set the original gas meter
 	ctx = ctx.WithGasMeter(gasMeter)
-
 	return next(ctx, tx, simulate)
 }

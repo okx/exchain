@@ -42,10 +42,10 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// update ctx for push signerSigCache
-	newCtx = ctx.WithSigCache(signerSigCache)
+	ctx = ctx.WithSigCache(signerSigCache)
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
-	return next(newCtx, msgEthTx, simulate)
+	return next(ctx, msgEthTx, simulate)
 }
 
 

@@ -442,7 +442,7 @@ func NewOKExChainApp(
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetDeductFeeHandler(ante2.NewDeductFeeHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetEthGasConsumeHandler(ante.NewEthGasConsumeHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
+	app.SetEthGasConsumeHandler(ante.NewEthGasConsumeHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetEvmTxFromHandler(evmTxFromHandler())
 
 	if loadLatest {

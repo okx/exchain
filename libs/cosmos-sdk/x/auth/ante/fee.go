@@ -196,8 +196,8 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	//if global.GetGlobalHeight() == 5810736 {
 	//	hexacc := hex.EncodeToString(acc.GetAddress())
 	//	if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
-	//		//feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
-	//		//feeCoins := feeCollector.GetCoins()
+	//		feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	//		feeCoins := feeCollector.GetCoins()
 	//		log.Printf("To FeeCollector. acc:%s\n", acc.GetCoins()[0].Amount)
 	//	}
 	//}

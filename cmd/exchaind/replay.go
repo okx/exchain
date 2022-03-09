@@ -325,10 +325,10 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
-	blockExec.SetDeliverTxsMode(int8(0))
+	blockExec.SetDeliverTxsMode(int8(1))
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 	//height := lastBlockHeight + 1
-	//for i := 0; i <= 37; i++ {
+	//for i := 0; i <= 1; i++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
