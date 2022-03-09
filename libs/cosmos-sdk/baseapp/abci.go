@@ -172,10 +172,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	//go func() {
-	//	app.deliverState.ms.Write()
-	//	app.parallelTxManage.commitDone <- struct{}{}
-	//}()
+	go func() {
+		app.deliverState.ms.Write()
+		app.parallelTxManage.commitDone <- struct{}{}
+	}()
 
 	return
 }
@@ -253,11 +253,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		}
 	}
 
-	//if app.parallelTxManage.isAsyncDeliverTx {
-	//	<-app.parallelTxManage.commitDone
-	//} else {
-	app.deliverState.ms.Write()
-	//}
+	<-app.parallelTxManage.commitDone
+
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
 	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
