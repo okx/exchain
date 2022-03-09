@@ -111,7 +111,7 @@ func migrateAccount(ctx *server.Context) {
 		switch account.(type) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
-			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash)  {
+			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
 				contractCnt += 1
 
 				// migrate code

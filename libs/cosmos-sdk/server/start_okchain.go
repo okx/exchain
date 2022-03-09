@@ -248,7 +248,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().BoolVar(&types2.TrieDirtyDisabled, types2.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 	cmd.Flags().BoolVar(&types2.EnableDoubleWrite, types2.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
-	cmd.Flags().BoolVar(&types3.UseCompositeKey, types3.FlagUseCompositeKey,false, "Use composite key to store contract state")
+	cmd.Flags().BoolVar(&types3.UseCompositeKey, types3.FlagUseCompositeKey,true, "Use composite key to store contract state")
 	cmd.Flags().UintVar(&types3.ContractStateCache, types3.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 
