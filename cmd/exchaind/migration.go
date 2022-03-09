@@ -117,7 +117,7 @@ func migrateAccount(ctx *server.Context) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
 
-			if bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
+			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
 				contractCnt += 1
 				err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
 				panicError(err)
@@ -130,10 +130,10 @@ func migrateAccount(ctx *server.Context) {
 				rawdb.WriteCode(codeWriter, cHash, code)
 				err = codeWriter.Write()
 				panicError(err)
-			}
 
-			if contractCnt%100 == 0 {
-				pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
+				if contractCnt%100 == 0 {
+					pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
+				}
 			}
 		default:
 			//do nothing
