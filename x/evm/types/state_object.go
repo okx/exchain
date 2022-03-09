@@ -3,12 +3,13 @@ package types
 import (
 	"bytes"
 	"fmt"
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
 	"io"
 	"math/big"
 	"sync"
+
+	types2 "github.com/ethereum/go-ethereum/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types3 "github.com/okex/exchain/libs/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -303,6 +304,11 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		return
 	}
 
+	var tr ethstate.Trie = nil
+	if types3.EnableDoubleWrite {
+		tr = so.getTrie(db)
+	}
+
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	for key, value := range so.pendingStorage {
@@ -330,19 +336,9 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-	}
-
-	if types3.EnableDoubleWrite {
-		tr := so.getTrie(db)
-		for key, value := range so.pendingStorage {
-			// Skip noop changes, persist actual changes
-			if value == so.originStorage[key] {
-				continue
-			}
-			so.originStorage[key] = value
-
+		if types3.EnableDoubleWrite {
 			if UseCompositeKey {
-				key = so.GetStorageByAddressKey(key.Bytes())
+				key = prefixKey
 			}
 			if (value == ethcmn.Hash{}) {
 				so.setError(tr.TryDelete(key[:]))

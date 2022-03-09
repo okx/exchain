@@ -736,9 +736,10 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.IntermediateRoot(deleteEmptyObjects)
+	// Finalize any pending changes and merge everything into the tries
+	csdb.IntermediateRoot(deleteEmptyObjects)
 
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		if types2.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
@@ -757,12 +758,10 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 						return ethcmn.Hash{}, err
 					}
 
-					if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-						accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
-						if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
-							ethermintAccount.StateRoot = obj.account.StateRoot
-							csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
-						}
+					accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+					if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+						ethermintAccount.StateRoot = obj.account.StateRoot
+						csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
 					}
 				}
 			}
