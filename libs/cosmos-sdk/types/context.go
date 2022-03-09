@@ -315,6 +315,10 @@ func (c Context) WithValue(key, value interface{}) Context {
 	return c
 }
 
+func (c *Context) SetGasMeter(meter GasMeter) {
+	c.gasMeter = meter
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)

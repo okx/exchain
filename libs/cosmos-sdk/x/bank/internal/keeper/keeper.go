@@ -311,9 +311,8 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	if !amt.IsValid() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
-	gasBefore := ctx.GasMeter().GasConsumed()
-	acc := keeper.ak.GetAccount(ctx, addr)
-	return keeper.subtractCoins(ctx, addr, acc, ctx.GasMeter().GasConsumed()-gasBefore, amt)
+	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	return keeper.subtractCoins(ctx, addr, acc, gasUsed, amt)
 }
 
 func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
@@ -346,9 +345,8 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 
 	// oldCoins := keeper.GetCoins(ctx, addr)
 
-	gasBefore := ctx.GasMeter().GasConsumed()
-	acc := keeper.ak.GetAccount(ctx, addr)
-	return keeper.addCoins(ctx, addr, acc, ctx.GasMeter().GasConsumed()-gasBefore, amt)
+	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	return keeper.addCoins(ctx, addr, acc, gasUsed, amt)
 }
 
 func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
@@ -399,17 +397,11 @@ func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, 
 			gasMeter.ConsumeGas(getgas, "get account")
 			return acc, getgas
 		}
-		if ok, gass := authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc); ok {
-			return acc, gass
+		if ok, gasused := authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc); ok {
+			return acc, gasused
 		}
 	}
-	acc = keeper.ak.GetAccount(*ctx, addr)
-	gass, ok := authexported.GetAccountGas(keeper.ask, acc)
-	if ok {
-		return acc, gass
-	}
-
-	return acc, 0
+	return authexported.GetAccountAndGas(*ctx, keeper.ak, addr)
 }
 
 func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {

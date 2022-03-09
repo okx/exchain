@@ -15,6 +15,10 @@ type SizerAccountKeeper interface {
 	GetEncodedAccountSize(acc Account) int
 }
 
+type AccountKeeper interface {
+	GetAccount(ctx sdk.Context, addr sdk.AccAddress) Account
+}
+
 func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Account) (bool, sdk.Gas) {
 	if ak == nil || gasMeter == nil || acc == nil {
 		return false, 0
@@ -38,4 +42,19 @@ func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
 	}
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	return gas, true
+}
+
+func GetAccountAndGas(ctx sdk.Context, keeper AccountKeeper, addr sdk.AccAddress) (Account, sdk.Gas) {
+	gasMeter := ctx.GasMeter()
+	tmpGasMeter := sdk.NewInfiniteGasMeter()
+	ctx.SetGasMeter(tmpGasMeter)
+	gasBefore := tmpGasMeter.GasConsumed()
+
+	acc := keeper.GetAccount(ctx, addr)
+
+	gasUsed := tmpGasMeter.GasConsumed() - gasBefore
+	gasMeter.ConsumeGas(gasUsed, "get account")
+	ctx.SetGasMeter(gasMeter)
+
+	return acc, gasUsed
 }
