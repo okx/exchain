@@ -45,6 +45,7 @@ type Params struct {
 	// MaxGasLimit defines the max gas limit in transaction
 	MaxGasLimitPerTx uint64 `json:"max_gas_limit_per_tx" yaml:"max_gas_limit_per_tx"`
 
+	// TODO
 	IbcDenom string
 }
 
