@@ -15,17 +15,21 @@ type SizerAccountKeeper interface {
 	GetEncodedAccountSize(acc Account) int
 }
 
-func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Account) bool {
+type AccountKeeper interface {
+	GetAccount(ctx sdk.Context, addr sdk.AccAddress) Account
+}
+
+func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Account) (bool, sdk.Gas) {
 	if ak == nil || gasMeter == nil || acc == nil {
-		return false
+		return false, 0
 	}
 	size := ak.GetEncodedAccountSize(acc)
 	if size == 0 {
-		return false
+		return false, 0
 	}
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	gasMeter.ConsumeGas(gas, "x/bank/internal/keeper/keeper.BaseSendKeeper")
-	return true
+	return true, gas
 }
 
 func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
@@ -38,4 +42,19 @@ func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
 	}
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	return gas, true
+}
+
+func GetAccountAndGas(ctx sdk.Context, keeper AccountKeeper, addr sdk.AccAddress) (Account, sdk.Gas) {
+	gasMeter := ctx.GasMeter()
+	tmpGasMeter := sdk.NewInfiniteGasMeter()
+	ctx.SetGasMeter(tmpGasMeter)
+	gasBefore := tmpGasMeter.GasConsumed()
+
+	acc := keeper.GetAccount(ctx, addr)
+
+	gasUsed := tmpGasMeter.GasConsumed() - gasBefore
+	gasMeter.ConsumeGas(gasUsed, "get account")
+	ctx.SetGasMeter(gasMeter)
+
+	return acc, gasUsed
 }
