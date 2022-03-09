@@ -3,15 +3,12 @@ package types
 import (
 	"errors"
 	"fmt"
-	ethermint "github.com/okex/exchain/app/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types2 "github.com/okex/exchain/libs/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -33,12 +30,10 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 				return ethcmn.Hash{}, err
 			}
 
-			if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-				accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
-				if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
-					ethermintAccount.StateRoot = obj.account.StateRoot
-					csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
-				}
+			accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+			if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+				ethermintAccount.StateRoot = obj.account.StateRoot
+				csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
 			}
 		}
 	}

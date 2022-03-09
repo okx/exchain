@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
+	"path/filepath"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -17,9 +21,9 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	types3 "github.com/okex/exchain/libs/types"
 	"github.com/spf13/cobra"
-	"log"
-	"path/filepath"
 )
+
+var emptyCodeHash = ethcrypto.Keccak256(nil)
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -107,7 +111,7 @@ func migrateAccount(ctx *server.Context) {
 		switch account.(type) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
-			if len(ethAcc.CodeHash) > 0 {
+			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
 				contractCnt += 1
 
 				// migrate code
@@ -125,7 +129,7 @@ func migrateAccount(ctx *server.Context) {
 	})
 	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight() - 1))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight()-1))
 }
 
 func migrateContract(ctx *server.Context) {
@@ -149,8 +153,9 @@ func migrateContract(ctx *server.Context) {
 		switch account.(type) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
+			ethAcc.StateRoot = types.EmptyRootHash
 
-			if len(ethAcc.CodeHash) > 0 {
+			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash) {
 				cnt += 1
 
 				addr := ethcmn.BytesToAddress(key)
@@ -169,19 +174,18 @@ func migrateContract(ctx *server.Context) {
 
 				ethAcc.StateRoot, err = contractTrie.Commit(nil)
 				panicError(err)
+			}
 
-				bz, err := migApp.AccountKeeper.EncodeAccount(ethAcc)
-				panicError(err)
+			bz, err := migApp.AccountKeeper.EncodeAccount(ethAcc)
+			panicError(err)
 
-				// use the FUCK key here, not the addr[:], for application logic will change the the addr with some odd prefix...
-				err = mptTrie.TryUpdate(key, bz)
-				panicError(err)
+			// use the FUCK key here, not the addr[:], for application logic will change the the addr with some odd prefix...
+			err = mptTrie.TryUpdate(key, bz)
+			panicError(err)
 
-				if cnt % 100 == 0 {
-					pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
-					fmt.Println(cnt)
-				}
-
+			if cnt % 100 == 0 {
+				pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
+				fmt.Println(cnt)
 			}
 		default:
 			//do nothing
@@ -190,7 +194,7 @@ func migrateContract(ctx *server.Context) {
 	})
 	pushData2Database(mptDb, mptTrie, cmCtx.BlockHeight() - 1, migApp.AccountKeeper.RetrievalStateRoot)
 
-	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight() - 1))
+	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight()-1))
 }
 
 func cleanRawDB(ctx *server.Context) {

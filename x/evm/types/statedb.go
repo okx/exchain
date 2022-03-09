@@ -768,12 +768,10 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 						return ethcmn.Hash{}, err
 					}
 
-					if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-						accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
-						if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
-							ethermintAccount.StateRoot = obj.account.StateRoot
-							csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
-						}
+					accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+					if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+						ethermintAccount.StateRoot = obj.account.StateRoot
+						csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
 					}
 				}
 			}
