@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func init() {
@@ -31,14 +32,13 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		//if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && ctx.IsDeliverorAsync() {
-		//	anteHandler = sdk.ChainAnteDecorators(
-		//		authante.NewValidateBasicDecorator(),
-		//		NewEthSigVerificationDecorator(),
-		//		NewAccountAggregateValidateDecorator(ak, sk, evmKeeper),
-		//	)
-		//} else
-		{
+		if ctx.BlockHeight() > types2.GetAnteHeight() && tx.GetType() == sdk.EvmTxType && ctx.IsDeliverorAsync() {
+			anteHandler = sdk.ChainAnteDecorators(
+				authante.NewValidateBasicDecorator(),
+				NewEthSigVerificationDecorator(),
+				NewAccountAggregateValidateDecorator(ak, sk, evmKeeper),
+			)
+		} else {
 			switch tx.GetType() {
 			case sdk.StdTxType:
 				anteHandler = sdk.ChainAnteDecorators(
