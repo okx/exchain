@@ -220,9 +220,9 @@ func (b *Block) Hash() tmbytes.HexBytes {
 	}
 	b.fillHeader()
 
-	if HigherThanIBCHeight(b.Height) {
-		return b.Header.IBCHash()
-	}
+	//if HigherThanIBCHeight(b.Height) {
+	//	return b.Header.IBCHash()
+	//}
 	return b.Header.Hash()
 }
 
@@ -663,6 +663,28 @@ func (h *Header) Hash() tmbytes.HexBytes {
 	if h == nil || len(h.ValidatorsHash) == 0 {
 		return nil
 	}
+	if HigherThanIBCHeight(h.Height) {
+		return h.IBCHash()
+	}
+	return h.originHash()
+	//return merkle.SimpleHashFromByteSlices([][]byte{
+	//	cdcEncode(h.Version),
+	//	cdcEncode(h.ChainID),
+	//	cdcEncode(h.Height),
+	//	cdcEncode(h.Time),
+	//	cdcEncode(h.LastBlockID),
+	//	cdcEncode(h.LastCommitHash),
+	//	cdcEncode(h.DataHash),
+	//	cdcEncode(h.ValidatorsHash),
+	//	cdcEncode(h.NextValidatorsHash),
+	//	cdcEncode(h.ConsensusHash),
+	//	cdcEncode(h.AppHash),
+	//	cdcEncode(h.LastResultsHash),
+	//	cdcEncode(h.EvidenceHash),
+	//	cdcEncode(h.ProposerAddress),
+	//})
+}
+func (h *Header) originHash() tmbytes.HexBytes {
 	return merkle.SimpleHashFromByteSlices([][]byte{
 		cdcEncode(h.Version),
 		cdcEncode(h.ChainID),

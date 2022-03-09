@@ -46,11 +46,16 @@ func (p Protocol) Uint64() uint64 {
 var (
 	// P2PProtocol versions all p2p behaviour and msgs.
 	// This includes proposer selection.
-	P2PProtocol Protocol = 8
+	P2PProtocol Protocol = 7
 
 	// BlockProtocol versions all block data structures and processing.
 	// This includes validity of blocks and state updates.
-	BlockProtocol Protocol = 11
+	BlockProtocol Protocol = 10
+)
+
+var (
+	IBCP2PProtocol   Protocol = 8
+	IBCBlockProtocol Protocol = 11
 )
 
 //------------------------------------------------------------------------

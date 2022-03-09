@@ -1,11 +1,12 @@
 package types
 
 import (
+	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 	tmversion "github.com/okex/exchain/libs/tendermint/proto/version"
 	"time"
-
 )
 
 // SignedHeader is a header along with the commits that prove it.
@@ -15,7 +16,6 @@ type IBCSignedHeader struct {
 	Commit *IBCCommit `json:"commit"`
 }
 
-
 type IBCPartSetHeader struct {
 	Total uint32           `json:"total"`
 	Hash  tmbytes.HexBytes `json:"hash"`
@@ -23,7 +23,7 @@ type IBCPartSetHeader struct {
 
 type IBCBlockID struct {
 	Hash          tmbytes.HexBytes `json:"hash"`
-	PartSetHeader IBCPartSetHeader    `json:"parts"`
+	PartSetHeader IBCPartSetHeader `json:"parts"`
 }
 type IBCHeader struct {
 	// basic block info
@@ -60,7 +60,7 @@ type IBCCommit struct {
 	// recalculating the active ValidatorSet.
 	Height     int64       `json:"height"`
 	Round      int32       `json:"round"`
-	BlockID    IBCBlockID     `json:"block_id"`
+	BlockID    IBCBlockID  `json:"block_id"`
 	Signatures []CommitSig `json:"signatures"`
 
 	// Memoized in first call to corresponding method.
@@ -69,7 +69,6 @@ type IBCCommit struct {
 	hash     tmbytes.HexBytes
 	bitArray *bits.BitArray
 }
-
 
 //func (commit *IBCCommit) VoteSignBytes(chainID string, valIdx int32) []byte {
 //	v := commit.GetVote(valIdx).ToProto()
@@ -88,7 +87,6 @@ type IBCCommit struct {
 //		Signature:        commitSig.Signature,
 //	}
 //}
-
 
 //func (blockID *IBCBlockID) ToProto() tmproto.BlockID {
 //	if blockID == nil {
@@ -137,3 +135,24 @@ type IBCCommit struct {
 //		cdcEncode(h.ProposerAddress),
 //	})
 //}
+
+func (v *Validator) HeightBytes(h int64) []byte {
+	if HigherThanIBCHeight(h) {
+		pk, err := ce.PubKeyToProto(v.PubKey)
+		if err != nil {
+			panic(err)
+		}
+
+		pbv := tmproto.SimpleValidator{
+			PubKey:      &pk,
+			VotingPower: v.VotingPower,
+		}
+
+		bz, err := pbv.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		return bz
+	}
+	return v.OriginBytes()
+}

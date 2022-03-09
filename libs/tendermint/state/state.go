@@ -151,7 +151,7 @@ func (state State) MakeBlock(
 	block.Header.Populate(
 		state.Version.Consensus, state.ChainID,
 		timestamp, state.LastBlockID,
-		state.Validators.Hash(), state.NextValidators.Hash(),
+		state.Validators.Hash(height), state.NextValidators.Hash(height+1),
 		state.ConsensusParams.Hash(), state.AppHash, state.LastResultsHash,
 		proposerAddress,
 	)
@@ -231,7 +231,7 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 	}
 
 	return State{
-		Version: initStateVersion,
+		Version: GetStateVersion(types.GetStartBlockHeight()),
 		ChainID: genDoc.ChainID,
 
 		LastBlockHeight: types.GetStartBlockHeight(),

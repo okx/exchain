@@ -215,6 +215,10 @@ func (vote *Vote) CommitSig() CommitSig {
 }
 
 func (vote *Vote) SignBytes(chainID string) []byte {
+	if HigherThanIBCHeight(vote.Height) {
+		return vote.ibcSignBytes(chainID)
+	}
+	return vote.originSignBytes(chainID)
 	//ret := types.VoteSignBytes(chainID, &tmproto2.Vote{
 	//	Type:   tmproto2.SignedMsgType(vote.Type),
 	//	Height: vote.Height,
@@ -261,7 +265,7 @@ func (vote *Vote) SignBytes(chainID string) []byte {
 	//}
 	//return ret
 
-	return VoteSignBytes(chainID,vote)
+	//return VoteSignBytes(chainID, vote)
 
 	//bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainID, vote))
 	//if err != nil {
@@ -279,6 +283,17 @@ func (vote *Vote) SignBytes(chainID string) []byte {
 	//
 	//}
 	//return bz
+}
+
+func (vote *Vote) ibcSignBytes(chainID string) []byte {
+	return VoteSignBytes(chainID, vote)
+}
+func (vote *Vote) originSignBytes(chainId string) []byte {
+	bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainId, vote))
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }
 
 func (vote *Vote) Copy() *Vote {
