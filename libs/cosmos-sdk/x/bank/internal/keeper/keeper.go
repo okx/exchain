@@ -399,14 +399,17 @@ func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, 
 			gasMeter.ConsumeGas(getgas, "get account")
 			return acc, getgas
 		}
-		gasBefore := gasMeter.GasConsumed()
-		if authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc) {
-			return acc, gasMeter.GasConsumed() - gasBefore
+		if ok, gass := authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc); ok {
+			return acc, gass
 		}
 	}
-	gasBefore := gasMeter.GasConsumed()
 	acc = keeper.ak.GetAccount(*ctx, addr)
-	return acc, gasMeter.GasConsumed() - gasBefore
+	gass, ok := authexported.GetAccountGas(keeper.ask, acc)
+	if ok {
+		return acc, gass
+	}
+
+	return acc, 0
 }
 
 func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {

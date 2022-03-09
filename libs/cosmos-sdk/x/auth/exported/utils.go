@@ -15,17 +15,17 @@ type SizerAccountKeeper interface {
 	GetEncodedAccountSize(acc Account) int
 }
 
-func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Account) bool {
+func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Account) (bool, sdk.Gas) {
 	if ak == nil || gasMeter == nil || acc == nil {
-		return false
+		return false, 0
 	}
 	size := ak.GetEncodedAccountSize(acc)
 	if size == 0 {
-		return false
+		return false, 0
 	}
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	gasMeter.ConsumeGas(gas, "x/bank/internal/keeper/keeper.BaseSendKeeper")
-	return true
+	return true, gas
 }
 
 func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
