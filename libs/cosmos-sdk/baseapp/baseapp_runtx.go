@@ -2,8 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -136,9 +134,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
-	if err != nil {
-		app.logger.Error("ante error", "err", err.Error())
-	}
+
 	// 3. AnteOther
 	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
@@ -187,7 +183,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
-		app.logger.Error("tx failed", "runtx", err.Error(), "tx bytes", hexutil.Encode(req.Tx), "txhash", types.Bytes2Hash(req.Tx, int64(8817284)))
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
 	}
 

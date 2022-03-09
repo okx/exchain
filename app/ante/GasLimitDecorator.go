@@ -10,7 +10,6 @@ import (
 type EVMKeeper interface {
 	GetParams(ctx sdk.Context) evmtypes.Params
 	IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool
-	IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // NewGasLimitDecorator creates a new GasLimitDecorator.

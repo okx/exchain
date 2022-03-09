@@ -531,7 +531,7 @@ func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
 		if csdb.ctx.BlockHeight() > types2.GetAnteHeight() && csdb.ctx.IsDeliverorAsync() {
-			if EvmParamsCache.IsNeedParamsUpdate() && csdb.ctx.IsDeliverorAsync() {
+			if EvmParamsCache.IsNeedParamsUpdate() {
 				csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 				EvmParamsCache.UpdateParams(params)
 			} else {
