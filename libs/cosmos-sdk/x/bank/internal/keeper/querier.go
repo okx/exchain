@@ -1,9 +1,11 @@
 package keeper
 
 import (
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -56,12 +58,18 @@ func queryBalance(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, err
 func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	bk, ok := k.(*BaseKeeper)
 	var ret []byte
+	var a sdk.AccAddress
+	var er error
 	if ok {
 		protoReq := typesadapter.QueryAllBalancesRequest{}
 		if err := bk.marshal.GetProtocMarshal().UnmarshalBinaryBare(req.Data, &protoReq); nil != err {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 		}
-		a, er := sdk.AccAddressFromBech32(protoReq.Address)
+		if strings.HasPrefix("cosmos", protoReq.Address) {
+			a, er = sdk.AccAddressFromBech32ByPrefix(protoReq.Address, "cosmos")
+		} else {
+			a, er = sdk.AccAddressFromBech32(protoReq.Address)
+		}
 		if nil != er {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, er.Error())
 		}
@@ -71,10 +79,12 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		}
 		bs := make(sdk.CoinAdapters, 0)
 		for _, c := range coins {
-			bs = append(bs, sdk.CoinAdapter{
+			ada := sdk.CoinAdapter{
 				Denom:  c.Denom,
-				Amount: sdk.NewIntFromBigInt(c.Amount.Int),
-			})
+				Amount: c.Amount.RoundInt(),
+			}
+			logrusplugin.Info("coin", "origin", c.String(), "after", ada.String())
+			bs = append(bs, ada)
 		}
 		resp := typesadapter.QueryAllBalancesResponse{
 			Balances:   bs,

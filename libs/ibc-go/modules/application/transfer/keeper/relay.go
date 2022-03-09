@@ -234,10 +234,17 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
 		token := sdk.NewIBCCoin(denom, sdk.NewIntFromUint64(data.Amount))
-		logrusplugin.Info("new denomTrace", "tracePath", denomTrace.Path, "baseDenom", denomTrace.BaseDenom)
+
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
-		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
+		ccc := sdk.NewCoins(token)
+		logrusplugin.Info("new denomTrace",
+			"tracePath", denomTrace.Path,
+			"baseDenom", denomTrace.BaseDenom,
+			"token", token.String(),
+			"coins", ccc.String(),
+		)
+		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, ccc); err != nil {
 			// NOTE: this error is only expected to occur given an unexpected bug or a malicious
 			// counterparty module. The bug may occur in bank or any part of the code that allows
 			// the escrow address to be drained. A malicious counterparty module could drain the
@@ -275,7 +282,6 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	// construct the denomination trace from the full raw denomination
 	denomTrace := types.ParseDenomTrace(prefixedDenom)
 	traceHash := denomTrace.Hash()
-	logrusplugin.Info("new denomTrace", "tracePath", denomTrace.Path, "baseDenom", denomTrace.BaseDenom, "traceHash", traceHash)
 	if !k.HasDenomTrace(ctx, traceHash) {
 		k.SetDenomTrace(ctx, denomTrace)
 	}
@@ -299,8 +305,16 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	}
 
 	// send to receiver
+	ccc := sdk.NewCoins(voucher)
+
+	logrusplugin.Info("new denomTrace",
+		"tracePath", denomTrace.Path, "baseDenom",
+		denomTrace.BaseDenom, "traceHash", traceHash,
+		"voucher", voucher.String(),
+	)
+
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(
-		ctx, types.ModuleName, receiver, sdk.NewCoins(voucher),
+		ctx, types.ModuleName, receiver, ccc,
 	); err != nil {
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
