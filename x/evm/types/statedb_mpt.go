@@ -18,9 +18,6 @@ import (
 )
 
 func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	// Finalize any pending changes and merge everything into the tries
-	csdb.IntermediateRoot(deleteEmptyObjects)
-
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 	for addr := range csdb.stateObjectsDirty {
@@ -36,9 +33,7 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 				return ethcmn.Hash{}, err
 			}
 
-			if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-				csdb.UpdateAccountStorageInfo(obj)
-			}
+			csdb.UpdateAccountStorageInfo(obj)
 		}
 	}
 

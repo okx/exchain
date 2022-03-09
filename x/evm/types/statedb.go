@@ -738,9 +738,10 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.IntermediateRoot(deleteEmptyObjects)
+	// Finalize any pending changes and merge everything into the tries
+	csdb.IntermediateRoot(deleteEmptyObjects)
 
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		if types2.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
@@ -758,6 +759,8 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 					if err := obj.CommitTrie(csdb.db); err != nil {
 						return ethcmn.Hash{}, err
 					}
+
+					csdb.UpdateAccountStorageInfo(obj)
 				}
 			}
 
@@ -891,10 +894,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 			csdb.Watcher.SaveAccount(so.account, false)
 		}
 	}
-
-	//if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-	//	csdb.UpdateAccountStorageInfo(so)
-	//}
 
 	return nil
 }

@@ -305,6 +305,11 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		return
 	}
 
+	var tr ethstate.Trie = nil
+	if types3.EnableDoubleWrite {
+		tr = so.getTrie(db)
+	}
+
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	for key, value := range so.pendingStorage {
@@ -332,29 +337,17 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-	}
 
-	if types3.EnableDoubleWrite {
-		tr := so.getTrie(db)
-		for key, value := range so.pendingStorage {
-			// Skip noop changes, persist actual changes
-			if value == so.originStorage[key] {
-				continue
-			}
-			so.originStorage[key] = value
-
-			if UseCompositeKey {
-				key = so.GetStorageByAddressKey(key.Bytes())
-			}
-			if (value == ethcmn.Hash{}) {
-				so.setError(tr.TryDelete(key[:]))
-			} else {
-				// Encoding []byte cannot fail, ok to ignore the error.
-				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-				so.setError(tr.TryUpdate(key[:], v))
-			}
+		if UseCompositeKey {
+			key = prefixKey
 		}
-		so.stateRoot = so.trie.Hash()
+		if (value == ethcmn.Hash{}) {
+			so.setError(tr.TryDelete(key[:]))
+		} else {
+			// Encoding []byte cannot fail, ok to ignore the error.
+			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+			so.setError(tr.TryUpdate(key[:], v))
+		}
 	}
 
 	if len(so.pendingStorage) > 0 {
