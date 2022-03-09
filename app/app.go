@@ -65,6 +65,7 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
