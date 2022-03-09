@@ -201,6 +201,7 @@ type OKExChainApp struct {
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
+	marshal              *codec.CodecProxy
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -308,7 +309,7 @@ func NewOKExChainApp(
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
 	proxy := codec.NewMarshalProxy(cc, cdc)
-
+	app.marshal = cdcproxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
@@ -631,6 +632,10 @@ func (app *OKExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
 // for modules to register their own custom testing types.
 func (app *OKExChainApp) Codec() *codec.Codec {
 	return app.cdc
+}
+
+func (app *OKExChainApp) Marshal() *codec.CodecProxy {
+	return app.marshal
 }
 
 // GetSubspace returns a param subspace for a given module name.
