@@ -53,6 +53,10 @@ var (
 	DefaultLogPath     = os.ExpandEnv("$HOME/.exchaind")
 	defaultLogFileName = "exchaind.log"
 	defaultLogFile     = filepath.Join(DefaultLogPath, defaultLogFileName)
+
+	//POA: validators key file path
+	defaultAllValKeyName = "all_validator_key"
+	defaultAllValKeyPath = filepath.Join(defaultConfigDir, defaultAllValKeyName)
 )
 
 var (
@@ -828,22 +832,22 @@ type ConsensusConfig struct {
 	PeerQueryMaj23SleepDuration time.Duration `mapstructure:"peer_query_maj23_sleep_duration"`
 
 	//POA
-	POAEnable               bool     `mapstructure:"poa_enable"`
+	POAEnable               bool     `mapstructure:"enable_poa"`
 	ValidatorPrivateKeylist []string `mapstructure:"validator_private_key_list"`
+	AllValKeyPath           string   `mapstructure:"all_validator_key_path"`
 }
 
 // DefaultConsensusConfig returns a default configuration for the consensus service
 func DefaultConsensusConfig() *ConsensusConfig {
 	return &ConsensusConfig{
-		WalPath:               filepath.Join(defaultDataDir, "cs.wal", "wal"),
-		TimeoutPropose:        3000 * time.Millisecond,
-		TimeoutProposeDelta:   500 * time.Millisecond,
-		TimeoutPrevote:        1000 * time.Millisecond,
-		TimeoutPrevoteDelta:   500 * time.Millisecond,
-		TimeoutPrecommit:      1000 * time.Millisecond,
-		TimeoutPrecommitDelta: 500 * time.Millisecond,
-		//TimeoutCommit:               3000 * time.Millisecond,
-		TimeoutCommit:               10000 * time.Millisecond,
+		WalPath:                     filepath.Join(defaultDataDir, "cs.wal", "wal"),
+		TimeoutPropose:              3000 * time.Millisecond,
+		TimeoutProposeDelta:         500 * time.Millisecond,
+		TimeoutPrevote:              1000 * time.Millisecond,
+		TimeoutPrevoteDelta:         500 * time.Millisecond,
+		TimeoutPrecommit:            1000 * time.Millisecond,
+		TimeoutPrecommitDelta:       500 * time.Millisecond,
+		TimeoutCommit:               3000 * time.Millisecond,
 		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
@@ -852,12 +856,9 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
 		//POA:
-		POAEnable: false,
-		ValidatorPrivateKeylist: []string{
-			"KDrk9Dcb4Sw4ueJlV/NKsmxpOibICqvi36K3vl9j4uUx9Agj6hsZNBmMfqEVqeiSOxf66a/q6TNM6Wiwbc4nOw==",
-			"Aij7/SJEwOh73wy5AgXHu9POUMxJpG9lVEY2qyluEMu0gNN1xA7SEi3sgc6zwDSRpCU4bWCra52de41nlX3+tg==",
-			"f6qx4M/vR7AUsA0bxhHhrAGD+hR5dTeA776DNEO01sSJq58zPOxJoArgL7wWuTuG8+GYJpgnRruMciVPgB9UKg==",
-			"BBz2FZxsLQo4BiQj9FJUBVUH4btoppXSIr1AzgJMcg1o6Cbf4TgWyZLjDwZ+PQcD7lTc2VcVqBM4xyv12ykkXQ=="},
+		POAEnable:               false,
+		ValidatorPrivateKeylist: []string{},
+		AllValKeyPath:           defaultAllValKeyPath,
 	}
 }
 
@@ -917,6 +918,11 @@ func (cfg *ConsensusConfig) WalFile() string {
 		return cfg.walFile
 	}
 	return rootify(cfg.WalPath, cfg.RootDir)
+}
+
+// POA: AllValidatorKeyFile returns the full path to the all_validator_key file
+func (cfg ConsensusConfig) AllValidatorKeyFile() string {
+	return rootify(cfg.AllValKeyPath, cfg.RootDir)
 }
 
 // SetWalFile sets the path to the write-ahead log file

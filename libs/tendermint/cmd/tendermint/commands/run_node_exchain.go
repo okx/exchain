@@ -33,4 +33,7 @@ func addMoreFlags(cmd *cobra.Command) {
 		"Set TimeoutCommit")
 	cmd.Flags().Duration("consensus.timeout_consensus", config.Consensus.TimeoutConsensus,
 		"Set TimeoutConsensus")
+	//POA
+	cmd.Flags().Bool("consensus.enable_poa", false,
+		"Set True to enable POA")
 }

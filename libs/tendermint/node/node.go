@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec // securely exposed on separate, optional port
@@ -603,6 +604,17 @@ func NewNode(config *cfg.Config,
 	consensusLogger := logger.With("module", "consensus")
 	if err := doHandshake(stateDB, state, blockStore, deltasStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
 		return nil, err
+	}
+
+	//POA: Load validators private key
+	if config.Consensus.POAEnable {
+		b, err := ioutil.ReadFile(config.Consensus.AllValidatorKeyFile())
+		if err != nil {
+			panic(err)
+		}
+
+		config.Consensus.ValidatorPrivateKeylist = strings.Fields(string(b))
+		logger.Info("POA", "load all validators private keys:", config.Consensus.ValidatorPrivateKeylist)
 	}
 
 	// Reload the state. It will have the Version.Consensus.App set by the

@@ -388,10 +388,10 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 			pubKey, _ := pv.GetPubKey()
 			pubArray := [32]byte(pubKey.(ed25519.PubKeyEd25519))
 			pubBytes := pubArray[:]
-			fmt.Println("POA load private validator:")
-			fmt.Println("--privateKey:", s)
-			fmt.Println("--pubKey", base64.StdEncoding.EncodeToString(pubBytes))
-			fmt.Println("--address", pubKey.Address().String())
+			cs.Logger.Debug("POA", "load private validator:")
+			cs.Logger.Debug("POA", "--privateKey:", s)
+			cs.Logger.Debug("POA", "--pubKey", base64.StdEncoding.EncodeToString(pubBytes))
+			cs.Logger.Debug("POA", "--address", pubKey.Address().String())
 		}
 	}
 
@@ -1902,15 +1902,15 @@ func (cs *State) simAllPrecommitVote() error {
 			panic(fmt.Sprintf("POA, Sign vote error, %v", err))
 		}
 
-		fmt.Println("POA", "Sign Vote successfully")
-		fmt.Println("--Address:", addr.String())
-		fmt.Println(vote)
+		cs.Logger.Debug("POA", "Sign Vote successfully")
+		cs.Logger.Debug("POA", "--Address:", addr.String())
+		cs.Logger.Debug("POA", "--vote:", vote)
 
 		//add vote
 		added, err := cs.Votes.AddVote(vote, "")
 
 		if err != nil {
-			fmt.Printf("POA, Add vote error, %v\n", err)
+			cs.Logger.Debug("POA, Add vote error, %v\n", err)
 		}
 
 		//send out vote to peers
@@ -1938,14 +1938,17 @@ func (cs *State) tryAddVote(vote *types.Vote, peerID p2p.ID) (bool, error) {
 			}
 
 			if bytes.Equal(vote.ValidatorAddress, cs.privValidatorPubKey.Address()) {
-				cs.Logger.Error(
-					"Found conflicting vote from ourselves. Did you unsafe_reset a validator?",
-					"height",
-					vote.Height,
-					"round",
-					vote.Round,
-					"type",
-					vote.Type)
+				//POA: It's possible to get multiple votes from the same validator under POA
+				if !cs.config.POAEnable {
+					cs.Logger.Error(
+						"Found conflicting vote from ourselves. Did you unsafe_reset a validator?",
+						"height",
+						vote.Height,
+						"round",
+						vote.Round,
+						"type",
+						vote.Type)
+				}
 				return added, err
 			}
 			cs.evpool.AddEvidence(voteErr.DuplicateVoteEvidence)
