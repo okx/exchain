@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -22,9 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	accountCodeHash = ethcmn.HexToHash("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
-)
+var emptyCodeHash = ethcrypto.Keccak256(nil)
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -117,9 +116,8 @@ func migrateAccount(ctx *server.Context) {
 		switch account.(type) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
-			cHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 
-			if cHash != accountCodeHash {
+			if bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
 				contractCnt += 1
 				err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
 				panicError(err)
