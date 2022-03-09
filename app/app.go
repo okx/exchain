@@ -421,7 +421,7 @@ func NewOKExChainApp(
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(evm.NewSendToIbcEventHandler(*app.EvmKeeper)))
 	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
+	//app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
