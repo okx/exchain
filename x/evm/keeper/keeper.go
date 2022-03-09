@@ -286,6 +286,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// only cache chain config result when we found it, or try to found again.
 	if found {
 		k.cci.found = found
+		k.cci.cc = &chainConfig
 		k.cci.gasReduced = gasStop - gasStart
 	}
 
