@@ -1,13 +1,13 @@
 package types
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	watcher "github.com/okex/exchain/x/evm/watcher"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -29,75 +29,6 @@ type StorageResult struct {
 	Key   string       `json:"key"`
 	Value *hexutil.Big `json:"value"`
 	Proof []string     `json:"proof"`
-}
-
-// Transaction represents a transaction returned to RPC clients.
-type Transaction struct {
-	BlockHash        *common.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
-	Hash             common.Hash     `json:"hash"`
-	Input            hexutil.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64  `json:"nonce"`
-	To               *common.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
-	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
-}
-
-// A BlockNonce is a 64-bit hash which proves (combined with the
-// mix-hash) that a sufficient amount of computation has been carried
-// out on a block.
-type BlockNonce [8]byte
-
-// EncodeNonce converts the given integer to a block nonce.
-func EncodeNonce(i uint64) BlockNonce {
-	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
-	return n
-}
-
-// Uint64 returns the integer value of a block nonce.
-func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
-}
-
-// MarshalText encodes n as a hex string with 0x prefix.
-func (n BlockNonce) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(n[:]).MarshalText()
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (n *BlockNonce) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
-}
-
-// Block represents a transaction returned to RPC clients.
-type Block struct {
-	Number           hexutil.Uint64 `json:"number"`
-	Hash             common.Hash    `json:"hash"`
-	ParentHash       common.Hash    `json:"parentHash"`
-	Nonce            BlockNonce     `json:"nonce"`
-	UncleHash        common.Hash    `json:"sha3Uncles"`
-	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
-	TransactionsRoot common.Hash    `json:"transactionsRoot"`
-	StateRoot        common.Hash    `json:"stateRoot"`
-	Miner            common.Address `json:"miner"`
-	MixHash          common.Hash    `json:"mixHash"`
-	Difficulty       hexutil.Uint64 `json:"difficulty"`
-	TotalDifficulty  hexutil.Uint64 `json:"totalDifficulty"`
-	ExtraData        hexutil.Bytes  `json:"extraData"`
-	Size             hexutil.Uint64 `json:"size"`
-	GasLimit         hexutil.Uint64 `json:"gasLimit"`
-	GasUsed          *hexutil.Big   `json:"gasUsed"`
-	Timestamp        hexutil.Uint64 `json:"timestamp"`
-	Uncles           []common.Hash  `json:"uncles"`
-	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
-	Transactions     interface{}    `json:"transactions"`
 }
 
 // SendTxArgs represents the arguments to submit a new transaction into the transaction pool.
@@ -220,6 +151,6 @@ type FeeHistoryResult struct {
 
 // SignTransactionResult represents a RLP encoded signed transaction.
 type SignTransactionResult struct {
-	Raw hexutil.Bytes `json:"raw"`
-	Tx  *Transaction  `json:"tx"`
+	Raw hexutil.Bytes        `json:"raw"`
+	Tx  *watcher.Transaction `json:"tx"`
 }

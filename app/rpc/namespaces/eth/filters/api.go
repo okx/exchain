@@ -20,6 +20,7 @@ import (
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	"golang.org/x/time/rate"
 )
@@ -29,7 +30,7 @@ var ErrMethodNotAllowed = errors.New("the method is not allowed")
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)

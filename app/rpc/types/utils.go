@@ -18,6 +18,7 @@ import (
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	watcher "github.com/okex/exchain/x/evm/watcher"
 )
 
 var (
@@ -41,41 +42,8 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 	return &ethTx, nil
 }
 
-// NewTransaction returns a transaction that will serialize to the RPC
-// representation, with the given location metadata set (if available).
-func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
-	// Verify signature and retrieve sender address
-	fromSigCache, err := tx.VerifySig(tx.ChainID(), int64(blockNumber), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	from := fromSigCache.GetFrom()
-	rpcTx := &Transaction{
-		From:     from,
-		Gas:      hexutil.Uint64(tx.Data.GasLimit),
-		GasPrice: (*hexutil.Big)(tx.Data.Price),
-		Hash:     txHash,
-		Input:    hexutil.Bytes(tx.Data.Payload),
-		Nonce:    hexutil.Uint64(tx.Data.AccountNonce),
-		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Data.Amount),
-		V:        (*hexutil.Big)(tx.Data.V),
-		R:        (*hexutil.Big)(tx.Data.R),
-		S:        (*hexutil.Big)(tx.Data.S),
-	}
-
-	if blockHash != (common.Hash{}) {
-		rpcTx.BlockHash = &blockHash
-		rpcTx.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
-		rpcTx.TransactionIndex = (*hexutil.Uint64)(&index)
-	}
-
-	return rpcTx, nil
-}
-
-func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *Transaction {
-	rpcTx := &Transaction{
+func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Transaction {
+	rpcTx := &watcher.Transaction{
 		From:     *from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
 		GasPrice: (*hexutil.Big)(tx.Data.Price),
@@ -91,7 +59,7 @@ func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *Transactio
 }
 
 // RpcBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (*Block, error) {
+func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (*watcher.Block, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -136,8 +104,8 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 
 // EthTransactionsFromTendermint returns a slice of ethereum transaction hashes and the total gas usage from a set of
 // tendermint block transactions.
-func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, blockNumber uint64) (*big.Int, []*Transaction, error) {
-	var transactions []*Transaction
+func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, blockNumber uint64) (*big.Int, []*watcher.Transaction, error) {
+	var transactions []*watcher.Transaction
 	gasUsed := big.NewInt(0)
 	index := uint64(0)
 
@@ -150,7 +118,7 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
 		txHash := tx.Hash(int64(blockNumber))
-		tx, err := NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
+		tx, err := watcher.NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
 		if err == nil {
 			transactions = append(transactions, tx)
 			index++
@@ -185,7 +153,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
-) *Block {
+) *watcher.Block {
 	if len(header.DataHash) == 0 {
 		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
 	}
@@ -193,11 +161,11 @@ func FormatBlock(
 	if parentHash == nil {
 		parentHash = ethtypes.EmptyRootHash.Bytes()
 	}
-	ret := &Block{
+	ret := &watcher.Block{
 		Number:           hexutil.Uint64(header.Height),
 		Hash:             common.BytesToHash(curBlockHash),
 		ParentHash:       common.BytesToHash(parentHash),
-		Nonce:            BlockNonce{},            // PoW specific
+		Nonce:            watcher.BlockNonce{},    // PoW specific
 		UncleHash:        ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		LogsBloom:        bloom,
 		TransactionsRoot: common.BytesToHash(header.DataHash),
@@ -217,7 +185,7 @@ func FormatBlock(
 	if !reflect.ValueOf(transactions).IsNil() {
 		ret.Transactions = transactions
 	} else {
-		ret.Transactions = []*Transaction{}
+		ret.Transactions = []*watcher.Transaction{}
 	}
 	return ret
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -45,6 +46,7 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
 	viper.SetDefault(watcher.FlagFastQuery, true)
+	viper.SetDefault(backend.FlagApiBackendLru, 30000)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)

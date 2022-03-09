@@ -4,17 +4,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
+
 	"github.com/okex/exchain/x/evm/client/utils"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -126,7 +127,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
+	res, err := watcher.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}

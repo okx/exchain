@@ -1,23 +1,22 @@
-package backend_cache
+package backend
 
 import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
+func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 	type args struct {
-		block *rpctypes.Block
+		block *watcher.Block
 	}
 	type result struct {
 		blockCount int
-		block      *rpctypes.Block
+		block      *watcher.Block
 		txCount    int
 	}
 	tests := []struct {
@@ -28,18 +27,18 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "cache empty Block",
 			args: args{
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 			},
 			result: result{
 				blockCount: 1,
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 				txCount: 0,
 			},
@@ -47,18 +46,18 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "duplicate Block",
 			args: args{
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 			},
 			result: result{
 				blockCount: 1,
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 				txCount: 0,
 			},
@@ -66,10 +65,10 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "Block with txs",
 			args: args{
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number: hexutil.Uint64(0x11),
 					Hash:   common.HexToHash("0x3bb254ed105476b94583eec8375c5d2fc0a5cf50047c5912b4337ba43a837b88"),
-					Transactions: []*rpctypes.Transaction{
+					Transactions: []*watcher.Transaction{
 						{
 							From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 							Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
@@ -80,10 +79,10 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 			result: result{
 				blockCount: 2,
 				txCount:    1,
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number: hexutil.Uint64(0x11),
 					Hash:   common.HexToHash("0x3bb254ed105476b94583eec8375c5d2fc0a5cf50047c5912b4337ba43a837b88"),
-					Transactions: []*rpctypes.Transaction{
+					Transactions: []*watcher.Transaction{
 						{
 							From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 							Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
@@ -93,14 +92,13 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 			},
 		},
 	}
-	viper.Set(watcher.FlagFastQueryLru, 100) // must be 3
-	alc := NewBackendLruCache()
+	viper.Set(FlagApiBackendLru, 100) // must be 3
+	alc := NewLruCache()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block)
-			blockLru, ok := alc.lruMap[LruKeyBlock]
-			require.True(t, ok)
+			blockLru := alc.lruBlock
 			require.NotNil(t, blockLru)
 			require.Equal(t, tt.result.blockCount, blockLru.Len())
 
@@ -110,21 +108,20 @@ func TestBackendLruCache_AddOrUpdateBlock(t *testing.T) {
 			require.Equal(t, tt.result.block.Hash, block.Hash)
 
 			//must update tx in block
-			txLru, ok := alc.lruMap[LruKeyTx]
-			require.True(t, ok)
+			txLru := alc.lruTx
 			require.NotNil(t, txLru)
 			require.Equal(t, tt.result.txCount, txLru.Len())
 		})
 	}
 }
 
-func TestBackendLruCache_AddOrUpdateTransaction(t *testing.T) {
+func TestLruCache_AddOrUpdateTransaction(t *testing.T) {
 	type result struct {
-		tx      *rpctypes.Transaction
+		tx      *watcher.Transaction
 		txCount int
 	}
 	type args struct {
-		tx *rpctypes.Transaction
+		tx *watcher.Transaction
 	}
 	tests := []struct {
 		name   string
@@ -134,14 +131,14 @@ func TestBackendLruCache_AddOrUpdateTransaction(t *testing.T) {
 		{
 			name: "cache tx",
 			args: args{
-				tx: &rpctypes.Transaction{
+				tx: &watcher.Transaction{
 					From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 					Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
 				},
 			},
 			result: result{
 				txCount: 1,
-				tx: &rpctypes.Transaction{
+				tx: &watcher.Transaction{
 					From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 					Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
 				},
@@ -150,27 +147,26 @@ func TestBackendLruCache_AddOrUpdateTransaction(t *testing.T) {
 		{
 			name: "duplicate tx",
 			args: args{
-				tx: &rpctypes.Transaction{
+				tx: &watcher.Transaction{
 					From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 					Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
 				},
 			},
 			result: result{
 				txCount: 1,
-				tx: &rpctypes.Transaction{
+				tx: &watcher.Transaction{
 					From: common.HexToAddress("0xbbe4733d85bc2b90682147779da49cab38c0aa1f"),
 					Hash: common.HexToHash("0xb4a40e844ee4c012d4a6d9e16d4ee8dcf52ef5042da491dbc73574f6764e17d1"),
 				},
 			},
 		},
 	}
-	viper.Set(watcher.FlagFastQueryLru, 100)
-	alc := NewBackendLruCache()
+	viper.Set(FlagApiBackendLru, 100)
+	alc := NewLruCache()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alc.AddOrUpdateTransaction(tt.args.tx.Hash, tt.args.tx)
-			txLru, ok := alc.lruMap[LruKeyTx]
-			require.True(t, ok)
+			txLru := alc.lruTx
 			require.NotNil(t, txLru)
 			require.Equal(t, tt.result.txCount, txLru.Len())
 
@@ -182,13 +178,13 @@ func TestBackendLruCache_AddOrUpdateTransaction(t *testing.T) {
 	}
 }
 
-func TestBackendLruCache_GetBlockByNumber(t *testing.T) {
+func TestLruCache_GetBlockByNumber(t *testing.T) {
 	type args struct {
-		block *rpctypes.Block
+		block *watcher.Block
 	}
 	type result struct {
 		blockCount int
-		block      *rpctypes.Block
+		block      *watcher.Block
 		txCount    int
 	}
 	tests := []struct {
@@ -199,38 +195,36 @@ func TestBackendLruCache_GetBlockByNumber(t *testing.T) {
 		{
 			name: "Get Block by Number",
 			args: args{
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 			},
 			result: result{
 				blockCount: 1,
-				block: &rpctypes.Block{
+				block: &watcher.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
-					Transactions: []*rpctypes.Transaction{},
+					Transactions: []*watcher.Transaction{},
 				},
 				txCount: 0,
 			},
 		},
 	}
-	viper.Set(watcher.FlagFastQueryLru, 100) // must be 3
-	alc := NewBackendLruCache()
+	viper.Set(FlagApiBackendLru, 100) // must be 3
+	alc := NewLruCache()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block)
 			alc.AddOrUpdateBlockHash(uint64(tt.args.block.Number), tt.args.block.Hash)
 
-			blockLru, ok := alc.lruMap[LruKeyBlock]
-			require.True(t, ok)
+			blockLru := alc.lruBlock
 			require.NotNil(t, blockLru)
 			require.Equal(t, tt.result.blockCount, blockLru.Len())
 
-			blockInfoLru, ok := alc.lruMap[LruKeyBlockInfo]
-			require.True(t, ok)
+			blockInfoLru := alc.lruBlockInfo
 			require.NotNil(t, blockInfoLru)
 			require.Equal(t, tt.result.blockCount, blockInfoLru.Len())
 

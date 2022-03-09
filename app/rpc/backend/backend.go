@@ -8,7 +8,6 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
 
-	"github.com/okex/exchain/app/rpc/backend_cache"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
@@ -31,20 +30,20 @@ type Backend interface {
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error)
-	GetBlockByHash(hash common.Hash) (*rpctypes.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error)
+	GetBlockByHash(hash common.Hash) (*watcher.Block, error)
 
-	GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error)
+	GetTransactionByHash(hash common.Hash) (*watcher.Transaction, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
 	// Used by pending transaction filter
-	PendingTransactions() ([]*rpctypes.Transaction, error)
+	PendingTransactions() ([]*watcher.Transaction, error)
 	PendingTransactionCnt() (int, error)
-	PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error)
+	PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
-	UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error)
+	UserPendingTransactions(address string, limit int) ([]*watcher.Transaction, error)
 	PendingAddressList() ([]string, error)
 	GetPendingNonce(address string) (uint64, error)
 
@@ -70,7 +69,7 @@ type EthermintBackend struct {
 	wrappedBackend    *watcher.Querier
 	rateLimiters      map[string]*rate.Limiter
 	disableAPI        map[string]bool
-	backendCache      backend_cache.BackendCache
+	backendCache      Cache
 }
 
 // New creates a new EthermintBackend instance
@@ -85,7 +84,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		wrappedBackend:    watcher.NewQuerier(),
 		rateLimiters:      rateLimiters,
 		disableAPI:        disableAPI,
-		backendCache:      backend_cache.NewBackendLruCache(),
+		backendCache:      NewLruCache(),
 	}
 }
 
@@ -112,7 +111,7 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpctypes.Block, error) {
+func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error) {
 	//query block in cache first
 	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
 	if err == nil {
@@ -150,7 +149,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*rpc
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*rpctypes.Block, error) {
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
 	//query block in cache first
 	block, err := b.backendCache.GetBlockByHash(hash)
 	if err == nil {
@@ -266,7 +265,7 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error) {
+func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error) {
 	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
 	if err != nil {
 		return nil, err
@@ -276,7 +275,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		return nil, err
 	}
 
-	transactions := make([]*rpctypes.Transaction, 0, len(pendingTxs.Txs))
+	transactions := make([]*watcher.Transaction, 0, len(pendingTxs.Txs))
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -285,7 +284,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +319,7 @@ func (b *EthermintBackend) GetPendingNonce(address string) (uint64, error) {
 	return result.Nonce, nil
 }
 
-func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error) {
+func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*watcher.Transaction, error) {
 	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
 	if err != nil {
 		return nil, err
@@ -329,7 +328,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 	if err != nil {
 		return nil, err
 	}
-	transactions := make([]*rpctypes.Transaction, 0, len(result.Txs))
+	transactions := make([]*watcher.Transaction, 0, len(result.Txs))
 	for _, tx := range result.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -338,7 +337,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +358,7 @@ func (b *EthermintBackend) PendingAddressList() ([]string, error) {
 
 // PendingTransactions returns the transaction that is in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error) {
 	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
 	if err != nil {
 		return nil, err
@@ -373,28 +372,23 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 	return rpcTx, nil
 }
 
-func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *rpctypes.Transaction, err error) {
+func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.Transaction, err error) {
 	// query tx in cache first
 	tx, err = b.backendCache.GetTransaction(hash)
 	if err == nil {
 		return tx, err
 	}
-	defer func() {
-		if err == nil && tx != nil {
-			b.backendCache.AddOrUpdateTransaction(hash, tx)
-		}
-	}()
-
 	// query tx in watch db
 	tx, err = b.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {
+		b.backendCache.AddOrUpdateTransaction(hash, tx)
 		return tx, nil
 	}
 	// query tx in tendermint
@@ -417,18 +411,12 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *rpctypes.
 	}
 
 	height := uint64(txRes.Height)
-	tx, err = rpctypes.NewTransaction(ethTx, common.BytesToHash(txRes.Tx.Hash(txRes.Height)), blockHash, height, uint64(txRes.Index))
-	if err == nil {
-		return tx, nil
+	tx, err = watcher.NewTransaction(ethTx, common.BytesToHash(txRes.Tx.Hash(txRes.Height)), blockHash, height, uint64(txRes.Index))
+	if err != nil {
+		return nil, err
 	}
-
-	// check if the tx is on the mempool
-	pendingTx, pendingErr := b.PendingTransactionsByHash(hash)
-	if pendingErr != nil {
-		//to keep consistent with rpc of ethereum, should be return nil
-		return nil, nil
-	}
-	return pendingTx, nil
+	b.backendCache.AddOrUpdateTransaction(hash, tx)
+	return tx, nil
 }
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.
