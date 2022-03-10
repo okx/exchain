@@ -1,7 +1,9 @@
 package rootmulti
 
 import (
+	"encoding/hex"
 	"fmt"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -904,13 +906,19 @@ func (ci commitInfo) Hash() []byte {
 }
 func (ci commitInfo) originHash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
+	sb := strings.Builder{}
 	for _, storeInfo := range ci.StoreInfos {
-		//if storeInfo.Name == "ibc" || storeInfo.Name == "transfer" || storeInfo.Name == "upgrade" {
-		//	continue
+		sb.WriteString(fmt.Sprintf("name=%s,hash=%s \n", storeInfo.Name, hex.EncodeToString(storeInfo.Hash())))
+		//if ci.Version == 5810701 {
+		//	if storeInfo.Name == "ibc" || storeInfo.Name == "transfer" || storeInfo.Name == "upgrade" {
+		//		continue
+		//	}
 		//}
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
-	return merkle.SimpleHashFromMap(m)
+	ret := merkle.SimpleHashFromMap(m)
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret))
+	return ret
 }
 func (ci commitInfo) ibcHash() []byte {
 	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
