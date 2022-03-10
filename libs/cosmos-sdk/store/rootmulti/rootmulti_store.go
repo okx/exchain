@@ -906,18 +906,21 @@ func (ci commitInfo) Hash() []byte {
 }
 func (ci commitInfo) originHash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
-	sb := strings.Builder{}
+	hashs := make(Hashes, 0)
 	for _, storeInfo := range ci.StoreInfos {
-		sb.WriteString(fmt.Sprintf("name=%s,hash=%s \n", storeInfo.Name, hex.EncodeToString(storeInfo.Hash())))
 		//if ci.Version == 5810701 {
 		//	if storeInfo.Name == "ibc" || storeInfo.Name == "transfer" || storeInfo.Name == "upgrade" {
 		//		continue
 		//	}
 		//}
+		hashs = append(hashs, HashInfo{
+			storeName: storeInfo.Name,
+			hash:      hex.EncodeToString(storeInfo.Hash()),
+		})
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	ret := merkle.SimpleHashFromMap(m)
-	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret))
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret), "detail", hashs.String())
 	return ret
 }
 func (ci commitInfo) ibcHash() []byte {
@@ -991,9 +994,14 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
+	infos := make([]Info, 0)
+	keys := make([]string, 0)
+	//values := make([]string, 0)
 	for key, store := range storeMap {
+		if key.Name() == "evm" {
+			key.Name()
+		}
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
-
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
@@ -1003,6 +1011,12 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
+		keys = append(keys, key.Name())
+		infos = append(infos, Info{
+			storeName: "",
+			keys:      nil,
+			values:    nil,
+		})
 	}
 
 	return commitInfo{
