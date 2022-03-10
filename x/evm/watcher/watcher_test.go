@@ -63,6 +63,7 @@ func setupTest() *WatcherTestSt {
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	w.ctx.SetDeliver()
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
 
 	ethermint.SetChainId(chain_id)
@@ -93,17 +94,6 @@ func flushDB(db *watcher.WatchStore) {
 	}
 }
 
-func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := watcher.WatchData{}
-	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
-		return err
-	}
-	for _, account := range wd.DirtyAccount {
-		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
-	}
-	return nil
-}
-
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	wd := watcher.WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
@@ -126,7 +116,6 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -137,7 +126,6 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
-	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 	time.Sleep(time.Second * 1)
 
 	cWd := getDBKV(store)
@@ -386,6 +374,8 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a1, true)
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
+	// waiting 1 second for initializing jobChan
+	time.Sleep(time.Second)
 	w.Commit()
 	time.Sleep(time.Second)
 	store := watcher.InstanceOfWatchStore()
