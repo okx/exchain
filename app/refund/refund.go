@@ -3,6 +3,8 @@ package refund
 import (
 	"math/big"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
@@ -57,12 +59,11 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
-	gasBefore := ctx.GasMeter().GasConsumed()
-	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
+
+	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(ctx, handler.ak, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
-	getAccountGasUsed := ctx.GasMeter().GasConsumed() - gasBefore
 
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
