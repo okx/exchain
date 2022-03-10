@@ -145,7 +145,7 @@ func (k Keeper) SendTransfer(
 	}
 
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, token.Amount.Uint64(), sender.String(), receiver,
+		fullDenomPath, token.Amount.String(), sender.String(), receiver,
 	)
 
 	packet := channeltypes.NewPacket(
@@ -233,7 +233,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
-		token := sdk.NewIBCCoin(denom, sdk.NewIntFromUint64(data.Amount))
+		m, ok := sdk.NewIntFromString(data.Amount)
+
+		token := sdk.NewIBCCoin(denom, m)
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
