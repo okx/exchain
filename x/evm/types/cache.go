@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-var EvmParamsCache = NewCache()
+var evmParamsCache = NewCache()
 
 type Cache struct {
 	paramsCache      Params
@@ -88,5 +88,9 @@ func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList) {
 }
 
 func SetEvmParamsNeedUpdate() {
-	EvmParamsCache.SetNeedParamsUpdate()
+	GetEvmParamsCache().SetNeedParamsUpdate()
+}
+
+func GetEvmParamsCache() *Cache {
+	return evmParamsCache
 }
