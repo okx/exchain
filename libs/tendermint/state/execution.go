@@ -135,10 +135,16 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		maxGas = cfg.DynamicConfig.GetMaxGasUsedPerBlock()
 	}
-	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
+	globalRealTxs = blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
+	txs := make([]types.Tx, 0, len(globalRealTxs))
+	for _, realTx := range globalRealTxs {
+		txs = append(txs, realTx.GetRaw())
+	}
 
 	return state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 }
+
+var globalRealTxs []abci.Tx
 
 // ValidateBlock validates the given block against the given state.
 // If the block is invalid, it returns an error.
@@ -432,16 +438,31 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	// Run txs of block.
-	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
-		}
+	if globalRealTxs != nil {
+		// Run txs of globalRealTxs.
+		for count, realTx := range globalRealTxs {
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{RealTx: realTx})
+			if err := proxyAppConn.Error(); err != nil {
+				return nil, err
+			}
 
-		if context != nil && context.stopped {
-			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
-			return nil, fmt.Errorf("Prerun stopped")
+			if context != nil && context.stopped {
+				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(globalRealTxs)))
+				return nil, fmt.Errorf("Prerun stopped")
+			}
+		}
+	} else {
+		// Run txs of block.
+		for count, tx := range block.Txs {
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
+			if err := proxyAppConn.Error(); err != nil {
+				return nil, err
+			}
+
+			if context != nil && context.stopped {
+				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
+				return nil, fmt.Errorf("Prerun stopped")
+			}
 		}
 	}
 

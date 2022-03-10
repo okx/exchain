@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -170,12 +172,22 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	tx, err := app.txDecoder(req.Tx)
-	if err != nil {
-		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+	var tx types.Tx
+	var realTx sdk.Tx
+	var err error
+	if req.RealTx != nil {
+		realTx = req.RealTx.(sdk.Tx)
+		tx = realTx.GetRaw()
+	} else {
+		tx = req.Tx
+		realTx, err = app.txDecoder(req.Tx)
+		if err != nil {
+			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+		}
+
 	}
 
-	info, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
+	info, err := app.runTx(runTxModeDeliver, tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
