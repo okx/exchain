@@ -75,7 +75,6 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
-
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()
@@ -84,74 +83,3 @@ func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Contex
 	}
 	return ctx, nil
 }
-
-//
-//var (
-//	pLog = &ScfLog{
-//		paraAllTime: time.Duration(0),
-//		prePare:     time.Duration(0),
-//		runTx:       time.Duration(0),
-//		async:       time.Duration(0),
-//
-//		conflictTime: time.Duration(0),
-//		mergeTime:    time.Duration(0),
-//		endTime:      time.Duration(0),
-//		fixTime:      time.Duration(0),
-//	}
-//)
-//
-//type ScfLog struct {
-//	paraAllTime time.Duration
-//	prePare     time.Duration
-//	runTx       time.Duration
-//	async       time.Duration
-//
-//	conflictTime time.Duration
-//	mergeTime    time.Duration
-//	endTime      time.Duration
-//	fixTime      time.Duration
-//}
-//
-//func AddParaAllTIme(ts time.Duration) {
-//	pLog.paraAllTime += ts
-//}
-//
-//func AddPrePare(ts time.Duration) {
-//	pLog.prePare += ts
-//}
-//
-//func AddRunTx(ts time.Duration) {
-//	pLog.runTx += ts
-//}
-//
-//func AddAsycn(ts time.Duration) {
-//	pLog.async += ts
-//}
-//
-//func AddConflictTime(ts time.Duration) {
-//	pLog.conflictTime += ts
-//}
-//
-//func AddMergeTime(ts time.Duration) {
-//	pLog.mergeTime += ts
-//}
-//
-//func AddEndTime(ts time.Duration) {
-//	pLog.endTime += ts
-//}
-//
-//func AddFixTime(ts time.Duration) {
-//	pLog.fixTime += ts
-//}
-//
-//func PrintTime() {
-//	fmt.Println("ParaAllTime", pLog.paraAllTime.Seconds())
-//	fmt.Println("PrePare", pLog.prePare.Seconds())
-//	fmt.Println("RunTxs", pLog.runTx.Seconds())
-//	fmt.Println("Async", pLog.async.Seconds())
-//
-//	fmt.Println("Conflict", pLog.conflictTime.Seconds())
-//	fmt.Println("MergeTime", pLog.mergeTime.Seconds())
-//	fmt.Println("EndTIme", pLog.endTime.Seconds())
-//	fmt.Println("FixTIme", pLog.fixTime.Seconds())
-//}

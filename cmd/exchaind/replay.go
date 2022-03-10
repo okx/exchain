@@ -131,7 +131,6 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
-	//sdk.PrintTime()
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {

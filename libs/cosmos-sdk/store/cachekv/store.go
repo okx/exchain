@@ -30,10 +30,10 @@ type cValue struct {
 type Store struct {
 	mtx           sync.Mutex
 	dirty         map[string]cValue
+	readList      map[string][]byte
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
-	ReadList      map[string][]byte
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -41,7 +41,7 @@ var _ types.CacheKVStore = (*Store)(nil)
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
 		dirty:         make(map[string]cValue),
-		ReadList:      make(map[string][]byte),
+		readList:      make(map[string][]byte),
 		unsortedCache: make(map[string]struct{}),
 		sortedCache:   list.New(),
 		parent:        parent,
@@ -63,7 +63,7 @@ func (store *Store) Get(key []byte) (value []byte) {
 	sKey := string(key)
 	cacheValue, ok := store.dirty[sKey]
 	if !ok {
-		if c, ok := store.ReadList[sKey]; ok {
+		if c, ok := store.readList[sKey]; ok {
 			value = c
 		} else {
 			value = store.parent.Get(key)
@@ -92,7 +92,7 @@ func (store *Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDel
 }
 
 func (store *Store) GetRWSet(rSet map[string][]byte, wSet map[string][]byte) {
-	for k, v := range store.ReadList {
+	for k, v := range store.readList {
 		rSet[k] = v
 	}
 	for k, v := range store.dirty {
@@ -199,8 +199,8 @@ func (store *Store) clearCache() {
 		delete(store.dirty, key)
 	}
 
-	for Key := range store.ReadList {
-		delete(store.ReadList, Key)
+	for Key := range store.readList {
+		delete(store.readList, Key)
 	}
 	for key := range store.unsortedCache {
 		delete(store.unsortedCache, key)
@@ -331,7 +331,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	keyStr := string(key)
 	if !dirty {
-		store.ReadList[keyStr] = value
+		store.readList[keyStr] = value
 		return
 	}
 

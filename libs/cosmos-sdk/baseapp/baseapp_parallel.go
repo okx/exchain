@@ -474,7 +474,7 @@ type asyncWorkGroup struct {
 	resultCb func(*executeResult)
 
 	taskCh  chan *task
-	taskRun func([]byte, int)
+	taskRun func([]byte)
 }
 
 func newAsyncWorkGroup() *asyncWorkGroup {
@@ -530,7 +530,7 @@ func (a *asyncWorkGroup) Start() {
 			for true {
 				select {
 				case task := <-a.taskCh:
-					a.taskRun(task.txBytes, task.index)
+					a.taskRun(task.txBytes)
 				}
 			}
 		}()

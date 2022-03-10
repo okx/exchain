@@ -288,7 +288,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			//block.Txs = block.Txs[:2]
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
@@ -433,7 +432,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	//ts := time.Now()
 	// Run txs of block.
 	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
@@ -446,7 +444,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
-	//sdk.AddPrePare(time.Now().Sub(ts))
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})

@@ -21,7 +21,6 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 // evmTxFeeHandler get tx fee for evm tx
 func evmTxFeeHandler() sdk.GetTxFeeHandler {
 	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, signCache sdk.SigCache, toAddress *ethcommon.Address) {
-
 		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			toAddress = evmTx.To()

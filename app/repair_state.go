@@ -185,7 +185,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
-		log.Println("Repaired lastTesultHash", fmt.Sprintf("%X", state.LastResultsHash))
 	}
 }
 
