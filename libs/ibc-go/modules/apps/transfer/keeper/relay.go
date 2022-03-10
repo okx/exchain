@@ -49,7 +49,7 @@ func (k Keeper) SendTransfer(
 	ctx sdk.Context,
 	sourcePort,
 	sourceChannel string,
-	token sdk.Coin,
+	adaToken sdk.CoinAdapter,
 	sender sdk.AccAddress,
 	receiver string,
 	timeoutHeight clienttypes.Height,
@@ -59,6 +59,7 @@ func (k Keeper) SendTransfer(
 	if !k.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled
 	}
+	token := sdk.NewCoin(adaToken.Denom, adaToken.Amount)
 	logrusplugin.Info("send transfer", "info", token.String())
 	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
@@ -145,8 +146,9 @@ func (k Keeper) SendTransfer(
 	}
 
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, token.Amount.String(), sender.String(), receiver,
+		fullDenomPath, adaToken.Amount.String(), sender.String(), receiver,
 	)
+	logrusplugin.Info("packet", "amount", packetData.Amount)
 
 	packet := channeltypes.NewPacket(
 		packetData.GetBytes(),
