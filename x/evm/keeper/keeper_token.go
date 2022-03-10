@@ -213,11 +213,12 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// TODO use params --1 day
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
 	timeoutHeight := ibcclienttypes.ZeroHeight()
+	ada := sdk.NewCoinAdapter(coin.Denom, coin.Amount.ToInt())
 	return k.transferKeeper.SendTransfer(
 		ctx,
 		ibctransferType.PortID,
 		channelID,
-		coin,
+		ada,
 		sender,
 		to,
 		timeoutHeight,
