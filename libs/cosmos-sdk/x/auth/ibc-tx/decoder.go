@@ -8,25 +8,26 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+
 	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
 //func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
-func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
-	return func(txBytes []byte) (authtypes.StdTx, error) {
+func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
+	return func(txBytes []byte) (*authtypes.IbcTx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		var raw tx.TxRaw
@@ -34,12 +35,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// reject all unknown proto fields in the root TxRaw
 		err = unknownproto.RejectUnknownFieldsStrict(txBytes, &raw, cdc.InterfaceRegistry())
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(txBytes, &raw)
 		if err != nil {
-			return authtypes.StdTx{}, err
+			//return authtypes.StdTx{}, err
 		}
 
 		var body tx.TxBody
@@ -53,7 +54,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		var authInfo tx.AuthInfo
@@ -61,12 +62,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		// reject all unknown proto fields in AuthInfo
 		err = unknownproto.RejectUnknownFieldsStrict(raw.AuthInfoBytes, &authInfo, cdc.InterfaceRegistry())
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		err = cdc.UnmarshalBinaryBare(raw.AuthInfoBytes, &authInfo)
 		if err != nil {
-			return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		ibcTx := &tx.Tx{
@@ -129,14 +130,18 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.TxDecoder {
 		for _, v := range relayMsgs {
 			stdmsgs = append(stdmsgs, v)
 		}
-		stx := authtypes.StdTx{
-			Msgs:       stdmsgs,
-			Fee:        fee,
-			Signatures: signatures,
-			Memo:       ibcTx.Body.Memo,
+		stx := authtypes.IbcTx{
+			&authtypes.StdTx{
+				Msgs:       stdmsgs,
+				Fee:        fee,
+				Signatures: signatures,
+				Memo:       ibcTx.Body.Memo,
+			},
+			raw.AuthInfoBytes,
+			raw.BodyBytes,
 		}
 
-		return stx, nil
+		return &stx, nil
 	}
 }
 
