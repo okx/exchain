@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
@@ -19,7 +20,7 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 	cacheCtx, commit := ctx.CacheContext()
 	err := k.ConvertVouchers(cacheCtx, receiver, vouchers)
 	if err != nil {
-		k.Logger(ctx).Error(
+		logrusplugin.Error(
 			fmt.Sprintf("Failed to convert vouchers to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, vouchers.String(), err))
 	}
@@ -61,6 +62,10 @@ func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, v
 
 // ConvertVoucherToERC20 convert vouchers into evm tokens.
 func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin, autoDeploy bool) error {
+	logrusplugin.Info("convert vouchers into evm tokens",
+		"fromBech32", from.String(),
+		"fromEth", common.BytesToAddress(from.Bytes()).String(),
+		"voucher", voucher.String())
 	err := ibctransferType.ValidateIBCDenom(voucher.Denom)
 	if err != nil {
 		return ibctransferType.ErrInvalidDenomForTransfer
@@ -77,7 +82,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
-		k.Logger(ctx).Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
+		logrusplugin.Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
@@ -172,7 +177,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 	if len(to) == 0 {
 		return errors.New("to address cannot be empty")
 	}
-
+	logrusplugin.Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
 	//params := k.GetParams(ctx)
 	for _, c := range vouchers {
 		switch c.Denom {
