@@ -179,9 +179,8 @@ func (c Context) WithAsync() Context {
 	return c
 }
 
-func (c Context) WithDeliver() Context {
+func (c *Context) SetDeliver() {
 	c.isDeliver = true
-	return c
 }
 
 func (c Context) WithBlockHeader(header abci.Header) Context {

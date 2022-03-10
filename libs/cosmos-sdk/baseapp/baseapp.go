@@ -632,7 +632,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 
 	if mode == runTxModeDeliver {
-		ctx = ctx.WithDeliver()
+		ctx.SetDeliver()
 	}
 
 	return ctx

@@ -1426,8 +1426,6 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 
 // GetContractMethodBlockedList get the list of contract method blocked from blocked list store
 func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
-	gasmeter := csdb.ctx.GasMeter()
-	csdb.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()
@@ -1442,7 +1440,6 @@ func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList Bl
 		bc := NewBlockContract(addr, methods)
 		blockedContractList = append(blockedContractList, *bc)
 	}
-	csdb.ctx.WithGasMeter(gasmeter)
 	return
 }
 

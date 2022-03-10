@@ -50,7 +50,7 @@ func (suite *EvmTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
-	suite.ctx = suite.ctx.WithDeliver()
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
@@ -802,7 +802,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
-	suite.ctx = suite.ctx.WithDeliver()
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 

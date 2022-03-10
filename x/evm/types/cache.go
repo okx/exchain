@@ -47,7 +47,12 @@ func (c *Cache) IsNeedParamsUpdate() bool {
 func (c Cache) GetParams() Params {
 	c.paramsMutex.RLock()
 	defer c.paramsMutex.RUnlock()
-	return NewParams(c.paramsCache.EnableCreate, c.paramsCache.EnableCall, c.paramsCache.EnableContractDeploymentWhitelist, c.paramsCache.EnableContractBlockedList, c.paramsCache.MaxGasLimitPerTx, c.paramsCache.ExtraEIPs...)
+	return NewParams(c.paramsCache.EnableCreate,
+		c.paramsCache.EnableCall,
+		c.paramsCache.EnableContractDeploymentWhitelist,
+		c.paramsCache.EnableContractBlockedList,
+		c.paramsCache.MaxGasLimitPerTx,
+		c.paramsCache.ExtraEIPs...)
 }
 
 func (c *Cache) SetNeedBlockedUpdate() {
