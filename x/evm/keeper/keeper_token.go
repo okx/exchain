@@ -89,12 +89,16 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		return err
 	}
 	// 2. call contract, mint token to user address in contract
+	ac, err := sdk.ConvertDecCoinToAdapterCoin(voucher)
+	if err != nil {
+		return err
+	}
 	if _, err := k.callModuleERC20(
 		ctx,
 		contract,
 		"mint_by_oec_module",
 		common.BytesToAddress(from.Bytes()),
-		voucher.Amount.BigInt()); err != nil {
+		ac.Amount.BigInt()); err != nil {
 		return err
 	}
 	return nil
@@ -209,21 +213,25 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// Coin needs to be a voucher so that we can extract the channel id from the denom
 	channelID, err := k.GetSourceChannelID(ctx, coin.Denom)
 	if err != nil {
-		return nil
+		return err
 	}
 
+	ac, err := sdk.ConvertDecCoinToAdapterCoin(coin)
+	if err != nil {
+		return err
+	}
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
 	// TODO use params --1 day
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
 	timeoutHeight := ibcclienttypes.ZeroHeight()
-	ada := sdk.NewCoinAdapter(coin.Denom, coin.Amount.ToInt())
+
 	return k.transferKeeper.SendTransfer(
 		ctx,
 		ibctransferType.PortID,
 		channelID,
-		ada,
+		ac,
 		sender,
 		to,
 		timeoutHeight,

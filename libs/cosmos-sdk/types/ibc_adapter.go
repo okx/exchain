@@ -125,13 +125,11 @@ func (i *Int) Unmarshal(data []byte) error {
 	return nil
 }
 
-
 // Size implements the gogo proto custom type interface.
 func (i *Int) Size() int {
 	bz, _ := i.Marshal()
 	return len(bz)
 }
-
 
 // Marshal implements the gogo proto custom type interface.
 func (i Int) Marshal() ([]byte, error) {
@@ -140,7 +138,6 @@ func (i Int) Marshal() ([]byte, error) {
 	}
 	return i.i.MarshalText()
 }
-
 
 // MarshalTo implements the gogo proto custom type interface.
 func (i *Int) MarshalTo(data []byte) (n int, err error) {
@@ -184,7 +181,7 @@ func NewIBCDecCoin(denom string, amount Int) DecCoin {
 }
 
 func validateIBCCotin(denom string, amount Int) error {
-	if !validIBCCoinDenom(denom){
+	if !validIBCCoinDenom(denom) {
 		return fmt.Errorf("invalid denom: %s", denom)
 	}
 
@@ -195,9 +192,10 @@ func validateIBCCotin(denom string, amount Int) error {
 	return nil
 }
 
-func validIBCCoinDenom(denom string)bool{
+func validIBCCoinDenom(denom string) bool {
 	return ibcReDnm.MatchString(denom)
 }
+
 // NewCoins constructs a new coin set.
 func NewIBCCoins(coins ...Coin) Coins {
 	// remove zeroes
@@ -219,20 +217,20 @@ func NewIBCCoins(coins ...Coin) Coins {
 
 	return newCoins
 }
-func ValidCoins(coins Coins)bool{
+func ValidCoins(coins Coins) bool {
 	switch len(coins) {
 	case 0:
 		return true
 
 	case 1:
-		if !validIBCCoinDenom(coins[0].Denom){
+		if !validIBCCoinDenom(coins[0].Denom) {
 			return false
 		}
 		return coins[0].IsPositive()
 
 	default:
 		// check single coin case
-		if !ValidCoins(DecCoins{coins[0]}){
+		if !ValidCoins(DecCoins{coins[0]}) {
 			return false
 		}
 
@@ -256,3 +254,11 @@ func ValidCoins(coins Coins)bool{
 	}
 }
 
+func ConvertDecCoinToAdapterCoin(decCoin DecCoin) (CoinAdapter, error) {
+	truncated := decCoin.Amount.TruncateInt()
+	change := decCoin.Amount.Sub(truncated.ToDec())
+	if !change.IsZero() {
+		return CoinAdapter{}, fmt.Errorf("convert %s to adatper coin failed", decCoin.String())
+	}
+	return NewCoinAdapter(decCoin.Denom, truncated), nil
+}
