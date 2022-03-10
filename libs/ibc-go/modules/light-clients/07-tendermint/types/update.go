@@ -11,7 +11,6 @@ import (
 	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"time"
-
 )
 
 // CheckHeaderAndUpdateState checks if the provided header is valid, and if valid it will:
@@ -72,7 +71,7 @@ func checkTrustedHeader(header *Header, consState *ConsensusState) error {
 
 	// assert that trustedVals is NextValidators of last trusted header
 	// to do this, we check that trustedVals.Hash() == consState.NextValidatorsHash
-	tvalHash := tmTrustedValidators.Hash()
+	tvalHash := tmTrustedValidators.Hash(header.Header.Height)
 	if !bytes.Equal(consState.NextValidatorsHash, tvalHash) {
 		return sdkerrors.Wrapf(
 			ErrInvalidValidatorSet,

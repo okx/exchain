@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -13,14 +14,14 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/client/cli"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/simulation"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 	"math"
@@ -93,11 +94,11 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 	keeper keeper.Keeper
-	m *codec.MarshalProxy
+	m      *codec.MarshalProxy
 }
 
 // NewAppModule creates a new 20-transfer module
-func NewAppModule(k keeper.Keeper,m *codec.MarshalProxy) AppModule {
+func NewAppModule(k keeper.Keeper, m *codec.MarshalProxy) AppModule {
 	return AppModule{
 		keeper: k,
 	}
@@ -342,7 +343,7 @@ func (am AppModule) OnRecvPacket(
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet data: %s", err.Error())
 	}
-
+	logrusplugin.Info("onRecvPacket", "denom", data.Denom, "amount", data.Amount)
 	acknowledgement := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
 	err := am.keeper.OnRecvPacket(ctx, packet, data)

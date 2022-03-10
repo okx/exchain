@@ -32,9 +32,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer"
-	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
-	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
@@ -201,6 +201,7 @@ type OKExChainApp struct {
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
+	marshal              *codec.CodecProxy
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -308,7 +309,7 @@ func NewOKExChainApp(
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 
 	proxy := codec.NewMarshalProxy(cc, cdc)
-
+	app.marshal = cdcproxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
@@ -421,7 +422,7 @@ func NewOKExChainApp(
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(evm.NewSendToIbcEventHandler(*app.EvmKeeper)))
 	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
+	//app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -631,6 +632,10 @@ func (app *OKExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
 // for modules to register their own custom testing types.
 func (app *OKExChainApp) Codec() *codec.Codec {
 	return app.cdc
+}
+
+func (app *OKExChainApp) Marshal() *codec.CodecProxy {
+	return app.marshal
 }
 
 // GetSubspace returns a param subspace for a given module name.

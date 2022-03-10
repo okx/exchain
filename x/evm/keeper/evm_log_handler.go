@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	transferType "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	transferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
