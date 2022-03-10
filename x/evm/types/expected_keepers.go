@@ -38,7 +38,7 @@ type TransferKeeper interface {
 		ctx sdk.Context,
 		sourcePort,
 		sourceChannel string,
-		token sdk.Coin,
+		token sdk.CoinAdapter,
 		sender sdk.AccAddress,
 		receiver string,
 		timeoutHeight clienttypes.Height,

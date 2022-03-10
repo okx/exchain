@@ -22,10 +22,8 @@ func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTra
 		return nil, err
 	}
 	if err := k.SendTransfer(
-		ctx, msg.SourcePort, msg.SourceChannel, sdk.Coin{
-			Denom:  msg.Token.Denom,
-			Amount: msg.Token.Amount.ToDec(),
-		}, sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
+		ctx, msg.SourcePort, msg.SourceChannel, msg.Token,
+		sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
 	); err != nil {
 		return nil, err
 	}
