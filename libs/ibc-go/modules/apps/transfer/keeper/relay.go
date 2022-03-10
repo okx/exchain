@@ -145,7 +145,7 @@ func (k Keeper) SendTransfer(
 	}
 
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, token.Amount.String(), sender.String(), receiver,
+		fullDenomPath, token.Amount.IBCString(), sender.String(), receiver,
 	)
 
 	packet := channeltypes.NewPacket(
