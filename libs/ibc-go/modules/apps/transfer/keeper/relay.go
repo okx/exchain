@@ -237,7 +237,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
 
-		token := sdk.NewIBCCoin(denom, transferAmount)
+		token := sdk.NewDecCoin(denom, transferAmount)
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
@@ -298,7 +298,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			sdk.NewAttribute(types.AttributeKeyDenom, voucherDenom),
 		),
 	)
-	voucher := sdk.NewIBCDecCoin(voucherDenom, transferAmount)
+
+	voucher := sdk.NewDecCoin(voucherDenom, transferAmount)
 	logrusplugin.Info("on recvPacket", "info", voucher.String())
 
 	// mint new tokens if the source of the transfer is the same chain
