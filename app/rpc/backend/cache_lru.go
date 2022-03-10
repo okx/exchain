@@ -9,13 +9,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+var ErrLruNotInitialized = errors.New("lru has not been Initialized")
+var ErrLruDataNotFound = errors.New("lru : not found")
+var ErrLruDataWrongType = errors.New("lru : wrong type")
+
 const (
-	MsgLruNotInitialized = "lru has not been Initialized"
-	MsgLruDataNotFound   = "lru : not found"
-	MsgLruDataWrongType  = "lru : wrong type"
-)
-const (
-	FlagApiBackendLru = "api-backend-lru"
+	FlagApiBackendLru = "rpc-lru-cache-size"
 )
 
 type LruCache struct {
@@ -48,61 +47,61 @@ func NewLruCache() *LruCache {
 	}
 }
 
-func (alc *LruCache) GetBlockByNumber(number uint64) (*watcher.Block, error) {
-	hash, err := alc.GetBlockHash(number)
+func (lc *LruCache) GetBlockByNumber(number uint64) (*watcher.Block, error) {
+	hash, err := lc.GetBlockHash(number)
 	if err != nil {
 		return nil, err
 	}
-	return alc.GetBlockByHash(hash)
+	return lc.GetBlockByHash(hash)
 }
-func (alc *LruCache) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
-	data, ok := alc.lruBlock.Get(hash)
+func (lc *LruCache) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
+	data, ok := lc.lruBlock.Get(hash)
 	if !ok {
-		return nil, errors.New(MsgLruDataNotFound)
+		return nil, ErrLruDataNotFound
 	}
 	res, ok := data.(*watcher.Block)
 	if !ok {
-		return nil, errors.New(MsgLruDataWrongType)
+		return nil, ErrLruDataWrongType
 	}
 	return res, nil
 }
-func (alc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block) {
-	alc.lruBlock.PeekOrAdd(hash, block)
-	alc.AddOrUpdateBlockHash(uint64(block.Number), hash)
+func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block) {
+	lc.lruBlock.PeekOrAdd(hash, block)
+	lc.AddOrUpdateBlockHash(uint64(block.Number), hash)
 	if block.Transactions != nil {
 		txs, ok := block.Transactions.([]*watcher.Transaction)
 		if ok {
 			for _, tx := range txs {
-				alc.AddOrUpdateTransaction(tx.Hash, tx)
+				lc.AddOrUpdateTransaction(tx.Hash, tx)
 			}
 		}
 	}
 }
-func (alc *LruCache) GetTransaction(hash common.Hash) (*watcher.Transaction, error) {
-	data, ok := alc.lruTx.Get(hash)
+func (lc *LruCache) GetTransaction(hash common.Hash) (*watcher.Transaction, error) {
+	data, ok := lc.lruTx.Get(hash)
 	if !ok {
-		return nil, errors.New(MsgLruDataNotFound)
+		return nil, ErrLruDataNotFound
 	}
 	tx, ok := data.(*watcher.Transaction)
 	if !ok {
-		return nil, errors.New(MsgLruDataWrongType)
+		return nil, ErrLruDataWrongType
 	}
 	return tx, nil
 }
-func (alc *LruCache) AddOrUpdateTransaction(hash common.Hash, tx *watcher.Transaction) {
-	alc.lruTx.PeekOrAdd(hash, tx)
+func (lc *LruCache) AddOrUpdateTransaction(hash common.Hash, tx *watcher.Transaction) {
+	lc.lruTx.PeekOrAdd(hash, tx)
 }
-func (alc *LruCache) GetBlockHash(number uint64) (common.Hash, error) {
-	data, ok := alc.lruBlockInfo.Get(number)
+func (lc *LruCache) GetBlockHash(number uint64) (common.Hash, error) {
+	data, ok := lc.lruBlockInfo.Get(number)
 	if !ok {
-		return common.Hash{}, errors.New(MsgLruDataNotFound)
+		return common.Hash{}, ErrLruDataNotFound
 	}
 	dataHash, ok := data.(common.Hash)
 	if !ok {
-		return common.Hash{}, errors.New(MsgLruDataWrongType)
+		return common.Hash{}, ErrLruDataWrongType
 	}
 	return dataHash, nil
 }
-func (alc *LruCache) AddOrUpdateBlockHash(number uint64, hash common.Hash) {
-	alc.lruBlockInfo.PeekOrAdd(number, hash)
+func (lc *LruCache) AddOrUpdateBlockHash(number uint64, hash common.Hash) {
+	lc.lruBlockInfo.PeekOrAdd(number, hash)
 }
