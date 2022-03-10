@@ -5,8 +5,8 @@ import (
 	"github.com/okex/exchain/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 // NewHandler returns sdk.Handler for IBC token transfer module messages

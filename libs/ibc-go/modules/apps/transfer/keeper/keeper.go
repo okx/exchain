@@ -10,7 +10,7 @@ import (
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
