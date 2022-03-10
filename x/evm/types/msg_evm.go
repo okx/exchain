@@ -139,12 +139,8 @@ func (msg *MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
 func (msg *MsgEthereumTx) ValidateBasic() error {
-	if msg.Data.Price.Cmp(big.NewInt(0)) == 0 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be 0")
-	}
-
-	if msg.Data.Price.Sign() == -1 {
-		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be negative %s", msg.Data.Price)
+	if msg.Data.Price.Sign() <= 0 {
+		return sdkerrors.Wrapf(types.ErrInvalidValue, "gas price cannot be non positive %s", msg.Data.Price)
 	}
 
 	// Amount can be 0
@@ -311,6 +307,9 @@ func (msg *MsgEthereumTx) firstVerifySig() (sdk.SigCache, error) {
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) (sdk.SigCache, error) {
+	if !isProtectedV(msg.Data.V) && tmtypes.HigherThanMercury(height) {
+		return nil, errors.New("deprecated support for homestead Signer")
+	}
 	return msg.firstVerifySig()
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
@@ -418,43 +417,7 @@ func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 // From loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
 func (msg *MsgEthereumTx) AccountAddress() sdk.AccAddress {
-	sender := msg.evmAddress()
-	return sender.Bytes()
-}
-
-func (msg *MsgEthereumTx) evmAddress() ethcmn.Address {
-	sc := msg.from.Load()
-	if sc != nil {
-		return sc.(*tmtypes.TxSigCache).From
-	}
-
-	var V *big.Int
-	var sigHash ethcmn.Hash
-	chainID := msg.ChainID()
-	if isProtectedV(msg.Data.V) {
-		// do not allow recovery for transactions with an unprotected chainID
-		if chainID.Sign() == 0 {
-			return ethcmn.Address{}
-		}
-
-		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
-		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
-		V.Sub(V, big8)
-
-		sigHash = msg.RLPSignBytes(chainID)
-	} else {
-		V = msg.Data.V
-
-		sigHash = msg.HomesteadSignHash()
-	}
-
-	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
-	if err != nil {
-		return ethcmn.Address{}
-	}
-	sigCache := &tmtypes.TxSigCache{From: sender}
-	msg.from.Store(sigCache)
-	return sender
+	return msg.from.Load().(sdk.SigCache).GetFrom().Bytes()
 }
 
 // deriveChainID derives the chain id from the given v parameter

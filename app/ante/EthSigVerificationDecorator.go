@@ -1,7 +1,6 @@
 package ante
 
 import (
-	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -29,20 +28,20 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return ctx, err
-	}
+	//chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	//if err != nil {
+	//	return ctx, err
+	//}
 
 	// validate sender/signature and cache the address
-	signerSigCache, err := msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+	_, err = msgEthTx.VerifySig(nil, ctx.BlockHeight(), nil, nil)
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
 	}
 
 	// update ctx for push signerSigCache
-	newCtx = ctx.WithSigCache(signerSigCache)
+	//newCtx = ctx.WithSigCache(signerSigCache)
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
-	return next(newCtx, msgEthTx, simulate)
+	return next(ctx, msgEthTx, simulate)
 }
