@@ -15,13 +15,14 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/client/cli"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/simulation"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 	"math"
@@ -59,7 +60,8 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	return nil
+	//return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
@@ -93,15 +95,18 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule represents the AppModule for this module
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 	m      *codec.MarshalProxy
 }
 
 // NewAppModule creates a new 20-transfer module
 func NewAppModule(k keeper.Keeper, m *codec.MarshalProxy) AppModule {
-	return AppModule{
+	ret := AppModule{
 		keeper: k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
+	return ret
 }
 
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
@@ -147,6 +152,11 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	//return am.initGenesis(ctx, data)
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	am.keeper.InitGenesis(ctx, genesisState)
@@ -156,8 +166,16 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	//return am.exportGenesis(ctx)
+	return nil
+}
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)
 	return ModuleCdc.MustMarshalJSON(gs)
+}
+func lazeGenesis() json.RawMessage {
+	ret := types.DefaultGenesisState()
+	return ModuleCdc.MustMarshalJSON(ret)
 }
 
 // BeginBlock implements the AppModule interface
@@ -447,4 +465,12 @@ func (am AppModule) OnTimeoutPacket(
 	return &sdk.Result{
 		Events: ctx.EventManager().Events(),
 	}, nil
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	return module.NewHeightTask(2, func(ctx sdk.Context) error {
+		data := lazeGenesis()
+		am.initGenesis(ctx, data)
+		return nil
+	})
 }

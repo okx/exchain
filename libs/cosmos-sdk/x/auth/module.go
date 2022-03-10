@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -77,16 +78,17 @@ type AppModule struct {
 	AppModuleBasic
 
 	accountKeeper AccountKeeper
+	*base.BaseIBCUpgradeModule
 }
-
-
 
 // NewAppModule creates a new AppModule object
 func NewAppModule(accountKeeper AccountKeeper) AppModule {
-	return AppModule{
+	ret := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		accountKeeper:  accountKeeper,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
 }
 
 // Name returns the auth module's name.
@@ -116,6 +118,9 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 // InitGenesis performs genesis initialization for the auth module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	return am.initGenesis(ctx, data)
+}
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	InitGenesis(ctx, am.accountKeeper, genesisState)
@@ -125,6 +130,9 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the auth
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	return am.exportGenesis(ctx)
+}
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := ExportGenesis(ctx, am.accountKeeper)
 	return types.ModuleCdc.MustMarshalJSON(gs)
 }

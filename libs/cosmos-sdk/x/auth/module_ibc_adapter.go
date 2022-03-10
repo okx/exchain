@@ -4,6 +4,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -37,6 +38,15 @@ func (am AppModule) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, ser
 
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
 	return nil, nil
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	return nil
+	return module.NewHeightTask(0, func(ctx sdk.Context) error {
+		data := am.exportGenesis(ctx)
+		am.initGenesis(ctx, data)
+		return nil
+	})
 }
 
 // RegisterServices registers module services.

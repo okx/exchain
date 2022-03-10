@@ -341,3 +341,9 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, from common.Address, to *common.A
 	}
 	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
+
+func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.IsContractInBlockedList(addr.Bytes())
+
+}

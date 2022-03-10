@@ -71,8 +71,6 @@ func CanonicalizeProposal(chainID string, proposal *Proposal) CanonicalProposal 
 	}
 }
 
-
-
 func CanonicalizeVote(chainID string, vote *Vote) CanonicalVote {
 	return CanonicalVote{
 		Type:      vote.Type,

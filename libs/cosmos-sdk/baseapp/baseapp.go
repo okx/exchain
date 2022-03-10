@@ -909,3 +909,7 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
+
+func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
+	return app.cms
+}

@@ -1,8 +1,9 @@
 package keeper
 
 import (
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 var (
@@ -24,6 +25,15 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	sender sdk.AccAddress,
 	receiver string,
 	isSource bool) {
+	logrusplugin.Info(
+		"trigger ibc transfer hook",
+		"hook", "AfterSendTransfer",
+		"sourcePort", sourcePort,
+		"sourceChannel", sourceChannel,
+		"token", token.String(),
+		"sender", sender.String(),
+		"receiver", receiver,
+		"isSource", isSource)
 	return
 }
 
@@ -33,6 +43,14 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	token sdk.SysCoin,
 	receiver string,
 	isSource bool) {
+	logrusplugin.Info(
+		"trigger ibc transfer hook",
+		"hook", "AfterRecvTransfer",
+		"destPort", destPort,
+		"destChannel", destChannel,
+		"token", token.String(),
+		"receiver", receiver,
+		"isSource", isSource)
 	// only after minting vouchers on this chain
 	// the native coin come from other chain with ibc
 	if !isSource {
@@ -46,6 +64,14 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	token sdk.SysCoin,
 	sender string,
 	isSource bool) {
+	logrusplugin.Info(
+		"trigger ibc transfer hook",
+		"hook", "AfterRefundTransfer",
+		"sourcePort", sourcePort,
+		"sourceChannel", sourceChannel,
+		"token", token.String(),
+		"sender", sender,
+		"isSource", isSource)
 	// only after minting vouchers on this chain
 	// the native coin come from other chain with ibc
 	if !isSource {

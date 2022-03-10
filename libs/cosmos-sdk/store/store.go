@@ -8,8 +8,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
 
-func NewCommitMultiStore(db dbm.DB) types.CommitMultiStore {
-	return rootmulti.NewStore(db)
+func NewCommitMultiStore(db dbm.DB, ops ...rootmulti.StoreOption) types.CommitMultiStore {
+	return rootmulti.NewStore(db, ops...)
 }
 
 func NewCommitKVStoreCacheManager() types.MultiStorePersistentCache {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"math/rand"
 	"strings"
 )

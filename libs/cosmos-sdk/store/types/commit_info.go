@@ -40,7 +40,7 @@ func (ci CommitInfo) Hash() []byte {
 	return rootHash
 }
 
-func (ci CommitInfo) ProofOp(storeName string)merkle.ProofOp {
+func (ci CommitInfo) ProofOp(storeName string) merkle.ProofOp {
 	cmap := ci.toMap()
 	_, proofs, _ := sdkmaps.ProofsFromMap(cmap)
 

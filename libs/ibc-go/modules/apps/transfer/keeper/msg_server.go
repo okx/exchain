@@ -3,7 +3,7 @@ package keeper
 import (
 	"context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 //var _ types.MsgServer = Keeper{}
@@ -22,12 +22,8 @@ func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTra
 		return nil, err
 	}
 	if err := k.SendTransfer(
-		ctx, msg.SourcePort, msg.SourceChannel, sdk.Coin{
-			Denom: msg.Token.Denom,
-			Amount: sdk.Dec{
-				Int: msg.Token.Amount.BigInt(),
-			},
-		}, sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
+		ctx, msg.SourcePort, msg.SourceChannel, msg.Token,
+		sender, msg.Receiver, msg.TimeoutHeight, msg.TimeoutTimestamp,
 	); err != nil {
 		return nil, err
 	}

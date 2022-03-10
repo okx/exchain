@@ -1,6 +1,7 @@
 package app
 
 import (
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	appconfig "github.com/okex/exchain/app/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -25,7 +26,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec(), app.Marshal())(req.Tx)
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
@@ -45,6 +46,17 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	defer analyzer.OnCommitDone()
+
+	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
+	if tasks != nil {
+		logrusplugin.Error("开始upgrade", "height", app.BaseApp.LastBlockHeight()+1)
+		ctx := app.BaseApp.GetDeliverStateCtx()
+		for _, t := range *tasks {
+			if err := t.Execute(ctx); nil != err {
+				panic("bad things")
+			}
+		}
+	}
 	res := app.BaseApp.Commit(req)
 
 	// we call watch#Commit here ,because

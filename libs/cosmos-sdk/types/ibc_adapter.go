@@ -256,3 +256,11 @@ func ValidCoins(coins Coins)bool{
 	}
 }
 
+func ConvertDecCoinToAdapterCoin(decCoin DecCoin) (CoinAdapter, error) {
+	truncated := decCoin.Amount.TruncateInt()
+	change := decCoin.Amount.Sub(truncated.ToDec())
+	if !change.IsZero() {
+		return CoinAdapter{}, fmt.Errorf("convert %s to adatper coin failed", decCoin.String())
+	}
+	return NewCoinAdapter(decCoin.Denom, truncated), nil
+}

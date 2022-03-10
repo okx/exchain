@@ -7,7 +7,7 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -49,7 +49,7 @@ func (k Keeper) SendTransfer(
 	ctx sdk.Context,
 	sourcePort,
 	sourceChannel string,
-	token sdk.Coin,
+	adaToken sdk.CoinAdapter,
 	sender sdk.AccAddress,
 	receiver string,
 	timeoutHeight clienttypes.Height,
@@ -59,7 +59,8 @@ func (k Keeper) SendTransfer(
 	if !k.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled
 	}
-
+	token := sdk.NewCoin(adaToken.Denom, adaToken.Amount)
+	logrusplugin.Info("send transfer", "info", token.String())
 	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return sdkerrors.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", sourcePort, sourceChannel)
@@ -145,8 +146,9 @@ func (k Keeper) SendTransfer(
 	}
 
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, token.Amount.Uint64(), sender.String(), receiver,
+		fullDenomPath, adaToken.Amount.String(), sender.String(), receiver,
 	)
+	logrusplugin.Info("packet", "amount", packetData.Amount)
 
 	packet := channeltypes.NewPacket(
 		packetData.GetBytes(),
@@ -202,10 +204,11 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		return err
 	}
 
-	//labels := []metrics.Label{
-	//	telemetry.NewLabel(coretypes.LabelSourcePort, packet.GetSourcePort()),
-	//	telemetry.NewLabel(coretypes.LabelSourceChannel, packet.GetSourceChannel()),
-	//}
+	// parse the transfer amount
+	transferAmount, ok := sdk.NewIntFromString(data.Amount)
+	if !ok {
+		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
+	}
 
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
@@ -233,7 +236,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
-		token := sdk.NewIBCCoin(denom, sdk.NewIntFromUint64(data.Amount))
+
+		token := sdk.NewDecCoin(denom, transferAmount)
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
@@ -295,7 +299,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		),
 	)
 
-	voucher := sdk.NewIBCDecCoin(voucherDenom, sdk.NewIntFromUint64(data.Amount))
+	voucher := sdk.NewDecCoin(voucherDenom, transferAmount)
+	logrusplugin.Info("on recvPacket", "info", voucher.String())
 
 	// mint new tokens if the source of the transfer is the same chain
 	if err := k.bankKeeper.MintCoins(
@@ -370,7 +375,12 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	// parse the denomination from the full denom path
 	trace := types.ParseDenomTrace(data.Denom)
 
-	token := sdk.NewCoin(trace.IBCDenom(), sdk.NewIntFromUint64(data.Amount))
+	// parse the transfer amount
+	transferAmount, ok := sdk.NewIntFromString(data.Amount)
+	if !ok {
+		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
+	}
+	token := sdk.NewCoin(trace.IBCDenom(), transferAmount)
 
 	// decode the sender address
 	sender, err := sdk.AccAddressFromBech32(data.Sender)

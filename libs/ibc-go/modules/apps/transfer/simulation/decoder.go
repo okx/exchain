@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 )
 
@@ -15,8 +15,8 @@ type TransferUnmarshaler interface {
 
 // NewDecodeStore returns a decoder function closure that unmarshals the KVPair's
 // Value to the corresponding DenomTrace type.
-func NewDecodeStore(kCdc TransferUnmarshaler) func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
-	return func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
+func NewDecodeStore(kCdc TransferUnmarshaler) func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
+	return func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
 		switch {
 		case bytes.Equal(kvA.Key[:1], types.PortKey):
 			return fmt.Sprintf("Port A: %s\nPort B: %s", string(kvA.Value), string(kvB.Value))

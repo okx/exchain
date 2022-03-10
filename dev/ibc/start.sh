@@ -40,7 +40,7 @@ run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
     if [ "$startDaenom" = true ]; then
       echo "start run "
-         nohup exchaind start --pruning=nothing --rpc.unsafe \
+         nohup exchaind start --pruning=everything --rpc.unsafe \
           --home=$CHAINDIR/$CHAINID \
           --local-rpc-port ${RPCPORT} \
           --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
@@ -51,7 +51,6 @@ run() {
           --enable-dynamic-gp=false \
           --consensus.timeout_commit 2000ms \
           --enable-preruntx=false \
-          --iavl-enable-async-commit \
           --enable-gid \
           --append-pid=true \
           --iavl-commit-interval-height 10 \

@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -13,6 +15,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 )
+
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
 // encoding/decoding library.
@@ -109,13 +112,15 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
+	logrusplugin.Error("getAccountNumber","key",hex.EncodeToString(types.GlobalAccountNumberKey))
 
 	return accNumber
 }
 
 // -----------------------------------------------------------------------------
 // Misc.
-
+func Reset() {
+}
 func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
 	if err == nil {
@@ -128,8 +133,6 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	}
 	return
 }
-
-
 
 // GetModuleAddress returns an address based on the module name
 func (ak AccountKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {

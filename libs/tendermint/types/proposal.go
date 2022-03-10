@@ -90,15 +90,12 @@ func (p *Proposal) String() string {
 
 // SignBytes returns the Proposal bytes for signing
 func (p *Proposal) SignBytes(chainID string) []byte {
-	//return ProposalSignBytes(chainID,p)
 	bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeProposal(chainID, p))
 	if err != nil {
 		panic(err)
 	}
 	return bz
 }
-
-
 
 // ToProto converts Proposal to protobuf
 func (p *Proposal) ToProto() *tmproto.Proposal {

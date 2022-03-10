@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/application/transfer/types"
+	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/x/evm/types"
 )
@@ -19,7 +20,7 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 	cacheCtx, commit := ctx.CacheContext()
 	err := k.ConvertVouchers(cacheCtx, receiver, vouchers)
 	if err != nil {
-		k.Logger(ctx).Error(
+		logrusplugin.Error(
 			fmt.Sprintf("Failed to convert vouchers to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, vouchers.String(), err))
 	}
@@ -61,6 +62,10 @@ func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, v
 
 // ConvertVoucherToERC20 convert vouchers into evm tokens.
 func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin, autoDeploy bool) error {
+	logrusplugin.Info("convert vouchers into evm tokens",
+		"fromBech32", from.String(),
+		"fromEth", common.BytesToAddress(from.Bytes()).String(),
+		"voucher", voucher.String())
 	err := ibctransferType.ValidateIBCDenom(voucher.Denom)
 	if err != nil {
 		return ibctransferType.ErrInvalidDenomForTransfer
@@ -77,19 +82,23 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
-		k.Logger(ctx).Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
+		logrusplugin.Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
 		return err
 	}
 	// 2. call contract, mint token to user address in contract
+	ac, err := sdk.ConvertDecCoinToAdapterCoin(voucher)
+	if err != nil {
+		return err
+	}
 	if _, err := k.callModuleERC20(
 		ctx,
 		contract,
 		"mint_by_oec_module",
 		common.BytesToAddress(from.Bytes()),
-		voucher.Amount.BigInt()); err != nil {
+		ac.Amount.BigInt()); err != nil {
 		return err
 	}
 	return nil
@@ -172,7 +181,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 	if len(to) == 0 {
 		return errors.New("to address cannot be empty")
 	}
-
+	logrusplugin.Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
 	//params := k.GetParams(ctx)
 	for _, c := range vouchers {
 		switch c.Denom {
@@ -204,20 +213,25 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// Coin needs to be a voucher so that we can extract the channel id from the denom
 	channelID, err := k.GetSourceChannelID(ctx, coin.Denom)
 	if err != nil {
-		return nil
+		return err
 	}
 
+	ac, err := sdk.ConvertDecCoinToAdapterCoin(coin)
+	if err != nil {
+		return err
+	}
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
 	// TODO use params --1 day
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
 	timeoutHeight := ibcclienttypes.ZeroHeight()
+
 	return k.transferKeeper.SendTransfer(
 		ctx,
 		ibctransferType.PortID,
 		channelID,
-		coin,
+		ac,
 		sender,
 		to,
 		timeoutHeight,

@@ -84,11 +84,6 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
 		if err != nil {
 			return ctx, err
-			//signers[i], _ = sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-			//acc, err = GetSignerAcc(ctx, spkd.ak, signers[i])
-			//if nil != err {
-			//	return ctx, err
-			//}
 		}
 		// account already has pubkey set,no need to reset
 		if acc.GetPubKey() != nil {
@@ -214,8 +209,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 
 		// verify signature
 		if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
-			//Ywmet todo verify
-			//return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
+			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
@@ -250,10 +244,6 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// increment sequence of all signers
 	for index, addr := range sigTx.GetSigners() {
 		acc := isd.ak.GetAccount(ctx, addr)
-		//if acc==nil{
-		//	addr,_=sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-		//	acc=isd.ak.GetAccount(ctx, addr)
-		//}
 		if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
 			ctx = ctx.WithAccountNonce(acc.GetSequence())
 		}
@@ -349,9 +339,5 @@ func GetSignerAcc(ctx sdk.Context, ak keeper.AccountKeeper, addr sdk.AccAddress)
 	if acc := ak.GetAccount(ctx, addr); acc != nil {
 		return acc, nil
 	}
-	//addr, _ = sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-	//if ret := ak.GetAccount(ctx, addr); ret != nil {
-	//	return ret, nil
-	//}
 	return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", addr)
 }

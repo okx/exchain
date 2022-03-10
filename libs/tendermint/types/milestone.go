@@ -34,7 +34,14 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoreIbcHeight = string2number(MILESTONE_IBC_HEIGHT)
-		milestoreIbcHeight = math.MaxInt64
+		if milestoreIbcHeight <= 1 {
+			panic("ibc height cant smaller than 1 ,it must gt or equal to 2")
+		}
+		if IsMainNet() || IsTestNet() {
+			milestoreIbcHeight = math.MaxInt64
+		} else {
+			milestoreIbcHeight = 20
+		}
 	})
 }
 
@@ -70,6 +77,9 @@ func HigherThanIBCHeight(h int64) bool {
 		return false
 	}
 	return h > milestoreIbcHeight
+}
+func GetIBCHeight() int64 {
+	return milestoreIbcHeight
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
