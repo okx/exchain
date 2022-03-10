@@ -905,6 +905,9 @@ func (ci commitInfo) Hash() []byte {
 func (ci commitInfo) originHash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
+		//if storeInfo.Name == "ibc" || storeInfo.Name == "transfer" || storeInfo.Name == "upgrade" {
+		//	continue
+		//}
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
 	return merkle.SimpleHashFromMap(m)

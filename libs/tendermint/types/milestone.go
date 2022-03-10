@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"strconv"
 	"sync"
 )
@@ -33,7 +34,7 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoreIbcHeight = string2number(MILESTONE_IBC_HEIGHT)
-		milestoreIbcHeight = 1
+		milestoreIbcHeight = math.MaxInt64
 	})
 }
 
