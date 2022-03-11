@@ -35,25 +35,23 @@ func (app *BaseApp) runTx(mode runTxMode,
 		tx:      tx,
 		txBytes: txBytes,
 	}
-	err = app.runtxWithInfo(info, mode, height, from...)
+	err = app.runTxWithInfo(info, mode, height, from...)
 
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
-	handler := info.handler
-	app.pin(ValTxMsgs, true, mode)
-
-	//init info context
-	err = handler.handleStartHeight(info, height)
+// PrepareInfo init info's context
+func (app *BaseApp) PrepareInfo(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
+	// init info context
+	err = info.handler.handleStartHeight(info, height)
 	if err != nil {
 		return err
 	}
-	//info with cache saved in app to load predesessor tx state
+	// info with cache saved in app to load predecessor tx state
 	if mode != runTxModeTrace {
-		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
-		//to prevent modifying the deliver state
-		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
+		// in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
+		// to prevent modifying the deliver state
+		// traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
 		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
 	}
 	for _, addr := range from {
@@ -62,6 +60,18 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, height int64,
 			info.ctx = info.ctx.WithFrom(addr)
 			break
 		}
+	}
+
+	return
+}
+
+func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
+	handler := info.handler
+	app.pin(ValTxMsgs, true, mode)
+
+	err = app.PrepareInfo(info, mode, height, from...)
+	if err != nil {
+		return err
 	}
 
 	err = handler.handleGasConsumed(info)

@@ -71,7 +71,7 @@ func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState 
 		WithVoteInfos(app.voteInfos).
 		WithConsensusParams(app.consensusParams)
 
-	err = app.runtxWithInfo(info, mode, height)
+	err = app.runTxWithInfo(info, mode, height)
 	return info, err
 }
 func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (*state, error) {
