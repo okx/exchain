@@ -210,7 +210,6 @@ func (proof *MerkleProof) Empty() bool {
 }
 
 func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs []*ics23.CommitmentProof, keys MerklePath, value []byte, index int) error {
-	return nil
 	var (
 		subroot []byte
 		err     error
