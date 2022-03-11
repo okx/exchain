@@ -387,59 +387,59 @@ func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
 	return nil
 }
 
-func (dm *DeliverTxTasksManager) runNonceAndSequenceAnte(task *DeliverTxTask) error {
-	info := task.info
-	var anteCtx sdk.Context
-
-	// Cache wrap context before AnteHandler call in case it aborts.
-	// This is required for both CheckTx and DeliverTx.
-	// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
-	//
-	// NOTE: Alternatively, we could require that AnteHandler ensures that
-	// writes do not happen if aborted/failed.  This may have some
-	// performance benefits, but it'll be more difficult to get right.
-	anteCtx, _ = dm.app.cacheTxContext(info.ctx, info.txBytes) // info.msCacheAnte := ctx.MultiStore().CacheMultiStore(),  anteCtx := ctx.WithMultiStore(info.msCacheAnte)
-	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-
-	var tx sdk.Tx
-	if task.isEvm {
-		tx = task.tx
-	} else {
-		tx = info.tx
-	}
-	newCtx, err := dm.app.nonceSequenceHandler(anteCtx, tx, false) // NewAnteHandler
-
-	ms := info.ctx.MultiStore()
-	info.accountNonce = newCtx.AccountNonce()
-
-	if !newCtx.IsZero() {
-		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
-		// replaced by the AnteHandler. We want the original multistore, not one
-		// which was cache-wrapped for the AnteHandler.
-		//
-		// Also, in the case of the tx aborting, we need to track gas consumed via
-		// the instantiated gas meter in the AnteHandler, so we update the context
-		// prior to returning.
-		// todo: CacheMultiStore(info.msCacheAnte) is changed
-		info.ctx = newCtx.WithMultiStore(ms)
-	}
-	// GasMeter expected to be set in AnteHandler
-	//info.gasWanted = info.ctx.GasMeter().Limit()
-	if err != nil {
-		return err
-	}
-
-	//info.msCacheAnte.Write()
-	//info.ctx.Cache().Write(true)
-
-	return nil
-}
+//func (dm *DeliverTxTasksManager) runNonceAndSequenceAnte(task *DeliverTxTask) error {
+//	info := task.info
+//	var anteCtx sdk.Context
+//
+//	// Cache wrap context before AnteHandler call in case it aborts.
+//	// This is required for both CheckTx and DeliverTx.
+//	// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
+//	//
+//	// NOTE: Alternatively, we could require that AnteHandler ensures that
+//	// writes do not happen if aborted/failed.  This may have some
+//	// performance benefits, but it'll be more difficult to get right.
+//	anteCtx, _ = dm.app.cacheTxContext(info.ctx, info.txBytes) // info.msCacheAnte := ctx.MultiStore().CacheMultiStore(),  anteCtx := ctx.WithMultiStore(info.msCacheAnte)
+//	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+//
+//	var tx sdk.Tx
+//	if task.isEvm {
+//		tx = task.tx
+//	} else {
+//		tx = info.tx
+//	}
+//	newCtx, err := dm.app.nonceSequenceHandler(anteCtx, tx, false) // NewAnteHandler
+//
+//	ms := info.ctx.MultiStore()
+//	info.accountNonce = newCtx.AccountNonce()
+//
+//	if !newCtx.IsZero() {
+//		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
+//		// replaced by the AnteHandler. We want the original multistore, not one
+//		// which was cache-wrapped for the AnteHandler.
+//		//
+//		// Also, in the case of the tx aborting, we need to track gas consumed via
+//		// the instantiated gas meter in the AnteHandler, so we update the context
+//		// prior to returning.
+//		// todo: CacheMultiStore(info.msCacheAnte) is changed
+//		info.ctx = newCtx.WithMultiStore(ms)
+//	}
+//	// GasMeter expected to be set in AnteHandler
+//	//info.gasWanted = info.ctx.GasMeter().Limit()
+//	if err != nil {
+//		return err
+//	}
+//
+//	//info.msCacheAnte.Write()
+//	//info.ctx.Cache().Write(true)
+//
+//	return nil
+//}
 
 //func (dm *DeliverTxTasksManager) updateEvmTxFrom(task *DeliverTxTask) {
 //	if task.isEvm && dm.app.evmTxFromHandler != nil {
 //		evmTx, ok := dm.app.evmTxFromHandler(task.info.ctx, task.info.tx)
 //		if ok {
-//			task.info.tx = evmTx
+//			task.info.tx = evmTxx
 //		}
 //	}
 //}
@@ -501,20 +501,25 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
+		gasStart := time.Now()
+		err := info.handler.handleGasConsumed(info)
+		dm.handleGasTime += time.Since(gasStart).Microseconds()
+		if err != nil {
+			dm.app.logger.Error("handleGasConsumed failed", "err", err)
+
+			txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace)
+			execFinishedFn(txRs)
+			continue
+		}
+
 		var tx sdk.Tx
 		if dm.statefulTask.isEvm {
 			tx = dm.statefulTask.tx
 		} else {
 			tx = dm.statefulTask.tx
 		}
-		if dm.app.incrementSeqHandler != nil {
-			_, err := dm.app.incrementSeqHandler(info.ctx, tx)
-			if err != nil {
-				dm.app.logger.Error("incrementSeq failed.")
-			}
-		}
 		if dm.statefulTask.anteErr != nil {
-			var err error
+			//var err error
 			if strings.Contains(dm.statefulTask.anteErr.Error(), "invalid nonce") && dm.app.nonceVerifyHandler != nil {
 				err = dm.app.nonceVerifyHandler(info.ctx, tx)
 			} else {
@@ -530,15 +535,20 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			}
 		}
 
-		gasStart := time.Now()
-		basicVerifyErr := info.handler.handleGasConsumed(info)
-		dm.handleGasTime += time.Since(gasStart).Microseconds()
-		if basicVerifyErr != nil {
-			dm.app.logger.Error("handleGasConsumed failed", "basicVerifyErr", basicVerifyErr)
-
-			txRs := sdkerrors.ResponseDeliverTx(basicVerifyErr, 0, 0, dm.app.trace)
-			execFinishedFn(txRs)
-			continue
+		if dm.statefulTask.isEvm {
+			if dm.app.incrementSenderSequenceHandler != nil {
+				_, err = dm.app.incrementSenderSequenceHandler(info.ctx, tx)
+				if err != nil {
+					dm.app.logger.Error("incrementSeq failed 1.")
+				}
+			}
+		} else {
+			if dm.app.incrementSequenceHandler != nil {
+				_, err = dm.app.incrementSequenceHandler(info.ctx, tx)
+				if err != nil {
+					dm.app.logger.Error("incrementSeq failed 1.")
+				}
+			}
 		}
 
 		//info.msCacheAnte.Write()
@@ -546,7 +556,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 		// execute runMsgs
 		runMsgStart := time.Now()
-		err := handler.handleRunMsg(info)
+		err = handler.handleRunMsg(info)
 		runMsgE := time.Since(runMsgStart).Microseconds()
 		dm.runMsgsTime += runMsgE
 

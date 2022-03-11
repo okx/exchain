@@ -72,7 +72,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	return next(ctx, tx, simulate)
 }
 
-func NewIncrementSeqHandler(ak auth.AccountKeeper) sdk.IncrementSeqHandler {
+func NewIncrementSenderSequenceHandler(ak auth.AccountKeeper) sdk.IncrementSenderSequenceHandler {
 	return func(ctx sdk.Context, tx sdk.Tx)  (sdk.Context, error) {
 		// get and set account must be called with an infinite gas meter in order to prevent
 		// additional gas from being deducted.

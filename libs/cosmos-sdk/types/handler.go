@@ -26,7 +26,9 @@ type EvmTxFromHandler func(ctx Context, tx Tx) (Tx, Coins, bool, Address, SigCac
 
 type NonceVerificationHandler func(ctx Context, tx Tx) error
 
-type IncrementSeqHandler func(ctx Context, tx Tx) (Context, error)
+type IncrementSequenceHandler func(ctx Context, tx Tx) (Context, error)
+
+type IncrementSenderSequenceHandler func(ctx Context, tx Tx) (Context, error)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {

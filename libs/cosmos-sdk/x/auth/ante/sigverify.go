@@ -3,7 +3,6 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
@@ -255,6 +254,30 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func NewIncrementSequenceHandler(ak keeper.AccountKeeper) sdk.IncrementSequenceHandler {
+	return func(ctx sdk.Context, tx sdk.Tx)  (sdk.Context, error) {
+		sigTx, ok := tx.(SigVerifiableTx)
+		if !ok {
+			return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
+		}
+
+		// increment sequence of all signers
+		for index, addr := range sigTx.GetSigners() { // TODO: XXXX.GetSigners() is called many times during the whole AnteHandler
+			acc := ak.GetAccount(ctx, addr)
+			if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
+				ctx = ctx.WithAccountNonce(acc.GetSequence())
+			}
+			if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+				panic(err)
+			}
+
+			ak.SetAccount(ctx, acc)
+		}
+
+		return ctx, nil
+	}
 }
 
 // ValidateSigCountDecorator takes in Params and returns errors if there are too many signatures in the tx for the given params

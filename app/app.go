@@ -446,7 +446,8 @@ func NewOKExChainApp(
 	app.SetEthGasConsumeHandler(ante.NewEthGasConsumeHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetEvmTxFromHandler(evmTxFromHandler(app.AccountKeeper))
 	app.SetNonceVerificationHandler(ante.NewNonceVerificationHandler(app.AccountKeeper))
-	app.SetIncrementSeqHandler(ante.NewIncrementSeqHandler(app.AccountKeeper))
+	app.SetIncrementSenderSequenceHandler(ante.NewIncrementSenderSequenceHandler(app.AccountKeeper))
+	app.SetIncrementSequenceHandler(ante2.NewIncrementSequenceHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

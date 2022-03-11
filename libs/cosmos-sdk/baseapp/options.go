@@ -214,9 +214,16 @@ func (app *BaseApp) SetNonceVerificationHandler(nvh sdk.NonceVerificationHandler
 	app.nonceVerifyHandler = nvh
 }
 
-func (app *BaseApp) SetIncrementSeqHandler(ish sdk.IncrementSeqHandler)  {
+func (app *BaseApp) SetIncrementSenderSequenceHandler(ish sdk.IncrementSenderSequenceHandler)  {
 	if app.sealed {
-		panic("SetIncrementSeqHandler() on sealed BaseApp")
+		panic("SetIncrementSenderSequenceHandler() on sealed BaseApp")
 	}
-	app.incrementSeqHandler = ish
+	app.incrementSenderSequenceHandler = ish
+}
+
+func (app *BaseApp) SetIncrementSequenceHandler(ish sdk.IncrementSequenceHandler)  {
+	if app.sealed {
+		panic("SetIncrementSequenceHandler() on sealed BaseApp")
+	}
+	app.incrementSequenceHandler = ish
 }
