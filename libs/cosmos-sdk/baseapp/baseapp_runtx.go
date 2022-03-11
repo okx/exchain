@@ -78,7 +78,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	//defer func() {
 	//	if r := recover(); r != nil {
-	//		err = app.runTx_defer_recover(r, info)
+	//		basicVerifyErr = app.runTx_defer_recover(r, info)
 	//		info.msCache = nil //TODO msCache not write
 	//		info.result = nil
 	//	}
@@ -121,7 +121,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		err = app.runAnte(info, mode)
 		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
-			app.logger.Error("ante failed", "err", err)
+			app.logger.Error("ante failed", "basicVerifyErr", err)
 			return err
 		}
 	}
@@ -134,7 +134,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunMsg, false, mode)
 
 	if err != nil {
-		//app.logger.Error("handleRunMsg failed", "err", err)
+		//app.logger.Error("handleRunMsg failed", "basicVerifyErr", basicVerifyErr)
 	}
 	return err
 }
@@ -298,7 +298,7 @@ func useCache(mode runTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == runTxModeDeliver {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		return true
 	}
 	return false

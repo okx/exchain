@@ -1187,7 +1187,7 @@ func TestTxGasLimits(t *testing.T) {
 		gInfo, result, err := app.Deliver(tx)
 
 		// check gas used and wanted
-		require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, err: %s", i, gInfo, result, err))
+		require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, basicVerifyErr: %s", i, gInfo, result, err))
 
 		// check for out of gas
 		if !tc.fail {
@@ -1280,8 +1280,8 @@ func TestMaxBlockGasLimits(t *testing.T) {
 
 			// check for failed transactions
 			if tc.fail && (j+1) > tc.failAfterDeliver {
-				require.Error(t, err, fmt.Sprintf("tc #%d; result: %v, err: %s", i, result, err))
-				require.Nil(t, result, fmt.Sprintf("tc #%d; result: %v, err: %s", i, result, err))
+				require.Error(t, err, fmt.Sprintf("tc #%d; result: %v, basicVerifyErr: %s", i, result, err))
+				require.Nil(t, result, fmt.Sprintf("tc #%d; result: %v, basicVerifyErr: %s", i, result, err))
 
 				space, code, _ := sdkerrors.ABCIInfo(err, false)
 				require.EqualValues(t, sdkerrors.ErrOutOfGas.Codespace(), space, err)
@@ -1296,7 +1296,7 @@ func TestMaxBlockGasLimits(t *testing.T) {
 					fmt.Sprintf("%d,%d: %v, %v, %v, %v", i, j, tc, expBlockGasUsed, blockGasUsed, result),
 				)
 
-				require.NotNil(t, result, fmt.Sprintf("tc #%d; currDeliver: %d, result: %v, err: %s", i, j, result, err))
+				require.NotNil(t, result, fmt.Sprintf("tc #%d; currDeliver: %d, result: %v, basicVerifyErr: %s", i, j, result, err))
 				require.False(t, ctx.BlockGasMeter().IsPastLimit())
 			}
 		}

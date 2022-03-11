@@ -25,7 +25,6 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
-
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
@@ -45,6 +44,19 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 
 // evmTxFromHandler get tx fee for evm tx
 func evmTxFromHandler() sdk.EvmTxFromHandler {
+	//return func(ctx sdk.Context, tx sdk.Tx) (evmTx sdk.Tx, fee sdk.Coins, isEvm bool, from sdk.Address, signCache sdk.SigCache) {
+		//if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
+		//	isEvm = true
+		//	signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+		//	evmTx.SetFromUseSigCache(signCache)
+		//	from = evmTx.From()
+		//}
+		//if feeTx, ok := tx.(authante.FeeTx); ok {
+		//	fee = feeTx.GetFee()
+		//}
+		//
+		//return
+	//}
 	return func(ctx sdk.Context, tx sdk.Tx) (sdk.Tx, bool) {
 		if ctx.SigCache() != nil {
 			if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {

@@ -2,7 +2,10 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"log"
 	"time"
 
 	"github.com/tendermint/go-amino"
@@ -244,11 +247,11 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	//if global.GetGlobalHeight() == 5810736 && hex.EncodeToString(acc.Address) == "0f4c6578991b88fe43125c36c54d729aedd58473" {
-	//if len(coins) > 0 {
-	//	log.Println("change account:", coins[0].Amount)
-	//}
-	//}
+	if global.GetGlobalHeight() == 5810736 && hex.EncodeToString(acc.Address) == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+		if len(coins) > 0 {
+			log.Println("change account:", coins[0].Amount)
+		}
+	}
 	acc.Coins = coins
 	return nil
 }

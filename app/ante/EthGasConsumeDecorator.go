@@ -1,6 +1,7 @@
 package ante
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -9,7 +10,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"log"
 	"math/big"
 )
 
@@ -43,57 +46,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return next(ctx, tx, simulate)
 	}
 	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
-
-	//msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	//if !ok {
-	//	return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	//}
-	//
-	//address := msgEthTx.From()
-	//if address.Empty() {
-	//	panic("sender address cannot be empty")
-	//}
-	//
-	//// fetch sender account from signature
-	//senderAcc, err := auth.GetSignerAcc(ctx, egcd.ak, address)
-	//if err != nil {
-	//	return ctx, err
-	//}
-	//
-	//if senderAcc == nil {
-	//	return ctx, sdkerrors.Wrapf(
-	//		sdkerrors.ErrUnknownAddress,
-	//		"sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
-	//	)
-	//}
-	//
-	//gasLimit := msgEthTx.GetGas()
-	//gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
-	//if err != nil {
-	//	return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
-	//}
-	//
-	//// intrinsic gas verification during CheckTx
-	//if ctx.IsCheckTx() && gasLimit < gas {
-	//	return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
-	//}
-	//
-	//// Charge sender for gas up to limit
-	//if gasLimit != 0 {
-	//	// Cost calculates the fees paid to validators based on gas limit and price
-	//	cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
-	//
-	//	evmDenom := sdk.DefaultBondDenom
-	//
-	//	feeAmt := sdk.NewCoins(
-	//		sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
-	//	)
-	//
-	//	err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
-	//	if err != nil {
-	//		return ctx, err
-	//	}
-	//}
 
 	gasLimit, senderAcc, feeAmt, err := EthGasConsumePreCheck(egcd.ak, ctx, tx)
 	if err != nil {
@@ -171,7 +123,12 @@ func NewEthGasConsumeHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.E
 			return ctx, err
 		}
 		if feeAmt != nil {
-			//fmt.Println(hex.EncodeToString(senderAcc.GetAddress()), feeAmt[0].Amount)
+			if global.GetGlobalHeight() == 5810736 {
+				hexacc := hex.EncodeToString(senderAcc.GetAddress())
+				if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+					log.Println("EthGasConsume", feeAmt[0].Amount)
+				}
+			}
 			err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 			if err != nil {
 				return ctx, err

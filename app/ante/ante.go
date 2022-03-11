@@ -118,7 +118,7 @@ func NewAnteAuthHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.Sup
 					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 					NewAccountVerificationDecorator(ak, evmKeeper),
 					NewNonceVerificationDecorator(ak),
-					//NewEthGasConsumeDecorator(ak, sk, evmKeeper),
+					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
 					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 				)
 			}

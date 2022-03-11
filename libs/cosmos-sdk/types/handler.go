@@ -21,6 +21,7 @@ type DeductFeeHandler func(ctx Context, tx Tx) error
 
 type EthGasConsumeHandler func(ctx Context, tx Tx) (Context, error)
 
+//type EvmTxFromHandler func(ctx Context, tx Tx) (Tx, Coins, bool, Address, SigCache)
 type EvmTxFromHandler func(ctx Context, tx Tx) (Tx, bool)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
