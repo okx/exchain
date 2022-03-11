@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"log"
 	"time"
 
@@ -247,7 +246,8 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	if global.GetGlobalHeight() == 5810736 && hex.EncodeToString(acc.Address) == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+	//if global.GetGlobalHeight() == 5810736 && hex.EncodeToString(acc.Address) == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+	if hex.EncodeToString(acc.Address) == "bd6f5d97dc1e378bb797e03952b2485ae4860229" {
 		if len(coins) > 0 {
 			log.Println("change account:", coins[0].Amount)
 		}

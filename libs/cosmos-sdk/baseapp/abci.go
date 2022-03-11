@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -250,12 +249,12 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	app.commitBlockCache()
 
 	//if header.Height == 5810737 {
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-			if isDirty {
-				fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
-			}
-			return true
-		})
+	//	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	//		if isDirty {
+	//			fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
+	//		}
+	//		return true
+	//	})
 	//}
 
 	app.deliverState.ms.Write()

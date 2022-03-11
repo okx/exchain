@@ -33,7 +33,7 @@ type DeliverTxTask struct {
 	tx            sdk.Tx
 	index         int
 	feeForCollect int64
-	anteFailed    bool
+	//anteFailed    bool
 
 	info          *runTxInfo
 	from          sdk.Address
@@ -42,6 +42,7 @@ type DeliverTxTask struct {
 	//signCache     sdk.SigCache
 	//evmIndex      uint32
 	basicVerifyErr error
+	anteErr	error
 	statelessErr	error
 }
 
@@ -122,7 +123,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.finishTime = 0
 
 	go dm.makeTasksRoutine(txs)
-	//go dm.runStatelessSerialRoutine()
+	go dm.runStatelessSerialRoutine()
 	go dm.runStatefulSerialRoutine()
 }
 
@@ -159,13 +160,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 
 	// execute ante
 	info.ctx = dm.app.getContextForTx(mode, info.txBytes) // same context for all txs in a block
-
-	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		task.basicVerifyErr = err
-		dm.app.logger.Error("validateBasicTxMsgs failed", "basicVerifyErr", err)
-		return
-	}
-
 	var signCache sdk.SigCache
 	task.fee, task.isEvm, signCache = dm.app.getTxFee(info.ctx, info.tx)
 	////var tx sdk.Tx
@@ -176,12 +170,19 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int) {
 	// will call sk.SetAccount(ctx,acc) which will modify ctx.Cache()
 	info.ctx = info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
+	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		task.basicVerifyErr = err
+		dm.app.logger.Error("validateBasicTxMsgs failed", "basicVerifyErr", err)
+		return
+	}
+
 	if dm.app.anteAuthHandler != nil {
 		err := dm.runAnte(task, mode) // dm.app.runAnte(task.info, mode)
 		if err != nil {
 			dm.app.logger.Error("ante failed 1", "basicVerifyErr", err)
 			// todo: should make a judge for the basicVerifyErr. There are some errors don't need to re-run AnteHandler.
-			task.anteFailed = true
+			task.anteErr = err
+			task.statelessErr = err
 		}
 	}
 
@@ -311,14 +312,13 @@ func (dm *DeliverTxTasksManager) runStatelessSerialRoutine() {
 		err := info.handler.handleGasConsumed(info)
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "basicVerifyErr", err)
-			//dm.statelessTask.basicVerifyErr = basicVerifyErr
 			dm.statelessTask.statelessErr = err
 			finishedFn()
 			continue
 		}
 
 		// todo: if ante failed during concurrently executing, try it again
-		if dm.statelessTask.anteFailed && dm.app.anteAuthHandler != nil {
+		if dm.statelessTask.anteErr != nil && dm.app.anteAuthHandler != nil {
 
 			//// dm.statelessTask.basicVerifyErr == errors.ErrInvalidSequence
 			//errors2.Is(dm.statelessTask.basicVerifyErr, errors.ErrInvalidSequence)
@@ -415,7 +415,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		if dm.statefulTask.anteFailed {
+		if dm.statefulTask.anteErr != nil || dm.statefulTask.statelessErr != nil {
 			txRs := sdkerrors.ResponseDeliverTx(dm.statelessTask.statelessErr, 0, 0, dm.app.trace) //execResult.GetResponse()
 			handleGasFn()
 			execFinishedFn(txRs)
@@ -548,7 +548,7 @@ func (dm *DeliverTxTasksManager) consumeGas(task *DeliverTxTask) error {
 			info.gasWanted = info.ctx.GasMeter().Limit()
 
 			if err != nil {
-				dm.app.logger.Error("ante failed 3", "basicVerifyErr", err)
+				dm.app.logger.Error("ante failed 4", "basicVerifyErr", err)
 				return err
 			}
 			//info.msCache.Write()
