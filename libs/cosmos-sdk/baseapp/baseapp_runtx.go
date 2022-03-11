@@ -30,20 +30,17 @@ func (app *BaseApp) runTx(mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
 	msCacheList sdk.CacheMultiStore, err error) {
 
-	var info *runTxInfo
-	info, err = app.runtx(mode, txBytes, tx, height, from...)
+	info := &runTxInfo{
+		handler: app.getModeHandler(mode),
+		tx:      tx,
+		txBytes: txBytes,
+	}
+	err = app.runtxWithInfo(info, mode, height, from...)
+
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
-	info = &runTxInfo{}
-	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
-	return
-}
-func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
-	info.handler = app.getModeHandler(mode)
-	info.tx = tx
-	info.txBytes = txBytes
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
