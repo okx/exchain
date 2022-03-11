@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 )
 
@@ -21,6 +22,9 @@ type AccountKeeper interface {
 
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
+	MintCoins(ctx sdk.Context, name string, amt sdk.Coins) error
+	GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI
 }
 
 type Subspace interface {

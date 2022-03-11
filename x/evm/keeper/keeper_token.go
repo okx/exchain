@@ -39,6 +39,9 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 	for _, c := range vouchers {
 		switch c.Denom {
 		case params.IbcDenom:
+			if len(params.IbcDenom) == 0 {
+				return errors.New("ibc denom is empty")
+			}
 			// oec1:okt----->oec2:ibc/okt---->oec2:okt
 			if err := k.ConvertVoucherToEvmDenom(ctx, fromAddr, c); err != nil {
 				return err
@@ -56,7 +59,21 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 
 // ConvertVoucherToEvmDenom convert vouchers into evm denom.
 func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin) error {
-	// TODO Not supported at the moment
+	logrusplugin.Info("convert voucher into evm token", "from", from.String(), "voucher", voucher.String())
+	// 1. send voucher to escrow address
+	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, types.ModuleName, sdk.NewCoins(voucher)); err != nil {
+		return err
+	}
+
+	evmCoin := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, voucher.Amount)
+	// 2. Mint evm token
+	if err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(evmCoin)); err != nil {
+		return err
+	}
+	// 3. Send evm token to receiver
+	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, from, sdk.NewCoins(evmCoin)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -82,7 +99,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
-		logrusplugin.Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
+		logrusplugin.Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
@@ -206,6 +223,11 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 
 func (k Keeper) ibcSendEvmDenom(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin) error {
 	// TODO Not supported at the moment
+	// 1. Send evm token to escrow address
+	// 2. Burn the evm token
+	// 3. Send ibc coin from module account to sender
+	// 4. Send ibc coin to ibc
+
 	return nil
 }
 
