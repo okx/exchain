@@ -232,14 +232,14 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var fromAcc exported.Account
 
 	if !simulate {
+		fromAcc = avd.ak.GetAccount(ctx, address)
+		if fromAcc == nil {
+			return ctx, sdkerrors.Wrapf(
+				sdkerrors.ErrUnknownAddress,
+				"account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
+			)
+		}
 		if ctx.IsCheckTx() {
-			fromAcc = avd.ak.GetAccount(ctx, address)
-			if fromAcc == nil {
-				return ctx, sdkerrors.Wrapf(
-					sdkerrors.ErrUnknownAddress,
-					"account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
-				)
-			}
 			// on InitChain make sure account number == 0
 			err = accountVerification(&ctx, fromAcc, msgEthTx)
 			if err != nil {
