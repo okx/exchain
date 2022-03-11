@@ -50,6 +50,7 @@ import (
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
@@ -140,7 +141,7 @@ var (
 		farm.YieldFarmingAccount:    nil,
 		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
-		evm.ModuleName:              {authtypes.Minter, authtypes.Burner},
+		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
