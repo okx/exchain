@@ -329,9 +329,12 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 	pm.workgroup.resultCb = asyncCb
 	pm.workgroup.taskRun = app.asyncDeliverTx
 
-	if len(groupList) > 0 && groupList[0][0] != 0 {
+	if len(groupList) == 0 {
+		pm.workgroup.AddTask(txs[0], 0)
+	} else if groupList[0][0] != 0 {
 		pm.workgroup.AddTask(txs[0], 0)
 	}
+
 	for _, group := range groupList {
 		txIndex := group[0]
 		pm.workgroup.AddTask(txs[txIndex], txIndex)
