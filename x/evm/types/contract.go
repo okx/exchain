@@ -28,6 +28,7 @@ var (
 )
 
 func init() {
+	// TODO Module names cannot be duplicated with module account names
 	EVMModuleBechAddr = authtypes.NewModuleAddress(ModuleName)
 	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
 	// 0x603871c2ddd41c26Ee77495E2E31e6De7f9957e0

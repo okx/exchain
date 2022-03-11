@@ -301,3 +301,7 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, from common.Address, to *common.A
 	}
 	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
+
+func (k Keeper) GetSupplyKeeper() types.SupplyKeeper {
+	return k.supplyKeeper
+}
