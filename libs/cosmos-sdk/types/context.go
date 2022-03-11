@@ -33,6 +33,7 @@ type Context struct {
 	voteInfo       []abci.VoteInfo
 	gasMeter       GasMeter
 	blockGasMeter  GasMeter
+	isDeliver      bool
 	checkTx        bool
 	recheckTx      bool // if recheckTx == true, then checkTx must also be true
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
@@ -53,17 +54,20 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context    { return c.ctx }
-func (c Context) MultiStore() MultiStore      { return c.ms }
-func (c Context) BlockHeight() int64          { return c.header.Height }
-func (c Context) BlockTime() time.Time        { return c.header.Time }
-func (c Context) ChainID() string             { return c.chainID }
-func (c Context) From() string                { return c.from }
-func (c Context) TxBytes() []byte             { return c.txBytes }
-func (c Context) Logger() log.Logger          { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
-func (c Context) GasMeter() GasMeter          { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
+func (c Context) Context() context.Context   { return c.ctx }
+func (c Context) MultiStore() MultiStore     { return c.ms }
+func (c Context) BlockHeight() int64         { return c.header.Height }
+func (c Context) BlockTime() time.Time       { return c.header.Time }
+func (c Context) ChainID() string            { return c.chainID }
+func (c Context) From() string               { return c.from }
+func (c Context) TxBytes() []byte            { return c.txBytes }
+func (c Context) Logger() log.Logger         { return c.logger }
+func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
+func (c Context) GasMeter() GasMeter         { return c.gasMeter }
+func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+func (c Context) IsDeliver() bool {
+	return c.isDeliver
+}
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c Context) IsTraceTx() bool             { return c.traceTx }
@@ -173,6 +177,10 @@ func (c Context) WithMultiStore(ms MultiStore) Context {
 func (c Context) WithAsync() Context {
 	c.isAsync = true
 	return c
+}
+
+func (c *Context) SetDeliver() {
+	c.isDeliver = true
 }
 
 func (c Context) WithBlockHeader(header abci.Header) Context {
