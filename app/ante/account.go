@@ -177,6 +177,10 @@ func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.Acco
 	// additional gas from being deducted.
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
+	if ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+	}
+
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		var sacc exported.Account
@@ -205,15 +209,16 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
-	address := msgEthTx.From()
-	if address.Empty() {
-		panic("sender address cannot be empty")
-	}
 
 	var acc exported.Account
 	var getAccGasUsed sdk.Gas
 
 	if !simulate {
+		address := msgEthTx.From()
+		if address.Empty() {
+			panic("sender address cannot be empty")
+		}
+
 		if ctx.IsCheckTx() {
 			acc = avd.ak.GetAccount(ctx, address)
 			if acc == nil {
