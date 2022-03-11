@@ -198,21 +198,33 @@ func deductFees(ctx sdk.Context, fromAcc exported.Account, feeAmt sdk.Coins, ak 
 	return nil
 }
 
-func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, acc exported.Account) {
+//increametSeq for increase acc sequence.
+//if acc == nil, it's means deliverTx,then we can not get/set Account
+//if acc != nil, it's means simulateTx then we need to get/set Account
+func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, acc exported.Account, fromAddress sdk.AccAddress, ak auth.AccountKeeper) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return
 	}
 
-	// get and set account must be called with an infinite gas meter in order to prevent
-	// additional gas from being deducted.
-	seq := acc.GetSequence()
+	var sacc exported.Account
+	if acc == nil {
+		sacc = ak.GetAccount(ctx, fromAddress)
+	} else {
+		sacc = acc
+	}
+
+	seq := sacc.GetSequence()
 	if !baseapp.IsMempoolEnablePendingPool() {
 		seq++
 	} else if msgEthTx.Data.AccountNonce == seq {
 		seq++
 	}
-	if err := acc.SetSequence(seq); err != nil {
+	if err := sacc.SetSequence(seq); err != nil {
 		panic(err)
+	}
+
+	if acc == nil {
+		ak.SetAccount(ctx, sacc)
 	}
 
 	return
@@ -252,14 +264,19 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		if err != nil {
 			return ctx, err
 		}
-		incrementSeq(ctx, msgEthTx, fromAcc)
 
+	}
+
+	// if simulate,fromAcc must be nil,then incrementSeq need to get/set account
+	// if !simulate,fromAcc must not be nil,then incrementSeq need not to get/set account
+	incrementSeq(ctx, msgEthTx, fromAcc, address, avd.ak)
+
+	if !simulate {
 		// account would be updated
 		ctx, err = ethGasConsume(ctx, fromAcc, msgEthTx, simulate, avd.ak, avd.sk)
 		if err != nil {
 			return ctx, err
 		}
 	}
-
 	return next(ctx, tx, simulate)
 }
