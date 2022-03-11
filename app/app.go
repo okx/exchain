@@ -437,13 +437,16 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetAnteAuthHandler(ante.NewAnteAuthHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
+	app.SetNonceSequenceHandler(ante.NewNonceAndSequenceHandler(app.AccountKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetDeductFeeHandler(ante2.NewDeductFeeHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetEthGasConsumeHandler(ante.NewEthGasConsumeHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetEvmTxFromHandler(evmTxFromHandler())
+	app.SetEvmTxFromHandler(evmTxFromHandler(app.AccountKeeper))
+	app.SetNonceVerificationHandler(ante.NewNonceVerificationHandler(app.AccountKeeper))
+	app.SetIncrementSeqHandler(ante.NewIncrementSeqHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

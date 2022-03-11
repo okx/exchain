@@ -71,3 +71,41 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	ctx = ctx.WithGasMeter(gasMeter)
 	return next(ctx, tx, simulate)
 }
+
+func NewIncrementSeqHandler(ak auth.AccountKeeper) sdk.IncrementSeqHandler {
+	return func(ctx sdk.Context, tx sdk.Tx)  (sdk.Context, error) {
+		// get and set account must be called with an infinite gas meter in order to prevent
+		// additional gas from being deducted.
+		gasMeter := ctx.GasMeter()
+		ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+
+		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+		if !ok {
+			ctx = ctx.WithGasMeter(gasMeter)
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+		}
+
+		if ctx.From() != "" {
+			msgEthTx.SetFrom(ctx.From())
+		}
+		// increment sequence of all signers
+		for _, addr := range msgEthTx.GetSigners() {
+			acc := ak.GetAccount(ctx, addr)
+			seq := acc.GetSequence()
+			if !baseapp.IsMempoolEnablePendingPool() {
+				seq++
+			} else if msgEthTx.Data.AccountNonce == seq {
+				seq++
+			}
+			if err := acc.SetSequence(seq); err != nil {
+				panic(err)
+			}
+			ak.SetAccount(ctx, acc)
+		}
+
+		// set the original gas meter
+		ctx = ctx.WithGasMeter(gasMeter)
+
+		return ctx, nil
+	}
+}

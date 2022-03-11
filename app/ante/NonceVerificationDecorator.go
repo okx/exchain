@@ -1,12 +1,14 @@
 package ante
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"log"
 )
 
 // NonceVerificationDecorator checks that the account nonce from the transaction matches
@@ -124,4 +126,42 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+
+func NewNonceVerificationHandler(ak auth.AccountKeeper) sdk.NonceVerificationHandler {
+	return func(ctx sdk.Context, tx sdk.Tx)  error {
+		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+		if !ok {
+			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+		}
+
+		if ctx.From() != "" {
+			msgEthTx.SetFrom(ctx.From())
+		}
+		// sender address should be in the tx cache from the previous AnteHandle call
+		address := msgEthTx.From()
+		if address.Empty() {
+			panic("sender address cannot be empty")
+		}
+
+		acc := ak.GetAccount(ctx, address)
+		if acc == nil {
+			return sdkerrors.Wrapf(
+				sdkerrors.ErrUnknownAddress,
+				"account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
+			)
+		}
+
+		seq := acc.GetSequence()
+		if msgEthTx.Data.AccountNonce != seq {
+			log.Println("InvalidNonce", "addr", hex.EncodeToString(acc.GetAddress()))
+			return sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
+
+		return nil
+	}
 }

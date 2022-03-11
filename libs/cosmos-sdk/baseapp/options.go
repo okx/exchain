@@ -179,23 +179,44 @@ func (app *BaseApp) SetAnteAuthHandler(aah sdk.AnteHandler) {
 	app.anteAuthHandler = aah
 }
 
-func (app *BaseApp) SetDeductFeeHandler(deductFeeh sdk.DeductFeeHandler)  {
+func (app *BaseApp) SetNonceSequenceHandler(nsh sdk.AnteHandler) {
+	if app.sealed {
+		panic("SetNonceSequenceHandler() on sealed BaseApp")
+	}
+	app.nonceSequenceHandler = nsh
+}
+
+func (app *BaseApp) SetDeductFeeHandler(dfh sdk.DeductFeeHandler)  {
 	if app.sealed {
 		panic("SetDeductFeeHandler() on sealed BaseApp")
 	}
-	app.deductFeeHandler = deductFeeh
+	app.deductFeeHandler = dfh
 }
 
-func (app *BaseApp) SetEthGasConsumeHandler(ethGasConsumeH sdk.EthGasConsumeHandler)  {
+func (app *BaseApp) SetEthGasConsumeHandler(egch sdk.EthGasConsumeHandler)  {
 	if app.sealed {
 		panic("SetEthGasConsumeHandler() on sealed BaseApp")
 	}
-	app.ethGasConsumeHandler = ethGasConsumeH
+	app.ethGasConsumeHandler = egch
 }
 
-func (app *BaseApp) SetEvmTxFromHandler(evmTxFromH sdk.EvmTxFromHandler)  {
+func (app *BaseApp) SetEvmTxFromHandler(etf sdk.EvmTxFromHandler)  {
 	if app.sealed {
 		panic("SetEvmTxFromHandler() on sealed BaseApp")
 	}
-	app.evmTxFromHandler = evmTxFromH
+	app.evmTxFromHandler = etf
+}
+
+func (app *BaseApp) SetNonceVerificationHandler(nvh sdk.NonceVerificationHandler)  {
+	if app.sealed {
+		panic("SetNonceVerificationHandler() on sealed BaseApp")
+	}
+	app.nonceVerifyHandler = nvh
+}
+
+func (app *BaseApp) SetIncrementSeqHandler(ish sdk.IncrementSeqHandler)  {
+	if app.sealed {
+		panic("SetIncrementSeqHandler() on sealed BaseApp")
+	}
+	app.incrementSeqHandler = ish
 }
