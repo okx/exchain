@@ -138,6 +138,9 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	if len(txs) == 0 {
+		return make([]*abci.ResponseDeliverTx, 0)
+	}
 	//ts := time.Now()
 	//defer func() {
 	//	sdk.AddParaAllTIme(time.Now().Sub(ts))
