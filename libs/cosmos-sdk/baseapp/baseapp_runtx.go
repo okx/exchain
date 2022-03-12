@@ -48,7 +48,6 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	//}
 	if nil != err {
 		logrusplugin.Error("runTxFailed", "err", err.Error(), "data", hex.EncodeToString(txBytes))
-		fmt.Println(1)
 	}
 	return
 }

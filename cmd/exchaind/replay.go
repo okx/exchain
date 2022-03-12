@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -284,6 +285,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
+		if len(block.Data.Txs) > 0 {
+			fmt.Println(bytes.Equal(block.DataHash, block.Data.Txs.Hash(block.Height)))
+		}
 		meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)

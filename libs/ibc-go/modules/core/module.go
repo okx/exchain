@@ -52,6 +52,11 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.GetIBCHeight() != 1 {
+		if nil == bz {
+			return nil
+		}
+	}
 	var data types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)

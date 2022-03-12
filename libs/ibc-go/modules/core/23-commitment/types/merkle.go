@@ -2,11 +2,9 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	ics23 "github.com/confio/ics23/go"
 	"github.com/gogo/protobuf/proto"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"github.com/okex/exchain/libs/tendermint/proto/crypto"
@@ -239,7 +237,6 @@ func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs 
 					value, subroot, i)
 			}
 			// Set value to subroot so that we verify next proof in chain commits to this subroot
-			logrusplugin.Info("equal", "root比较结果", bytes.Equal(root, subroot),"root",hex.EncodeToString(root),"subRoot",hex.EncodeToString(subroot))
 			value = subroot
 		case *ics23.CommitmentProof_Nonexist:
 			return sdkerrors.Wrapf(ErrInvalidProof,

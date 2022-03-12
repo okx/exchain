@@ -654,8 +654,10 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 func (app *OKExChainApp) setupUpgradeModules() {
 	heightTasks, pip := app.mm.CollectUpgradeModules()
 	app.heightTasks = heightTasks
-	app.GetCMS().SetPruneHeightFilterPipeline(pip)
-	app.GetCMS().SetCommitHeightFilterPipeline(pip)
+	if pip != nil {
+		app.GetCMS().SetPruneHeightFilterPipeline(pip)
+		app.GetCMS().SetCommitHeightFilterPipeline(pip)
+	}
 }
 
 var protoCodec = encoding.GetCodec(proto.Name)
@@ -680,7 +682,6 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 		req.Path = "custom/staking/parameters"
 		return nil
 	}, func(resp *abci.ResponseQuery) {
-		fmt.Println(resp.Value)
 	})
 	//m["/cosmos.auth.v1beta1.Query/Account"] = func(req *abci.RequestQuery) error {
 	//	var reqA types.QueryAccountRequest

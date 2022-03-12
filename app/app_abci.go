@@ -26,7 +26,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		tx, err := evm.TxDecoder(app.Codec(), app.Marshal())(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())

@@ -40,7 +40,7 @@ run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
     if [ "$startDaenom" = true ]; then
       echo "start run "
-         nohup exchaind start --pruning=everything --rpc.unsafe \
+         nohup exchaind start --pruning=nothing --rpc.unsafe \
           --home=$CHAINDIR/$CHAINID \
           --local-rpc-port ${RPCPORT} \
           --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \

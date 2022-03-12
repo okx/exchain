@@ -71,7 +71,7 @@ func DefaultParams() Params {
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,
 		MaxGasLimitPerTx:                  DefaultMaxGasLimitPerTx,
-		IbcDenom:                          "ibc/DDCD907790B8AA2BF9B2B3B614718FA66BFC7540E832CE3E3696EA717DCEFF49",
+		//IbcDenom:                          "ibc/DDCD907790B8AA2BF9B2B3B614718FA66BFC7540E832CE3E3696EA717DCEFF49",
 	}
 }
 
@@ -90,7 +90,8 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyContractDeploymentWhitelist, &p.EnableContractDeploymentWhitelist, validateBool),
 		params.NewParamSetPair(ParamStoreKeyContractBlockedList, &p.EnableContractBlockedList, validateBool),
 		params.NewParamSetPair(ParamStoreKeyMaxGasLimitPerTx, &p.MaxGasLimitPerTx, validateUint64),
-		params.NewParamSetPair(ParamStoreKeyIbcDenom, &p.IbcDenom, validateIbcDenom),
+		// FIXME : LRP FAILED
+		//params.NewParamSetPair(ParamStoreKeyIbcDenom, &p.IbcDenom, validateIbcDenom),
 	}
 }
 

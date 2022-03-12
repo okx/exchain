@@ -16,6 +16,7 @@ import (
 	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"math/rand"
 )
@@ -65,6 +66,11 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis performs genesis state validation for the capability module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.GetIBCHeight() != 1 {
+		if nil == bz {
+			return nil
+		}
+	}
 	var genState types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &genState); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)

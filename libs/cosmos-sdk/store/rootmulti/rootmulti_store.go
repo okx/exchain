@@ -455,7 +455,6 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
-	logrusplugin.Info("commitStores", "version", version)
 	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.getStores(version), inputDeltaMap, rs.commitHeightFilterPipeline(version))
 
 	if !iavltree.EnableAsyncCommit {

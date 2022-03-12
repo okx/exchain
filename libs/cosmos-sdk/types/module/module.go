@@ -83,11 +83,7 @@ func (bm BasicManager) RegisterCodec(cdc *codec.Codec) {
 func (bm BasicManager) DefaultGenesis() map[string]json.RawMessage {
 	genesis := make(map[string]json.RawMessage)
 	for _, b := range bm {
-		g := b.DefaultGenesis()
-		if g == nil {
-			continue
-		}
-		genesis[b.Name()] = g
+		genesis[b.Name()] = b.DefaultGenesis()
 	}
 	return genesis
 }
@@ -95,11 +91,7 @@ func (bm BasicManager) DefaultGenesis() map[string]json.RawMessage {
 // ValidateGenesis performs genesis state validation for all modules
 func (bm BasicManager) ValidateGenesis(genesis map[string]json.RawMessage) error {
 	for _, b := range bm {
-		g := genesis[b.Name()]
-		if g == nil {
-			continue
-		}
-		if err := b.ValidateGenesis(g); err != nil {
+		if err := b.ValidateGenesis(genesis[b.Name()]); err != nil {
 			return err
 		}
 	}
@@ -360,7 +352,7 @@ func (m *Manager) CollectUpgradeModules() (map[int64]*HeightTasks, types.HeightF
 	for _, module := range m.Modules {
 		if ada, ok := module.(UpgradeModule); ok {
 			h := ada.UpgradeHeight()
-			upgradeH := h - 1
+			upgradeH := h + 1
 			if upgradeH <= 0 {
 				continue
 			}
