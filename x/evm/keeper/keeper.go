@@ -3,6 +3,8 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -14,7 +16,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -342,8 +343,12 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, from common.Address, to *common.A
 	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
 
+
 func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.IsContractInBlockedList(addr.Bytes())
+
+func (k Keeper) GetSupplyKeeper() types.SupplyKeeper {
+	return k.supplyKeeper
 
 }

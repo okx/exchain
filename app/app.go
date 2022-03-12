@@ -140,6 +140,7 @@ var (
 		farm.YieldFarmingAccount:    nil,
 		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
+		evm.ModuleName:              {authtypes.Minter, authtypes.Burner},
 	}
 
 	GlobalGpIndex = GasPriceIndex{}

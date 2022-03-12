@@ -8,12 +8,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	"reflect"
@@ -252,7 +252,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
 		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
-	logrusplugin.Info("GetSelfConsensusState","height",height,"hash",consensusState.GetRoot().GetHash())
+	logrusplugin.Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
 	return consensusState, true
 }
 
@@ -260,7 +260,6 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 // This function is only used to validate the client state the counterparty stores for this chain
 // Client must be in same revision as the executing chain
 func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error {
-	return nil
 	tmClient, ok := clientState.(*ibctmtypes.ClientState)
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidClient, "client must be a Tendermint client, expected: %T, got: %T",

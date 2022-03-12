@@ -478,6 +478,10 @@ func (d Dec) String() string {
 	return amino.BytesToStr(bzStr)
 }
 
+func (d Dec) IBCString() string {
+	return d.Int.String()
+}
+
 //     ____
 //  __|    |__   "chop 'em
 //       ` \     round!"

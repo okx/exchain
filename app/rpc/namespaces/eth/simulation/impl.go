@@ -16,6 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
@@ -101,6 +102,16 @@ type SupplyKeeperProxy struct {
 }
 
 func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (s SupplyKeeperProxy) SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
+	return nil
+}
+func (s SupplyKeeperProxy) MintCoins(ctx sdk.Context, name string, amt sdk.Coins) error {
+	return nil
+}
+func (s SupplyKeeperProxy) GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI {
 	return nil
 }
 
