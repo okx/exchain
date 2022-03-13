@@ -37,6 +37,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
@@ -118,8 +119,9 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs := suite.stateDB.GetLogs()
+		logs, err := suite.stateDB.GetLogs(tHash)
 		if !tc.isBloom {
+			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
 				suite.Require().Equal(log, *logs[0], tc.name)
@@ -283,22 +285,27 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		suite.stateDB.SetLogs(logs)
-		dbLogs := suite.stateDB.GetLogs()
+		err := suite.stateDB.SetLogs(hash, logs)
+		suite.Require().NoError(err, tc.name)
+		dbLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
 		suite.Require().Equal(logs, dbLogs, tc.name)
 
-		suite.stateDB.DeleteLogs()
-		dbLogs = suite.stateDB.GetLogs()
+		suite.stateDB.DeleteLogs(hash)
+		dbLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
-		newLogs := suite.stateDB.GetLogs()
+		newLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
 		suite.Require().Equal(logs, newLogs, tc.name)
 
 		//resets state but checking to see if storekey still persists.
-		err := suite.stateDB.Reset(hash)
+		err = suite.stateDB.Reset(hash)
 		suite.Require().NoError(err, tc.name)
-		newLogs = suite.stateDB.GetLogs()
+		newLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
 		suite.Require().Equal(logs, newLogs, tc.name)
 	}
 }
