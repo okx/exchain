@@ -160,9 +160,9 @@ func checkValidity(
 		tmTrustedValidators, tmSignedHeader, tmValidatorSet,
 		clientState.TrustingPeriod, currentTimestamp, clientState.MaxClockDrift, clientState.TrustLevel.ToTendermint(),
 	)
-	//if err != nil {
-	//	return sdkerrors.Wrap(err, "failed to verify header")
-	//}
+	if err != nil {
+		return sdkerrors.Wrap(err, "failed to verify header")
+	}
 	return nil
 }
 
