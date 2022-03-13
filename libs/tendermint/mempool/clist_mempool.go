@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -601,12 +600,12 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
-			var exTxInfo ExTxInfo
-			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
-				mem.cache.Remove(tx)
-				mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
-				return
-			}
+			//var exTxInfo ExTxInfo
+			//if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
+			//	mem.cache.Remove(tx)
+			//	mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
+			//	return
+			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
 				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
