@@ -310,6 +310,8 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	}
 
 	if dm.sendersMap.Pop(task.from, task) {
+		task.info.msCacheAnte.Write()
+		task.info.ctx.Cache().Write(true)
 		dm.pushIntoPending(task)
 	} else {
 		dm.incrementWaitingCount(false, false)
@@ -402,8 +404,8 @@ func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
 		return err
 	}
 
-	info.msCacheAnte.Write()
-	info.ctx.Cache().Write(true)
+	//info.msCacheAnte.Write()
+	//info.ctx.Cache().Write(true)
 
 	return nil
 }
