@@ -23,7 +23,6 @@ var (
 	ParamStoreKeyContractDeploymentWhitelist = []byte("EnableContractDeploymentWhitelist")
 	ParamStoreKeyContractBlockedList         = []byte("EnableContractBlockedList")
 	ParamStoreKeyMaxGasLimitPerTx            = []byte("MaxGasLimitPerTx")
-	ParamStoreKeyIbcDenom                    = []byte("IbcDenom")
 )
 
 // ParamKeyTable returns the parameter key table.

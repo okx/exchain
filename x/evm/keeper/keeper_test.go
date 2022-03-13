@@ -77,9 +77,11 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
+	err := suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	suite.Require().NoError(err)
 
-	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
 
 	expLogs = []*ethtypes.Log{log, log2}
@@ -93,8 +95,11 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 
 	expLogs = append(expLogs, log3)
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
-	txLogs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	err = suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	suite.Require().NoError(err)
+
+	txLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(3, len(txLogs))
 
 	suite.Require().Equal(ethHash.String(), txLogs[0].TxHash.String())
