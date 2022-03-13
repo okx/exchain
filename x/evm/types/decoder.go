@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -19,6 +18,8 @@ import (
 )
 
 const IGNORE_HEIGHT_CHECKING = -1
+
+var errHeightLowerThanVenus = fmt.Errorf("lower than Venus")
 
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
@@ -152,7 +153,7 @@ func evmDecoder(_ *codec.Codec, proxy *codec.CodecProxy, txBytes []byte, height 
 
 	// bypass height checking in case of a negative number
 	if height >= 0 && !types.HigherThanVenus(height) {
-		err = fmt.Errorf("lower than Venus")
+		err = errHeightLowerThanVenus
 		return
 	}
 

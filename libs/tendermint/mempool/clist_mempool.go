@@ -524,7 +524,8 @@ func (mem *CListMempool) isFull(txSize int) error {
 
 func (mem *CListMempool) addPendingTx(memTx *mempoolTx, exTxInfo ExTxInfo) error {
 	// nonce is continuous
-	if exTxInfo.Nonce == exTxInfo.SenderNonce {
+	pendingCnt := mem.GetUserPendingTxsCnt(exTxInfo.Sender)
+	if exTxInfo.Nonce == exTxInfo.SenderNonce+uint64(pendingCnt) {
 		err := mem.addTx(memTx, exTxInfo)
 		if err == nil {
 			go mem.consumePendingTx(exTxInfo.Sender, exTxInfo.Nonce+1)
