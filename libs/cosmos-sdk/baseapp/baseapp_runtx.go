@@ -139,7 +139,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
 
-
 	// 3. AnteOther
 	app.pin(AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
@@ -168,7 +167,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	}
 	app.pin(AnteOther, false, mode)
 
-
 	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
@@ -179,7 +177,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	return nil
 }
-
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 	tx, err := app.txDecoder(req.Tx)
