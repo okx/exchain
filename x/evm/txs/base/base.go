@@ -3,16 +3,13 @@ package base
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/exchain/app/refund"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 )
 
 // Keeper alias of keeper.Keeper, to solve import circle. also evm.Keeper is alias keeper.Keeper
