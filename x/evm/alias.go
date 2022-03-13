@@ -17,11 +17,11 @@ const (
 
 // nolint
 var (
-	NewKeeper            = keeper.NewKeeper
-	TxDecoder            = types.TxDecoder
-	NewSimulateKeeper    = keeper.NewSimulateKeeper
-  SetEvmParamsNeedUpdate = types.SetEvmParamsNeedUpdate
-	NewLogProcessEvmHook = keeper.NewLogProcessEvmHook
+	NewKeeper              = keeper.NewKeeper
+	TxDecoder              = types.TxDecoder
+	NewSimulateKeeper      = keeper.NewSimulateKeeper
+	SetEvmParamsNeedUpdate = types.SetEvmParamsNeedUpdate
+	NewLogProcessEvmHook   = keeper.NewLogProcessEvmHook
 )
 
 //nolint
