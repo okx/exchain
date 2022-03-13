@@ -114,13 +114,3 @@ func ErrBlockedContractMethodIsNotExist(address sdk.Address, err error) sdk.Enve
 type ErrContractBlockedVerify struct {
 	Descriptor string
 }
-
-func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{
-		Err: sdkerrors.New(
-			DefaultParamspace,
-			21,
-			fmt.Sprintf("the contract is already registered: %s", contract),
-		),
-	}
-}

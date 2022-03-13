@@ -1,7 +1,6 @@
 package evm
 
 import (
-	ethcmm "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/types"
@@ -18,8 +17,6 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 			return handleManageContractBlockedlListProposal(ctx, k, content)
 		case types.ManageContractMethodBlockedListProposal:
 			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
-		case types.TokenMappingProposal:
-			return handleTokenMappingProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -61,18 +58,4 @@ func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, 
 
 	// remove contract method from blocked list
 	return csdb.DeleteContractMethodBlockedList(p.ContractList)
-}
-
-func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
-	if len(p.Contract) == 0 {
-		// delete existing mapping
-		k.DeleteExternalContractForDenom(ctx, p.Denom)
-	} else {
-		// update the mapping
-		contract := ethcmm.HexToAddress(p.Contract)
-		if err := k.SetExternalContractForDenom(ctx, p.Denom, contract); err != nil {
-			return err
-		}
-	}
-	return nil
 }
