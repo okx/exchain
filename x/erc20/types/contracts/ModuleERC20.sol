@@ -3,7 +3,7 @@ pragma solidity ^0.6.8;
 import "./token.sol";
 
 contract ModuleERC20 is DSToken  {
-    address constant module_address = 0x603871c2ddd41c26Ee77495E2E31e6De7f9957e0;
+    address constant module_address = 0xc63cf6c8E1f3DF41085E9d8Af49584dae1432b4f;
     string denom;
 
     event __OecSendToIbc(address sender, string recipient, uint256 amount);

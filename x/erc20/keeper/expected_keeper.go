@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
@@ -19,13 +18,7 @@ type GovKeeper interface {
 
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeper interface {
-	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
-	GetAllAccounts(ctx sdk.Context) (accounts []authexported.Account)
-	IterateAccounts(ctx sdk.Context, cb func(account authexported.Account) bool)
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
-	SetAccount(ctx sdk.Context, account authexported.Account)
-	RemoveAccount(ctx sdk.Context, account authexported.Account)
-	SetObserverKeeper(observer auth.ObserverI)
 }
 
 type SupplyKeeper interface {

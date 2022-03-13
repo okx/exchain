@@ -123,6 +123,7 @@ var (
 		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		transfer.AppModuleBasic{},
+		erc20.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -203,7 +204,9 @@ type OKExChainApp struct {
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
-	marshal              *codec.CodecProxy
+	Erc20Keeper          erc20.Keeper
+
+	marshal *codec.CodecProxy
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -273,7 +276,7 @@ func NewOKExChainApp(
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		host.StoreKey,
+		host.StoreKey, erc20.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -309,6 +312,7 @@ func NewOKExChainApp(
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
+	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.ModuleName)
 
 	proxy := codec.NewMarshalProxy(cc, cdc)
 	app.marshal = cdcproxy
@@ -418,13 +422,15 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
-	app.EvmKeeper.SetTransferKeeper(app.TransferKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
+	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
+		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.GovKeeper, app.EvmKeeper, app.TransferKeeper)
+
 	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(evm.NewSendToIbcEventHandler(*app.EvmKeeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
-	//app.TransferKeeper = *app.TransferKeeper.SetHooks(evm.NewIBCTransferHooks(*app.EvmKeeper))
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -463,6 +469,7 @@ func NewOKExChainApp(
 		// ibc
 		ibc.NewAppModule(app.IBCKeeper),
 		transferModule,
+		erc20.NewAppModule(app.Erc20Keeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -498,7 +505,7 @@ func NewOKExChainApp(
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName, ibctransfertypes.ModuleName,
 		host.ModuleName,
-		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
+		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName, erc20.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

@@ -28,14 +28,14 @@ type Keeper struct {
 // NewKeeper generates new erc20 module keeper
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace,
-	ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
-	gk GovKeeper, ek EvmKeeper, tk types.TransferKeeper) *Keeper {
+	ak AccountKeeper, sk SupplyKeeper, bk BankKeeper,
+	gk GovKeeper, ek EvmKeeper, tk TransferKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
-	k := &Keeper{
+	return Keeper{
 		cdc:            cdc,
 		storeKey:       storeKey,
 		paramSpace:     paramSpace,
@@ -46,21 +46,11 @@ func NewKeeper(
 		evmKeeper:      ek,
 		transferKeeper: tk,
 	}
-	return k
 }
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
-}
-
-func (k *Keeper) SetTransferKeeper(tk types.TransferKeeper) *Keeper {
-	k.transferKeeper = tk
-	return k
-}
-
-func (k Keeper) GetSupplyKeeper() types.SupplyKeeper {
-	return k.supplyKeeper
 }
 
 // DeleteExternalContractForDenom delete the external contract mapping for native denom,
