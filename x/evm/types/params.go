@@ -45,8 +45,6 @@ type Params struct {
 	EnableContractBlockedList bool `json:"enable_contract_blocked_list" yaml:"enable_contract_blocked_list"`
 	// MaxGasLimit defines the max gas limit in transaction
 	MaxGasLimitPerTx uint64 `json:"max_gas_limit_per_tx" yaml:"max_gas_limit_per_tx"`
-
-	IbcDenom string `json:"ibc_denom" yaml:"ibc_denom"`
 }
 
 // NewParams creates a new Params instance
@@ -71,7 +69,6 @@ func DefaultParams() Params {
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,
 		MaxGasLimitPerTx:                  DefaultMaxGasLimitPerTx,
-		IbcDenom:                          "ibc/DDCD907790B8AA2BF9B2B3B614718FA66BFC7540E832CE3E3696EA717DCEFF49",
 	}
 }
 
@@ -90,7 +87,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyContractDeploymentWhitelist, &p.EnableContractDeploymentWhitelist, validateBool),
 		params.NewParamSetPair(ParamStoreKeyContractBlockedList, &p.EnableContractBlockedList, validateBool),
 		params.NewParamSetPair(ParamStoreKeyMaxGasLimitPerTx, &p.MaxGasLimitPerTx, validateUint64),
-		params.NewParamSetPair(ParamStoreKeyIbcDenom, &p.IbcDenom, validateIbcDenom),
 	}
 }
 
@@ -127,9 +123,5 @@ func validateUint64(i interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
-	return nil
-}
-
-func validateIbcDenom(i interface{}) error {
 	return nil
 }

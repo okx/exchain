@@ -28,10 +28,6 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
-
-	KeyPrefixContractToDenom         = []byte{0x0a}
-	KeyPrefixDenomToExternalContract = []byte{0x0b}
-	KeyPrefixDenoToAutoContract      = []byte{0x0c}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -71,19 +67,4 @@ func GetContractBlockedListMemberKey(contractAddr sdk.AccAddress) []byte {
 // splitBlockedContractAddress splits the blocked contract address from a ContractBlockedListMemberKey
 func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 	return key[1:]
-}
-
-// ContractToDenomKey defines the store key for contract to denom reverse index
-func ContractToDenomKey(contract []byte) []byte {
-	return append(KeyPrefixContractToDenom, contract...)
-}
-
-// DenomToExternalContractKey defines the store key for denom to external contract mapping
-func DenomToExternalContractKey(denom string) []byte {
-	return append(KeyPrefixDenomToExternalContract, denom...)
-}
-
-// DenomToAutoContractKey defines the store key for denom to auto contract mapping
-func DenomToAutoContractKey(denom string) []byte {
-	return append(KeyPrefixDenoToAutoContract, denom...)
 }

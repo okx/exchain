@@ -422,7 +422,6 @@ func NewOKExChainApp(
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
-	app.EvmKeeper.SetTransferKeeper(app.TransferKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
 	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
