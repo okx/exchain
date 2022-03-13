@@ -12,50 +12,70 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
 		switch content := proposal.Content.(type) {
 		case types.ManageContractDeploymentWhitelistProposal:
-			return handleManageContractDeploymentWhitelistProposal(ctx, k, content)
+			return handleManageContractDeploymentWhitelistProposal(ctx, k, proposal)
 		case types.ManageContractBlockedListProposal:
-			return handleManageContractBlockedlListProposal(ctx, k, content)
+			return handleManageContractBlockedlListProposal(ctx, k, proposal)
 		case types.ManageContractMethodBlockedListProposal:
-			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
+			return handleManageContractMethodBlockedlListProposal(ctx, k, proposal)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
 	}
 }
 
-func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, p types.ManageContractDeploymentWhitelistProposal) sdk.Error {
+func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+
+	// check
+	manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
+	if !ok {
+		return types.ErrUnexpectedProposalType
+	}
+
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if p.IsAdded {
+	if manageContractDeploymentWhitelistProposal.IsAdded {
 		// add deployer addresses into whitelist
-		csdb.SetContractDeploymentWhitelist(p.DistributorAddrs)
+		csdb.SetContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
 		return nil
 	}
 
 	// remove deployer addresses from whitelist
-	csdb.DeleteContractDeploymentWhitelist(p.DistributorAddrs)
+	csdb.DeleteContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
 	return nil
 }
 
-func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractBlockedListProposal) sdk.Error {
+func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+
+	// check
+	manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
+	if !ok {
+		return types.ErrUnexpectedProposalType
+	}
+
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if p.IsAdded {
+	if manageContractBlockedListProposal.IsAdded {
 		// add contract addresses into blocked list
-		csdb.SetContractBlockedList(p.ContractAddrs)
+		csdb.SetContractBlockedList(manageContractBlockedListProposal.ContractAddrs)
 		return nil
 	}
 
 	// remove contract addresses from blocked list
-	csdb.DeleteContractBlockedList(p.ContractAddrs)
+	csdb.DeleteContractBlockedList(manageContractBlockedListProposal.ContractAddrs)
 	return nil
 }
 
-func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, p types.ManageContractMethodBlockedListProposal) sdk.Error {
+func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+	// check
+	manageContractMethodBlockedListProposal, ok := proposal.Content.(types.ManageContractMethodBlockedListProposal)
+	if !ok {
+		return types.ErrUnexpectedProposalType
+	}
+
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if p.IsAdded {
+	if manageContractMethodBlockedListProposal.IsAdded {
 		// add contract method into blocked list
-		return csdb.InsertContractMethodBlockedList(p.ContractList)
+		return csdb.InsertContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
 	}
 
 	// remove contract method from blocked list
-	return csdb.DeleteContractMethodBlockedList(p.ContractList)
+	return csdb.DeleteContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
 }

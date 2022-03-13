@@ -347,12 +347,13 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // ----------------------------------------------------------------------------
 
 // SetLogs sets the logs for a transaction in the KVStore.
-func (csdb *CommitStateDB) SetLogs(logs []*ethtypes.Log) {
+func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
 	csdb.logs = logs
+	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
-func (csdb *CommitStateDB) DeleteLogs() {
+func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
 	csdb.logs = []*ethtypes.Log{}
 }
 
@@ -687,8 +688,8 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 }
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
-func (csdb *CommitStateDB) GetLogs() []*ethtypes.Log {
-	return csdb.logs
+func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	return csdb.logs, nil
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -818,7 +819,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 
 	// invalidate journal because reverting across transactions is not allowed
 	csdb.clearJournalAndRefund()
-	csdb.DeleteLogs()
+	csdb.DeleteLogs(csdb.thash)
 	return nil
 }
 
@@ -1173,7 +1174,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 	// otherwise, attempt to fetch the account from the account mapper
 	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 	if acc == nil {
-		csdb.setError(fmt.Errorf("no account found for address: %s", addr.String()))
+		csdb.setError(fmt.Errorf("no account found for address: %s", EthAddressStringer(addr).String()))
 		return nil
 	}
 
