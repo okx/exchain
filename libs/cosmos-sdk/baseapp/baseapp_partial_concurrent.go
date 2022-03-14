@@ -93,7 +93,7 @@ func (sm *sendersMap) Push(address sdk.Address, task *DeliverTxTask) (alreadyExi
 	return
 }
 
-func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) bool {
+func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) (succeed bool) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
 
@@ -118,12 +118,13 @@ func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) bool {
 			tasksList = append(tasksList[:pos], tasksList[pos+1:]...)
 			//sm.logger.Info("Pop", task.index, address.String())
 			sm.senders.Store(address.String(), tasksList)
+			succeed = true
 		}
 
 		if len(tasksList) > 0 {
-			count := len(tasksList)
+			count = len(tasksList)
 			minIndex := tasksList[0].index
-			pos := 0
+			pos = 0
 			for i := 0; i < count; i++ {
 				if tasksList[i].index < minIndex {
 					minIndex = tasksList[i].index
@@ -139,10 +140,10 @@ func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) bool {
 			sm.senders.Delete(address.String())
 			//sm.logger.Info("Delete", "addr", address.String())
 		}
-		return smallerPos < 0
+		return
 	} else {
 		sm.logger.Error("address is not existed.")
-		return false
+		return
 	}
 }
 
@@ -269,6 +270,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		if task.basicVerifyErr != nil {
 			dm.pushIntoPending(task)
+			dm.incrementWaitingCount(false, false)
 			return
 		}
 
@@ -287,12 +289,12 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			task.basicVerifyErr = err
 			dm.app.logger.Error("validateBasicTxMsgs failed", "basicVerifyErr", err)
 			dm.pushIntoPending(task)
+			dm.incrementWaitingCount(false, false)
 			return
 		}
 
 		// todo: check duplicated sender
 		if dm.sendersMap.Push(task.from, task) {
-			// waiting util
 			dm.incrementWaitingCount(false, false)
 			return
 		}
@@ -302,32 +304,31 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		//dm.app.logger.Info("runAnte", "index", task.index)
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
 		if err != nil {
-			dm.app.logger.Error("ante failed 1", "basicVerifyErr", err)
+			dm.app.logger.Error("ante failed 1", "index", task.index,"basicVerifyErr", err)
 			// todo: should make a judge for the basicVerifyErr. There are some errors don't need to re-run AnteHandler.
 			task.anteErr = err
 		}
-		dm.calculateFeeForCollector(task.fee, true)
 	}
 
 	if dm.sendersMap.Pop(task.from, task) {
 		if task.anteErr == nil {
 			task.info.msCacheAnte.Write()
 			task.info.ctx.Cache().Write(true)
-		} else {
-			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-			//var signCache sdk.SigCache
-			//task.fee, task.isEvm, signCache = dm.app.getTxFee(info.ctx, info.tx)
-			//task.tx, task.fee, task.isEvm, task.from, signCache = dm.app.evmTxFromHandler(task.info.ctx, task.info.tx)
-			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+			dm.calculateFeeForCollector(task.fee, true)
 		}
 		dm.pushIntoPending(task)
 	} else {
+		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+		task.anteErr = nil
 		dm.incrementWaitingCount(false, false)
 	}
 
 	elapsed := time.Since(start).Microseconds()
+	dm.mtx.Lock()
 	dm.anteDuration += elapsed
+	dm.mtx.Unlock()
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
@@ -494,7 +495,9 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		//dm.app.logger.Info("runStatefulSerialRoutine", "index", dm.statefulTask.index)
+		if global.GetGlobalHeight() == 5810704 {
+			dm.app.logger.Info("runStatefulSerialRoutine", "index", dm.statefulTask.index)
+		}
 		start := time.Now()
 
 		info := dm.statefulTask.info
@@ -527,14 +530,19 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		// execute anteHandler failed
-		if dm.statefulTask.basicVerifyErr != nil {
-			txRs := sdkerrors.ResponseDeliverTx(dm.statefulTask.basicVerifyErr, 0, 0, dm.app.trace) //execResult.GetResponse()
+		err := dm.statefulTask.basicVerifyErr
+		if err == nil {
+			err = dm.statefulTask.anteErr
+		}
+		if err != nil {
+			dm.app.logger.Error("RunSerialFinished", "index", dm.statefulTask.index, "err", err)
+			txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace) //execResult.GetResponse()
 			execFinishedFn(txRs)
 			continue
 		}
 
 		gasStart := time.Now()
-		err := info.handler.handleGasConsumed(info)
+		err = info.handler.handleGasConsumed(info)
 		dm.handleGasTime += time.Since(gasStart).Microseconds()
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
@@ -614,6 +622,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 	if finished == dm.totalCount {
 		//// update fee collector
 		//dm.updateFeeCollector()
+		dm.app.logger.Info("TotalTxFeeForCollector", "fee", dm.currTxFee)
+		//dm.updateFeeCollector()
 
 		dm.done <- 0
 		close(dm.statefulSignal)
@@ -626,6 +636,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 }
 
 func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
 	if add {
 		dm.currTxFee = dm.currTxFee.Add(fee...)
 	} else {
