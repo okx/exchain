@@ -40,8 +40,8 @@ func (app *BaseApp) runTx(mode runTxMode,
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-// PrepareInfo init info's context
-func (app *BaseApp) PrepareInfo(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
+// setTxInfoCtx set info's context
+func (app *BaseApp) setTxInfoCtx(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
 	// init info context
 	err = info.handler.handleStartHeight(info, height)
 	if err != nil {
@@ -69,7 +69,7 @@ func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, height int64,
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
-	err = app.PrepareInfo(info, mode, height, from...)
+	err = app.setTxInfoCtx(info, mode, height, from...)
 	if err != nil {
 		return err
 	}
@@ -113,6 +113,7 @@ func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode, height int64,
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
+
 	return err
 }
 
