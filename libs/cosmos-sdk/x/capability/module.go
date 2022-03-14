@@ -66,7 +66,7 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis performs genesis state validation for the capability module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.GetIBCHeight() != 1 {
+	if tmtypes.UpgradeIBCInRuntime() {
 		if nil == bz {
 			return nil
 		}
@@ -148,7 +148,9 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	//return am.initGenesis(ctx, data)
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.initGenesis(ctx, data)
+	}
 	return nil
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -163,6 +165,9 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.exportGenesis(ctx)
+	}
 	return nil
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
@@ -205,6 +210,9 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simula
 }
 
 func (am AppModule) RegisterTask() module.HeightTask {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return nil
+	}
 	return module.NewHeightTask(0, func(ctx sdk.Context) error {
 		data := ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 		am.initGenesis(ctx, data)
