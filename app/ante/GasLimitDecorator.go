@@ -37,4 +37,3 @@ func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool,
 
 	return next(ctx, tx, simulate)
 }
-

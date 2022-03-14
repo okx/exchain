@@ -27,10 +27,13 @@ var (
 	moduleERC20Json []byte
 )
 
+const (
+	IbcEvmModuleName = "ibc-evm"
+)
+
 func init() {
-	EVMModuleBechAddr = authtypes.NewModuleAddress(ModuleName)
+	EVMModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
 	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
-	// 0x603871c2ddd41c26Ee77495E2E31e6De7f9957e0
 
 	if err := json.Unmarshal(moduleERC20Json, &ModuleERC20Contract); err != nil {
 		panic(err)

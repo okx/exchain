@@ -2,10 +2,9 @@ package cli
 
 import (
 	"fmt"
-	"strings"
-
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/x/evm/client/utils"
+	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -36,7 +35,6 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryContractDeploymentWhitelist(moduleName, cdc),
 		GetCmdQueryContractBlockedList(moduleName, cdc),
 		GetCmdQueryContractMethodeBlockedList(moduleName, cdc),
-		GetCmdQueryAllMapping(moduleName, cdc),
 	)...)
 	return evmQueryCmd
 }
@@ -262,32 +260,6 @@ $ exchaincli query evm params
 			var params types.Params
 			cdc.MustUnmarshalJSON(bz, &params)
 			return cliCtx.PrintOutput(params)
-		},
-	}
-}
-
-//
-func GetCmdQueryAllMapping(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "all-mapping",
-		Short: "Query all mapping of denom and contract",
-		Long: strings.TrimSpace(`Query all mapping of denom and contract:
-
-$ exchaincli query evm all-mapping
-`),
-		Args: cobra.NoArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryAllMapping)
-			bz, _, err := cliCtx.QueryWithData(route, nil)
-			if err != nil {
-				return err
-			}
-
-			var mapping types.QueryResAllMapping
-			cdc.MustUnmarshalJSON(bz, &mapping)
-			return cliCtx.PrintOutput(mapping)
 		},
 	}
 }

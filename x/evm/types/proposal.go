@@ -16,8 +16,6 @@ const (
 	proposalTypeManageContractBlockedList = "ManageContractBlockedList"
 	// proposalTypeManageContractMethodBlockedList defines the type for a ManageContractMethodBlockedList
 	proposalTypeManageContractMethodBlockedList = "ManageContractMethodBlockedList"
-	// proposalTypeTokenMapping defines the type for a TokenMappingProposal
-	proposalTypeTokenMapping = "TokenMapping"
 )
 
 func init() {
@@ -27,14 +25,12 @@ func init() {
 	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
-	govtypes.RegisterProposalTypeCodec(TokenMappingProposal{}, "okexchain/evm/TokenMappingProposal")
 }
 
 var (
 	_ govtypes.Content = (*ManageContractDeploymentWhitelistProposal)(nil)
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageContractMethodBlockedListProposal)(nil)
-	_ govtypes.Content = (*TokenMappingProposal)(nil)
 )
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
@@ -346,32 +342,4 @@ func (mp ManageContractMethodBlockedListProposal) String() string {
 	}
 
 	return strings.TrimSpace(builder.String())
-}
-
-type TokenMappingProposal struct {
-	Title       string `json:"title" yaml:"title"`
-	Description string `json:"description" yaml:"description"`
-	Denom       string `json:"denom" yaml:"denom"`
-	Contract    string `json:"contract" yaml:"contract"`
-}
-
-func (tp TokenMappingProposal) GetTitle() string       { return tp.Title }
-func (tp TokenMappingProposal) GetDescription() string { return tp.Description }
-func (tp TokenMappingProposal) ProposalRoute() string  { return RouterKey }
-func (tp TokenMappingProposal) ProposalType() string   { return proposalTypeTokenMapping }
-func (tp TokenMappingProposal) ValidateBasic() sdk.Error {
-	// TODO
-	return nil
-}
-func (tp TokenMappingProposal) String() string {
-	var b strings.Builder
-
-	b.WriteString(fmt.Sprintf(`Token Mapping Proposal:
-  Title:       %s
-  Description: %s
-  Denom:       %s
-  Contract:    %s
-`, tp.Title, tp.Description, tp.Denom, tp.Contract))
-
-	return b.String()
 }

@@ -1,0 +1,286 @@
+{
+  "1": [
+    {
+      "round": 0,
+      "fakeRound": {
+        "ProposalHexBytes": "7b2254797065223a33322c22686569676874223a312c22726f756e64223a302c22706f6c5f726f756e64223a2d312c22626c6f636b5f6964223a7b2268617368223a2232443642434535363143363646414243454639383430323642364645333444423043413439454143444242333931344237433441443331353141463033433534222c227061727473223a7b22746f74616c223a312c2268617368223a2246413335464144363332333537433538463644313339304538374434383734453444303343343433333441384639384137334334414345343339364141423142227d7d2c2274696d657374616d70223a22323032322d30312d31315430383a33383a30352e38373731315a222c227369676e6174757265223a22535145763942436b4547594b497a48512f4d6d4f376b6244496a5343656c773477326146794e394d486875316a504b3559354559764d4447324a4951496a545a4a41656648696d52644b4b48373449426837363641413d3d227d",
+        "BlockHexBytes": "0aa1010a02080a120f74656e6465726d696e745f746573741801220c08ed83f58e0610b0ace8a10342206016d4b8552771daba25b6c1d0f05d8353c8997f7046971da60b238f4a0d5e934a206016d4b8552771daba25b6c1d0f05d8353c8997f7046971da60b238f4a0d5e935220048091bc7ddc283f77bfbf91d73c44da58c3df8a9cbc867405d8b7f3daada22f7214429ab9156044fb21fe87d353e0411d8e957dc7372200",
+        "AnotherBlockHexBytes": "0aa1010a02080a120f74656e6465726d696e745f746573741801220c08f994f58e06109086ecdb024220840882f14f2226e4134d7759336a4303fd395c6c8c716a1d4bdf1a817bc32eea4a20840882f14f2226e4134d7759336a4303fd395c6c8c716a1d4bdf1a817bc32eea5220048091bc7ddc283f77bfbf91d73c44da58c3df8a9cbc867405d8b7f3daada22f721405a20b830b4c09d5b5b7d175ca66f56925484dd42200"
+      },
+      "prerun": {
+        "v0": 3,
+        "v1": 3,
+        "v2": 3,
+        "v3": 3
+      }
+    }
+  ],
+  "2": [
+    {
+      "round": 0,
+      "prerun": {
+        "v0": 3,
+        "v1": 3,
+        "v2": 3,
+        "v3": 3
+      }
+    }
+  ],
+  "16": [
+    {
+      "round": 0,
+      "blockData": "0aee020a02080a120a6578636861696e2d36371810220c08aaf5cf8e0610e8d0c6a3012a480a20d0ae18564c5f48a19507ff8e8f6abc0a4bf290ebb2804ad94e3949bbd539ce05122408011220520b7a4e0165d772c020d5bd2c6ed505715915f3f3f239caeef807b59f3decfc322019c45478d61481221ad5395e5a6164e5804b32cf7110bcabb3874c43a626b01a3a20a92ddf239a3f64aa5edec13e183dfefb26a94d46652a015aab39756777359ab84220c9c9a28bcf2396981185e085ee50b58f7e58fa6ec0af1fa2dcf150e41a6877d84a20c9c9a28bcf2396981185e085ee50b58f7e58fa6ec0af1fa2dcf150e41a6877d85220048091bc7ddc283f77bfbf91d73c44da58c3df8a9cbc867405d8b7f3daada22f5a20865ec1c3d3daa35c8c75fd564b82d987fb3ef103ebd749a3cf30f248c3eebff262206e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d7214c1d9e5d7e8593e4abacd1b03610c59e1b686464d12e6010ae301e101282816a90a4c5605a9ba0a14bbe4733d85bc2b90682147779da49cab38c0aa1f121483d83497431c2d3feab296a9fba4e5fadd2f7ed01a1a0a036f6b7412133130303030303030303030303030303030303012200a1a0a036f6b7412133130303030303030303030303030303030303010c09a0c1a6b0a26f3b3cd032103917cddc74df72174b992e532d85cbb44fb730a1fd77983aaaa92fcd4c99e3e93124151158cb1aadc3fe13c450c96d1a1dc4f6c2773565842bffdc90232657c9df7367a0ffdf398912c70b97aa4d6b821c2cd7120d41eb1af82e9d8559d8dcb6864b50022b601080f1a480a20d0ae18564c5f48a19507ff8e8f6abc0a4bf290ebb2804ad94e3949bbd539ce05122408011220520b7a4e0165d772c020d5bd2c6ed505715915f3f3f239caeef807b59f3decfc226808021214c1d9e5d7e8593e4abacd1b03610c59e1b686464d1a0c08aaf5cf8e0610e8d0c6a3012240181eaa487a068f43ced50edaa5c2e1c4417539cc137e487914486a9ccf76fecbe015029b83350c15486b3c12e64a1ef0d336b92f3e9f452f9ca6274d9a40590d",
+      "txExecuteSleep": 3
+    }
+  ],
+  "3": [
+    {
+      "round": 0,
+      "precommit": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    }
+  ],
+  "4": [
+    {
+      "round": 0,
+      "precommit": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      },
+      "prerun": {
+        "v0": 3,
+        "v1": 3,
+        "v2": 3,
+        "v3": 3
+      }
+    }
+  ],
+  "5": [
+    {
+      "round": 0,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      },
+      "precommit": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    }
+  ],
+  "6": [
+    {
+      "round": 0,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      },
+      "precommit": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      },
+      "prerun": {
+        "v0": 3,
+        "v1": 3,
+        "v2": 3,
+        "v3": 3
+      }
+    }
+  ],
+  "7": [
+    {
+      "round": 0,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 1,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 2,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 3,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 4,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 5,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 6,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 7,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 8,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 9,
+      "prevote": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    }
+  ],
+  "35": [
+    {
+      "round": 0,
+      "prevotesmaj23": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      },
+      "precommitsmaj23": {
+        "v0": true,
+        "v1": true,
+        "v2": true,
+        "v3": true
+      }
+    },
+    {
+      "round": 1,
+      "prevotesmaj23": {
+        "v1": true
+      },
+      "precommitsmaj23": {
+        "v1": true
+      },
+      "_comment_": "switch to fast-sync mode from consensus mode when consensus failed"
+    },
+    {
+      "round": 2,
+      "prevotesmaj23": {
+        "v1": true
+      },
+      "precommitsmaj23": {
+        "v1": true
+      }
+    },
+    {
+      "round": 3,
+      "prevotesmaj23": {
+        "v1": true
+      },
+      "precommitsmaj23": {
+        "v1": true
+      }
+    }
+  ],
+  "55": [
+    {
+      "round": 0,
+      "recvblock": {
+        "v1": true
+      },
+      "_comment_": "switch to fast-sync mode from consensus mode when proposed block is not received"
+    },
+    {
+      "round": 1,
+      "recvblock": {
+        "v1": true
+      }
+    },
+    {
+      "round": 2,
+      "recvblock": {
+        "v1": true
+      }
+    },
+    {
+      "round": 3,
+      "recvblock": {
+        "v1": true
+      }
+    }
+  ],
+  "75": [
+    {
+      "round": 0,
+      "disconnect": {
+        "v1": 10
+      },
+      "_comment_": "switch to fast-sync mode from consensus mode when network disconnected for some time"
+    }
+  ],
+  "95": [
+    {
+      "round": 0,
+      "prerun": {
+        "v1": 10
+      },
+      "_comment_": "switch to fast-sync mode from consensus mode when prerun takes too long"
+    }
+  ]
+}

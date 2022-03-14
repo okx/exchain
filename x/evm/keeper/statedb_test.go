@@ -39,7 +39,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
+				suite.stateDB.WithContext(suite.ctx).SetLogs(tHash, logs)
 			},
 			1,
 			false,
@@ -54,8 +54,9 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
 		if !tc.isBloom {
+			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
 				suite.Require().Equal(log, *logs[0], tc.name)
@@ -221,10 +222,13 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 	}
 
 	for _, tc := range testCase {
+		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
-		dbLogs := suite.stateDB.WithContext(suite.ctx).GetLogs
+		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
+		suite.Require().NoError(err, tc.name)
+		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
+		suite.Require().NoError(err, tc.name)
 		suite.Require().Equal(logs, dbLogs, tc.name)
 	}
 }

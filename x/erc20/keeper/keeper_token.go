@@ -12,7 +12,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/erc20/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // OnMintVouchers after minting vouchers on this chain, convert these vouchers into evm tokens.
@@ -39,6 +40,9 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 	for _, c := range vouchers {
 		switch c.Denom {
 		case params.IbcDenom:
+			if len(params.IbcDenom) == 0 {
+				return errors.New("ibc denom is empty")
+			}
 			// oec1:okt----->oec2:ibc/okt---->oec2:okt
 			if err := k.ConvertVoucherToEvmDenom(ctx, fromAddr, c); err != nil {
 				return err
@@ -56,7 +60,21 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 
 // ConvertVoucherToEvmDenom convert vouchers into evm denom.
 func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin) error {
-	// TODO Not supported at the moment
+	logrusplugin.Info("convert voucher into evm token", "from", from.String(), "voucher", voucher.String())
+	// 1. send voucher to escrow address
+	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, types.ModuleName, sdk.NewCoins(voucher)); err != nil {
+		return err
+	}
+
+	evmCoin := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, voucher.Amount)
+	// 2. Mint evm token
+	if err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(evmCoin)); err != nil {
+		return err
+	}
+	// 3. Send evm token to receiver
+	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, from, sdk.NewCoins(evmCoin)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -82,7 +100,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
-		logrusplugin.Info("contract created for coin", "address", contract.String(), "denom", voucher.Denom)
+		logrusplugin.Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
@@ -135,8 +153,8 @@ func (k Keeper) callModuleERC20(ctx sdk.Context, contract common.Address, method
 }
 
 // callEvmByModule execute an evm message from native module
-func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*types.ExecutionResult, *types.ResultData, error) {
-	config, found := k.GetChainConfig(ctx)
+func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
+	config, found := k.evmKeeper.GetChainConfig(ctx)
 	if !found {
 		return nil, nil, types.ErrChainConfigNotFound
 	}
@@ -151,14 +169,14 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	if acc != nil {
 		nonce = acc.GetSequence()
 	}
-	st := types.StateTransition{
+	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
 		Price:        big.NewInt(0),
-		GasLimit:     types.DefaultMaxGasLimitPerTx,
+		GasLimit:     evmtypes.DefaultMaxGasLimitPerTx,
 		Recipient:    to,
 		Amount:       value,
 		Payload:      data,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
+		Csdb:         evmtypes.CreateEmptyCommitStateDB(k.evmKeeper.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &common.Hash{},
 		Sender:       types.EVMModuleETHAddr,
@@ -206,6 +224,11 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 
 func (k Keeper) ibcSendEvmDenom(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin) error {
 	// TODO Not supported at the moment
+	// 1. Send evm token to escrow address
+	// 2. Burn the evm token
+	// 3. Send ibc coin from module account to sender
+	// 4. Send ibc coin to ibc
+
 	return nil
 }
 
@@ -249,95 +272,4 @@ func (k Keeper) GetSourceChannelID(ctx sdk.Context, ibcVoucherDenom string) (cha
 
 	// the path has for format port/channelId
 	return strings.Split(path, "/")[1], nil
-}
-
-// DeleteExternalContractForDenom delete the external contract mapping for native denom,
-// returns false if mapping not exists.
-func (k Keeper) DeleteExternalContractForDenom(ctx sdk.Context, denom string) bool {
-	store := ctx.KVStore(k.storeKey)
-	existingContract, found := k.getExternalContractByDenom(ctx, denom)
-	if !found {
-		return false
-	}
-	store.Delete(types.ContractToDenomKey(existingContract.Bytes()))
-	store.Delete(types.DenomToExternalContractKey(denom))
-	return true
-}
-
-// SetExternalContractForDenom set the external contract for native denom,
-// 1. if any existing for denom, replace the old one.
-// 2. if any existing for contract, return error.
-func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contract common.Address) error {
-	// check the contract is not registered already
-	_, found := k.getDenomByContract(ctx, contract)
-	if found {
-		return types.ErrRegisteredContract(contract.String())
-	}
-
-	store := ctx.KVStore(k.storeKey)
-	existingContract, found := k.getExternalContractByDenom(ctx, denom)
-	if found {
-		// delete existing mapping
-		store.Delete(types.ContractToDenomKey(existingContract.Bytes()))
-	}
-	store.Set(types.DenomToExternalContractKey(denom), contract.Bytes())
-	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
-	return nil
-}
-
-func (k Keeper) setAutoContractForDenom(ctx sdk.Context, denom string, contract common.Address) {
-	store := ctx.KVStore(k.storeKey)
-	store.Set(types.DenomToAutoContractKey(denom), contract.Bytes())
-	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
-}
-
-func (k Keeper) getDenomByContract(ctx sdk.Context, contract common.Address) (denom string, found bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.ContractToDenomKey(contract.Bytes()))
-	if len(bz) == 0 {
-		return "", false
-	}
-	return string(bz), true
-}
-
-// IterateMapping iterates over all the stored mapping and performs a callback function
-func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) (stop bool)) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractToDenom)
-
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		denom := string(iterator.Value())
-		conotract := common.BytesToAddress(iterator.Key()).String()
-
-		if cb(denom, conotract) {
-			break
-		}
-	}
-}
-
-func (k Keeper) getExternalContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.DenomToExternalContractKey(denom))
-	if len(bz) == 0 {
-		return common.Address{}, false
-	}
-	return common.BytesToAddress(bz), true
-}
-
-func (k Keeper) getAutoContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.DenomToAutoContractKey(denom))
-	if len(bz) == 0 {
-		return common.Address{}, false
-	}
-	return common.BytesToAddress(bz), true
-}
-
-func (k Keeper) getContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
-	contract, found = k.getExternalContractByDenom(ctx, denom)
-	if !found {
-		contract, found = k.getAutoContractByDenom(ctx, denom)
-	}
-	return
 }

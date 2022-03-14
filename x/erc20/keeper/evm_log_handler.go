@@ -9,11 +9,11 @@ import (
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	transferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	"github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 var (
-	_ types.EvmLogHandler = SendToIbcEventHandler{}
+	_ evmtypes.EvmLogHandler = SendToIbcEventHandler{}
 )
 
 const (

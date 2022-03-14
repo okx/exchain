@@ -55,8 +55,6 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractBlockedList(ctx, keeper)
 		case types.QueryContractMethodBlockedList:
 			return queryContractMethodBlockedList(ctx, keeper)
-		case types.QueryAllMapping:
-			return queryAllMapping(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -337,19 +335,5 @@ func querySection(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 		return nil, err
 	}
 
-	return res, nil
-}
-
-func queryAllMapping(ctx sdk.Context, keeper Keeper) ([]byte, error) {
-	mapping := make(map[string]string)
-	keeper.IterateMapping(ctx, func(denom, contract string) bool {
-		mapping[denom] = contract
-		return false
-	})
-
-	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, types.QueryResAllMapping{mapping})
-	if errUnmarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
-	}
 	return res, nil
 }

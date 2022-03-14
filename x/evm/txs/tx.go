@@ -1,13 +1,12 @@
 package txs
 
 import (
-	"math/big"
-
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"math/big"
 )
 
 type Tx interface {
@@ -19,7 +18,7 @@ type Tx interface {
 	// other nodes, causing a consensus error
 	SaveTx(msg *types.MsgEthereumTx)
 
-	// GetChainConfig get chain config
+	// GetChainConfig get chain config(the chain config may cached)
 	GetChainConfig() (types.ChainConfig, bool)
 
 	// GetSenderAccount get sender account
@@ -92,18 +91,13 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	// execute evm tx
 	var baseResult base.Result
 	baseResult, err = tx.Transition(config)
-	if err != nil {
+	if err == nil {
+		// Commit save the inner tx and contracts
+		tx.Commit(msg, &baseResult)
+		tx.EmitEvent(msg, &baseResult)
+	} else {
 		tx.RestoreWatcherTransactionReceipt(msg)
-		result, err = tx.DecorateResult(&baseResult, err)
-
-		return
 	}
 
-	// Commit save the inner tx and contracts
-	tx.Commit(msg, &baseResult)
-
-	tx.EmitEvent(msg, &baseResult)
-	result, err = tx.DecorateResult(&baseResult, nil)
-
-	return
+	return tx.DecorateResult(&baseResult, err)
 }

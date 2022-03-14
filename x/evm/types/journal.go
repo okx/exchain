@@ -285,13 +285,18 @@ func (ch refundChange) dirtied() *ethcmn.Address {
 }
 
 func (ch addLogChange) revert(s *CommitStateDB) {
-	logs := s.GetLogs()
+	logs, err := s.GetLogs(ch.txhash)
+	if err != nil {
+		// panic on unmarshal error
+		panic(err)
+	}
 
 	// delete logs if entry is empty or has only one item
 	if len(logs) <= 1 {
-		s.DeleteLogs()
-	} else {
-		s.SetLogs(logs[:len(logs)-1])
+		s.DeleteLogs(ch.txhash)
+	} else if err := s.SetLogs(ch.txhash, logs[:len(logs)-1]); err != nil {
+		// panic on marshal error
+		panic(err)
 	}
 
 	s.logSize--

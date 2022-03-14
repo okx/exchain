@@ -127,6 +127,11 @@ func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	}
 
 }
+
+func (p SubspaceProxy) RegisterSignal(handler func()) {
+
+}
+
 func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {
 
 }
@@ -161,10 +166,6 @@ func NewBankKeeperProxy() BankKeeperProxy {
 
 func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 	return b.blacklistedAddrs[addr.String()]
-}
-
-func (b BankKeeperProxy) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
-	return nil
 }
 
 type InternalDba struct {
