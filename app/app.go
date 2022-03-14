@@ -2,13 +2,11 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
 	"sync"
-	"time"
-
-	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -645,9 +643,7 @@ func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 			if libTypes.MptAsnyc {
 				ak.AddMptAsyncTask(ctx.BlockHeight())
 			} else {
-				ts := time.Now()
 				ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
-				ctx.Logger().Info("storage-mpt-pushData2Database-not-async", "height", ctx.BlockHeight(), "ts", time.Now().Sub(ts).Milliseconds())
 			}
 		}
 	}

@@ -12,7 +12,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
 	types2 "github.com/okex/exchain/x/evm/types"
-	"time"
 )
 
 // GetMptRootHash gets root mpt hash from block height
@@ -167,21 +166,24 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			k.mptCommitMu.Lock()
-			// If the header is missing (canonical chain behind), we're reorging a low
-			// diff sidechain. Suspend committing until this operation is completed.
-			chRoot := k.GetMptRootHash(uint64(chosen))
-			if chRoot == (ethcmn.Hash{}) || chRoot == types.EmptyRootHash {
-				chRoot = ethcmn.Hash{}
-			} else {
-				// Flush an entire trie and restart the counters, it's not a thread safe process,
-				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-				if err := triedb.Commit(chRoot, true, nil); err != nil {
-					panic("fail to commit mpt data: " + err.Error())
+			if chosen % 10 == 0 {
+				k.mptCommitMu.Lock()
+				defer k.mptCommitMu.Unlock()
+				// If the header is missing (canonical chain behind), we're reorging a low
+				// diff sidechain. Suspend committing until this operation is completed.
+				chRoot := k.GetMptRootHash(uint64(chosen))
+				if chRoot == (ethcmn.Hash{}) || chRoot == types.EmptyRootHash {
+					chRoot = ethcmn.Hash{}
+				} else {
+					// Flush an entire trie and restart the counters, it's not a thread safe process,
+					// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+					if err := triedb.Commit(chRoot, true, nil); err != nil {
+						panic("fail to commit mpt data: " + err.Error())
+					}
 				}
+				k.SetLatestStoredBlockHeight(uint64(chosen))
+				log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
 			}
-			k.SetLatestStoredBlockHeight(uint64(chosen))
-			log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
 
 			// Garbage collect anything below our required write retention
 			for !k.triegc.Empty() {
@@ -192,8 +194,6 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				}
 				triedb.Dereference(root.(ethcmn.Hash))
 			}
-
-			k.mptCommitMu.Unlock()
 		}
 	}
 }
@@ -229,9 +229,7 @@ func (k *Keeper) asyncCommit(logger log.Logger) {
 		for {
 			select {
 			case height := <-k.asyncChain:
-				ts := time.Now()
 				k.PushData2Database(height, logger)
-				logger.Info("storage-mpt-pushData2Database-async", "height", height, "ts", time.Now().Sub(ts).Milliseconds())
 			}
 		}
 	}()
