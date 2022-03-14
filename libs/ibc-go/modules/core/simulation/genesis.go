@@ -3,20 +3,20 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	clientsims "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/simulation"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectionsims "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/simulation"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channelsims "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/simulation"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
-	"math/rand"
 )
 
 // DONTCOVER
-
 
 // Simulation parameter constants
 const (

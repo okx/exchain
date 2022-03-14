@@ -2,13 +2,14 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"math/big"
 	"regexp"
 	"strconv"
 	"strings"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var _ exported.Height = (*Height)(nil)

@@ -17,10 +17,10 @@ func GetTxCmd() *cobra.Command {
 	}
 
 	ibcTxCmd.AddCommand(
-		//solomachine.GetTxCmd(),
-		//tendermint.GetTxCmd(),
-		//connection.GetTxCmd(),
-		//channel.GetTxCmd(),
+	//solomachine.GetTxCmd(),
+	//tendermint.GetTxCmd(),
+	//connection.GetTxCmd(),
+	//channel.GetTxCmd(),
 	)
 
 	return ibcTxCmd
@@ -38,9 +38,9 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	ibcQueryCmd.AddCommand(
-		//ibcclient.GetQueryCmd(),
-		//connection.GetQueryCmd(),
-		//channel.GetQueryCmd(),
+	//ibcclient.GetQueryCmd(),
+	//connection.GetQueryCmd(),
+	//channel.GetQueryCmd(),
 	)
 
 	return ibcQueryCmd

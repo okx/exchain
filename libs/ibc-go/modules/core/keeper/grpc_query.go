@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -27,10 +28,20 @@ func (q Keeper) ConsensusStates(c context.Context, req *clienttypes.QueryConsens
 	return q.ClientKeeper.ConsensusStates(c, req)
 }
 
+// ClientStatus implements the IBC QueryServer interface
+func (q Keeper) ClientStatus(c context.Context, req *clienttypes.QueryClientStatusRequest) (*clienttypes.QueryClientStatusResponse, error) {
+	return q.ClientKeeper.ClientStatus(c, req)
+}
+
 // ClientParams implements the IBC QueryServer interface
 func (q Keeper) ClientParams(c context.Context, req *clienttypes.QueryClientParamsRequest) (*clienttypes.QueryClientParamsResponse, error) {
 	return q.ClientKeeper.ClientParams(c, req)
 }
+
+// UpgradedClientState implements the IBC QueryServer interface
+// func (q Keeper) UpgradedClientState(c context.Context, req *clienttypes.QueryUpgradedClientStateRequest) (*clienttypes.QueryUpgradedClientStateResponse, error) {
+// 	return q.ClientKeeper.UpgradedClientState(c, req)
+// }
 
 // Connection implements the IBC QueryServer interface
 func (q Keeper) Connection(c context.Context, req *connectiontypes.QueryConnectionRequest) (*connectiontypes.QueryConnectionResponse, error) {
@@ -121,3 +132,8 @@ func (q Keeper) UnreceivedAcks(c context.Context, req *channeltypes.QueryUnrecei
 func (q Keeper) NextSequenceReceive(c context.Context, req *channeltypes.QueryNextSequenceReceiveRequest) (*channeltypes.QueryNextSequenceReceiveResponse, error) {
 	return q.ChannelKeeper.NextSequenceReceive(c, req)
 }
+
+// AppVersion implements the IBC QueryServer interface
+// func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
+// 	return q.PortKeeper.AppVersion(c, req)
+// }

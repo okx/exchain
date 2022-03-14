@@ -3,6 +3,8 @@ package ibc
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -23,7 +25,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-	"math/rand"
 )
 
 var (
@@ -149,6 +150,9 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryService(cfg.QueryServer(), am.keeper)
+
+	//m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
+	//cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
 }
 
 // InitGenesis performs genesis initialization for the ibc module. It returns

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -46,7 +47,7 @@ func QueryClientStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrClientNotFound, clientID)
 	}
 
-	cdc :=clientCtx.Codec
+	cdc := clientCtx.Codec
 
 	clientState, err := types.UnmarshalClientState(*cdc, value)
 	if err != nil {
@@ -98,7 +99,7 @@ func QueryConsensusStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrConsensusStateNotFound, clientID)
 	}
 
-	cdc :=clientCtx.Codec
+	cdc := clientCtx.Codec
 
 	cs, err := types.UnmarshalConsensusState(*cdc, value)
 	if err != nil {
@@ -133,7 +134,7 @@ func QueryTendermintHeader(clientCtx clictx.CLIContext) (ibctmtypes.Header, int6
 		height = info.Response.LastBlockHeight
 	}
 
-	commit, err := node.Commit( &height)
+	commit, err := node.Commit(&height)
 	if err != nil {
 		return ibctmtypes.Header{}, 0, err
 	}
@@ -180,7 +181,7 @@ func QueryNodeConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.Consensus
 		height = info.Response.LastBlockHeight
 	}
 
-	commit, err := node.Commit( &height)
+	commit, err := node.Commit(&height)
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
@@ -189,7 +190,7 @@ func QueryNodeConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.Consensus
 	count := 10_000
 
 	nextHeight := height + 1
-	nextVals, err := node.Validators( &nextHeight, page, count)
+	nextVals, err := node.Validators(&nextHeight, page, count)
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
@@ -202,8 +203,6 @@ func QueryNodeConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.Consensus
 
 	return state, height, nil
 }
-
-
 
 // QuerySelfConsensusState takes a client context and returns the appropriate
 // tendermint consensus state

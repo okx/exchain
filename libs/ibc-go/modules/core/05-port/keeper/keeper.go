@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -12,6 +13,8 @@ import (
 
 // Keeper defines the IBC connection keeper
 type Keeper struct {
+	Router *types.Router
+
 	scopedKeeper *capabilitykeeper.ScopedKeeper
 }
 

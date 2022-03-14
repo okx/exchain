@@ -17,18 +17,18 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		//GetCmdQueryChannels(),
-		//GetCmdQueryChannel(),
-		//GetCmdQueryConnectionChannels(),
-		//GetCmdQueryChannelClientState(),
-		//GetCmdQueryPacketCommitment(),
-		//GetCmdQueryPacketCommitments(),
-		//GetCmdQueryPacketReceipt(),
-		//GetCmdQueryPacketAcknowledgement(),
-		//GetCmdQueryUnreceivedPackets(),
-		//GetCmdQueryUnreceivedAcks(),
-		//GetCmdQueryNextSequenceReceive(),
-		//// TODO: next sequence Send ?
+	//GetCmdQueryChannels(),
+	//GetCmdQueryChannel(),
+	//GetCmdQueryConnectionChannels(),
+	//GetCmdQueryChannelClientState(),
+	//GetCmdQueryPacketCommitment(),
+	//GetCmdQueryPacketCommitments(),
+	//GetCmdQueryPacketReceipt(),
+	//GetCmdQueryPacketAcknowledgement(),
+	//GetCmdQueryUnreceivedPackets(),
+	//GetCmdQueryUnreceivedAcks(),
+	//GetCmdQueryNextSequenceReceive(),
+	//// TODO: next sequence Send ?
 	)
 
 	return queryCmd
@@ -45,12 +45,12 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		//NewChannelOpenInitCmd(),
-		//NewChannelOpenTryCmd(),
-		//NewChannelOpenAckCmd(),
-		//NewChannelOpenConfirmCmd(),
-		//NewChannelCloseInitCmd(),
-		//NewChannelCloseConfirmCmd(),
+	//NewChannelOpenInitCmd(),
+	//NewChannelOpenTryCmd(),
+	//NewChannelOpenAckCmd(),
+	//NewChannelOpenConfirmCmd(),
+	//NewChannelCloseInitCmd(),
+	//NewChannelCloseConfirmCmd(),
 	)
 
 	return txCmd

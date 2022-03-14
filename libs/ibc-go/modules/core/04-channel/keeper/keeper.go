@@ -1,6 +1,9 @@
 package keeper
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -15,8 +18,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	db "github.com/okex/exchain/libs/tm-db"
-	"strconv"
-	"strings"
 )
 
 // Keeper defines the IBC channel keeper
@@ -71,8 +72,8 @@ func (k Keeper) GetChannel(ctx sdk.Context, portID, channelID string) (types.Cha
 		return types.Channel{}, false
 	}
 
-	ret:=common.MustUnmarshalChannel(k.cdc,bz)
-	return *ret,true
+	ret := common.MustUnmarshalChannel(k.cdc, bz)
+	return *ret, true
 	//var channel types.Channel
 	//k.cdc.MustUnMarshal(bz, &channel)
 	//return channel, true
@@ -82,7 +83,7 @@ func (k Keeper) GetChannel(ctx sdk.Context, portID, channelID string) (types.Cha
 func (k Keeper) SetChannel(ctx sdk.Context, portID, channelID string, channel types.Channel) {
 	store := ctx.KVStore(k.storeKey)
 
-	bz:=common.MustMarshalChannel(k.cdc,&channel)
+	bz := common.MustMarshalChannel(k.cdc, &channel)
 	//bz := k.cdc.MustMarshal(&channel)
 	store.Set(host.ChannelKey(portID, channelID), bz)
 }
@@ -365,7 +366,7 @@ func (k Keeper) IterateChannels(ctx sdk.Context, cb func(types.IdentifiedChannel
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var channel types.Channel
-		channel=*common.MustUnmarshalChannel(k.cdc,iterator.Value())
+		channel = *common.MustUnmarshalChannel(k.cdc, iterator.Value())
 		//k.cdc.MustUnMarshal(iterator.Value(), &channel)
 
 		portID, channelID := host.MustParseChannelPath(string(iterator.Key()))

@@ -2,16 +2,16 @@ package types
 
 import (
 	"fmt"
+	"math"
+	"sort"
+	"strings"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"math"
-	"sort"
-	"strings"
 )
-
 
 // UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
 func (ics IdentifiedClientState) UnpackInterfaces(unpacker types.AnyUnpacker) error {
@@ -35,7 +35,6 @@ func NewConsensusStateWithHeight(height Height, consensusState exported.Consensu
 		ConsensusState: anyConsensusState,
 	}
 }
-
 
 // NewIdentifiedClientState creates a new IdentifiedClientState instance
 func NewIdentifiedClientState(clientID string, clientState exported.ClientState) IdentifiedClientState {
@@ -75,8 +74,6 @@ func (ics IdentifiedClientStates) Sort() IdentifiedClientStates {
 	return ics
 }
 
-
-
 // IsValidClientID checks if the clientID is valid and can be parsed into the client
 // identifier format.
 func IsValidClientID(clientID string) bool {
@@ -108,4 +105,3 @@ func ValidateClientType(clientType string) error {
 
 	return nil
 }
-

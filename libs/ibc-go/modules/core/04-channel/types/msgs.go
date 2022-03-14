@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/base64"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -80,7 +81,7 @@ var _ sdk.Msg = &MsgChannelOpenTry{}
 func NewMsgChannelOpenTry(
 	portID, previousChannelID, version string, channelOrder Order, connectionHops []string,
 	counterpartyPortID, counterpartyChannelID, counterpartyVersion string,
-	proofInit []byte, proofHeight clienttypes.Height, signer sdk.AccAddress,
+	proofInit []byte, proofHeight clienttypes.Height, signer string,
 ) *MsgChannelOpenTry {
 	counterparty := NewCounterparty(counterpartyPortID, counterpartyChannelID)
 	channel := NewChannel(TRYOPEN, channelOrder, counterparty, connectionHops, version)
@@ -91,7 +92,7 @@ func NewMsgChannelOpenTry(
 		CounterpartyVersion: counterpartyVersion,
 		ProofInit:           proofInit,
 		ProofHeight:         proofHeight,
-		Signer:              signer.String(),
+		Signer:              signer,
 	}
 }
 
@@ -160,7 +161,7 @@ var _ sdk.Msg = &MsgChannelOpenAck{}
 // nolint:interfacer
 func NewMsgChannelOpenAck(
 	portID, channelID, counterpartyChannelID string, cpv string, proofTry []byte, proofHeight clienttypes.Height,
-	signer sdk.AccAddress,
+	signer string,
 ) *MsgChannelOpenAck {
 	return &MsgChannelOpenAck{
 		PortId:                portID,
@@ -169,7 +170,7 @@ func NewMsgChannelOpenAck(
 		CounterpartyVersion:   cpv,
 		ProofTry:              proofTry,
 		ProofHeight:           proofHeight,
-		Signer:                signer.String(),
+		Signer:                signer,
 	}
 }
 
@@ -228,14 +229,14 @@ var _ sdk.Msg = &MsgChannelOpenConfirm{}
 // nolint:interfacer
 func NewMsgChannelOpenConfirm(
 	portID, channelID string, proofAck []byte, proofHeight clienttypes.Height,
-	signer sdk.AccAddress,
+	signer string,
 ) *MsgChannelOpenConfirm {
 	return &MsgChannelOpenConfirm{
 		PortId:      portID,
 		ChannelId:   channelID,
 		ProofAck:    proofAck,
 		ProofHeight: proofHeight,
-		Signer:      signer.String(),
+		Signer:      signer,
 	}
 }
 
@@ -290,12 +291,12 @@ var _ sdk.Msg = &MsgChannelCloseInit{}
 // NewMsgChannelCloseInit creates a new MsgChannelCloseInit instance
 // nolint:interfacer
 func NewMsgChannelCloseInit(
-	portID string, channelID string, signer sdk.AccAddress,
+	portID string, channelID string, signer string,
 ) *MsgChannelCloseInit {
 	return &MsgChannelCloseInit{
 		PortId:    portID,
 		ChannelId: channelID,
-		Signer:    signer.String(),
+		Signer:    signer,
 	}
 }
 
@@ -345,14 +346,14 @@ var _ sdk.Msg = &MsgChannelCloseConfirm{}
 // nolint:interfacer
 func NewMsgChannelCloseConfirm(
 	portID, channelID string, proofInit []byte, proofHeight clienttypes.Height,
-	signer sdk.AccAddress,
+	signer string,
 ) *MsgChannelCloseConfirm {
 	return &MsgChannelCloseConfirm{
 		PortId:      portID,
 		ChannelId:   channelID,
 		ProofInit:   proofInit,
 		ProofHeight: proofHeight,
-		Signer:      signer.String(),
+		Signer:      signer,
 	}
 }
 
@@ -408,13 +409,13 @@ var _ sdk.Msg = &MsgRecvPacket{}
 // nolint:interfacer
 func NewMsgRecvPacket(
 	packet Packet, proofCommitment []byte, proofHeight clienttypes.Height,
-	signer sdk.AccAddress,
+	signer string,
 ) *MsgRecvPacket {
 	return &MsgRecvPacket{
 		Packet:          packet,
 		ProofCommitment: proofCommitment,
 		ProofHeight:     proofHeight,
-		Signer:          signer.String(),
+		Signer:          signer,
 	}
 }
 
@@ -471,14 +472,14 @@ var _ sdk.Msg = &MsgTimeout{}
 // nolint:interfacer
 func NewMsgTimeout(
 	packet Packet, nextSequenceRecv uint64, proofUnreceived []byte,
-	proofHeight clienttypes.Height, signer sdk.AccAddress,
+	proofHeight clienttypes.Height, signer string,
 ) *MsgTimeout {
 	return &MsgTimeout{
 		Packet:           packet,
 		NextSequenceRecv: nextSequenceRecv,
 		ProofUnreceived:  proofUnreceived,
 		ProofHeight:      proofHeight,
-		Signer:           signer.String(),
+		Signer:           signer,
 	}
 }
 
@@ -530,7 +531,7 @@ func (msg MsgTimeout) Type() string {
 func NewMsgTimeoutOnClose(
 	packet Packet, nextSequenceRecv uint64,
 	proofUnreceived, proofClose []byte,
-	proofHeight clienttypes.Height, signer sdk.AccAddress,
+	proofHeight clienttypes.Height, signer string,
 ) *MsgTimeoutOnClose {
 	return &MsgTimeoutOnClose{
 		Packet:           packet,
@@ -538,7 +539,7 @@ func NewMsgTimeoutOnClose(
 		ProofUnreceived:  proofUnreceived,
 		ProofClose:       proofClose,
 		ProofHeight:      proofHeight,
-		Signer:           signer.String(),
+		Signer:           signer,
 	}
 }
 
@@ -596,14 +597,14 @@ func NewMsgAcknowledgement(
 	packet Packet,
 	ack, proofAcked []byte,
 	proofHeight clienttypes.Height,
-	signer sdk.AccAddress,
+	signer string,
 ) *MsgAcknowledgement {
 	return &MsgAcknowledgement{
 		Packet:          packet,
 		Acknowledgement: ack,
 		ProofAcked:      proofAcked,
 		ProofHeight:     proofHeight,
-		Signer:          signer.String(),
+		Signer:          signer,
 	}
 }
 

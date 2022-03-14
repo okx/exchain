@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 

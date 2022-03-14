@@ -15,10 +15,10 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		//GetCmdQueryDenomTrace(),
-		//GetCmdQueryDenomTraces(),
-		//GetCmdParams(),
-		//GetCmdQueryEscrowAddress(),
+	//GetCmdQueryDenomTrace(),
+	//GetCmdQueryDenomTraces(),
+	//GetCmdParams(),
+	//GetCmdQueryEscrowAddress(),
 	)
 
 	return queryCmd
@@ -35,7 +35,7 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		//NewTransferTxCmd(),
+	//NewTransferTxCmd(),
 	)
 
 	return txCmd

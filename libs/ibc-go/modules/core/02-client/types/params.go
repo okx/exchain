@@ -2,9 +2,10 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	paramtypes"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"strings"
+
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var (
