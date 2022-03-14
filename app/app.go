@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
@@ -195,13 +197,16 @@ func NewOKExChainApp(
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
+			strFunc := amino.FuncStringer(func() string {
+				return fmt.Sprintf(format, args...)
+			})
 			switch level {
 			case iavl.IavlErr:
-				iavllog.Error(fmt.Sprintf(format, args...))
+				iavllog.Error("iavl", "error", strFunc)
 			case iavl.IavlInfo:
-				iavllog.Info(fmt.Sprintf(format, args...))
+				iavllog.Info("iavl", "info", strFunc)
 			case iavl.IavlDebug:
-				iavllog.Debug(fmt.Sprintf(format, args...))
+				iavllog.Debug("iavl", "debug", strFunc)
 			default:
 				return
 			}
