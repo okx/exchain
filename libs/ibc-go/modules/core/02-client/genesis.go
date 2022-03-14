@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"

@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"

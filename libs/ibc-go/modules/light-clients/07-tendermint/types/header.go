@@ -2,12 +2,13 @@ package types
 
 import (
 	"bytes"
+	"time"
+
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"time"
 )
 
 var _ exported.Header = &Header{}
@@ -60,10 +61,9 @@ func (h Header) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "header failed basic validation")
 	}
 
-	// TrustedHeight is less than Header for updates
-	// and less than or equal to Header for misbehaviour
-	if h.TrustedHeight.GT(h.GetHeight()) {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "TrustedHeight %d must be less than or equal to header height %d",
+	// TrustedHeight is less than Header for updates and misbehaviour
+	if h.TrustedHeight.GTE(h.GetHeight()) {
+		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "TrustedHeight %d must be less than header height %d",
 			h.TrustedHeight, h.GetHeight())
 	}
 
@@ -74,6 +74,7 @@ func (h Header) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "validator set is not tendermint validator set")
 	}
+	//if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash()) {
 	if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash(h.Header.Height)) {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "validator set does not match hash")
 	}

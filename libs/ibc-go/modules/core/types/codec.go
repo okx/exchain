@@ -12,7 +12,7 @@ import (
 
 var ModuleCdc *codec.Codec
 
-func init(){
+func init() {
 	ModuleCdc = codec.New()
 	codec.RegisterCrypto(ModuleCdc)
 	ModuleCdc.Seal()
@@ -29,7 +29,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	commitmenttypes.RegisterInterfaces(registry)
 }
 
-func RegisterCodec(cdc *codec.Codec){
+func RegisterCodec(cdc *codec.Codec) {
 	connectiontypes.RegistCodec(cdc)
 	channeltypes.RegisterCodec(cdc)
 }

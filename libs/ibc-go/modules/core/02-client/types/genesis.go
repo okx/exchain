@@ -2,11 +2,11 @@ package types
 
 import (
 	"fmt"
+	"sort"
+
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"sort"
-
 )
 
 // ClientsConsensusStates defines a slice of ClientConsensusStates that supports the sort interface
@@ -47,7 +47,6 @@ func (ccs ClientConsensusStates) UnpackInterfaces(unpacker codectypes.AnyUnpacke
 	return nil
 }
 
-
 // UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
 func (cswh ConsensusStateWithHeight) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	return unpacker.UnpackAny(cswh.ConsensusState, new(exported.ConsensusState))
@@ -61,7 +60,6 @@ func NewClientConsensusStates(clientID string, consensusStates []ConsensusStateW
 	}
 }
 
-
 // GetKey returns the key of metadata. Implements exported.GenesisMetadata interface.
 func (gm GenesisMetadata) GetKey() []byte {
 	return gm.Key
@@ -72,7 +70,6 @@ func (gm GenesisMetadata) GetValue() []byte {
 	return gm.Value
 }
 
-
 // NewIdentifiedGenesisMetadata takes in a client ID and list of genesis metadata for that client
 // and constructs a new IdentifiedGenesisMetadata.
 func NewIdentifiedGenesisMetadata(clientID string, gms []GenesisMetadata) IdentifiedGenesisMetadata {
@@ -82,7 +79,6 @@ func NewIdentifiedGenesisMetadata(clientID string, gms []GenesisMetadata) Identi
 	}
 }
 
-
 // NewGenesisMetadata is a constructor for GenesisMetadata
 func NewGenesisMetadata(key, val []byte) GenesisMetadata {
 	return GenesisMetadata{
@@ -90,8 +86,6 @@ func NewGenesisMetadata(key, val []byte) GenesisMetadata {
 		Value: val,
 	}
 }
-
-
 
 // DefaultGenesisState returns the ibc client submodule's default genesis state.
 func DefaultGenesisState() GenesisState {
@@ -104,7 +98,6 @@ func DefaultGenesisState() GenesisState {
 	}
 }
 
-
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 func (gs GenesisState) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	for _, client := range gs.Clients {
@@ -115,7 +108,6 @@ func (gs GenesisState) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 
 	return gs.ClientsConsensus.UnpackInterfaces(unpacker)
 }
-
 
 // Validate performs basic genesis state validation returning an error upon any
 // failure.

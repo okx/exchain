@@ -3,10 +3,10 @@ package types
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
 // AccountKeeper defines the contract required for account APIs.

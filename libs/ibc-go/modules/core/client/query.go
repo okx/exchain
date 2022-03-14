@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
@@ -52,7 +53,7 @@ func QueryTendermintProof(clientCtx clictx.CLIContext, key []byte) ([]byte, []by
 		return nil, nil, clienttypes.Height{}, err
 	}
 
-	cdc :=clientCtx.Codec
+	cdc := clientCtx.Codec
 
 	proofBz, err := cdc.MarshalBinaryBare(&merkleProof)
 	if err != nil {
@@ -62,4 +63,3 @@ func QueryTendermintProof(clientCtx clictx.CLIContext, key []byte) ([]byte, []by
 	revision := clienttypes.ParseChainID(clientCtx.ChainID)
 	return res.Value, proofBz, clienttypes.NewHeight(revision, uint64(res.Height)+1), nil
 }
-

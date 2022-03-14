@@ -3,6 +3,7 @@ package simulation
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -22,8 +23,8 @@ func NewDecodeStore(cdc *codec.MarshalProxy, kvA, kvB kv.Pair) (string, bool) {
 
 	case bytes.HasPrefix(kvA.Key, []byte(host.KeyConnectionPrefix)):
 		var connectionA, connectionB types.ConnectionEnd
-		connectionA=*common.MustUnmarshalConnection(cdc,kvA.Value)
-		connectionB=*common.MustUnmarshalConnection(cdc,kvB.Value)
+		connectionA = *common.MustUnmarshalConnection(cdc, kvA.Value)
+		connectionB = *common.MustUnmarshalConnection(cdc, kvB.Value)
 		//cdc.MustUnMarshal(kvA.Value, &connectionA)
 		//cdc.MustUnMarshal(kvB.Value, &connectionB)
 		return fmt.Sprintf("ConnectionEnd A: %v\nConnectionEnd B: %v", connectionA, connectionB), true

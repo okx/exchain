@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"regexp"
 	"strconv"
 	"strings"
+
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
 const (
@@ -29,7 +30,6 @@ const (
 func FormatClientIdentifier(clientType string, sequence uint64) string {
 	return fmt.Sprintf("%s-%d", clientType, sequence)
 }
-
 
 // IsClientIDFormat checks if a clientID is in the format required on the SDK for
 // parsing client identifiers. The client identifier must be in the form: `{client-type}-{N}

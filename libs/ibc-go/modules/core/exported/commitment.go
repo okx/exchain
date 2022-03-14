@@ -9,12 +9,10 @@ type Prefix interface {
 	Empty() bool
 }
 
-
 type Root interface {
 	GetHash() []byte
 	Empty() bool
 }
-
 
 // Path implements spec:CommitmentPath.
 // A path is the additional information provided to the verification function.
@@ -22,7 +20,6 @@ type Path interface {
 	String() string
 	Empty() bool
 }
-
 
 // Proof implements spec:CommitmentProof.
 // Proof can prove whether the key-value pair is a part of the Root or not.

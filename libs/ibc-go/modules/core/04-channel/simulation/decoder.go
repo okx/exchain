@@ -3,6 +3,7 @@ package simulation
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -17,8 +18,8 @@ func NewDecodeStore(cdc *codec.MarshalProxy, kvA, kvB kv.Pair) (string, bool) {
 	switch {
 	case bytes.HasPrefix(kvA.Key, []byte(host.KeyChannelEndPrefix)):
 		var channelA, channelB types.Channel
-		channelA=*common.MustUnmarshalChannel(cdc,kvA.Value)
-		channelB=*common.MustUnmarshalChannel(cdc,kvB.Value)
+		channelA = *common.MustUnmarshalChannel(cdc, kvA.Value)
+		channelB = *common.MustUnmarshalChannel(cdc, kvB.Value)
 		//cdc.MustUnMarshal(kvA.Value, &channelA)
 		//cdc.MustUnMarshal(kvB.Value, &channelB)
 		return fmt.Sprintf("Channel A: %v\nChannel B: %v", channelA, channelB), true

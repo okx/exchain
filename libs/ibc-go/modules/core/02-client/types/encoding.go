@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
@@ -18,19 +19,14 @@ func MustUnmarshalClientState(cdc *codec.MarshalProxy, bz []byte) exported.Clien
 	return clientState
 }
 
-
-
 // UnmarshalClientState returns an ClientState interface from raw encoded clientState
 // bytes of a Proto-based ClientState type. An error is returned upon decoding
 // failure.
 func UnmarshalClientState(cdc *codec.MarshalProxy, bz []byte) (exported.ClientState, error) {
 	var clientState exported.ClientState
-	err:=cdc.GetProtocMarshal().UnmarshalInterface(bz,&clientState)
+	err := cdc.GetProtocMarshal().UnmarshalInterface(bz, &clientState)
 	return clientState, err
 }
-
-
-
 
 // MustMarshalClientState attempts to encode an ClientState object and returns the
 // raw encoded bytes. It panics on error.
@@ -48,9 +44,6 @@ func MarshalClientState(cdc *codec.MarshalProxy, clientStateI exported.ClientSta
 	return cdc.GetProtocMarshal().MarshalInterface(clientStateI)
 }
 
-
-
-
 // MustUnmarshalConsensusState attempts to decode and return an ConsensusState object from
 // raw encoded bytes. It panics on error.
 func MustUnmarshalConsensusState(cdc *codec.MarshalProxy, bz []byte) exported.ConsensusState {
@@ -61,7 +54,6 @@ func MustUnmarshalConsensusState(cdc *codec.MarshalProxy, bz []byte) exported.Co
 
 	return consensusState
 }
-
 
 // UnmarshalConsensusState returns a ConsensusState interface from raw encoded consensus state
 // bytes of a Proto-based ConsensusState type. An error is returned upon decoding
@@ -91,11 +83,9 @@ func MarshalConsensusState(cdc *codec.MarshalProxy, cs exported.ConsensusState) 
 	return cdc.GetProtocMarshal().MarshalInterface(cs)
 }
 
-
-
 // MarshalHeader protobuf serializes a Header interface
 func MarshalHeader(cdc *codec.MarshalProxy, h exported.Header) ([]byte, error) {
-	return common.DefaultMarshal(cdc,h)
+	return common.DefaultMarshal(cdc, h)
 }
 
 // MustMarshalHeader attempts to encode a Header object and returns the

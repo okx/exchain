@@ -1,7 +1,5 @@
 package exported
 
-
-
 // ConnectionI describes the required methods for a connection.
 type ConnectionI interface {
 	GetClientID() string
@@ -11,8 +9,6 @@ type ConnectionI interface {
 	GetDelayPeriod() uint64
 	ValidateBasic() error
 }
-
-
 
 // CounterpartyConnectionI describes the required methods for a counterparty connection.
 type CounterpartyConnectionI interface {

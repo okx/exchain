@@ -3,21 +3,22 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
+	"reflect"
+	"strings"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	lite "github.com/okex/exchain/libs/tendermint/lite2"
-	"reflect"
-	"strings"
 )
 
 type Keeper struct {
@@ -30,7 +31,6 @@ type Keeper struct {
 // NewKeeper creates a new NewKeeper instance
 func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
 	// set KeyTable if it has not already been set
-	fmt.Println(paramSpace)
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
@@ -252,7 +252,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
 		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
-	logrusplugin.Info("GetSelfConsensusState","height",height,"hash",consensusState.GetRoot().GetHash())
+	logrusplugin.Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
 	return consensusState, true
 }
 
@@ -260,14 +260,16 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 // This function is only used to validate the client state the counterparty stores for this chain
 // Client must be in same revision as the executing chain
 func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error {
-	return nil
+	//return nil
 	tmClient, ok := clientState.(*ibctmtypes.ClientState)
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidClient, "client must be a Tendermint client, expected: %T, got: %T",
 			&ibctmtypes.ClientState{}, tmClient)
 	}
 
-	if clientState.IsFrozen() {
+	// old version
+	// if clientState.IsFrozen() {
+	if !tmClient.FrozenHeight.IsZero() {
 		return types.ErrClientFrozen
 	}
 
@@ -313,6 +315,7 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 
 	if len(tmClient.UpgradePath) != 0 {
 		// For now, SDK IBC implementation assumes that upgrade path (if defined) is defined by SDK upgrade module
+
 		expectedUpgradePath := []string{UpgradeModuleName, KeyUpgradedIBCState}
 		if !reflect.DeepEqual(expectedUpgradePath, tmClient.UpgradePath) {
 			return sdkerrors.Wrapf(types.ErrInvalidClient, "upgrade path must be the upgrade path defined by upgrade module. expected %v, got %v",
@@ -356,6 +359,15 @@ func (k Keeper) SetNextClientSequence(ctx sdk.Context, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	bz := sdk.Uint64ToBigEndian(sequence)
 	store.Set([]byte(types.KeyNextClientSequence), bz)
+}
+
+// GetAllClients returns all stored light client State objects.
+func (k Keeper) GetAllClients(ctx sdk.Context) (states []exported.ClientState) {
+	k.IterateClients(ctx, func(_ string, state exported.ClientState) bool {
+		states = append(states, state)
+		return false
+	})
+	return states
 }
 
 // ClientStore returns isolated prefix store for each client so they can read/write in separate

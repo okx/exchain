@@ -1,6 +1,9 @@
 package types
 
 import (
+	"strings"
+	"time"
+
 	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -14,8 +17,6 @@ import (
 	common2 "github.com/okex/exchain/libs/ibc-go/modules/core/common"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	lite "github.com/okex/exchain/libs/tendermint/lite2"
-	"strings"
-	"time"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -62,6 +63,36 @@ func (cs ClientState) IsFrozen() bool {
 	return !cs.FrozenHeight.IsZero()
 }
 
+// Status returns the status of the tendermint client.
+// The client may be:
+// - Active: FrozenHeight is zero and client is not expired
+// - Frozen: Frozen Height is not zero
+// - Expired: the latest consensus state timestamp + trusting period <= current time
+//
+// A frozen client will become expired, so the Frozen status
+// has higher precedence.
+func (cs ClientState) Status(
+	ctx sdk.Context,
+	clientStore sdk.KVStore,
+	cdc *codec.MarshalProxy,
+) exported.Status {
+	if !cs.FrozenHeight.IsZero() {
+		return exported.Frozen
+	}
+
+	// get latest consensus state from clientStore to check for expiry
+	consState, err := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
+	if err != nil {
+		return exported.Unknown
+	}
+
+	if cs.IsExpired(consState.Timestamp, ctx.BlockTime()) {
+		return exported.Expired
+	}
+
+	return exported.Active
+}
+
 // GetFrozenHeight returns the height at which client is frozen
 // NOTE: FrozenHeight is zero if client is unfrozen
 func (cs ClientState) GetFrozenHeight() exported.Height {
@@ -92,8 +123,14 @@ func (cs ClientState) Validate() error {
 	if cs.MaxClockDrift == 0 {
 		return sdkerrors.Wrap(ErrInvalidMaxClockDrift, "max clock drift cannot be zero")
 	}
+
+	// the latest height revision number must match the chain id revision number
+	if cs.LatestHeight.RevisionNumber != clienttypes.ParseChainID(cs.ChainId) {
+		return sdkerrors.Wrapf(ErrInvalidHeaderHeight,
+			"latest height revision number must match chain id revision number (%d != %d)", cs.LatestHeight.RevisionNumber, clienttypes.ParseChainID(cs.ChainId))
+	}
 	if cs.LatestHeight.RevisionHeight == 0 {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint revision height cannot be zero")
+		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint client's latest height revision height cannot be zero")
 	}
 	if cs.TrustingPeriod >= cs.UnbondingPeriod {
 		return sdkerrors.Wrapf(
@@ -262,7 +299,7 @@ func (cs ClientState) VerifyConnectionState(
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid connection type %T", connectionEnd)
 	}
 
-	bz:=common2.MustMarshalConnection(cdc,&connection)
+	bz := common2.MustMarshalConnection(cdc, &connection)
 	//bz, err := cdc.GetProtocMarshal().MarshalInterface(&connection)
 	//if err != nil {
 	//	return err
@@ -303,7 +340,7 @@ func (cs ClientState) VerifyChannelState(
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid channel type %T", channel)
 	}
 
-	bz,err:=common2.MarshalChannel(cdc,&channelEnd)
+	bz, err := common2.MarshalChannel(cdc, &channelEnd)
 	//bz, err := cdc.GetProtocMarshal().MarshalInterface(&channelEnd)
 	if err != nil {
 		return err
@@ -319,11 +356,12 @@ func (cs ClientState) VerifyChannelState(
 // VerifyPacketCommitment verifies a proof of an outgoing packet commitment at
 // the specified port, specified channel, and specified sequence.
 func (cs ClientState) VerifyPacketCommitment(
+	ctx sdk.Context,
 	store sdk.KVStore,
 	cdc *codec.MarshalProxy,
 	height exported.Height,
-	currentTimestamp uint64,
-	delayPeriod uint64,
+	delayTimePeriod uint64,
+	delayBlockPeriod uint64,
 	prefix exported.Prefix,
 	proof []byte,
 	portID,
@@ -337,7 +375,7 @@ func (cs ClientState) VerifyPacketCommitment(
 	}
 
 	// check delay period has passed
-	if err := verifyDelayPeriodPassed(store, height, currentTimestamp, delayPeriod); err != nil {
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -357,11 +395,12 @@ func (cs ClientState) VerifyPacketCommitment(
 // VerifyPacketAcknowledgement verifies a proof of an incoming packet
 // acknowledgement at the specified port, specified channel, and specified sequence.
 func (cs ClientState) VerifyPacketAcknowledgement(
+	ctx sdk.Context,
 	store sdk.KVStore,
 	cdc *codec.MarshalProxy,
 	height exported.Height,
-	currentTimestamp uint64,
-	delayPeriod uint64,
+	delayTimePeriod uint64,
+	delayBlockPeriod uint64,
 	prefix exported.Prefix,
 	proof []byte,
 	portID,
@@ -375,7 +414,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	}
 
 	// check delay period has passed
-	if err := verifyDelayPeriodPassed(store, height, currentTimestamp, delayPeriod); err != nil {
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -396,11 +435,12 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 // incoming packet receipt at the specified port, specified channel, and
 // specified sequence.
 func (cs ClientState) VerifyPacketReceiptAbsence(
+	ctx sdk.Context,
 	store sdk.KVStore,
 	cdc *codec.MarshalProxy,
 	height exported.Height,
-	currentTimestamp uint64,
-	delayPeriod uint64,
+	delayTimePeriod uint64,
+	delayBlockPeriod uint64,
 	prefix exported.Prefix,
 	proof []byte,
 	portID,
@@ -413,7 +453,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	}
 
 	// check delay period has passed
-	if err := verifyDelayPeriodPassed(store, height, currentTimestamp, delayPeriod); err != nil {
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -433,11 +473,12 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 // VerifyNextSequenceRecv verifies a proof of the next sequence number to be
 // received of the specified channel at the specified port.
 func (cs ClientState) VerifyNextSequenceRecv(
+	ctx sdk.Context,
 	store sdk.KVStore,
 	cdc *codec.MarshalProxy,
 	height exported.Height,
-	currentTimestamp uint64,
-	delayPeriod uint64,
+	delayTimePeriod uint64,
+	delayBlockPeriod uint64,
 	prefix exported.Prefix,
 	proof []byte,
 	portID,
@@ -450,7 +491,7 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	}
 
 	// check delay period has passed
-	if err := verifyDelayPeriodPassed(store, height, currentTimestamp, delayPeriod); err != nil {
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -469,19 +510,32 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	return nil
 }
 
-// verifyDelayPeriodPassed will ensure that at least delayPeriod amount of time has passed since consensus state was submitted
-// before allowing verification to continue.
-func verifyDelayPeriodPassed(store sdk.KVStore, proofHeight exported.Height, currentTimestamp, delayPeriod uint64) error {
-	// check that executing chain's timestamp has passed consensusState's processed time + delay period
+// verifyDelayPeriodPassed will ensure that at least delayTimePeriod amount of time and delayBlockPeriod number of blocks have passed
+// since consensus state was submitted before allowing verification to continue.
+func verifyDelayPeriodPassed(ctx sdk.Context, store sdk.KVStore, proofHeight exported.Height, delayTimePeriod, delayBlockPeriod uint64) error {
+	// check that executing chain's timestamp has passed consensusState's processed time + delay time period
 	processedTime, ok := GetProcessedTime(store, proofHeight)
 	if !ok {
 		return sdkerrors.Wrapf(ErrProcessedTimeNotFound, "processed time not found for height: %s", proofHeight)
 	}
-	validTime := processedTime + delayPeriod
-	// NOTE: delay period is inclusive, so if currentTimestamp is validTime, then we return no error
-	if validTime > currentTimestamp {
+	currentTimestamp := uint64(ctx.BlockTime().UnixNano())
+	validTime := processedTime + delayTimePeriod
+	// NOTE: delay time period is inclusive, so if currentTimestamp is validTime, then we return no error
+	if currentTimestamp < validTime {
 		return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until time: %d, current time: %d",
 			validTime, currentTimestamp)
+	}
+	// check that executing chain's height has passed consensusState's processed height + delay block period
+	processedHeight, ok := GetProcessedHeight(store, proofHeight)
+	if !ok {
+		return sdkerrors.Wrapf(ErrProcessedHeightNotFound, "processed height not found for height: %s", proofHeight)
+	}
+	currentHeight := clienttypes.GetSelfHeight(ctx)
+	validHeight := clienttypes.NewHeight(processedHeight.GetRevisionNumber(), processedHeight.GetRevisionHeight()+delayBlockPeriod)
+	// NOTE: delay block period is inclusive, so if currentHeight is validHeight, then we return no error
+	if currentHeight.LT(validHeight) {
+		return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until height: %s, current height: %s",
+			validHeight, currentHeight)
 	}
 	return nil
 }
@@ -500,7 +554,7 @@ func produceVerificationArgs(
 	if cs.GetLatestHeight().LT(height) {
 		return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidHeight,
-			"client state height < proof height (%d < %d)", cs.GetLatestHeight(), height,
+			"client state height < proof height (%d < %d), please ensure the client has been updated", cs.GetLatestHeight(), height,
 		)
 	}
 

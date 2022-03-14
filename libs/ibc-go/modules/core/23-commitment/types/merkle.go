@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"net/url"
+
 	ics23 "github.com/confio/ics23/go"
 	"github.com/gogo/protobuf/proto"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"github.com/okex/exchain/libs/tendermint/proto/crypto"
-	"net/url"
 )
 
 var _ exported.Root = (*MerkleRoot)(nil)
@@ -210,7 +211,6 @@ func (proof *MerkleProof) Empty() bool {
 }
 
 func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs []*ics23.CommitmentProof, keys MerklePath, value []byte, index int) error {
-	return nil
 	var (
 		subroot []byte
 		err     error
@@ -240,12 +240,12 @@ func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs 
 					value, subroot, i)
 			}
 			// Set value to subroot so that we verify next proof in chain commits to this subroot
-			logrusplugin.Info("equal", "root比较结果", bytes.Equal(root, subroot),"root",hex.EncodeToString(root),"subRoot",hex.EncodeToString(subroot))
+			logrusplugin.Info("equal", "root compare result", bytes.Equal(root, subroot), "root", hex.EncodeToString(root), "subRoot", hex.EncodeToString(subroot))
 			value = subroot
 		case *ics23.CommitmentProof_Nonexist:
 			return sdkerrors.Wrapf(ErrInvalidProof,
-				"chained membership proof contains nonexistence proof at index %d. If this is unexpected, please ensure that proof was queried from the height that contained the value in store and was queried with the correct key.",
-				i)
+				"chained membership proof contains nonexistence proof at index %d. If this is unexpected, please ensure that proof was queried from a height that contained the value in store and was queried with the correct key. The key used: %s",
+				i, keys)
 		default:
 			return sdkerrors.Wrapf(ErrInvalidProof,
 				"expected proof type: %T, got: %T", &ics23.CommitmentProof_Exist{}, proofs[i].Proof)

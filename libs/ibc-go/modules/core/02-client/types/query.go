@@ -13,8 +13,6 @@ func NewQueryClientStateResponse(
 	}
 }
 
-
-
 // NewQueryConsensusStateResponse creates a new QueryConsensusStateResponse instance.
 func NewQueryConsensusStateResponse(
 	consensusStateAny *codectypes.Any, proof []byte, height Height,

@@ -1,9 +1,10 @@
 package types
 
 import (
+	"time"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	"time"
 )
 
 // StakingKeeper expected staking keeper

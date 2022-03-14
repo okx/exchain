@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-
+// SentinelRoot is used as a stand-in root value for the consensus state set at the upgrade height
+const SentinelRoot = "sentinel_root"
 
 // NewConsensusState creates a new ConsensusState instance.
 func NewConsensusState(

@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -39,8 +40,8 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 			upgradedClient.GetLatestHeight(), lastHeight)
 	}
 
-	// counterparty chain must commit the upgraded client with all client-customizable fields zeroed out
-	// at the upgrade path specified by current client
+	// upgraded client state and consensus state must be IBC tendermint client state and consensus state
+	// this may be modified in the future to upgrade to a new IBC tendermint type
 	// counterparty must also commit to the upgraded consensus state at a sub-path under the upgrade path specified
 	tmUpgradeClient, ok := upgradedClient.(*ClientState)
 	if !ok {
@@ -70,13 +71,9 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 		return nil, nil, sdkerrors.Wrap(err, "could not retrieve consensus state for lastHeight")
 	}
 
-	if cs.IsExpired(consState.Timestamp, ctx.BlockTime()) {
-		return nil, nil, sdkerrors.Wrap(clienttypes.ErrInvalidClient, "cannot upgrade an expired client")
-	}
-
 	// Verify client proof
 
-	bz, err := common.DefaultMarshal(cdc,upgradedClient)
+	bz, err := common.DefaultMarshal(cdc, upgradedClient)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "could not marshal client state: %v", err)
 	}
@@ -87,7 +84,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// Verify consensus state proof
-	bz, err =common.DefaultMarshal(cdc,upgradedConsState)
+	bz, err = common.DefaultMarshal(cdc, upgradedConsState)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "could not marshal consensus state: %v", err)
 	}
@@ -112,15 +109,18 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// The new consensus state is merely used as a trusted kernel against which headers on the new
-	// chain can be verified. The root is empty as it cannot be known in advance, thus no proof verification will pass.
+	// chain can be verified. The root is just a stand-in sentinel value as it cannot be known in advance, thus no proof verification will pass.
 	// The timestamp and the NextValidatorsHash of the consensus state is the blocktime and NextValidatorsHash
 	// of the last block committed by the old chain. This will allow the first block of the new chain to be verified against
 	// the last validators of the old chain so long as it is submitted within the TrustingPeriod of this client.
 	// NOTE: We do not set processed time for this consensus state since this consensus state should not be used for packet verification
 	// as the root is empty. The next consensus state submitted using update will be usable for packet-verification.
 	newConsState := NewConsensusState(
-		tmUpgradeConsState.Timestamp, commitmenttypes.MerkleRoot{}, tmUpgradeConsState.NextValidatorsHash,
+		tmUpgradeConsState.Timestamp, commitmenttypes.NewMerkleRoot([]byte(SentinelRoot)), tmUpgradeConsState.NextValidatorsHash,
 	)
+
+	// set metadata for this consensus state
+	setConsensusMetadata(ctx, clientStore, tmUpgradeClient.LatestHeight)
 
 	return newClientState, newConsState, nil
 }
@@ -134,7 +134,7 @@ func constructUpgradeClientMerklePath(upgradePath []string, lastHeight exported.
 	// append lastHeight and `upgradedClient` to last key of upgradePath and use as lastKey of clientPath
 	// this will create the IAVL key that is used to store client in upgrade store
 	lastKey := upgradePath[len(upgradePath)-1]
-	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(),"upgradedClient")
+	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(), "upgradedClient")
 
 	clientPath = append(clientPath, appendedKey)
 	return commitmenttypes.NewMerklePath(clientPath...)
