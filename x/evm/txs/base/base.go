@@ -77,9 +77,9 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		TxHash:            result.ResultData.TxHash,
 		ContractAddress:   result.ResultData.ContractAddress,
 		GasUsed:           result.ExecResult.GasInfo.GasConsumed,
-		BlockHash:         tx.Keeper.GetHeightHash(tx.Ctx, uint64(tx.Ctx.BlockHeight())),
-		BlockNumber:       big.NewInt(tx.Ctx.BlockHeight()),
-		TransactionIndex:  uint(tx.Keeper.TxCount),
+		//BlockHash:         tx.Keeper.GetHeightHash(tx.Ctx, uint64(tx.Ctx.BlockHeight())),
+		//BlockNumber:       big.NewInt(tx.Ctx.BlockHeight()),
+		TransactionIndex: uint(tx.Keeper.TxCount),
 	}
 	_ = receipt
 	//if err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt); err != nil {
