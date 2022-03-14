@@ -50,7 +50,7 @@ import (
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
-	//"github.com/okex/exchain/x/erc20"
+	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
@@ -123,7 +123,7 @@ var (
 		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		transfer.AppModuleBasic{},
-		//erc20.AppModuleBasic{},
+		erc20.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -142,7 +142,7 @@ var (
 		farm.YieldFarmingAccount:    nil,
 		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
-		//erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
+		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
@@ -206,7 +206,7 @@ type OKExChainApp struct {
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*module.HeightTasks
-	//Erc20Keeper          erc20.Keeper
+	Erc20Keeper          erc20.Keeper
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -277,7 +277,7 @@ func NewOKExChainApp(
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		host.StoreKey,
-		//erc20.StoreKey,
+		erc20.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -314,7 +314,7 @@ func NewOKExChainApp(
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
-	//app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.ModuleName)
+	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.ModuleName)
 
 	proxy := codec.NewMarshalProxy(cc, cdc)
 	app.marshal = cdcproxy
@@ -427,13 +427,13 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 
-	//app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
-	//	app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.GovKeeper, app.EvmKeeper, app.TransferKeeper)
+	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
+		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.GovKeeper, app.EvmKeeper, app.TransferKeeper)
 
 	// Set EVM hooks
-	//app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
-	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := transfer.NewAppModule(app.TransferKeeper, proxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -473,7 +473,7 @@ func NewOKExChainApp(
 		ibc.NewAppModule(app.IBCKeeper),
 		capabilityModule.NewAppModule(cdcproxy, *app.CapabilityKeeper),
 		transferModule,
-		//erc20.NewAppModule(app.Erc20Keeper),
+		erc20.NewAppModule(app.Erc20Keeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -512,7 +512,7 @@ func NewOKExChainApp(
 		//ibctransfertypes.ModuleName,
 		//host.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
-		//erc20.ModuleName,
+		erc20.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
