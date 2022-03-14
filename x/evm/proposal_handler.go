@@ -24,6 +24,10 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 }
 
 func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+<<<<<<< HEAD
+=======
+
+>>>>>>> b53458989e869f708ea23230f2917158c8f49090
 	// check
 	manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
 	if !ok {
