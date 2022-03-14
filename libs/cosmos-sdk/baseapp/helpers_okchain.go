@@ -60,18 +60,14 @@ func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState 
 
 	mode := runTxModeTrace
 	// prepare runTxInfo to runTxWithInfo
-	info = &runTxInfo{
-		handler: app.getModeHandler(mode),
-		tx:      tx,
-		txBytes: txBytes,
-	}
+	info = &runTxInfo{}
 	// init info.ctx
 	info.ctx = traceState.ctx.
 		WithTxBytes(txBytes).
 		WithVoteInfos(app.voteInfos).
 		WithConsensusParams(app.consensusParams)
 
-	err = app.prepareTxInfoAndRun(info, mode, height)
+	err = app.prepareTxInfoAndRun(info, mode, txBytes, tx, height)
 
 	return info, err
 }

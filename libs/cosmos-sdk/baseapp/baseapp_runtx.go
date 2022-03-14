@@ -30,19 +30,18 @@ func (app *BaseApp) runTx(mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
 	msCacheList sdk.CacheMultiStore, err error) {
 
-	info := &runTxInfo{
-		handler: app.getModeHandler(mode),
-		tx:      tx,
-		txBytes: txBytes,
-	}
+	info := &runTxInfo{}
 
-	err = app.prepareTxInfoAndRun(info, mode, height, from...)
+	err = app.prepareTxInfoAndRun(info, mode, txBytes, tx, height, from...)
 
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
 
-// setTxInfoCtx set info's context
-func (app *BaseApp) setTxInfoCtx(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
+// setTxInfo set info's content
+func (app *BaseApp) setTxInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
+	info.handler = app.getModeHandler(mode)
+	info.txBytes = txBytes
+	info.tx = tx
 	// init info context
 	err = info.handler.handleStartHeight(info, height)
 	if err != nil {
@@ -66,11 +65,11 @@ func (app *BaseApp) setTxInfoCtx(info *runTxInfo, mode runTxMode, height int64, 
 	return
 }
 
-func (app *BaseApp) prepareTxInfoAndRun(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
+func (app *BaseApp) prepareTxInfoAndRun(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
-	err = app.setTxInfoCtx(info, mode, height, from...)
+	err = app.setTxInfo(info, mode, txBytes, tx, height, from...)
 	if err != nil {
 		return err
 	}
