@@ -244,6 +244,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 // Use SetExternalPackageValue to set external package config value.
 func SetExternalPackageValue(cmd *cobra.Command) {
 	iavl.IavlCacheSize = viper.GetInt(iavl.FlagIavlCacheSize)
+	tmiavl.IavlCacheInitRatio = viper.GetFloat64(tmiavl.FlagIavlCacheInitRatio)
 	tmiavl.OutputModules, _ = cmd.Flags().GetStringToInt(tmiavl.FlagOutputModules)
 	tmiavl.CommitIntervalHeight = viper.GetInt64(tmiavl.FlagIavlCommitIntervalHeight)
 	tmiavl.MinCommitItemCount = viper.GetInt64(tmiavl.FlagIavlMinCommitItemCount)
