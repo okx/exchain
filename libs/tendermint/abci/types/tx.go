@@ -2,7 +2,7 @@ package types
 
 import "math/big"
 
-type TxEssentialAttributes interface {
+type TxEssentials interface {
 	GetRaw() []byte
 	TxHash() []byte
 	GetFrom() string
