@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -10,7 +12,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	lite "github.com/okex/exchain/libs/tendermint/lite2"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"time"
 )
 
 // CheckHeaderAndUpdateState checks if the provided header is valid, and if valid it will:

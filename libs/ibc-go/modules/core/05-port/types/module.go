@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // IBCModule defines an interface that implements all the callbacks
@@ -57,21 +58,39 @@ type IBCModule interface {
 		channelID string,
 	) error
 
-	// OnRecvPacket must return the acknowledgement bytes
+	// OnRecvPacket must return an acknowledgement that implements the Acknowledgement interface.
 	// In the case of an asynchronous acknowledgement, nil should be returned.
+	// If the acknowledgement returned is successful, the state changes on callback are written,
+	// otherwise the application state changes are discarded. In either case the packet is received
+	// and the acknowledgement is written (in synchronous cases).
 	OnRecvPacket(
 		ctx sdk.Context,
 		packet channeltypes.Packet,
-	) (*sdk.Result, []byte, error)
+		relayer sdk.AccAddress,
+	) exported.Acknowledgement
 
 	OnAcknowledgementPacket(
 		ctx sdk.Context,
 		packet channeltypes.Packet,
 		acknowledgement []byte,
-	) (*sdk.Result, error)
+		relayer sdk.AccAddress,
+	) error
 
 	OnTimeoutPacket(
 		ctx sdk.Context,
 		packet channeltypes.Packet,
-	) (*sdk.Result, error)
+		relayer sdk.AccAddress,
+	) error
+
+	// NegotiateAppVersion performs application version negotiation given the provided channel ordering, connectionID, portID, counterparty and proposed version.
+	// An error is returned if version negotiation cannot be performed. For example, an application module implementing this interface
+	// may decide to return an error in the event of the proposed version being incompatible with it's own
+	NegotiateAppVersion(
+		ctx sdk.Context,
+		order channeltypes.Order,
+		connectionID string,
+		portID string,
+		counterparty channeltypes.Counterparty,
+		proposedVersion string,
+	) (version string, err error)
 }

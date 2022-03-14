@@ -2,10 +2,10 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"regexp"
 
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
 const (

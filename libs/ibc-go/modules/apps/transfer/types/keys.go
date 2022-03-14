@@ -3,6 +3,7 @@ package types
 import (
 	"crypto/sha256"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 

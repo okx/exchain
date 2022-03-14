@@ -24,7 +24,6 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 }
 
 func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
-
 	// check
 	manageContractDeploymentWhitelistProposal, ok := proposal.Content.(types.ManageContractDeploymentWhitelistProposal)
 	if !ok {
@@ -44,7 +43,6 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
-
 	// check
 	manageContractBlockedListProposal, ok := proposal.Content.(types.ManageContractBlockedListProposal)
 	if !ok {

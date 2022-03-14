@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -50,64 +51,96 @@ func (k Keeper) CreateClient(
 	return clientID, nil
 }
 
-// (本地为chain1)在chain1 上会存chain0的一些consensus信息,然后验证的时候,chain0会携带自己的proof与本地存的相比较,一致了才能通过
 // UpdateClient updates the consensus state and the state root from a provided header.
 func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.Header) error {
 	clientState, found := k.GetClientState(ctx, clientID)
 	if !found {
 		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot update client with ID %s", clientID)
 	}
-
+	clientStore := k.ClientStore(ctx, clientID)
 	// prevent update if the client is frozen before or at header height
-	if clientState.IsFrozen() && clientState.GetFrozenHeight().LTE(header.GetHeight()) {
-		return sdkerrors.Wrapf(types.ErrClientFrozen, "cannot update client with ID %s", clientID)
+	//if clientState.IsFrozen() && clientState.GetFrozenHeight().LTE(header.GetHeight()) {
+	//	return sdkerrors.Wrapf(types.ErrClientFrozen, "cannot update client with ID %s", clientID)
+	//}
+	if status := clientState.Status(ctx, clientStore, k.cdc); status != exported.Active {
+		return sdkerrors.Wrapf(types.ErrClientNotActive, "cannot update client (%s) with status %s", clientID, status)
 	}
 
-	clientState, consensusState, err := clientState.CheckHeaderAndUpdateState(ctx, k.cdc, k.ClientStore(ctx, clientID), header)
+	eventType := types.EventTypeUpdateClient
+
+	// Any writes made in CheckHeaderAndUpdateState are persisted on both valid updates and misbehaviour updates.
+	// Light client implementations are responsible for writing the correct metadata (if any) in either case.
+	newClientState, newConsensusState, err := clientState.CheckHeaderAndUpdateState(ctx, k.cdc, clientStore, header)
 	if err != nil {
 		return sdkerrors.Wrapf(err, "cannot update client with ID %s", clientID)
 	}
 
-	k.SetClientState(ctx, clientID, clientState)
-
-	var consensusHeight exported.Height
-
-	// we don't set consensus state for localhost client
-	if header != nil && clientID != exported.Localhost {
-		k.SetClientConsensusState(ctx, clientID, header.GetHeight(), consensusState)
-		consensusHeight = header.GetHeight()
-	} else {
-		consensusHeight = types.GetSelfHeight(ctx)
-	}
-
-	k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
-
-	defer func() {
-		//telemetry.IncrCounterWithLabels(
-		//	[]string{"ibc", "client", "update"},
-		//	1,
-			//[]metrics.Label{
-			//	telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
-			//	telemetry.NewLabel(types.LabelClientID, clientID),
-			//	telemetry.NewLabel(types.LabelUpdateType, "msg"),
-			//},
-		//)
-	}()
-
 	// emit the full header in events
-	var headerStr string
+	var (
+		headerStr       string
+		consensusHeight exported.Height
+	)
 	if header != nil {
 		// Marshal the Header as an Any and encode the resulting bytes to hex.
 		// This prevents the event value from containing invalid UTF-8 characters
 		// which may cause data to be lost when JSON encoding/decoding.
 		headerStr = hex.EncodeToString(types.MustMarshalHeader(k.cdc, header))
+		// set default consensus height with header height
+		consensusHeight = header.GetHeight()
 
 	}
+
+	// set new client state regardless of if update is valid update or misbehaviour
+	k.SetClientState(ctx, clientID, newClientState)
+	// If client state is not frozen after clientState CheckHeaderAndUpdateState,
+	// then update was valid. Write the update state changes, and set new consensus state.
+	// Else the update was proof of misbehaviour and we must emit appropriate misbehaviour events.
+	if status := newClientState.Status(ctx, clientStore, k.cdc); status != exported.Frozen {
+		// if update is not misbehaviour then update the consensus state
+		// we don't set consensus state for localhost client
+		if header != nil && clientID != exported.Localhost {
+			k.SetClientConsensusState(ctx, clientID, header.GetHeight(), newConsensusState)
+		} else {
+			consensusHeight = types.GetSelfHeight(ctx)
+		}
+
+		k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
+
+		defer func() {
+			//telemetry.IncrCounterWithLabels(
+			//	[]string{"ibc", "client", "update"},
+			//	1,
+			//[]metrics.Label{
+			//	telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
+			//	telemetry.NewLabel(types.LabelClientID, clientID),
+			//	telemetry.NewLabel(types.LabelUpdateType, "msg"),
+			//},
+			//)
+		}()
+	} else {
+		// set eventType to SubmitMisbehaviour
+		eventType = types.EventTypeSubmitMisbehaviour
+
+		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
+
+		defer func() {
+			//	telemetry.IncrCounterWithLabels(
+			//		[]string{"ibc", "client", "misbehaviour"},
+			//		1,
+			//		[]metrics.Label{
+			//			telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
+			//			telemetry.NewLabel(types.LabelClientID, clientID),
+			//			telemetry.NewLabel(types.LabelMsgType, "update"),
+			//		},
+			//	)
+		}()
+	}
+	// emit the full header in events
 
 	// emitting events in the keeper emits for both begin block and handler client updates
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			types.EventTypeUpdateClient,
+			eventType,
 			sdk.NewAttribute(types.AttributeKeyClientID, clientID),
 			sdk.NewAttribute(types.AttributeKeyClientType, clientState.ClientType()),
 			sdk.NewAttribute(types.AttributeKeyConsensusHeight, consensusHeight.String()),
@@ -118,7 +151,6 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	return nil
 }
 
-
 // UpgradeClient upgrades the client to a new client state if this new client was committed to
 // by the old client at the specified upgrade height
 func (k Keeper) UpgradeClient(ctx sdk.Context, clientID string, upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState,
@@ -128,12 +160,13 @@ func (k Keeper) UpgradeClient(ctx sdk.Context, clientID string, upgradedClient e
 		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot update client with ID %s", clientID)
 	}
 
-	// prevent upgrade if current client is frozen
-	if clientState.IsFrozen() {
-		return sdkerrors.Wrapf(types.ErrClientFrozen, "cannot update client with ID %s", clientID)
+	clientStore := k.ClientStore(ctx, clientID)
+
+	if status := clientState.Status(ctx, clientStore, k.cdc); status != exported.Active {
+		return sdkerrors.Wrapf(types.ErrClientNotActive, "cannot upgrade client (%s) with status %s", clientID, status)
 	}
 
-	updatedClientState, updatedConsState, err := clientState.VerifyUpgradeAndUpdateState(ctx, k.cdc, k.ClientStore(ctx, clientID),
+	updatedClientState, updatedConsState, err := clientState.VerifyUpgradeAndUpdateState(ctx, k.cdc, clientStore,
 		upgradedClient, upgradedConsState, proofUpgradeClient, proofUpgradeConsState)
 	if err != nil {
 		return sdkerrors.Wrapf(err, "cannot upgrade client with ID %s", clientID)
@@ -176,17 +209,23 @@ func (k Keeper) CheckMisbehaviourAndUpdateState(ctx sdk.Context, misbehaviour ex
 		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot check misbehaviour for client with ID %s", misbehaviour.GetClientID())
 	}
 
-	if clientState.IsFrozen() && clientState.GetFrozenHeight().LTE(misbehaviour.GetHeight()) {
-		return sdkerrors.Wrapf(types.ErrInvalidMisbehaviour, "client is already frozen at height ≤ misbehaviour height (%s ≤ %s)", clientState.GetFrozenHeight(), misbehaviour.GetHeight())
+	clientStore := k.ClientStore(ctx, misbehaviour.GetClientID())
+
+	if status := clientState.Status(ctx, clientStore, k.cdc); status != exported.Active {
+		return sdkerrors.Wrapf(types.ErrClientNotActive, "cannot process misbehaviour for client (%s) with status %s", misbehaviour.GetClientID(), status)
 	}
 
-	clientState, err := clientState.CheckMisbehaviourAndUpdateState(ctx, k.cdc, k.ClientStore(ctx, misbehaviour.GetClientID()), misbehaviour)
+	if err := misbehaviour.ValidateBasic(); err != nil {
+		return err
+	}
+
+	clientState, err := clientState.CheckMisbehaviourAndUpdateState(ctx, k.cdc, clientStore, misbehaviour)
 	if err != nil {
 		return err
 	}
 
 	k.SetClientState(ctx, misbehaviour.GetClientID(), clientState)
-	k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", misbehaviour.GetClientID(), "height", misbehaviour.GetHeight().String())
+	k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", misbehaviour.GetClientID())
 
 	defer func() {
 		//telemetry.IncrCounterWithLabels(

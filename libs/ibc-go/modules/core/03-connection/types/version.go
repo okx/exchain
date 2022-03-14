@@ -1,11 +1,11 @@
 package types
 
 import (
+	"strings"
+
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"strings"
 )
-
 
 var (
 	// DefaultIBCVersion represents the latest supported version of IBC used
@@ -35,8 +35,6 @@ func ProtoVersionsToExported(versions []*Version) []exported.Version {
 
 	return exportedVersions
 }
-
-
 
 var _ exported.Version = &Version{}
 
@@ -106,6 +104,7 @@ func (version Version) VerifyProposedVersion(proposedVersion exported.Version) e
 
 	return nil
 }
+
 // contains returns true if the provided string element exists within the
 // string set.
 func contains(elem string, set []string) bool {
@@ -117,7 +116,6 @@ func contains(elem string, set []string) bool {
 
 	return false
 }
-
 
 // IsSupportedVersion returns true if the proposed version has a matching version
 // identifier and its entire feature set is supported or the version identifier
@@ -134,7 +132,6 @@ func IsSupportedVersion(proposedVersion *Version) bool {
 
 	return true
 }
-
 
 // PickVersion iterates over the descending ordered set of compatible IBC
 // versions and selects the first version with a version identifier that is
@@ -166,7 +163,6 @@ func PickVersion(supportedVersions, counterpartyVersions []exported.Version) (*V
 	)
 }
 
-
 // GetFeatureSetIntersection returns the intersections of source feature set
 // and the counterparty feature set. This is done by iterating over all the
 // features in the source version and seeing if they exist in the feature
@@ -180,7 +176,6 @@ func GetFeatureSetIntersection(sourceFeatureSet, counterpartyFeatureSet []string
 
 	return featureSet
 }
-
 
 // ExportedVersionsToProto casts a slice of the Version interface to a slice
 // of the Version proto definition.
@@ -204,8 +199,6 @@ func FindSupportedVersion(version exported.Version, supportedVersions []exported
 	}
 	return nil, false
 }
-
-
 
 // GetCompatibleVersions returns a descending ordered set of compatible IBC
 // versions for the caller chain's connection end. The latest supported

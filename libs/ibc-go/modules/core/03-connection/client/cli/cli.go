@@ -16,9 +16,9 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		//GetCmdQueryConnections(),
-		//GetCmdQueryConnection(),
-		//GetCmdQueryClientConnections(),
+	//GetCmdQueryConnections(),
+	//GetCmdQueryConnection(),
+	//GetCmdQueryClientConnections(),
 	)
 
 	return queryCmd
@@ -35,10 +35,10 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		//NewConnectionOpenInitCmd(),
-		//NewConnectionOpenTryCmd(),
-		//NewConnectionOpenAckCmd(),
-		//NewConnectionOpenConfirmCmd(),
+	//NewConnectionOpenInitCmd(),
+	//NewConnectionOpenTryCmd(),
+	//NewConnectionOpenAckCmd(),
+	//NewConnectionOpenConfirmCmd(),
 	)
 
 	return txCmd

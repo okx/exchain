@@ -1,9 +1,7 @@
 package keeper
 
 import (
-	"encoding/hex"
 	"fmt"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -15,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 )
-
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
 // encoding/decoding library.
@@ -35,7 +32,6 @@ type AccountKeeper struct {
 
 	observers []ObserverI
 }
-
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
 // (binary) encode and decode concrete sdk.Accounts.
@@ -112,7 +108,6 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
-	logrusplugin.Error("getAccountNumber","key",hex.EncodeToString(types.GlobalAccountNumberKey))
 
 	return accNumber
 }

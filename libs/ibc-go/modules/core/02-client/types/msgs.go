@@ -117,7 +117,6 @@ func (msg MsgCreateClient) UnpackInterfaces(unpacker codectypes.AnyUnpacker) err
 	return unpacker.UnpackAny(msg.ConsensusState, &consensusState)
 }
 
-
 // NewMsgUpdateClient creates a new MsgUpdateClient instance
 //nolint:interfacer
 func NewMsgUpdateClient(id string, header exported.Header, signer sdk.AccAddress) (*MsgUpdateClient, error) {

@@ -15,4 +15,3 @@ var (
 	ErrVersionNegotiationFailed      = sdkerrors.Register(SubModuleName, 10, "connection version negotiation failed")
 	ErrInvalidConnectionIdentifier   = sdkerrors.Register(SubModuleName, 11, "invalid connection identifier")
 )
-

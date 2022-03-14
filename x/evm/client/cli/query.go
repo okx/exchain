@@ -2,9 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
+
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"

@@ -9,6 +9,7 @@ import (
 // InitGenesis initializes the ibc connection submodule's state from a provided genesis
 // state.
 func InitGenesis(ctx sdk.Context, k keeper.Keeper, gs types.GenesisState) {
+	k.SetParams(ctx, gs.Params)
 	for _, connection := range gs.Connections {
 		conn := types.NewConnectionEnd(connection.State, connection.ClientId, connection.Counterparty, connection.Versions, connection.DelayPeriod)
 		k.SetConnection(ctx, connection.Id, conn)

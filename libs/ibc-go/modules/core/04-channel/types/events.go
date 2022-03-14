@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
@@ -13,14 +14,20 @@ const (
 	AttributeCounterpartyPortID    = "counterparty_port_id"
 	AttributeCounterpartyChannelID = "counterparty_channel_id"
 
-	EventTypeSendPacket        = "send_packet"
-	EventTypeRecvPacket        = "recv_packet"
-	EventTypeWriteAck          = "write_acknowledgement"
-	EventTypeAcknowledgePacket = "acknowledge_packet"
-	EventTypeTimeoutPacket     = "timeout_packet"
+	EventTypeSendPacket           = "send_packet"
+	EventTypeRecvPacket           = "recv_packet"
+	EventTypeWriteAck             = "write_acknowledgement"
+	EventTypeAcknowledgePacket    = "acknowledge_packet"
+	EventTypeTimeoutPacket        = "timeout_packet"
+	EventTypeTimeoutPacketOnClose = "timeout_on_close_packet"
 
-	AttributeKeyData             = "packet_data"
-	AttributeKeyAck              = "packet_ack"
+	// NOTE: DEPRECATED in favor of AttributeKeyDataHex
+	AttributeKeyData = "packet_data"
+	// NOTE: DEPRECATED in favor of AttributeKeyAckHex
+	AttributeKeyAck = "packet_ack"
+
+	AttributeKeyDataHex          = "packet_data_hex"
+	AttributeKeyAckHex           = "packet_ack_hex"
 	AttributeKeyTimeoutHeight    = "packet_timeout_height"
 	AttributeKeyTimeoutTimestamp = "packet_timeout_timestamp"
 	AttributeKeySequence         = "packet_sequence"

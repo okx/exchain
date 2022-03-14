@@ -7,6 +7,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+// Status represents the status of a client
+type Status string
 
 const (
 	// TypeClientMisbehaviour is the shared evidence misbehaviour type
@@ -21,7 +23,20 @@ const (
 	// Localhost is the client type for a localhost client. It is also used as the clientID
 	// for the localhost client.
 	Localhost string = "09-localhost"
+
+	// Active is a status type of a client. An active client is allowed to be used.
+	Active Status = "Active"
+
+	// Frozen is a status type of a client. A frozen client is not allowed to be used.
+	Frozen Status = "Frozen"
+
+	// Expired is a status type of a client. An expired client is not allowed to be used.
+	Expired Status = "Expired"
+
+	// Unknown indicates there was an error in determining the status of a client.
+	Unknown Status = "Unknown"
 )
+
 // Height is a wrapper interface over clienttypes.Height
 // all clients must use the concrete implementation in types
 type Height interface {
@@ -38,16 +53,12 @@ type Height interface {
 	String() string
 }
 
-
-
 // ClientState defines the required common functions for light clients.
 type ClientState interface {
 	proto.Message
 
 	ClientType() string
 	GetLatestHeight() Height
-	IsFrozen() bool
-	GetFrozenHeight() Height
 	Validate() error
 	GetProofSpecs() []*ics23.ProofSpec
 
@@ -56,6 +67,11 @@ type ClientState interface {
 	// necessary for correct light client operation
 	Initialize(sdk.Context, *codec.MarshalProxy, sdk.KVStore, ConsensusState) error
 
+	// Status function
+	// Clients must return their status. Only Active clients are allowed to process packets.
+	// Ywmet todo
+	Status(ctx sdk.Context, clientStore sdk.KVStore, cdc *codec.MarshalProxy) Status
+
 	// Genesis function
 	ExportMetadata(sdk.KVStore) []GenesisMetadata
 
@@ -63,7 +79,7 @@ type ClientState interface {
 
 	CheckHeaderAndUpdateState(sdk.Context, *codec.MarshalProxy, sdk.KVStore, Header) (ClientState, ConsensusState, error)
 	CheckMisbehaviourAndUpdateState(sdk.Context, *codec.MarshalProxy, sdk.KVStore, Misbehaviour) (ClientState, error)
-	CheckProposedHeaderAndUpdateState(sdk.Context,*codec.MarshalProxy, sdk.KVStore, Header) (ClientState, ConsensusState, error)
+	CheckSubstituteAndUpdateState(ctx sdk.Context, cdc *codec.MarshalProxy, subjectClientStore, substituteClientStore sdk.KVStore, substituteClient ClientState) (ClientState, error)
 
 	// Upgrade functions
 	// NOTE: proof heights are not included as upgrade to a new revision is expected to pass only on the last
@@ -126,11 +142,12 @@ type ClientState interface {
 		channel ChannelI,
 	) error
 	VerifyPacketCommitment(
+		ctx sdk.Context,
 		store sdk.KVStore,
 		cdc *codec.MarshalProxy,
 		height Height,
-		currentTimestamp uint64,
-		delayPeriod uint64,
+		delayTimePeriod uint64,
+		delayBlockPeriod uint64,
 		prefix Prefix,
 		proof []byte,
 		portID,
@@ -139,11 +156,12 @@ type ClientState interface {
 		commitmentBytes []byte,
 	) error
 	VerifyPacketAcknowledgement(
+		ctx sdk.Context,
 		store sdk.KVStore,
 		cdc *codec.MarshalProxy,
 		height Height,
-		currentTimestamp uint64,
-		delayPeriod uint64,
+		delayTimePeriod uint64,
+		delayBlockPeriod uint64,
 		prefix Prefix,
 		proof []byte,
 		portID,
@@ -152,11 +170,12 @@ type ClientState interface {
 		acknowledgement []byte,
 	) error
 	VerifyPacketReceiptAbsence(
+		ctx sdk.Context,
 		store sdk.KVStore,
 		cdc *codec.MarshalProxy,
 		height Height,
-		currentTimestamp uint64,
-		delayPeriod uint64,
+		delayTimePeriod uint64,
+		delayBlockPeriod uint64,
 		prefix Prefix,
 		proof []byte,
 		portID,
@@ -164,11 +183,12 @@ type ClientState interface {
 		sequence uint64,
 	) error
 	VerifyNextSequenceRecv(
+		ctx sdk.Context,
 		store sdk.KVStore,
 		cdc *codec.MarshalProxy,
 		height Height,
-		currentTimestamp uint64,
-		delayPeriod uint64,
+		delayTimePeriod uint64,
+		delayBlockPeriod uint64,
 		prefix Prefix,
 		proof []byte,
 		portID,
@@ -176,7 +196,6 @@ type ClientState interface {
 		nextSequenceRecv uint64,
 	) error
 }
-
 
 // ConsensusState is the state of the consensus process
 type ConsensusState interface {
@@ -193,8 +212,6 @@ type ConsensusState interface {
 
 	ValidateBasic() error
 }
-
-
 
 // Misbehaviour defines counterparty misbehaviour for a specific consensus type
 type Misbehaviour interface {
@@ -216,7 +233,6 @@ type Header interface {
 	GetHeight() Height
 	ValidateBasic() error
 }
-
 
 // GenesisMetadata is a wrapper interface over clienttypes.GenesisMetadata
 // all clients must use the concrete implementation in types

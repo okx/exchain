@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -55,10 +56,10 @@ func (q Keeper) Connections(c context.Context, req *types.QueryConnectionsReques
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		var result types.ConnectionEnd
 
-		if retr,err := common.UnmarshalConnection(q.cdc,value); err != nil {
+		if retr, err := common.UnmarshalConnection(q.cdc, value); err != nil {
 			return err
-		}else{
-			result=*retr
+		} else {
+			result = *retr
 		}
 
 		connectionID, err := host.ParseConnectionPath(string(key))

@@ -5,6 +5,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
@@ -20,15 +22,17 @@ type Keeper struct {
 	types.QueryServer
 
 	storeKey     sdk.StoreKey
+	paramSpace   paramtypes.Subspace
 	cdc          *codec.MarshalProxy
 	clientKeeper types.ClientKeeper
 }
 
 // NewKeeper creates a new IBC connection Keeper instance
-func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, ck types.ClientKeeper) Keeper {
+func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
 	return Keeper{
 		storeKey:     key,
 		cdc:          cdc,
+		paramSpace:   paramSpace,
 		clientKeeper: ck,
 	}
 }
@@ -63,7 +67,7 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	}
 
 	var connection types.ConnectionEnd
-	connection=*common.MustUnmarshalConnection(k.cdc,bz)
+	connection = *common.MustUnmarshalConnection(k.cdc, bz)
 	//err:=k.cdc.GetCdc().UnmarshalJSON(bz,&connection)
 	//if nil != err {
 	//	panic(err)
@@ -75,7 +79,7 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 // SetConnection sets a connection to the store
 func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection types.ConnectionEnd) {
 	store := ctx.KVStore(k.storeKey)
-	bz:=common.MustMarshalConnection(k.cdc,&connection)
+	bz := common.MustMarshalConnection(k.cdc, &connection)
 	//bz,err:=k.cdc.GetCdc().MarshalJSON(&connection)
 	//bz, err := k.cdc.GetProtocMarshal().MarshalInterfaceJSON(&connection)
 	//if nil != err {

@@ -3,10 +3,12 @@ package types
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
 	//"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"strings"
+
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"strings"
 )
 
 // msg types
@@ -45,9 +47,9 @@ func NewMsgTransfer(
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgTransfer {
 	return &MsgTransfer{
-		SourcePort:       sourcePort,
-		SourceChannel:    sourceChannel,
-		Token:            sdk.CoinAdapter{
+		SourcePort:    sourcePort,
+		SourceChannel: sourceChannel,
+		Token: sdk.CoinAdapter{
 			Denom:  token.Denom,
 			Amount: sdk.NewIntFromBigInt(token.Amount.BigInt()),
 		},

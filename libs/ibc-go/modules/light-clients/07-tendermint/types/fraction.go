@@ -5,7 +5,7 @@ import (
 )
 
 // DefaultTrustLevel is the tendermint light client default trust level
-var DefaultTrustLevel = NewFractionFromTm( tmmath.Fraction{Numerator: 1, Denominator: 3})
+var DefaultTrustLevel = NewFractionFromTm(tmmath.Fraction{Numerator: 1, Denominator: 3})
 
 // NewFractionFromTm returns a new Fraction instance from a tmmath.Fraction
 func NewFractionFromTm(f tmmath.Fraction) Fraction {

@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	clientsim "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/simulation"
 	connectionsim "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/simulation"
@@ -13,8 +14,8 @@ import (
 
 // NewDecodeStore returns a decoder function closure that unmarshals the KVPair's
 // Value to the corresponding ibc type.
-func NewDecodeStore(k keeper.Keeper) func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
-	return func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
+func NewDecodeStore(k keeper.Keeper) func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
+	return func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
 		if res, found := clientsim.NewDecodeStore(k.ClientKeeper, kvA, kvB); found {
 			return res
 		}

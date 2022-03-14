@@ -3,11 +3,12 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	"math/rand"
-	"strings"
 )
 
 // Simulation parameter constants

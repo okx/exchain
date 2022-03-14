@@ -11,4 +11,3 @@ var (
 	ErrInvalidPath   = sdkerrors.Register(SubModuleName, 3, "invalid path")
 	ErrInvalidPacket = sdkerrors.Register(SubModuleName, 4, "invalid packet")
 )
-

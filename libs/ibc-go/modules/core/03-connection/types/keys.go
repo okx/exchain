@@ -2,9 +2,10 @@ package types
 
 import (
 	"fmt"
+	"regexp"
+
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"regexp"
 )
 
 const (
@@ -27,7 +28,6 @@ const (
 	// ConnectionPrefix is the prefix used when creating a connection identifier
 	ConnectionPrefix = "connection-"
 )
-
 
 // FormatConnectionIdentifier returns the connection identifier with the sequence appended.
 // This is a SDK specific format not enforced by IBC protocol.
