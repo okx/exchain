@@ -759,7 +759,7 @@ func (m *RequestCheckTx) GetFrom() string {
 }
 
 type RequestDeliverTx struct {
-	RealTx               Tx
+	RealTx               TxEssentialAttributes
 	Tx                   []byte   `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -1598,7 +1598,7 @@ func (m *ResponseBeginBlock) GetEvents() []Event {
 }
 
 type ResponseCheckTx struct {
-	Tx                   Tx
+	Tx                   TxEssentialAttributes
 	SenderNonce          uint64
 	Code                 uint32   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`

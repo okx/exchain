@@ -144,7 +144,7 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	return state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 }
 
-var globalRealTxs []abci.Tx
+var globalRealTxs []abci.TxEssentialAttributes
 
 // ValidateBlock validates the given block against the given state.
 // If the block is invalid, it returns an error.
