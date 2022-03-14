@@ -3,6 +3,7 @@ package ibc
 import (
 	"encoding/json"
 	"fmt"
+	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -18,6 +19,7 @@ import (
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/simulation"
@@ -46,11 +48,17 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	return nil
+	//return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.GetIBCHeight() != 1 {
+		if nil == bz {
+			return nil
+		}
+	}
 	var data types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
@@ -92,6 +100,7 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // AppModule implements an application module for the ibc module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper *keeper.Keeper
 
 	// create localhost by default
@@ -100,9 +109,11 @@ type AppModule struct {
 
 // NewAppModule creates a new AppModule object
 func NewAppModule(k *keeper.Keeper) AppModule {
-	return AppModule{
+	ret := AppModule{
 		keeper: k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
 }
 
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
@@ -159,6 +170,11 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	//return am.initGenesis(ctx, data)
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var gs types.GenesisState
 	err := ModuleCdc.UnmarshalJSON(data, &gs)
 	if err != nil {
@@ -171,7 +187,17 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	//return am.exportGenesis(ctx)
+	return nil
+}
+
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper))
+}
+
+func lazyGenesis() json.RawMessage {
+	ret := DefaultGenesisState()
+	return ModuleCdc.MustMarshalJSON(&ret)
 }
 
 // BeginBlock returns the begin blocker for the ibc module.
@@ -215,4 +241,13 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 // WeightedOperations returns the all the ibc module operations with their respective weights.
 func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.WeightedOperation {
 	return nil
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	return module.NewHeightTask(4, func(ctx sdk.Context) error {
+		data := lazyGenesis()
+		logrusplugin.Info("core init genesis")
+		am.initGenesis(ctx, data)
+		return nil
+	})
 }

@@ -169,6 +169,7 @@ func (b *Block) ValidateBasic() error {
 
 	// NOTE: b.Data.Txs may be nil, but b.Data.Hash() still works fine.
 	if !bytes.Equal(b.DataHash, b.Data.Hash(b.Height)) {
+		b.Data.Hash(b.Height)
 		return fmt.Errorf(
 			"wrong Header.DataHash. Expected %v, got %v",
 			b.Data.Hash(b.Height),

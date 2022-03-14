@@ -13,6 +13,29 @@ const (
 	ProofOpSimpleMerkleCommitment = "ics23:simple"
 )
 
+type HeightFilterPipeline func(h int64) func(str string) bool
+
+var (
+	DefaultAcceptAll HeightFilterPipeline = func(h int64) func(str string) bool {
+		return func(_ string) bool { return false }
+	}
+)
+
+type CommitMultiStorePipeline interface {
+	SetCommitHeightFilterPipeline(f HeightFilterPipeline)
+	SetPruneHeightFilterPipeline(f HeightFilterPipeline)
+}
+
+func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
+	return func(h int64) func(str string) bool {
+		filter := f(h)
+		if nil != filter {
+			return filter
+		}
+		return s(h)
+	}
+}
+
 // CommitmentOp implements merkle.ProofOperator by wrapping an ics23 CommitmentProof
 // It also contains a Key field to determine which key the proof is proving.
 // NOTE: CommitmentProof currently can either be ExistenceProof or NonexistenceProof

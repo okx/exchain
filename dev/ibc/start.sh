@@ -51,7 +51,6 @@ run() {
           --enable-dynamic-gp=false \
           --consensus.timeout_commit 2000ms \
           --enable-preruntx=false \
-          --iavl-enable-async-commit \
           --enable-gid \
           --append-pid=true \
           --iavl-commit-interval-height 10 \

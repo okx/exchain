@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"strings"
 )
 
 type Coin = DecCoin
@@ -97,19 +98,17 @@ func ZeroFee() Coin {
 // invalid.
 func ValidateDenom(denom string) error {
 	// TODO ,height
-	if !validIBCCoinDenom(denom) {
+	if denom == DefaultBondDenom {
+		return nil
+	}
+	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
+		if strings.HasPrefix(denom, "ibc") {
+			if validIBCCoinDenom(denom) {
+				return nil
+			}
+		}
 		return fmt.Errorf("invalid denom: %s", denom)
 	}
-
-	//if global.IBCEnable{
-	//	if !validIBCCoinDenom(denom){
-	//		return fmt.Errorf("invalid denom: %s", denom)
-	//	}
-	//}else{
-	//	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
-	//		return fmt.Errorf("invalid denom: %s", denom)
-	//	}
-	//}
 	return nil
 }
 

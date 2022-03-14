@@ -30,6 +30,8 @@ package module
 
 import (
 	"encoding/json"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"sort"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -285,6 +287,10 @@ func (m *Manager) InitGenesis(ctx sdk.Context, genesisData map[string]json.RawMe
 func (m *Manager) ExportGenesis(ctx sdk.Context) map[string]json.RawMessage {
 	genesisData := make(map[string]json.RawMessage)
 	for _, moduleName := range m.OrderExportGenesis {
+		data := m.Modules[moduleName].ExportGenesis(ctx)
+		if nil == data {
+			continue
+		}
 		genesisData[moduleName] = m.Modules[moduleName].ExportGenesis(ctx)
 	}
 	return genesisData
@@ -339,6 +345,65 @@ func (m *Manager) RegisterServices(cfg Configurator) {
 			ada.RegisterServices(cfg)
 		}
 	}
+}
+func (m *Manager) CollectUpgradeModules() (map[int64]*HeightTasks, types.HeightFilterPipeline) {
+	hm := make(map[int64]*HeightTasks)
+	hStoreInfoModule := make(map[int64]map[string]struct{})
+	for _, module := range m.Modules {
+		if ada, ok := module.(UpgradeModule); ok {
+			h := ada.UpgradeHeight()
+			upgradeH := h + 1
+			if upgradeH <= 0 {
+				continue
+			}
+			t := ada.RegisterTask()
+			if t == nil {
+				continue
+			}
+			if err := t.ValidateBasic(); nil != err {
+				panic(err)
+			}
+			storeInfoModule := hStoreInfoModule[h]
+			if storeInfoModule == nil {
+				storeInfoModule = make(map[string]struct{})
+				hStoreInfoModule[h] = storeInfoModule
+			}
+			names := ada.BlockStoreModules()
+			for _, n := range names {
+				storeInfoModule[n] = struct{}{}
+			}
+			taskList := hm[upgradeH]
+			if taskList == nil {
+				v := make(HeightTasks, 0)
+				taskList = &v
+				hm[upgradeH] = taskList
+			}
+			*taskList = append(*taskList, t)
+		}
+	}
+	for _, v := range hm {
+		sort.Sort(*v)
+	}
+	var pip types.HeightFilterPipeline
+	for height, mm := range hStoreInfoModule {
+		f := func(h int64) func(str string) bool {
+			if h > height {
+				// next
+				return nil
+			}
+			// filter block module
+			return func(str string) bool {
+				_, exist := mm[str]
+				return exist
+			}
+		}
+		if pip == nil {
+			pip = f
+		} else {
+			pip = types.LinkPipeline(f, pip)
+		}
+	}
+	return hm, pip
 }
 
 type MigrationHandler func(sdk.Context) error

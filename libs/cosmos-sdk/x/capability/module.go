@@ -14,7 +14,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"math/rand"
 )
@@ -23,6 +25,7 @@ var (
 	_ module.AppModuleAdapter    = AppModule{}
 	_ module.AppModuleBasic      = AppModuleBasic{}
 	_ module.AppModuleSimulation = AppModule{}
+	_ module.UpgradeModule       = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -31,11 +34,14 @@ var (
 
 // AppModuleBasic implements the AppModuleBasic interface for the capability module.
 type AppModuleBasic struct {
-	cdc codec.Marshaler
+	cdc *codec.CodecProxy
+	*base.BaseIBCUpgradeModule
 }
 
-func NewAppModuleBasic(cdc codec.Marshaler) AppModuleBasic {
-	return AppModuleBasic{cdc: cdc}
+func NewAppModuleBasic(cdc *codec.CodecProxy) AppModuleBasic {
+	ret := AppModuleBasic{cdc: cdc}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
 }
 
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {}
@@ -54,11 +60,17 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
+	return nil
+	//return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.GetIBCHeight() != 1 {
+		if nil == bz {
+			return nil
+		}
+	}
 	var genState types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &genState); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
@@ -86,15 +98,26 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command { return nil 
 // AppModule implements the AppModule interface for the capability module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 
 	keeper keeper.Keeper
 }
 
-func NewAppModule(cdc codec.Marshaler, keeper keeper.Keeper) AppModule {
-	return AppModule{
+func (am AppModule) NewHandler() sdk.Handler {
+	return nil
+}
+
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	return nil
+}
+
+func NewAppModule(cdc *codec.CodecProxy, keeper keeper.Keeper) AppModule {
+	ret := AppModule{
 		AppModuleBasic: NewAppModuleBasic(cdc),
 		keeper:         keeper,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
 }
 
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
@@ -107,7 +130,7 @@ func (am AppModule) Name() string {
 }
 
 // Route returns the capability module's message routing key.
-func (AppModule) Route() sdk.Route { return sdk.Route{} }
+func (AppModule) Route() string { return types.ModuleName }
 
 // QuerierRoute returns the capability module's query routing key.
 func (AppModule) QuerierRoute() string { return "" }
@@ -125,6 +148,10 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	//return am.initGenesis(ctx, data)
+	return nil
+}
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState types.GenesisState
 	// Initialize global index to index in genesis state
 	ModuleCdc.MustUnmarshalJSON(data, &genState)
@@ -136,6 +163,9 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	return nil
+}
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	genState := ExportGenesis(ctx, am.keeper)
 	return ModuleCdc.MustMarshalJSON(genState)
 }
@@ -172,4 +202,12 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 // WeightedOperations returns the all the gov module operations with their respective weights.
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simulation2.WeightedOperation {
 	return nil
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	return module.NewHeightTask(0, func(ctx sdk.Context) error {
+		data := ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
+		am.initGenesis(ctx, data)
+		return nil
+	})
 }

@@ -597,6 +597,32 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			}
 		} else {
 			tree.ndb.SaveBranch(batch, tree.root, tree.savedNodes)
+			//logrusplugin.Error("tree", "nodes的数量", len(tree.savedNodes))
+			//if len(tree.savedNodes) == 676 {
+			//	sb := strings.Builder{}
+			//	ks := make([]string, 0)
+			//	i := 0
+			//	//hashs := make(map[string]string)
+			//	for k, _ := range tree.savedNodes {
+			//		ks = append(ks, k)
+			//		//hashs[k] = hex.EncodeToString(v.hash)
+			//	}
+			//	sort.Strings(ks)
+			//	for _, k := range ks {
+			//
+			//		sb.WriteString(fmt.Sprintf("%s:%s:%s;", hex.EncodeToString([]byte(tree.savedNodes[k].key)), hex.EncodeToString([]byte(tree.savedNodes[k].value)), hex.EncodeToString(tree.savedNodes[k].hash)))
+			//		//acc, err := sdk.AccAddressFromHex(hex.EncodeToString([]byte(k)))
+			//		//if nil != err {
+			//		//	panic(err)
+			//		//}
+			//		//sb.WriteString(fmt.Sprintf("%s:%s", hex.EncodeToString([]byte(k))))
+			//		i++
+			//		//if i > 10 {
+			//		//	break
+			//		//}
+			//	}
+			//	logrusplugin.Error(sb.String() + "\n\n\n\n\n")
+			//}
 		}
 		// generate state delta
 		if produceDelta {

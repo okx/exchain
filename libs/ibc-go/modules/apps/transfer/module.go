@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math"
 	"math/rand"
 
@@ -26,6 +27,7 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 
@@ -60,11 +62,17 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	return nil
+	//return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
-// ValidateGenesis performs genesis state validation for the ibc transfer module.
+// ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.GetIBCHeight() != 1 {
+		if nil == bz {
+			return nil
+		}
+	}
 	var data types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
@@ -94,15 +102,18 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule represents the AppModule for this module
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 	m      *codec.MarshalProxy
 }
 
 // NewAppModule creates a new 20-transfer module
 func NewAppModule(k keeper.Keeper, m *codec.MarshalProxy) AppModule {
-	return AppModule{
+	ret := AppModule{
 		keeper: k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
+	return ret
 }
 
 func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
@@ -147,6 +158,11 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	//return am.initGenesis(ctx, data)
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	am.keeper.InitGenesis(ctx, genesisState)
@@ -156,8 +172,16 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	//return am.exportGenesis(ctx)
+	return nil
+}
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)
 	return ModuleCdc.MustMarshalJSON(gs)
+}
+func lazeGenesis() json.RawMessage {
+	ret := types.DefaultGenesisState()
+	return ModuleCdc.MustMarshalJSON(ret)
 }
 
 // ConsensusVersion implements AppModule/ConsensusVersion.
@@ -171,6 +195,8 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
+
+// ____________________________________________________________________________
 
 // AppModuleSimulation functions
 
@@ -198,6 +224,8 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
 	return nil
 }
+
+// ____________________________________________________________________________
 
 // ValidateTransferChannelParams does validation of a newly created transfer channel. A transfer
 // channel must be UNORDERED, use the correct port (by default 'transfer'), and use the current
@@ -465,4 +493,12 @@ func (am AppModule) NegotiateAppVersion(
 	}
 
 	return types.Version, nil
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	return module.NewHeightTask(2, func(ctx sdk.Context) error {
+		data := lazeGenesis()
+		am.initGenesis(ctx, data)
+		return nil
+	})
 }

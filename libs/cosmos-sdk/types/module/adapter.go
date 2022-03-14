@@ -11,7 +11,6 @@ import (
 // AppModuleBasic is the standard form for basic non-dependant elements of an application module.
 type AppModuleBasicAdapter interface {
 	AppModuleBasic
-	Name() string
 	RegisterInterfaces(codectypes.InterfaceRegistry)
 	// client functionality
 	RegisterGRPCGatewayRoutes(clictx.CLIContext, *runtime.ServeMux)
@@ -25,12 +24,12 @@ type AppModuleGenesisAdapter interface {
 
 // AppModule is the standard form for an application module
 type AppModuleAdapter interface {
+	AppModule
 	AppModuleGenesisAdapter
 	// registers
 	RegisterInvariants(sdk.InvariantRegistry)
 	// RegisterServices allows a module to register services
 	RegisterServices(Configurator)
 
-	Upgrade(req *types.UpgradeReq)(*types.ModuleUpgradeResp,error)
+	Upgrade(req *types.UpgradeReq) (*types.ModuleUpgradeResp, error)
 }
-

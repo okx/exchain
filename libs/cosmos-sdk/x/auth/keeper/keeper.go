@@ -33,7 +33,6 @@ type AccountKeeper struct {
 	observers []ObserverI
 }
 
-
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
 // (binary) encode and decode concrete sdk.Accounts.
 // nolint
@@ -115,7 +114,8 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 // -----------------------------------------------------------------------------
 // Misc.
-
+func Reset() {
+}
 func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
 	if err == nil {
@@ -128,8 +128,6 @@ func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
 	}
 	return
 }
-
-
 
 // GetModuleAddress returns an address based on the module name
 func (ak AccountKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {

@@ -53,8 +53,9 @@ func initLog() {
 		"Produce[Consensus<",
 	))
 	logrusplugin.SetupDefaultWithInterest(map[string]logrusplugin.Color{
-		"connectionId": logrusplugin.TextRed,
-		"capabilityName":logrusplugin.TextRed,
+		"connectionId":    logrusplugin.TextRed,
+		"capabilityName":  logrusplugin.TextRed,
+		"consensusHeight": logrusplugin.TextRed,
 	})
 }
 func main() {

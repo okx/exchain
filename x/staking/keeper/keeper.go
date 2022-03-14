@@ -21,14 +21,14 @@ var _ types.ValidatorSet = Keeper{}
 type Keeper struct {
 	storeKey     sdk.StoreKey
 	cdc          *codec.Codec
-	cdcMarshl *codec.MarshalProxy
+	cdcMarshl    *codec.MarshalProxy
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.MarshalProxy,key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.MarshalProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {
 
 	// set KeyTable if it has not already been set
@@ -47,9 +47,30 @@ func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.MarshalProxy,key sdk.StoreKey,
 	return Keeper{
 		storeKey:     key,
 		cdc:          cdc,
-		cdcMarshl: cdcMarshl,
+		cdcMarshl:    cdcMarshl,
 		supplyKeeper: supplyKeeper,
-		paramstore:  paramstore,
+		paramstore:   paramstore,
+		hooks:        nil,
+	}
+}
+
+func NewKeeperO(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+	paramstore params.Subspace) Keeper {
+
+	// ensure bonded and not bonded module accounts are set
+	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))
+	}
+
+	if addr := supplyKeeper.GetModuleAddress(types.NotBondedPoolName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.NotBondedPoolName))
+	}
+
+	return Keeper{
+		storeKey:     key,
+		cdc:          cdc,
+		supplyKeeper: supplyKeeper,
+		paramstore:   paramstore.WithKeyTable(ParamKeyTable()),
 		hooks:        nil,
 	}
 }
@@ -133,7 +154,6 @@ func (k Keeper) GetOperAndValidatorAddr(ctx sdk.Context) types.OVPairs {
 	}
 	return ovPairs
 }
-
 
 // GetHistoricalInfo gets the historical info at a given height
 func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types2.HistoricalInfo, bool) {

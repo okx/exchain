@@ -93,7 +93,8 @@ func (k Keeper) GetClientConsensusState(ctx sdk.Context, clientID string, height
 func (k Keeper) SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState) {
 	store := k.ClientStore(ctx, clientID)
 	logrusplugin.Info("set consensusState", "clientId", clientID, "height", height, "hash",
-		hex.EncodeToString(consensusState.GetRoot().GetHash()))
+		hex.EncodeToString(consensusState.GetRoot().GetHash()),
+		"consensusHeight", height)
 	store.Set(host.ConsensusStateKey(height), k.MustMarshalConsensusState(consensusState))
 }
 

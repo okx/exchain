@@ -803,6 +803,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	events := sdk.EmptyEvents()
 
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
+	//for i := len(msgs) - 1; i >= 0; i-- {
+	//msg := msgs[i]
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
 		if _, ok := msg.(sdk.MsgProtoAdapter); !ok {
@@ -913,3 +915,7 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
+
+func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
+	return app.cms
+}
