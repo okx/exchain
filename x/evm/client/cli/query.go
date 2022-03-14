@@ -2,9 +2,9 @@ package cli
 
 import (
 	"fmt"
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/x/evm/client/utils"
 	"strings"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -13,6 +13,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/x/evm/client/rest"
+	"github.com/okex/exchain/x/evm/client/utils"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
