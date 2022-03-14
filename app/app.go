@@ -193,21 +193,7 @@ func NewOKExChainApp(
 		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	onceLog.Do(func() {
-		iavllog := logger.With("module", "iavl")
-		logFunc := func(level int, format string, args ...interface{}) {
-			var stringer = newFmtStringer(format, args...)
-			switch level {
-			case iavl.IavlErr:
-				iavllog.Error("", "error", stringer)
-			case iavl.IavlInfo:
-				iavllog.Info("", "info", stringer)
-			case iavl.IavlDebug:
-				iavllog.Debug("", "debug", stringer)
-			default:
-				return
-			}
-		}
-		iavl.SetLogFunc(logFunc)
+		iavl.SetLogger(logger.With("module", "iavl"))
 		logStartingFlags(logger)
 	})
 

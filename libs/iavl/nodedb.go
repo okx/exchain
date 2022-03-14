@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -181,7 +183,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	}
 
 	batch.Set(ndb.nodeKey(node.hash), buf.Bytes())
-	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
+	ndb.log(IavlDebug, "BATCH SAVE", "hash", amino.BytesHexStringer(node.hash))
 	node.persisted = true
 	ndb.addDBWriteCount(1)
 	ndb.cacheNode(node)
@@ -392,8 +394,8 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	batch.Set(key, hash)
 }
 
-func (ndb *nodeDB) log(level int, format string, args ...interface{}) {
-	iavlLog(ndb.name, level, format, args...)
+func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {
+	iavlLog(ndb.name, level, msg, kv...)
 }
 
 // deleteOrphans deletes orphaned nodes from disk, and the associated orphan
@@ -420,12 +422,12 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 		// can delete the orphan.  Otherwise, we shorten its lifetime, by
 		// moving its endpoint to the previous version.
 		if predecessor < fromVersion || fromVersion == toVersion {
-			ndb.log(IavlDebug, "DELETE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
+			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			batch.Delete(ndb.nodeKey(hash))
 			ndb.syncUnCacheNode(hash)
 			ndb.totalDeletedCount++
 		} else {
-			ndb.log(IavlDebug, "MOVE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
+			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
 		}
 	})
@@ -597,7 +599,7 @@ func (ndb *nodeDB) SaveRoot(batch dbm.Batch, root *Node, version int64) error {
 	if len(root.hash) == 0 {
 		panic("SaveRoot: root hash should not be empty")
 	}
-	ndb.log(IavlDebug, "saving root hash(version %d) to disk", version)
+	ndb.log(IavlDebug, "saving root to disk", "version", version)
 	return ndb.saveRoot(batch, root.hash, version)
 }
 
