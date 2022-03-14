@@ -71,10 +71,7 @@ func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState 
 		WithVoteInfos(app.voteInfos).
 		WithConsensusParams(app.consensusParams)
 
-	err = app.setTxInfoCtx(info, mode, height)
-	if err == nil {
-		err = app.runTxWithInfo(info, mode)
-	}
+	err = app.prepareTxInfoAndRun(info, mode, height)
 
 	return info, err
 }

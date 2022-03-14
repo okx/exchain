@@ -36,10 +36,7 @@ func (app *BaseApp) runTx(mode runTxMode,
 		txBytes: txBytes,
 	}
 
-	err = app.setTxInfoCtx(info, mode, height, from...)
-	if err == nil {
-		err = app.runTxWithInfo(info, mode)
-	}
+	err = app.prepareTxInfoAndRun(info, mode, height, from...)
 
 	return info.gInfo, info.result, info.msCacheAnte, err
 }
@@ -69,9 +66,14 @@ func (app *BaseApp) setTxInfoCtx(info *runTxInfo, mode runTxMode, height int64, 
 	return
 }
 
-func (app *BaseApp) runTxWithInfo(info *runTxInfo, mode runTxMode) (err error) {
+func (app *BaseApp) prepareTxInfoAndRun(info *runTxInfo, mode runTxMode, height int64, from ...string) (err error) {
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
+
+	err = app.setTxInfoCtx(info, mode, height, from...)
+	if err != nil {
+		return err
+	}
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
