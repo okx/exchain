@@ -70,6 +70,17 @@ type nodeDB struct {
 	name string
 }
 
+func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
+	if initRatio <= 0 {
+		return make(map[string]*list.Element)
+	}
+	if initRatio >= 1 {
+		return make(map[string]*list.Element, cacheSize)
+	}
+	cacheSize = int(float64(cacheSize) * initRatio)
+	return make(map[string]*list.Element, cacheSize)
+}
+
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	if opts == nil {
 		o := DefaultOptions()
@@ -79,7 +90,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
-		nodeCache:               make(map[string]*list.Element, cacheSize),
+		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
 		nodeCacheSize:           cacheSize,
 		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),

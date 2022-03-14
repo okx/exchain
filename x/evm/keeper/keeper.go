@@ -56,16 +56,13 @@ type Keeper struct {
 	UpdatedAccount []ethcmn.Address
 
 	// cache chain config
-	chainConfigInfo *chainConfigInfo
+	cci *chainConfigInfo
 }
 
 type chainConfigInfo struct {
-	// found chainConfig is meaningful(not empty).
-	found bool
-
-	// chainConfig cached chain config,it may be empty one(found is false), a real one(found is true) or nil.
+	// chainConfig cached chain config
 	// nil means invalid the cache, we should cache it again.
-	chainConfig *types.ChainConfig
+	cc *types.ChainConfig
 
 	// gasReduced: cached chain config reduces gas costs.
 	// when use cached chain config, we restore the gas cost(gasReduced)
@@ -91,7 +88,6 @@ func NewKeeper(
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}
-
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -110,7 +106,7 @@ func NewKeeper(
 
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
-		chainConfigInfo: &chainConfigInfo{},
+		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -295,19 +291,20 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // cache the chain config and gas costs.
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
-	if k.chainConfigInfo.chainConfig != nil {
-		ctx.GasMeter().ConsumeGas(k.chainConfigInfo.gasReduced, "cached chain config recover")
-		return *k.chainConfigInfo.chainConfig, k.chainConfigInfo.found
+	if k.cci.cc != nil {
+		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
+		return *k.cci.cc, true
 	}
 
 	gasStart := ctx.GasMeter().GasConsumed()
 	chainConfig, found := k.getChainConfig(ctx)
 	gasStop := ctx.GasMeter().GasConsumed()
 
-	// cache chain config result
-	k.chainConfigInfo.found = found
-	k.chainConfigInfo.chainConfig = &chainConfig
-	k.chainConfigInfo.gasReduced = gasStop - gasStart
+	// only cache chain config result when we found it, or try to found again.
+	if found {
+		k.cci.cc = &chainConfig
+		k.cci.gasReduced = gasStop - gasStart
+	}
 
 	return chainConfig, found
 }
@@ -320,7 +317,7 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.chainConfigInfo.chainConfig = nil
+	k.cci.cc = nil
 }
 
 // SetGovKeeper sets keeper of gov
@@ -332,4 +329,9 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+}
+
+func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.IsContractInBlockedList(addr.Bytes())
 }

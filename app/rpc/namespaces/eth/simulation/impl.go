@@ -129,6 +129,11 @@ func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	}
 
 }
+
+func (p SubspaceProxy) RegisterSignal(handler func()) {
+
+}
+
 func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {
 
 }

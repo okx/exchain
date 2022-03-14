@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
+	"github.com/tendermint/go-amino"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -168,5 +169,14 @@ func (ak AccountKeeper) MigrateAccounts(ctx sdk.Context, cb func(account exporte
 		if cb(account, iterator.Key(), iterator.Value()) {
 			break
 		}
+	}
+}
+
+func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) int {
+	if sizer, ok := acc.(amino.Sizer); ok {
+		// typeprefix + amino bytes
+		return 4 + sizer.AminoSize(ak.cdc)
+	} else {
+		return len(ak.cdc.MustMarshalBinaryBare(acc))
 	}
 }

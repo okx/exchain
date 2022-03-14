@@ -105,6 +105,28 @@ func (acc BaseAccount) Copy() interface{} {
 
 var baseAccountBufferPool = amino.NewBufferPool()
 
+func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	if len(acc.Address) != 0 {
+		size += 1 + amino.ByteSliceSize(acc.Address)
+	}
+	for _, coin := range acc.Coins {
+		coinSize := coin.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(coinSize)) + coinSize
+	}
+	if acc.PubKey != nil {
+		pkSize := cryptoamino.PubKeyAminoSize(acc.PubKey, cdc)
+		size += 1 + amino.UvarintSize(uint64(pkSize)) + pkSize
+	}
+	if acc.AccountNumber != 0 {
+		size += 1 + amino.UvarintSize(acc.AccountNumber)
+	}
+	if acc.Sequence != 0 {
+		size += 1 + amino.UvarintSize(acc.Sequence)
+	}
+	return size
+}
+
 func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf = baseAccountBufferPool.Get()
 	defer baseAccountBufferPool.Put(buf)

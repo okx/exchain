@@ -18,6 +18,14 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
+const (
+	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+)
+
+var (
+	IavlCacheInitRatio float64 = 0
+)
+
 type heightOrphansItem struct {
 	version  int64
 	rootHash []byte
