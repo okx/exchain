@@ -68,7 +68,7 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.GetIBCHeight() != 1 {
+	if tmtypes.UpgradeIBCInRuntime() {
 		if nil == bz {
 			return nil
 		}
@@ -158,7 +158,9 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	//return am.initGenesis(ctx, data)
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.initGenesis(ctx, data)
+	}
 	return nil
 }
 
@@ -172,7 +174,9 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	//return am.exportGenesis(ctx)
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.exportGenesis(ctx)
+	}
 	return nil
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
@@ -496,6 +500,9 @@ func (am AppModule) NegotiateAppVersion(
 }
 
 func (am AppModule) RegisterTask() module.HeightTask {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return nil
+	}
 	return module.NewHeightTask(2, func(ctx sdk.Context) error {
 		data := lazeGenesis()
 		am.initGenesis(ctx, data)

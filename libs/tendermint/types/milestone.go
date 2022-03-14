@@ -37,7 +37,6 @@ func init() {
 		//if milestoreIbcHeight <= 1 {
 		//	panic("ibc height cant smaller than 1 ,it must gt or equal to 2")
 		//}
-		milestoreIbcHeight = 4
 		if IsMainNet() || IsTestNet() {
 			milestoreIbcHeight = math.MaxInt64 - 5
 		}
@@ -79,6 +78,9 @@ func HigherThanIBCHeight(h int64) bool {
 }
 func GetIBCHeight() int64 {
 	return milestoreIbcHeight
+}
+func UpgradeIBCInRuntime() bool {
+	return milestoreIbcHeight > 1
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
