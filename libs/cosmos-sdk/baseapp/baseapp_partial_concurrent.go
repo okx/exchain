@@ -40,7 +40,7 @@ type DeliverTxTask struct {
 	from  sdk.Address
 	fee   sdk.Coins
 	isEvm bool
-	//signCache     sdk.SigCache
+	signCache     sdk.SigCache
 	//evmIndex      uint32
 	basicVerifyErr error
 	anteErr        error
@@ -262,6 +262,7 @@ func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int, task *Delive
 
 func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, task *DeliverTxTask) {
 	start := time.Now()
+	mode := runTxModeDeliverPartConcurrent
 	if task == nil {
 		// create a new task
 		task = dm.makeNewTask(txByte, index)
@@ -271,16 +272,15 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			return
 		}
 
-		mode := runTxModeDeliverPartConcurrent
 		info := task.info
 		info.handler = dm.app.getModeHandler(mode) //dm.handler
 
 		// execute ante
 		info.ctx = dm.app.getContextForTx(mode, info.txBytes) // same context for all txs in a block
-		var signCache sdk.SigCache
-		//task.fee, task.isEvm, signCache = dm.app.getTxFee(info.ctx, info.tx)
-		task.tx, task.fee, task.isEvm, task.from, signCache = dm.app.evmTxFromHandler(info.ctx, info.tx)
-		info.ctx = info.ctx.WithSigCache(signCache)
+		//var signCache sdk.SigCache
+		//task.fee, task.isEvm, sign Cache = dm.app.getTxFee(info.ctx, info.tx)
+		task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.evmTxFromHandler(info.ctx, info.tx)
+		info.ctx = info.ctx.WithSigCache(task.signCache)
 		info.ctx = info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
 		if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
@@ -313,6 +313,13 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		if task.anteErr == nil {
 			task.info.msCacheAnte.Write()
 			task.info.ctx.Cache().Write(true)
+		} else {
+			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+			//var signCache sdk.SigCache
+			//task.fee, task.isEvm, signCache = dm.app.getTxFee(info.ctx, info.tx)
+			//task.tx, task.fee, task.isEvm, task.from, signCache = dm.app.evmTxFromHandler(task.info.ctx, task.info.tx)
+			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 		}
 		dm.pushIntoPending(task)
 	} else {

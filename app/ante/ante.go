@@ -97,7 +97,7 @@ func NewAnteAuthHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.Sup
 				authante.NewDeductFeeDecorator(ak, sk),    // todo: why should put this into AnteHandler as it will change the value of FeeCollector
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
-				//authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
 			)
 
@@ -106,7 +106,7 @@ func NewAnteAuthHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.Sup
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
 					NewNonceVerificationDecorator(ak),
-					//NewIncrementSenderSequenceDecorator(ak),
+					NewIncrementSenderSequenceDecorator(ak),
 				)
 			} else {
 				anteHandler = sdk.ChainAnteDecorators(
@@ -119,7 +119,7 @@ func NewAnteAuthHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.Sup
 					NewAccountVerificationDecorator(ak, evmKeeper),
 					NewNonceVerificationDecorator(ak),
 					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-					//NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 				)
 			}
 
