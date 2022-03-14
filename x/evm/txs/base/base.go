@@ -3,6 +3,8 @@ package base
 import (
 	"math/big"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -64,21 +66,22 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		return
 	}
 
-	//// call evm hooks
-	//receipt := &ethtypes.Receipt{
-	//	//Type:              ethtypes.DynamicFeeTxType,// TODO: hardcode
-	//	PostState:         nil, // TODO: intermediate state root
-	//	Status:            ethtypes.ReceiptStatusSuccessful,
-	//	CumulativeGasUsed: 0, // TODO: cumulativeGasUsed
-	//	Bloom:             result.ResultData.Bloom,
-	//	Logs:              result.ResultData.Logs,
-	//	TxHash:            result.ResultData.TxHash,
-	//	ContractAddress:   result.ResultData.ContractAddress,
-	//	GasUsed:           result.ExecResult.GasInfo.GasConsumed,
-	//	BlockHash:         tx.Keeper.GetHeightHash(tx.Ctx, uint64(tx.Ctx.BlockHeight())),
-	//	BlockNumber:       big.NewInt(tx.Ctx.BlockHeight()),
-	//	TransactionIndex:  uint(tx.Keeper.TxCount),
-	//}
+	// call evm hooks
+	receipt := &ethtypes.Receipt{
+		//Type:              ethtypes.DynamicFeeTxType,// TODO: hardcode
+		PostState:         nil, // TODO: intermediate state root
+		Status:            ethtypes.ReceiptStatusSuccessful,
+		CumulativeGasUsed: 0, // TODO: cumulativeGasUsed
+		Bloom:             result.ResultData.Bloom,
+		Logs:              result.ResultData.Logs,
+		TxHash:            result.ResultData.TxHash,
+		ContractAddress:   result.ResultData.ContractAddress,
+		GasUsed:           result.ExecResult.GasInfo.GasConsumed,
+		BlockHash:         tx.Keeper.GetHeightHash(tx.Ctx, uint64(tx.Ctx.BlockHeight())),
+		BlockNumber:       big.NewInt(tx.Ctx.BlockHeight()),
+		TransactionIndex:  uint(tx.Keeper.TxCount),
+	}
+	_ = receipt
 	//if err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt); err != nil {
 	//	tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
 	//	return
