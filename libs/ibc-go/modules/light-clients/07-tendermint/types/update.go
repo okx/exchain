@@ -179,9 +179,8 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 		NextValidatorsHash: header.Header.NextValidatorsHash,
 	}
 
-	// set context time as processed time as this is state internal to tendermint client logic.
-	// client state and consensus state will be set by client keeper
-	SetProcessedTime(clientStore, header.GetHeight(), uint64(ctx.BlockTime().UnixNano()))
+	// set metadata for this consensus state
+	setConsensusMetadata(ctx, clientStore, header.GetHeight())
 
 	return clientState, consensusState
 }

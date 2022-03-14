@@ -805,21 +805,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	//for i := len(msgs) - 1; i >= 0; i-- {
 	//msg := msgs[i]
-	reorderMsg := func() {
-		for _, msg := range msgs {
-			rM, ok := msg.(*sdk.RelayMsg)
-			if ok {
-				if strings.Contains(rM.MsgType, "packet") {
-					vv := make([]sdk.Msg, 0)
-					for i := len(msgs) - 1; i >= 0; i-- {
-						vv = append(vv, msgs[i])
-					}
-					break
-				}
-			}
-		}
-	}
-	reorderMsg()
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
 		if _, ok := msg.(sdk.MsgProtoAdapter); !ok {

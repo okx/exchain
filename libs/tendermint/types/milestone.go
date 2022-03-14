@@ -37,16 +37,10 @@ func init() {
 		//if milestoreIbcHeight <= 1 {
 		//	panic("ibc height cant smaller than 1 ,it must gt or equal to 2")
 		//}
-		if milestoreIbcHeight > math.MaxInt64 {
-
-		}
-		milestoreIbcHeight = math.MaxInt64 - 5
 		milestoreIbcHeight = 4
-		//if IsMainNet() || IsTestNet() {
-		//	milestoreIbcHeight = math.MaxInt64
-		//} else {
-		//	milestoreIbcHeight = 4
-		//}
+		if IsMainNet() || IsTestNet() {
+			milestoreIbcHeight = math.MaxInt64 - 5
+		}
 	})
 }
 
