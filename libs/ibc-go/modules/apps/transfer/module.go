@@ -62,8 +62,10 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	}
 	return nil
-	//return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
