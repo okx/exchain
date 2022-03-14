@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
@@ -105,16 +104,6 @@ func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderM
 	return nil
 }
 
-func (s SupplyKeeperProxy) SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
-	return nil
-}
-func (s SupplyKeeperProxy) MintCoins(ctx sdk.Context, name string, amt sdk.Coins) error {
-	return nil
-}
-func (s SupplyKeeperProxy) GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI {
-	return nil
-}
-
 type SubspaceProxy struct {
 	q *watcher.Querier
 }
@@ -172,10 +161,6 @@ func NewBankKeeperProxy() BankKeeperProxy {
 
 func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 	return b.blacklistedAddrs[addr.String()]
-}
-
-func (b BankKeeperProxy) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
-	return nil
 }
 
 type InternalDba struct {
