@@ -66,13 +66,13 @@ func (app *BaseApp) setTxInfo(info *runTxInfo, mode runTxMode, txBytes []byte, t
 }
 
 func (app *BaseApp) prepareTxInfoAndRun(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
-	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
-
 	err = app.setTxInfo(info, mode, txBytes, tx, height, from...)
 	if err != nil {
 		return err
 	}
+
+	handler := info.handler
 
 	err = handler.handleGasConsumed(info)
 	if err != nil {
