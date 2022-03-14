@@ -290,10 +290,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	)
 
 	if st.TxHash != nil && !st.Simulate {
-		logs, err = csdb.GetLogs(*st.TxHash)
-		if err != nil {
-			return
-		}
+		logs = csdb.GetLogs()
 
 		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
