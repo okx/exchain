@@ -3,7 +3,6 @@ package iavl
 import (
 	"bytes"
 	"container/list"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
@@ -71,6 +70,17 @@ type nodeDB struct {
 	name string
 }
 
+func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
+	if initRatio <= 0 {
+		return make(map[string]*list.Element)
+	}
+	if initRatio >= 1 {
+		return make(map[string]*list.Element, cacheSize)
+	}
+	cacheSize = int(float64(cacheSize) * initRatio)
+	return make(map[string]*list.Element, cacheSize)
+}
+
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	if opts == nil {
 		o := DefaultOptions()
@@ -80,7 +90,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
-		nodeCache:               make(map[string]*list.Element),
+		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
 		nodeCacheSize:           cacheSize,
 		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
@@ -135,18 +145,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	}
 
 	// Doesn't exist, load.
-	buf, err := ndb.dbGet(ndb.nodeKey(hash))
-	if err != nil {
-		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
-	}
-	if buf == nil {
-		panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
-	}
-
-	node, err := MakeNode(buf)
-	if err != nil {
-		panic(fmt.Sprintf("Error reading Node. bytes: %x, error: %v", buf, err))
-	}
+	node := ndb.makeNodeFromDbByHash(hash)
 
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
@@ -238,7 +237,7 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -437,7 +436,9 @@ func (ndb *nodeDB) nodeKey(hash []byte) []byte {
 }
 
 func (ndb *nodeDB) orphanKey(fromVersion, toVersion int64, hash []byte) []byte {
-	return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// we use orphanKeyFast to replace orphanKeyFormat.Key(toVersion, fromVersion, hash) for performance
+	return orphanKeyFast(fromVersion, toVersion, hash)
 }
 
 func (ndb *nodeDB) rootKey(version int64) []byte {

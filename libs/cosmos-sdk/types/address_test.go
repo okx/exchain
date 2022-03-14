@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	evmtypes "github.com/okex/exchain/x/evm/types"
+
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 
@@ -343,4 +345,23 @@ func TestCustomAddressVerifier(t *testing.T) {
 	require.Nil(t, err)
 	_, err = types.ConsAddressFromBech32(consBech)
 	require.Nil(t, err)
+}
+
+func BenchmarkAccAddress_Bech32String(b *testing.B) {
+	acc := types.AccAddress(evmtypes.GenerateEthAddress().Bytes())
+	prefix := types.GetConfig().GetBech32AccountAddrPrefix()
+	b.ResetTimer()
+	b.Run("Bench32 origin", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = acc.Bech32String(prefix)
+		}
+	})
+	b.Run("Bench32 Optimized", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = acc.Bech32StringOptimized(prefix)
+		}
+	})
+	require.EqualValues(b, acc.Bech32String(prefix), acc.Bech32StringOptimized(prefix))
 }

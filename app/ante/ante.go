@@ -6,10 +6,9 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 func init() {
@@ -32,8 +31,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
-		switch tx.(type) {
-		case auth.StdTx:
+		switch tx.GetType() {
+		case sdk.StdTxType:
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 				NewAccountSetupDecorator(ak),
@@ -51,7 +50,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
 			)
 
-		case evmtypes.MsgEthereumTx:
+		case sdk.EvmTxType:
+
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
 					NewNonceVerificationDecorator(ak),
@@ -65,10 +65,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 					authante.NewValidateBasicDecorator(),
 					NewEthSigVerificationDecorator(),
 					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					NewAccountVerificationDecorator(ak, evmKeeper),
-					NewNonceVerificationDecorator(ak),
-					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+					NewAccountAnteDecorator(ak, evmKeeper, sk),
 				)
 			}
 
@@ -97,97 +94,8 @@ func sigGasConsumer(
 	}
 }
 
-// AccountSetupDecorator sets an account to state if it's not stored already. This only applies for MsgEthermint.
-type AccountSetupDecorator struct {
-	ak auth.AccountKeeper
-}
-
-// NewAccountSetupDecorator creates a new AccountSetupDecorator instance
-func NewAccountSetupDecorator(ak auth.AccountKeeper) AccountSetupDecorator {
-	return AccountSetupDecorator{
-		ak: ak,
+func pinAnte(trc *trace.Tracer, tag string) {
+	if trc != nil {
+		trc.RepeatingPin(tag)
 	}
-}
-
-// AnteHandle sets an account for MsgEthermint (evm) if the sender is registered.
-// NOTE: Since the account is set without any funds, the message execution will
-// fail if the validator requires a minimum fee > 0.
-func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	msgs := tx.GetMsgs()
-	if len(msgs) == 0 {
-		return ctx, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no messages included in transaction")
-	}
-
-	for _, msg := range msgs {
-		if msgEthermint, ok := msg.(evmtypes.MsgEthermint); ok {
-			setupAccount(asd.ak, ctx, msgEthermint.From)
-		}
-	}
-
-	return next(ctx, tx, simulate)
-}
-
-func setupAccount(ak keeper.AccountKeeper, ctx sdk.Context, addr sdk.AccAddress) {
-	acc := ak.GetAccount(ctx, addr)
-	if acc != nil {
-		return
-	}
-
-	acc = ak.NewAccountWithAddress(ctx, addr)
-	ak.SetAccount(ctx, acc)
-}
-
-// AccountBlockedVerificationDecorator check whether signer is blocked.
-type AccountBlockedVerificationDecorator struct {
-	evmKeeper EVMKeeper
-}
-
-// NewAccountBlockedVerificationDecorator creates a new AccountBlockedVerificationDecorator instance
-func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedVerificationDecorator {
-	return AccountBlockedVerificationDecorator{
-		evmKeeper: evmKeeper,
-	}
-}
-
-// AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
-func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	signers, err := getSigners(tx)
-	if err != nil {
-		return ctx, err
-	}
-	currentGasMeter := ctx.GasMeter()
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-
-	for _, signer := range signers {
-		//TODO it may be optimizate by cache blockedAddressList
-		if ok := abvd.evmKeeper.IsAddressBlocked(ctx, signer); ok {
-			ctx = ctx.WithGasMeter(currentGasMeter)
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", signer.String())
-		}
-	}
-	ctx = ctx.WithGasMeter(currentGasMeter)
-	return next(ctx, tx, simulate)
-}
-
-// getSigners get signers of tx(contains cosmos-tx and eth-tx.
-func getSigners(tx sdk.Tx) ([]sdk.AccAddress, error) {
-	signers := make([]sdk.AccAddress, 0)
-	switch tx.(type) {
-	case auth.StdTx:
-		sigTx, ok := tx.(authante.SigVerifiableTx)
-		if !ok {
-			return signers, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
-		}
-		signers = append(signers, sigTx.GetSigners()...)
-	case evmtypes.MsgEthereumTx:
-		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-		if !ok {
-			return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
-		}
-		signers = append(signers, msgEthTx.GetSigners()...)
-
-	default:
-		return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
-	}
-	return signers, nil
 }

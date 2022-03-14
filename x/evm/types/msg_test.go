@@ -23,75 +23,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
-func TestMsgEthermint(t *testing.T) {
-	addr := newSdkAddress()
-	fromAddr := newSdkAddress()
-
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
-	require.NotNil(t, msg)
-	require.Equal(t, msg.Recipient, &addr)
-	require.Equal(t, msg.Route(), RouterKey)
-	require.Equal(t, msg.Type(), TypeMsgEthermint)
-	require.True(t, bytes.Equal(msg.GetSignBytes(), sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))))
-	require.True(t, msg.GetSigners()[0].Equals(fromAddr))
-	require.Equal(t, *msg.To(), ethcmn.BytesToAddress(addr.Bytes()))
-
-	// clear recipient
-	msg.Recipient = nil
-	require.Nil(t, msg.To())
-}
-
-func TestMsgEthermintValidation(t *testing.T) {
-	testCases := []struct {
-		nonce      uint64
-		to         *sdk.AccAddress
-		amount     sdk.Int
-		gasLimit   uint64
-		gasPrice   sdk.Int
-		payload    []byte
-		expectPass bool
-		from       sdk.AccAddress
-	}{
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(100000), expectPass: true},
-		{amount: sdk.NewInt(0), gasPrice: sdk.NewInt(100000), expectPass: true},
-		{amount: sdk.NewInt(-1), gasPrice: sdk.NewInt(100000), expectPass: false},
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(-1), expectPass: false},
-		{amount: sdk.NewInt(100), gasPrice: sdk.NewInt(0), expectPass: false},
-	}
-
-	for i, tc := range testCases {
-		msg := NewMsgEthermint(tc.nonce, tc.to, tc.amount, tc.gasLimit, tc.gasPrice, tc.payload, tc.from)
-
-		if tc.expectPass {
-			require.Nil(t, msg.ValidateBasic(), "test: %v", i)
-		} else {
-			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
-		}
-	}
-}
-
-func TestMsgEthermintEncodingAndDecoding(t *testing.T) {
-	addr := newSdkAddress()
-	fromAddr := newSdkAddress()
-
-	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
-
-	raw, err := ModuleCdc.MarshalBinaryBare(msg)
-	require.NoError(t, err)
-
-	var msg2 MsgEthermint
-	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
-	require.NoError(t, err)
-
-	require.Equal(t, msg.AccountNonce, msg2.AccountNonce)
-	require.Equal(t, msg.Recipient, msg2.Recipient)
-	require.Equal(t, msg.Amount, msg2.Amount)
-	require.Equal(t, msg.GasLimit, msg2.GasLimit)
-	require.Equal(t, msg.Price, msg2.Price)
-	require.Equal(t, msg.Payload, msg2.Payload)
-	require.Equal(t, msg.From, msg2.From)
-}
-
 func newSdkAddress() sdk.AccAddress {
 	tmpKey := secp256k1.GenPrivKey().PubKey()
 	return sdk.AccAddress(tmpKey.Address().Bytes())
@@ -124,6 +55,7 @@ func TestMsgEthereumTxValidation(t *testing.T) {
 		expectPass bool
 	}{
 		{msg: "pass", amount: big.NewInt(100), gasPrice: big.NewInt(100000), expectPass: true},
+		{msg: "pass amount is zero", amount: big.NewInt(0), gasPrice: big.NewInt(100000), expectPass: true},
 		{msg: "invalid amount", amount: big.NewInt(-1), gasPrice: big.NewInt(100000), expectPass: false},
 		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(-1), expectPass: false},
 		{msg: "invalid gas price", amount: big.NewInt(100), gasPrice: big.NewInt(0), expectPass: false},
@@ -192,14 +124,14 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	signerCache, err := msg.VerifySig(chainID, 0, sdk.EmptyContext().SigCache())
+	signerCache, err := msg.VerifySig(chainID, 0, nil, nil)
 	require.NoError(t, err)
 	signer := signerCache.GetFrom()
 	require.Equal(t, addr1, signer)
 	require.NotEqual(t, addr2, signer)
 
 	// msg atomic load
-	signerCache, err = msg.VerifySig(chainID, 0, sdk.EmptyContext().SigCache())
+	signerCache, err = msg.VerifySig(chainID, 0, nil, nil)
 	require.NoError(t, err)
 	signer = signerCache.GetFrom()
 	require.Equal(t, addr1, signer)
@@ -211,7 +143,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	// zero chainID
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
 	require.Nil(t, err)
-	_, err = msg.VerifySig(zeroChainID, 0, sdk.EmptyContext().SigCache())
+	_, err = msg.VerifySig(zeroChainID, 0, nil, nil)
 	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
@@ -219,7 +151,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	signerCache, err = msg.VerifySig(big.NewInt(4), 0, sdk.EmptyContext().SigCache())
+	signerCache, err = msg.VerifySig(big.NewInt(4), 0, nil, nil)
 	require.Error(t, err)
 	require.Nil(t, signerCache)
 }
@@ -262,7 +194,7 @@ func TestMsgEthereumTxGetter(t *testing.T) {
 	require.True(t, expectedS.Cmp(s) == 0)
 }
 
-func TestMsgEthermintTxAmino(t *testing.T) {
+func TestMsgEthereumTx_Amino(t *testing.T) {
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
 	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
@@ -328,7 +260,7 @@ func TestMsgEthermintTxAmino(t *testing.T) {
 	}
 }
 
-func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
+func BenchmarkMsgEthereumTxUnmarshal(b *testing.B) {
 	cdc := ModuleCdc
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
@@ -412,14 +344,11 @@ func TestMarshalAndUnmarshalLogs(t *testing.T) {
 }
 
 func TestMsgString(t *testing.T) {
-	expectedUint64, expectedSDKAddr, expectedInt := uint64(1024), newSdkAddress(), sdk.OneInt()
+	expectedUint64, expectedSDKAddr := uint64(1024), newSdkAddress()
 	expectedPayload, err := hexutil.Decode("0x1234567890abcdef")
 	require.NoError(t, err)
 	expectedOutput := fmt.Sprintf("nonce=1024 gasPrice=1 gasLimit=1024 recipient=%s amount=1 data=0x1234567890abcdef from=%s",
 		expectedSDKAddr, expectedSDKAddr)
-
-	msgEthermint := NewMsgEthermint(expectedUint64, &expectedSDKAddr, expectedInt, expectedUint64, expectedInt, expectedPayload, expectedSDKAddr)
-	require.True(t, strings.EqualFold(msgEthermint.String(), expectedOutput))
 
 	expectedHexAddr := ethcmn.BytesToAddress([]byte{0x01})
 	expectedBigInt := big.NewInt(1024)

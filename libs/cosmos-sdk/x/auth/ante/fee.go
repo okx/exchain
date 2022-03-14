@@ -117,7 +117,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
 func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
-	blockTime := ctx.BlockHeader().Time
+	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
 	if !fees.IsValid() {

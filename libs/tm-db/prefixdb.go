@@ -98,11 +98,11 @@ func (pdb *PrefixDB) Iterator(start, end []byte) (Iterator, error) {
 	defer pdb.mtx.Unlock()
 
 	var pstart, pend []byte
-	pstart = append(cp(pdb.prefix), start...)
+	pstart = concat(pdb.prefix, start)
 	if end == nil {
 		pend = cpIncr(pdb.prefix)
 	} else {
-		pend = append(cp(pdb.prefix), end...)
+		pend = concat(pdb.prefix, end)
 	}
 	itr, err := pdb.db.Iterator(pstart, pend)
 	if err != nil {
@@ -118,11 +118,11 @@ func (pdb *PrefixDB) ReverseIterator(start, end []byte) (Iterator, error) {
 	defer pdb.mtx.Unlock()
 
 	var pstart, pend []byte
-	pstart = append(cp(pdb.prefix), start...)
+	pstart = concat(pdb.prefix, start)
 	if end == nil {
 		pend = cpIncr(pdb.prefix)
 	} else {
-		pend = append(cp(pdb.prefix), end...)
+		pend = concat(pdb.prefix, end)
 	}
 	ritr, err := pdb.db.ReverseIterator(pstart, pend)
 	if err != nil {
@@ -178,5 +178,5 @@ func (pdb *PrefixDB) Stats() map[string]string {
 }
 
 func (pdb *PrefixDB) prefixed(key []byte) []byte {
-	return append(cp(pdb.prefix), key...)
+	return concat(pdb.prefix, key)
 }

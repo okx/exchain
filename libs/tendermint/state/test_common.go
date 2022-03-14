@@ -3,9 +3,10 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"time"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
@@ -335,7 +336,7 @@ func execCommitBlockDelta(
 ) (*types.Deltas, []byte, error) {
 	iavl.SetProduceDelta(true)
 	types.UploadDelta = true
-	deltas := &types.Deltas{Height: block.Height, Version: types.DeltaVersion}
+	deltas := &types.Deltas{Height: block.Height}
 
 	ctx := &executionTask{
 		logger:   logger,

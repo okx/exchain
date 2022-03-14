@@ -3,7 +3,7 @@ package iavl
 import (
 	"bytes"
 	"container/list"
-	"encoding/hex"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/go-errors/errors"
@@ -16,6 +16,14 @@ import (
 	"github.com/okex/exchain/libs/iavl/trace"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
+)
+
+const (
+	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+)
+
+var (
+	IavlCacheInitRatio float64 = 0
 )
 
 type heightOrphansItem struct {
@@ -87,6 +95,33 @@ func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
 	}()
 	ndb.addDBReadCount()
 	return ndb.db.Get(k)
+}
+
+func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
+	k := ndb.nodeKey(hash)
+	ts := time.Now()
+	defer func() {
+		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
+	}()
+	ndb.addDBReadCount()
+
+	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte) (interface{}, error) {
+		if buf == nil {
+			panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
+		}
+
+		node, err := MakeNode(buf)
+		if err != nil {
+			panic(fmt.Sprintf("Error reading Node. bytes: %x, error: %v", buf, err))
+		}
+		return node, nil
+	})
+
+	if err != nil {
+		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
+	}
+
+	return v.(*Node)
 }
 
 func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
@@ -320,7 +355,7 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -360,7 +395,7 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 					ndb.saveNodeToPrePersistCache(n)
 					n.leftNode = nil
 					n.rightNode = nil
-					savedNodes[hex.EncodeToString(n.hash)] = n
+					savedNodes[string(n.hash)] = n
 				}
 			}
 		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)
@@ -385,7 +420,7 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -514,4 +549,28 @@ func (ndb *nodeDB) syncUnCacheNode(hash []byte) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	ndb.uncacheNode(hash)
+}
+
+// orphanKeyFast generates key for an orphan node,
+// result must be equal to orphanKeyFormat.Key(toVersion, fromVersion, hash)
+func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
+	key := make([]byte, orphanKeyFormat.length)
+	key[0] = orphanKeyFormat.prefix
+	n := 1
+	if orphanKeyFormat.layout[0] != int64Size {
+		panic("unexpected layout")
+	}
+	binary.BigEndian.PutUint64(key[n:n+int64Size], uint64(toVersion))
+	n += int64Size
+	if orphanKeyFormat.layout[1] != int64Size {
+		panic("unexpected layout")
+	}
+	binary.BigEndian.PutUint64(key[n:n+int64Size], uint64(fromVersion))
+	n += int64Size
+	hashLen := orphanKeyFormat.layout[2]
+	if hashLen < len(hash) {
+		panic("hash is too long")
+	}
+	copy(key[n+hashLen-len(hash):n+hashLen], hash)
+	return key
 }
