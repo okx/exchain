@@ -48,11 +48,10 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
-				fee:       coin,
-				isEvm:     isEvm,
-				signCache: s,
+				fee:   coin,
+				isEvm: isEvm,
 			}
 		}()
 	}
@@ -71,7 +70,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	for k := range txs {
 		t := &txStatus{
 			indexInBlock: uint32(k),
-			signCache:    extraData[k].signCache,
 		}
 		if extraData[k].isEvm {
 			t.evmIndex = evmIndex
@@ -347,7 +345,6 @@ type txStatus struct {
 	evmIndex     uint32
 	indexInBlock uint32
 	anteErr      error
-	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {
