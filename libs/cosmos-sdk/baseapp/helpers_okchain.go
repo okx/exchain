@@ -59,19 +59,23 @@ func (app *BaseApp) TraceTx(targetTxData []byte, targetTx sdk.Tx, txIndex uint32
 func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState *state) (info *runTxInfo, err error) {
 
 	mode := runTxModeTrace
-	//prepare runTxInfo to runtx
+	// prepare runTxInfo to runTxWithInfo
 	info = &runTxInfo{
 		handler: app.getModeHandler(mode),
 		tx:      tx,
 		txBytes: txBytes,
 	}
-	//init info.ctx
+	// init info.ctx
 	info.ctx = traceState.ctx.
 		WithTxBytes(txBytes).
 		WithVoteInfos(app.voteInfos).
 		WithConsensusParams(app.consensusParams)
 
-	err = app.runTxWithInfo(info, mode, height)
+	err = app.setTxInfoCtx(info, mode, height)
+	if err == nil {
+		err = app.runTxWithInfo(info, mode)
+	}
+
 	return info, err
 }
 func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (*state, error) {
