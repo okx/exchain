@@ -294,9 +294,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	app.addCommitTraceInfo()
 
 	app.cms.ResetCount()
-	app.logger.Debug("Commit synced", "commit", amino.FuncStringer(func() string {
-		return fmt.Sprintf("%X", commitID)
-	}))
+	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
 
 	// Reset the Check state to the latest committed.
 	//

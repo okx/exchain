@@ -250,9 +250,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
-	blockExec.logger.Debug("SaveState", "state", amino.FuncStringer(func() string {
-		return fmt.Sprintf("%+v", state)
-	}))
+	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
