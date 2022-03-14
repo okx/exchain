@@ -7,8 +7,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
@@ -197,16 +195,14 @@ func NewOKExChainApp(
 	onceLog.Do(func() {
 		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
-			strFunc := amino.FuncStringer(func() string {
-				return fmt.Sprintf(format, args...)
-			})
+			var stringer = newFmtStringer(format, args...)
 			switch level {
 			case iavl.IavlErr:
-				iavllog.Error("iavl", "error", strFunc)
+				iavllog.Error("", "error", stringer)
 			case iavl.IavlInfo:
-				iavllog.Info("iavl", "info", strFunc)
+				iavllog.Info("", "info", stringer)
 			case iavl.IavlDebug:
-				iavllog.Debug("iavl", "debug", strFunc)
+				iavllog.Debug("", "debug", stringer)
 			default:
 				return
 			}
@@ -623,4 +619,17 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
+}
+
+type fmtStringer struct {
+	format string
+	args   []interface{}
+}
+
+func (fmter fmtStringer) String() string {
+	return fmt.Sprintf(fmter.format, fmter.args...)
+}
+
+func newFmtStringer(format string, args ...interface{}) fmtStringer {
+	return fmtStringer{format: format, args: args}
 }
