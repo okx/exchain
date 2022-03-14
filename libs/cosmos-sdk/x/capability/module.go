@@ -60,8 +60,10 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
+	}
 	return nil
-	//return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.

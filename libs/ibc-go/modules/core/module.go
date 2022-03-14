@@ -48,8 +48,10 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	}
 	return nil
-	//return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
