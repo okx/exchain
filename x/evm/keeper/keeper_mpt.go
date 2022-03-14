@@ -61,6 +61,7 @@ func (k *Keeper) OpenTrie() {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	k.rootTrie = tr
+	k.rootHash = latestStoredRootHash
 	k.startHeight = latestStoredHeight
 
 	if latestStoredHeight == 0 {
@@ -84,6 +85,7 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 		panic("Fail to open root mpt: " + err.Error())
 	}
 	k.rootTrie = tr
+	k.rootHash = targetMptRootHash
 	k.EvmStateDb = types2.NewCommitStateDB(k.GenerateCSDBParams())
 }
 
@@ -204,6 +206,8 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
+	k.EvmStateDb.StopPrefetcher()
+	k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
 		// The onleaf func is called _serially_, so we can reuse the same account
@@ -218,6 +222,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 			return nil
 		})
 		k.SetMptRootHash(ctx, root)
+		k.rootHash = root
 	}
 }
 

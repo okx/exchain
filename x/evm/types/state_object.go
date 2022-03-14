@@ -310,6 +310,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	if types3.EnableDoubleWrite {
 		tr = so.getTrie(db)
 	}
+	usedStorage := make([][]byte, 0, len(so.pendingStorage))
 
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
@@ -349,7 +350,12 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 				so.setError(tr.TryUpdate(key[:], v))
 			}
+			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		}
+	}
+
+	if so.stateDB.prefetcher != nil && types3.EnableDoubleWrite {
+		so.stateDB.prefetcher.used(so.stateRoot, usedStorage)
 	}
 
 	if len(so.pendingStorage) > 0 {

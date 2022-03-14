@@ -3,6 +3,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -221,4 +222,30 @@ func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([
 
 func (csdb *CommitStateDB) Logger() log.Logger {
 	return csdb.ctx.Logger().With("module", ModuleName)
+}
+
+
+// StartPrefetcher initializes a new trie prefetcher to pull in nodes from the
+// state trie concurrently while the state is mutated so that when we reach the
+// commit phase, most of the needed data is already hot.
+func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
+	if csdb.prefetcher != nil {
+		csdb.prefetcher.close()
+		csdb.prefetcher = nil
+	}
+
+	csdb.prefetcher = newTriePrefetcher(csdb.db, csdb.originalRoot, namespace)
+}
+
+// StopPrefetcher terminates a running prefetcher and reports any leftover stats
+// from the gathered metrics.
+func (csdb *CommitStateDB) StopPrefetcher() {
+	if csdb.prefetcher != nil {
+		csdb.prefetcher.close()
+		csdb.prefetcher = nil
+	}
+}
+
+func (csdb *CommitStateDB) GetRootTrie() ethstate.Trie{
+	return csdb.trie
 }

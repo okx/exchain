@@ -57,6 +57,7 @@ type Keeper struct {
 
 	db          ethstate.Database
 	rootTrie    ethstate.Trie
+	rootHash    ethcmn.Hash
 	startHeight uint64
 	triegc      *prque.Prque
 	stateCache  *fastcache.Cache
@@ -186,6 +187,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 
 		DB:         k.db,
 		Trie:       k.rootTrie,
+		RootHash:   k.rootHash,
 		StateCache: k.stateCache,
 	}
 }
@@ -200,6 +202,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 
 		DB:         k.db,
 		Trie:       k.rootTrie,
+		RootHash:   k.rootHash,
 		StateCache: k.stateCache,
 	}
 }
