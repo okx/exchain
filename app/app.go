@@ -621,15 +621,16 @@ func PreRun(ctx *server.Context) error {
 	return nil
 }
 
-type fmtStringer struct {
-	format string
-	args   []interface{}
-}
+type fmtStringer []interface{}
 
 func (fmter fmtStringer) String() string {
-	return fmt.Sprintf(fmter.format, fmter.args...)
+	args := fmter[1:]
+	return fmt.Sprintf(fmter[0].(string), args...)
 }
 
 func newFmtStringer(format string, args ...interface{}) fmtStringer {
-	return fmtStringer{format: format, args: args}
+	fmter := make(fmtStringer, 1+len(args))
+	fmter[0] = format
+	copy(fmter[1:], args)
+	return fmter
 }
