@@ -53,18 +53,7 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
-	// snapshot to contain the tx processing and post processing in same scope
-	var commit func()
-	tmpCtx := tx.Ctx
-	if tx.Keeper.GetHooks() != nil {
-		// Create a cache context to revert state when tx hooks fails,
-		// the cache context is only committed when both tx and hooks executed successfully.
-		// Didn't use `Snapshot` because the context stack has exponential complexity on certain operations,
-		// thus restricted to be used only inside `ApplyMessage`.
-		tmpCtx, commit = tx.Ctx.CacheContext()
-	}
-
-	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tmpCtx, config)
+	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 	// async mod goes immediately
 	if tx.Ctx.IsAsync() {
 		tx.Keeper.LogsManages.Set(string(tx.Ctx.TxBytes()), keeper.TxResult{
@@ -91,12 +80,9 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		BlockNumber:       big.NewInt(tx.Ctx.BlockHeight()),
 		TransactionIndex:  uint(tx.Keeper.TxCount),
 	}
-	if err = tx.Keeper.CallEvmHooks(tmpCtx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt); err != nil {
-		tx.Keeper.Logger(tx.Ctx).Error("tx post processing failed", "error", err)
-	} else if commit != nil {
-		// PostTxProcessing is successful, commit the tmpCtx
-		commit()
-		tx.Ctx.EventManager().EmitEvents(tmpCtx.EventManager().Events())
+	if err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt); err != nil {
+		tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+		return
 	}
 
 	return
