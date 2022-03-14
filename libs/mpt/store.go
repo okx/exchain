@@ -283,21 +283,24 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 				return
 			}
 
-			// If the header is missing (canonical chain behind), we're reorging a low
-			// diff sidechain. Suspend committing until this operation is completed.
-			chRoot := ms.GetMptRootHash(uint64(chosen))
-			if chRoot == (ethcmn.Hash{}) || chRoot == types3.EmptyRootHash {
-				chRoot = ethcmn.Hash{}
-			} else {
-				// Flush an entire trie and restart the counters, it's not a thread safe process,
-				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-				if err := triedb.Commit(chRoot, true, nil); err != nil {
-					panic("fail to commit mpt data: " + err.Error())
+			// If we exceeded out time allowance, flush an entire trie to disk
+			if chosen % 10 == 0 {
+				// If the header is missing (canonical chain behind), we're reorging a low
+				// diff sidechain. Suspend committing until this operation is completed.
+				chRoot := ms.GetMptRootHash(uint64(chosen))
+				if chRoot == (ethcmn.Hash{}) || chRoot == types3.EmptyRootHash {
+					chRoot = ethcmn.Hash{}
+				} else {
+					// Flush an entire trie and restart the counters, it's not a thread safe process,
+					// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+					if err := triedb.Commit(chRoot, true, nil); err != nil {
+						panic("fail to commit mpt data: " + err.Error())
+					}
 				}
-			}
-			ms.SetLatestStoredBlockHeight(uint64(chosen))
-			if ms.logger != nil {
-				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
+				ms.SetLatestStoredBlockHeight(uint64(chosen))
+				if ms.logger != nil {
+					ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
+				}
 			}
 
 			// Garbage collect anything below our required write retention
