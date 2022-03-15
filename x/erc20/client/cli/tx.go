@@ -21,7 +21,7 @@ import (
 // GetCmdTokenMappingProposal returns a CLI command handler for creating
 // a token mapping change proposal governance transaction.
 func GetCmdTokenMappingProposal(cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "token-mapping [denom] [contract]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit a token mapping change proposal",
@@ -29,7 +29,7 @@ func GetCmdTokenMappingProposal(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Submit a token mapping change proposal.
 
 Example:
-$ %s tx gov submit-proposal token-mapping-change gravity0x0000...0000 0x0000...0000 --from=<key_or_address>
+$ %s tx gov submit-proposal token-mapping-change xxb 0x0000...0000 --from=<key_or_address>
 `, version.ClientName,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -76,4 +76,9 @@ $ %s tx gov submit-proposal token-mapping-change gravity0x0000...0000 0x0000...0
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
+	cmd.Flags().String(govcli.FlagTitle, "", "title of proposal")
+	cmd.Flags().String(govcli.FlagDescription, "", "description of proposal")
+	cmd.Flags().String(govcli.FlagDeposit, "", "deposit of proposal")
+
+	return cmd
 }

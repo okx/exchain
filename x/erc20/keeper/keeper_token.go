@@ -49,8 +49,7 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 			}
 		default:
 			// oec1:xxb----->oec2:ibc/xxb---->oec2:erc20/xxb
-			// TODO use autoDeploy boolean in params
-			if err := k.ConvertVoucherToERC20(ctx, fromAddr, c, true); err != nil {
+			if err := k.ConvertVoucherToERC20(ctx, fromAddr, c, params.EnableAutoDeployment); err != nil {
 				return err
 			}
 		}
@@ -84,11 +83,12 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		"fromBech32", from.String(),
 		"fromEth", common.BytesToAddress(from.Bytes()).String(),
 		"voucher", voucher.String())
-	err := ibctransferType.ValidateIBCDenom(voucher.Denom)
-	if err != nil {
-		return ibctransferType.ErrInvalidDenomForTransfer
+
+	if !types.IsValidIBCDenom(voucher.Denom) {
+		return fmt.Errorf("coin %s is not supported for wrapping", voucher.Denom)
 	}
 
+	var err error
 	contract, found := k.getContractByDenom(ctx, voucher.Denom)
 	if !found {
 		// automated deployment contracts
@@ -246,8 +246,8 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
-	// TODO use params --1 day
-	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
+	params := k.GetParams(ctx)
+	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()
 
 	return k.transferKeeper.SendTransfer(

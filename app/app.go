@@ -51,6 +51,7 @@ import (
 	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
+	erc20client "github.com/okex/exchain/x/erc20/client"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
@@ -108,6 +109,7 @@ var (
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
+			erc20client.TokenMappingProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
