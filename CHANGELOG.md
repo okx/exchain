@@ -1001,14 +1001,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 * Fix query failed when using height of pending block ([\#975](https://github.com/okex/exchain/pull/975))
 
 
-### Code Refactoring
-
-* Change the default param of RPC flag in exchain client ([\#972](https://github.com/okex/exchain/pull/972))
-
-
 ### Chores
 
-* Rewrite the guide in `README.md` ([\#970](https://github.com/okex/exchain/pull/970))
+* Rewrite the guide how to join 'oec' network in `README.md` ([\#970](https://github.com/okex/exchain/pull/970))
 
 * Optimize `makefile` to avoid set params of genesisHeight in manually ([\#971](https://github.com/okex/exchain/pull/971))
 
@@ -1023,46 +1018,39 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Add pruning flag ([\#964](https://github.com/okex/exchain/pull/964))
 
-* Add local-replay pprof port ([\#965](https://github.com/okex/exchain/pull/965))
+* Add local-replay pprof ([\#965](https://github.com/okex/exchain/pull/965))
 
 
 ### Bug Fixes
 
-* Fix inconsistent error result with ethereum rpc ([\#969](https://github.com/okex/exchain/pull/969))
+* After the `evm` executes the transaction with an error, the error message is consistent with ethereum ([\#969](https://github.com/okex/exchain/pull/969))
 
 
 ### Code Refactoring
 
 * Optimize `eth-api` check whether is enabling `txpool` feature ([\#966](https://github.com/okex/exchain/pull/966))
 
-* Remove the traverse of accounts when eth_call ([\#967](https://github.com/okex/exchain/pull/967))
+* Remove redundant processing of account address parameters when processing `eth_call` requests ([\#967](https://github.com/okex/exchain/pull/967))
 
 
 
 ### Chores
 
-* Add `dev/dump.sh` to filter `oec.log` ([\#963](https://github.com/okex/exchain/pull/963))
+* Supports scripting to filter log `Applyblock` information and output to a table ([\#963](https://github.com/okex/exchain/pull/963))
 
 
 
 ## [0.18.16](https://github.com/okex/exchain/compare/v0.18.15...v0.18.16) (2021-08-12)
 
 
-### Features
-
-* Add perform log ([\#959](https://github.com/okex/exchain/pull/959))
-
-
 ### Code Refactoring
 
 * Prune and compact app store ([\#955](https://github.com/okex/exchain/pull/955))
 
-* Expand `iavl` cache size ([\#960](https://github.com/okex/exchain/pull/960))
-
 
 ### Chores
 
-* Add `dev/start.sh` to start an exchain node ([\#956](https://github.com/okex/exchain/pull/956))
+* Support for starting nodes with scripts `dev/start.sh`  ([\#956](https://github.com/okex/exchain/pull/956))
 
 
 
@@ -1071,14 +1059,14 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add explains of index for dropped txs ([\#953](https://github.com/okex/exchain/pull/953))
+* When the transaction needs to be removed, it is logged in the error message ([\#953](https://github.com/okex/exchain/pull/953))
 
 
 ### Bug Fixes
 
-* Fix `txpool` unlock mutex is not work ([\#951](https://github.com/okex/exchain/pull/951))
+* After the `txpool` broadcast reads the pending transaction, the lock is released normally ([\#951](https://github.com/okex/exchain/pull/951))
 
-* Fix `txpool` is not return error when is full  ([\#952](https://github.com/okex/exchain/pull/952))
+* Adding transactions is no longer supported when the number of transactions exceeds the `txpool` limit  ([\#952](https://github.com/okex/exchain/pull/952))
 
 
 
@@ -1087,7 +1075,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add recommend gas price ([\#940](https://github.com/okex/exchain/pull/940))
+* Support dynamic adjustment of gas price suggestions ([\#940](https://github.com/okex/exchain/pull/940))
 
 
 
@@ -1098,7 +1086,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Fix key mismatch for delete option of black/white list ([\#938](https://github.com/okex/exchain/pull/938))
 
-* Fix `eth_getCode` failed after the contract is blocked ([\#941](https://github.com/okex/exchain/pull/941))
+* `eth_getcode` must get the deployed contract opcode through `stateobject` ([\#941](https://github.com/okex/exchain/pull/941))
 
 
 
@@ -1107,9 +1095,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add `nonce` support for cosmos tx ([\#931](https://github.com/okex/exchain/pull/931))
+* `x/account` handler add the method to get the account nonce ([\#931](https://github.com/okex/exchain/pull/931))
 
-* Add `rpc.disable-api` flag ([\#934](https://github.com/okex/exchain/pull/934))
+* Add `rpc.disable-api` flag to restrict external use of eth requests ([\#934](https://github.com/okex/exchain/pull/934))
 
 
 
@@ -1118,12 +1106,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add `uuid` in case of duplicate file names ([\#928](https://github.com/okex/exchain/pull/928))
+* Use uuid to name account files to avoid duplication of file names ([\#928](https://github.com/okex/exchain/pull/928))
 
-
-### Bug Fixes
-
-* Fix keys recover bug ([\#926](https://github.com/okex/exchain/pull/926))
 
 
 ## [0.18.10](https://github.com/okex/exchain/compare/v0.18.9...v0.18.10) (2021-07-12)
@@ -1131,9 +1115,9 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add `txpool` api ([\#904](https://github.com/okex/exchain/pull/904))
+* Add rpc api to view the transactions currently stored by `txpool` ([\#904](https://github.com/okex/exchain/pull/904))
 
-* Observe rpc call duration and record to prometheus ([\#917](https://github.com/okex/exchain/pull/917))
+* Count the requests with RPC response time of more than 100ms, and output them to the node Prometheus ([\#917](https://github.com/okex/exchain/pull/917))
 
 * Add parse app tx by `exchain-amino` ([\#920](https://github.com/okex/exchain/pull/920))
 
@@ -1150,7 +1134,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Tests
 
-* Update ut of evm `endblock` ([\#910](https://github.com/okex/exchain/pull/910))
+* Add ut of `endBlockWatcher` in `evm` ([\#910](https://github.com/okex/exchain/pull/910))
 
 
 
@@ -1168,19 +1152,19 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add switch to deleteAccount and deleteState ([\#900](https://github.com/okex/exchain/pull/900))
+* Before deleting an account and status of `watchdb`, the requested permissions must be checked ([\#900](https://github.com/okex/exchain/pull/900))
+
+* Added interface for querying transaction data through `txhash` ([\#902](https://github.com/okex/exchain/pull/902))
 
 
 ### Bug Fixes
-
-* Fix query evm tx failed ([\#902](https://github.com/okex/exchain/pull/902))
 
 * Fix generate bloom filter failed occasionally ([\#903](https://github.com/okex/exchain/pull/903))
 
 
 ### Performance Improvements
 
-* Add state lru cache to optimize RPC API `eth_call`  ([\#901](https://github.com/okex/exchain/pull/901))
+* Increase lru, used to store the results of each rpc query `eth_call`, reduce the time of the same rpc query  ([\#901](https://github.com/okex/exchain/pull/901))
 
 
 ## [0.18.7](https://github.com/okex/exchain/compare/v0.18.6...v0.18.7) (2021-05-21)
@@ -1188,33 +1172,33 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add `txpool` ([\#864](https://github.com/okex/exchain/pull/864))
+* `Watcher` adds db to store the status of evm executing tx  ([\#858](https://github.com/okex/exchain/pull/858))
 
-* Add `watch.db` to operate `account` and `state`  ([\#858](https://github.com/okex/exchain/pull/858))
+* Add `txpool` to store transactions to be blocked ([\#868](https://github.com/okex/exchain/pull/868))
 
-* Add logical of `evm state` roll back ([\#870](https://github.com/okex/exchain/pull/870))
+* When evm executes tx error, roll back to the state of the last execution ([\#870](https://github.com/okex/exchain/pull/870))
 
-* Add a resolve in `eth_unsubscribe` ([\#875](https://github.com/okex/exchain/pull/875))
+* When saving the evmTx trading account to `watchdb`, it must be enabled ([\#877](https://github.com/okex/exchain/pull/877))
 
-* Add check of watch db enabled in handler ([\#877](https://github.com/okex/exchain/pull/877))
-
-* Add rpc monitor: register metrics to prometheus ([\#884](https://github.com/okex/exchain/pull/884))
+* The call response time of the rpc interface and submitted to the node `Prometheus` for monitoring rpc problems ([\#884](https://github.com/okex/exchain/pull/884))
 
 
 ### Bug Fixes
+
+* Fix the problem that `ethclient` failed to unsubscribe from events ([\#875](https://github.com/okex/exchain/pull/875))
 
 * Fix failed to get block height via the keyword `block.number` ([\#878](https://github.com/okex/exchain/pull/878))
 
 * Fix function error in keywords of `block.number/hash/timestamp` ([\#879](https://github.com/okex/exchain/pull/879))
 
-* Fix invalid state set when the value is zero ([\#881](https://github.com/okex/exchain/pull/881))
+* When the state is empty, the `watcher` still needs to keep records ([\#881](https://github.com/okex/exchain/pull/881))
 
 * Added mutex to fix concurrent writes to websocket connections ([\#887](https://github.com/okex/exchain/pull/887))
 
 
 ### Code Refactoring
 
-* Refactor RPC `eth_call` to optimize qps ([\#857](https://github.com/okex/exchain/pull/857))
+* The state of evm executing tx is also saved in `watcher`, which is used for rpc query of `eth` ([\#857](https://github.com/okex/exchain/pull/857))
 
 * Compatible with `ethclient`'s way of calculating hashes of blocks and transactions ([\#888](https://github.com/okex/exchain/pull/888))
 
@@ -1225,11 +1209,11 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Improve the performance of API `eth_getBalance`  by recording the account addresses of invalid queries ([\#891](https://github.com/okex/exchain/pull/891))
 
-* Add lru cache for `GetCodeByHash` ([\#893](https://github.com/okex/exchain/pull/893))
+* Add lru to store contract code and improve the efficiency of rpc interface query ([\#893](https://github.com/okex/exchain/pull/893))
 
-* Optimize code to avoid re-init cdc ([\#895](https://github.com/okex/exchain/pull/895))
+* Singleton uses amino encoding to register chain configuration parameters ([\#895](https://github.com/okex/exchain/pull/895))
 
-* Add state lru cache to optimize `eth_call` ([\#898](https://github.com/okex/exchain/pull/898))
+* Increase lru to store state and reduce direct access to watchdb by rpc query ([\#898](https://github.com/okex/exchain/pull/898))
 
 
 
