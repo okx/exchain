@@ -205,15 +205,23 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
-	address := msgEthTx.From()
-	if address.Empty() {
-		panic("sender address cannot be empty")
-	}
 
 	var acc exported.Account
 	var getAccGasUsed sdk.Gas
 
+	address := msgEthTx.From()
+	if address.Empty() {
+		if ctx.From() != "" {
+			msgEthTx.SetFrom(ctx.From())
+			address = msgEthTx.From()
+		}
+	}
+
 	if !simulate {
+		if address.Empty() {
+			panic("sender address cannot be empty")
+		}
+
 		if ctx.IsCheckTx() {
 			acc = avd.ak.GetAccount(ctx, address)
 			if acc == nil {
