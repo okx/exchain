@@ -73,7 +73,7 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 		return nil
 	}
 
-	denom, found := h.Keeper.getDenomByContract(ctx, contract)
+	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
 	if !found {
 		return fmt.Errorf("contract %s is not connected to native token", contract)
 	}

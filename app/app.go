@@ -400,6 +400,9 @@ func NewOKExChainApp(
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
 
+	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
+		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
+
 	// register the proposal types
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
@@ -417,7 +420,8 @@ func NewOKExChainApp(
 		AddRoute(dex.RouterKey, &app.DexKeeper).
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
-		AddRoute(mint.RouterKey, &app.MintKeeper)
+		AddRoute(mint.RouterKey, &app.MintKeeper).
+		AddRoute(erc20.RouterKey, app.Erc20Keeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -428,9 +432,7 @@ func NewOKExChainApp(
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
-
-	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
-		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.GovKeeper, app.EvmKeeper, app.TransferKeeper)
+	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))

@@ -12,7 +12,7 @@ func TestTokenMappingProposal_ValidateBasic(t *testing.T) {
 	contractAddrStr := "0x7D4B7B8CA7E1a24928Bb96D59249c7a5bd1DfBe6"
 	contractAddr := common.HexToAddress(contractAddrStr)
 
-	proposal := NewTokenMappingChangeProposal("proposal", "right delist proposal", "eth", &contractAddr)
+	proposal := NewTokenMappingProposal("proposal", "right delist proposal", "eth", &contractAddr)
 	require.Equal(t, "proposal", proposal.GetTitle())
 	require.Equal(t, "right delist proposal", proposal.GetDescription())
 	require.Equal(t, RouterKey, proposal.ProposalRoute())
@@ -23,7 +23,7 @@ func TestTokenMappingProposal_ValidateBasic(t *testing.T) {
 		drp    TokenMappingProposal
 		result bool
 	}{
-		{"valid-proposal", *proposal, true},
+		{"valid-proposal", proposal, true},
 		{"no-title", TokenMappingProposal{"", "delist proposal", "eth", contractAddrStr}, false},
 		{"no-description", TokenMappingProposal{"proposal", "", "eth", contractAddrStr}, false},
 		{"no-denom", TokenMappingProposal{"proposal", "delist proposal", "", contractAddrStr}, false},

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
@@ -89,7 +88,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	}
 
 	var err error
-	contract, found := k.getContractByDenom(ctx, voucher.Denom)
+	contract, found := k.GetContractByDenom(ctx, voucher.Denom)
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
@@ -99,7 +98,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		if err != nil {
 			return err
 		}
-		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
+		k.SetAutoContractForDenom(ctx, voucher.Denom, contract)
 		logrusplugin.Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
 	// 1. transfer voucher from user address to contact address in bank
@@ -209,7 +208,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 				return err
 			}
 		default:
-			if _, found := k.getContractByDenom(ctx, c.Denom); !found {
+			if _, found := k.GetContractByDenom(ctx, c.Denom); !found {
 				return fmt.Errorf("coin %s id not support", c.Denom)
 			}
 			// oec2:erc20/xxb----->oec2:ibc/xxb---ibc--->oec1:xxb
@@ -260,16 +259,4 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 		timeoutHeight,
 		timeoutTimestamp,
 	)
-}
-
-// GetSourceChannelID returns the channel id for an ibc voucher
-// The voucher has for format ibc/hash(path)
-func (k Keeper) GetSourceChannelID(ctx sdk.Context, ibcVoucherDenom string) (channelID string, err error) {
-	path, err := k.transferKeeper.DenomPathFromHash(ctx, ibcVoucherDenom)
-	if err != nil {
-		return "", err
-	}
-
-	// the path has for format port/channelId
-	return strings.Split(path, "/")[1], nil
 }

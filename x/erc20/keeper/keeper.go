@@ -29,7 +29,7 @@ type Keeper struct {
 func NewKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace,
 	ak AccountKeeper, sk SupplyKeeper, bk BankKeeper,
-	gk GovKeeper, ek EvmKeeper, tk TransferKeeper) Keeper {
+	ek EvmKeeper, tk TransferKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -42,7 +42,6 @@ func NewKeeper(
 		accountKeeper:  ak,
 		supplyKeeper:   sk,
 		bankKeeper:     bk,
-		govKeeper:      gk,
 		evmKeeper:      ek,
 		transferKeeper: tk,
 	}
@@ -71,7 +70,7 @@ func (k Keeper) DeleteExternalContractForDenom(ctx sdk.Context, denom string) bo
 // 2. if any existing for contract, return error.
 func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contract common.Address) error {
 	// check the contract is not registered already
-	_, found := k.getDenomByContract(ctx, contract)
+	_, found := k.GetDenomByContract(ctx, contract)
 	if found {
 		return types.ErrRegisteredContract(contract.String())
 	}
@@ -87,13 +86,13 @@ func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contr
 	return nil
 }
 
-func (k Keeper) setAutoContractForDenom(ctx sdk.Context, denom string, contract common.Address) {
+func (k Keeper) SetAutoContractForDenom(ctx sdk.Context, denom string, contract common.Address) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.DenomToAutoContractKey(denom), contract.Bytes())
 	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
 }
 
-func (k Keeper) getDenomByContract(ctx sdk.Context, contract common.Address) (denom string, found bool) {
+func (k Keeper) GetDenomByContract(ctx sdk.Context, contract common.Address) (denom string, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ContractToDenomKey(contract.Bytes()))
 	if len(bz) == 0 {
@@ -136,10 +135,15 @@ func (k Keeper) getAutoContractByDenom(ctx sdk.Context, denom string) (contract 
 	return common.BytesToAddress(bz), true
 }
 
-func (k Keeper) getContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
+func (k Keeper) GetContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
 	contract, found = k.getExternalContractByDenom(ctx, denom)
 	if !found {
 		contract, found = k.getAutoContractByDenom(ctx, denom)
 	}
 	return
+}
+
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk GovKeeper) {
+	k.govKeeper = gk
 }

@@ -29,12 +29,12 @@ type TokenMappingProposal struct {
 	Contract    string `json:"contract" yaml:"contract"`
 }
 
-func NewTokenMappingChangeProposal(title, description, denom string, contractAddr *common.Address) *TokenMappingProposal {
+func NewTokenMappingProposal(title, description, denom string, contractAddr *common.Address) TokenMappingProposal {
 	contract := ""
 	if contractAddr != nil {
 		contract = contractAddr.Hex()
 	}
-	return &TokenMappingProposal{title, description, denom, contract}
+	return TokenMappingProposal{title, description, denom, contract}
 }
 
 func (tp TokenMappingProposal) GetTitle() string       { return tp.Title }
