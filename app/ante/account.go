@@ -113,6 +113,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
+		ctx = ctx.WithAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
 		err := nonceVerificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
 		if err != nil {
@@ -130,16 +131,16 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.
 	return ctx, nil
 }
 
-func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx, simulate bool, ak auth.AccountKeeper, sk types.SupplyKeeper) (sdk.Context, error) {
+func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (newCtx sdk.Context, toAcc exported.Account, err error) {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
-		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+		return ctx, nil, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
 
 	// intrinsic gas verification during CheckTx
 	if ctx.IsCheckTx() && gasLimit < gas {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+		return ctx, nil, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
 	}
 
 	// Charge sender for gas up to limit
@@ -153,49 +154,47 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgE
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		err = deductFees(ctx, acc, feeAmt, ak, sk)
+		toAcc, err = deductFees(ctx, acc, feeAmt, sk)
 		if err != nil {
-			return ctx, err
+			return ctx, nil, err
 		}
 	}
-
 	// Set gas meter after ante handler to ignore gaskv costs
 	ctx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return ctx, nil
+	return ctx, toAcc, nil
 }
 
-func deductFees(ctx sdk.Context, fromAcc exported.Account, feeAmt sdk.Coins, ak auth.AccountKeeper, sk types.SupplyKeeper) error {
+func deductFees(ctx sdk.Context, fromAcc exported.Account, feeAmt sdk.Coins, sk types.SupplyKeeper) (toAcc exported.Account, err error) {
 	if !feeAmt.IsValid() {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", feeAmt)
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", feeAmt)
 	}
 
 	//sub coin from acc
 	oldCoins := fromAcc.GetCoins()
 	newCoins, hasNeg := oldCoins.SafeSub(feeAmt)
 	if hasNeg {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", oldCoins, feeAmt)
 	}
 	if err := fromAcc.SetCoins(newCoins); err != nil {
-		return err
+		return nil, err
 	}
-	ak.SetAccount(ctx, fromAcc)
 
 	//add coin to fee acc
 	recipientAcc := sk.GetModuleAccount(ctx, types.FeeCollectorName)
 	if recipientAcc == nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", types.FeeCollectorName)
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", types.FeeCollectorName)
 	}
 	feeCoin := recipientAcc.GetCoins()
 	feeNewCoin := feeCoin.Add(feeAmt...)
 	if !feeNewCoin.IsValid() || feeCoin.IsAnyNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, feeCoin.String())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, feeCoin.String())
 	}
 	if err := recipientAcc.SetCoins(feeNewCoin); err != nil {
-		return err
+		return nil, err
 	}
-	ak.SetAccount(ctx, recipientAcc)
-	return nil
+
+	return recipientAcc, nil
 }
 
 //increametSeq for increase acc sequence.
@@ -237,7 +236,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	var fromAcc exported.Account
+	var fromAcc, toAcc exported.Account
 
 	address := msgEthTx.From()
 	if address.Empty() {
@@ -272,18 +271,27 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			return ctx, err
 		}
 
+		// account would be updated
+		ctx, toAcc, err = ethGasConsume(ctx, fromAcc, msgEthTx, simulate, avd.sk)
+		if err != nil {
+			return ctx, err
+		}
 	}
 
+	gasMeter := ctx.GasMeter()
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	// if simulate,fromAcc must be nil,then incrementSeq need to get/set account
 	// if !simulate,fromAcc must not be nil,then incrementSeq need not to get/set account
 	incrementSeq(ctx, msgEthTx, fromAcc, address, avd.ak)
 
 	if !simulate {
-		// account would be updated
-		ctx, err = ethGasConsume(ctx, fromAcc, msgEthTx, simulate, avd.ak, avd.sk)
-		if err != nil {
-			return ctx, err
+		if fromAcc != nil {
+			avd.ak.SetAccount(ctx, fromAcc)
+		}
+		if toAcc != nil {
+			avd.ak.SetAccount(ctx, toAcc)
 		}
 	}
+	ctx = ctx.WithGasMeter(gasMeter)
 	return next(ctx, tx, simulate)
 }
