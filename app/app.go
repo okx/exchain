@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -605,18 +604,4 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
-}
-
-type fmtStringer []interface{}
-
-func (fmter fmtStringer) String() string {
-	args := fmter[1:]
-	return fmt.Sprintf(fmter[0].(string), args...)
-}
-
-func newFmtStringer(format string, args ...interface{}) fmtStringer {
-	fmter := make(fmtStringer, 1+len(args))
-	fmter[0] = format
-	copy(fmter[1:], args)
-	return fmter
 }
