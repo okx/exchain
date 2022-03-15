@@ -109,14 +109,14 @@ type TxSigCache struct {
 	From   ethcmn.Address
 }
 
-func (s TxSigCache) GetFrom() ethcmn.Address {
+func (s *TxSigCache) GetFrom() ethcmn.Address {
 	return s.From
 }
 
-func (s TxSigCache) GetSigner() ethtypes.Signer {
+func (s *TxSigCache) GetSigner() ethtypes.Signer {
 	return s.Signer
 }
 
-func (s TxSigCache) EqualSiger(siger ethtypes.Signer) bool {
+func (s *TxSigCache) EqualSiger(siger ethtypes.Signer) bool {
 	return s.Signer.Equal(siger)
 }
