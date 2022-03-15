@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -993,23 +994,43 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	block, err := api.backend.GetBlockByHash(hash, fullTx)
+	blockRes, err := api.backend.GetBlockByHash(hash)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
 	}
-	return block, nil
+	//extract tx hashs when not fullTx
+	if !fullTx && blockRes != nil {
+		blockRes = modifyTransactionsInBlock(blockRes)
+	}
+	return blockRes, err
 }
 
-// GetBlockByNumber returns the block identified by number.
-func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
-	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("number", blockNum, "full", fullTx)
-	var blockTxs interface{}
+//modifyTransactionsInBlock modifies the block.Transactions from  []Transaction to []common.hash
+//only when the fullTx is false.
+func modifyTransactionsInBlock(blockIn *watcher.Block) *watcher.Block {
+	//make a shallow copy of Block to modify block.Transactions from  []Transaction to []common.hash
+	block := *blockIn
+	if block.Transactions == nil {
+		block.Transactions = []common.Hash{}
+		return &block
+	}
+	txs, ok := block.Transactions.([]*watcher.Transaction)
+	if ok {
+		txHashs := make([]common.Hash, len(txs))
+		for i, tx := range txs {
+			txHashs[i] = tx.Hash
+		}
+		block.Transactions = txHashs
+	}
+	return &block
+}
+func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (blockRes *watcher.Block, err error) {
 	if blockNum != rpctypes.PendingBlockNumber {
-		return api.backend.GetBlockByNumber(blockNum, fullTx)
+		blockRes, err = api.backend.GetBlockByNumber(blockNum)
+		return
 	}
 
 	height, err := api.backend.LatestBlockNumber()
@@ -1029,15 +1050,9 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		return nil, err
 	}
 
-	pendingTxs, gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
+	gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
 	if err != nil {
 		return nil, err
-	}
-
-	if fullTx {
-		blockTxs = ethTxs
-	} else {
-		blockTxs = pendingTxs
 	}
 
 	return rpctypes.FormatBlock(
@@ -1054,50 +1069,43 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		latestBlock.Block.Hash(),
 		0,
 		gasUsed,
-		blockTxs,
+		ethTxs,
 		ethtypes.Bloom{},
 	), nil
+}
 
+// GetBlockByNumber returns the block identified by number.
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
+	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("number", blockNum, "full", fullTx)
+
+	blockRes, err := api.getBlockByNumber(blockNum)
+	//modify block.Transactions to hashs when not fullTx
+	if err == nil && blockRes != nil && !fullTx {
+		blockRes = modifyTransactionsInBlock(blockRes)
+	}
+	return blockRes, err
 }
 
 // GetTransactionByHash returns the transaction identified by hash.
-func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*watcher.Transaction, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
-	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
+	tx, err := api.backend.GetTransactionByHash(hash)
 	if err == nil {
-		return rawTx, nil
+		return tx, nil
 	}
-	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
-	if err != nil {
-		// check if the tx is on the mempool
-		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
-		if pendingErr != nil {
-			//to keep consistent with rpc of ethereum, should be return nil
-			return nil, nil
-		}
-		return pendingTx, nil
+	// check if the tx is on the mempool
+	pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
+	if pendingErr != nil {
+		//to keep consistent with rpc of ethereum, should be return nil
+		return nil, nil
 	}
-
-	// Can either cache or just leave this out if not necessary
-	block, err := api.clientCtx.Client.Block(&tx.Height)
-	if err != nil {
-		return nil, err
-	}
-
-	blockHash := common.BytesToHash(block.Block.Hash())
-
-	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
-	if err != nil {
-		return nil, err
-	}
-
-	height := uint64(tx.Height)
-	return rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Tx.Hash(tx.Height)), blockHash, height, uint64(tx.Index))
+	return pendingTx, nil
 }
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
-func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*watcher.Transaction, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByBlockHashAndIndex", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
@@ -1117,7 +1125,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
-func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*watcher.Transaction, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionByBlockNumberAndIndex", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("blockNum", blockNum, "index", idx)
 	tx, e := api.wrappedBackend.GetTransactionByBlockNumberAndIndex(uint64(blockNum), uint(idx))
@@ -1163,7 +1171,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
-func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*watcher.Transaction, error) {
 	// return if index out of bounds
 	if uint64(idx) >= uint64(len(block.Txs)) {
 		return nil, nil
@@ -1178,11 +1186,11 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	height := uint64(block.Height)
 	txHash := common.BytesToHash(block.Txs[idx].Hash(block.Height))
 	blockHash := common.BytesToHash(block.Hash())
-	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
+	return watcher.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
-func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -1420,12 +1428,12 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (api *PublicEthereumAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) PendingTransactions() ([]*watcher.Transaction, error) {
 	api.logger.Debug("eth_pendingTransactions")
 	return api.backend.PendingTransactions()
 }
 
-func (api *PublicEthereumAPI) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+func (api *PublicEthereumAPI) PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error) {
 	api.logger.Debug("eth_pendingTransactionsByHash")
 	return api.backend.PendingTransactionsByHash(target)
 }
