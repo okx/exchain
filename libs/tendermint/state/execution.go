@@ -135,16 +135,26 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		maxGas = cfg.DynamicConfig.GetMaxGasUsedPerBlock()
 	}
-	globalRealTxs = blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
-	txs := make([]types.Tx, 0, len(globalRealTxs))
-	for _, realTx := range globalRealTxs {
+	realTxs := blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
+
+	txs := make([]types.Tx, 0, len(realTxs))
+	for _, realTx := range realTxs {
 		txs = append(txs, realTx.GetRaw())
 	}
+	block, partSet := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 
-	return state.MakeBlock(height, txs, commit, evidence, proposerAddr)
+	globalTxs.lastBlockHash = block.Header.LastBlockID.Hash
+	globalTxs.realTxs = realTxs
+
+	return block, partSet
 }
 
-var globalRealTxs []abci.TxEssentials
+var globalTxs txsWithBlockHash
+
+type txsWithBlockHash struct {
+	lastBlockHash []byte
+	realTxs       []abci.TxEssentials
+}
 
 // ValidateBlock validates the given block against the given state.
 // If the block is invalid, it returns an error.
@@ -438,16 +448,19 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	if globalRealTxs != nil {
+	if string(globalTxs.lastBlockHash) == string(block.Header.LastBlockID.Hash) {
+		realTxs := globalTxs.realTxs
+		globalTxs.lastBlockHash = nil
+		globalTxs.realTxs = nil
 		// Run txs of globalRealTxs.
-		for count, realTx := range globalRealTxs {
+		for count, realTx := range realTxs {
 			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{RealTx: realTx})
 			if err := proxyAppConn.Error(); err != nil {
 				return nil, err
 			}
 
 			if context != nil && context.stopped {
-				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(globalRealTxs)))
+				context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(realTxs)))
 				return nil, fmt.Errorf("Prerun stopped")
 			}
 		}
