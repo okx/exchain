@@ -59,7 +59,7 @@ func (app *BaseApp) TraceTx(targetTxData []byte, targetTx sdk.Tx, txIndex uint32
 func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState *state) (info *runTxInfo, err error) {
 
 	mode := runTxModeTrace
-	// prepare runTxInfo to runTxWithInfo
+	// new runTxInfo for prepareTxInfoAndRun
 	info = &runTxInfo{}
 	// init info.ctx
 	info.ctx = traceState.ctx.
