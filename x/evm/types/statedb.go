@@ -873,18 +873,10 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		}
 	}
 
-	// If there was a trie prefetcher operating, it gets aborted and irrevocably
-	// modified after we start retrieving tries. Remove it from the statedb after
-	// this round of use.
-	//
-	// This is weird pre-byzantium since the first tx runs with a prefetcher and
-	// the remainder without, but pre-byzantium even the initial prefetcher is
-	// useless, so no sleep lost.
-
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
-	if csdb.prefetcher != nil {
+	if csdb.prefetcher != nil && csdb.originalRoot != (ethcmn.Hash{}) {
 		if trie := csdb.prefetcher.trie(csdb.originalRoot); trie != nil {
 			csdb.trie = trie
 		}

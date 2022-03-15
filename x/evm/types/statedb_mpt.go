@@ -229,6 +229,10 @@ func (csdb *CommitStateDB) Logger() log.Logger {
 // state trie concurrently while the state is mutated so that when we reach the
 // commit phase, most of the needed data is already hot.
 func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		return
+	}
+
 	if csdb.prefetcher != nil {
 		csdb.prefetcher.close()
 		csdb.prefetcher = nil

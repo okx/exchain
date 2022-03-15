@@ -96,29 +96,26 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
-		latestVersion := uint64(ctx.BlockHeight())
-		offset := uint64(mpt.TriesInMemory)
-		for ; offset > 0; offset-- {
-			if latestVersion > offset {
-				version := latestVersion - offset
-				if version <= oecStartHeight || version <= k.startHeight {
-					continue
-				}
-
-				recentMptRoot := k.GetMptRootHash(version)
-				if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types.EmptyRootHash {
-					recentMptRoot = ethcmn.Hash{}
-				} else {
-					k.mptCommitMu.Lock()
-					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
-						k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
-						break
-					}
-					k.mptCommitMu.Unlock()
-				}
-				k.SetLatestStoredBlockHeight(version)
-				k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
+		latestStoreVersion := k.GetLatestStoredBlockHeight()
+		curVersion := uint64(ctx.BlockHeight())
+		for version := latestStoreVersion; version <= curVersion; version++ {
+			if version <= oecStartHeight || version <= k.startHeight {
+				continue
 			}
+
+			recentMptRoot := k.GetMptRootHash(version)
+			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types.EmptyRootHash {
+				recentMptRoot = ethcmn.Hash{}
+			} else {
+				k.mptCommitMu.Lock()
+				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
+					k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+					break
+				}
+				k.mptCommitMu.Unlock()
+			}
+			k.SetLatestStoredBlockHeight(version)
+			k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 		}
 
 		for !k.triegc.Empty() {
@@ -206,10 +203,9 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
-	k.EvmStateDb.StopPrefetcher()
-	k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
+		k.EvmStateDb.StopPrefetcher()
 		// The onleaf func is called _serially_, so we can reuse the same account
 		// for unmarshalling every time.
 		var storageRoot ethcmn.Hash
@@ -223,6 +219,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 		})
 		k.SetMptRootHash(ctx, root)
 		k.rootHash = root
+		k.rootTrie = k.EvmStateDb.GetRootTrie()
 	}
 }
 

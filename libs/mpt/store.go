@@ -310,30 +310,27 @@ func (ms *MptStore) OnStop() error {
 		triedb := ms.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
-		latestVersion := uint64(ms.version)
-		offset := uint64(TriesInMemory)
-		for ; offset > 0; offset-- {
-			if latestVersion > offset {
-				version := latestVersion - offset
-				if version <= oecStartHeight || version <= uint64(ms.startVersion) {
-					continue
-				}
+		latestStoreVersion := ms.GetLatestStoredBlockHeight()
+		curVersion := uint64(ms.version)
+		for version := latestStoreVersion; version <= curVersion; version++ {
+			if version <= oecStartHeight || version <= uint64(ms.startVersion) {
+				continue
+			}
 
-				recentMptRoot := ms.GetMptRootHash(version)
-				if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types3.EmptyRootHash {
-					recentMptRoot = ethcmn.Hash{}
-				} else {
-					if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
-						if ms.logger != nil {
-							ms.logger.Error("Failed to commit recent state trie", "err", err)
-						}
-						break
+			recentMptRoot := ms.GetMptRootHash(version)
+			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types3.EmptyRootHash {
+				recentMptRoot = ethcmn.Hash{}
+			} else {
+				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
+					if ms.logger != nil {
+						ms.logger.Error("Failed to commit recent state trie", "err", err)
 					}
+					break
 				}
-				ms.SetLatestStoredBlockHeight(version)
-				if ms.logger != nil {
-					ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
-				}
+			}
+			ms.SetLatestStoredBlockHeight(version)
+			if ms.logger != nil {
+				ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
 			}
 		}
 
