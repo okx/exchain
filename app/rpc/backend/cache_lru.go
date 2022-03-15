@@ -14,7 +14,8 @@ var ErrLruDataNotFound = errors.New("lru : not found")
 var ErrLruDataWrongType = errors.New("lru : wrong type")
 
 const (
-	FlagApiBackendLru = "rpc-lru-cache-size"
+	FlagApiBackendBlockLruCache = "rpc-block-cache"
+	FlagApiBackendTxLruCache    = "rpc-tx-cache"
 )
 
 type LruCache struct {
@@ -24,19 +25,20 @@ type LruCache struct {
 }
 
 func NewLruCache() *LruCache {
-	lruSize := viper.GetInt(FlagApiBackendLru)
+	blockLruSize := viper.GetInt(FlagApiBackendBlockLruCache)
+	txLruSize := viper.GetInt(FlagApiBackendTxLruCache)
 	//init lru cache for tx
-	lruTx, err := lru.New(lruSize)
+	lruTx, err := lru.New(txLruSize)
 	if err != nil {
 		panic(errors.New("Failed to init LRU for Tx, err :" + err.Error()))
 	}
 	//init lru cache for block
-	lruBlock, err := lru.New(lruSize)
+	lruBlock, err := lru.New(blockLruSize)
 	if err != nil {
 		panic(errors.New("Failed to init LRU for Block, err :" + err.Error()))
 	}
 	//init lru cache for blockinfo
-	lruBlockInfo, err := lru.New(lruSize)
+	lruBlockInfo, err := lru.New(blockLruSize)
 	if err != nil {
 		panic(errors.New("Failed to init LRU for Block, err :" + err.Error()))
 	}

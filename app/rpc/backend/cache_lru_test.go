@@ -92,7 +92,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 			},
 		},
 	}
-	viper.Set(FlagApiBackendLru, 100) // must be 3
+	viper.Set(FlagApiBackendBlockLruCache, 100) // must be 3
 	alc := NewLruCache()
 
 	for _, tt := range tests {
@@ -161,7 +161,7 @@ func TestLruCache_AddOrUpdateTransaction(t *testing.T) {
 			},
 		},
 	}
-	viper.Set(FlagApiBackendLru, 100)
+	viper.Set(FlagApiBackendTxLruCache, 100)
 	alc := NewLruCache()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -212,7 +212,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 			},
 		},
 	}
-	viper.Set(FlagApiBackendLru, 100) // must be 3
+	viper.Set(FlagApiBackendBlockLruCache, 100) // must be 3
 	alc := NewLruCache()
 
 	for _, tt := range tests {
