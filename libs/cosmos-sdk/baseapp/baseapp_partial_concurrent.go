@@ -29,6 +29,9 @@ var totalFinishTime = int64(0)
 var totalWaitingTime = int64(0)
 var totalRerunAnteTime = int64(0)
 var totalBasicTime = int64(0)
+var blockHeight = int64(0)
+
+const AssignedBlockHeight = 5810000
 
 type DeliverTxTask struct {
 	tx            sdk.Tx
@@ -36,11 +39,11 @@ type DeliverTxTask struct {
 	feeForCollect int64
 	//anteFailed    bool
 
-	info  *runTxInfo
-	from  sdk.Address
-	fee   sdk.Coins
-	isEvm bool
-	signCache     sdk.SigCache
+	info      *runTxInfo
+	from      sdk.Address
+	fee       sdk.Coins
+	isEvm     bool
+	signCache sdk.SigCache
 	//evmIndex      uint32
 	basicVerifyErr error
 	anteErr        error
@@ -75,27 +78,40 @@ func (sm *sendersMap) setLogger(logger log.Logger) {
 	sm.logger = logger
 }
 
-func (sm *sendersMap) Push(address sdk.Address, task *DeliverTxTask) (alreadyExist bool) {
+func (sm *sendersMap) Push(task *DeliverTxTask, curTask *DeliverTxTask) (alreadyExist bool) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
 
-	tasks, ok := sm.senders.Load(address.String())
+	address := task.from.String()
+	tasks, ok := sm.senders.Load(address)
 	if ok {
 		alreadyExist = true
 		tasks = append(tasks.([]*DeliverTxTask), task)
-		//sm.logger.Info("Push", "index", task.index, "addr", address)
+		if blockHeight == AssignedBlockHeight {
+			sm.logger.Info("Push", "index", task.index, "addr", address)
+		}
 	} else {
 		tasks = []*DeliverTxTask{task}
-		//sm.logger.Info("New", "index", task.index, "addr", address)
+		if blockHeight == AssignedBlockHeight {
+			sm.logger.Info("New", "index", task.index, "addr", address)
+		}
 	}
-	sm.senders.Store(address.String(), tasks)
+	sm.senders.Store(address, tasks)
+
+	if !alreadyExist && curTask != nil {
+		alreadyExist = task.from.Equals(curTask.from)
+	}
 
 	return
 }
 
-func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) (succeed bool) {
+func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask, curTask *DeliverTxTask) (succeed bool) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
+
+	if curTask != nil && task.from.Equals(curTask.from) {
+		return
+	}
 
 	tasks, ok := sm.senders.Load(address.String())
 	tasksList := tasks.([]*DeliverTxTask)
@@ -111,12 +127,14 @@ func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) (succeed boo
 				pos = i
 			}
 			if tasksList[i].index < task.index {
-				smallerPos = i	// tasks: 0,1,2 has the same sender. But they're pushed into sendersMap in an order [2,1,0] or [1,0,2]
+				smallerPos = i // tasks: 0,1,2 has the same sender. But they're pushed into sendersMap in an order [2,1,0] or [1,0,2]
 			}
 		}
 		if smallerPos < 0 {
 			tasksList = append(tasksList[:pos], tasksList[pos+1:]...)
-			//sm.logger.Info("Pop", task.index, address.String())
+			if blockHeight == AssignedBlockHeight {
+				sm.logger.Info("Pop", task.index, address.String())
+			}
 			sm.senders.Store(address.String(), tasksList)
 			succeed = true
 		}
@@ -138,7 +156,9 @@ func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) (succeed boo
 			}
 		} else {
 			sm.senders.Delete(address.String())
-			//sm.logger.Info("Delete", "addr", address.String())
+			if blockHeight == AssignedBlockHeight {
+				sm.logger.Info("Delete", "addr", address.String())
+			}
 		}
 		return
 	} else {
@@ -147,25 +167,34 @@ func (sm *sendersMap) Pop(address sdk.Address, task *DeliverTxTask) (succeed boo
 	}
 }
 
-func (sm *sendersMap) extractNextTask() *DeliverTxTask {
+func (sm *sendersMap) extractNextTask(curTask *DeliverTxTask) (nextTask *DeliverTxTask, conflictWithCurTask bool) {
 	count := len(sm.nextTasks)
 	if count == 0 {
-		return nil
+		return
 	}
 
 	//sm.logger.Info("extractNextTask before", "nexts", len(sm.nextTasks))
-	minIndex := sm.nextTasks[0].index
-	pos := 0
+	minIndex := -1
+	pos := -1
+	var task *DeliverTxTask
 	for i := 0; i < count; i++ {
-		if sm.nextTasks[i].index < minIndex {
+		task = sm.nextTasks[i]
+		if curTask != nil && task.from.Equals(curTask.from) {
+			conflictWithCurTask = true
+			continue
+		}
+		if minIndex < 0 || task.index < minIndex {
 			minIndex = sm.nextTasks[i].index
 			pos = i
 		}
 	}
-	nextTask := sm.nextTasks[pos]
+	if pos < 0 {
+		return
+	}
+	nextTask = sm.nextTasks[pos]
 	sm.nextTasks = append(sm.nextTasks[:pos], sm.nextTasks[pos+1:]...)
 	//sm.logger.Info("extractNextTask after", "nexts", len(sm.nextTasks))
-	return nextTask
+	return
 }
 
 type DeliverTxTasksManager struct {
@@ -182,6 +211,7 @@ type DeliverTxTasksManager struct {
 	pendingTasks  sync.Map
 	statefulTask  *DeliverTxTask
 	currTxFee     sdk.Coins
+	conflict      bool // means whether statefulTask conflicts with the next task which will execute ante
 
 	sendersMap *sendersMap
 
@@ -218,6 +248,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.pendingTasks = sync.Map{}
 	dm.statefulTask = nil
 	dm.currTxFee = sdk.Coins{}
+	dm.conflict = false
 
 	dm.sendersMap = NewSendersMap()
 	dm.sendersMap.setLogger(dm.app.logger)
@@ -232,6 +263,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.handleGasTime = 0
 	dm.runMsgsTime = 0
 	dm.finishTime = 0
+	blockHeight = global.GetGlobalHeight()
 
 	go dm.makeTasksRoutine(txs)
 	go dm.runStatefulSerialRoutine()
@@ -245,13 +277,22 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		}
 
 		//todo: extract task from sendersMap
-		nextTask := dm.sendersMap.extractNextTask()
-		if nextTask != nil {
-			dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
-		} else {
-			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
-			taskIndex++
+		nextTask, conflict := dm.sendersMap.extractNextTask(dm.statefulTask)
+		if !conflict {
+			if nextTask != nil {
+				dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
+			} else {
+				dm.makeNextTask(txs[taskIndex], taskIndex, nil)
+				taskIndex++
+			}
 		}
+		dm.conflict = conflict
+		//if nextTask != nil {
+		//	dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
+		//} else {
+		//	dm.makeNextTask(txs[taskIndex], taskIndex, nil)
+		//	taskIndex++
+		//}
 		dm.incrementWaitingCount(true, false)
 	}
 }
@@ -294,23 +335,26 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		}
 
 		// todo: check duplicated sender
-		if dm.sendersMap.Push(task.from, task) {
+		//alreadyExist, conflict = dm.sendersMap.Push(task, dm.statefulTask)
+		if dm.sendersMap.Push(task, dm.statefulTask) {
 			dm.incrementWaitingCount(false, false)
 			return
 		}
 	}
 
 	if dm.app.anteAuthHandler != nil {
-		//dm.app.logger.Info("runAnte", "index", task.index)
+		if blockHeight == AssignedBlockHeight {
+			dm.app.logger.Info("runAnte", "index", task.index)
+		}
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
 		if err != nil {
-			dm.app.logger.Error("ante failed 1", "index", task.index,"basicVerifyErr", err)
+			dm.app.logger.Error("ante failed 1", "index", task.index, "basicVerifyErr", err)
 			// todo: should make a judge for the basicVerifyErr. There are some errors don't need to re-run AnteHandler.
 			task.anteErr = err
 		}
 	}
 
-	if dm.sendersMap.Pop(task.from, task) {
+	if dm.sendersMap.Pop(task.from, task, dm.statefulTask) {
 		if task.anteErr == nil {
 			task.info.msCacheAnte.Write()
 			task.info.ctx.Cache().Write(true)
@@ -495,7 +539,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		if global.GetGlobalHeight() == 5810704 {
+		if blockHeight == AssignedBlockHeight {
 			dm.app.logger.Info("runStatefulSerialRoutine", "index", dm.statefulTask.index)
 		}
 		start := time.Now()
@@ -668,6 +712,9 @@ func (dm *DeliverTxTasksManager) extractStatefulTask() bool {
 
 func (dm *DeliverTxTasksManager) resetStatefulTask() {
 	dm.statefulTask = nil
+	if dm.conflict {
+		dm.incrementWaitingCount(false, false)	// go to extract the next task from sendersMap.nextTasks
+	}
 }
 
 func printLog(msg string, cache sdk.CacheMultiStore) {
