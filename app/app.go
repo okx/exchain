@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -193,20 +192,7 @@ func NewOKExChainApp(
 		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	onceLog.Do(func() {
-		iavllog := logger.With("module", "iavl")
-		logFunc := func(level int, format string, args ...interface{}) {
-			switch level {
-			case iavl.IavlErr:
-				iavllog.Error(fmt.Sprintf(format, args...))
-			case iavl.IavlInfo:
-				iavllog.Info(fmt.Sprintf(format, args...))
-			case iavl.IavlDebug:
-				iavllog.Debug(fmt.Sprintf(format, args...))
-			default:
-				return
-			}
-		}
-		iavl.SetLogFunc(logFunc)
+		iavl.SetLogger(logger.With("module", "iavl"))
 		logStartingFlags(logger)
 	})
 
