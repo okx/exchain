@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -25,12 +25,12 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 }
 
 type KafkaMsg struct {
-	Topic  string                `json:"topic"`
-	Source interface{}           `json:"source"`
-	Data   *rpctypes.Transaction `json:"data"`
+	Topic  string               `json:"topic"`
+	Source interface{}          `json:"source"`
+	Data   *watcher.Transaction `json:"data"`
 }
 
-func (kc *KafkaClient) Send(hash []byte, tx *rpctypes.Transaction) error {
+func (kc *KafkaClient) Send(hash []byte, tx *watcher.Transaction) error {
 	msg, err := json.Marshal(KafkaMsg{
 		Topic: kc.Topic,
 		Data:  tx,
