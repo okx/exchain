@@ -628,7 +628,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx, _ = ctx.CacheContext()
 	}
 	if mode == runTxModeDeliver {
-		if s := app.blockSenderList.getSender(txBytes); s != nil {
+		if s := app.blockSenderList.getSignCache(txBytes); s != nil {
 			ctx = ctx.WithSigCache(s)
 		}
 	}

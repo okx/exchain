@@ -70,7 +70,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 				return
 			}
 			if s := app.getSignCache(checkStateCtx, tx); s != nil {
-				app.blockSenderList.setSender(txBytes, s)
+				app.blockSenderList.setSignCache(txBytes, s)
 			}
 		}(txBytes)
 	}
@@ -543,14 +543,14 @@ func (b *blockSender) clear() {
 	b.blockTxSender = make(map[string]sdk.SigCache)
 }
 
-func (b *blockSender) getSender(txBytes []byte) sdk.SigCache {
+func (b *blockSender) getSignCache(txBytes []byte) sdk.SigCache {
 	txString := string(txBytes)
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.blockTxSender[txString]
 }
 
-func (b *blockSender) setSender(txBytes []byte, sign sdk.SigCache) {
+func (b *blockSender) setSignCache(txBytes []byte, sign sdk.SigCache) {
 	txString := string(txBytes)
 	b.mu.Lock()
 	defer b.mu.Unlock()
