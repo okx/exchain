@@ -70,17 +70,19 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, info ExTxInfo
 				return nil
 			}
 
-			// delete the old element and reorganize the elements whose nonce is greater the the new element
+			// delete the old element
 			ar.removeElement(e)
-			var items []*clist.CElement
-			for _, item := range am.items {
-				if item.Nonce > info.Nonce {
-					items = append(items, item)
-				}
-			}
-			ar.reorganizeElements(items)
 		}
 	}
+
+	// reorganize the elements whose nonce is greater the the new element
+	var items []*clist.CElement
+	for _, item := range am.items {
+		if item.Nonce > info.Nonce {
+			items = append(items, item)
+		}
+	}
+	ar.reorganizeElements(items)
 
 	am.items[newElement.Nonce] = newElement
 

@@ -55,6 +55,7 @@ type CListMempool struct {
 	preCheck  PreCheckFunc
 	postCheck PostCheckFunc
 
+	txsMtx       sync.RWMutex
 	wal          *auto.AutoFile // a log of mempool txs
 	txs          *clist.CList   // concurrent linked-list of good txs
 	bcTxsList    *clist.CList   // only for tx sort model
@@ -412,7 +413,8 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx, info ExTxInfo) error {
-
+	mem.txsMtx.Lock()
+	defer mem.txsMtx.Unlock()
 	// Replace the same Nonce transaction from the same account
 	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, info, int64(mem.config.TxPriceBump))
 	if elem == nil {
