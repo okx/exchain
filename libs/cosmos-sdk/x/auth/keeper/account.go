@@ -62,13 +62,9 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
-	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
-	if err != nil {
-		bz, err = ak.cdc.MarshalBinaryBare(acc)
-	}
-	if err != nil {
-		panic(err)
-	}
+
+	bz := ak.encodeAccount(acc)
+
 	store.Set(types.AddressStoreKey(addr), bz)
 	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 
@@ -81,6 +77,25 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 			}
 		}
 	}
+}
+
+func (ak *AccountKeeper) encodeAccount(acc exported.Account) (bz []byte) {
+	var err error
+	if accSizer, ok := acc.(amino.MarshalBufferSizer); ok {
+		bz, err = ak.cdc.MarshalBinaryBareWithSizer(accSizer)
+		if err == nil {
+			return bz
+		}
+	}
+
+	bz, err = ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	if err != nil {
+		bz, err = ak.cdc.MarshalBinaryBare(acc)
+	}
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }
 
 // RemoveAccount removes an account for the account mapper store.
