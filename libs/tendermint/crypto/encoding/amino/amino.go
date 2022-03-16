@@ -188,6 +188,32 @@ func MarshalPubKeyToAmino(cdc *amino.Codec, key crypto.PubKey) (data []byte, err
 	return data, nil
 }
 
+func MarshalPubKeyAminoTo(cdc *amino.Codec, key crypto.PubKey, buf *bytes.Buffer) error {
+	switch keyData := key.(type) {
+	case secp256k1.PubKeySecp256k1:
+		buf.Write(typePubKeySecp256k1Prefix)
+		buf.WriteByte(byte(secp256k1.PubKeySecp256k1Size))
+		buf.Write(keyData[:])
+		return nil
+	case ed25519.PubKeyEd25519:
+		buf.Write(typePubKeyEd25519Prefix)
+		buf.WriteByte(byte(ed25519.PubKeyEd25519Size))
+		buf.Write(keyData[:])
+		return nil
+	case sr25519.PubKeySr25519:
+		buf.Write(typePubKeySr25519Prefix)
+		buf.WriteByte(byte(sr25519.PubKeySr25519Size))
+		buf.Write(keyData[:])
+		return nil
+	}
+	data, err := cdc.MarshalBinaryBare(key)
+	if err != nil {
+		return err
+	}
+	buf.Write(data)
+	return nil
+}
+
 func PubKeyAminoSize(pubKey crypto.PubKey, cdc *amino.Codec) int {
 	if sizer, ok := pubKey.(amino.Sizer); ok {
 		return 4 + sizer.AminoSize(cdc)

@@ -102,8 +102,6 @@ func (acc BaseAccount) Copy() interface{} {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
-var baseAccountBufferPool = amino.NewBufferPool()
-
 func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
 	size := 0
 	if len(acc.Address) != 0 {
@@ -127,64 +125,82 @@ func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
 }
 
 func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
-	var buf = baseAccountBufferPool.Get()
-	defer baseAccountBufferPool.Put(buf)
-	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4 << 3, 5 << 3}
-	for pos := 1; pos <= 5; pos++ {
-		var err error
-		switch pos {
-		case 1:
-			if len(acc.Address) == 0 {
-				break
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(buf, acc.Address, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			for _, coin := range acc.Coins {
-				data, err := coin.MarshalToAmino(cdc)
-				if err != nil {
-					return nil, err
-				}
-				err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, fieldKeysType[pos-1])
-				if err != nil {
-					return nil, err
-				}
-			}
-		case 3:
-			if acc.PubKey == nil {
-				break
-			}
-			data, err := cryptoamino.MarshalPubKeyToAmino(cdc, acc.PubKey)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 4:
-			if acc.AccountNumber == 0 {
-				break
-			}
-			err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.AccountNumber, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 5:
-			if acc.Sequence == 0 {
-				break
-			}
-			err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.Sequence, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
+	var buf bytes.Buffer
+	buf.Grow(acc.AminoSize(cdc))
+	err := acc.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (acc BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if len(acc.Address) != 0 {
+		const pbKey = 1<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.Address, pbKey)
+		if err != nil {
+			return err
 		}
 	}
-	return amino.GetBytesBufferCopy(buf), nil
+
+	// field 2
+	for _, coin := range acc.Coins {
+		const pbKey = 2<<3 | 2
+		buf.WriteByte(pbKey)
+		coinSize := coin.AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(coinSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = coin.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != coinSize {
+			return amino.NewSizerError(coin, buf.Len()-lenBeforeData, coinSize)
+		}
+	}
+
+	// field 3
+	if acc.PubKey != nil {
+		const pbKey = 3<<3 | 2
+		buf.WriteByte(pbKey)
+		pubKeySize := cryptoamino.PubKeyAminoSize(acc.PubKey, cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(pubKeySize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = cryptoamino.MarshalPubKeyAminoTo(cdc, acc.PubKey, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != pubKeySize {
+			return amino.NewSizerError(acc.PubKey, buf.Len()-lenBeforeData, pubKeySize)
+		}
+	}
+
+	// field 4
+	if acc.AccountNumber != 0 {
+		const pbKey = 4 << 3
+		err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.AccountNumber, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 5
+	if acc.Sequence != 0 {
+		const pbKey = 5 << 3
+		err := amino.EncodeUvarintWithKeyToBuffer(buf, acc.Sequence, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // NewBaseAccount creates a new BaseAccount object

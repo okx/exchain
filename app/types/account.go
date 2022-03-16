@@ -106,63 +106,46 @@ func (acc EthAccount) AminoSize(cdc *amino.Codec) int {
 	return size
 }
 
-var ethAccountBufferPool = amino.NewBufferPool()
-
 func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
-	var buf = ethAccountBufferPool.Get()
-	defer ethAccountBufferPool.Put(buf)
-	for pos := 1; pos < 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		posByte, err := amino.EncodeProtoPosAndTypeMustOneByte(pos, amino.Typ3_ByteLength)
-		if err != nil {
-			return nil, err
-		}
-		err = buf.WriteByte(posByte)
-		if err != nil {
-			return nil, err
-		}
+	var buf bytes.Buffer
+	buf.Grow(acc.AminoSize(cdc))
+	err := acc.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 
-		switch pos {
-		case 1:
-			if acc.BaseAccount == nil {
-				noWrite = true
-				break
-			}
-			data, err := acc.BaseAccount.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeUvarintToBuffer(buf, uint64(len(data)))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(data)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			codeHashLen := len(acc.CodeHash)
-			if codeHashLen == 0 {
-				noWrite = true
-				break
-			}
-			err := amino.EncodeUvarintToBuffer(buf, uint64(codeHashLen))
-			if err != nil {
-				return nil, err
-			}
-			_, err = buf.Write(acc.CodeHash)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
+func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if acc.BaseAccount != nil {
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		baccSize := acc.BaseAccount.AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(baccSize))
+		if err != nil {
+			return err
 		}
-		if noWrite {
-			buf.Truncate(lBeforeKey)
+		lenBeforeData := buf.Len()
+		err = acc.BaseAccount.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != baccSize {
+			return amino.NewSizerError(baccSize, buf.Len()-lenBeforeData, baccSize)
 		}
 	}
-	return amino.GetBytesBufferCopy(buf), nil
+
+	// field 2
+	if len(acc.CodeHash) != 0 {
+		const pbKey = 2<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.CodeHash, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ProtoAccount defines the prototype function for BaseAccount used for an
