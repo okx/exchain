@@ -18,9 +18,11 @@ import (
 	types2 "github.com/okex/exchain/libs/types"
 )
 
-func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, error) {
+func (csdb *CommitStateDB) CommitMpt(prefetcher *triePrefetcher) (ethcmn.Hash, error) {
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
+	usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
+
 	for addr := range csdb.stateObjectsDirty {
 		if obj := csdb.stateObjects[addr]; !obj.deleted {
 			// Write any contract code associated with the state object
@@ -35,7 +37,14 @@ func (csdb *CommitStateDB) CommitMpt(deleteEmptyObjects bool) (ethcmn.Hash, erro
 			}
 
 			csdb.UpdateAccountStorageInfo(obj)
+		} else {
+			csdb.DeleteAccountStorageInfo(obj)
 		}
+
+		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+	}
+	if prefetcher != nil {
+		prefetcher.used(csdb.originalRoot, usedAddrs)
 	}
 
 	if len(csdb.stateObjectsDirty) > 0 {

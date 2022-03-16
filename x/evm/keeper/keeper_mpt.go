@@ -203,9 +203,9 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
+	k.EvmStateDb.StopPrefetcher()
 
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
-		k.EvmStateDb.StopPrefetcher()
 		// The onleaf func is called _serially_, so we can reuse the same account
 		// for unmarshalling every time.
 		var storageRoot ethcmn.Hash

@@ -755,10 +755,36 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	// Finalize any pending changes and merge everything into the tries
 	csdb.IntermediateRoot(deleteEmptyObjects)
 
+	// If there was a trie prefetcher operating, it gets aborted and irrevocably
+	// modified after we start retrieving tries. Remove it from the statedb after
+	// this round of use.
+	//
+	// This is weird pre-byzantium since the first tx runs with a prefetcher and
+	// the remainder without, but pre-byzantium even the initial prefetcher is
+	// useless, so no sleep lost.
+	prefetcher := csdb.prefetcher
+	if csdb.prefetcher != nil {
+		defer func() {
+			csdb.prefetcher.close()
+			csdb.prefetcher = nil
+		}()
+	}
+
+	// Now we're about to start to write changes to the trie. The trie is so far
+	// _untouched_. We can check with the prefetcher, if it can give us a trie
+	// which has the same root, but also has some content loaded into it.
+	if prefetcher != nil && csdb.originalRoot != (ethcmn.Hash{}) {
+		if trie := prefetcher.trie(csdb.originalRoot); trie != nil {
+			csdb.trie = trie
+		}
+	}
+
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		if types2.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
+			usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
+
 			for addr := range csdb.stateObjectsDirty {
 				if obj := csdb.stateObjects[addr]; !obj.deleted {
 					// Write any contract code associated with the state object
@@ -775,7 +801,14 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 					}
 
 					csdb.UpdateAccountStorageInfo(obj)
+				} else {
+					csdb.DeleteAccountStorageInfo(obj)
 				}
+
+				usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+			}
+			if prefetcher != nil {
+				prefetcher.used(csdb.originalRoot, usedAddrs)
 			}
 
 			if codeWriter.ValueSize() > 0 {
@@ -802,7 +835,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 
 		return ethcmn.Hash{}, nil
 	} else {
-		return csdb.CommitMpt(deleteEmptyObjects)
+		return csdb.CommitMpt(prefetcher)
 	}
 }
 
@@ -873,27 +906,18 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		}
 	}
 
-	// Now we're about to start to write changes to the trie. The trie is so far
-	// _untouched_. We can check with the prefetcher, if it can give us a trie
-	// which has the same root, but also has some content loaded into it.
-	if csdb.prefetcher != nil && csdb.originalRoot != (ethcmn.Hash{}) {
-		if trie := csdb.prefetcher.trie(csdb.originalRoot); trie != nil {
-			csdb.trie = trie
-		}
-	}
-
-	usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
+	//usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
 	for addr := range csdb.stateObjectsPending {
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
 			csdb.updateStateObject(obj)
 		}
-		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
-	if csdb.prefetcher != nil {
-		csdb.prefetcher.used(csdb.originalRoot, usedAddrs)
-	}
+	//if csdb.prefetcher != nil {
+	//	csdb.prefetcher.used(csdb.originalRoot, usedAddrs)
+	//}
 
 	if len(csdb.stateObjectsPending) > 0 {
 		csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
@@ -940,9 +964,9 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
-		csdb.DeleteAccountStorageInfo(so)
-	}
+	//if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+	//	csdb.DeleteAccountStorageInfo(so)
+	//}
 }
 
 // ----------------------------------------------------------------------------
