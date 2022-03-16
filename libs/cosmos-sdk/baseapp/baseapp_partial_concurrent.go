@@ -324,7 +324,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		nextTask := dm.sendersMap.extractNextTask()
 		if nextTask != nil {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
-		} else {
+		} else if taskIndex < dm.totalCount {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
