@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"sync"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"sync"
 )
 
 var (
@@ -60,19 +61,19 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
-	checkStateTx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+	app.blockSenderList.clear()
+	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 	for _, txBytes := range txs {
 		go func() {
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				return
 			}
-			if s := app.getSignCache(checkStateTx, tx); s != nil {
+			if s := app.getSignCache(checkStateCtx, tx); s != nil {
 				app.blockSenderList.setSender(txBytes, s)
 			}
 		}()
 	}
-
 }
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
 
