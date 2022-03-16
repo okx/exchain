@@ -16,8 +16,8 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) 
 	// set owners for each index and initialize capability
 	for _, genOwner := range genState.Owners {
 		k.SetOwners(ctx, genOwner.Index, genOwner.IndexOwners)
-		k.InitializeCapability(ctx, genOwner.Index, genOwner.IndexOwners)
 	}
+	k.InitMemStore(ctx)
 }
 
 // ExportGenesis returns the capability module's exported genesis.
