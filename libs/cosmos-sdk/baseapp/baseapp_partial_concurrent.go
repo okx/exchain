@@ -120,7 +120,7 @@ func (sm *sendersMap) Push(task *DeliverTxTask) (succeed bool) {
 		tasks = append(tasksList, task)
 	}
 	sm.notFinishedTasks.Store(address, tasks)
-	//sm.logger.Info("pushTask", "index", task.index, "addr", address)
+	sm.logger.Info("pushTask", "index", task.index, "addr", address)
 
 	return
 }
@@ -151,7 +151,7 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 
 	tasksList = append(tasksList[:pos], tasksList[pos+1:]...)
 	//if blockHeight == AssignedBlockHeight {
-	//	sm.logger.Info("popTask", "index", task.index, "addr", address)
+		sm.logger.Info("popTask", "index", task.index, "addr", address)
 	//}
 	sm.notFinishedTasks.Store(address, tasksList)
 	return
@@ -211,6 +211,7 @@ func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 				num := len(notFinishedTasks)
 				for i := 0; i < num; i++ {
 					if task.index > notFinishedTasks[i].index {
+						sm.logger.Info("rerunTask conflict", "target", task.index, "conflict", notFinishedTasks[i].index)
 						conflict = true
 						break
 					}
@@ -221,6 +222,7 @@ func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 				minIndex = task.index
 			}
 		}
+		sm.logger.Info("needRerunTasks:", "index", task.index)
 		return true
 	})
 
@@ -325,6 +327,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			taskIndex++
 			dm.incrementWaitingCount(true)
 		} else {
+			dm.app.logger.Info("exit makeTasksRoutine")
 			break
 		}
 	}
