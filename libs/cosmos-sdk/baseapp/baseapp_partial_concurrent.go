@@ -321,7 +321,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		// extract task from sendersMap
 		nextTask := dm.sendersMap.extractNextTask()
 		if nextTask != nil {
-			dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
+			dm.makeNextTask(nil, nextTask.index, nextTask)
 		} else if taskIndex < dm.totalCount {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
