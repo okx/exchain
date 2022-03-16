@@ -773,7 +773,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
-	if prefetcher != nil && csdb.originalRoot != (ethcmn.Hash{}) {
+	if prefetcher != nil {
 		if trie := prefetcher.trie(csdb.originalRoot); trie != nil {
 			csdb.trie = trie
 		}

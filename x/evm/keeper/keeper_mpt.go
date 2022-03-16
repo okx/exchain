@@ -206,6 +206,8 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	k.EvmStateDb.StopPrefetcher()
 
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
+		k.rootTrie = k.EvmStateDb.GetRootTrie()
+
 		// The onleaf func is called _serially_, so we can reuse the same account
 		// for unmarshalling every time.
 		var storageRoot ethcmn.Hash
@@ -219,7 +221,6 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 		})
 		k.SetMptRootHash(ctx, root)
 		k.rootHash = root
-		k.rootTrie = k.EvmStateDb.GetRootTrie()
 	}
 }
 
