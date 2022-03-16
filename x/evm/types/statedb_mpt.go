@@ -1,8 +1,10 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -77,6 +79,10 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 }
 
 func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
+	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+		return
+	}
+
 	// Encode the account and update the account trie
 	addr := so.Address()
 
@@ -224,7 +230,6 @@ func (csdb *CommitStateDB) Logger() log.Logger {
 	return csdb.ctx.Logger().With("module", ModuleName)
 }
 
-
 // StartPrefetcher initializes a new trie prefetcher to pull in nodes from the
 // state trie concurrently while the state is mutated so that when we reach the
 // commit phase, most of the needed data is already hot.
@@ -250,6 +255,6 @@ func (csdb *CommitStateDB) StopPrefetcher() {
 	}
 }
 
-func (csdb *CommitStateDB) GetRootTrie() ethstate.Trie{
+func (csdb *CommitStateDB) GetRootTrie() ethstate.Trie {
 	return csdb.trie
 }
