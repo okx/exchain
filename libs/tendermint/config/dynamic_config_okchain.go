@@ -16,6 +16,7 @@ type IDynamicConfig interface {
 	GetCsTimeoutPrevoteDelta() time.Duration
 	GetCsTimeoutPrecommit() time.Duration
 	GetCsTimeoutPrecommitDelta() time.Duration
+	GetCsEnablePOAFlag() (bool, int64)
 	GetEnableWtx() bool
 }
 
@@ -26,6 +27,10 @@ func SetDynamicConfig(c IDynamicConfig) {
 }
 
 type MockDynamicConfig struct {
+}
+
+func (d MockDynamicConfig) GetCsEnablePOAFlag() (bool, int64) {
+	return false, 0
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {

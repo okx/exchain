@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -59,6 +60,10 @@ type OecConfig struct {
 
 	// enable-wtx
 	enableWtx bool
+
+	// POA
+	csEnablePOA    bool
+	csSwitchHeight int64
 }
 
 const (
@@ -74,7 +79,7 @@ const (
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
-	FlagEnableWrappedTx       = "enable-wtx"
+	FlagEnableWrappedTx        = "enable-wtx"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -82,6 +87,11 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
+
+	//POA
+	FlagCsSwitchAtHeight = "consensus.switch"
+	CSPOAENABLE          = "poa_enable"
+	CSPOADISABLE         = "poa_disable"
 )
 
 var (
@@ -345,7 +355,48 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	//POA
+	case FlagCsSwitchAtHeight:
+		fmt.Println("Received POA Signal:", k, v)
+		if err := c.setCsEnablePOAFlag(v); err != nil {
+			fmt.Println("Wrong consensus switch flag:", v, err)
+			return
+		}
+
+		b, h := c.GetCsEnablePOAFlag()
+		fmt.Println("Finished Set Config, POA enabled:", b, ", at Height:", h)
 	}
+}
+
+func (c *OecConfig) setCsEnablePOAFlag(v string) error {
+	a := strings.Split(v, ":")
+	if len(a) != 2 {
+		return errors.New("Wrong POA switch config format")
+	}
+
+	var enablePOA bool
+
+	switch a[0] {
+	case CSPOAENABLE:
+		enablePOA = true
+	case CSPOADISABLE:
+		enablePOA = false
+	default:
+		return errors.New("Wrong POA enable flag")
+	}
+
+	h, err := strconv.ParseInt(a[1], 10, 64)
+	if err != nil {
+		return err
+	}
+
+	c.csEnablePOA = enablePOA
+	c.csSwitchHeight = h
+	return nil
+}
+
+func (c *OecConfig) GetCsEnablePOAFlag() (bool, int64) {
+	return c.csEnablePOA, c.csSwitchHeight
 }
 
 func (c *OecConfig) GetMempoolRecheck() bool {

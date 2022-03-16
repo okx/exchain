@@ -26,6 +26,8 @@ const (
 	EvmHandlerDetail = "EvmHandlerDetail"
 	RunAnteDetail    = "RunAnteDetail"
 	AnteChainDetail  = "AnteChainDetail"
+	//POA
+	ConsensusMode = "ConsensusMode"
 
 	Delta = "Delta"
 

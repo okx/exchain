@@ -25,9 +25,10 @@ var (
 		trace.AnteChainDetail,
 		trace.Round,
 		trace.CommitRound,
-		trace.Produce}
+		trace.Produce,
+		trace.ConsensusMode}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0,%s=1",
 		trace.Evm,
 		trace.Delta,
 		trace.Iavl,
@@ -38,7 +39,8 @@ var (
 		trace.AnteChainDetail,
 		trace.Round,
 		trace.CommitRound,
-		trace.Produce)
+		trace.Produce,
+		trace.ConsensusMode)
 )
 
 const (

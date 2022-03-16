@@ -8,8 +8,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -370,30 +372,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 	}
 
 	//POA: init private validators set
-	if cs.config.POAEnable && len(cs.config.ValidatorPrivateKeylist) > 0 {
-		cs.privValidatorSet = nil
-		for _, s := range cs.config.ValidatorPrivateKeylist {
-			var sByte []byte
-			var err error
-			if sByte, err = base64.StdEncoding.DecodeString(s); err != nil {
-				panic(fmt.Sprintf("Invalid POA validator private key:%s", s))
-			}
-			ed25519PK := ed25519.PrivKeyEd25519{}
-			copy(ed25519PK[:], sByte)
-
-			pv := types.NewMockPVWithParams(ed25519PK, false, false)
-			cs.privValidatorSet = append(cs.privValidatorSet, pv)
-
-			//Debug Information
-			pubKey, _ := pv.GetPubKey()
-			pubArray := [32]byte(pubKey.(ed25519.PubKeyEd25519))
-			pubBytes := pubArray[:]
-			cs.Logger.Debug("POA", "load private validator:")
-			cs.Logger.Debug("POA", "--privateKey:", s)
-			cs.Logger.Debug("POA", "--pubKey", base64.StdEncoding.EncodeToString(pubBytes))
-			cs.Logger.Debug("POA", "--address", pubKey.Address().String())
-		}
-	}
+	cs.tryInitPOAValidatorsSet()
 
 	if cs.done == nil {
 		cs.done = make(chan struct{})
@@ -528,6 +507,10 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
+	}
+	//POA: Start new height immediately
+	if cs.config.POAEnable {
+		sleepDuration = 0
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
@@ -1639,6 +1622,15 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	cs.trc.Pin("Waiting")
+
+	//POA: Try to switch Consensus
+	if cs.config.POAEnable {
+		trace.GetElapsedInfo().AddInfo(trace.ConsensusMode, fmt.Sprintf("POA<%d>", block.Height))
+	} else {
+		trace.GetElapsedInfo().AddInfo(trace.ConsensusMode, fmt.Sprintf("Normal<%d>", block.Height))
+	}
+	cs.trySwitchConsensus()
+
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
@@ -2224,6 +2216,61 @@ func (cs *State) updatePrivValidatorPubKey() error {
 	}
 	cs.privValidatorPubKey = pubKey
 	return nil
+}
+
+func (cs *State) trySwitchConsensus() {
+	enableFlag, h := cfg.DynamicConfig.GetCsEnablePOAFlag()
+	//Not reach the height, or consensus keep the same
+	if cs.Height < h || cs.config.POAEnable == enableFlag {
+		return
+	}
+
+	// switch only happened at the specific height
+	if cs.Height == h {
+		//switch consensus
+		fmt.Println("POA:", "Switch Consensus at Height:", h)
+		fmt.Println("POA:", "Switch POA from:", cs.config.POAEnable, " to:", enableFlag)
+		cs.config.POAEnable = enableFlag
+
+		//Load private validators key if poa enabled
+		if cs.config.POAEnable {
+			b, err := ioutil.ReadFile(cs.config.AllValidatorKeyFile())
+			if err != nil {
+				panic(err)
+			}
+
+			cs.config.ValidatorPrivateKeylist = strings.Fields(string(b))
+			fmt.Println("POA", "load all validators private keys:", cs.config.ValidatorPrivateKeylist)
+			cs.tryInitPOAValidatorsSet()
+		}
+	}
+}
+
+func (cs *State) tryInitPOAValidatorsSet() {
+	if cs.config.POAEnable && len(cs.config.ValidatorPrivateKeylist) > 0 {
+		cs.privValidatorSet = nil
+		for _, s := range cs.config.ValidatorPrivateKeylist {
+			var sByte []byte
+			var err error
+			if sByte, err = base64.StdEncoding.DecodeString(s); err != nil {
+				panic(fmt.Sprintf("Invalid POA validator private key:%s", s))
+			}
+			ed25519PK := ed25519.PrivKeyEd25519{}
+			copy(ed25519PK[:], sByte)
+
+			pv := types.NewMockPVWithParams(ed25519PK, false, false)
+			cs.privValidatorSet = append(cs.privValidatorSet, pv)
+
+			//Debug Information
+			pubKey, _ := pv.GetPubKey()
+			pubArray := [32]byte(pubKey.(ed25519.PubKeyEd25519))
+			pubBytes := pubArray[:]
+			cs.Logger.Debug("POA", "load private validator:")
+			cs.Logger.Debug("POA", "--privateKey:", s)
+			cs.Logger.Debug("POA", "--pubKey", base64.StdEncoding.EncodeToString(pubBytes))
+			cs.Logger.Debug("POA", "--address", pubKey.Address().String())
+		}
+	}
 }
 
 //---------------------------------------------------------
