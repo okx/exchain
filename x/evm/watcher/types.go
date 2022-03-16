@@ -3,7 +3,6 @@ package watcher
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -58,7 +57,7 @@ type WatchMessage interface {
 }
 
 type MsgEthTx struct {
-	*baseLazyMarshal
+	LazyValueMarshaler
 	Key []byte
 }
 
@@ -385,8 +384,8 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 		return nil
 	}
 	msg := MsgEthTx{
-		Key:             txHash.Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(ethTx),
+		Key:                txHash.Bytes(),
+		LazyValueMarshaler: newBaseAminoMarshal(ethTx),
 	}
 	return &msg
 }
@@ -396,8 +395,8 @@ func (m MsgEthTx) GetKey() []byte {
 }
 
 type MsgCode struct {
-	Key  []byte
-	Code string
+	LazyValueMarshaler
+	Key []byte
 }
 
 func (m MsgCode) GetType() uint32 {
@@ -414,22 +413,14 @@ func NewMsgCode(contractAddr common.Address, code []byte, height uint64) *MsgCod
 		Height: height,
 		Code:   hexutils.BytesToHex(code),
 	}
-	jsCode, e := json.Marshal(codeInfo)
-	if e != nil {
-		return nil
-	}
 	return &MsgCode{
-		Key:  contractAddr.Bytes(),
-		Code: string(jsCode),
+		LazyValueMarshaler: newBaseAminoMarshal(codeInfo),
+		Key:                contractAddr.Bytes(),
 	}
 }
 
 func (m MsgCode) GetKey() []byte {
 	return append(prefixCode, m.Key...)
-}
-
-func (m MsgCode) GetValue() string {
-	return m.Code
 }
 
 type MsgCodeByHash struct {
@@ -457,7 +448,7 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
-	*baseLazyMarshal
+	LazyValueMarshaler
 	txHash []byte
 }
 
@@ -502,7 +493,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), LazyValueMarshaler: newBaseAminoMarshal(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
@@ -510,8 +501,8 @@ func (m MsgTransactionReceipt) GetKey() []byte {
 }
 
 type MsgBlock struct {
+	LazyValueMarshaler
 	blockHash []byte
-	block     string
 }
 
 func (m MsgBlock) GetType() uint32 {
@@ -610,19 +601,11 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
-	jsBlock, e := json.Marshal(b)
-	if e != nil {
-		return nil
-	}
-	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: blockHash.Bytes(), LazyValueMarshaler: newBaseAminoMarshal(b)}
 }
 
 func (m MsgBlock) GetKey() []byte {
 	return append(prefixBlock, m.blockHash...)
-}
-
-func (m MsgBlock) GetValue() string {
-	return m.block
 }
 
 type MsgBlockInfo struct {
@@ -672,7 +655,7 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	*baseLazyMarshal
+	LazyValueMarshaler
 	addr []byte
 }
 
@@ -682,8 +665,8 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
 	return &MsgAccount{
-		addr:            acc.GetAddress().Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(acc),
+		addr:               acc.GetAddress().Bytes(),
+		LazyValueMarshaler: newBaseAminoMarshal(acc),
 	}
 }
 
@@ -754,6 +737,7 @@ func (msgState *MsgState) GetValue() string {
 }
 
 type MsgParams struct {
+	LazyValueMarshaler
 	types.Params
 }
 
@@ -763,20 +747,13 @@ func (msgParams *MsgParams) GetType() uint32 {
 
 func NewMsgParams(params types.Params) *MsgParams {
 	return &MsgParams{
-		params,
+		LazyValueMarshaler: newBaseAminoMarshal(params),
+		Params:             params,
 	}
 }
 
 func (msgParams *MsgParams) GetKey() []byte {
 	return prefixParams
-}
-
-func (msgParams *MsgParams) GetValue() string {
-	jsonValue, err := json.Marshal(msgParams)
-	if err != nil {
-		panic(err)
-	}
-	return string(jsonValue)
 }
 
 type MsgContractBlockedListItem struct {

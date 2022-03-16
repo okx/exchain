@@ -1,6 +1,10 @@
 package watcher
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/tendermint/go-amino"
+)
 
 var (
 	_ LazyValueMarshaler = (*baseLazyMarshal)(nil)
@@ -24,6 +28,31 @@ func newBaseLazyMarshal(o interface{}) *baseLazyMarshal {
 func (b *baseLazyMarshal) GetValue() string {
 	if b.origin != nil {
 		vs, err := json.Marshal(b.origin)
+		if nil != err {
+			panic("cant happen")
+		}
+		b.value = string(vs)
+		b.origin = nil
+	}
+	return b.value
+}
+
+var cdc = amino.NewCodec()
+
+type baseAminoMarshal struct {
+	baseLazyMarshal
+}
+
+func newBaseAminoMarshal(o interface{}) *baseAminoMarshal {
+	return &baseAminoMarshal{
+		baseLazyMarshal{
+			origin: o,
+		},
+	}
+}
+func (b *baseAminoMarshal) GetValue() string {
+	if b.origin != nil {
+		vs, err := cdc.MarshalBinaryBare(b.origin)
 		if nil != err {
 			panic("cant happen")
 		}

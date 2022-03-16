@@ -400,12 +400,8 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
-	filterMap := make(map[string]WatchMessage)
-	for _, b := range batch {
-		filterMap[bytes2Key(b.GetKey())] = b
-	}
 
-	for _, b := range filterMap {
+	for _, b := range batch {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -466,7 +462,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
-	batch:=w.batch
+	batch := w.batch
 	return func() ([]byte, error) {
 		ddsBatch := make([]*Batch, len(batch))
 		for i, b := range batch {
@@ -534,7 +530,6 @@ func bytes2Key(keyBytes []byte) string {
 func key2Bytes(key string) []byte {
 	return []byte(key)
 }
-
 
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{

@@ -10,7 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -19,7 +18,6 @@ var (
 )
 var (
 	jsonEnc = jsoniter.ConfigCompatibleWithStandardLibrary
-	cdc     = amino.NewCodec()
 )
 
 var testWatchData = []*WatchData{
