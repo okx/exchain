@@ -37,8 +37,6 @@ func (b *baseLazyMarshal) GetValue() string {
 	return b.value
 }
 
-var cdc = amino.NewCodec()
-
 type baseAminoMarshal struct {
 	baseLazyMarshal
 }
@@ -52,7 +50,7 @@ func newBaseAminoMarshal(o interface{}) *baseAminoMarshal {
 }
 func (b *baseAminoMarshal) GetValue() string {
 	if b.origin != nil {
-		vs, err := cdc.MarshalBinaryBare(b.origin)
+		vs, err := amino.MarshalBinaryBare(b.origin)
 		if nil != err {
 			panic("cant happen")
 		}

@@ -24,7 +24,6 @@ type Querier struct {
 	store *WatchStore
 	sw    bool
 	lru   *lru.Cache
-	cdc   *amino.Codec
 }
 
 func (q Querier) enabled() bool {
@@ -40,7 +39,7 @@ func NewQuerier() *Querier {
 	if e != nil {
 		panic(errors.New("Failed to init LRU Cause " + e.Error()))
 	}
-	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru, cdc: amino.NewCodec()}
+	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
@@ -55,7 +54,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = q.cdc.UnmarshalBinaryBare(b, &receipt)
+	e = amino.UnmarshalBinaryBare(b, &receipt)
 	if e != nil {
 		return nil, e
 	}
@@ -78,7 +77,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 		return nil, errNotFound
 	}
 
-	e = q.cdc.UnmarshalBinaryBare(b, &block)
+	e = amino.UnmarshalBinaryBare(b, &block)
 	if e != nil {
 		return nil, e
 	}
@@ -160,7 +159,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, errNotFound
 	}
 
-	e = q.cdc.UnmarshalBinaryBare(info, &codeInfo)
+	e = amino.UnmarshalBinaryBare(info, &codeInfo)
 	if e != nil {
 		return nil, e
 	}
@@ -219,7 +218,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if transaction == nil {
 		return nil, errNotFound
 	}
-	e = q.cdc.UnmarshalBinaryBare(transaction, &tx)
+	e = amino.UnmarshalBinaryBare(transaction, &tx)
 	if e != nil {
 		return nil, e
 	}
@@ -311,7 +310,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = q.cdc.UnmarshalBinaryBare(b, &acc)
+	e = amino.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -332,7 +331,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = q.cdc.UnmarshalBinaryBare(b, &acc)
+	e = amino.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -413,7 +412,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 		return nil, errNotFound
 	}
 	var params evmtypes.Params
-	e = q.cdc.UnmarshalBinaryBare(b, &params)
+	e = amino.UnmarshalBinaryBare(b, &params)
 	if e != nil {
 		return nil, e
 	}
