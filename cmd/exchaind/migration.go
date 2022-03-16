@@ -117,7 +117,7 @@ func migrateAccount(ctx *server.Context) {
 		case *types2.EthAccount:
 			ethAcc := account.(*types2.EthAccount)
 
-			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash){
+			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash) {
 				contractCnt += 1
 				err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
 				panicError(err)
@@ -181,7 +181,7 @@ func migrateContract(ctx *server.Context) {
 		})
 		rootHash, err := contractTrie.Commit(nil)
 		panicError(err)
-
+		fmt.Println(addr.String(), rootHash.String())
 		err = evmTrie.TryUpdate(addr[:], rootHash.Bytes())
 		panicError(err)
 
