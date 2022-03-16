@@ -64,7 +64,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 	app.blockSenderList.clear()
 	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 	for _, txBytes := range txs {
-		go func() {
+		go func(txBytes []byte) {
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				return
@@ -72,7 +72,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			if s := app.getSignCache(checkStateCtx, tx); s != nil {
 				app.blockSenderList.setSender(txBytes, s)
 			}
-		}()
+		}(txBytes)
 	}
 }
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
