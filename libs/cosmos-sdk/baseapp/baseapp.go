@@ -197,7 +197,7 @@ type BaseApp struct { // nolint: maligned
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
 
-	blockSenderList blockSender
+	blockSenderList *blockSender
 }
 
 type recordHandle func(string)
@@ -226,7 +226,7 @@ func NewBaseApp(
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
-		blockSenderList:  blockSender{},
+		blockSenderList:  newBlockSender(),
 	}
 
 	for _, option := range options {

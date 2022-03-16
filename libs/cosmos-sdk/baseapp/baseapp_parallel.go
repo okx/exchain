@@ -540,19 +540,19 @@ func newBlockSender() *blockSender {
 func (b *blockSender) clear() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.blockTxSender = make(map[string]sdk.SigCache)
+	for key := range b.blockTxSender {
+		delete(b.blockTxSender, key)
+	}
 }
 
 func (b *blockSender) getSignCache(txBytes []byte) sdk.SigCache {
-	txString := string(txBytes)
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	return b.blockTxSender[txString]
+	return b.blockTxSender[string(txBytes)]
 }
 
 func (b *blockSender) setSignCache(txBytes []byte, sign sdk.SigCache) {
-	txString := string(txBytes)
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.blockTxSender[txString] = sign
+	b.blockTxSender[string(txBytes)] = sign
 }
