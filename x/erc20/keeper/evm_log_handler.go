@@ -6,9 +6,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	transferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -72,12 +73,12 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 		return nil
 	}
 
-	denom, found := h.Keeper.getDenomByContract(ctx, contract)
+	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
 	if !found {
 		return fmt.Errorf("contract %s is not connected to native token", contract)
 	}
 
-	if err := transferType.ValidateIBCDenom(denom); err != nil {
+	if !types.IsValidIBCDenom(denom) {
 		return fmt.Errorf("the native token associated with the contract %s is not an ibc voucher", contract)
 	}
 

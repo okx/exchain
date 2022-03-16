@@ -31,6 +31,9 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 
 // ConvertVouchers convert vouchers into native coins or evm tokens.
 func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCoins) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
@@ -49,8 +52,7 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 			}
 		default:
 			// oec1:xxb----->oec2:ibc/xxb---->oec2:erc20/xxb
-			// TODO use autoDeploy boolean in params
-			if err := k.ConvertVoucherToERC20(ctx, fromAddr, c, true); err != nil {
+			if err := k.ConvertVoucherToERC20(ctx, fromAddr, c, params.EnableAutoDeployment); err != nil {
 				return err
 			}
 		}
@@ -78,18 +80,19 @@ func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, v
 	return nil
 }
 
-// ConvertVoucherToERC20 convert vouchers into evm tokens.
+// ConvertVoucherToERC20 convert vouchers into evm token.
 func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin, autoDeploy bool) error {
 	logrusplugin.Info("convert vouchers into evm tokens",
 		"fromBech32", from.String(),
 		"fromEth", common.BytesToAddress(from.Bytes()).String(),
 		"voucher", voucher.String())
-	err := ibctransferType.ValidateIBCDenom(voucher.Denom)
-	if err != nil {
-		return ibctransferType.ErrInvalidDenomForTransfer
+
+	if !types.IsValidIBCDenom(voucher.Denom) {
+		return fmt.Errorf("coin %s is not supported for wrapping", voucher.Denom)
 	}
 
-	contract, found := k.getContractByDenom(ctx, voucher.Denom)
+	var err error
+	contract, found := k.GetContractByDenom(ctx, voucher.Denom)
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
@@ -99,9 +102,10 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		if err != nil {
 			return err
 		}
-		k.setAutoContractForDenom(ctx, voucher.Denom, contract)
+		k.SetAutoContractForDenom(ctx, voucher.Denom, contract)
 		logrusplugin.Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
+
 	// 1. transfer voucher from user address to contact address in bank
 	if err := k.bankKeeper.SendCoins(ctx, from, sdk.AccAddress(contract.Bytes()), sdk.NewCoins(voucher)); err != nil {
 		return err
@@ -111,7 +115,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	if err != nil {
 		return err
 	}
-	if _, err := k.callModuleERC20(
+	if _, err := k.CallModuleERC20(
 		ctx,
 		contract,
 		"mint_by_oec_module",
@@ -138,18 +142,18 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 	return res.ContractAddress, nil
 }
 
-// callModuleERC20 call a method of ModuleERC20 contract
-func (k Keeper) callModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
+// CallModuleERC20 call a method of ModuleERC20 contract
+func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
 	data, err := types.ModuleERC20Contract.ABI.Pack(method, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	_, _, err = k.callEvmByModule(ctx, &contract, big.NewInt(0), data)
+	_, res, err := k.callEvmByModule(ctx, &contract, big.NewInt(0), data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("call contract failed: %s, %s, %s", contract.Hex(), method, res.Ret)
 	}
-	return nil, nil
+	return res.Ret, nil
 }
 
 // callEvmByModule execute an evm message from native module
@@ -191,6 +195,9 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 
 // IbcTransferVouchers transfer vouchers to other chain by ibc
 func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers sdk.SysCoins) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
@@ -200,7 +207,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 		return errors.New("to address cannot be empty")
 	}
 	logrusplugin.Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
-	//params := k.GetParams(ctx)
+
 	for _, c := range vouchers {
 		switch c.Denom {
 		case sdk.DefaultBondDenom:
@@ -209,8 +216,8 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 				return err
 			}
 		default:
-			if _, found := k.getContractByDenom(ctx, c.Denom); !found {
-				return fmt.Errorf("coin %s id not support", c.Denom)
+			if _, found := k.GetContractByDenom(ctx, c.Denom); !found {
+				return fmt.Errorf("coin %s is not supported", c.Denom)
 			}
 			// oec2:erc20/xxb----->oec2:ibc/xxb---ibc--->oec1:xxb
 			if err := k.ibcSendTransfer(ctx, fromAddr, to, c); err != nil {
@@ -228,7 +235,7 @@ func (k Keeper) ibcSendEvmDenom(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// 2. Burn the evm token
 	// 3. Send ibc coin from module account to sender
 	// 4. Send ibc coin to ibc
-
+	panic("Not supported at the moment")
 	return nil
 }
 
@@ -246,8 +253,8 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
-	// TODO use params --1 day
-	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + uint64(86400000000000)
+	params := k.GetParams(ctx)
+	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()
 
 	return k.transferKeeper.SendTransfer(
@@ -260,16 +267,4 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 		timeoutHeight,
 		timeoutTimestamp,
 	)
-}
-
-// GetSourceChannelID returns the channel id for an ibc voucher
-// The voucher has for format ibc/hash(path)
-func (k Keeper) GetSourceChannelID(ctx sdk.Context, ibcVoucherDenom string) (channelID string, err error) {
-	path, err := k.transferKeeper.DenomPathFromHash(ctx, ibcVoucherDenom)
-	if err != nil {
-		return "", err
-	}
-
-	// the path has for format port/channelId
-	return strings.Split(path, "/")[1], nil
 }

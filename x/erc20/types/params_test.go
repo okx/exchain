@@ -1,60 +1,72 @@
 package types
 
 import (
-	"strings"
 	"testing"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 
-func TestParamsValidate(t *testing.T) {
-	testCases := []struct {
-		name     string
-		params   Params
-		expError bool
+func Test_validateIbcDenomParam(t *testing.T) {
+	type args struct {
+		i interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
 	}{
-		{"default", DefaultParams(), false},
-		{
-			"valid",
-			NewParams(true, true, false, false, DefaultMaxGasLimitPerTx, 2929, 1884, 1344),
-			false,
-		},
-		{
-			"invalid eip",
-			Params{
-				ExtraEIPs: []int{1},
-			},
-			true,
-		},
+		{"invalid type", args{sdk.OneInt()}, true},
+
+		{"wrong length", args{"ibc/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD"}, true},
+		{"invalid denom", args{"aaa/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865"}, true},
+		{"correct IBC denom", args{IbcDenomDefaultValue}, false},
 	}
-
-	for _, tc := range testCases {
-		err := tc.params.Validate()
-
-		if tc.expError {
-			require.Error(t, err, tc.name)
-		} else {
-			require.NoError(t, err, tc.name)
-		}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.wantErr, validateIbcDenom(tt.args.i) != nil)
+		})
 	}
 }
 
-func TestParamsValidatePriv(t *testing.T) {
-	require.Error(t, validateBool(""))
-	require.NoError(t, validateBool(true))
-	require.Error(t, validateEIPs(""))
-	require.NoError(t, validateEIPs([]int{1884}))
-	require.NoError(t, validateUint64(uint64(30000000)))
-	require.Error(t, validateUint64("test"))
+func Test_validateIsUint64(t *testing.T) {
+	type args struct {
+		i interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"invalid type", args{"a"}, true},
+		{"correct IBC timeout", args{IbcTimeoutDefaultValue}, false},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.wantErr, validateUint64(tt.args.i) != nil)
+		})
+	}
 }
 
-func TestParams_String(t *testing.T) {
-	const expectedParamsStr = `enable_create: false
-enable_call: false
-extra_eips: []
-enable_contract_deployment_whitelist: false
-enable_contract_blocked_list: false
-max_gas_limit_per_tx: 30000000
-`
-	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
+func Test_validateIsBool(t *testing.T) {
+	type args struct {
+		i interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"invalid bool", args{"a"}, true},
+		{"correct bool", args{true}, false},
+		{"correct bool", args{false}, false},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.wantErr, validateBool(tt.args.i) != nil)
+		})
+	}
 }

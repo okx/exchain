@@ -1,8 +1,16 @@
 package types
 
+// TokenMapping defines a mapping between native denom and contract
+type TokenMapping struct {
+	Denom    string `json:"denom"`
+	Contract string `json:"contract"`
+}
+
 // GenesisState defines the erc20 module genesis state
 type GenesisState struct {
-	Params Params `json:"params"`
+	Params            Params         `json:"params"`
+	ExternalContracts []TokenMapping `json:"external_contracts"`
+	AutoContracts     []TokenMapping `json:"auto_contracts"`
 }
 
 // DefaultGenesisState sets default erc20 genesis state with empty accounts and default params and

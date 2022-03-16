@@ -3,14 +3,15 @@ package types
 const (
 	// ModuleName string name of module
 	ModuleName = "erc20"
-
 	// StoreKey key for ethereum storage data, account code (StateDB) or block
 	// related data for Web3.
 	// The erc20 module should use a prefix store.
 	StoreKey = ModuleName
-
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
+
+	QueryParameters = "params"
+	QueryAllMapping = "all-mapping"
 )
 
 // KVStore key prefixes

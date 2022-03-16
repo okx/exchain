@@ -37,13 +37,13 @@ func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 }
 
 func queryAllMapping(ctx sdk.Context, keeper Keeper) ([]byte, error) {
-	mapping := make(map[string]string)
+	var mapping []types.TokenMapping
 	keeper.IterateMapping(ctx, func(denom, contract string) bool {
-		mapping[denom] = contract
+		mapping = append(mapping, types.TokenMapping{denom, contract})
 		return false
 	})
 
-	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, types.QueryResAllMapping{mapping})
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, mapping)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
