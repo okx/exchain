@@ -316,11 +316,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 	taskIndex := 0
 	for {
-		if taskIndex == dm.totalCount && dm.sendersMap.isRerunEmpty() {
-			break
-		}
-
-		//todo: extract task from sendersMap
+		// extract task from sendersMap
 		nextTask := dm.sendersMap.extractNextTask()
 		if nextTask != nil {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nextTask)
@@ -328,6 +324,8 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
+		} else {
+			break
 		}
 	}
 }
