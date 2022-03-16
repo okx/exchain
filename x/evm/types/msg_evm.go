@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
@@ -258,7 +259,20 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 		return nil
 	}
 
-	V := new(big.Int)
+	var signer ethtypes.Signer
+	if isProtectedV(msg.Data.V) {
+		signer = ethtypes.NewEIP155Signer(chainID)
+	} else {
+		signer = ethtypes.HomesteadSigner{}
+	}
+
+	sigCache, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	if ok && sigCache.EqualSiger(signer) {
+		msg.BaseTx.From = sigCache.From.String()
+		return nil
+	}
+
+	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
@@ -281,6 +295,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 	if err != nil {
 		return err
 	}
+	tmtypes.SignatureCache().Add(string(msg.TxHash()), &tmtypes.TxSigCache{Signer: signer, From: sender})
 	msg.BaseTx.From = sender.String()
 	return nil
 }
