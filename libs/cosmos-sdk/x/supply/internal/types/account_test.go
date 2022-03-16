@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/tendermint/go-amino"
+
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
@@ -176,6 +178,10 @@ func TestModuleAccountAmino(t *testing.T) {
 		require.EqualValues(t, accountExpect, accountActual)
 
 		nbz, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(iacc)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, nbz)
+
+		nbz, err = cdc.MarshalBinaryBareWithSizer(iacc.(amino.MarshalBufferSizer))
 		require.NoError(t, err)
 		require.EqualValues(t, bz, nbz)
 	}

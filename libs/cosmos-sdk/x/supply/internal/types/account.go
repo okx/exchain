@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -107,49 +108,55 @@ func (acc ModuleAccount) AminoSize(cdc *amino.Codec) int {
 	return size
 }
 
-var moduleAccountBufferPool = amino.NewBufferPool()
-
 func (acc ModuleAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
-	var buf = moduleAccountBufferPool.Get()
-	defer moduleAccountBufferPool.Put(buf)
-	var err error
-	for pos := 1; pos <= 3; pos++ {
-		switch pos {
-		case 1:
-			if acc.BaseAccount == nil {
-				break
-			}
-			data, err := acc.BaseAccount.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, 1<<3|2)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if acc.Name == "" {
-				break
-			}
-			err = amino.EncodeStringWithKeyToBuffer(buf, acc.Name, 2<<3|2)
-			if err != nil {
-				return nil, err
-			}
-		case 3:
-			if len(acc.Permissions) == 0 {
-				break
-			}
-			for _, perm := range acc.Permissions {
-				err = amino.EncodeStringWithKeyToBuffer(buf, perm, 3<<3|2)
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			panic("unreachable")
+	var buf bytes.Buffer
+	buf.Grow(acc.AminoSize(cdc))
+	err := acc.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (acc ModuleAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if acc.BaseAccount != nil {
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		baccSize := acc.BaseAccount.AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(baccSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = acc.BaseAccount.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != baccSize {
+			return amino.NewSizerError(baccSize, buf.Len()-lenBeforeData, baccSize)
 		}
 	}
-	return amino.GetBytesBufferCopy(buf), nil
+
+	// field 2
+	if acc.Name != "" {
+		const pbKey = 2<<3 | 2
+		err := amino.EncodeStringWithKeyToBuffer(buf, acc.Name, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 3
+	for _, perm := range acc.Permissions {
+		const pbKey = 3<<3 | 2
+		err := amino.EncodeStringWithKeyToBuffer(buf, perm, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // NewModuleAddress creates an AccAddress from the hash of the module's name
