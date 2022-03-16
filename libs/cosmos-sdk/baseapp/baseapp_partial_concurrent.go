@@ -387,7 +387,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		}
 	}
 
-	if dm.app.anteAuthHandler != nil {
+	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
 		//dm.app.logger.Info("runAnte", "index", task.index)
 		//}
@@ -465,7 +465,7 @@ func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	//anteCtx = anteCtx.WithAnteTracer(dm.app.anteTracer)
 
-	newCtx, err := dm.app.anteAuthHandler(anteCtx, info.tx, false) // NewAnteHandler
+	newCtx, err := dm.app.anteHandler(anteCtx, info.tx, false) // NewAnteHandler
 
 	ms := info.ctx.MultiStore()
 	//info.accountNonce = newCtx.AccountNonce()
