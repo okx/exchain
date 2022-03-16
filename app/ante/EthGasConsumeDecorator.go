@@ -1,7 +1,6 @@
 package ante
 
 import (
-	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -10,9 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"log"
 	"math/big"
 )
 
@@ -123,12 +120,6 @@ func NewEthGasConsumeHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.E
 			return ctx, err
 		}
 		if feeAmt != nil {
-			if global.GetGlobalHeight() == 5810736 {
-				hexacc := hex.EncodeToString(senderAcc.GetAddress())
-				if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
-					log.Println("EthGasConsume", feeAmt[0].Amount)
-				}
-			}
 			err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
 			if err != nil {
 				return ctx, err
