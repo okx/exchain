@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 3
+	maxDeliverTxsConcurrentNum = 4
 )
 
 var totalAnteDuration = int64(0)
@@ -159,7 +159,7 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 
 func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	//sm.logger.Info("moveToRerun", "index", task.index)
+	sm.logger.Info("moveToRerun", "index", task.index)
 	//}
 	//sm.needRerunTasks = append(sm.needRerunTasks, task)
 	sm.needRerunTasks.Store(task.index, task)
@@ -325,7 +325,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int, task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	//dm.app.logger.Info("makeNextTask", "task", task == nil, "index", index)
+	dm.app.logger.Info("makeNextTask", "task", task == nil, "index", index)
 	//}
 	go dm.runTxPartConcurrent(tx, index, task)
 }
@@ -389,7 +389,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("runAnte", "index", task.index)
+		dm.app.logger.Info("runAnte", "index", task.index)
 		//}
 		task.step = partialConcurrentStepAnteStart
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
@@ -509,7 +509,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("runStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("runStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -535,7 +535,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-			//dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
+			dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
 			dm.txResponses[dm.statefulTask.index] = &txRs
 			dm.resetStatefulTask()
 			finished++
@@ -652,7 +652,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("incrementWaitingCount", "count", count)
+		dm.app.logger.Info("incrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
@@ -672,7 +672,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("decrementWaitingCount", "count", count)
+		dm.app.logger.Info("decrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum-1 {
 			dm.nextSignal <- 0
