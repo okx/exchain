@@ -85,31 +85,6 @@ func NewDeductFeeDecorator(ak keeper.AccountKeeper, sk types.SupplyKeeper) Deduc
 	}
 }
 
-func NewDeductFeeHandler(ak keeper.AccountKeeper, sk types.SupplyKeeper) sdk.DeductFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) error {
-		feeTx, feePayerAcc, err := deductFeesPreCheck(ak, sk, ctx, tx)
-		if err != nil {
-			return err
-		}
-
-		// deduct the fees
-		if !feeTx.GetFee().IsZero() {
-			if global.GetGlobalHeight() == 5810736 {
-				hexacc := hex.EncodeToString(feePayerAcc.GetAddress())
-				if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
-					log.Println("2 deductFees to feeCollector")
-				}
-			}
-			err = DeductFees(sk, ctx, feePayerAcc, feeTx.GetFee())
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-}
-
 func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	//feeTx, ok := tx.(FeeTx)
 	//if !ok {
@@ -133,12 +108,6 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		if global.GetGlobalHeight() == 5810736 {
-			hexacc := hex.EncodeToString(feePayerAcc.GetAddress())
-			if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
-				log.Printf("1 deductFees to feeCollector")
-			}
-		}
 		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
 		if err != nil {
 			return ctx, err
@@ -195,16 +164,14 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	// bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
-	//if global.GetGlobalHeight() == 5810736 {
-	//	hexacc := hex.EncodeToString(acc.GetAddress())
-	//	if hexacc == "0f4c6578991b88fe43125c36c54d729aedd58473" {
+	if global.GetGlobalHeight() == 5810742 {
+		hexacc := hex.EncodeToString(acc.GetAddress())
+		if hexacc == "f1829676db577682e944fc3493d451b67ff3e29f" {
 			//feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
 			//feeCoins := feeCollector.GetCoins()
-			//log.Printf("To FeeCollector:%s acc:%s\n", fees[0].Amount, acc.GetCoins()[0].Amount)
-		//}
-	//}
-	//log.Printf("To FeeCollector:%s\n", fees)
+			log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
+		}
+	}
 	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())

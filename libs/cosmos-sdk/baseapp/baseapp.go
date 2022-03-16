@@ -149,13 +149,7 @@ type BaseApp struct { // nolint: maligned
 	logFix                       sdk.LogFix
 
 	anteAuthHandler                sdk.AnteHandler
-	nonceSequenceHandler           sdk.AnteHandler
-	deductFeeHandler               sdk.DeductFeeHandler
-	ethGasConsumeHandler           sdk.EthGasConsumeHandler
 	evmTxFromHandler               sdk.EvmTxFromHandler
-	nonceVerifyHandler             sdk.NonceVerificationHandler
-	incrementSenderSequenceHandler sdk.IncrementSenderSequenceHandler
-	incrementSequenceHandler       sdk.IncrementSequenceHandler
 
 	// volatile states:
 	//

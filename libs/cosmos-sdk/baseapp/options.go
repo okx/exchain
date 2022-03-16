@@ -172,58 +172,9 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
-func (app *BaseApp) SetAnteAuthHandler(aah sdk.AnteHandler) {
-	if app.sealed {
-		panic("SetAnteAuthHandler() on sealed BaseApp")
-	}
-	app.anteAuthHandler = aah
-}
-
-func (app *BaseApp) SetNonceSequenceHandler(nsh sdk.AnteHandler) {
-	if app.sealed {
-		panic("SetNonceSequenceHandler() on sealed BaseApp")
-	}
-	app.nonceSequenceHandler = nsh
-}
-
-func (app *BaseApp) SetDeductFeeHandler(dfh sdk.DeductFeeHandler)  {
-	if app.sealed {
-		panic("SetDeductFeeHandler() on sealed BaseApp")
-	}
-	app.deductFeeHandler = dfh
-}
-
-func (app *BaseApp) SetEthGasConsumeHandler(egch sdk.EthGasConsumeHandler)  {
-	if app.sealed {
-		panic("SetEthGasConsumeHandler() on sealed BaseApp")
-	}
-	app.ethGasConsumeHandler = egch
-}
-
 func (app *BaseApp) SetEvmTxFromHandler(etf sdk.EvmTxFromHandler)  {
 	if app.sealed {
 		panic("SetEvmTxFromHandler() on sealed BaseApp")
 	}
 	app.evmTxFromHandler = etf
-}
-
-func (app *BaseApp) SetNonceVerificationHandler(nvh sdk.NonceVerificationHandler)  {
-	if app.sealed {
-		panic("SetNonceVerificationHandler() on sealed BaseApp")
-	}
-	app.nonceVerifyHandler = nvh
-}
-
-func (app *BaseApp) SetIncrementSenderSequenceHandler(ish sdk.IncrementSenderSequenceHandler)  {
-	if app.sealed {
-		panic("SetIncrementSenderSequenceHandler() on sealed BaseApp")
-	}
-	app.incrementSenderSequenceHandler = ish
-}
-
-func (app *BaseApp) SetIncrementSequenceHandler(ish sdk.IncrementSequenceHandler)  {
-	if app.sealed {
-		panic("SetIncrementSequenceHandler() on sealed BaseApp")
-	}
-	app.incrementSequenceHandler = ish
 }

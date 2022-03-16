@@ -111,22 +111,3 @@ func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (u
 
 	return gasLimit, senderAcc,  nil, nil
 }
-
-
-func NewEthGasConsumeHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.EthGasConsumeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (sdk.Context, error) {
-		gasLimit, senderAcc, feeAmt, err := EthGasConsumePreCheck(ak, ctx, tx)
-		if err != nil {
-			return ctx, err
-		}
-		if feeAmt != nil {
-			err = auth.DeductFees(sk, ctx, senderAcc, feeAmt)
-			if err != nil {
-				return ctx, err
-			}
-		}
-
-		newCtx := auth.SetGasMeter(false, ctx, gasLimit)
-		return newCtx, nil
-	}
-}
