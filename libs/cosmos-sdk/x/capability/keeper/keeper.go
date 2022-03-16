@@ -59,9 +59,9 @@ type (
 
 // NewKeeper constructs a new CapabilityKeeper instance and initializes maps
 // for capability map and scopedModules map.
-func NewKeeper(cdc *codec.Codec, storeKey, memKey sdk.StoreKey) *Keeper {
+func NewKeeper(cdc *codec.MarshalProxy, storeKey, memKey sdk.StoreKey) *Keeper {
 	return &Keeper{
-		cdc:           *cdc,
+		cdc:           *cdc.GetCdc(),
 		storeKey:      storeKey,
 		memKey:        memKey,
 		capMap:        make(map[uint64]*types.Capability),
@@ -352,21 +352,48 @@ func (sk ScopedKeeper) ReleaseCapability(ctx sdk.Context, cap *types.Capability)
 // by name. The module is not allowed to retrieve capabilities which it does not
 // own.
 func (sk ScopedKeeper) GetCapability(ctx sdk.Context, name string) (*types.Capability, bool) {
-	// Create a keeper that will set all in-memory mappings correctly into memstore and capmap if scoped keeper is not initialized yet.
-	// This ensures that the in-memory mappings are correctly filled in, in case this is a state-synced node.
-	// This is a temporary non-breaking fix, a future PR should store the reverse mapping in the persistent store and reconstruct forward mapping and capmap on the fly.
-	if !initialized {
-		// create context with infinite gas meter to avoid app state mismatch.
-		initCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		k := Keeper{
-			cdc:      sk.cdc,
-			storeKey: sk.storeKey,
-			memKey:   sk.memKey,
-			capMap:   sk.capMap,
-		}
-		k.InitializeAndSeal(initCtx)
-		initialized = true
-	}
+	//// Create a keeper that will set all in-memory mappings correctly into memstore and capmap if scoped keeper is not initialized yet.
+	//// This ensures that the in-memory mappings are correctly filled in, in case this is a state-synced node.
+	//// This is a temporary non-breaking fix, a future PR should store the reverse mapping in the persistent store and reconstruct forward mapping and capmap on the fly.
+	//if !initialized {
+	//	// create context with infinite gas meter to avoid app state mismatch.
+	//	initCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	//	k := Keeper{
+	//		cdc:      sk.cdc,
+	//		storeKey: sk.storeKey,
+	//		memKey:   sk.memKey,
+	//		capMap:   sk.capMap,
+	//	}
+	//	k.InitializeAndSeal(initCtx)
+	//	initialized = true
+	//}
+	//
+	//if strings.TrimSpace(name) == "" {
+	//	return nil, false
+	//}
+	//memStore := ctx.KVStore(sk.memKey)
+	//
+	//key := types.RevCapabilityKey(sk.module, name)
+	//indexBytes := memStore.Get(key)
+	//index := sdk.BigEndianToUint64(indexBytes)
+	//
+	//if len(indexBytes) == 0 {
+	//	// If a tx failed and NewCapability got reverted, it is possible
+	//	// to still have the capability in the go map since changes to
+	//	// go map do not automatically get reverted on tx failure,
+	//	// so we delete here to remove unnecessary values in map
+	//	// TODO: Delete index correctly from capMap by storing some reverse lookup
+	//	// in-memory map. Issue: https://github.com/cosmos/cosmos-sdk/issues/7805
+	//
+	//	return nil, false
+	//}
+
+	//cap := sk.capMap[index]
+	//if cap == nil {
+	//	panic("capability found in memstore is missing from map")
+	//}
+	//
+	//return cap, true
 
 	if strings.TrimSpace(name) == "" {
 		return nil, false
@@ -488,6 +515,45 @@ func (sk ScopedKeeper) getOwners(ctx sdk.Context, cap *types.Capability) *types.
 	var capOwners types.CapabilityOwners
 	sk.cdc.MustUnmarshalBinaryBare(bz, &capOwners)
 	return &capOwners
+}
+
+func (k *Keeper) InitMemStore(ctx sdk.Context) {
+	memStore := ctx.KVStore(k.memKey)
+	memStoreType := memStore.GetStoreType()
+	if memStoreType != sdk.StoreTypeMemory {
+		panic(fmt.Sprintf("invalid memory store type; got %s, expected: %s", memStoreType, sdk.StoreTypeMemory))
+	}
+
+	// create context with no block gas meter to ensure we do not consume gas during local initialization logic.
+	noGasCtx := ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+
+	// check if memory store has not been initialized yet by checking if initialized flag is nil.
+	if !k.IsInitialized(noGasCtx) {
+		prefixStore := prefix.NewStore(noGasCtx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
+		iterator := sdk.KVStorePrefixIterator(prefixStore, nil)
+
+		// initialize the in-memory store for all persisted capabilities
+		defer iterator.Close()
+
+		for ; iterator.Valid(); iterator.Next() {
+			kk := iterator.Key()
+			index := types.IndexFromKey(kk)
+			logrusplugin.Info("msg", "key", string(kk))
+			var capOwners types.CapabilityOwners
+
+			k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &capOwners)
+			k.InitializeCapability(noGasCtx, index, capOwners)
+		}
+
+		// set the initialized flag so we don't rerun initialization logic
+		memStore := noGasCtx.KVStore(k.memKey)
+		memStore.Set(types.KeyMemInitialized, []byte{1})
+	}
+}
+
+func (k *Keeper) IsInitialized(ctx sdk.Context) bool {
+	memStore := ctx.KVStore(k.memKey)
+	return memStore.Get(types.KeyMemInitialized) != nil
 }
 
 func logger(ctx sdk.Context) log.Logger {
