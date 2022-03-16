@@ -184,6 +184,15 @@ func (sm *sendersMap) getRerun(index int) *DeliverTxTask {
 	return task.(*DeliverTxTask)
 }
 
+func (sm *sendersMap) isRerunEmpty() bool {
+	empty := true
+	sm.needRerunTasks.Range(func(key, value interface{}) bool {
+		empty = false
+		return false
+	})
+	return empty
+}
+
 func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
@@ -307,7 +316,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 	taskIndex := 0
 	for {
-		if taskIndex == dm.totalCount {
+		if taskIndex == dm.totalCount && dm.sendersMap.isRerunEmpty() {
 			break
 		}
 
