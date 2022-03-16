@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -17,6 +18,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -225,6 +227,43 @@ func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
+func (app *BaseApp) addCommitTraceInfo() {
+	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
+	dbReadCountStr := strconv.Itoa(app.cms.GetDBReadCount())
+	dbReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetDBReadTime()).Milliseconds(), 10)
+	dbWriteCountStr := strconv.Itoa(app.cms.GetDBWriteCount())
+
+	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
+
+	elapsedInfo := trace.GetElapsedInfo()
+	elapsedInfo.AddInfo("Iavl", iavlInfo)
+
+	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
+	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
+	flatKvWriteCountStr := strconv.Itoa(app.cms.GetFlatKVWriteCount())
+	flatKvWriteTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds(), 10)
+
+	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
+
+	elapsedInfo.AddInfo("FlatKV", flatInfo)
+
+	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+
+	elapsedInfo.AddInfo(trace.WtxRatio,
+		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	)
+
+	readCache := float64(tmtypes.SignatureCache().ReadCount())
+	hitCache := float64(tmtypes.SignatureCache().HitCount())
+
+	elapsedInfo.AddInfo(trace.SigCacheRatio,
+		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), hitCache/readCache, 'f', 2, 32)),
+	)
+
+	elapsedInfo.AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
+}
+
 // Commit implements the ABCI interface. It will commit all state that exists in
 // the deliver state's multi-store and includes the resulting commit ID in the
 // returned abci.ResponseCommit. Commit will set the check state based on the
@@ -252,19 +291,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
-	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
-		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
-	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rflat<%d>, rflatTs<%dms>, wflat<%d>, wflatTs<%dms>",
-		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount(), time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds()))
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
-
-	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
-
-	trace.GetElapsedInfo().AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
+	app.addCommitTraceInfo()
 
 	app.cms.ResetCount()
-	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
+	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
 
 	// Reset the Check state to the latest committed.
 	//

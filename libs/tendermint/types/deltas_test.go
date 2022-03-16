@@ -2,10 +2,11 @@ package types
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDelta(t *testing.T) {
@@ -16,7 +17,6 @@ func TestDelta(t *testing.T) {
 			[]byte("watch"),
 		},
 		Height:       1,
-		Version:      1,
 		CompressType: 2,
 	}
 
@@ -31,7 +31,6 @@ func TestDelta(t *testing.T) {
 	assert.True(t, bytes.Compare(unmarshaled.DeltasBytes(), d.DeltasBytes()) == 0)
 	assert.True(t, bytes.Compare(unmarshaled.WatchBytes(), d.WatchBytes()) == 0)
 	assert.True(t, unmarshaled.Height == d.Height)
-	assert.True(t, unmarshaled.Version == d.Version)
 	assert.True(t, unmarshaled.CompressType == d.CompressType)
 }
 
@@ -59,7 +58,6 @@ func TestDeltas_MarshalUnMarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := &Deltas{
 				Height:          tt.fields.Height,
-				Version:         tt.fields.Version,
 				Payload:         tt.fields.Payload,
 				CompressType:    tt.fields.CompressType,
 				CompressFlag:    tt.fields.CompressFlag,
@@ -116,7 +114,6 @@ func TestDeltas_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dds := &Deltas{
 				Height:          tt.fields.Height,
-				Version:         tt.fields.Version,
 				Payload:         tt.fields.Payload,
 				CompressType:    tt.fields.CompressType,
 				CompressFlag:    tt.fields.CompressFlag,

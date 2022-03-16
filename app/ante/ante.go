@@ -65,10 +65,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 					authante.NewValidateBasicDecorator(),
 					NewEthSigVerificationDecorator(),
 					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					NewAccountVerificationDecorator(ak, evmKeeper),
-					NewNonceVerificationDecorator(ak),
-					NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-					NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+					NewAccountAnteDecorator(ak, evmKeeper, sk),
 				)
 			}
 
@@ -97,7 +94,7 @@ func sigGasConsumer(
 	}
 }
 
-func pinAnte(trc *trace.Tracer, tag string)  {
+func pinAnte(trc *trace.Tracer, tag string) {
 	if trc != nil {
 		trc.RepeatingPin(tag)
 	}

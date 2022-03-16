@@ -173,4 +173,8 @@ func (suite *KeeperTestSuite) TestChainConfig() {
 	newConfig, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
 	suite.Require().True(found)
 	suite.Require().Equal(config, newConfig)
+	// read config from cache
+	newCachedConfig, newCachedFound := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
+	suite.Require().True(newCachedFound)
+	suite.Require().Equal(config, newCachedConfig)
 }

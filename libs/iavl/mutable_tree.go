@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
 )
@@ -581,13 +583,13 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being
 		// removed.
-		tree.log(IavlDebug, "SAVE EMPTY TREE %v", version)
+		tree.log(IavlDebug, "SAVE EMPTY TREE", "version", version)
 		tree.ndb.SaveOrphans(batch, version, tree.orphans)
 		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
 			return nil, 0, err
 		}
 	} else {
-		tree.log(IavlDebug, "SAVE TREE %v", version)
+		tree.log(IavlDebug, "SAVE TREE", "version", version)
 		if useDeltas {
 			tree.SaveBranch(batch, tree.root)
 			if hex.EncodeToString(tree.root.hash) != hex.EncodeToString(tree.savedNodes["root"].hash) {
@@ -598,7 +600,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
 			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()
 		}
@@ -659,7 +661,7 @@ func (tree *MutableTree) SetInitialVersion(version uint64) {
 // DeleteVersions deletes a series of versions from the MutableTree.
 // Deprecated: please use DeleteVersionsRange instead.
 func (tree *MutableTree) DeleteVersions(versions ...int64) error {
-	tree.log(IavlDebug, "DELETING VERSIONS: %v", versions)
+	tree.log(IavlDebug, "DELETING", "VERSIONS", versions)
 
 	if len(versions) == 0 {
 		return nil
@@ -710,7 +712,7 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64) error
 // DeleteVersion deletes a tree version from disk. The version can then no
 // longer be accessed.
 func (tree *MutableTree) DeleteVersion(version int64) error {
-	tree.log(IavlDebug, "DELETE VERSION: %d", version)
+	tree.log(IavlDebug, "DELETE", "VERSION", version)
 	batch := tree.NewBatch()
 	if err := tree.deleteVersion(batch, version, tree.versions.Clone()); err != nil {
 		return err
@@ -836,13 +838,13 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 	// sync state delta from other node
 	// TODO: handle magic number
 	if node.leftHash != nil {
-		key := hex.EncodeToString(node.leftHash)
+		key := string(node.leftHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.leftHash = tree.SaveBranch(batch, tree.savedNodes[key])
 		}
 	}
 	if node.rightHash != nil {
-		key := hex.EncodeToString(node.rightHash)
+		key := string(node.rightHash)
 		if tmp := tree.savedNodes[key]; tmp != nil {
 			node.rightHash = tree.SaveBranch(batch, tree.savedNodes[key])
 		}
@@ -862,7 +864,7 @@ func (tree *MutableTree) SaveBranch(batch dbm.Batch, node *Node) []byte {
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	tree.savedNodes[hex.EncodeToString(node.hash)] = node
+	tree.savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -882,8 +884,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 
 		// set tree.commitOrphans
 		for _, v := range delta.CommitOrphansDelta {
-			hash, _ := hex.DecodeString(v.Key)
-			tree.commitOrphans[string(hash)] = v.CommitValue
+			tree.commitOrphans[v.Key] = v.CommitValue
 		}
 	}
 }

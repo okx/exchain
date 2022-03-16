@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/tendermint/go-amino"
+
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
@@ -27,7 +29,7 @@ type cValue struct {
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
-	cache         map[string]*cValue
+	cache         map[string]cValue
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
@@ -37,7 +39,7 @@ var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		cache:         make(map[string]*cValue),
+		cache:         make(map[string]cValue),
 		unsortedCache: make(map[string]struct{}),
 		sortedCache:   list.New(),
 		parent:        parent,
@@ -111,6 +113,12 @@ func (store *Store) Delete(key []byte) {
 
 // Implements Cachetypes.KVStore.
 func (store *Store) Write() {
+	// if parent is cachekv.Store, we can write kv more efficiently
+	if pStore, ok := store.parent.(*Store); ok {
+		store.writeToCacheKv(pStore)
+		return
+	}
+
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
@@ -140,9 +148,44 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	store.cache = make(map[string]*cValue)
-	store.unsortedCache = make(map[string]struct{})
-	store.sortedCache = list.New()
+	store.clearCache()
+}
+
+// writeToCacheKv will write cached kv to the parent Store, then clear the cache.
+func (store *Store) writeToCacheKv(parent *Store) {
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	// TODO: Consider allowing usage of Batch, which would allow the write to
+	// at least happen atomically.
+	for key, cacheValue := range store.cache {
+		if !cacheValue.dirty {
+			continue
+		}
+		switch {
+		case cacheValue.deleted:
+			parent.Delete(amino.StrToBytes(key))
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			parent.Set(amino.StrToBytes(key), cacheValue.value)
+		}
+	}
+
+	// Clear the cache
+	store.clearCache()
+}
+
+func (store *Store) clearCache() {
+	// https://github.com/golang/go/issues/20138
+	for key := range store.cache {
+		delete(store.cache, key)
+	}
+	for key := range store.unsortedCache {
+		delete(store.unsortedCache, key)
+	}
+
+	store.sortedCache.Init()
 }
 
 //----------------------------------------
@@ -265,12 +308,13 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
-	store.cache[string(key)] = &cValue{
+	keyStr := string(key)
+	store.cache[keyStr] = cValue{
 		value:   value,
 		deleted: deleted,
 		dirty:   dirty,
 	}
 	if dirty {
-		store.unsortedCache[string(key)] = struct{}{}
+		store.unsortedCache[keyStr] = struct{}{}
 	}
 }

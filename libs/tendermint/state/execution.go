@@ -2,9 +2,12 @@ package state
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"time"
+	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -165,9 +168,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	dc := blockExec.deltaContext
 
 	defer func() {
-		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
-		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
-		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.Size()))
+		trace.GetElapsedInfo().AddInfo(trace.Height, strconv.FormatInt(block.Height, 10))
+		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -180,13 +183,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, ErrInvalidBlock(err)
 	}
 
-	delta, deltaInfo := dc.prepareStateDelta(block.Height)
+	deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
 
-	abciResponses, err := blockExec.runAbci(block, delta, deltaInfo)
+	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -247,24 +250,24 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
-	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
+	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
-	dc.postApplyBlock(block.Height, delta, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
+	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, delta *types.Deltas, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
 	var abciResponses *ABCIResponses
 	var err error
 
 	if deltaInfo != nil {
-		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas", delta)
+		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
 
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
@@ -344,8 +347,8 @@ func (blockExec *BlockExecutor) commit(
 		"Committed state",
 		"height", block.Height,
 		"txs", len(block.Txs),
-		"appHash", fmt.Sprintf("%X", res.Data),
-		"blockLen", block.Size(),
+		"appHash", amino.BytesHexStringer(res.Data),
+		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
 	// Update mempool.
@@ -405,7 +408,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			if txRes.Code == abci.CodeTypeOK {
 				validTxs++
 			} else {
-				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log)
+				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
 				invalidTxs++
 			}
 			abciResponses.DeliverTxs[txIndex] = txRes

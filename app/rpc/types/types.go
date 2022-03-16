@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	watcher "github.com/okex/exchain/x/evm/watcher"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -28,24 +29,6 @@ type StorageResult struct {
 	Key   string       `json:"key"`
 	Value *hexutil.Big `json:"value"`
 	Proof []string     `json:"proof"`
-}
-
-// Transaction represents a transaction returned to RPC clients.
-type Transaction struct {
-	BlockHash        *common.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
-	Hash             common.Hash     `json:"hash"`
-	Input            hexutil.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64  `json:"nonce"`
-	To               *common.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
-	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
 }
 
 // SendTxArgs represents the arguments to submit a new transaction into the transaction pool.
@@ -158,4 +141,16 @@ type EthHeaderWithBlockHash struct {
 	MixDigest   common.Hash         `json:"mixHash"`
 	Nonce       ethtypes.BlockNonce `json:"nonce"`
 	Hash        common.Hash         `json:"hash"`
+}
+type FeeHistoryResult struct {
+	OldestBlock  *hexutil.Big     `json:"oldestBlock"`
+	Reward       [][]*hexutil.Big `json:"reward,omitempty"`
+	BaseFee      []*hexutil.Big   `json:"baseFeePerGas,omitempty"`
+	GasUsedRatio []float64        `json:"gasUsedRatio"`
+}
+
+// SignTransactionResult represents a RLP encoded signed transaction.
+type SignTransactionResult struct {
+	Raw hexutil.Bytes        `json:"raw"`
+	Tx  *watcher.Transaction `json:"tx"`
 }

@@ -239,6 +239,8 @@ func TestABCIResponsesAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
+		require.EqualValues(t, len(expect), resp.AminoSize(sm.ModuleCodec))
+
 		var expectValue sm.ABCIResponses
 		err = sm.ModuleCodec.UnmarshalBinaryBare(expect, &expectValue)
 		require.NoError(t, err)

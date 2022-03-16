@@ -263,6 +263,8 @@ func TestDuplicateVoteEvidenceAmino(t *testing.T) {
 		expectData, err := cdc.MarshalBinaryBare(tc)
 		require.NoError(t, err)
 
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+
 		var expectValue DuplicateVoteEvidence
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)

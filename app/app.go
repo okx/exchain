@@ -1,12 +1,12 @@
 package app
 
 import (
-	"fmt"
-	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/app/utils/sanity"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -192,20 +192,7 @@ func NewOKExChainApp(
 		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	onceLog.Do(func() {
-		iavllog := logger.With("module", "iavl")
-		logFunc := func(level int, format string, args ...interface{}) {
-			switch level {
-			case iavl.IavlErr:
-				iavllog.Error(fmt.Sprintf(format, args...))
-			case iavl.IavlInfo:
-				iavllog.Info(fmt.Sprintf(format, args...))
-			case iavl.IavlDebug:
-				iavllog.Debug(fmt.Sprintf(format, args...))
-			default:
-				return
-			}
-		}
-		iavl.SetLogFunc(logFunc)
+		iavl.SetLogger(logger.With("module", "iavl"))
 		logStartingFlags(logger)
 	})
 
@@ -288,6 +275,7 @@ func NewOKExChainApp(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
+	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
 		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
@@ -455,6 +443,11 @@ func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.Response
 			app.Logger().Error(err.Error())
 			panic(err)
 		}
+		err := okexchain.SetChainId(req.Value)
+		if err != nil {
+			app.Logger().Error(err.Error())
+			panic(err)
+		}
 	}
 	return app.BaseApp.SetOption(req)
 }
@@ -607,5 +600,8 @@ func PreRun(ctx *server.Context) error {
 	if viper.GetBool(FlagEnableRepairState) {
 		repairStateOnStart(ctx)
 	}
+
+	// init tx signature cache
+	tmtypes.InitSignatureCache()
 	return nil
 }

@@ -3,6 +3,8 @@ package refund
 import (
 	"math/big"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
@@ -12,7 +14,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
@@ -20,10 +21,10 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRe
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
-		switch tx.(type) {
-		case evmtypes.MsgEthereumTx:
+
+		if tx.GetType() == sdk.EvmTxType {
 			gasRefundHandler = NewGasRefundDecorator(ak, sk)
-		default:
+		} else {
 			return nil, nil
 		}
 		return gasRefundHandler(ctx, tx)
@@ -58,7 +59,8 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
-	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
+
+	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(ctx, handler.ak, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
@@ -66,6 +68,8 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	ctx.EnableAccountCache()
+	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
