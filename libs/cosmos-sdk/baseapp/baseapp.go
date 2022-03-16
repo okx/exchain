@@ -144,6 +144,7 @@ type BaseApp struct { // nolint: maligned
 	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
+	getSignCache                 sdk.GetSignCacheFromTx
 
 	// volatile states:
 	//
@@ -195,6 +196,8 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
+
+	blockSenderList blockSender
 }
 
 type recordHandle func(string)
@@ -223,6 +226,7 @@ func NewBaseApp(
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+		blockSenderList:  blockSender{},
 	}
 
 	for _, option := range options {
@@ -623,9 +627,8 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
-
 	if mode == runTxModeDeliver {
-		if s := app.parallelTxManage.GetTxSignCache(txBytes); s != nil {
+		if s := app.blockSenderList.getSender(txBytes); s != nil {
 			ctx = ctx.WithSigCache(s)
 		}
 	}

@@ -4,12 +4,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"sync"
-	"sync/atomic"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"sync"
 )
 
 var (
@@ -36,56 +34,50 @@ func getRealTxByte(txByteWithIndex []byte) []byte {
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
-	txSize := len(txs)
-	res := make([]*extraDataForTx, txSize, txSize)
-
-	maxGoRoutine := 32
-	if maxGoRoutine > txSize {
-		maxGoRoutine = txSize
-	}
-
-	var handleTxCnt uint64 = 0
-	stopChan := make(chan struct{}, 1)
-	poolChan := make(chan struct{}, maxGoRoutine)
-
+	res := make([]*extraDataForTx, len(txs), len(txs))
+	var wg sync.WaitGroup
 	for index, txBytes := range txs {
-		poolChan <- struct{}{}
-		go func(index int, txBytes []byte) {
-			defer func() {
-				atomic.AddUint64(&handleTxCnt, 1)
-				if atomic.LoadUint64(&handleTxCnt) == uint64(txSize) {
-					stopChan <- struct{}{}
-				}
-				<-poolChan
-			}()
-
+		wg.Add(1)
+		index := index
+		txBytes := txBytes
+		go func() {
+			defer wg.Done()
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm, s := app.getTxFee(app.checkState.ctx, tx)
+			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
 				fee:       coin,
 				isEvm:     isEvm,
 				signCache: s,
 			}
-		}(index, txBytes)
+		}()
 	}
-	<-stopChan
+	wg.Wait()
 	return res
 }
 
+func (app *BaseApp) paraLoadSender(txs [][]byte) {
+	checkStateTx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+	for _, txBytes := range txs {
+		go func() {
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				return
+			}
+			if s := app.getSignCache(checkStateTx, tx); s != nil {
+				app.blockSenderList.setSender(txBytes, s)
+			}
+		}()
+	}
+
+}
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
-	extraData := app.getExtraDataByTxs(txs)
 
 	if onlyCalSender {
-		app.parallelTxManage.ClearSignCache()
-		for i, v := range extraData {
-			if v != nil {
-				app.parallelTxManage.SetTxSignCache(txs[i], v.signCache)
-			}
-		}
+		go app.paraLoadSender(txs)
 		return nil
 	}
 
@@ -93,6 +85,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
 	}
+	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -366,8 +359,6 @@ type parallelTxManager struct {
 	indexMapBytes []string
 
 	currTxFee sdk.Coins
-
-	blockTxSender map[string]sdk.SigCache
 }
 
 type txStatus struct {
@@ -431,18 +422,6 @@ func (f *parallelTxManager) isReRun(tx string) bool {
 		return false
 	}
 	return data.reRun
-}
-
-func (f *parallelTxManager) GetTxSignCache(tx []byte) sdk.SigCache {
-	return f.blockTxSender[string(tx)]
-}
-
-func (f *parallelTxManager) SetTxSignCache(tx []byte, s sdk.SigCache) {
-	f.blockTxSender[string(tx)] = s
-}
-
-func (f *parallelTxManager) ClearSignCache() {
-	f.blockTxSender = make(map[string]sdk.SigCache)
 }
 
 type asyncCache struct {
@@ -544,4 +523,35 @@ func (l *LogForParallel) PrintLog() {
 	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
 	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
 	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
+}
+
+type blockSender struct {
+	mu            sync.RWMutex
+	blockTxSender map[string]sdk.SigCache
+}
+
+func newBlockSender() *blockSender {
+	return &blockSender{
+		mu:            sync.RWMutex{},
+		blockTxSender: make(map[string]sdk.SigCache),
+	}
+}
+func (b *blockSender) clear() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.blockTxSender = make(map[string]sdk.SigCache)
+}
+
+func (b *blockSender) getSender(txBytes []byte) sdk.SigCache {
+	txString := string(txBytes)
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return b.blockTxSender[txString]
+}
+
+func (b *blockSender) setSender(txBytes []byte, sign sdk.SigCache) {
+	txString := string(txBytes)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.blockTxSender[txString] = sign
 }

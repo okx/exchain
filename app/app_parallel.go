@@ -39,3 +39,12 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 		return ek.FixLog(execResults)
 	}
 }
+
+func getSignCacheFromTx() sdk.GetSignCacheFromTx {
+	return func(ctx sdk.Context, tx sdk.Tx) (signCache sdk.SigCache) {
+		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
+			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+		}
+		return
+	}
+}
