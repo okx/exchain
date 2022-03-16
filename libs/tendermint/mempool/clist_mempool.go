@@ -744,11 +744,19 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, mem.txs.Len())
+	addrExpectNonce := make(map[string]uint64)
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.height+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
+		// ignore discontinuous transactions for the same address in mempool
+		if addrExpectNonce[e.Address] != 0 && addrExpectNonce[e.Address] != e.Nonce {
+			mem.logger.Debug("ReapMaxBytesMaxGas ignore discontinuous txs", "ProposingHeight", mem.height+1,
+				"Address", e.Address, "ExpectNonce", addrExpectNonce[e.Address], "MempoolTxNonce", e.Nonce)
+			continue
+		}
+
 		memTx := e.Value.(*mempoolTx)
 		// Check total size requirement
 		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
@@ -770,6 +778,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 
 		totalTxNum++
 		totalGas = newTotalGas
+		addrExpectNonce[e.Address] = e.Nonce + 1
 		txs = append(txs, memTx.tx)
 	}
 
