@@ -52,7 +52,6 @@ type Tx interface {
 
 	GetGas() uint64
 
-	GetBase() *BaseTx
 	GetRaw() []byte
 	GetFrom() string
 	GetNonce() uint64
@@ -66,7 +65,6 @@ type BaseTx struct {
 	Nonce uint64
 }
 
-func (tx BaseTx) GetBase() *BaseTx                    { return &tx }
 func (tx BaseTx) GetMsgs() []Msg                      { return nil }
 func (tx BaseTx) ValidateBasic() error                { return nil }
 func (tx BaseTx) GetGasPrice() *big.Int               { return big.NewInt(0) }

@@ -41,10 +41,6 @@ type MsgEthereumTx struct {
 	sdk.BaseTx
 }
 
-func (tx *MsgEthereumTx) GetBase() *sdk.BaseTx {
-	return &tx.BaseTx
-}
-
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
 	return sdk.EvmTxType
 }

@@ -34,10 +34,6 @@ type StdTx struct {
 	sdk.BaseTx
 }
 
-func (tx StdTx) GetBase() *sdk.BaseTx {
-	return &tx.BaseTx
-}
-
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
@@ -427,6 +423,7 @@ func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
+		tx.BaseTx.Raw = txBytes
 
 		return tx, nil
 	}

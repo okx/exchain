@@ -30,10 +30,6 @@ func NewTx(key, value string) kvstoreTx {
 	}
 }
 
-func (tx kvstoreTx) GetBase() *sdk.BaseTx {
-	return &tx.BaseTx
-}
-
 func (tx kvstoreTx) Route() string {
 	return "kvstore"
 }

@@ -16,7 +16,7 @@ const IGNORE_HEIGHT_CHECKING = -1
 var errHeightLowerThanVenus = fmt.Errorf("lower than Venus")
 
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
+// *MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
@@ -41,9 +41,16 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			ubDecoder,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
-				tx.GetBase().Raw = txBytes
-				tx.GetBase().Hash = types.Tx(txBytes).Hash(height)
-				return tx, nil
+				switch realTx := tx.(type) {
+				case authtypes.StdTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				case *MsgEthereumTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				}
 			}
 		}
 
