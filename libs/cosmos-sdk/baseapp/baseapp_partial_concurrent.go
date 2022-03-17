@@ -249,12 +249,10 @@ type DeliverTxTasksManager struct {
 	nextSignal          chan int // signal for taking a new tx into tasks
 	statefulSignal      chan int // signal for taking a new task from pendingTasks to statefulTask
 	waitingCount        int
-	statefulSignalCount int
 	mtx                 sync.Mutex
 
 	totalCount    int
 	statefulIndex int
-	//tasks         sync.Map
 	pendingTasks  sync.Map
 	statefulTask  *DeliverTxTask
 	currTxFee     sdk.Coins
@@ -279,7 +277,6 @@ func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
 		app:        app,
 		sendersMap: NewSendersMap(),
 	}
-	//dm.sendersMap = NewSendersMap()
 	return dm
 }
 
@@ -287,18 +284,15 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.done = make(chan int, 1)
 	dm.nextSignal = make(chan int, 1)
 	dm.statefulSignal = make(chan int, 1)
-	dm.statefulSignalCount = 0
 	dm.waitingCount = 0
 
 	dm.totalCount = len(txs)
 	dm.statefulIndex = -1
 	dm.app.logger.Info("TotalTxs", "count", dm.totalCount)
 
-	//dm.tasks = sync.Map{}
 	dm.pendingTasks = sync.Map{}
 	dm.statefulTask = nil
 	dm.currTxFee = sdk.Coins{}
-	//dm.conflict = false
 
 	dm.sendersMap.reset()
 	dm.sendersMap.setLogger(dm.app.logger)
@@ -364,8 +358,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		// execute ante
 		info.ctx = dm.app.getContextForTx(mode, info.txBytes) // same context for all txs in a block
-		//var signCache sdk.SigCache
-		//task.fee, task.isEvm, sign Cache = dm.app.getTxFee(info.ctx, info.tx)
 		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(info.ctx, info.tx)
 		info.ctx = info.ctx.WithSigCache(task.signCache)
 		info.ctx = info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
@@ -384,14 +376,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			dm.pushIntoPending(task)
 			return
 		}
-
-		//// check duplicated sender
-		//if !dm.sendersMap.Push(task) {
-		//	//if blockHeight == AssignedBlockHeight {
-		//	dm.app.logger.Info("ExitConcurrent", "index", task.index)
-		//	//}
-		//	return
-		//}
 	//} else {
 	//	if task.step == partialConcurrentStepAnteEnd {
 	//		dm.app.logger.Error("ResetContext", "index", task.index)
@@ -426,9 +410,9 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			dm.pushIntoPending(task)
 
 			elapsed := time.Since(start).Microseconds()
-			dm.mtx.Lock()
+			//dm.mtx.Lock()
 			dm.anteDuration += elapsed
-			dm.mtx.Unlock()
+			//dm.mtx.Unlock()
 		} else {
 			dm.app.logger.Error("NeedToReRunAnte", "index", task.index)
 		}
@@ -678,10 +662,10 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		//}
 		if count >= maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
-			dm.statefulSignalCount--
-			if dm.statefulSignalCount < 0 {
-				dm.app.logger.Error("dm.statefulSignalCount < 0", "count", dm.statefulSignalCount)
-			}
+			//dm.statefulSignalCount--
+			//if dm.statefulSignalCount < 0 {
+			//	dm.app.logger.Error("dm.statefulSignalCount < 0", "count", dm.statefulSignalCount)
+			//}
 		} else {
 			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
 			time.Sleep(1 * time.Millisecond)
@@ -698,10 +682,10 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		//}
 		if count >= maxDeliverTxsConcurrentNum-1 {
 			dm.nextSignal <- 0
-			dm.statefulSignalCount++
-			if dm.statefulSignalCount > 1 {
-				dm.app.logger.Error("dm.statefulSignalCount > 1", "count", dm.statefulSignalCount)
-			}
+			//dm.statefulSignalCount++
+			//if dm.statefulSignalCount > 1 {
+			//	dm.app.logger.Error("dm.statefulSignalCount > 1", "count", dm.statefulSignalCount)
+			//}
 		}
 	}
 }
