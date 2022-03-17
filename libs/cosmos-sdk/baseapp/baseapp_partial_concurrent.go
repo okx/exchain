@@ -326,6 +326,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		if nextTask != nil {
 			dm.makeNextTask(nil, nextTask.index, nextTask)
 		} else if taskIndex < dm.totalCount {
+			dm.app.logger.Info("MakeNextTask", "index", taskIndex, "totalCount", dm.totalCount)
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
