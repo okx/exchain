@@ -58,8 +58,8 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-	if enc = so.stateDB.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
+	compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
+	if enc = so.stateDB.StateCache.Get(nil, compKey.Bytes()); len(enc) > 0 {
 		value.SetBytes(enc)
 	} else {
 		tmpKey := key
@@ -152,21 +152,21 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 			continue
 		}
 		so.originStorage[key] = value
+		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 
-		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
+		compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if UseCompositeKey {
 			key = so.GetStorageByAddressKey(key.Bytes())
 		}
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
-			so.stateDB.StateCache.Del(prefixKey.Bytes())
+			so.stateDB.StateCache.Del(compKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
-			so.stateDB.StateCache.Set(prefixKey.Bytes(), value.Bytes())
+			so.stateDB.StateCache.Set(compKey.Bytes(), value.Bytes())
 		}
-		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 	}
 	if so.stateDB.prefetcher != nil {
 		so.stateDB.prefetcher.used(so.stateRoot, usedStorage)
