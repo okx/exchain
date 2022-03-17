@@ -405,7 +405,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunAnte", "index", task.index)
+		dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
 		task.step = partialConcurrentStepAnteStart
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
