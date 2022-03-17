@@ -193,12 +193,13 @@ func (sm *sendersMap) isRerunEmpty() bool {
 	return empty
 }
 
-func (sm *sendersMap) extractNextTask() *DeliverTxTask {
+func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
 
 	minIndex := -1
 	var task *DeliverTxTask
+	existConflict := false
 	sm.needRerunTasks.Range(func(key, value interface{}) bool {
 		task = value.(*DeliverTxTask)
 		if minIndex < 0 || task.index < minIndex {
@@ -213,6 +214,7 @@ func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 					if task.index > notFinishedTasks[i].index {
 						sm.logger.Info("rerunTask conflict", "target", task.index, "conflict", notFinishedTasks[i].index)
 						conflict = true
+						existConflict = true
 						break
 					}
 				}
@@ -222,7 +224,7 @@ func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 				minIndex = task.index
 			}
 		}
-		sm.logger.Info("needRerunTasks:", "index", task.index)
+		sm.logger.Info("needRerunTasks", "index", task.index)
 		return true
 	})
 
@@ -231,10 +233,10 @@ func (sm *sendersMap) extractNextTask() *DeliverTxTask {
 		if ok {
 			//sm.logger.Info("extractNextTask", "index", minIndex)
 			sm.needRerunTasks.Delete(minIndex)
-			return nextTask.(*DeliverTxTask)
+			return nextTask.(*DeliverTxTask), existConflict
 		}
 	}
-	return nil
+	return nil, existConflict
 }
 
 func (sm *sendersMap) reset() {
@@ -319,13 +321,15 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 	taskIndex := 0
 	for {
 		// extract task from sendersMap
-		nextTask := dm.sendersMap.extractNextTask()
+		nextTask, existConflict := dm.sendersMap.extractNextTask()
 		if nextTask != nil {
 			dm.makeNextTask(nil, nextTask.index, nextTask)
 		} else if taskIndex < dm.totalCount {
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
+		} else if existConflict {
+			time.Sleep(1 * time.Millisecond)
 		} else {
 			dm.app.logger.Info("exit makeTasksRoutine")
 			break
