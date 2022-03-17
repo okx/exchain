@@ -590,7 +590,7 @@ func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add boo
 	} else {
 		dm.currTxFee = dm.currTxFee.Sub(fee)
 	}
-	dm.app.logger.Info("CalculateFeeForCollector 2", "fee", dm.currTxFee)
+	//dm.app.logger.Info("CalculateFeeForCollector 2", "fee", dm.currTxFee)
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
