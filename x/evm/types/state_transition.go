@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -164,11 +165,15 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
+	var senderStr = EthAddressToString(&st.Sender)
+
 	to := ""
+	var recipientStr string
 	if st.Recipient != nil {
-		to = EthAddressStringer(*st.Recipient).String()
+		to = EthAddressToString(st.Recipient)
+		recipientStr = to
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), EthAddressStringer(st.Sender).String(), to)
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), senderStr, to)
 
 	var tracer vm.Tracer
 	if st.TraceTxLog || enableDebug {
@@ -200,7 +205,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, EthAddressStringer(st.Sender).String(), "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -226,9 +231,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		StartTxLog(analyzer.EVMCORE)
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(contractAddress).String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
+		contractAddressStr := EthAddressToString(&contractAddress)
+		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
@@ -244,9 +251,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
-		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
+		if recipientStr == "" {
+			recipientStr = EthAddressToString(st.Recipient)
+		}
 
-		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(*st.Recipient).String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
+		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -342,9 +353,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		return
 	}
 
-	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", EthAddressStringer(st.Sender).String(), recipientLog,
-	)
+	resultLog := strings.Join([]string{"executed EVM state transition; sender address ", senderStr, "; ", recipientLog}, "")
 	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
