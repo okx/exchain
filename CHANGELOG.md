@@ -948,7 +948,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Support dynamic config ([\#982](https://github.com/okex/exchain/pull/982))
 
-* Add `eth_multiCall` RPC-API to perform multiple raw contract call multiple raw contract call ([\#998](https://github.com/okex/exchain/pull/998))
+* A single interface `eth_multiCall` supports the execution of multiple contracts ([\#998](https://github.com/okex/exchain/pull/998))
 
 
 ### Performance Improvements
@@ -968,7 +968,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Support 0x prefixed address format ([\#973](https://github.com/okex/exchain/pull/973))
 
-* Add logger for `txpool` ([\#983](https://github.com/okex/exchain/pull/983))
+* Error log for `txpool` broadcast transactions ([\#983](https://github.com/okex/exchain/pull/983))
 
 
 ### Documentation
@@ -980,7 +980,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * Deprecated homestead signer after `testnet` block height arrive at `5300000` or `mainnet` arrive at `5150000`. ([\#977](https://github.com/okex/exchain/pull/977))
 
-* Rewrite account nonce query code ([\#989](https://github.com/okex/exchain/pull/989))
+* When requesting `accountNonce`, it is set to 0 by default ([\#989](https://github.com/okex/exchain/pull/989))
 
 
 ### Chores
