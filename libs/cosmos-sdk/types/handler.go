@@ -17,7 +17,7 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
 
-type EvmTxFromHandler func(ctx Context, tx Tx) (Tx, Coins, bool, Address, SigCache)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, Address, SigCache)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
@@ -49,7 +49,6 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 	}
 
 	return func(ctx Context, tx Tx, simulate bool) (Context, error) {
-		//ctx.PrintGasInfo(fmt.Sprintf("%v",len(chain)))
 		return chain[0].AnteHandle(ctx, tx, simulate, ChainAnteDecorators(chain[1:]...))
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"sync/atomic"
 
@@ -52,7 +51,7 @@ func (tx MsgEthereumTx) GetType() sdk.TransactionType {
 
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	// only cache from but not signer
-	log.Printf("SetFrom %s\n", addr)
+	//log.Printf("SetFrom %s\n", addr)
 	tx.from.Store(&tmtypes.TxSigCache{From: ethcmn.HexToAddress(addr)})
 }
 

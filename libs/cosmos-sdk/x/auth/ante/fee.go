@@ -1,15 +1,12 @@
 package ante
 
 import (
-	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"log"
 )
 
 var (
@@ -86,24 +83,20 @@ func NewDeductFeeDecorator(ak keeper.AccountKeeper, sk types.SupplyKeeper) Deduc
 }
 
 func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	//feeTx, ok := tx.(FeeTx)
-	//if !ok {
-	//	return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
-	//}
-	//
-	//if addr := dfd.supplyKeeper.GetModuleAddress(types.FeeCollectorName); addr == nil {
-	//	panic(fmt.Sprintf("%s module account has not been set", types.FeeCollectorName))
-	//}
-	//
-	//feePayer := feeTx.FeePayer(ctx)
-	//feePayerAcc := dfd.ak.GetAccount(ctx, feePayer)
-	//
-	//if feePayerAcc == nil {
-	//	return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
-	//}
-	feeTx, feePayerAcc, err := deductFeesPreCheck(dfd.ak, dfd.supplyKeeper, ctx, tx)
-	if err != nil {
-		return ctx, err
+	feeTx, ok := tx.(FeeTx)
+	if !ok {
+		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
+	}
+
+	if addr := dfd.supplyKeeper.GetModuleAddress(types.FeeCollectorName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.FeeCollectorName))
+	}
+
+	feePayer := feeTx.FeePayer(ctx)
+	feePayerAcc := dfd.ak.GetAccount(ctx, feePayer)
+
+	if feePayerAcc == nil {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
 
 	// deduct the fees
@@ -115,26 +108,6 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 	}
 
 	return next(ctx, tx, simulate)
-}
-
-func deductFeesPreCheck(ak keeper.AccountKeeper, sk types.SupplyKeeper, ctx sdk.Context, tx sdk.Tx) (feeTx FeeTx, feePayerAcc exported.Account, err error) {
-	feeTx, ok := tx.(FeeTx)
-	if !ok {
-		return feeTx, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
-	}
-
-	if addr := sk.GetModuleAddress(types.FeeCollectorName); addr == nil {
-		panic(fmt.Sprintf("%s module account has not been set", types.FeeCollectorName))
-	}
-
-	feePayer := feeTx.FeePayer(ctx)
-	feePayerAcc = ak.GetAccount(ctx, feePayer)
-
-	if feePayerAcc == nil {
-		return feeTx, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
-	}
-
-	return feeTx, feePayerAcc,err
 }
 
 // DeductFees deducts fees from the given account.
@@ -164,14 +137,12 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if global.GetGlobalHeight() == 5810742 {
-		hexacc := hex.EncodeToString(acc.GetAddress())
-		if hexacc == "f1829676db577682e944fc3493d451b67ff3e29f" {
-			//feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
-			//feeCoins := feeCollector.GetCoins()
-			log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
-		}
-	}
+	//if global.GetGlobalHeight() == 5810742 {
+	//	hexacc := hex.EncodeToString(acc.GetAddress())
+	//	if hexacc == "f1829676db577682e944fc3493d451b67ff3e29f" {
+	//		log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
+	//	}
+	//}
 	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())

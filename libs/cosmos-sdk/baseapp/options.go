@@ -172,9 +172,9 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
-func (app *BaseApp) SetEvmTxFromHandler(etf sdk.EvmTxFromHandler)  {
+func (app *BaseApp) SetGetTxFeeAndFromHandler(etf sdk.GetTxFeeAndFromHandler)  {
 	if app.sealed {
-		panic("SetEvmTxFromHandler() on sealed BaseApp")
+		panic("SetGetTxFeeAndFromHandler() on sealed BaseApp")
 	}
-	app.evmTxFromHandler = etf
+	app.getTxFeeAndFromHandler = etf
 }

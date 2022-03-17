@@ -45,7 +45,7 @@ func (app *BaseApp) TraceTx(targetTxData []byte, targetTx sdk.Tx, txIndex uint32
 			return nil, sdkerrors.Wrap(err, "invalid prodesessor")
 		}
 		app.tracetx(predesessor, tx, block.Height, traceState)
-		//ignore the basicVerifyErr when run prodesessor
+		//ignore the err when run prodesessor
 	}
 
 	//trace tx

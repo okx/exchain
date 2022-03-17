@@ -76,16 +76,16 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
-	//defer func() {
-	//	if r := recover(); r != nil {
-	//		basicVerifyErr = app.runTx_defer_recover(r, info)
-	//		info.msCache = nil //TODO msCache not write
-	//		info.result = nil
-	//	}
-	//	info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-	//}()
-	//
-	//defer handler.handleDeferGasConsumed(info)
+	defer func() {
+		if r := recover(); r != nil {
+			err = app.runTx_defer_recover(r, info)
+			info.msCache = nil //TODO msCache not write
+			info.result = nil
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+	}()
+
+	defer handler.handleDeferGasConsumed(info)
 
 	defer func() {
 		app.pin(Refund, true, mode)
@@ -93,17 +93,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 		deferGasStart := time.Now()
 		handler.handleDeferRefund(info)
-
-		handler.handleDeferGasConsumed(info)
-
-		if r := recover(); r != nil {
-			err = app.runTx_defer_recover(r, info)
-			info.msCache = nil //TODO msCache not write
-			info.result = nil
-		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-		//app.logger.Error("BlockGasMeter", "v", app.deliverState.ctx.BlockGasMeter().GasConsumed())
-
 		totalDeferGasTime += time.Since(deferGasStart).Microseconds()
 	}()
 
@@ -121,7 +110,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		err = app.runAnte(info, mode)
 		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
-			app.logger.Error("ante failed", "basicVerifyErr", err)
+			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}
@@ -134,7 +123,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunMsg, false, mode)
 
 	if err != nil {
-		//app.logger.Error("handleRunMsg failed", "basicVerifyErr", basicVerifyErr)
+		//app.logger.Error("handleRunMsg failed", "err", err)
 	}
 	return err
 }

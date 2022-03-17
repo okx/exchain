@@ -148,8 +148,7 @@ type BaseApp struct { // nolint: maligned
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
 
-	anteAuthHandler                sdk.AnteHandler
-	evmTxFromHandler               sdk.EvmTxFromHandler
+	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 
 	// volatile states:
 	//
@@ -766,7 +765,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 
-	if mode != runTxModeDeliver || mode != runTxModeDeliverPartConcurrent || mode != runTxModeDeliverInAsync {
+	if mode != runTxModeDeliver {
 		return
 	}
 

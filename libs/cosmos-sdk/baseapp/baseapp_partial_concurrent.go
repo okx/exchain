@@ -42,7 +42,7 @@ const (
 )
 
 type DeliverTxTask struct {
-	tx            sdk.Tx
+	//tx            sdk.Tx
 	index         int
 	feeForCollect int64
 	step partialConcurrentStep
@@ -364,7 +364,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		info.ctx = dm.app.getContextForTx(mode, info.txBytes) // same context for all txs in a block
 		//var signCache sdk.SigCache
 		//task.fee, task.isEvm, sign Cache = dm.app.getTxFee(info.ctx, info.tx)
-		task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.evmTxFromHandler(info.ctx, info.tx)
+		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(info.ctx, info.tx)
 		info.ctx = info.ctx.WithSigCache(task.signCache)
 		info.ctx = info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -377,7 +377,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 			task.basicVerifyErr = err
-			dm.app.logger.Error("validateBasicTxMsgs failed", "basicVerifyErr", err)
+			dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 			dm.sendersMap.Pop(task)
 			dm.pushIntoPending(task)
 			return
@@ -395,7 +395,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			dm.app.logger.Info("ResetContext", "index", task.index)
 			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
 			//var signCache sdk.SigCache
-			//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.evmTxFromHandler(task.info.ctx, task.info.tx)
+			//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
 			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 		}
@@ -409,8 +409,8 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
 		task.step = partialConcurrentStepAnteEnd
 		if err != nil {
-			dm.app.logger.Error("ante failed 1", "index", task.index, "basicVerifyErr", err)
-			// todo: should make a judge for the basicVerifyErr. There are some errors don't need to re-run AnteHandler.
+			dm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
+			// todo: should make a judge for the err. There are some errors don't need to re-run AnteHandler.
 			task.anteErr = err
 		}
 		if !dm.sendersMap.shouldRerun(task) {
@@ -443,7 +443,7 @@ func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverT
 	task.info.txBytes = txByte
 	if err != nil {
 		task.basicVerifyErr = err
-		dm.app.logger.Error("tx decode failed", " basicVerifyErr", err)
+		dm.app.logger.Error("tx decode failed", "err", err)
 	}
 
 	//dm.tasks.Store(task.index, task)
@@ -593,7 +593,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 		var resp abci.ResponseDeliverTx
 		if err != nil {
-			//dm.app.logger.Error("handleRunMsg failed", "basicVerifyErr", basicVerifyErr)
+			//dm.app.logger.Error("handleRunMsg failed", "err", err)
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{

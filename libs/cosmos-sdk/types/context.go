@@ -236,7 +236,6 @@ func (c Context) WithVoteInfos(voteInfo []abci.VoteInfo) Context {
 }
 
 func (c Context) WithGasMeter(meter GasMeter) Context {
-	//fmt.Printf("SetGasMeter. gasMeter:%d, gasMLimit:%d\n", meter.GasConsumed(), meter.Limit())
 	c.gasMeter = meter
 	return c
 }

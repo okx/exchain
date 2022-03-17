@@ -152,7 +152,6 @@ type (
 
 // nolint - reexport
 func NewGasMeter(limit Gas) GasMeter {
-	//fmt.Println("NewGasMeter.")
 	return types.NewGasMeter(limit)
 }
 
@@ -164,6 +163,5 @@ type (
 
 // nolint - reexport
 func NewInfiniteGasMeter() GasMeter {
-	//fmt.Println("NewInfiniteGasMeter.")
 	return types.NewInfiniteGasMeter()
 }
