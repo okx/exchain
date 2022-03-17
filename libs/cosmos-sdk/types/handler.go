@@ -17,7 +17,6 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
 
-type GetSignCacheFromTx func(ctx Context, tx Tx) SigCache
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
 	AnteHandle(ctx Context, tx Tx, simulate bool, next AnteHandler) (newCtx Context, err error)
@@ -72,6 +71,7 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
+
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()

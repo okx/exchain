@@ -144,7 +144,6 @@ type BaseApp struct { // nolint: maligned
 	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
-	getSignCache                 sdk.GetSignCacheFromTx
 
 	// volatile states:
 	//

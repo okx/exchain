@@ -68,7 +68,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			if err != nil {
 				return
 			}
-			app.getSignCache(checkStateCtx, tx)
+			app.getTxFee(checkStateCtx, tx)
 		}(txBytes)
 	}
 }
