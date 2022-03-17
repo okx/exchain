@@ -71,7 +71,6 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
-
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()
