@@ -450,7 +450,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -622,6 +622,7 @@ func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add boo
 	} else {
 		dm.currTxFee = dm.currTxFee.Sub(fee)
 	}
+	dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
