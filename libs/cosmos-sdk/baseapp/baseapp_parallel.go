@@ -68,7 +68,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			if err != nil {
 				return
 			}
-			app.getTxFee(checkStateCtx, tx)
+			app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
 		}(txBytes)
 	}
 }
