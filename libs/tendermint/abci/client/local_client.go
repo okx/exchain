@@ -162,10 +162,10 @@ func (app *localClient) EndBlockAsync(req types.RequestEndBlock) *ReqRes {
 	)
 }
 
-func (app *localClient) ParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
+func (app *localClient) ParallelTxs(txs [][]byte, onlyCalSender bool) []*types.ResponseDeliverTx {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-	return app.Application.ParallelTxs(txs)
+	return app.Application.ParallelTxs(txs, onlyCalSender)
 }
 
 func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
