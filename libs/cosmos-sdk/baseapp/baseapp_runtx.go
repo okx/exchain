@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"runtime/debug"
@@ -47,7 +46,7 @@ func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	//	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
 	//}
 	if nil != err {
-		logrusplugin.Error("runTxFailed", "err", err.Error(), "data", hex.EncodeToString(txBytes))
+		logrusplugin.Error("runTxFailed", "err", err.Error())
 	}
 	return
 }
