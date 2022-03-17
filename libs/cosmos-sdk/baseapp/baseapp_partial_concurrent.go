@@ -529,7 +529,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -672,7 +672,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("incrementWaitingCount", "count", count)
+		dm.app.logger.Info("incrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
@@ -692,7 +692,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("decrementWaitingCount", "count", count)
+		dm.app.logger.Info("decrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum-1 {
 			dm.nextSignal <- 0
