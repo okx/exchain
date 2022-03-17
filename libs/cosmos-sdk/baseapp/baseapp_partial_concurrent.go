@@ -390,15 +390,15 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		//	//}
 		//	return
 		//}
-	} else {
-		if task.step == partialConcurrentStepAnteEnd {
-			dm.app.logger.Error("ResetContext", "index", task.index)
-			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-			//var signCache sdk.SigCache
-			//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
-			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
-		}
+	//} else {
+	//	if task.step == partialConcurrentStepAnteEnd {
+	//		dm.app.logger.Error("ResetContext", "index", task.index)
+	//		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+	//		//var signCache sdk.SigCache
+	//		//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
+	//		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+	//		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+	//	}
 	}
 
 	if dm.app.anteHandler != nil {
@@ -679,7 +679,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 			}
 		} else {
 			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
