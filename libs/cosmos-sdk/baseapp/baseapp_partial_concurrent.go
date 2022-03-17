@@ -399,12 +399,14 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			// todo: should make a judge for the err. There are some errors don't need to re-run AnteHandler.
 			task.anteErr = err
 		}
+		dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
+			dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
 			if task.anteErr == nil {
 				task.info.msCacheAnte.Write()
 				task.info.ctx.Cache().Write(true)
 				dm.calculateFeeForCollector(task.fee, true)
-				dm.app.logger.Info("RunAnteSucceed", "index", task.index)
+				dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
 			}
 
 			dm.pushIntoPending(task)

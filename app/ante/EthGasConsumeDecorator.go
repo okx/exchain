@@ -7,7 +7,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"math/big"
@@ -44,27 +43,9 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
 
-	gasLimit, senderAcc, feeAmt, err := EthGasConsumePreCheck(egcd.ak, ctx, tx)
-	if err != nil {
-		return ctx, err
-	}
-	if feeAmt != nil {
-		//fmt.Println(hex.EncodeToString(senderAcc.GetAddress()), feeAmt[0].Amount)
-		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
-		if err != nil {
-			return ctx, err
-		}
-	}
-
-	// Set gas meter after ante handler to ignore gaskv costs
-	ctx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(ctx, tx, simulate)
-}
-
-func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (uint64, exported.Account, sdk.Coins, error) {
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return 0, nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
 	address := msgEthTx.From()
@@ -73,13 +54,13 @@ func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (u
 	}
 
 	// fetch sender account from signature
-	senderAcc, err := auth.GetSignerAcc(ctx, ak, address)
+	senderAcc, err := auth.GetSignerAcc(ctx, egcd.ak, address)
 	if err != nil {
-		return 0, nil, nil, err
+		return ctx, err
 	}
 
 	if senderAcc == nil {
-		return 0, nil, nil, sdkerrors.Wrapf(
+		return ctx, sdkerrors.Wrapf(
 			sdkerrors.ErrUnknownAddress,
 			"sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
 		)
@@ -88,12 +69,12 @@ func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (u
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
-		return 0, senderAcc, nil, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
 
 	// intrinsic gas verification during CheckTx
 	if ctx.IsCheckTx() && gasLimit < gas {
-		return 0, senderAcc, nil, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
 	}
 
 	if gasLimit != 0 {
@@ -106,8 +87,13 @@ func EthGasConsumePreCheck(ak auth.AccountKeeper, ctx sdk.Context, tx sdk.Tx) (u
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		return gasLimit, senderAcc,  feeAmt, nil
+		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
+		if err != nil {
+			return ctx, err
+		}
 	}
 
-	return gasLimit, senderAcc,  nil, nil
+	// Set gas meter after ante handler to ignore gaskv costs
+	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
+	return next(newCtx, tx, simulate)
 }
