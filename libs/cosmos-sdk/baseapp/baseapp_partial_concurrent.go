@@ -403,7 +403,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunAnte", "index", task.index)
+		//dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
 		task.step = partialConcurrentStepAnteStart
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
@@ -418,6 +418,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 				task.info.msCacheAnte.Write()
 				task.info.ctx.Cache().Write(true)
 				dm.calculateFeeForCollector(task.fee, true)
+				dm.app.logger.Info("RunAnteSucceed", "index", task.index)
 			}
 
 			dm.pushIntoPending(task)
