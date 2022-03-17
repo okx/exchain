@@ -161,8 +161,10 @@ func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
 	//sm.logger.Info("MoveToRerun", "index", task.index)
 	//}
-	//sm.needRerunTasks = append(sm.needRerunTasks, task)
-	sm.needRerunTasks.Store(task.index, task)
+	_, ok := sm.needRerunTasks.Load(task.index)
+	if !ok {
+		sm.needRerunTasks.Store(task.index, task)
+	}
 }
 
 func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
@@ -179,20 +181,6 @@ func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
 	return
 }
 
-func (sm *sendersMap) getRerun(index int) *DeliverTxTask {
-	task, _ := sm.needRerunTasks.Load(index)
-	return task.(*DeliverTxTask)
-}
-
-func (sm *sendersMap) isRerunEmpty() bool {
-	empty := true
-	sm.needRerunTasks.Range(func(key, value interface{}) bool {
-		empty = false
-		return false
-	})
-	return empty
-}
-
 func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
@@ -201,8 +189,9 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	var task *DeliverTxTask
 	existConflict := false
 	sm.needRerunTasks.Range(func(key, value interface{}) bool {
-		task = value.(*DeliverTxTask)
-		if minIndex < 0 || task.index < minIndex {
+		index := key.(int)
+		if minIndex < 0 || index < minIndex {
+			task = value.(*DeliverTxTask)
 			// check whether exist previous tasks in notFinishedTasks
 			address := task.from.String()
 			tmp, ok := sm.notFinishedTasks.Load(address)
@@ -211,8 +200,8 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 				notFinishedTasks := tmp.([]*DeliverTxTask)
 				num := len(notFinishedTasks)
 				for i := 0; i < num; i++ {
-					if task.index > notFinishedTasks[i].index {
-						sm.logger.Info("RerunTaskConflict", "target", task.index, "conflict", notFinishedTasks[i].index)
+					if index > notFinishedTasks[i].index {
+						sm.logger.Info("RerunTaskConflict", "target", index, "conflict", notFinishedTasks[i].index)
 						conflict = true
 						existConflict = true
 						break
@@ -221,10 +210,10 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 			}
 
 			if !conflict {
-				minIndex = task.index
+				minIndex = index
 			}
 		}
-		sm.logger.Info("NeedRerunTasks", "index", task.index)
+		sm.logger.Info("NeedRerunTasks", "index", index)
 		return true
 	})
 
@@ -320,7 +309,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		if nextTask != nil {
 			dm.makeNextTask(nil, nextTask.index, nextTask)
 		} else if taskIndex < dm.totalCount {
-			dm.app.logger.Info("MakeNextTask", "index", taskIndex, "totalCount", dm.totalCount)
+			//dm.app.logger.Info("MakeNextTask", "index", taskIndex, "totalCount", dm.totalCount)
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
@@ -399,11 +388,11 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			// todo: should make a judge for the err. There are some errors don't need to re-run AnteHandler.
 			task.anteErr = err
 		}
-		dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
+		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
 			dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
 			if task.anteErr == nil {
-				dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
+				//dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
 				task.info.msCacheAnte.Write()
 				task.info.ctx.Cache().Write(true)
 				dm.calculateFeeForCollector(task.fee, true)
@@ -419,12 +408,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			dm.app.logger.Error("NeedToReRunAnte", "index", task.index)
 		}
 	}
-}
-
-func (dm *DeliverTxTasksManager) resetContxtForTask(task *DeliverTxTask) {
-	task.info.ctx = dm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
-	task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(runTxModeDeliverPartConcurrent)))
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
@@ -461,14 +444,6 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
 	info := task.info
 	var anteCtx sdk.Context
-
-	// Cache wrap context before AnteHandler call in case it aborts.
-	// This is required for both CheckTx and DeliverTx.
-	// Ref: https://github.com/cosmos/cosmos-sdk/issues/2772
-	//
-	// NOTE: Alternatively, we could require that AnteHandler ensures that
-	// writes do not happen if aborted/failed.  This may have some
-	// performance benefits, but it'll be more difficult to get right.
 	anteCtx, info.msCacheAnte = dm.app.cacheTxContext(info.ctx, info.txBytes) // info.msCacheAnte := ctx.MultiStore().CacheMultiStore(),  anteCtx := ctx.WithMultiStore(info.msCacheAnte)
 	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	//anteCtx = anteCtx.WithAnteTracer(dm.app.anteTracer)
@@ -479,14 +454,6 @@ func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
 	//info.accountNonce = newCtx.AccountNonce()
 
 	if !newCtx.IsZero() {
-		// At this point, newCtx.MultiStore() is cache-wrapped, or something else
-		// replaced by the AnteHandler. We want the original multistore, not one
-		// which was cache-wrapped for the AnteHandler.
-		//
-		// Also, in the case of the tx aborting, we need to track gas consumed via
-		// the instantiated gas meter in the AnteHandler, so we update the context
-		// prior to returning.
-		// todo: CacheMultiStore(info.msCacheAnte) is changed
 		info.ctx = newCtx.WithMultiStore(ms)
 	}
 	// GasMeter expected to be set in AnteHandler
@@ -617,7 +584,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	dm.app.logger.Info("CalculateFeeForCollector 1", "fee", dm.currTxFee)
+	//dm.app.logger.Info("CalculateFeeForCollector 1", "fee", dm.currTxFee)
 	if add {
 		dm.currTxFee = dm.currTxFee.Add(fee...)
 	} else {
@@ -662,7 +629,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("incrementWaitingCount", "count", count)
+		//dm.app.logger.Info("incrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
@@ -682,7 +649,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		dm.mtx.Unlock()
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("decrementWaitingCount", "count", count)
+		//dm.app.logger.Info("decrementWaitingCount", "count", count)
 		//}
 		if count >= maxDeliverTxsConcurrentNum-1 {
 			dm.nextSignal <- 0
