@@ -26,8 +26,7 @@ var (
 
 	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"      // "MsgRecvPacket"
 	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement" //"MsgAcknowledgement"
-
-	MsgTimeOut = "/ibc.core.channel.v1.MsgTimeout"
+	MsgTimeOut         = "/ibc.core.channel.v1.MsgTimeout"
 )
 
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {
