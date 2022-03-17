@@ -37,6 +37,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()

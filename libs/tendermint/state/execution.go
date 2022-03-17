@@ -188,9 +188,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	dc := blockExec.deltaContext
 
 	defer func() {
-		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
-		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
-		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.FastSize()))
+		trace.GetElapsedInfo().AddInfo(trace.Height, strconv.FormatInt(block.Height, 10))
+		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -271,7 +271,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
-	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
+	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
@@ -439,7 +439,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			if txRes.Code == abci.CodeTypeOK {
 				validTxs++
 			} else {
-				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log)
+				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
 				invalidTxs++
 			}
 			abciResponses.DeliverTxs[txIndex] = txRes
