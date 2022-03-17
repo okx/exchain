@@ -679,7 +679,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 			}
 		} else {
 			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-			time.Sleep(1 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
