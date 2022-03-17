@@ -370,7 +370,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
-			//dm.app.logger.Info("ExitConcurrent", "index", task.index)
+			dm.app.logger.Info("ExitConcurrent", "index", task.index)
 			//}
 			return
 		}
@@ -392,7 +392,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		//}
 	} else {
 		if task.step == partialConcurrentStepAnteEnd {
-			dm.app.logger.Info("ResetContext", "index", task.index)
+			dm.app.logger.Error("ResetContext", "index", task.index)
 			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
 			//var signCache sdk.SigCache
 			//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
@@ -678,8 +678,8 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 				dm.app.logger.Error("dm.statefulSignalCount < 0", "count", dm.statefulSignalCount)
 			}
 		} else {
-			// sleep 1 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-			time.Sleep(1 * time.Millisecond)
+			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
+			time.Sleep(10 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
