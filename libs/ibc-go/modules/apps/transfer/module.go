@@ -414,7 +414,7 @@ func (am AppModule) OnAcknowledgementPacket(
 	relayer sdk.AccAddress,
 ) error {
 	var ack channeltypes.Acknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+	if err := types.Marshal.GetProtocMarshal().UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
 	var data types.FungibleTokenPacketData

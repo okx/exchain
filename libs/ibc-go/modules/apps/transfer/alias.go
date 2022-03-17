@@ -6,6 +6,7 @@ import (
 )
 
 var (
-	NewKeeper = keeper.NewKeeper
-	ModuleCdc = types.ModuleCdc
+	NewKeeper  = keeper.NewKeeper
+	ModuleCdc  = types.ModuleCdc
+	SetMarshal = types.SetMarshal
 )

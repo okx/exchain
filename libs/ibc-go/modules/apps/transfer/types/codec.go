@@ -38,7 +38,7 @@ var (
 	// defined at the application level.
 	//ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 	ModuleCdc = codec.New()
-
+	Marshal   *codec.MarshalProxy
 	// AminoCdc is a amino codec created to support amino json compatible msgs.
 	//AminoCdc = codec.NewAminoCodec(amino)
 )
@@ -46,4 +46,8 @@ var (
 func init() {
 	RegisterLegacyAminoCodec(ModuleCdc)
 	ModuleCdc.Seal()
+}
+
+func SetMarshal(m *codec.MarshalProxy) {
+	Marshal = m
 }
