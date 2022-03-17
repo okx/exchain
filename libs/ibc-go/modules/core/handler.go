@@ -87,9 +87,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		m := re.(*sdk.RelayMsg)
 		msg, err := unmarshalFromRelayMsg(k, m)
 		if nil != err {
-			if nil != err {
-				return nil, err
-			}
+			return nil, err
 		}
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
