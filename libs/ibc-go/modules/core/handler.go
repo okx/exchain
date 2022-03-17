@@ -8,7 +8,6 @@ import (
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 )
 
 var (
@@ -27,6 +26,8 @@ var (
 
 	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"      // "MsgRecvPacket"
 	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement" //"MsgAcknowledgement"
+
+	MsgTimeOut = "/ibc.core.channel.v1.MsgTimeout"
 )
 
 func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, error) {
@@ -67,6 +68,8 @@ func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, 
 		ms = append(ms, new(channeltypes.MsgRecvPacket))
 	case MsgAcknowledgement:
 		ms = append(ms, new(channeltypes.MsgAcknowledgement))
+	case MsgTimeOut:
+		ms = append(ms, new(channeltypes.MsgTimeout))
 	default:
 		ms = append(ms, new(clienttypes.MsgCreateClient),
 			new(channeltypes.MsgChannelCloseConfirm),
@@ -83,17 +86,9 @@ func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, 
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, re sdk.Msg) (*sdk.Result, error) {
 		m := re.(*sdk.RelayMsg)
-		msg, err := unmarshalFromRelayMsg(k, re.(*sdk.RelayMsg))
+		msg, err := unmarshalFromRelayMsg(k, m)
 		if nil != err {
-			panic(err)
-			aaa := new(types.ClientState)
-			err := k.Codec().GetProtocMarshal().UnmarshalBinaryBare(m.Bytes, aaa)
-			err = k.Codec().GetProtocMarshal().UnmarshalInterface(m.Bytes, &aaa)
-			k.Codec().GetProtocMarshal().UnmarshalBinaryLengthPrefixed(m.Bytes, aaa)
-			err = aaa.Unmarshal(m.Bytes)
-			if nil != err {
-				return nil, err
-			}
+			return nil, err
 		}
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
