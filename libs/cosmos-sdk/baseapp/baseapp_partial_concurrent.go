@@ -292,6 +292,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 
 	dm.totalCount = len(txs)
 	dm.statefulIndex = -1
+	dm.app.logger.Info("TotalTxs", "count", dm.totalCount)
 
 	//dm.tasks = sync.Map{}
 	dm.pendingTasks = sync.Map{}
