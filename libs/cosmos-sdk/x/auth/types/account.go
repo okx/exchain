@@ -127,14 +127,14 @@ func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
 func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Grow(acc.AminoSize(cdc))
-	err := acc.MarshalAminoTo(cdc, &buf)
+	err := acc.BaseMarshalAminoTo(cdc, &buf)
 	if err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func (acc BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+func (acc BaseAccount) BaseMarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 	// field 1
 	if len(acc.Address) != 0 {
 		const pbKey = 1<<3 | 2
