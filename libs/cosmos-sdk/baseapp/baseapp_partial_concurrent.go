@@ -378,7 +378,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunAnte", "index", task.index)
+		//dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
 		task.step = partialConcurrentStepAnteStart
 		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
@@ -390,7 +390,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		}
 		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
-			dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
+			//dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
 			if task.anteErr == nil {
 				//dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
 				task.info.msCacheAnte.Write()
@@ -433,7 +433,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -484,7 +484,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -510,7 +510,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-			dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
+			//dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
 			dm.txResponses[dm.statefulTask.index] = &txRs
 			dm.resetStatefulTask()
 			finished++
