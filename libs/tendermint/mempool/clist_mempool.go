@@ -294,9 +294,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 
-	mem.updateMtx.RLock()
-	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
+	//mem.updateMtx.RLock()
+	//// use defer to unlock mutex because application (*local client*) might panic
+	//defer mem.updateMtx.RUnlock()
 
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
@@ -625,6 +625,8 @@ func (mem *CListMempool) resCbFirstTime(
 
 			memTx.senders.Store(txInfo.SenderID, true)
 
+			mem.updateMtx.Lock()
+			defer mem.updateMtx.Unlock()
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx)
@@ -728,8 +730,15 @@ func (mem *CListMempool) notifyTxsAvailable() {
 	}
 }
 
+func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
+	if ele, ok := mem.txsMap.Load(txKey(tx)); ok {
+		return ele.(*clist.CElement).Value.(*mempoolTx).realTx
+	}
+	return nil
+}
+
 // Safe for concurrent use by multiple goroutines.
-func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []abci.TxEssentials {
+func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	mem.updateMtx.RLock()
 	defer mem.updateMtx.RUnlock()
 
@@ -741,7 +750,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []abci.TxEss
 	// TODO: we will get a performance boost if we have a good estimate of avg
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
-	txs := make([]abci.TxEssentials, 0, mem.txs.Len())
+	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.height+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
@@ -768,7 +777,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []abci.TxEss
 
 		totalTxNum++
 		totalGas = newTotalGas
-		txs = append(txs, memTx.realTx)
+		txs = append(txs, memTx.tx)
 	}
 
 	return txs

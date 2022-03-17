@@ -759,7 +759,6 @@ func (m *RequestCheckTx) GetFrom() string {
 }
 
 type RequestDeliverTx struct {
-	RealTx               TxEssentials
 	Tx                   []byte   `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
