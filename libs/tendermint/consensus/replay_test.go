@@ -711,7 +711,7 @@ func testHandshakeReplay(t *testing.T, config *cfg.Config, nBlocks int, mode uin
 		t.Fatalf("Error starting proxy app connections: %v", err)
 	}
 	defer proxyApp.Stop()
-	err := handshaker.Handshake(proxyApp)
+	err := handshaker.Handshake(proxyApp, int8(0))
 	if expectError {
 		require.Error(t, err)
 		return
@@ -880,7 +880,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 
 		assert.Panics(t, func() {
 			h := NewHandshaker(stateDB, state, store, dStore, genDoc)
-			h.Handshake(proxyApp)
+			h.Handshake(proxyApp, int8(0))
 		})
 	}
 
@@ -898,7 +898,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 
 		assert.Panics(t, func() {
 			h := NewHandshaker(stateDB, state, store, dStore, genDoc)
-			h.Handshake(proxyApp)
+			h.Handshake(proxyApp, int8(0))
 		})
 	}
 }
@@ -1184,7 +1184,7 @@ func TestHandshakeUpdatesValidators(t *testing.T) {
 		t.Fatalf("Error starting proxy app connections: %v", err)
 	}
 	defer proxyApp.Stop()
-	if err := handshaker.Handshake(proxyApp); err != nil {
+	if err := handshaker.Handshake(proxyApp, int8(0)); err != nil {
 		t.Fatalf("Error on abci handshake: %v", err)
 	}
 

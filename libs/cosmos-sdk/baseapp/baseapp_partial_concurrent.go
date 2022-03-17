@@ -159,7 +159,7 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 
 func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	sm.logger.Info("MoveToRerun", "index", task.index)
+	//sm.logger.Info("MoveToRerun", "index", task.index)
 	//}
 	//sm.needRerunTasks = append(sm.needRerunTasks, task)
 	sm.needRerunTasks.Store(task.index, task)
@@ -370,7 +370,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
-			dm.app.logger.Info("ExitConcurrent", "index", task.index)
+			//dm.app.logger.Info("ExitConcurrent", "index", task.index)
 			//}
 			return
 		}
@@ -426,6 +426,8 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			dm.mtx.Lock()
 			dm.anteDuration += elapsed
 			dm.mtx.Unlock()
+		} else {
+			dm.app.logger.Error("NeedToReRunAnte", "index", task.index)
 		}
 	}
 }
@@ -459,7 +461,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -526,7 +528,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -552,7 +554,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-			dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
+			//dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
 			dm.txResponses[dm.statefulTask.index] = &txRs
 			dm.resetStatefulTask()
 			finished++
@@ -679,7 +681,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 			}
 		} else {
 			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
