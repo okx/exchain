@@ -637,9 +637,9 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 			//if dm.statefulSignalCount < 0 {
 			//	dm.app.logger.Error("dm.statefulSignalCount < 0", "count", dm.statefulSignalCount)
 			//}
-		} else {
-			// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-			time.Sleep(1 * time.Millisecond)
+		//} else {
+		//	// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
+		//	time.Sleep(1 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
