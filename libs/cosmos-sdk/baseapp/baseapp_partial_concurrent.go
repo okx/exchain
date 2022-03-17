@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 4
+	maxDeliverTxsConcurrentNum = 5
 )
 
 var totalAnteDuration = int64(0)
@@ -631,7 +631,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		//if blockHeight == AssignedBlockHeight {
 		//dm.app.logger.Info("incrementWaitingCount", "count", count)
 		//}
-		if count >= maxDeliverTxsConcurrentNum {
+		if count == maxDeliverTxsConcurrentNum {
 			<-dm.nextSignal
 			//dm.statefulSignalCount--
 			//if dm.statefulSignalCount < 0 {
@@ -651,7 +651,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 		//if blockHeight == AssignedBlockHeight {
 		//dm.app.logger.Info("decrementWaitingCount", "count", count)
 		//}
-		if count >= maxDeliverTxsConcurrentNum-1 {
+		if count == maxDeliverTxsConcurrentNum-1 {
 			dm.nextSignal <- 0
 			//dm.statefulSignalCount++
 			//if dm.statefulSignalCount > 1 {
