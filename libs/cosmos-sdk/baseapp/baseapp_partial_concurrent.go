@@ -403,10 +403,10 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		if !dm.sendersMap.shouldRerun(task) {
 			dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
 			if task.anteErr == nil {
+				dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
 				task.info.msCacheAnte.Write()
 				task.info.ctx.Cache().Write(true)
 				dm.calculateFeeForCollector(task.fee, true)
-				dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
 			}
 
 			dm.pushIntoPending(task)
@@ -617,12 +617,13 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
+	dm.app.logger.Info("CalculateFeeForCollector 1", "fee", dm.currTxFee)
 	if add {
 		dm.currTxFee = dm.currTxFee.Add(fee...)
 	} else {
 		dm.currTxFee = dm.currTxFee.Sub(fee)
 	}
-	dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
+	dm.app.logger.Info("CalculateFeeForCollector 2", "fee", dm.currTxFee)
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
