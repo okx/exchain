@@ -61,7 +61,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
-	app.blockSenderList.clear()
 	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 	for _, txBytes := range txs {
 		go func(txBytes []byte) {
@@ -69,9 +68,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			if err != nil {
 				return
 			}
-			if s := app.getSignCache(checkStateCtx, tx); s != nil {
-				app.blockSenderList.setSignCache(txBytes, s)
-			}
+			app.getSignCache(checkStateCtx, tx)
 		}(txBytes)
 	}
 }
@@ -524,35 +521,4 @@ func (l *LogForParallel) PrintLog() {
 	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
 	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
 	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
-}
-
-type blockSender struct {
-	mu            sync.RWMutex
-	blockTxSender map[string]sdk.SigCache
-}
-
-func newBlockSender() *blockSender {
-	return &blockSender{
-		mu:            sync.RWMutex{},
-		blockTxSender: make(map[string]sdk.SigCache),
-	}
-}
-func (b *blockSender) clear() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	for key := range b.blockTxSender {
-		delete(b.blockTxSender, key)
-	}
-}
-
-func (b *blockSender) getSignCache(txBytes []byte) sdk.SigCache {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.blockTxSender[string(txBytes)]
-}
-
-func (b *blockSender) setSignCache(txBytes []byte, sign sdk.SigCache) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.blockTxSender[string(txBytes)] = sign
 }

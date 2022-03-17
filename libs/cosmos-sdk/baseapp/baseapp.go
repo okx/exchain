@@ -196,8 +196,6 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
-
-	blockSenderList *blockSender
 }
 
 type recordHandle func(string)
@@ -226,7 +224,6 @@ func NewBaseApp(
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
-		blockSenderList:  newBlockSender(),
 	}
 
 	for _, option := range options {
@@ -627,12 +624,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
-	if mode == runTxModeDeliver {
-		if s := app.blockSenderList.getSignCache(txBytes); s != nil {
-			ctx = ctx.WithSigCache(s)
-		}
-	}
-
+	
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
 		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
