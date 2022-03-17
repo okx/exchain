@@ -155,7 +155,7 @@ func checkValidity(
 	// - assert header timestamp is past latest stored consensus state timestamp
 	// - assert that a TrustLevel proportion of TrustedValidators signed new Commit
 
-	err = lite.Verify(
+	err = lite.IBCVerify(
 		chainID,
 		&signedHeader,
 		tmTrustedValidators, tmSignedHeader, tmValidatorSet,
