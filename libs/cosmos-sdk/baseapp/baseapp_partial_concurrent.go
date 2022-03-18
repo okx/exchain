@@ -385,7 +385,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunAnte", "index", task.index)
+		dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
 		err := dm.runAnte(task)
 		if err != nil {
@@ -493,7 +493,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -539,7 +539,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
