@@ -1,9 +1,12 @@
 package refund
 
 import (
+	"encoding/hex"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"log"
 )
 
 func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
@@ -30,12 +33,12 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
 	}
 	ctx.UpdateFromAccountCache(feeCollector, 0)
-	//if global.GetGlobalHeight() == 5810742 {
-	//	hexacc := hex.EncodeToString(acc)
-	//	if hexacc == "f1829676db577682e944fc3493d451b67ff3e29f" {
-	//		log.Printf("From FeeCollector: %s origin:%s\n", refundFees, coins)
-	//	}
-	//}
+	if global.GetGlobalHeight() == 5811070 {
+		hexacc := hex.EncodeToString(acc)
+		if hexacc == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+			log.Printf("From FeeCollector: %s origin:%s\n", refundFees, coins)
+		}
+	}
 	err := supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.FeeCollectorName, acc, refundFees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
