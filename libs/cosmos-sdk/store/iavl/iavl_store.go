@@ -3,11 +3,13 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
-	"io"
-	"sync"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -38,6 +40,8 @@ var (
 type Store struct {
 	tree        Tree
 	flatKVStore *flatkv.Store
+	//for upgrade
+	upgradeVersion int64
 }
 
 func (st *Store) StopStore() {
@@ -141,8 +145,13 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 		flag = true
 		st.tree.SetDelta(inputDelta)
 	}
+	ver := st.GetUpgradeVersion()
+	if ver != -1 {
+		st.tree.UpgradeVersion(ver)
+	}
 	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
+		time.Sleep(100000 * time.Second)
 		panic(err)
 	}
 
@@ -604,4 +613,12 @@ func (st *Store) Import(version int64) (*iavl.Importer, error) {
 		return nil, errors.New("iavl import failed: unable to find mutable tree")
 	}
 	return tree.Import(version)
+}
+
+func (st *Store) UpgradeVersion(version int64) {
+	st.upgradeVersion = version
+}
+
+func (st *Store) GetUpgradeVersion() int64 {
+	return st.upgradeVersion
 }

@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -23,6 +24,7 @@ import (
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -73,6 +75,7 @@ type Store struct {
 
 	commitHeightFilterPipeline func(h int64) func(str string) bool
 	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	upgradeVersion             int64
 }
 
 var (
@@ -101,6 +104,7 @@ func NewStore(db dbm.DB, os ...StoreOption) *Store {
 		versions:                   make([]int64, 0),
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
 		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		upgradeVersion:             -1,
 	}
 
 	for _, opt := range os {
@@ -996,6 +1000,17 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
+		if !tmtypes.HigherThanIBCHeight(version) {
+			name := key.Name()
+			fmt.Println("commitStore version", key.Name(), version)
+			if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
+				continue
+			}
+		}
+		if tmtypes.GetIBCHeight() == version {
+			//init store tree version with block height
+			store.UpgradeVersion(version)
+		}
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
@@ -1300,4 +1315,8 @@ func (rs *Store) StopStore() {
 
 func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
+}
+
+func (rs *Store) UpgradeVersion(version int64) {
+	rs.upgradeVersion = version
 }
