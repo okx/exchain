@@ -37,14 +37,8 @@ type Handler struct {
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
-
 	currentGasMeter := ctx.GasMeter()
-	TempGasMeter := sdk.NewInfiniteGasMeter()
-	ctx.SetGasMeter(TempGasMeter)
-
-	defer func() {
-		ctx.SetGasMeter(currentGasMeter)
-	}()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	gasLimit := currentGasMeter.Limit()
 	gasUsed := currentGasMeter.GasConsumed()
