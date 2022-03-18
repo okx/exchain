@@ -1,7 +1,6 @@
 package types
 
 import (
-	"math"
 	"strconv"
 	"sync"
 )
@@ -38,9 +37,9 @@ func init() {
 			// as default: genesisHeight is zero
 			milestoreIbcHeight = genesisHeight + 1
 		}
-		if IsMainNet() || IsTestNet() {
-			milestoreIbcHeight = math.MaxInt64 - 5
-		}
+		// if IsMainNet() || IsTestNet() {
+		// 	milestoreIbcHeight = math.MaxInt64 - 5
+		// }
 	})
 }
 
