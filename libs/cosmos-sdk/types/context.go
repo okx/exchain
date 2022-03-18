@@ -54,10 +54,20 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c *Context) Context() context.Context   { return c.ctx }
-func (c *Context) MultiStore() MultiStore     { return c.ms }
-func (c *Context) BlockHeight() int64         { return c.header.Height }
-func (c *Context) BlockTime() time.Time       { return c.header.Time }
+func (c *Context) Context() context.Context { return c.ctx }
+func (c *Context) MultiStore() MultiStore   { return c.ms }
+func (c *Context) BlockHeight() int64 {
+	if c.header == nil {
+		return 0
+	}
+	return c.header.Height
+}
+func (c *Context) BlockTime() time.Time {
+	if c.header == nil {
+		return time.Time{}
+	}
+	return c.header.Time
+}
 func (c *Context) ChainID() string            { return c.chainID }
 func (c *Context) From() string               { return c.from }
 func (c *Context) TxBytes() []byte            { return c.txBytes }
@@ -135,10 +145,18 @@ func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
 	}
 }
 
-func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
+func (c *Context) BlockProposerAddress() []byte {
+	if c.header == nil {
+		return nil
+	}
+	return c.header.ProposerAddress
+}
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
+	if c.header == nil {
+		return abci.Header{}
+	}
 	var msg = proto.Clone(c.header).(*abci.Header)
 	return *msg
 }
