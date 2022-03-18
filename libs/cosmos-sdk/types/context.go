@@ -54,32 +54,32 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context   { return c.ctx }
-func (c Context) MultiStore() MultiStore     { return c.ms }
-func (c Context) BlockHeight() int64         { return c.header.Height }
-func (c Context) BlockTime() time.Time       { return c.header.Time }
-func (c Context) ChainID() string            { return c.chainID }
-func (c Context) From() string               { return c.from }
-func (c Context) TxBytes() []byte            { return c.txBytes }
-func (c Context) Logger() log.Logger         { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
-func (c Context) GasMeter() GasMeter         { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
-func (c Context) IsDeliver() bool {
+func (c *Context) Context() context.Context   { return c.ctx }
+func (c *Context) MultiStore() MultiStore     { return c.ms }
+func (c *Context) BlockHeight() int64         { return c.header.Height }
+func (c *Context) BlockTime() time.Time       { return c.header.Time }
+func (c *Context) ChainID() string            { return c.chainID }
+func (c *Context) From() string               { return c.from }
+func (c *Context) TxBytes() []byte            { return c.txBytes }
+func (c *Context) Logger() log.Logger         { return c.logger }
+func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
+func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
+func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+func (c *Context) IsDeliver() bool {
 	return c.isDeliver
 }
-func (c Context) IsCheckTx() bool             { return c.checkTx }
-func (c Context) IsReCheckTx() bool           { return c.recheckTx }
-func (c Context) IsTraceTx() bool             { return c.traceTx }
-func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
-func (c Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
-func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
-func (c Context) EventManager() *EventManager { return c.eventManager }
-func (c Context) IsAsync() bool               { return c.isAsync }
-func (c Context) AccountNonce() uint64        { return c.accountNonce }
-func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
-func (c Context) Cache() *Cache {
+func (c *Context) IsCheckTx() bool             { return c.checkTx }
+func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c *Context) IsTraceTx() bool             { return c.traceTx }
+func (c *Context) IsTraceTxLog() bool          { return c.traceTxLog }
+func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
+func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
+func (c *Context) EventManager() *EventManager { return c.eventManager }
+func (c *Context) IsAsync() bool               { return c.isAsync }
+func (c *Context) AccountNonce() uint64        { return c.accountNonce }
+func (c *Context) SigCache() SigCache          { return c.sigCache }
+func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
+func (c *Context) Cache() *Cache {
 	return c.cache
 }
 
@@ -309,7 +309,7 @@ func (c Context) WithCache(cache *Cache) Context {
 }
 
 // TODO: remove???
-func (c Context) IsZero() bool {
+func (c *Context) IsZero() bool {
 	return c.ms == nil
 }
 
@@ -357,7 +357,7 @@ func (c Context) Value(key interface{}) interface{} {
 // ----------------------------------------------------------------------------
 
 // KVStore fetches a KVStore from the MultiStore.
-func (c Context) KVStore(key StoreKey) KVStore {
+func (c *Context) KVStore(key StoreKey) KVStore {
 	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
 }
 
