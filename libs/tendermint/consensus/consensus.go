@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
@@ -725,6 +726,9 @@ func (cs *State) handleMsg(mi msgInfo) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	case *ViewChangeMessage:
+		// exe vc
+		cs.enterNewRound(cs.Height, cs.Round+1)
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -1555,10 +1559,23 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
+	address := cs.privValidatorPubKey.Address()
+
+
+
+	ctx := context.Background()
+	vcCtx, vcCancel := context.WithCancel(ctx)
+	// this peer is a validator, and it is the next block proposer
+	// todo cs.isProposer should be cs.isNextProposer
+	if cs.Validators.HasAddress(address) && cs.isProposer(address) {
+		go cs.vc(vcCtx)
+	}
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block)
+	vcCancel()
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1613,6 +1630,22 @@ func (cs *State) finalizeCommit(height int64) {
 	// * cs.Height has been increment to height+1
 	// * cs.Step is now cstypes.RoundStepNewHeight
 	// * cs.StartTime is set to when we will start round0.
+}
+
+func (cs *State) vc(ctx context.Context) {
+	t := time.After(time.Second * 3)
+	loop := true
+	for loop {
+		select {
+		case <- ctx.Done():
+			return
+		case <-t:
+			loop = false
+		}
+	}
+	// todo send vcMsg
+
+	cs.evsw.FireEvent(types.EventViewChange, nil)
 }
 
 func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {

@@ -316,6 +316,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch chID {
 	case StateChannel:
 		switch msg := msg.(type) {
+		case *ViewChangeMessage:
+			// todo ps.peer.ID() == cs.proposer
+			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
@@ -476,6 +479,10 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventViewChange,
+		func(data tmevents.EventData) {
+			conR.broadcastViewChangeMessage()
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -486,6 +493,11 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
 	nrsMsg := makeRoundStepMessage(rs)
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
+}
+
+func (conR *Reactor) broadcastViewChangeMessage() {
+	vcMsg := ViewChangeMessage{}
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(vcMsg))
 }
 
 func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
@@ -1489,6 +1501,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasVoteMessage{}, "tendermint/HasVote", nil)
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
+	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1500,6 +1513,14 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 }
 
 //-------------------------------------
+
+// ViewChangeMessage is sent for remind peer to do vc
+type ViewChangeMessage struct {
+}
+
+func (m *ViewChangeMessage) ValidateBasic() error {
+	return nil
+}
 
 // NewRoundStepMessage is sent for every step taken in the ConsensusState.
 // For every height/round/step transition

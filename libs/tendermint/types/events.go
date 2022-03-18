@@ -37,6 +37,7 @@ const (
 	EventUnlock           = "Unlock"
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
+	EventViewChange		  = "ViewChange"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
