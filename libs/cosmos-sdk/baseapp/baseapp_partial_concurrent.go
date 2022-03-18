@@ -47,13 +47,14 @@ type DeliverTxTask struct {
 	feeForCollect int64
 	step partialConcurrentStep
 
-	info           *runTxInfo
-	from           sdk.Address
-	fee            sdk.Coins
-	isEvm          bool
-	signCache      sdk.SigCache
-	basicVerifyErr error
-	anteErr        error
+	info      *runTxInfo
+	from      sdk.Address
+	fee       sdk.Coins
+	isEvm     bool
+	signCache sdk.SigCache
+	err       error
+	//anteErr        error
+	//anteFailed bool
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
@@ -66,17 +67,21 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	return t
 }
 
+type NeedToRerunFn func(task *DeliverTxTask)
+
 type sendersMap struct {
 	mtx              sync.Mutex
 	notFinishedTasks sync.Map // key: address, value: []*DeliverTxTask
 	needRerunTasks   sync.Map //[]*DeliverTxTask
 	logger           log.Logger
+	rerunNotifyFn NeedToRerunFn
 }
 
 func NewSendersMap() *sendersMap {
 	sm := &sendersMap{
 		notFinishedTasks: sync.Map{},
 		needRerunTasks:   sync.Map{}, //[]*DeliverTxTask{},
+		//rerunNotifyFn: rerunFn,
 	}
 	return sm
 }
@@ -159,12 +164,13 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 
 func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	//sm.logger.Info("MoveToRerun", "index", task.index)
 	//}
 	_, ok := sm.needRerunTasks.Load(task.index)
 	if !ok {
+		sm.logger.Error("MoveToRerun", "index", task.index)
 		sm.needRerunTasks.Store(task.index, task)
 	}
+	sm.rerunNotifyFn(task)
 }
 
 func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
@@ -201,7 +207,7 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 				num := len(notFinishedTasks)
 				for i := 0; i < num; i++ {
 					if index > notFinishedTasks[i].index {
-						sm.logger.Info("RerunTaskConflict", "target", index, "conflict", notFinishedTasks[i].index)
+						sm.logger.Error("RerunTaskConflict", "target", index, "conflict", notFinishedTasks[i].index)
 						conflict = true
 						existConflict = true
 						break
@@ -213,7 +219,7 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 				minIndex = index
 			}
 		}
-		sm.logger.Info("NeedRerunTasks", "index", index)
+		sm.logger.Error("NeedRerunTasks", "index", index)
 		return true
 	})
 
@@ -266,6 +272,8 @@ func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
 		app:        app,
 		sendersMap: NewSendersMap(),
 	}
+	dm.sendersMap.rerunNotifyFn = dm.removeFromPending
+
 	return dm
 }
 
@@ -335,21 +343,21 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	if task == nil {
 		// create a new task
 		task = dm.makeNewTask(txByte, index)
-		task.step = partialConcurrentStepBasic
+		//task.step = partialConcurrentStepBasic
 
-		if task.basicVerifyErr != nil {
+		if task.err != nil {
 			dm.pushIntoPending(task)
 			return
 		}
 
-		info := task.info
-		info.handler = dm.app.getModeHandler(mode) //dm.handler
+		//info := task.info
+		task.info.handler = dm.app.getModeHandler(mode) //dm.handler
 
 		// execute ante
-		info.ctx = dm.app.getContextForTx(mode, info.txBytes) // same context for all txs in a block
-		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(info.ctx, info.tx)
-		info.ctx = info.ctx.WithSigCache(task.signCache)
-		info.ctx = info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
+		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
@@ -358,45 +366,40 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			return
 		}
 
-		if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-			task.basicVerifyErr = err
+		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
+			task.err = err
 			dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 			dm.sendersMap.Pop(task)
 			dm.pushIntoPending(task)
 			return
 		}
-	//} else {
-	//	if task.step == partialConcurrentStepAnteEnd {
-	//		dm.app.logger.Error("ResetContext", "index", task.index)
-	//		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-	//		//var signCache sdk.SigCache
-	//		//task.tx, task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
-	//		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-	//		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
-	//	}
+	} else {
+			dm.app.logger.Error("ResetContext", "index", task.index)
+
+			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 	}
 
 	if dm.app.anteHandler != nil {
 		//if blockHeight == AssignedBlockHeight {
 		//dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
-		task.step = partialConcurrentStepAnteStart
-		err := dm.runAnte(task) // dm.app.runAnte(task.info, mode)
-		task.step = partialConcurrentStepAnteEnd
+		err := dm.runAnte(task)
 		if err != nil {
 			dm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
-			// todo: should make a judge for the err. There are some errors don't need to re-run AnteHandler.
-			task.anteErr = err
+			//task.anteFailed = true
 		}
 		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
 			//dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
-			if task.anteErr == nil {
-				//dm.app.logger.Info("RunAnteSucceed 3", "index", task.index)
+			if err == nil {
+				dm.app.logger.Info("WriteAnteCache", "index", task.index)
 				task.info.msCacheAnte.Write()
 				task.info.ctx.Cache().Write(true)
 				dm.calculateFeeForCollector(task.fee, true)
 			}
+			task.err = err
 
 			dm.pushIntoPending(task)
 
@@ -416,7 +419,7 @@ func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverT
 	task := newDeliverTxTask(tx, index)
 	task.info.txBytes = txByte
 	if err != nil {
-		task.basicVerifyErr = err
+		task.err = err
 		dm.app.logger.Error("tx decode failed", "err", err)
 	}
 
@@ -430,15 +433,26 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 		return
 	}
 
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
+	//dm.mtx.Lock()
+	//defer dm.mtx.Unlock()
 
 	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
-	task.step = partialConcurrentStepSerialPrepare
+	//task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
 		dm.statefulSignal <- 0
 	}
+}
+
+func (dm *DeliverTxTasksManager) removeFromPending(task *DeliverTxTask) {
+	if task == nil {
+		return
+	}
+
+	dm.pendingTasks.Delete(task.index)
+	//if ok {
+	//	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	//}
 }
 
 func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
@@ -484,7 +498,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
@@ -519,19 +533,19 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		// execute anteHandler failed
-		err := dm.statefulTask.basicVerifyErr
-		if err == nil {
-			err = dm.statefulTask.anteErr
-		}
-		if err != nil {
-			dm.app.logger.Error("RunSerialFinished", "index", dm.statefulTask.index, "err", err)
-			txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dm.app.trace) //execResult.GetResponse()
+		//err := dm.statefulTask.err
+		//if err == nil {
+		//	err = dm.statefulTask.anteErr
+		//}
+		if dm.statefulTask.err != nil {
+			dm.app.logger.Error("RunSerialFinished", "index", dm.statefulTask.index, "err", dm.statefulTask.err)
+			txRs := sdkerrors.ResponseDeliverTx(dm.statefulTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
 			execFinishedFn(txRs)
 			continue
 		}
 
 		gasStart := time.Now()
-		err = info.handler.handleGasConsumed(info)
+		err := info.handler.handleGasConsumed(info)
 		dm.handleGasTime += time.Since(gasStart).Microseconds()
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
@@ -584,13 +598,13 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
-	//dm.app.logger.Info("CalculateFeeForCollector 1", "fee", dm.currTxFee)
+
 	if add {
 		dm.currTxFee = dm.currTxFee.Add(fee...)
 	} else {
 		dm.currTxFee = dm.currTxFee.Sub(fee)
 	}
-	//dm.app.logger.Info("CalculateFeeForCollector 2", "fee", dm.currTxFee)
+	//dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
 }
 
 func (dm *DeliverTxTasksManager) updateFeeCollector() {
