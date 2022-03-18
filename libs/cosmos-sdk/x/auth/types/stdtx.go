@@ -31,7 +31,7 @@ type StdTx struct {
 	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
 	Memo       string         `json:"memo" yaml:"memo"`
 
-	sdk.BaseTx
+	sdk.BaseTx `json:"-" yaml:"-"`
 }
 
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -92,11 +92,6 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			tx.Signatures = append(tx.Signatures, sig)
 		case 4:
 			tx.Memo = string(subData)
-		case 5:
-			dataWithPrefix := append(sdk.AminoPrefixOfBaseTx, subData...)
-			if err := cdc.UnmarshalBinaryBare(dataWithPrefix, &tx.BaseTx); err != nil {
-				return err
-			}
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
@@ -402,7 +397,7 @@ func StdSignBytes(chainID string, accnum uint64, sequence uint64, fee StdFee, ms
 // StdSignature represents a sig
 type StdSignature struct {
 	crypto.PubKey `json:"pub_key" yaml:"pub_key"` // optional
-	Signature     []byte                          `json:"signature" yaml:"signature"`
+	Signature     []byte `json:"signature" yaml:"signature"`
 }
 
 // DefaultTxDecoder logic for standard transaction decoding

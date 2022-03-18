@@ -38,7 +38,7 @@ const (
 type MsgEthereumTx struct {
 	Data TxData
 
-	sdk.BaseTx
+	sdk.BaseTx `json:"-" rlp:"-"`
 }
 
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
@@ -392,11 +392,6 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 		switch pos {
 		case 1:
 			if err := msg.Data.UnmarshalFromAmino(cdc, subData); err != nil {
-				return err
-			}
-		case 2:
-			dataWithPrefix := append(sdk.AminoPrefixOfBaseTx, subData...)
-			if err := cdc.UnmarshalBinaryBare(dataWithPrefix, &msg.BaseTx); err != nil {
 				return err
 			}
 		default:

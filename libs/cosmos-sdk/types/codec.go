@@ -10,5 +10,3 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Tx)(nil), nil)
 	cdc.RegisterConcrete(BaseTx{}, "cosmos-sdk/BaseTx", nil)
 }
-
-var AminoPrefixOfBaseTx = []byte{131, 32, 172, 228}
