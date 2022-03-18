@@ -485,7 +485,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			start := time.Now()
 			<-dm.statefulSignal
 			elapsed := time.Since(start).Microseconds()
-			dm.app.logger.Info("time to waiting for extractStatefulTask", "index", dm.statefulIndex, "us", elapsed)
+			dm.app.logger.Info("time to waiting for extractStatefulTask", "index", dm.statefulIndex+1, "us", elapsed)
 			dm.anteDuration -= elapsed
 			totalWaitingTime += elapsed
 			continue
@@ -518,7 +518,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-			//dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
+			dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
 			dm.txResponses[dm.statefulTask.index] = &txRs
 			dm.resetStatefulTask()
 			finished++
@@ -538,7 +538,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		//dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
+		dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
