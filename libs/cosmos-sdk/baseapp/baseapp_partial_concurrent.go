@@ -361,18 +361,18 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
+		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
+			task.err = err
+			dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
+			//dm.sendersMap.Pop(task)
+			dm.pushIntoPending(task)
+			return
+		}
+
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
 			//dm.app.logger.Info("ExitConcurrent", "index", task.index)
 			//}
-			return
-		}
-
-		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
-			task.err = err
-			dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
-			dm.sendersMap.Pop(task)
-			dm.pushIntoPending(task)
 			return
 		}
 	} else {
