@@ -1,10 +1,5 @@
 package iavl
 
-import (
-	"fmt"
-	"sync"
-)
-
 const (
 	FlagOutputModules = "iavl-output-modules"
 )
@@ -16,24 +11,38 @@ const (
 )
 
 var (
-	once sync.Once
 	logFunc LogFuncType = nil
 
 	OutputModules map[string]int
+
+	iavlLogger logger
 )
+
+type logger interface {
+	Debug(msg string, keyvals ...interface{})
+	Info(msg string, keyvals ...interface{})
+	Error(msg string, keyvals ...interface{})
+}
 
 type LogFuncType func(level int, format string, args ...interface{})
 
-func SetLogFunc(l LogFuncType)  {
-	once.Do(func() {
-		logFunc = l
-	})
+func SetLogFunc(l LogFuncType) {
+	logFunc = l
 }
 
-func iavlLog(module string, level int, format string, args ...interface{}) {
-	if v, ok := OutputModules[module]; ok && v != 0 && logFunc != nil {
-		format = fmt.Sprintf("%s", format)
-		logFunc(level, format, args...)
+func SetLogger(l logger) {
+	iavlLogger = l
+}
+
+func iavlLog(module string, level int, msg string, keyvals ...interface{}) {
+	if v, ok := OutputModules[module]; ok && v != 0 && iavlLogger != nil {
+		switch level {
+		case IavlErr:
+			iavlLogger.Error(msg, keyvals...)
+		case IavlInfo:
+			iavlLogger.Info(msg, keyvals...)
+		case IavlDebug:
+			iavlLogger.Debug(msg, keyvals...)
+		}
 	}
 }
-

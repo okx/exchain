@@ -1,24 +1,24 @@
 package eth
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
-	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/okex/exchain/x/evm/types"
-
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethermint "github.com/okex/exchain/app/types"
+	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 )
 
@@ -235,4 +235,19 @@ func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
 	copy(compositeKey[len(prefix):], key)
 
 	return ethcrypto.Keccak256Hash(compositeKey)
+}
+
+func accountType(account authexported.Account) token.AccType {
+	switch account.(type) {
+	case *ethermint.EthAccount:
+		ethAcc, _ := account.(*ethermint.EthAccount)
+		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
+			return token.ContractAccount
+		}
+		return token.UserAccount
+	case *supply.ModuleAccount:
+		return token.ModuleAccount
+	default:
+		return token.OtherAccount
+	}
 }

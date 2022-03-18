@@ -12,7 +12,7 @@ const (
 	CodeInvalidAddress                        uint32 = 63000
 	CodeSizeIsInvalid                         uint32 = 63001
 	CodeTokenPairNotExist                     uint32 = 63002
-	CodeSendCoinsFailed                        uint32 = 63003
+	CodeSendCoinsFailed                       uint32 = 63003
 	CodeTradingPairIsDelisting                uint32 = 63004
 	CodePriceOverAccuracy                     uint32 = 63005
 	CodeQuantityOverAccuracy                  uint32 = 63006

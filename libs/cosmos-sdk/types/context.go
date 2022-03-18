@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/trace"
+
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -31,9 +33,12 @@ type Context struct {
 	voteInfo       []abci.VoteInfo
 	gasMeter       GasMeter
 	blockGasMeter  GasMeter
+	isDeliver      bool
 	checkTx        bool
 	recheckTx      bool // if recheckTx == true, then checkTx must also be true
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
@@ -41,34 +46,96 @@ type Context struct {
 	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
+	trc            *trace.Tracer
+	accountCache   *AccountCache
 }
 
 // Proposed rename, not done to avoid API breakage
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context    { return c.ctx }
-func (c Context) MultiStore() MultiStore      { return c.ms }
-func (c Context) BlockHeight() int64          { return c.header.Height }
-func (c Context) BlockTime() time.Time        { return c.header.Time }
-func (c Context) ChainID() string             { return c.chainID }
-func (c Context) From() string                { return c.from }
-func (c Context) TxBytes() []byte             { return c.txBytes }
-func (c Context) Logger() log.Logger          { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
-func (c Context) GasMeter() GasMeter          { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
+func (c Context) Context() context.Context   { return c.ctx }
+func (c Context) MultiStore() MultiStore     { return c.ms }
+func (c Context) BlockHeight() int64         { return c.header.Height }
+func (c Context) BlockTime() time.Time       { return c.header.Time }
+func (c Context) ChainID() string            { return c.chainID }
+func (c Context) From() string               { return c.from }
+func (c Context) TxBytes() []byte            { return c.txBytes }
+func (c Context) Logger() log.Logger         { return c.logger }
+func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
+func (c Context) GasMeter() GasMeter         { return c.gasMeter }
+func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+func (c Context) IsDeliver() bool {
+	return c.isDeliver
+}
 func (c Context) IsCheckTx() bool             { return c.checkTx }
 func (c Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c Context) IsTraceTx() bool             { return c.traceTx }
+func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
 func (c Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
 func (c Context) SigCache() SigCache          { return c.sigCache }
+func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
 }
+
+type AccountCache struct {
+	FromAcc       interface{} // must be auth.Account
+	ToAcc         interface{} // must be auth.Account
+	FromAccGotGas Gas
+	ToAccGotGas   Gas
+}
+
+func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
+func (c *Context) DisableAccountCache() { c.accountCache = nil }
+
+func (c *Context) GetFromAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.FromAcc
+}
+
+func (c *Context) GetFromAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.FromAccGotGas
+}
+
+func (c *Context) GetToAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.ToAcc
+}
+
+func (c *Context) GetToAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.ToAccGotGas
+}
+
+func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.FromAcc = fromAcc
+		c.accountCache.FromAccGotGas = fromAccGettedGas
+	}
+}
+
+func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.ToAcc = toAcc
+		c.accountCache.ToAccGotGas = toAccGotGas
+	}
+}
+
+func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
@@ -110,6 +177,10 @@ func (c Context) WithMultiStore(ms MultiStore) Context {
 func (c Context) WithAsync() Context {
 	c.isAsync = true
 	return c
+}
+
+func (c *Context) SetDeliver() {
+	c.isDeliver = true
 }
 
 func (c Context) WithBlockHeader(header abci.Header) Context {
@@ -187,6 +258,20 @@ func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
 	c.recheckTx = isRecheckTx
 	return c
 }
+func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
+	if isTraceTxLog {
+		c.checkTx = true
+	}
+	c.traceTxLog = isTraceTxLog
+	return c
+}
+func (c Context) WithIsTraceTx(isTraceTx bool) Context {
+	if isTraceTx {
+		c.checkTx = true
+	}
+	c.traceTx = isTraceTx
+	return c
+}
 
 // WithIsWrappedCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
@@ -238,6 +323,10 @@ func (c Context) WithValue(key, value interface{}) Context {
 	return c
 }
 
+func (c *Context) SetGasMeter(meter GasMeter) {
+	c.gasMeter = meter
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)
@@ -280,4 +369,9 @@ func (c Context) WithSigCache(cache SigCache) Context {
 // struct{}.
 func EmptyContext() Context {
 	return Context{}
+}
+
+func (c Context) WithAnteTracer(trc *trace.Tracer) Context {
+	c.trc = trc
+	return c
 }

@@ -17,7 +17,7 @@ const addrStr = "1212121212121212123412121212121212121234"
 func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
 	if expectedCode != 0 {
 		require.NotNil(t, err)
-	}else {
+	} else {
 		require.Nil(t, err)
 	}
 }
@@ -47,8 +47,8 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 	require.Nil(t, err)
 	tests := []struct {
 		testCase         string
-		symbol0           string
-		symbol1           string
+		symbol0          string
+		symbol1          string
 		addr             sdk.AccAddress
 		exceptResultCode uint32
 	}{
@@ -56,7 +56,7 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		{"success", "aaa", "bbb", addr, sdk.CodeOK},
 		{"success", "bbb", "aaa", addr, sdk.CodeOK},
 		{"nil addr", "aaa", common.NativeToken, nil, sdk.CodeInvalidAddress},
-		{"invalid token", "1ab",common.NativeToken, addr, sdk.CodeInvalidCoins},
+		{"invalid token", "1ab", common.NativeToken, addr, sdk.CodeInvalidCoins},
 		{"invalid token", common.NativeToken, common.NativeToken, addr, sdk.CodeInvalidCoins},
 		//{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", "xxb", addr, sdk.CodeUnknownRequest},
 
@@ -190,8 +190,6 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		{"success(quote token supports any type of tokens)", liquidity, minBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"invalid token", liquidity, minBaseAmount, minBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", liquidity, minQuoteAmount, minBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
-
-
 	}
 	for _, testCase := range tests {
 		msg := NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
@@ -255,8 +253,6 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 		{"invalid MinBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid token", minBoughtTokenAmount, minBoughtTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid SoldTokenAmount(zero)", minBoughtTokenAmount, invalidSoldTokenAmount2, deadLine, addr, addr, sdk.CodeUnknownRequest},
-
-
 	}
 	for _, testCase := range tests {
 		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)

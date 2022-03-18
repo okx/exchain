@@ -64,9 +64,9 @@ func TestEqualCoins(t *testing.T) {
 
 func TestAddCoins(t *testing.T) {
 	cases := []struct {
-		inputOne sdk.SysCoins
-		inputTwo sdk.SysCoins
-		expected sdk.SysCoins
+		inputOne    sdk.SysCoins
+		inputTwo    sdk.SysCoins
+		expected    sdk.SysCoins
 		shouldPanic bool
 	}{
 		{sdk.SysCoins{{syscoinsTestDenom1, sdk.NewDec(1)}, {syscoinsTestDenom2, sdk.NewDec(1)}}, sdk.SysCoins{{syscoinsTestDenom1, sdk.NewDec(1)}, {syscoinsTestDenom2, sdk.NewDec(1)}}, sdk.SysCoins{{syscoinsTestDenom1, sdk.NewDec(2)}, {syscoinsTestDenom2, sdk.NewDec(2)}}, false},
@@ -79,7 +79,7 @@ func TestAddCoins(t *testing.T) {
 	for tcIndex, tc := range cases {
 		tc := tc
 		if tc.shouldPanic {
-			require.Panics(t, func() { tc.inputOne.Add2(tc.inputTwo)})
+			require.Panics(t, func() { tc.inputOne.Add2(tc.inputTwo) })
 		} else {
 			res := tc.inputOne.Add2(tc.inputTwo)
 			assert.True(t, res.IsValid())
@@ -220,7 +220,7 @@ func TestCoinsLTE(t *testing.T) {
 func TestParse(t *testing.T) {
 	cases := []struct {
 		input    string
-		valid    bool  // if false, we expect an error on parse
+		valid    bool         // if false, we expect an error on parse
 		expected sdk.SysCoins // if valid is true, make sure this is returned
 	}{
 		{"", true, nil},
@@ -234,7 +234,7 @@ func TestParse(t *testing.T) {
 		{"2 3foo, 97 bar", false, nil},        // 3foo is invalid coin name
 		{"11me coin, 12you coin", false, nil}, // no spaces in coin names
 		//{"1.2btc", true, sdk.Coins{{"btc", sdk.NewDec(1.2)}}},                // amount must be integer
-		{"5foo-bar", false, nil},              // once more, only letters in coin name
+		{"5foo-bar", false, nil}, // once more, only letters in coin name
 	}
 
 	for tcIndex, tc := range cases {

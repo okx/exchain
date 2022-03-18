@@ -3,10 +3,10 @@ package token
 import (
 	"encoding/json"
 
+	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/token/client/cli"

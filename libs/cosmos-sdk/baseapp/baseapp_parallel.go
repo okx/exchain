@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"runtime"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -60,7 +61,45 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 	return res
 }
 
-func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) paraLoadSender(txs [][]byte) {
+
+	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+
+	maxNums := runtime.NumCPU()
+	txSize := len(txs)
+	if maxNums > txSize {
+		maxNums = txSize
+	}
+
+	txJobChan := make(chan []byte)
+	var wg sync.WaitGroup
+	wg.Add(txSize)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan []byte, wg *sync.WaitGroup) {
+			for txBytes := range ch {
+				tx, err := app.txDecoder(txBytes)
+				if err == nil {
+					app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+				}
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+	for _, v := range txs {
+		txJobChan <- v
+	}
+
+	wg.Wait()
+	close(txJobChan)
+}
+func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+
+	if onlyCalSender {
+		app.paraLoadSender(txs)
+		return nil
+	}
+
 	txWithIndex := make([][]byte, 0)
 	for index, v := range txs {
 		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))

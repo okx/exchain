@@ -9,10 +9,10 @@ import (
 
 	mrand "math/rand"
 
-	"github.com/stretchr/testify/require"
-	amino "github.com/tendermint/go-amino"
 	cmn "github.com/okex/exchain/libs/iavl/common"
 	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
+	amino "github.com/tendermint/go-amino"
 )
 
 func randstr(length int) string {

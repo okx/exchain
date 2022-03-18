@@ -196,4 +196,3 @@ func splitKeyWithAddress(key []byte) (proposalID uint64, addr sdk.AccAddress) {
 	addr = sdk.AccAddress(key[9:])
 	return
 }
-

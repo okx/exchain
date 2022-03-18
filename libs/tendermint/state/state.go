@@ -16,7 +16,6 @@ var (
 	stateKey = []byte("stateKey")
 )
 
-
 //-----------------------------------------------------------------------------
 
 // Version is for versioning the State.
@@ -158,6 +157,10 @@ func (state State) MakeBlock(
 	)
 
 	return block, block.MakePartSet(types.BlockPartSizeBytes)
+}
+
+func (state *State) String() string {
+	return fmt.Sprintf("%+v", *state)
 }
 
 // MedianTime computes a median time for a given Commit (based on Timestamp field of votes messages) and the

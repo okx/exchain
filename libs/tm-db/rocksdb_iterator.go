@@ -1,3 +1,4 @@
+//go:build rocksdb
 // +build rocksdb
 
 package db
@@ -24,7 +25,12 @@ func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse
 		} else {
 			source.Seek(end)
 			if source.Valid() {
-				eoakey := moveSliceToBytes(source.Key()) // end or after key
+				eoakeySlice := source.Key() // end or after key
+				defer eoakeySlice.Free()
+				var eoakey []byte
+				if eoakeySlice.Exists() {
+					eoakey = eoakeySlice.Data()
+				}
 				if bytes.Compare(end, eoakey) <= 0 {
 					source.Prev()
 				}
@@ -73,7 +79,14 @@ func (itr rocksDBIterator) Valid() bool {
 	// If key is end or past it, invalid.
 	var start = itr.start
 	var end = itr.end
-	var key = moveSliceToBytes(itr.source.Key())
+	var key []byte
+
+	keySlice := itr.source.Key()
+	defer keySlice.Free()
+	if keySlice.Exists() {
+		key = keySlice.Data()
+	}
+
 	if itr.isReverse {
 		if start != nil && bytes.Compare(key, start) < 0 {
 			itr.isInvalid = true

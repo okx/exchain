@@ -3,13 +3,14 @@ package watcher_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -55,13 +56,17 @@ type WatcherTestSt struct {
 func setupTest() *WatcherTestSt {
 	w := &WatcherTestSt{}
 	checkTx := false
+	chain_id := "ethermint-3"
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
 	w.app = app.Setup(checkTx)
-	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	w.ctx.SetDeliver()
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
+
+	ethermint.SetChainId(chain_id)
 
 	params := types.DefaultParams()
 	params.EnableCreate = true
@@ -89,17 +94,6 @@ func flushDB(db *watcher.WatchStore) {
 	}
 }
 
-func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := watcher.WatchData{}
-	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
-		return err
-	}
-	for _, account := range wd.DirtyAccount {
-		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
-	}
-	return nil
-}
-
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	wd := watcher.WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
@@ -122,8 +116,6 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-	err = delDirtyAccount(wd, w)
-	require.Nil(t, err)
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -204,11 +196,11 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	}
 }
 
-func TestMsgEthermintByWatcher(t *testing.T) {
+func TestMsgEthereumTxByWatcher(t *testing.T) {
 	var (
-		tx   types.MsgEthermint
-		from = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
-		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+		tx   types.MsgEthereumTx
+		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
+		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
 	w := setupTest()
 	testCases := []struct {
@@ -219,7 +211,7 @@ func TestMsgEthermintByWatcher(t *testing.T) {
 		{
 			"passed",
 			func() {
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				tx = types.NewMsgEthereumTx(0, &to, big.NewInt(1), 100000, big.NewInt(2), []byte("test"))
 				w.app.EvmKeeper.SetBalance(w.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
 			true,
@@ -233,6 +225,7 @@ func TestMsgEthermintByWatcher(t *testing.T) {
 			tc.malleate()
 			w.ctx = w.ctx.WithIsCheckTx(true)
 			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx = w.ctx.WithFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -381,6 +374,8 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a1, true)
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
+	// waiting 1 second for initializing jobChan
+	time.Sleep(time.Second)
 	w.Commit()
 	time.Sleep(time.Second)
 	store := watcher.InstanceOfWatchStore()

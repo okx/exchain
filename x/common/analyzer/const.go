@@ -1,12 +1,12 @@
 package analyzer
 
 const (
-	READ           = 1
-	WRITE          = 2
-	EVMALL         = 3
-	UNKNOWN_TYPE   = 4
-	EVM_FORMAT     = "read<%dms>, write<%dms>, execute<%dms>"
-	EVMCORE        = "evmcore"
+	READ         = 1
+	WRITE        = 2
+	EVMALL       = 3
+	UNKNOWN_TYPE = 4
+	EVM_FORMAT   = "read<%dms>, write<%dms>, execute<%dms>"
+	EVMCORE      = "evmcore"
 )
 
 var (

@@ -11,6 +11,7 @@ import (
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
 )
@@ -31,7 +32,7 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
-	// nodeKeyWhitelist
+	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 
 	// gas-limit-buffer
@@ -56,6 +57,12 @@ type OecConfig struct {
 
 	// iavl-cache-size
 	iavlCacheSize int
+
+	// enable-wtx
+	enableWtx bool
+
+	// enable-analyzer
+	enableAnalyzer bool
 }
 
 const (
@@ -71,6 +78,7 @@ const (
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
+	FlagEnableWrappedTx        = "enable-wtx"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -78,15 +86,56 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
-
 )
 
 var (
 	testnetNodeIdWhitelist = []string{
+		// RPC nodes for users
+		"3a339568305c5aff58a1f134437b608490e2ec6d",
+		"b9e7bf85886f1d11ee5079726a268401bf7b6254",
+		"54c5ffc54e10a311660d16a96d54ddc59edb5555",
+		"d77e385de87acdd042973c5d3029b02db8d767ff",
+		"5cfdc51d1502fbe44d1b2a7f1f37e1016ad5ee97",
+		"704be3bf19866f2aa5c77b09f003e2b69c552927",
+		"1767342f12cb0e1e393a42c56d63d7486b2c54cd",
+		"d33084a8c7bab8c9b6f286378b5e3ac197caa41a",
+		"6a96b0a094ec9aaff2b7148b0c5811618b41c101",
+		// RPC nodes for developers
+		"3a35faa50649164d59f07f31d78946ca07464e9c",
+		"cee36e7fbc99eaa02bd9af692dae367a867c43f4",
+		"fbcae686695cd17ee8319bbd6b9b0aaf0f10d8c4",
+		"2c34f93a8665d694e56319ccdc6738b203c33848",
+		"f689ab031c0758367af229aa8df65ac69762327d",
+		"58c495e040a1576ebc1f386a7dc04c4e60ee63d7",
+		"a2f685db92a88c18780d8d9cb1162ab61517ae64",
+		"8d4b0539b95b60e1691eac77be4aa7295645d9d9",
+		"6f328902a0bf5e7b922d6a5980dd6888097db984",
+		"12503ae035dd7ff04e19b0ca2c9c8b54a0a56b22",
+		// validator nodes
+		"c39ca38c650b920f9b6c5a9aed7ff904124ec3ad",
+		"d937e21fd489809add23dc3e55ed78d947217aa8",
+		"a3eb3c129e49137d5e1665bbf87b6f2be70a0b85",
+		"b171a9ef83b95c28182bc7aa7ea8639d04e572e7",
+		"3a700a3849c401396b1c51eb65b1cfc1a8c4394b",
+		"0208e66d4ca746ec535a0bf05409dc87df408b15",
+		"ed1819fa1eae52ddec4c0f8cddd80b9cb7c68a22",
+		"0b3ab9597a66f2f94c8efa4ccb6ed2a1f44d4184",
+		"67b29551c7c3839ad6c93379991344266aec3829",
+		"cd07b20b596aac923a1d5bb022581e279755aff1",
+		"6ce06a89a968a4204d9dcb470f2275767c8dfa68",
+		"6dd38d96df3ccbca95769ee15bdfdd952ad007c5",
+		"fcc95bfee6ea74bdf385be3a29072329603676e5",
+		"7b5b3041d2b3546a236b6df7ff7e06a19a5cae46",
+		"c098585e299ff7afe6f354c4431550d6919bdd0d",
+		"5b44fb4af4cfb72286162cb49a3bc04cb8187775",
+		"358e3399b68fb67787f1386c685db2e75352d9eb",
+		"96d9cb96041c053e63ff7d0c7d81dfab706136e4",
+		"0de948586fb30293d1dd14a99ebc3f719deb7c6f",
+		"284e87518752c8f655fe217113fa86ba7d6ca72f",
+		"7f2b8a6b9b8b12247e6992aeb32d69e169c2f5ac",
 	}
 
-	mainnetNodeIdWhitelist = []string{
-	}
+	mainnetNodeIdWhitelist = []string{}
 
 	oecConfig  *OecConfig
 	once       sync.Once
@@ -120,6 +169,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
+	analyzer.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -140,6 +190,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
+	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
+	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -174,7 +226,8 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
 	
-	iavl-cache-size: %d`,
+	iavl-cache-size: %d
+	enable-analyzer: %v`,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -191,6 +244,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommit(),
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetIavlCacheSize(),
+		c.GetEnableAnalyzer(),
 	)
 }
 
@@ -299,7 +353,20 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case analyzer.FlagEnableAnalyzer:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableAnalyzer(r)
 	}
+}
+
+func (c *OecConfig) GetEnableAnalyzer() bool {
+	return c.enableAnalyzer
+}
+func (c *OecConfig) SetEnableAnalyzer(value bool) {
+	c.enableAnalyzer = value
 }
 
 func (c *OecConfig) GetMempoolRecheck() bool {
@@ -336,9 +403,18 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 	c.mempoolFlush = value
 }
 
+func (c *OecConfig) GetEnableWtx() bool {
+	return c.enableWtx
+}
+
+func (c *OecConfig) SetEnableWtx(value bool) {
+	c.enableWtx = value
+}
+
 func (c *OecConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
+
 func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 	idList := resolveNodeKeyWhitelist(value)
 

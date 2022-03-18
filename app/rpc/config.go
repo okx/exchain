@@ -19,14 +19,15 @@ import (
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+
 	"github.com/spf13/viper"
 )
 
 const (
-	flagUnlockKey = "unlock-key"
-	flagWebsocket = "wsport"
-
+	flagUnlockKey             = "unlock-key"
+	flagWebsocket             = "wsport"
 	FlagPersonalAPI           = "personal-api"
+	FlagDebugAPI              = "debug-api"
 	FlagRateLimitAPI          = "rpc.rate-limit-api"
 	FlagRateLimitCount        = "rpc.rate-limit-count"
 	FlagRateLimitBurst        = "rpc.rate-limit-burst"

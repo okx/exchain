@@ -13,7 +13,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -88,11 +87,11 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	return &receipt, nil
 }
 
-func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error) {
+func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var block EthBlock
+	var block Block
 	var err error
 	var blockHashKey []byte
 	if blockHashKey, err = getHashPrefixKey(prefixBlock, hash.Bytes()); err != nil {
@@ -117,14 +116,14 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
-		txList := make([]rpctypes.Transaction, 0, len(txsHash))
+		txList := make([]*Transaction, 0, len(txsHash))
 		if len(txsHash) == 0 {
 			block.TransactionsRoot = ethtypes.EmptyRootHash
 		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {
-				txList = append(txList, *transaction)
+				txList = append(txList, transaction)
 			}
 		}
 		block.Transactions = txList
@@ -157,7 +156,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	return common.HexToHash(string(hash)), e
 }
 
-func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error) {
+func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -240,11 +239,11 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	return uint64(h), e
 }
 
-func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
+func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var tx rpctypes.Transaction
+	var tx Transaction
 	var txHashKey []byte
 	var err error
 	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
@@ -269,7 +268,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 	return &tx, nil
 }
 
-func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*rpctypes.Transaction, error) {
+func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -280,7 +279,7 @@ func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*
 	return q.getTransactionByBlockAndIndex(block, idx)
 }
 
-func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (*rpctypes.Transaction, error) {
+func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -291,22 +290,23 @@ func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (
 	return q.getTransactionByBlockAndIndex(block, idx)
 }
 
-func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpctypes.Transaction, error) {
+func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transaction, error) {
 	if block.Transactions == nil {
 		return nil, errors.New("no such transaction in target block")
 	}
-	txs := block.Transactions.([]rpctypes.Transaction)
-
-	for _, tx := range txs {
-		rawTx := tx
-		if idx == uint(*rawTx.TransactionIndex) {
-			return &rawTx, nil
+	txs, ok := block.Transactions.([]*Transaction)
+	if ok {
+		for _, tx := range txs {
+			rawTx := *tx
+			if idx == uint(*rawTx.TransactionIndex) {
+				return &rawTx, nil
+			}
 		}
 	}
 	return nil, errors.New("no such transaction in target block")
 }
 
-func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*rpctypes.Transaction, error) {
+func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -318,14 +318,16 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 		return nil, errors.New("no such transaction in target block")
 	}
 
-	rawTxs := block.Transactions.([]rpctypes.Transaction)
-	var txs []*rpctypes.Transaction
-	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
-		rawTx := rawTxs[idx]
-		txs = append(txs, &rawTx)
+	rawTxs, ok := block.Transactions.([]*Transaction)
+	if ok {
+		var txs []*Transaction
+		for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+			rawTx := *rawTxs[idx]
+			txs = append(txs, &rawTx)
+		}
+		return txs, nil
 	}
-
-	return txs, nil
+	return nil, errors.New("no such transaction in target block")
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {

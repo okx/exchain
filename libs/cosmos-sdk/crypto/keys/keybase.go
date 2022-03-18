@@ -7,8 +7,8 @@ import (
 
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/pkg/errors"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"

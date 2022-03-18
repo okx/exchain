@@ -13,6 +13,8 @@ import (
 
 const IGNORE_HEIGHT_CHECKING = -1
 
+var errHeightLowerThanVenus = fmt.Errorf("lower than Venus")
+
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
@@ -54,7 +56,7 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 
 	// bypass height checking in case of a negative number
 	if height >= 0 && !types.HigherThanVenus(height) {
-		err = fmt.Errorf("lower than Venus")
+		err = errHeightLowerThanVenus
 		return
 	}
 
@@ -85,7 +87,7 @@ func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err e
 }
 
 func sanityCheck(tx sdk.Tx, height int64) (sdk.Tx, error) {
-	if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
 		return nil, fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
 	}
 	return tx, nil

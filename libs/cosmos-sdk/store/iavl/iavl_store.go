@@ -154,8 +154,6 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 	}, &outputDelta
 }
 
-
-
 // Implements Committer.
 func (st *Store) LastCommitID() types.CommitID {
 	return types.CommitID{

@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -59,8 +58,8 @@ type WatchMessage interface {
 }
 
 type MsgEthTx struct {
-	Key       []byte
-	JsonEthTx string
+	*baseLazyMarshal
+	Key []byte
 }
 
 func (m MsgEthTx) GetType() uint32 {
@@ -381,27 +380,19 @@ func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
-	ethTx, e := rpctypes.NewTransaction(tx, txHash, blockHash, height, index)
-	if e != nil {
-		return nil
-	}
-	jsTx, e := json.Marshal(ethTx)
+	ethTx, e := NewTransaction(tx, txHash, blockHash, height, index)
 	if e != nil {
 		return nil
 	}
 	msg := MsgEthTx{
-		Key:       txHash.Bytes(),
-		JsonEthTx: string(jsTx),
+		Key:             txHash.Bytes(),
+		baseLazyMarshal: newBaseLazyMarshal(ethTx),
 	}
 	return &msg
 }
 
 func (m MsgEthTx) GetKey() []byte {
 	return append(prefixTx, m.Key...)
-}
-
-func (m MsgEthTx) GetValue() string {
-	return m.JsonEthTx
 }
 
 type MsgCode struct {
@@ -466,8 +457,8 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
-	txHash  []byte
-	receipt string
+	*baseLazyMarshal
+	txHash []byte
 }
 
 func (m MsgTransactionReceipt) GetType() uint32 {
@@ -496,34 +487,26 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
-		TransactionHash:   txHash.String(),
+		TransactionHash:   types.EthHashStringer(txHash).String(),
 		ContractAddress:   &data.ContractAddress,
 		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         blockHash.String(),
+		BlockHash:         types.EthHashStringer(blockHash).String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
+		From:              types.EthAddressStringer(common.BytesToAddress(tx.From().Bytes())).String(),
 		To:                tx.To(),
 	}
 
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
-	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	jsTr, e := json.Marshal(tr)
-	if e != nil {
-		return nil
-	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), receipt: string(jsTr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
 	return append(prefixReceipt, m.txHash...)
-}
-
-func (m MsgTransactionReceipt) GetValue() string {
-	return m.receipt
 }
 
 type MsgBlock struct {
@@ -562,7 +545,8 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-type EthBlock struct {
+// Block represents a transaction returned to RPC clients.
+type Block struct {
 	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
@@ -585,8 +569,26 @@ type EthBlock struct {
 	Transactions     interface{}    `json:"transactions"`
 }
 
+// Transaction represents a transaction returned to RPC clients.
+type Transaction struct {
+	BlockHash        *common.Hash    `json:"blockHash"`
+	BlockNumber      *hexutil.Big    `json:"blockNumber"`
+	From             common.Address  `json:"from"`
+	Gas              hexutil.Uint64  `json:"gas"`
+	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	Hash             common.Hash     `json:"hash"`
+	Input            hexutil.Bytes   `json:"input"`
+	Nonce            hexutil.Uint64  `json:"nonce"`
+	To               *common.Address `json:"to"`
+	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
+	Value            *hexutil.Big    `json:"value"`
+	V                *hexutil.Big    `json:"v"`
+	R                *hexutil.Big    `json:"r"`
+	S                *hexutil.Big    `json:"s"`
+}
+
 func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := EthBlock{
+	b := Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
@@ -670,8 +672,8 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	addr         []byte
-	accountValue string
+	*baseLazyMarshal
+	addr []byte
 }
 
 func (msgAccount *MsgAccount) GetType() uint32 {
@@ -679,13 +681,9 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
-	jsonAcc, err := json.Marshal(acc)
-	if err != nil {
-		return nil
-	}
 	return &MsgAccount{
-		addr:         acc.GetAddress().Bytes(),
-		accountValue: string(jsonAcc),
+		addr:            acc.GetAddress().Bytes(),
+		baseLazyMarshal: newBaseLazyMarshal(acc),
 	}
 }
 
@@ -695,10 +693,6 @@ func GetMsgAccountKey(addr []byte) []byte {
 
 func (msgAccount *MsgAccount) GetKey() []byte {
 	return GetMsgAccountKey(msgAccount.addr)
-}
-
-func (msgAccount *MsgAccount) GetValue() string {
-	return msgAccount.accountValue
 }
 
 type DelAccMsg struct {

@@ -2,12 +2,13 @@ package eth
 
 import (
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -18,9 +19,9 @@ import (
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	tmdb "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
@@ -131,7 +132,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, sdk.EmptyContext().SigCache())
+	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, nil, nil)
 	if err != nil {
 		return common.Hash{}, err
 	}

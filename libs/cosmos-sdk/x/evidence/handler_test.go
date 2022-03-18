@@ -8,9 +8,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/internal/types"
 
-	"github.com/stretchr/testify/suite"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/stretchr/testify/suite"
 )
 
 type HandlerTestSuite struct {

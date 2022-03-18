@@ -16,7 +16,7 @@ func addMoreFlags(cmd *cobra.Command) {
 	//pprof flags
 	cmd.Flags().String("prof_laddr", config.ProfListenAddress,
 		"Node listen address. (0.0.0.0:0 means any interface, any port)")
-	
+
 	cmd.Flags().Duration("consensus.timeout_propose", config.Consensus.TimeoutPropose,
 		"Set TimeoutPropose")
 	cmd.Flags().Duration("consensus.timeout_propose_delta", config.Consensus.TimeoutProposeDelta,

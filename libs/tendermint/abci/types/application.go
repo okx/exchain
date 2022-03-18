@@ -23,8 +23,8 @@ type Application interface {
 	DeliverTx(RequestDeliverTx) ResponseDeliverTx    // Deliver a tx for full processing
 	EndBlock(RequestEndBlock) ResponseEndBlock       // Signals the end of a block, returns changes to the validator set
 
-	Commit(RequestCommit) ResponseCommit             // Commit the state and return the application Merkle root hash
-	ParallelTxs(txs [][]byte) []*ResponseDeliverTx
+	Commit(RequestCommit) ResponseCommit // Commit the state and return the application Merkle root hash
+	ParallelTxs(txs [][]byte, onlyCalSender bool) []*ResponseDeliverTx
 }
 
 //-------------------------------------------------------
@@ -75,7 +75,7 @@ func (BaseApplication) EndBlock(req RequestEndBlock) ResponseEndBlock {
 	return ResponseEndBlock{}
 }
 
-func (a BaseApplication) ParallelTxs(_ [][]byte) []*ResponseDeliverTx {
+func (a BaseApplication) ParallelTxs(_ [][]byte, onlyCalSender bool) []*ResponseDeliverTx {
 	return nil
 }
 

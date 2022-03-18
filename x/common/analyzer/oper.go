@@ -3,7 +3,7 @@ package analyzer
 type operateInfo struct {
 	TimeCost int64 `json:"timeCost"`
 	LastCall int64 `json:"lastCall"`
-	started bool
+	started  bool
 }
 
 func newOperateInfo() *operateInfo {

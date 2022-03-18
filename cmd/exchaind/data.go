@@ -23,14 +23,14 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
@@ -168,7 +168,6 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 
 	return cmd
 }
-
 
 func clearPruneHeightsCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -553,6 +552,7 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(queryBlockState, queryAppState)
+	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }

@@ -9,10 +9,10 @@ package pending
 import (
 	"encoding/json"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	util "github.com/okex/exchain/app/rpc/tests"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"

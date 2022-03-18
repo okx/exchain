@@ -50,23 +50,23 @@ func TestRedisClient_SetGetDeltas(t *testing.T) {
 func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
 	r := getRedisClient(t)
 	require.True(t, r != nil, r)
-	uploadSuccess := func(int64) bool {return true}
-	uploadFailed := func(int64) bool {return false}
+	uploadSuccess := func(int64) bool { return true }
+	uploadFailed := func(int64) bool { return false }
 	h := int64(ConstTestHeight)
 	type args struct {
 		height int64
 		upload func(int64) bool
 	}
 	tests := []struct {
-		name   string
-		args   args
-		want   bool
+		name string
+		args args
+		want bool
 	}{
 		{"upload failed", args{h, uploadFailed}, false},
 		{"first time set", args{h, uploadSuccess}, true},
-		{"height<latestHeight", args{h-1, uploadSuccess}, false},
+		{"height<latestHeight", args{h - 1, uploadSuccess}, false},
 		{"height==latestHeight", args{h, uploadSuccess}, false},
-		{"height>latestHeight", args{h+1, uploadSuccess}, true},
+		{"height>latestHeight", args{h + 1, uploadSuccess}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

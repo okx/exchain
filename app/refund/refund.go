@@ -3,6 +3,8 @@ package refund
 import (
 	"math/big"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
@@ -12,7 +14,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
@@ -20,10 +21,10 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRe
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
-		switch tx.(type) {
-		case evmtypes.MsgEthereumTx:
+
+		if tx.GetType() == sdk.EvmTxType {
 			gasRefundHandler = NewGasRefundDecorator(ak, sk)
-		default:
+		} else {
 			return nil, nil
 		}
 		return gasRefundHandler(ctx, tx)
@@ -58,14 +59,17 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
-	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
+
+	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(ctx, handler.ak, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
 
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
-	gasFees := caculateRefundFees(ctx, gasUsed, gas, fees)
+	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	ctx.EnableAccountCache()
+	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
@@ -85,7 +89,7 @@ func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.Gas
 	}
 }
 
-func caculateRefundFees(ctx sdk.Context, gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
+func caculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
 
 	refundFees := make(sdk.Coins, len(fees))
 	for i, fee := range fees {
@@ -101,7 +105,7 @@ func caculateRefundFees(ctx sdk.Context, gasUsed uint64, gas uint64, fees sdk.De
 
 // CaculateRefundFees provides the way to calculate the refunded gas with gasUsed, fees and gasPrice,
 // as refunded gas = fees - gasPrice * gasUsed
-func CaculateRefundFees(ctx sdk.Context, gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
+func CaculateRefundFees(gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
 	gas := new(big.Int).Div(fees[0].Amount.BigInt(), gasPrice).Uint64()
-	return caculateRefundFees(ctx, gasUsed, gas, fees)
+	return caculateRefundFees(gasUsed, gas, fees)
 }

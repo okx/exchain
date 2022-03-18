@@ -2,11 +2,12 @@ package iavl
 
 import (
 	"container/list"
+	"math"
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 )
 
 func mockNodeDB() *nodeDB {
@@ -379,4 +380,58 @@ func Test_inVersionCacheMap(t *testing.T) {
 		require.Equal(t, actualHash, rootHash)
 		require.Equal(t, existed, c.expected)
 	}
+}
+
+func genHash(num int) []byte {
+	ret := make([]byte, num)
+	rand.Read(ret)
+	return ret
+}
+
+func TestOrphanKeyFast(t *testing.T) {
+	testCases := []struct {
+		From  int64
+		To    int64
+		Hash  []byte
+		panic bool
+	}{
+		{12345, 54321, genHash(32), false},
+		{0, 0, genHash(32), false},
+		{math.MinInt64, math.MinInt64, genHash(20), false},
+		{math.MaxInt64, math.MaxInt64, genHash(10), false},
+		{math.MaxInt64, math.MaxInt64, genHash(33), true},
+	}
+
+	for _, test := range testCases {
+		if !test.panic {
+			expect := orphanKeyFormat.Key(test.To, test.From, test.Hash)
+			actual := orphanKeyFast(test.From, test.To, test.Hash)
+			require.Equal(t, expect, actual)
+		} else {
+			require.Panics(t, func() {
+				orphanKeyFormat.Key(test.To, test.From, test.Hash)
+			})
+			require.Panics(t, func() {
+				orphanKeyFast(test.From, test.To, test.Hash)
+			})
+		}
+	}
+}
+
+func BenchmarkOrphanKeyFast(b *testing.B) {
+	hash := genHash(32)
+	var to int64 = math.MaxInt64
+	var from int64 = math.MaxInt64
+	b.Run("orphanKeyFormat", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			orphanKeyFormat.Key(to, from, hash)
+		}
+	})
+	b.Run("orphanKeyFast", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			orphanKeyFast(from, to, hash)
+		}
+	})
 }

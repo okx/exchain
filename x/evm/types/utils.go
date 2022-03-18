@@ -2,9 +2,11 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/tendermint/go-amino"
 
@@ -653,4 +655,57 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+var ethAddrStringPool = &sync.Pool{
+	New: func() interface{} {
+		return &[32]byte{}
+	},
+}
+
+type EthAddressStringer ethcmn.Address
+
+func (address EthAddressStringer) String() string {
+	p := &address
+	return EthAddressToString((*ethcmn.Address)(p))
+}
+
+func EthAddressToString(address *ethcmn.Address) string {
+	var buf [len(address)*2 + 2]byte
+	buf[0] = '0'
+	buf[1] = 'x'
+	hex.Encode(buf[2:], address[:])
+
+	// compute checksum
+	sha := keccakStatePool.Get().(ethcrypto.KeccakState)
+	sha.Reset()
+	sha.Write(buf[2:])
+
+	hash := ethAddrStringPool.Get().(*[32]byte)
+	sha.Read(hash[:])
+
+	for i := 2; i < len(buf); i++ {
+		hashByte := hash[(i-2)/2]
+		if i%2 == 0 {
+			hashByte = hashByte >> 4
+		} else {
+			hashByte &= 0xf
+		}
+		if buf[i] > '9' && hashByte > 7 {
+			buf[i] -= 32
+		}
+	}
+	ethAddrStringPool.Put(hash)
+	keccakStatePool.Put(sha)
+	return amino.BytesToStr(buf[:])
+}
+
+type EthHashStringer ethcmn.Hash
+
+func (h EthHashStringer) String() string {
+	var enc [len(h)*2 + 2]byte
+	enc[0] = '0'
+	enc[1] = 'x'
+	hex.Encode(enc[2:], h[:])
+	return amino.BytesToStr(enc[:])
 }

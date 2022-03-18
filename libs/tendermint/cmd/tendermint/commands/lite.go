@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/tendermint/go-amino"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"

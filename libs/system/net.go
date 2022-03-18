@@ -9,13 +9,13 @@ func GetIpAddr(appendPid bool) (res string, err error) {
 
 	var addrs []net.Addr
 	addrs, err = net.InterfaceAddrs()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	var comma string
-	for _, value := range addrs{
-		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback(){
-			if ipnet.IP.To4() != nil{
+	for _, value := range addrs {
+		if ipnet, ok := value.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
 				res += fmt.Sprintf("%s%s", comma, ipnet.IP.String())
 				comma = "_"
 			}

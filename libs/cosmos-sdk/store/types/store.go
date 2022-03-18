@@ -19,7 +19,7 @@ type Store interface { //nolint
 
 // something that can persist to disk
 type Committer interface {
-	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta)        // CommitterCommit
+	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta) // CommitterCommit
 
 	LastCommitID() CommitID
 

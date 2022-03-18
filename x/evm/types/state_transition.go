@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -28,11 +29,13 @@ type StateTransition struct {
 	Amount       *big.Int
 	Payload      []byte
 
-	ChainID  *big.Int
-	Csdb     *CommitStateDB
-	TxHash   *common.Hash
-	Sender   common.Address
-	Simulate bool // i.e CheckTx execution
+	ChainID    *big.Int
+	Csdb       *CommitStateDB
+	TxHash     *common.Hash
+	Sender     common.Address
+	Simulate   bool // i.e CheckTx execution
+	TraceTx    bool // reexcute tx or its predesessors
+	TraceTxLog bool // trace tx for its evm logs (predesessors are set to false)
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -45,10 +48,11 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs    []*ethtypes.Log
-	Bloom   *big.Int
-	Result  *sdk.Result
-	GasInfo GasInfo
+	Logs      []*ethtypes.Log
+	Bloom     *big.Int
+	Result    *sdk.Result
+	GasInfo   GasInfo
+	TraceLogs []byte
 }
 
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
@@ -88,9 +92,9 @@ func (st StateTransition) newEVM(
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     GetHashFn(ctx, csdb),
-		Coinbase:    common.BytesToAddress(ctx.BlockHeader().ProposerAddress),
+		Coinbase:    common.BytesToAddress(ctx.BlockProposerAddress()),
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
-		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
+		Time:        big.NewInt(ctx.BlockTime().Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
 	}
@@ -156,18 +160,26 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	var tracer vm.Tracer
-	tracer = vm.NewStructLogger(evmLogConfig)
+	var senderStr = EthAddressToString(&st.Sender)
 
 	to := ""
+	var recipientStr string
 	if st.Recipient != nil {
-		to = st.Recipient.String()
+		to = EthAddressToString(st.Recipient)
+		recipientStr = to
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), senderStr, to)
+
+	var tracer vm.Tracer
+	if st.TraceTxLog || enableDebug {
+		tracer = vm.NewStructLogger(evmLogConfig)
+	} else {
+		tracer = NewNoOpTracer()
+	}
 
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
-		Debug:            enableDebug,
+		Debug:            st.TraceTxLog || enableDebug,
 		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
@@ -188,7 +200,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, st.Sender.String(), "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -206,9 +218,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		StartTxLog(analyzer.EVMCORE)
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		innertx.UpdateDefaultInnerTx(callTx, contractAddress.String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
+		contractAddressStr := EthAddressToString(&contractAddress)
+		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
@@ -220,9 +234,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
-		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
+		if recipientStr == "" {
+			recipientStr = EthAddressToString(st.Recipient)
+		}
 
-		innertx.UpdateDefaultInnerTx(callTx, st.Recipient.String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
+		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -236,7 +254,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 
 	defer func() {
-		if !st.Simulate && enableDebug {
+		if !st.Simulate && enableDebug && !st.TraceTx {
 			result := &core.ExecutionResult{
 				UsedGas:    gasConsumed,
 				Err:        err,
@@ -245,7 +263,27 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			saveTraceResult(ctx, tracer, result)
 		}
 	}()
-
+	// return trace log if tracetxlog no matter err = nil  or not nil
+	defer func() {
+		var traceLogs []byte
+		if st.TraceTxLog {
+			result := &core.ExecutionResult{
+				UsedGas:    gasConsumed,
+				Err:        err,
+				ReturnData: ret,
+			}
+			traceLogs, err = GetTracerResult(tracer, result)
+			if err != nil {
+				traceLogs = []byte(err.Error())
+			}
+			if exeRes == nil {
+				exeRes = &ExecutionResult{
+					Result: &sdk.Result{},
+				}
+			}
+			exeRes.TraceLogs = traceLogs
+		}
+	}()
 	if err != nil {
 		// Consume gas before returning
 		return exeRes, resData, newRevertError(ret, err), innerTxs, erc20Contracts
@@ -272,8 +310,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
-	if !st.Simulate {
-		// Finalise state if not a simulated transaction
+	if !st.Simulate || st.TraceTx {
+		// Finalise state if not a simulated transaction or a trace tx
 		// TODO: change to depend on config
 		if err = csdb.Finalise(true); err != nil {
 			return
@@ -301,10 +339,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		return
 	}
 
-	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
-	)
-
+	resultLog := strings.Join([]string{"executed EVM state transition; sender address ", senderStr, "; ", recipientLog}, "")
 	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
@@ -318,7 +353,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			GasRefunded: leftOverGas,
 		},
 	}
-
 	return
 }
 

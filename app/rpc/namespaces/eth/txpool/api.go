@@ -2,9 +2,10 @@ package txpool
 
 import (
 	"fmt"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -14,7 +15,7 @@ import (
 type PublicTxPoolAPI struct {
 	clientCtx clientcontext.CLIContext
 	logger    log.Logger
-	backend backend.Backend
+	backend   backend.Backend
 }
 
 // NewPublicTxPoolAPI creates a new tx pool service that gives information about the transaction pool.
@@ -28,13 +29,13 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 }
 
 // Content returns the transactions contained within the transaction pool.
-func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*rpctypes.Transaction {
+func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*watcher.Transaction {
 	addressList, err := s.backend.PendingAddressList()
 	if err != nil {
 		s.logger.Error("txpool.Content addressList err: ", err)
 	}
-	content := map[string]map[string]map[string]*rpctypes.Transaction{
-		"queued":  make(map[string]map[string]*rpctypes.Transaction),
+	content := map[string]map[string]map[string]*watcher.Transaction{
+		"queued": make(map[string]map[string]*watcher.Transaction),
 	}
 
 	for _, address := range addressList {
@@ -44,7 +45,7 @@ func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*rpctypes.T
 		}
 
 		// Flatten the queued transactions
-		dump := make(map[string]*rpctypes.Transaction)
+		dump := make(map[string]*watcher.Transaction)
 		for _, tx := range txs {
 			dump[fmt.Sprintf("%d", tx.Nonce)] = tx
 		}
@@ -62,7 +63,7 @@ func (s *PublicTxPoolAPI) Status() map[string]hexutil.Uint {
 		return nil
 	}
 	return map[string]hexutil.Uint{
-		"queued":  hexutil.Uint(numRes),
+		"queued": hexutil.Uint(numRes),
 	}
 }
 
@@ -74,7 +75,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 		s.logger.Error("txpool.Inspect addressList err: ", err)
 	}
 	content := map[string]map[string]map[string]string{
-		"queued":  make(map[string]map[string]string),
+		"queued": make(map[string]map[string]string),
 	}
 	for _, address := range addressList {
 		txs, err := s.backend.UserPendingTransactions(address, -1)
@@ -83,7 +84,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 		}
 
 		// Define a formatter to flatten a transaction into a string
-		var format = func(tx *rpctypes.Transaction) string {
+		var format = func(tx *watcher.Transaction) string {
 			if to := tx.To; to != nil {
 				return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To.Hex(), tx.Value, tx.Gas, tx.GasPrice)
 			}

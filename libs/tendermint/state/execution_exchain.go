@@ -17,9 +17,9 @@ const (
 var (
 	IgnoreSmbCheck bool = false
 
-	ApplyBlockPprofTime  = -1
-	HomeDir = ""
-	tmpPprofName = "tmp.cpu.pprof"
+	ApplyBlockPprofTime = -1
+	HomeDir             = ""
+	tmpPprofName        = "tmp.cpu.pprof"
 )
 
 func SetIgnoreSmbCheck(check bool) {

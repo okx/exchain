@@ -15,9 +15,10 @@ const (
 
 // nolint
 var (
-	NewKeeper         = keeper.NewKeeper
-	TxDecoder         = types.TxDecoder
-	NewSimulateKeeper = keeper.NewSimulateKeeper
+	NewKeeper              = keeper.NewKeeper
+	TxDecoder              = types.TxDecoder
+	NewSimulateKeeper      = keeper.NewSimulateKeeper
+	SetEvmParamsNeedUpdate = types.SetEvmParamsNeedUpdate
 )
 
 //nolint

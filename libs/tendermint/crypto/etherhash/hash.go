@@ -13,15 +13,22 @@ var keccakPool = sync.Pool{
 	New: func() interface{} { return sha3.NewLegacyKeccak256() },
 }
 
+type keccakState interface {
+	hash.Hash
+	Read([]byte) (int, error)
+}
+
 // Sum returns the non-standard Keccak256 of the bz.
 func Sum(bz []byte) []byte {
-	sha := keccakPool.Get().(hash.Hash)
+	sha := keccakPool.Get().(keccakState)
 	defer func() {
 		// better to reset before putting it to the pool
 		sha.Reset()
 		keccakPool.Put(sha)
 	}()
-	sha.Reset()
 	sha.Write(bz)
-	return sha.Sum(nil)
+
+	var hashData [32]byte
+	sha.Read(hashData[:])
+	return hashData[:]
 }

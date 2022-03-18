@@ -7,7 +7,7 @@ import (
 
 func NewTracer() *Tracer {
 	t := &Tracer{
-		startTime:  time.Now().UnixNano(),
+		startTime: time.Now().UnixNano(),
 	}
 	return t
 }
@@ -61,6 +61,10 @@ func (t *Tracer) Format() string {
 		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i])
 	}
 	return info
+}
+
+func (t *Tracer) String() string {
+	return t.Format()
 }
 
 func (t *Tracer) Reset() {
