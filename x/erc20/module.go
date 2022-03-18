@@ -2,6 +2,8 @@ package erc20
 
 import (
 	"encoding/json"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -18,6 +20,7 @@ import (
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 var _ module.AppModule = AppModule{}
+var _ module.UpgradeModule = AppModule{}
 
 // AppModuleBasic struct
 type AppModuleBasic struct{}
@@ -34,11 +37,20 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // DefaultGenesis is json default structure
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	}
+	return nil
 }
 
 // ValidateGenesis is the validation check of the Genesis
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.UpgradeIBCInRuntime() {
+		if nil == bz {
+			return nil
+		}
+	}
+
 	var genesisState types.GenesisState
 	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
 	if err != nil {
@@ -66,6 +78,7 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 // AppModule implements an application module for the erc20 module.
 type AppModule struct {
+	*base.BaseIBCUpgradeModule
 	AppModuleBasic
 	keeper Keeper
 }
@@ -118,6 +131,13 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.initGenesis(ctx, data)
+	}
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	return InitGenesis(ctx, am.keeper, genesisState)
@@ -125,6 +145,22 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis exports the genesis state to be used by daemon
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.exportGenesis(ctx)
+	}
+	return nil
+}
+
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
 	return types.ModuleCdc.MustMarshalJSON(gs)
+}
+
+func (am AppModule) RegisterTask() module.HeightTask {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return nil
+	}
+	return module.NewHeightTask(0, func(ctx sdk.Context) error {
+		return nil
+	})
 }

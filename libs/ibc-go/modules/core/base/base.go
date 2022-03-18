@@ -33,5 +33,5 @@ func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
 }
 
 func (b *BaseIBCUpgradeModule) BlockStoreModules() []string {
-	return []string{"ibc", "mem_capability", "capability", "transfer"}
+	return []string{"ibc", "mem_capability", "capability", "transfer", "erc20"}
 }
