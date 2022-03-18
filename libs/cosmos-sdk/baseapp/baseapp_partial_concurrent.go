@@ -26,6 +26,7 @@ var totalFinishTime = int64(0)
 var totalWaitingTime = int64(0)
 var totalRerunAnteTime = int64(0)
 var totalBasicTime = int64(0)
+
 //var blockHeight = int64(0)
 //
 //const AssignedBlockHeight = 5810742
@@ -33,8 +34,9 @@ var totalBasicTime = int64(0)
 type (
 	partialConcurrentStep uint8
 )
+
 const (
-	partialConcurrentStepBasic                 partialConcurrentStep = iota
+	partialConcurrentStepBasic partialConcurrentStep = iota
 	partialConcurrentStepAnteStart
 	partialConcurrentStepAnteEnd
 	partialConcurrentStepSerialPrepare
@@ -45,7 +47,7 @@ type DeliverTxTask struct {
 	//tx            sdk.Tx
 	index         int
 	feeForCollect int64
-	step partialConcurrentStep
+	step          partialConcurrentStep
 
 	info      *runTxInfo
 	from      sdk.Address
@@ -74,7 +76,7 @@ type sendersMap struct {
 	notFinishedTasks sync.Map // key: address, value: []*DeliverTxTask
 	needRerunTasks   sync.Map //[]*DeliverTxTask
 	logger           log.Logger
-	rerunNotifyFn NeedToRerunFn
+	rerunNotifyFn    NeedToRerunFn
 }
 
 func NewSendersMap() *sendersMap {
@@ -240,11 +242,11 @@ func (sm *sendersMap) reset() {
 }
 
 type DeliverTxTasksManager struct {
-	done                chan int // done for all transactions are executed
-	nextSignal          chan int // signal for taking a new tx into tasks
-	statefulSignal      chan int // signal for taking a new task from pendingTasks to statefulTask
-	waitingCount        int
-	mtx                 sync.Mutex
+	done           chan int // done for all transactions are executed
+	nextSignal     chan int // signal for taking a new tx into tasks
+	statefulSignal chan int // signal for taking a new task from pendingTasks to statefulTask
+	waitingCount   int
+	mtx            sync.Mutex
 
 	totalCount    int
 	statefulIndex int
@@ -374,11 +376,11 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			return
 		}
 	} else {
-			dm.app.logger.Error("ResetContext", "index", task.index)
+		dm.app.logger.Error("ResetContext", "index", task.index)
 
-			task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-			task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-			task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
+		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 	}
 
 	if dm.app.anteHandler != nil {
@@ -392,13 +394,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		}
 		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
-			//dm.app.logger.Info("RunAnteSucceed 2", "index", task.index)
-			if err == nil {
-				dm.app.logger.Info("WriteAnteCache", "index", task.index)
-				task.info.msCacheAnte.Write()
-				task.info.ctx.Cache().Write(true)
-				dm.calculateFeeForCollector(task.fee, true)
-			}
 			task.err = err
 
 			dm.pushIntoPending(task)
@@ -544,6 +539,11 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
+		dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
+		info.msCacheAnte.Write()
+		info.ctx.Cache().Write(true)
+		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
+
 		gasStart := time.Now()
 		err := info.handler.handleGasConsumed(info)
 		dm.handleGasTime += time.Since(gasStart).Microseconds()
@@ -651,9 +651,9 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 			//if dm.statefulSignalCount < 0 {
 			//	dm.app.logger.Error("dm.statefulSignalCount < 0", "count", dm.statefulSignalCount)
 			//}
-		//} else {
-		//	// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
-		//	time.Sleep(1 * time.Millisecond)
+			//} else {
+			//	// sleep 10 millisecond in case of the first maxDeliverTxsConcurrentNum txs have the same sender
+			//	time.Sleep(1 * time.Millisecond)
 		}
 	} else {
 		dm.mtx.Lock()
