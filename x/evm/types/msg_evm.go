@@ -263,7 +263,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 	}
 
 	sigCache, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
-	if ok && sigCache.EqualSiger(signer) {
+	if ok {
 		msg.BaseTx.From = sigCache.From.String()
 		return nil
 	}
