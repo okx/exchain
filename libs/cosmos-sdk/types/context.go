@@ -39,12 +39,12 @@ type Context struct {
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
 	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	isAsync        bool
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
 	accountNonce   uint64
 	sigCache       SigCache
-	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
@@ -162,7 +162,6 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
-		kvStoreCache: make(map[StoreKey]KVStore),
 	}
 }
 
@@ -173,7 +172,7 @@ func (c Context) WithContext(ctx context.Context) Context {
 
 func (c Context) WithMultiStore(ms MultiStore) Context {
 	c.ms = ms
-	c.kvStoreCache = make(map[StoreKey]KVStore)
+	c.kvStoreCache = nil
 	return c
 }
 
@@ -239,7 +238,7 @@ func (c Context) WithVoteInfos(voteInfo []abci.VoteInfo) Context {
 
 func (c Context) WithGasMeter(meter GasMeter) Context {
 	c.gasMeter = meter
-	c.kvStoreCache = make(map[StoreKey]KVStore)
+	c.kvStoreCache = nil
 	return c
 }
 
@@ -333,8 +332,10 @@ func (c *Context) SetGasMeter(meter GasMeter) {
 }
 
 func (c *Context) clearKvStoreCache() {
-	for k := range c.kvStoreCache {
-		delete(c.kvStoreCache, k)
+	if c.kvStoreCache != nil {
+		for k := range c.kvStoreCache {
+			delete(c.kvStoreCache, k)
+		}
 	}
 }
 
@@ -353,7 +354,9 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
-	if s, ok := c.kvStoreCache[key]; ok {
+	if c.kvStoreCache == nil {
+		c.kvStoreCache = make(map[StoreKey]KVStore)
+	} else if s, ok := c.kvStoreCache[key]; ok {
 		return s
 	}
 	s := gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
