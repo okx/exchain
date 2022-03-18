@@ -61,7 +61,7 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 
 func (msg *MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
-	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), nil, nil)
+	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
 	if err != nil {
 		return nil
 	}
@@ -291,7 +291,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, txBytes []byte, sigCtx sdk.SigCache) error {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if !isProtectedV(msg.Data.V) && tmtypes.HigherThanMercury(height) {
 		return errors.New("deprecated support for homestead Signer")
 	}

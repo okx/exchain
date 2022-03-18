@@ -22,7 +22,7 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
-			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
 
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
