@@ -41,6 +41,7 @@ func init() {
 		if IsMainNet() || IsTestNet() {
 			milestoreIbcHeight = math.MaxInt64 - 5
 		}
+		milestoreIbcHeight = 20
 	})
 }
 

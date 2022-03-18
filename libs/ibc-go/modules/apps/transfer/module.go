@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math"
 	"math/rand"
@@ -194,7 +196,7 @@ func lazeGenesis() json.RawMessage {
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // BeginBlock implements the AppModule interface
-func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
 }
 
 // EndBlock implements the AppModule interface
@@ -501,13 +503,17 @@ func (am AppModule) NegotiateAppVersion(
 	return types.Version, nil
 }
 
-func (am AppModule) RegisterTask() module.HeightTask {
+func (am AppModule) RegisterTask() upgrade.HeightTask {
 	if !tmtypes.UpgradeIBCInRuntime() {
 		return nil
 	}
-	return module.NewHeightTask(2, func(ctx sdk.Context) error {
+	return upgrade.NewHeightTask(2, func(ctx sdk.Context) error {
 		data := lazeGenesis()
 		am.initGenesis(ctx, data)
 		return nil
 	})
+}
+
+func (am AppModule) RegisterParam() params.ParamSet {
+	return nil
 }

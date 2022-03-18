@@ -1,6 +1,7 @@
 package rootmulti
 
 import (
+	"encoding/hex"
 	"fmt"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
@@ -897,7 +898,7 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	if tmtypes.HigherThanIBCHeight(ci.Version) {
+	if tmtypes.HigherThanIBCHeight(ci.Version - 10) {
 		return ci.ibcHash()
 	}
 	return ci.originHash()
@@ -917,15 +918,42 @@ func (ci commitInfo) Hash() []byte {
 	//rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
 	//return rootHash
 }
+
+//func (ci commitInfo) originHash() []byte {
+//	m := make(map[string][]byte, len(ci.StoreInfos))
+//	for _, storeInfo := range ci.StoreInfos {
+//		m[storeInfo.Name] = storeInfo.Hash()
+//	}
+//	return merkle.SimpleHashFromMap(m)
+//}
+// Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) originHash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
+	hashs := make(Hashes, 0)
 	for _, storeInfo := range ci.StoreInfos {
+		hashs = append(hashs, HashInfo{
+			storeName: storeInfo.Name,
+			hash:      hex.EncodeToString(storeInfo.Hash()),
+		})
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
-	return merkle.SimpleHashFromMap(m)
+	ret := merkle.SimpleHashFromMap(m)
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret), "detail", hashs.String())
+	return ret
 }
+
 func (ci commitInfo) ibcHash() []byte {
-	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
+	m := ci.toMap()
+	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
+	hashs := make(Hashes, 0)
+	for name, v := range m {
+		hashs = append(hashs, HashInfo{
+			storeName: name,
+			hash:      hex.EncodeToString(v),
+		})
+	}
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(rootHash), "detail", hashs.String())
+
 	return rootHash
 }
 
@@ -989,15 +1017,46 @@ func getLatestVersion(db dbm.DB) int64 {
 	return latest
 }
 
+type StoreSorts []StoreSort
+
+func (s StoreSorts) Len() int {
+	return len(s)
+}
+
+func (s StoreSorts) Less(i, j int) bool {
+	return s[i].key.Name() < s[j].key.Name()
+}
+
+func (s StoreSorts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+type StoreSort struct {
+	key types.StoreKey
+	v   types.CommitKVStore
+}
+
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
-	for key, store := range storeMap {
+	ss := make(StoreSorts, 0)
+	for k, v := range storeMap {
+		ss = append(ss, StoreSort{k, v})
+	}
+	sort.Sort(ss)
+	//for key, store := range storeMap {
+	for _, v := range ss {
+		key := v.key
+		store := v.v
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
-
+		if key.Name() == "ibc" {
+			viper.Set("debug", true)
+			defer func() {
+				viper.Set("debug", false)
+			}()
+		}
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}

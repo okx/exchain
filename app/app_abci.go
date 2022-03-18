@@ -13,7 +13,6 @@ import (
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
@@ -38,7 +37,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 // EndBlock implements the Application interface
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-
 	return app.BaseApp.EndBlock(req)
 }
 

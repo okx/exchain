@@ -1,11 +1,17 @@
 package iavl
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
+	"github.com/spf13/viper"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/tendermint/go-amino"
@@ -577,9 +583,66 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	h, v, err := tree.SaveVersionSync(version, useDeltas)
 	return h, v, *tree.deltas, err
 }
-
+func writeToFile(filePath string, data string) {
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+	}
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	for i := 0; i < 5; i++ {
+		write.WriteString(data)
+	}
+	//Flush将缓存的文件真正写入到文件中
+	write.Flush()
+}
 func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte, int64, error) {
 	batch := tree.NewBatch()
+	defer func() {
+		if viper.Get("debug") == nil {
+			return
+		}
+		str := strings.Builder{}
+		if nil != tree.root {
+			str.WriteString(fmt.Sprintf("root=%s,", hex.EncodeToString(tree.root._hash())))
+			str.WriteString(fmt.Sprintf("root=%s,", string(tree.root.key)))
+		}
+		str.WriteString(fmt.Sprintf("nodes的数量=%d,", len(tree.savedNodes)))
+		str.WriteString(fmt.Sprintf("orphans=%d,", len(tree.orphans)))
+		if version == 22 {
+			str.WriteString(fmt.Sprintf("string=%s,", tree.String()))
+			v := rand.NewRand().Int31n(1000)
+			writeToFile("/Users/lvcong/Desktop/logs/"+strconv.Itoa(int(v))+".log", str.String())
+			//logrusplugin.Error(str.String())
+		}
+		if len(tree.savedNodes) == 676 {
+			sb := strings.Builder{}
+			ks := make([]string, 0)
+			i := 0
+			//hashs := make(map[string]string)
+			for k, _ := range tree.savedNodes {
+				ks = append(ks, k)
+				//hashs[k] = hex.EncodeToString(v.hash)
+			}
+			sort.Strings(ks)
+			for _, k := range ks {
+
+				sb.WriteString(fmt.Sprintf("%s:%s:%s;", string(tree.savedNodes[k].key), hex.EncodeToString([]byte(tree.savedNodes[k].value)), hex.EncodeToString(tree.savedNodes[k].hash)))
+				//acc, err := sdk.AccAddressFromHex(hex.EncodeToString([]byte(k)))
+				//if nil != err {
+				//	panic(err)
+				//}
+				//sb.WriteString(fmt.Sprintf("%s:%s", hex.EncodeToString([]byte(k))))
+				i++
+				//if i > 10 {
+				//	break
+				//}
+			}
+			//logrusplugin.Error(sb.String() + "\n\n\n\n\n")
+		}
+	}()
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being
 		// removed.
@@ -597,32 +660,6 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			}
 		} else {
 			tree.ndb.SaveBranch(batch, tree.root, tree.savedNodes)
-			//logrusplugin.Error("tree", "nodes的数量", len(tree.savedNodes))
-			//if len(tree.savedNodes) == 676 {
-			//	sb := strings.Builder{}
-			//	ks := make([]string, 0)
-			//	i := 0
-			//	//hashs := make(map[string]string)
-			//	for k, _ := range tree.savedNodes {
-			//		ks = append(ks, k)
-			//		//hashs[k] = hex.EncodeToString(v.hash)
-			//	}
-			//	sort.Strings(ks)
-			//	for _, k := range ks {
-			//
-			//		sb.WriteString(fmt.Sprintf("%s:%s:%s;", hex.EncodeToString([]byte(tree.savedNodes[k].key)), hex.EncodeToString([]byte(tree.savedNodes[k].value)), hex.EncodeToString(tree.savedNodes[k].hash)))
-			//		//acc, err := sdk.AccAddressFromHex(hex.EncodeToString([]byte(k)))
-			//		//if nil != err {
-			//		//	panic(err)
-			//		//}
-			//		//sb.WriteString(fmt.Sprintf("%s:%s", hex.EncodeToString([]byte(k))))
-			//		i++
-			//		//if i > 10 {
-			//		//	break
-			//		//}
-			//	}
-			//	logrusplugin.Error(sb.String() + "\n\n\n\n\n")
-			//}
 		}
 		// generate state delta
 		if produceDelta {

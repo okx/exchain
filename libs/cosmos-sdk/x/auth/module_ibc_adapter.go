@@ -5,8 +5,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	types3 "github.com/okex/exchain/temp"
 	//clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -39,7 +41,7 @@ func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, erro
 	return nil, nil
 }
 
-func (am AppModule) RegisterTask() module.HeightTask {
+func (am AppModule) RegisterTask() upgrade.HeightTask {
 	return nil
 }
 
@@ -49,6 +51,9 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterQueryServer(cfg.QueryServer(), a)
 }
 
+func (am AppModule) RegisterParam() params.ParamSet {
+	return nil
+}
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	//registry.RegisterInterface(
 	//	"cosmos.vesting.v1beta1.VestingAccount",

@@ -2,9 +2,13 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	upgrade2 "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"io"
 	"math/big"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -207,7 +211,7 @@ type OKExChainApp struct {
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 	marshal              *codec.CodecProxy
-	heightTasks          map[int64]*module.HeightTasks
+	heightTasks          map[int64]*upgrade2.HeightTasks
 	Erc20Keeper          erc20.Keeper
 }
 
@@ -248,7 +252,10 @@ func NewOKExChainApp(
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
-
+	bApp.SetStoreLoader(bam.StoreLoaderWithUpgrade(&types.StoreUpgrades{
+		Added: []string{ibctransfertypes.StoreKey, capabilitytypes.StoreKey, host.StoreKey,
+			erc20.StoreKey},
+	}))
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
@@ -292,7 +299,7 @@ func NewOKExChainApp(
 		keys:           keys,
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
-		heightTasks:    make(map[int64]*module.HeightTasks),
+		heightTasks:    make(map[int64]*upgrade2.HeightTasks),
 	}
 	bApp.Cdc = cdc
 	bApp.SetInterceptors(makeInterceptors(cdc))
@@ -498,6 +505,7 @@ func NewOKExChainApp(
 		evidence.ModuleName,
 		evm.ModuleName,
 		host.ModuleName,
+		ibctransfertypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
@@ -668,11 +676,20 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
 }
 func (app *OKExChainApp) setupUpgradeModules() {
-	heightTasks, pip := app.mm.CollectUpgradeModules()
+	heightTasks, pip, pR := app.CollectUpgradeModules(app.mm)
 	app.heightTasks = heightTasks
 	if pip != nil {
 		app.GetCMS().SetPruneHeightFilterPipeline(pip)
 		app.GetCMS().SetCommitHeightFilterPipeline(pip)
+	}
+	vs := app.subspaces
+	fmt.Println(vs, pR)
+	for k, vv := range pR {
+		supace, exist := vs[k]
+		if !exist {
+			continue
+		}
+		vs[k] = supace.LazyWithKeyTable(subspace.NewKeyTable(vv.ParamSetPairs()...))
 	}
 }
 
@@ -802,4 +819,70 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
+}
+
+func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgrade2.HeightTasks, types.HeightFilterPipeline, map[string]params.ParamSet) {
+	hm := make(map[int64]*upgrade2.HeightTasks)
+	hStoreInfoModule := make(map[int64]map[string]struct{})
+	paramsRet := make(map[string]params.ParamSet)
+	for _, mm := range m.Modules {
+		if ada, ok := mm.(upgrade2.UpgradeModule); ok {
+			set := ada.RegisterParam()
+			if set != nil {
+				if _, exist := paramsRet[ada.ModuleName()]; !exist {
+					paramsRet[ada.ModuleName()] = set
+				}
+			}
+			h := ada.UpgradeHeight()
+			if h <= 0 {
+				continue
+			}
+			t := ada.RegisterTask()
+			if t == nil {
+				continue
+			}
+			if err := t.ValidateBasic(); nil != err {
+				panic(err)
+			}
+			storeInfoModule := hStoreInfoModule[h]
+			if storeInfoModule == nil {
+				storeInfoModule = make(map[string]struct{})
+				hStoreInfoModule[h] = storeInfoModule
+			}
+			names := ada.BlockStoreModules()
+			for _, n := range names {
+				storeInfoModule[n] = struct{}{}
+			}
+			taskList := hm[h]
+			if taskList == nil {
+				v := make(upgrade2.HeightTasks, 0)
+				taskList = &v
+				hm[h] = taskList
+			}
+			*taskList = append(*taskList, t)
+		}
+	}
+	for _, v := range hm {
+		sort.Sort(*v)
+	}
+	var pip types.HeightFilterPipeline
+	for height, mm := range hStoreInfoModule {
+		f := func(h int64) func(str string) bool {
+			if h > height {
+				// next
+				return nil
+			}
+			// filter block module
+			return func(str string) bool {
+				_, exist := mm[str]
+				return exist
+			}
+		}
+		if pip == nil {
+			pip = f
+		} else {
+			pip = types.LinkPipeline(f, pip)
+		}
+	}
+	return hm, pip, paramsRet
 }
