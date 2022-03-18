@@ -361,6 +361,14 @@ func (c *Context) SetAccountNonce(nonce uint64) {
 	c.accountNonce = nonce
 }
 
+func (c *Context) SetCache(cache *Cache) {
+	c.cache = cache
+}
+
+func (c *Context) SetFrom(from string) {
+	c.from = from
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)

@@ -396,7 +396,7 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	}
 
 	code := make([]byte, 0)
-	ctx := so.stateDB.ctx
+	ctx := &so.stateDB.ctx
 	if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
 		code = data
 	} else {
@@ -443,7 +443,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
 
-	ctx := so.stateDB.ctx
+	ctx := &so.stateDB.ctx
 	rawValue := make([]byte, 0)
 	var ok bool
 
