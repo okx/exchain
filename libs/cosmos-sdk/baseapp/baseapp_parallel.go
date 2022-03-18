@@ -17,9 +17,8 @@ var (
 )
 
 type extraDataForTx struct {
-	fee       sdk.Coins
-	isEvm     bool
-	signCache sdk.SigCache
+	fee   sdk.Coins
+	isEvm bool
 }
 
 // txByteWithIndex = txByte + index

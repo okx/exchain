@@ -5,9 +5,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -100,23 +97,4 @@ func (c *Cache) validate(key string) bool {
 		return false
 	}
 	return true
-}
-
-// TxSignatureCache is used to cache the derived sender and contains the signer used
-// to derive it.
-type TxSigCache struct {
-	Signer ethtypes.Signer
-	From   ethcmn.Address
-}
-
-func (s *TxSigCache) GetFrom() ethcmn.Address {
-	return s.From
-}
-
-func (s *TxSigCache) GetSigner() ethtypes.Signer {
-	return s.Signer
-}
-
-func (s *TxSigCache) EqualSiger(siger ethtypes.Signer) bool {
-	return s.Signer.Equal(siger)
 }

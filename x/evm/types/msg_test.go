@@ -124,7 +124,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	err = msg.VerifySig(chainID, 0, nil, nil)
+	err = msg.VerifySig(chainID, 0)
 	require.NoError(t, err)
 	require.Equal(t, addr1, msg.EthereumAddress())
 	require.NotEqual(t, addr2, msg.EthereumAddress())
@@ -136,7 +136,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	// zero chainID
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
 	require.Nil(t, err)
-	err = msg.VerifySig(zeroChainID, 0, nil, nil)
+	err = msg.VerifySig(zeroChainID, 0)
 	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
