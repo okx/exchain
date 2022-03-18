@@ -871,7 +871,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Add query blocked contracts in rest api ([\#1027](https://github.com/okex/exchain/pull/1027))
+* Add api to get current blacklist list ([\#1027](https://github.com/okex/exchain/pull/1027))
 
 * Add `iaviewer` ([\#1030](https://github.com/okex/exchain/pull/1030))
 
@@ -892,12 +892,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
-* Support `eip-1898` feature ([\#1024](https://github.com/okex/exchain/pull/1024))
+* Compatible with `eip-1898`, support using block hash to obtain block data ([\#1024](https://github.com/okex/exchain/pull/1024))
 
 
 ### Bug fixes
-
-* Fix sending cosmos tx to pending pool ([\#1023](https://github.com/okex/exchain/pull/1023))
 
 * Fix local replay ([\#1061](https://github.com/okex/exchain/pull/1061))
 
@@ -937,7 +935,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Chores
 
-* Produce testnet script ([\#1003](https://github.com/okex/exchain/pull/1003))
+* Provides a script file `testnet.sh`  to run the testnet locally ([\#1003](https://github.com/okex/exchain/pull/1003))
 
 
 
