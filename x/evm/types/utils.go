@@ -666,6 +666,11 @@ var ethAddrStringPool = &sync.Pool{
 type EthAddressStringer ethcmn.Address
 
 func (address EthAddressStringer) String() string {
+	p := &address
+	return EthAddressToString((*ethcmn.Address)(p))
+}
+
+func EthAddressToString(address *ethcmn.Address) string {
 	var buf [len(address)*2 + 2]byte
 	buf[0] = '0'
 	buf[1] = 'x'
