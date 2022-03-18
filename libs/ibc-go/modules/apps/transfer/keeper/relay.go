@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
@@ -60,7 +61,7 @@ func (k Keeper) SendTransfer(
 		return types.ErrSendDisabled
 	}
 	token := sdk.NewCoin(adaToken.Denom, adaToken.Amount)
-	logrusplugin.Info("send transfer", "info", token.String())
+	logrusplugin.Info("send transfer", "info", token.String(), "timeoutHeight", timeoutHeight, "timeoutTimestamp", timeoutTimestamp)
 	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return sdkerrors.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", sourcePort, sourceChannel)
@@ -144,9 +145,10 @@ func (k Keeper) SendTransfer(
 			panic(fmt.Sprintf("cannot burn coins after a successful send to a module account: %v", err))
 		}
 	}
-
+	bi := adaToken.Amount.BigInt()
+	bi = bi.Mul(bi, big.NewInt(k.ibcFactor))
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, adaToken.Amount.String(), sender.String(), receiver,
+		fullDenomPath, bi.String(), sender.String(), receiver,
 	)
 	logrusplugin.Info("packet", "amount", packetData.Amount)
 
@@ -209,7 +211,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
-
+	bi := transferAmount.BigInt()
+	bi = bi.Div(bi, big.NewInt(k.ibcFactor))
+	transferAmount = sdk.NewIntFromBigInt(bi)
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
 	// receiving chain.
@@ -380,6 +384,10 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
+	bi := transferAmount.BigInt()
+	bi = bi.Div(bi, big.NewInt(k.ibcFactor))
+	transferAmount = sdk.NewIntFromBigInt(bi)
+
 	token := sdk.NewCoin(trace.IBCDenom(), transferAmount)
 
 	// decode the sender address

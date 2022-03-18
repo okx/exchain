@@ -29,7 +29,8 @@ type Keeper struct {
 	bankKeeper    types.BankKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
 
-	hooks types.TransferHooks
+	hooks     types.TransferHooks
+	ibcFactor int64
 }
 
 // NewKeeper creates a new IBC transfer Keeper instance
@@ -53,14 +54,15 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		cdc:           proxy,
 		storeKey:      key,
+		cdc:           proxy,
 		paramSpace:    paramSpace,
 		channelKeeper: channelKeeper,
 		portKeeper:    portKeeper,
 		authKeeper:    authKeeper,
 		bankKeeper:    bankKeeper,
 		scopedKeeper:  scopedKeeper,
+		ibcFactor:     1000000,
 	}
 }
 
