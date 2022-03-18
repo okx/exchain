@@ -1561,8 +1561,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	address := cs.privValidatorPubKey.Address()
 
-
-
 	ctx := context.Background()
 	vcCtx, vcCancel := context.WithCancel(ctx)
 	// this peer is a validator, and it is the next block proposer
@@ -1637,7 +1635,7 @@ func (cs *State) viewChangeRoutine(ctx context.Context) {
 	loop := true
 	for loop {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-t:
 			loop = false
