@@ -7,8 +7,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
-
-
 // SetUpContextDecorator sets the GasMeter in the Context and wraps the next AnteHandler with a defer clause
 // to recover from any downstream OutOfGas panics in the AnteHandler chain to return an error with information
 // on gas provided and gas used.
@@ -24,7 +22,8 @@ func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 	// all transactions must implement GasTx
 	gasTx := tx
 
-	newCtx = SetGasMeter(simulate, ctx, gasTx.GetGas())
+	SetGasMeter(simulate, &ctx, gasTx.GetGas())
+	newCtx = ctx
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
@@ -49,13 +48,15 @@ func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 	return next(newCtx, tx, simulate)
 }
 
-// SetGasMeter returns a new context with a gas meter set from a given context.
-func SetGasMeter(simulate bool, ctx sdk.Context, gasLimit uint64) sdk.Context {
+// SetGasMeter update context with a gas meter with gasLimit
+func SetGasMeter(simulate bool, ctx *sdk.Context, gasLimit uint64) {
 	// In various cases such as simulation and during the genesis block, we do not
 	// meter any gas utilization.
 	if simulate || ctx.BlockHeight() == 0 {
-		return ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+		return
 	}
 
-	return ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(gasLimit))
+	return
 }

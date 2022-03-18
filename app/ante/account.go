@@ -132,16 +132,16 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.
 	return ctx, nil
 }
 
-func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (sdk.Context, error) {
+func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) error {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
-		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+		return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
 
 	// intrinsic gas verification during CheckTx
 	if ctx.IsCheckTx() && gasLimit < gas {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+		return sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
 	}
 
 	// Charge sender for gas up to limit
@@ -157,15 +157,15 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msg
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = auth.DeductFees(sk, ctx, acc, feeAmt)
+		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
 		if err != nil {
-			return ctx, err
+			return err
 		}
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	ctx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return ctx, nil
+	auth.SetGasMeter(simulate, ctx, gasLimit)
+	return nil
 }
 
 func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
@@ -254,7 +254,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 		ctx.EnableAccountCache()
 		// account would be updated
-		ctx, err = ethGasConsume(ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.sk)
+		err = ethGasConsume(&ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.sk)
 		acc = nil
 		acc, _ = ctx.GetFromAccountCacheData().(exported.Account)
 		ctx.DisableAccountCache()

@@ -3,6 +3,8 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -14,7 +16,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -135,7 +136,7 @@ func (k Keeper) OnAccountUpdated(acc auth.Account) {
 }
 
 // Logger returns a module-specific logger.
-func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
+func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:      k.storeKey,
 		ParamSpace:    k.paramSpace,
