@@ -25,7 +25,7 @@ and standard additions here would be better just to add to the Context struct
 type Context struct {
 	ctx            context.Context
 	ms             MultiStore
-	header         abci.Header
+	header         *abci.Header
 	chainID        string
 	from           string
 	txBytes        []byte
@@ -39,12 +39,12 @@ type Context struct {
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
 	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	isAsync        bool
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
 	accountNonce   uint64
 	sigCache       SigCache
-	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
@@ -139,7 +139,7 @@ func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddres
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
-	var msg = proto.Clone(&c.header).(*abci.Header)
+	var msg = proto.Clone(c.header).(*abci.Header)
 	return *msg
 }
 
@@ -154,7 +154,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	return Context{
 		ctx:          context.Background(),
 		ms:           ms,
-		header:       header,
+		header:       &header,
 		chainID:      header.ChainID,
 		checkTx:      isCheckTx,
 		logger:       logger,
@@ -186,7 +186,7 @@ func (c *Context) SetDeliver() {
 func (c Context) WithBlockHeader(header abci.Header) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
-	c.header = header
+	c.header = &header
 	return c
 }
 
