@@ -65,7 +65,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 
 	maxNums := runtime.NumCPU()
 	txSize := len(txs)
-	if maxNums < txSize {
+	if maxNums > txSize {
 		maxNums = txSize
 	}
 
