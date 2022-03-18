@@ -1568,7 +1568,7 @@ func (cs *State) finalizeCommit(height int64) {
 	// this peer is a validator, and it is the next block proposer
 	// todo cs.isProposer should be cs.isNextProposer
 	if cs.Validators.HasAddress(address) && cs.isProposer(address) {
-		go cs.vc(vcCtx)
+		go cs.viewChangeRoutine(vcCtx)
 	}
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
@@ -1632,7 +1632,7 @@ func (cs *State) finalizeCommit(height int64) {
 	// * cs.StartTime is set to when we will start round0.
 }
 
-func (cs *State) vc(ctx context.Context) {
+func (cs *State) viewChangeRoutine(ctx context.Context) {
 	t := time.After(time.Second * 3)
 	loop := true
 	for loop {
@@ -1643,8 +1643,8 @@ func (cs *State) vc(ctx context.Context) {
 			loop = false
 		}
 	}
-	// todo send vcMsg
 
+	// the event is broadcastViewChangeMessage
 	cs.evsw.FireEvent(types.EventViewChange, nil)
 }
 
