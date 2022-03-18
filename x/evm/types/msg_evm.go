@@ -4,8 +4,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"io"
+	"math/big"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
@@ -14,8 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
-	"io"
-	"math/big"
 )
 
 var (
@@ -255,16 +255,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 		return nil
 	}
 
-	var signer ethtypes.Signer
-	if isProtectedV(msg.Data.V) {
-		signer = ethtypes.NewEIP155Signer(chainID)
-	} else {
-		signer = ethtypes.HomesteadSigner{}
-	}
-
-	sigCache, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
 	if ok {
-		msg.BaseTx.From = sigCache.From.String()
+		msg.BaseTx.From = from
 		return nil
 	}
 
@@ -291,7 +284,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 	if err != nil {
 		return err
 	}
-	tmtypes.SignatureCache().Add(string(msg.TxHash()), &tmtypes.TxSigCache{Signer: signer, From: sender})
+	tmtypes.SignatureCache().Add(string(msg.TxHash()), sender.String())
 	msg.BaseTx.From = sender.String()
 	return nil
 }

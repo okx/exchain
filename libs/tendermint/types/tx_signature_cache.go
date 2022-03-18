@@ -47,25 +47,25 @@ type Cache struct {
 	hitCount  int64
 }
 
-func (c *Cache) Get(key string) (*TxSigCache, bool) {
+func (c *Cache) Get(key string) (string, bool) {
 	// validate
 	if !c.validate(key) {
-		return nil, false
+		return "", false
 	}
 	atomic.AddInt64(&c.readCount, 1)
 	// get cache
 	value, ok := c.data.Get(key)
 	if ok {
-		sigCache, ok := value.(*TxSigCache)
+		sigCache, ok := value.(string)
 		if ok {
 			atomic.AddInt64(&c.hitCount, 1)
 			return sigCache, true
 		}
 	}
-	return nil, false
+	return "", false
 }
 
-func (c *Cache) Add(key string, value *TxSigCache) {
+func (c *Cache) Add(key string, value string) {
 	// validate
 	if !c.validate(key) {
 		return
