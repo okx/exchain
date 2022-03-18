@@ -492,7 +492,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
