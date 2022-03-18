@@ -952,7 +952,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// rlp encoder need pointer type, amino encoder will first dereference pointers.
-	txBytes, err := txEncoder(&msg)
+	txBytes, err := txEncoder(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -1273,12 +1273,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
+	err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
 	if err != nil {
 		return nil, err
 	}
 
-	from := fromSigCache.GetFrom()
 	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 	if tx.Index != 0 {
 		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
@@ -1324,7 +1323,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		BlockHash:         blockHash.String(),
 		BlockNumber:       hexutil.Uint64(tx.Height),
 		TransactionIndex:  hexutil.Uint64(tx.Index),
-		From:              from.String(),
+		From:              ethTx.GetFrom(),
 		To:                ethTx.To(),
 	}
 
@@ -1376,16 +1375,10 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			return nil, err
 		}
 
-		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, nil, nil)
+		err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
 		if err != nil {
 			return nil, err
 		}
-
-		from := fromSigCache.GetFrom()
-		//cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
-		//if tx.Index != 0 {
-		//	cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
-		//}
 
 		// Set status codes based on tx result
 		var status = hexutil.Uint64(0)
@@ -1424,7 +1417,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			BlockHash:        blockHash.String(),
 			BlockNumber:      hexutil.Uint64(tx.Height),
 			TransactionIndex: hexutil.Uint64(tx.Index),
-			From:             from.String(),
+			From:             ethTx.GetFrom(),
 			To:               ethTx.To(),
 		}
 		receipts = append(receipts, receipt)
@@ -1600,7 +1593,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
 
-	return &msg, nil
+	return msg, nil
 }
 
 // pendingMsgs constructs an array of sdk.Msg. This method will check pending transactions and convert

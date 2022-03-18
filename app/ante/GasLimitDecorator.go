@@ -27,11 +27,7 @@ type GasLimitDecorator struct {
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	pinAnte(ctx.AnteTracer(), "GasLimitDecorator")
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
-	if !ok {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
-	}
-	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
+	if tx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
 
