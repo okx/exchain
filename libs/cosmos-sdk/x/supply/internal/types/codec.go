@@ -37,6 +37,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	})
 
 	cdc.RegisterConcrete(&Supply{}, "cosmos-sdk/Supply", nil)
+	cdc.EnableBufferMarshaler(ModuleAccount{})
 }
 
 // ModuleCdc generic sealed codec to be used throughout module
