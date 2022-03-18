@@ -129,7 +129,7 @@ func (acc ModuleAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) err
 			return err
 		}
 		lenBeforeData := buf.Len()
-		err = acc.BaseAccount.BaseMarshalAminoTo(cdc, buf)
+		err = acc.BaseAccount.MarshalAminoTo(cdc, buf)
 		if err != nil {
 			return err
 		}
