@@ -356,7 +356,7 @@ func (so *stateObject) commitCode() {
 // ----------------------------------------------------------------------------
 
 // Address returns the address of the state object.
-func (so stateObject) Address() ethcmn.Address {
+func (so *stateObject) Address() ethcmn.Address {
 	return so.address
 }
 
@@ -523,7 +523,7 @@ func (so *stateObject) touch() {
 
 // GetStorageByAddressKey returns a hash of the composite key for a state
 // object's storage prefixed with it's address.
-func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
+func (so *stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	prefix := so.Address().Bytes()
 
 	var compositeKey []byte
