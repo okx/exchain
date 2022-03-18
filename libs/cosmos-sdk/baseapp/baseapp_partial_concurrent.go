@@ -69,7 +69,7 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	return t
 }
 
-type NeedToRerunFn func(task *DeliverTxTask)
+type NeedToRerunFn func(index int)
 
 type sendersMap struct {
 	mtx              sync.Mutex
@@ -172,7 +172,7 @@ func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 		sm.logger.Error("MoveToRerun", "index", task.index)
 		sm.needRerunTasks.Store(task.index, task)
 	}
-	sm.rerunNotifyFn(task)
+	sm.rerunNotifyFn(task.index)
 }
 
 func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
