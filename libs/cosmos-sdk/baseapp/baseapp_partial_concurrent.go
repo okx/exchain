@@ -228,7 +228,7 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	if minIndex >= 0 {
 		nextTask, ok := sm.needRerunTasks.Load(minIndex)
 		if ok {
-			//sm.logger.Info("extractNextTask", "index", minIndex)
+			sm.logger.Info("extractNextTask", "index", minIndex)
 			sm.needRerunTasks.Delete(minIndex)
 			return nextTask.(*DeliverTxTask), existConflict
 		}
@@ -428,8 +428,8 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 		return
 	}
 
-	//dm.mtx.Lock()
-	//defer dm.mtx.Unlock()
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
 
 	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	//task.step = partialConcurrentStepSerialPrepare
@@ -439,15 +439,14 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	}
 }
 
-func (dm *DeliverTxTasksManager) removeFromPending(task *DeliverTxTask) {
-	if task == nil {
-		return
-	}
+func (dm *DeliverTxTasksManager) removeFromPending(index int) {
+	dm.mtx.Lock()
+	defer dm.mtx.Unlock()
 
-	dm.pendingTasks.Delete(task.index)
-	//if ok {
-	//	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
-	//}
+	_, ok := dm.pendingTasks.LoadAndDelete(index)
+	if ok {
+		dm.app.logger.Info("RemoveFromPendingTasks", "index", index)
+	}
 }
 
 func (dm *DeliverTxTasksManager) runAnte(task *DeliverTxTask) error {
