@@ -1002,12 +1002,11 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	for key, store := range storeMap {
 		if !tmtypes.HigherThanIBCHeight(version) {
 			name := key.Name()
-			fmt.Println("commitStore version", key.Name(), version)
 			if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
 				continue
 			}
 		}
-		if tmtypes.GetIBCHeight() == version {
+		if tmtypes.GetIBCHeight()+1 == version {
 			//init store tree version with block height
 			store.UpgradeVersion(version)
 		}

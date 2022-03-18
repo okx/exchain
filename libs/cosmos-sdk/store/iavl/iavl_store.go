@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"time"
 
 	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -80,8 +79,9 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	}
 
 	st := &Store{
-		tree:        tree,
-		flatKVStore: flatkv.NewStore(flatKVDB),
+		tree:           tree,
+		flatKVStore:    flatkv.NewStore(flatKVDB),
+		upgradeVersion: -1,
 	}
 
 	if err = st.ValidateFlatVersion(); err != nil {
@@ -148,10 +148,10 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 	ver := st.GetUpgradeVersion()
 	if ver != -1 {
 		st.tree.UpgradeVersion(ver)
+		st.UpgradeVersion(-1)
 	}
 	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
-		time.Sleep(100000 * time.Second)
 		panic(err)
 	}
 
