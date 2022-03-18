@@ -933,7 +933,14 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 					return
 				}
 
-				cmstx.GetEthSignInfo(app.checkState.ctx.WithTxBytes(tx))
+				// load account from db into cache
+				if rst := cmstx.GetEthSignInfo(app.checkState.ctx.WithTxBytes(tx)); rst != nil {
+					accAddr, err := sdk.AccAddressFromBech32(rst.GetFrom().String())
+					if err != nil {
+						return
+					}
+					app.accNonceHandler(app.checkState.ctx, accAddr)
+				}
 			}(tx)
 		}
 	}()

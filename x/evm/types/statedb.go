@@ -765,7 +765,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	// This is weird pre-byzantium since the first tx runs with a prefetcher and
 	// the remainder without, but pre-byzantium even the initial prefetcher is
 	// useless, so no sleep lost.
-	prefetcher := csdb.prefetcher
+	evmPrefetcher := csdb.prefetcher
 	if csdb.prefetcher != nil {
 		defer func() {
 			csdb.prefetcher.Close()
@@ -773,6 +773,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 		}()
 	}
 
+	accPrefetcher := csdb.prefetcher
 	if csdb.accPrefetcher != nil {
 		defer func() {
 			csdb.accPrefetcher.Close()
@@ -783,8 +784,8 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
-	if prefetcher != nil {
-		if trie := prefetcher.Trie(csdb.originalRoot); trie != nil {
+	if evmPrefetcher != nil {
+		if trie := evmPrefetcher.Trie(csdb.originalRoot); trie != nil {
 			csdb.trie = trie
 		}
 	}
@@ -817,12 +818,12 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 
 				usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 			}
-			if prefetcher != nil {
-				prefetcher.Used(csdb.originalRoot, usedAddrs)
+			if evmPrefetcher != nil {
+				evmPrefetcher.Used(csdb.originalRoot, usedAddrs)
 			}
 
-			if csdb.accPrefetcher != nil {
-				csdb.accPrefetcher.Used(mpt.GAccMptRootHash, usedAddrs)
+			if accPrefetcher != nil {
+				accPrefetcher.Used(mpt.GAccMptRootHash, usedAddrs)
 			}
 
 			if codeWriter.ValueSize() > 0 {
@@ -849,7 +850,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 
 		return ethcmn.Hash{}, nil
 	} else {
-		return csdb.CommitMpt(prefetcher)
+		return csdb.CommitMpt(evmPrefetcher, accPrefetcher)
 	}
 }
 

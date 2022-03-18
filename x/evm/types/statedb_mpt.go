@@ -20,7 +20,7 @@ import (
 	types2 "github.com/okex/exchain/libs/types"
 )
 
-func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Hash, error) {
+func (csdb *CommitStateDB) CommitMpt(evmPrefetcher, accPrefetcher *mpt.TriePrefetcher) (ethcmn.Hash, error) {
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 	usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
@@ -45,8 +45,12 @@ func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Has
 
 		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
-	if prefetcher != nil {
-		prefetcher.Used(csdb.originalRoot, usedAddrs)
+	if evmPrefetcher != nil {
+		evmPrefetcher.Used(csdb.originalRoot, usedAddrs)
+	}
+
+	if accPrefetcher != nil {
+		accPrefetcher.Used(csdb.originalRoot, usedAddrs)
 	}
 
 	if len(csdb.stateObjectsDirty) > 0 {
