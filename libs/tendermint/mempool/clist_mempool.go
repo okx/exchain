@@ -471,6 +471,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx, info ExTxInfo) error {
 	}
 	e := mem.txs.PushBack(memTx)
 	e.Address = info.Sender
+	e.Nonce = info.Nonce
+	e.GasPrice = info.GasPrice
 
 	mem.addressRecord.AddItem(info.Sender, e)
 
