@@ -40,10 +40,10 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
-	ctx = ctx.WithGasMeter(TempGasMeter)
+	ctx.SetGasMeter(TempGasMeter)
 
 	defer func() {
-		ctx = ctx.WithGasMeter(currentGasMeter)
+		ctx.SetGasMeter(currentGasMeter)
 	}()
 
 	gasLimit := currentGasMeter.Limit()

@@ -124,7 +124,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 1. CacheTxContext
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
-	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
 
 	// 2. AnteChain

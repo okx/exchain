@@ -114,7 +114,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
-		ctx = ctx.WithAccountNonce(seq)
+		ctx.SetAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
 		err := nonceVerificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
 		if err != nil {
@@ -175,7 +175,7 @@ func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.Acco
 
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {

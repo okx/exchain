@@ -327,6 +327,22 @@ func (c *Context) SetGasMeter(meter GasMeter) {
 	c.gasMeter = meter
 }
 
+func (c *Context) SetMultiStore(ms MultiStore) {
+	c.ms = ms
+}
+
+func (c *Context) SetEventManager(em *EventManager) {
+	c.eventManager = em
+}
+
+func (c *Context) SetSigCache(cache SigCache) {
+	c.sigCache = cache
+}
+
+func (c *Context) SetAccountNonce(nonce uint64) {
+	c.accountNonce = nonce
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)
