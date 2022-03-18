@@ -61,3 +61,14 @@ func (api *PublicNetAPI) PeerCount() int {
 	}
 	return len(netInfo.Peers)
 }
+
+func (api *PublicNetAPI) AddP2PWhiteIP(ip string) error {
+	monitor := monitor.GetMonitor("net_addP2PWhiteIP", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+	return api.tmClient.AddP2PWhiteIP(ip)
+}
+func (api *PublicNetAPI) RemoveP2PWhiteIP(ip string) error {
+	monitor := monitor.GetMonitor("net_removeP2PWhiteIP", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+	return api.tmClient.RemoveP2PWhiteIP(ip)
+}

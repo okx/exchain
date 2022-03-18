@@ -54,6 +54,8 @@ type transport interface {
 	Listeners() []string
 	IsListening() bool
 	NodeInfo() p2p.NodeInfo
+	AddWhiteIP(string) error
+	RemoveWhiteIP(string) error
 }
 
 type peers interface {

@@ -92,6 +92,8 @@ type NetworkClient interface {
 	ConsensusState() (*ctypes.ResultConsensusState, error)
 	ConsensusParams(height *int64) (*ctypes.ResultConsensusParams, error)
 	Health() (*ctypes.ResultHealth, error)
+	AddP2PWhiteIP(string) error
+	RemoveP2PWhiteIP(string) error
 }
 
 // EventsClient is reactive, you can subscribe to any message, given the proper

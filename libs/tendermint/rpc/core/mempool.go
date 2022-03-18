@@ -181,3 +181,11 @@ func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
 		Nonce: nonce,
 	}, nil
 }
+
+func AddWhiteIP(ip string) error {
+	return env.P2PTransport.AddWhiteIP(ip)
+}
+
+func RemoveWhiteIP(ip string) error {
+	return env.P2PTransport.RemoveWhiteIP(ip)
+}

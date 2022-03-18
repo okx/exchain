@@ -1096,6 +1096,13 @@ func (n *Node) NodeInfo() p2p.NodeInfo {
 	return n.nodeInfo
 }
 
+func (n *Node) AddWhiteIP(ip string) error {
+	return n.transport.AddWhiteIP(ip)
+}
+func (n *Node) RemoveWhiteIP(ip string) error {
+	return n.transport.RemoveWhiteIP(ip)
+}
+
 func makeNodeInfo(
 	config *cfg.Config,
 	nodeKey *p2p.NodeKey,

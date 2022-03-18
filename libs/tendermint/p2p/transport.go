@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -154,6 +156,9 @@ type MultiplexTransport struct {
 	// peer currently. All relevant configuration should be refactored into options
 	// with sane defaults.
 	mConfig conn.MConnConfig
+
+	mux         sync.Mutex
+	whiteIPList map[string]struct{}
 }
 
 // Test multiplexTransport for interface completeness.
@@ -177,6 +182,7 @@ func NewMultiplexTransport(
 		nodeKey:          nodeKey,
 		conns:            NewConnSet(),
 		resolver:         net.DefaultResolver,
+		whiteIPList:      map[string]struct{}{},
 	}
 }
 
@@ -352,6 +358,13 @@ func (mt *MultiplexTransport) filterConn(c net.Conn) (err error) {
 	// Reject if connection is already present.
 	if mt.conns.Has(c) {
 		return ErrRejected{conn: c, isDuplicate: true}
+	}
+
+	// is white list ip, don't check filter ip
+	for ip := range mt.whiteIPList {
+		if strings.Contains(c.RemoteAddr().String(), ip) {
+			return nil
+		}
 	}
 
 	// Resolve ips for incoming conn.
@@ -587,4 +600,25 @@ func resolveIPs(resolver IPResolver, c net.Conn) ([]net.IP, error) {
 	}
 
 	return ips, nil
+}
+
+// AddWhiteIP add trust ip to skip filter ip
+func (mt *MultiplexTransport) AddWhiteIP(ip string) error {
+	mt.mux.Lock()
+	defer mt.mux.Unlock()
+
+	if addr := net.ParseIP(ip); addr == nil {
+		return errors.New("invalid ip address")
+	}
+	mt.whiteIPList[ip] = struct{}{}
+	return nil
+}
+
+// RemoveWhiteIP remove trust ip form white list
+func (mt *MultiplexTransport) RemoveWhiteIP(ip string) error {
+	mt.mux.Lock()
+	defer mt.mux.Unlock()
+
+	delete(mt.whiteIPList, ip)
+	return nil
 }

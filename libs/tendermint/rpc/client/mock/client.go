@@ -161,3 +161,11 @@ func (c Client) Validators(height *int64, page, perPage int) (*ctypes.ResultVali
 func (c Client) BroadcastEvidence(ev types.Evidence) (*ctypes.ResultBroadcastEvidence, error) {
 	return core.BroadcastEvidence(&rpctypes.Context{}, ev)
 }
+
+func (c Client) AddP2PWhiteIP(ip string) error {
+	return core.AddWhiteIP(ip)
+}
+
+func (c Client) RemoveP2PWhiteIP(ip string) error {
+	return core.RemoveWhiteIP(ip)
+}

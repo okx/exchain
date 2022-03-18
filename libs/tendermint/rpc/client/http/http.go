@@ -471,6 +471,15 @@ func (c *baseRPCClient) BroadcastEvidence(ev types.Evidence) (*ctypes.ResultBroa
 	return result, nil
 }
 
+func (c *baseRPCClient) AddP2PWhiteIP(ip string) error {
+	_, err := c.caller.Call("add_p2p_white_ip", map[string]interface{}{"ip": ip}, struct{}{})
+	return err
+}
+func (c *baseRPCClient) RemoveP2PWhiteIP(ip string) error {
+	_, err := c.caller.Call("remove_p2p_white_ip", map[string]interface{}{"ip": ip}, struct{}{})
+	return err
+}
+
 //-----------------------------------------------------------------------------
 // WSEvents
 

@@ -503,3 +503,10 @@ func parseQueryStorePath(path string) (storeName string, err error) {
 
 	return paths[1], nil
 }
+
+func (c *Client) AddP2PWhiteIP(ip string) error {
+	return c.next.AddP2PWhiteIP(ip)
+}
+func (c *Client) RemoveP2PWhiteIP(ip string) error {
+	return c.next.RemoveP2PWhiteIP(ip)
+}
