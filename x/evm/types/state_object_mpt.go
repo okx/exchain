@@ -108,7 +108,7 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 		if so.stateRoot != types2.EmptyRootHash && so.stateDB.prefetcher != nil {
 			// When the miner is creating the pending state, there is no
 			// prefetcher
-			so.trie = so.stateDB.prefetcher.trie(so.stateRoot)
+			so.trie = so.stateDB.prefetcher.Trie(so.stateRoot)
 		}
 
 		if so.trie == nil {
@@ -152,12 +152,13 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 			continue
 		}
 		so.originStorage[key] = value
-		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 
 		compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if UseCompositeKey {
 			key = so.GetStorageByAddressKey(key.Bytes())
 		}
+
+		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
 			so.stateDB.StateCache.Del(compKey.Bytes())
@@ -169,7 +170,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 	}
 	if so.stateDB.prefetcher != nil {
-		so.stateDB.prefetcher.used(so.stateRoot, usedStorage)
+		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 
 	if len(so.pendingStorage) > 0 {
@@ -203,11 +204,14 @@ func (so *stateObject) finalise(prefetch bool) {
 	for key, value := range so.dirtyStorage {
 		so.pendingStorage[key] = value
 		if value != so.originStorage[key] {
+			if UseCompositeKey {
+				key = so.GetStorageByAddressKey(key.Bytes())
+			}
 			slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		}
 	}
 	if so.stateDB.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && so.stateRoot != types2.EmptyRootHash {
-		so.stateDB.prefetcher.prefetch(so.stateRoot, slotsToPrefetch)
+		so.stateDB.prefetcher.Prefetch(so.stateRoot, slotsToPrefetch)
 	}
 
 	if len(so.dirtyStorage) > 0 {

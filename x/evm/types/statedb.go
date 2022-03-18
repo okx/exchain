@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/okex/exchain/libs/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
 	"math/big"
@@ -81,8 +82,10 @@ type CommitStateDB struct {
 	db         ethstate.Database
 	trie       ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
 	StateCache *fastcache.Cache
-	prefetcher *triePrefetcher
+	prefetcher *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
+
+	accPrefetcher *mpt.TriePrefetcher
 
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
@@ -765,8 +768,15 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	prefetcher := csdb.prefetcher
 	if csdb.prefetcher != nil {
 		defer func() {
-			csdb.prefetcher.close()
+			csdb.prefetcher.Close()
 			csdb.prefetcher = nil
+		}()
+	}
+
+	if csdb.accPrefetcher != nil {
+		defer func() {
+			csdb.accPrefetcher.Close()
+			csdb.accPrefetcher = nil
 		}()
 	}
 
@@ -774,7 +784,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
 	if prefetcher != nil {
-		if trie := prefetcher.trie(csdb.originalRoot); trie != nil {
+		if trie := prefetcher.Trie(csdb.originalRoot); trie != nil {
 			csdb.trie = trie
 		}
 	}
@@ -808,7 +818,11 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 				usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 			}
 			if prefetcher != nil {
-				prefetcher.used(csdb.originalRoot, usedAddrs)
+				prefetcher.Used(csdb.originalRoot, usedAddrs)
+			}
+
+			if csdb.accPrefetcher != nil {
+				csdb.accPrefetcher.Used(mpt.GAccMptRootHash, usedAddrs)
 			}
 
 			if codeWriter.ValueSize() > 0 {
@@ -869,7 +883,11 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 		addressesToPrefetch = append(addressesToPrefetch, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
 	if csdb.prefetcher != nil && len(addressesToPrefetch) > 0 {
-		csdb.prefetcher.prefetch(csdb.originalRoot, addressesToPrefetch)
+		csdb.prefetcher.Prefetch(csdb.originalRoot, addressesToPrefetch)
+	}
+
+	if csdb.accPrefetcher != nil && len(addressesToPrefetch) > 0 {
+		csdb.accPrefetcher.Prefetch(mpt.GAccMptRootHash, addressesToPrefetch)
 	}
 
 	// Invalidate journal because reverting across transactions is not allowed.

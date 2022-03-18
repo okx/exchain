@@ -99,6 +99,7 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	ms.trie = tr
 	ms.version = id.Version
 	ms.startVersion = id.Version
+	GAccMptRootHash = openedRootHash
 
 	if ms.logger != nil {
 		ms.logger.Info("open acc mpt trie", "version", openHeight, "trieHash", openedRootHash)
@@ -184,6 +185,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 		panic("fail to commit trie data: " + err.Error())
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
+	GAccMptRootHash = root
 
 	// TODO: use a thread to push data to database
 	// push data to database

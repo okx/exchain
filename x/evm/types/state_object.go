@@ -340,11 +340,11 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			}
 		}
 		if types3.EnableDoubleWrite {
-			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
-
 			if UseCompositeKey {
 				key = prefixKey
 			}
+
+			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			if (value == ethcmn.Hash{}) {
 				so.setError(tr.TryDelete(key[:]))
 			} else {
@@ -356,7 +356,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	}
 
 	if so.stateDB.prefetcher != nil && types3.EnableDoubleWrite {
-		so.stateDB.prefetcher.used(so.stateRoot, usedStorage)
+		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 
 	if len(so.pendingStorage) > 0 {

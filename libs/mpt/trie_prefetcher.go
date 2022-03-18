@@ -1,4 +1,4 @@
-package types
+package mpt
 
 import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -14,16 +14,16 @@ var (
 	triePrefetchMetricsPrefix = "trie/prefetch/"
 )
 
-// triePrefetcher is an active prefetcher, which receives accounts or storage
+// TriePrefetcher is an active prefetcher, which receives accounts or storage
 // items and does trie-loading of them. The goal is to get as much useful content
 // into the caches as possible.
 //
 // Note, the prefetcher's API is not thread safe.
-type triePrefetcher struct {
-	db       ethstate.Database                   // Database to fetch trie nodes through
-	root     common.Hash                 // Root hash of theaccount trie for metrics
-	fetches  map[common.Hash]ethstate.Trie        // Partially or fully fetcher tries
-	fetchers map[common.Hash]*subfetcher // Subfetchers for each trie
+type TriePrefetcher struct {
+	db       ethstate.Database             // Database to fetch trie nodes through
+	root     common.Hash                   // Root hash of theaccount trie for metrics
+	fetches  map[common.Hash]ethstate.Trie // Partially or fully fetcher tries
+	fetchers map[common.Hash]*subfetcher   // Subfetchers for each trie
 
 	deliveryMissMeter metrics.Meter
 	accountLoadMeter  metrics.Meter
@@ -36,10 +36,10 @@ type triePrefetcher struct {
 	storageWasteMeter metrics.Meter
 }
 
-// newTriePrefetcher
-func newTriePrefetcher(db ethstate.Database, root common.Hash, namespace string) *triePrefetcher {
+// NewTriePrefetcher
+func NewTriePrefetcher(db ethstate.Database, root common.Hash, namespace string) *TriePrefetcher {
 	prefix := triePrefetchMetricsPrefix + namespace
-	p := &triePrefetcher{
+	p := &TriePrefetcher{
 		db:       db,
 		root:     root,
 		fetchers: make(map[common.Hash]*subfetcher), // Active prefetchers use the fetchers map
@@ -57,9 +57,9 @@ func newTriePrefetcher(db ethstate.Database, root common.Hash, namespace string)
 	return p
 }
 
-// close iterates over all the subfetchers, aborts any that were left spinning
+// Close iterates over all the subfetchers, aborts any that were left spinning
 // and reports the stats to the metrics subsystem.
-func (p *triePrefetcher) close() {
+func (p *TriePrefetcher) Close() {
 	for _, fetcher := range p.fetchers {
 		fetcher.abort() // safe to do multiple times
 
@@ -93,8 +93,8 @@ func (p *triePrefetcher) close() {
 // already loaded will be copied over, but no goroutines will be started. This
 // is mostly used in the miner which creates a copy of it's actively mutated
 // state to be sealed while it may further mutate the state.
-func (p *triePrefetcher) copy() *triePrefetcher {
-	copy := &triePrefetcher{
+func (p *TriePrefetcher) Copy() *TriePrefetcher {
+	copy := &TriePrefetcher{
 		db:      p.db,
 		root:    p.root,
 		fetches: make(map[common.Hash]ethstate.Trie), // Active prefetchers use the fetches map
@@ -124,7 +124,7 @@ func (p *triePrefetcher) copy() *triePrefetcher {
 }
 
 // prefetch schedules a batch of trie items to prefetch.
-func (p *triePrefetcher) prefetch(root common.Hash, keys [][]byte) {
+func (p *TriePrefetcher) Prefetch(root common.Hash, keys [][]byte) {
 	// If the prefetcher is an inactive one, bail out
 	if p.fetches != nil {
 		return
@@ -140,7 +140,7 @@ func (p *triePrefetcher) prefetch(root common.Hash, keys [][]byte) {
 
 // trie returns the trie matching the root hash, or nil if the prefetcher doesn't
 // have it.
-func (p *triePrefetcher) trie(root common.Hash) ethstate.Trie {
+func (p *TriePrefetcher) Trie(root common.Hash) ethstate.Trie {
 	// If the prefetcher is inactive, return from existing deep copies
 	if p.fetches != nil {
 		trie := p.fetches[root]
@@ -170,7 +170,7 @@ func (p *triePrefetcher) trie(root common.Hash) ethstate.Trie {
 
 // used marks a batch of state items used to allow creating statistics as to
 // how useful or wasteful the prefetcher is.
-func (p *triePrefetcher) used(root common.Hash, used [][]byte) {
+func (p *TriePrefetcher) Used(root common.Hash, used [][]byte) {
 	if fetcher := p.fetchers[root]; fetcher != nil {
 		fetcher.used = used
 	}

@@ -1,6 +1,9 @@
 package mpt
 
-import "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
+)
 
 const (
 	StoreTypeMPT = types.StoreTypeMPT
@@ -17,4 +20,6 @@ var (
 	KeyPrefixRootMptHash             = []byte{0x01}
 	KeyPrefixLatestStoredHeight      = []byte{0x02}
 	AccStoreCache               uint = 2048 // MB
+
+	GAccMptRootHash = ethcmn.Hash{}
 )

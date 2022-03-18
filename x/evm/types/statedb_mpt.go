@@ -20,7 +20,7 @@ import (
 	types2 "github.com/okex/exchain/libs/types"
 )
 
-func (csdb *CommitStateDB) CommitMpt(prefetcher *triePrefetcher) (ethcmn.Hash, error) {
+func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Hash, error) {
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 	usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
@@ -46,7 +46,7 @@ func (csdb *CommitStateDB) CommitMpt(prefetcher *triePrefetcher) (ethcmn.Hash, e
 		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
 	if prefetcher != nil {
-		prefetcher.used(csdb.originalRoot, usedAddrs)
+		prefetcher.Used(csdb.originalRoot, usedAddrs)
 	}
 
 	if len(csdb.stateObjectsDirty) > 0 {
@@ -248,19 +248,30 @@ func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
 	}
 
 	if csdb.prefetcher != nil {
-		csdb.prefetcher.close()
+		csdb.prefetcher.Close()
 		csdb.prefetcher = nil
 	}
 
-	csdb.prefetcher = newTriePrefetcher(csdb.db, csdb.originalRoot, namespace)
+	if csdb.accPrefetcher != nil {
+		csdb.accPrefetcher.Close()
+		csdb.accPrefetcher = nil
+	}
+
+	csdb.prefetcher = mpt.NewTriePrefetcher(csdb.db, csdb.originalRoot, namespace)
+	csdb.accPrefetcher = mpt.NewTriePrefetcher(mpt.InstanceOfAccStore(), mpt.GAccMptRootHash, "account")
 }
 
 // StopPrefetcher terminates a running prefetcher and reports any leftover stats
 // from the gathered metrics.
 func (csdb *CommitStateDB) StopPrefetcher() {
 	if csdb.prefetcher != nil {
-		csdb.prefetcher.close()
+		csdb.prefetcher.Close()
 		csdb.prefetcher = nil
+	}
+
+	if csdb.accPrefetcher != nil {
+		csdb.accPrefetcher.Close()
+		csdb.accPrefetcher = nil
 	}
 }
 
