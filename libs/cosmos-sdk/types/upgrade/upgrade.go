@@ -1,14 +1,17 @@
-package module
+package upgrade
 
 import (
 	"errors"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64
 	BlockStoreModules() []string
+	RegisterParam() params.ParamSet
+	ModuleName() string
 }
 
 type HeightTasks []HeightTask

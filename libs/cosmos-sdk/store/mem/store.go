@@ -1,13 +1,14 @@
 package mem
 
 import (
+	"io"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/listenkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"io"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 )
@@ -99,3 +100,4 @@ func (s *Store) SetPruning(pruning types.PruningOptions) {}
 func (s *Store) GetPruning() types.PruningOptions { return types.PruningOptions{} }
 
 func (s Store) LastCommitID() (id types.CommitID) { return }
+func (s *Store) UpgradeVersion(int64)             {}

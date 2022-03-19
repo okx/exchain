@@ -1,7 +1,9 @@
 package rootmulti
 
 import (
+	"encoding/hex"
 	"fmt"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -23,6 +25,7 @@ import (
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -73,6 +76,7 @@ type Store struct {
 
 	commitHeightFilterPipeline func(h int64) func(str string) bool
 	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	upgradeVersion             int64
 }
 
 var (
@@ -101,6 +105,7 @@ func NewStore(db dbm.DB, os ...StoreOption) *Store {
 		versions:                   make([]int64, 0),
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
 		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		upgradeVersion:             -1,
 	}
 
 	for _, opt := range os {
@@ -259,9 +264,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		commitID := rs.getCommitID(infos, key.Name())
 
 		// If it has been added, set the initial version
-		if upgrades.IsAdded(key.Name()) {
-			storeParams.initialVersion = uint64(ver) + 1
-		}
+		// if upgrades.IsAdded(key.Name()) {
+		// 	storeParams.initialVersion = uint64(ver) + 1
+		// }
 
 		// Load it
 		store, err := rs.loadCommitStoreFromParams(key, commitID, storeParams)
@@ -897,7 +902,7 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	if tmtypes.HigherThanIBCHeight(ci.Version) {
+	if tmtypes.HigherThanIBCHeight(ci.Version - 10) {
 		return ci.ibcHash()
 	}
 	return ci.originHash()
@@ -917,15 +922,42 @@ func (ci commitInfo) Hash() []byte {
 	//rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
 	//return rootHash
 }
+
+//func (ci commitInfo) originHash() []byte {
+//	m := make(map[string][]byte, len(ci.StoreInfos))
+//	for _, storeInfo := range ci.StoreInfos {
+//		m[storeInfo.Name] = storeInfo.Hash()
+//	}
+//	return merkle.SimpleHashFromMap(m)
+//}
+// Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) originHash() []byte {
 	m := make(map[string][]byte, len(ci.StoreInfos))
+	hashs := make(Hashes, 0)
 	for _, storeInfo := range ci.StoreInfos {
+		hashs = append(hashs, HashInfo{
+			storeName: storeInfo.Name,
+			hash:      hex.EncodeToString(storeInfo.Hash()),
+		})
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
-	return merkle.SimpleHashFromMap(m)
+	ret := merkle.SimpleHashFromMap(m)
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret), "detail", hashs.String())
+	return ret
 }
+
 func (ci commitInfo) ibcHash() []byte {
-	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
+	m := ci.toMap()
+	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
+	hashs := make(Hashes, 0)
+	for name, v := range m {
+		hashs = append(hashs, HashInfo{
+			storeName: name,
+			hash:      hex.EncodeToString(v),
+		})
+	}
+	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(rootHash), "detail", hashs.String())
+
 	return rootHash
 }
 
@@ -989,6 +1021,25 @@ func getLatestVersion(db dbm.DB) int64 {
 	return latest
 }
 
+type StoreSorts []StoreSort
+
+func (s StoreSorts) Len() int {
+	return len(s)
+}
+
+func (s StoreSorts) Less(i, j int) bool {
+	return s[i].key.Name() < s[j].key.Name()
+}
+
+func (s StoreSorts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+type StoreSort struct {
+	key types.StoreKey
+	v   types.CommitKVStore
+}
+
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
@@ -996,8 +1047,24 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+		if !tmtypes.HigherThanIBCHeight(version) {
+			name := key.Name()
+			if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
+				continue
+			}
+		}
+		if tmtypes.GetIBCHeight()+1 == version {
+			//init store tree version with block height
+			store.UpgradeVersion(version)
+		}
 
+		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+		if key.Name() == "ibc" {
+			viper.Set("debug", true)
+			defer func() {
+				viper.Set("debug", false)
+			}()
+		}
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
@@ -1300,4 +1367,9 @@ func (rs *Store) StopStore() {
 
 func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
+}
+
+func (rs *Store) UpgradeVersion(version int64) {
+
+	rs.upgradeVersion = version
 }

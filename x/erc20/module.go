@@ -2,6 +2,8 @@ package erc20
 
 import (
 	"encoding/json"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -20,7 +22,7 @@ import (
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 var _ module.AppModule = AppModule{}
-var _ module.UpgradeModule = AppModule{}
+var _ upgrade.UpgradeModule = AppModule{}
 
 // AppModuleBasic struct
 type AppModuleBasic struct{}
@@ -156,11 +158,15 @@ func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	return types.ModuleCdc.MustMarshalJSON(gs)
 }
 
-func (am AppModule) RegisterTask() module.HeightTask {
+func (am AppModule) RegisterTask() upgrade.HeightTask {
 	if !tmtypes.UpgradeIBCInRuntime() {
 		return nil
 	}
-	return module.NewHeightTask(0, func(ctx sdk.Context) error {
+	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
 		return nil
 	})
+}
+
+func (am AppModule) RegisterParam() params.ParamSet {
+	return nil
 }
