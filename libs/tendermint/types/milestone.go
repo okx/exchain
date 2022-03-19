@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"strconv"
 	"sync"
 )
