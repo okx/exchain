@@ -553,7 +553,7 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 					return wrongMsgErr
 				}
 				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
-			case evmtypes.MsgEthereumTx:
+			case *evmtypes.MsgEthereumTx:
 				if len(msgs) > 1 {
 					return wrongMsgErr
 				}

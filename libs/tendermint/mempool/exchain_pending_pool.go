@@ -67,10 +67,10 @@ func (p *PendingPool) hasTx(tx types.Tx, height int64) bool {
 func (p *PendingPool) addTx(pendingTx *PendingTx) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	if _, ok := p.addressTxsMap[pendingTx.exTxInfo.Sender]; !ok {
-		p.addressTxsMap[pendingTx.exTxInfo.Sender] = make(map[uint64]*PendingTx)
+	if _, ok := p.addressTxsMap[pendingTx.mempoolTx.from]; !ok {
+		p.addressTxsMap[pendingTx.mempoolTx.from] = make(map[uint64]*PendingTx)
 	}
-	p.addressTxsMap[pendingTx.exTxInfo.Sender][pendingTx.exTxInfo.Nonce] = pendingTx
+	p.addressTxsMap[pendingTx.mempoolTx.from][pendingTx.mempoolTx.realTx.GetNonce()] = pendingTx
 	p.txsMap[txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height)] = pendingTx
 }
 
@@ -100,15 +100,15 @@ func (p *PendingPool) removeTxByHash(txHash string) {
 	defer p.mtx.Unlock()
 	if pendingTx, ok := p.txsMap[txHash]; ok {
 		delete(p.txsMap, txHash)
-		if _, ok := p.addressTxsMap[pendingTx.exTxInfo.Sender]; ok {
-			delete(p.addressTxsMap[pendingTx.exTxInfo.Sender], pendingTx.exTxInfo.Nonce)
-			if len(p.addressTxsMap[pendingTx.exTxInfo.Sender]) == 0 {
-				delete(p.addressTxsMap, pendingTx.exTxInfo.Sender)
-				delete(p.periodCounter, pendingTx.exTxInfo.Sender)
+		if _, ok := p.addressTxsMap[pendingTx.mempoolTx.from]; ok {
+			delete(p.addressTxsMap[pendingTx.mempoolTx.from], pendingTx.mempoolTx.realTx.GetNonce())
+			if len(p.addressTxsMap[pendingTx.mempoolTx.from]) == 0 {
+				delete(p.addressTxsMap, pendingTx.mempoolTx.from)
+				delete(p.periodCounter, pendingTx.mempoolTx.from)
 			}
 			// update period counter
-			if count, ok := p.periodCounter[pendingTx.exTxInfo.Sender]; ok && count > 0 {
-				p.periodCounter[pendingTx.exTxInfo.Sender] = count - 1
+			if count, ok := p.periodCounter[pendingTx.mempoolTx.from]; ok && count > 0 {
+				p.periodCounter[pendingTx.mempoolTx.from] = count - 1
 			}
 		}
 	}
@@ -182,7 +182,6 @@ func (p *PendingPool) validate(address string, tx types.Tx, height int64) error 
 
 type PendingTx struct {
 	mempoolTx *mempoolTx
-	exTxInfo  ExTxInfo
 }
 
 type AccountRetriever interface {
