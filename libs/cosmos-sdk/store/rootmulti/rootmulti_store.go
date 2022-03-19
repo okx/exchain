@@ -3,6 +3,7 @@ package rootmulti
 import (
 	"encoding/hex"
 	"fmt"
+
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -24,6 +25,7 @@ import (
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -74,6 +76,7 @@ type Store struct {
 
 	commitHeightFilterPipeline func(h int64) func(str string) bool
 	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	upgradeVersion             int64
 }
 
 var (
@@ -102,6 +105,7 @@ func NewStore(db dbm.DB, os ...StoreOption) *Store {
 		versions:                   make([]int64, 0),
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
 		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		upgradeVersion:             -1,
 	}
 
 	for _, opt := range os {
@@ -1041,15 +1045,20 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-	ss := make(StoreSorts, 0)
-	for k, v := range storeMap {
-		ss = append(ss, StoreSort{k, v})
-	}
-	sort.Sort(ss)
-	//for key, store := range storeMap {
-	for _, v := range ss {
-		key := v.key
-		store := v.v
+
+
+	for key, store := range storeMap {
+		if !tmtypes.HigherThanIBCHeight(version) {
+			name := key.Name()
+			if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
+				continue
+			}
+		}
+		if tmtypes.GetIBCHeight()+1 == version {
+			//init store tree version with block height
+			store.UpgradeVersion(version)
+		}
+
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 		if key.Name() == "ibc" {
 			viper.Set("debug", true)
@@ -1359,4 +1368,8 @@ func (rs *Store) StopStore() {
 
 func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
+}
+
+func (rs *Store) UpgradeVersion(version int64) {
+	rs.upgradeVersion = version
 }

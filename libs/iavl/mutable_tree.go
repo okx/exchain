@@ -63,6 +63,8 @@ type MutableTree struct {
 
 	commitCh          chan commitEvent
 	lastPersistHeight int64
+	//for ibc module upgrade version
+	upgradeVersion int64
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -100,6 +102,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 
 			commitCh:          make(chan commitEvent),
 			lastPersistHeight: initVersion,
+			upgradeVersion:    -1,
 		}
 	}
 
@@ -536,6 +539,15 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 // the tree. Returns the hash and new version number.
 func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, error) {
 	version := tree.version + 1
+
+	//begin for upgrade new module
+	upgradeVersion := tree.GetUpgradeVersion()
+	if upgradeVersion != -1 {
+		version = upgradeVersion
+		tree.version = version - 1
+		tree.UpgradeVersion(-1)
+	} //end for upgrade new module
+
 	if version == 1 && tree.ndb.opts.InitialVersion > 0 {
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
@@ -966,4 +978,11 @@ func (tree *MutableTree) GetDelta() {
 		orphans[i] = NodeToNodeJson(orphan)
 	}
 	tree.deltas.OrphansDelta = orphans
+}
+func (tree *MutableTree) UpgradeVersion(version int64) {
+	tree.upgradeVersion = version
+}
+
+func (tree *MutableTree) GetUpgradeVersion() int64 {
+	return tree.upgradeVersion
 }

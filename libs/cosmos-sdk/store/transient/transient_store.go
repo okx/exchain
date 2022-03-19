@@ -80,3 +80,7 @@ func (ts *Store) GetFlatKVReadCount() int {
 func (ts *Store) GetFlatKVWriteCount() int {
 	return 0
 }
+
+func (ts *Store) UpgradeVersion(int64) {
+
+}
