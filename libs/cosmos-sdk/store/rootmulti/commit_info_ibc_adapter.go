@@ -43,4 +43,3 @@ func (ci commitInfo) toMap() map[string][]byte {
 func (si storeInfo) GetHash() []byte {
 	return si.Core.CommitID.Hash
 }
-

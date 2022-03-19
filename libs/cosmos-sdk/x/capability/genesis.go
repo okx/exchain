@@ -13,7 +13,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) 
 		panic(err)
 	}
 
-	// set owners for each index and initialize capability
+	//// set owners for each index and initialize capability
 	for _, genOwner := range genState.Owners {
 		k.SetOwners(ctx, genOwner.Index, genOwner.IndexOwners)
 	}

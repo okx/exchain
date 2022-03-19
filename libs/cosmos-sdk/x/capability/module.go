@@ -10,6 +10,7 @@ import (
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -25,7 +26,7 @@ var (
 	_ module.AppModuleAdapter    = AppModule{}
 	_ module.AppModuleBasic      = AppModuleBasic{}
 	_ module.AppModuleSimulation = AppModule{}
-	_ module.UpgradeModule       = AppModule{}
+	_ upgrade.UpgradeModule      = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -215,11 +216,11 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simula
 	return nil
 }
 
-func (am AppModule) RegisterTask() module.HeightTask {
+func (am AppModule) RegisterTask() upgrade.HeightTask {
 	if !tmtypes.UpgradeIBCInRuntime() {
 		return nil
 	}
-	return module.NewHeightTask(0, func(ctx sdk.Context) error {
+	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
 		data := ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 		am.initGenesis(ctx, data)
 		return nil

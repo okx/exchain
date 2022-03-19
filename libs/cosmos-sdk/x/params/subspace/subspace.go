@@ -59,8 +59,29 @@ func (s Subspace) WithKeyTable(table KeyTable) Subspace {
 	if len(s.table.m) != 0 {
 		panic("SetKeyTable() called on already initialized Subspace")
 	}
-	if s.table.m==nil{
-		s.table.m=make(map[string]attribute)
+	if s.table.m == nil {
+		s.table.m = make(map[string]attribute)
+	}
+
+	for k, v := range table.m {
+		s.table.m[k] = v
+	}
+
+	// Allocate additional capacity for Subspace.name
+	// So we don't have to allocate extra space each time appending to the key
+	name := s.name
+	s.name = make([]byte, len(name), len(name)+table.maxKeyLength())
+	copy(s.name, name)
+
+	return s
+}
+
+func (s Subspace) LazyWithKeyTable(table KeyTable) Subspace {
+	if table.m == nil {
+		panic("SetKeyTable() called with nil KeyTable")
+	}
+	if len(s.table.m) == 0 {
+		panic("SetKeyTable() should call on already initialized Subspace")
 	}
 
 	for k, v := range table.m {

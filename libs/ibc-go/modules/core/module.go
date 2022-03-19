@@ -4,6 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+
+	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+
+	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -14,7 +21,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -249,14 +256,18 @@ func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.W
 	return nil
 }
 
-func (am AppModule) RegisterTask() module.HeightTask {
+func (am AppModule) RegisterTask() upgrade.HeightTask {
 	if !tmtypes.UpgradeIBCInRuntime() {
 		return nil
 	}
-	return module.NewHeightTask(4, func(ctx sdk.Context) error {
+	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
 		data := lazyGenesis()
 		logrusplugin.Info("core init genesis")
 		am.initGenesis(ctx, data)
 		return nil
 	})
+}
+
+func (am AppModule) RegisterParam() params.ParamSet {
+	return nil
 }
