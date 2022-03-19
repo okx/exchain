@@ -32,7 +32,7 @@ func NewAccountAnteDecorator(ak auth.AccountKeeper, ek EVMKeeper, sk types.Suppl
 	}
 }
 
-func accountVerification(ctx *sdk.Context, acc exported.Account, tx evmtypes.MsgEthereumTx) error {
+func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.MsgEthereumTx) error {
 	if ctx.BlockHeight() == 0 && acc.GetAccountNumber() != 0 {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidSequence,
@@ -53,7 +53,7 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx evmtypes.Msg
 	return nil
 }
 
-func nonceVerificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isReCheckTx bool) error {
+func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, isReCheckTx bool) error {
 	if isReCheckTx {
 		// recheckTx mode
 		// sequence must strictly increasing
@@ -81,7 +81,7 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isR
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
 				gPool := baseapp.GetGlobalMempool()
 				if gPool != nil {
-					cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.From().Bytes())).String())
+					cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String())
 					checkTxModeNonce = seq + uint64(cnt)
 				}
 			}
@@ -108,7 +108,7 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx evmtypes.MsgEthereumTx, isR
 	return nil
 }
 
-func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.MsgEthereumTx) (sdk.Context, error) {
+func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes.MsgEthereumTx) (sdk.Context, error) {
 	seq := acc.GetSequence()
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
@@ -132,7 +132,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx evmtypes.
 	return ctx, nil
 }
 
-func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (sdk.Context, error) {
+func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) (sdk.Context, error) {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -168,7 +168,7 @@ func ethGasConsume(ctx sdk.Context, acc exported.Account, accGetGas sdk.Gas, msg
 	return ctx, nil
 }
 
-func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
+func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return
 	}
@@ -201,7 +201,7 @@ func incrementSeq(ctx sdk.Context, msgEthTx evmtypes.MsgEthereumTx, ak auth.Acco
 }
 
 func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
@@ -209,19 +209,11 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var acc exported.Account
 	var getAccGasUsed sdk.Gas
 
-	address := msgEthTx.From()
-	if address.Empty() {
-		if ctx.From() != "" {
-			msgEthTx.SetFrom(ctx.From())
-			address = msgEthTx.From()
-		}
-	}
-
 	if !simulate {
+		address := msgEthTx.AccountAddress()
 		if address.Empty() {
 			panic("sender address cannot be empty")
 		}
-
 		if ctx.IsCheckTx() {
 			acc = avd.ak.GetAccount(ctx, address)
 			if acc == nil {

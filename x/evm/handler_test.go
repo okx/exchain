@@ -74,7 +74,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string

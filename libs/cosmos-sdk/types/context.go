@@ -43,7 +43,6 @@ type Context struct {
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
 	accountNonce   uint64
-	sigCache       SigCache
 	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
@@ -78,7 +77,6 @@ func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 func (c Context) IsAsync() bool               { return c.isAsync }
 func (c Context) AccountNonce() uint64        { return c.accountNonce }
-func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
@@ -380,12 +378,6 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 	cms := c.MultiStore().CacheMultiStore()
 	cc = c.WithMultiStore(cms).WithEventManager(NewEventManager())
 	return cc, cms.Write
-}
-
-// WithSigCache set sigCache.
-func (c Context) WithSigCache(cache SigCache) Context {
-	c.sigCache = cache
-	return c
 }
 
 // An emptyCtx  has no values. It is a

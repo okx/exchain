@@ -12,14 +12,13 @@ import (
 // representation, with the given location metadata set (if available).
 func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	fromSigCache, err := tx.VerifySig(tx.ChainID(), int64(blockNumber), nil, nil)
+	err := tx.VerifySig(tx.ChainID(), int64(blockNumber))
 	if err != nil {
 		return nil, err
 	}
 
-	from := fromSigCache.GetFrom()
 	rpcTx := &Transaction{
-		From:     from,
+		From:     common.HexToAddress(tx.GetFrom()),
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),
 		GasPrice: (*hexutil.Big)(tx.Data.Price),
 		Hash:     txHash,
