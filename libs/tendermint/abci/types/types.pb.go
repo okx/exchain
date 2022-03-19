@@ -1597,6 +1597,8 @@ func (m *ResponseBeginBlock) GetEvents() []Event {
 }
 
 type ResponseCheckTx struct {
+	Tx                   TxEssentials
+	SenderNonce          uint64
 	Code                 uint32   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Log                  string   `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`

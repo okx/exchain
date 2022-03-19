@@ -124,17 +124,10 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	signerCache, err := msg.VerifySig(chainID, 0, nil, nil)
+	err = msg.VerifySig(chainID, 0)
 	require.NoError(t, err)
-	signer := signerCache.GetFrom()
-	require.Equal(t, addr1, signer)
-	require.NotEqual(t, addr2, signer)
-
-	// msg atomic load
-	signerCache, err = msg.VerifySig(chainID, 0, nil, nil)
-	require.NoError(t, err)
-	signer = signerCache.GetFrom()
-	require.Equal(t, addr1, signer)
+	require.Equal(t, addr1, msg.EthereumAddress())
+	require.NotEqual(t, addr2, msg.EthereumAddress())
 
 	signers := msg.GetSigners()
 	require.Equal(t, 1, len(signers))
@@ -143,17 +136,13 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	// zero chainID
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
 	require.Nil(t, err)
-	_, err = msg.VerifySig(zeroChainID, 0, nil, nil)
+	err = msg.VerifySig(zeroChainID, 0)
 	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
-
-	signerCache, err = msg.VerifySig(big.NewInt(4), 0, nil, nil)
-	require.Error(t, err)
-	require.Nil(t, signerCache)
 }
 
 func TestMsgEthereumTx_ChainID(t *testing.T) {
@@ -203,7 +192,7 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 	require.NoError(t, err)
 	hash := ethcmn.BigToHash(big.NewInt(2))
 
-	testCases := []MsgEthereumTx{
+	testCases := []*MsgEthereumTx{
 		msg,
 		{
 			Data: TxData{
@@ -255,7 +244,7 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 		var msg3 MsgEthereumTx
 		v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(raw, &msg3)
 		require.NoError(t, err)
-		msg3 = v.(MsgEthereumTx)
+		msg3 = *v.(*MsgEthereumTx)
 		require.EqualValues(t, msg2, msg3)
 	}
 }
