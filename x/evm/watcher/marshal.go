@@ -2,34 +2,47 @@ package watcher
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
+	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
+	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
+	apptypes "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
 )
 
 var (
-	_ LazyValueMarshaler = (*baseLazyMarshal)(nil)
+	watcherInitCdcOnce sync.Once
+	watcherCdc         *amino.Codec
 )
 
 type LazyValueMarshaler interface {
 	GetValue() string
 }
 
-type baseLazyMarshal struct {
+type BaseMarshaler struct {
 	origin interface{}
 	value  string
 }
-
-func newBaseLazyMarshal(o interface{}) *baseLazyMarshal {
-	return &baseLazyMarshal{
-		origin: o,
-	}
+type JsonMarshaler struct {
+	BaseMarshaler
 }
 
-func (b *baseLazyMarshal) GetValue() string {
+func newJsonMarshaller(o interface{}) *JsonMarshaler {
+	return &JsonMarshaler{
+		BaseMarshaler{
+			origin: o,
+			value:  "", //value will be set when GetValue() is called
+		},
+	}
+}
+func (b *JsonMarshaler) GetValue() string {
 	if b.origin != nil {
 		vs, err := json.Marshal(b.origin)
 		if nil != err {
-			panic("cant happen")
+			panic(fmt.Sprintf("fail to marshaled by json, err : %s", err.Error()))
 		}
 		b.value = string(vs)
 		b.origin = nil
@@ -37,22 +50,32 @@ func (b *baseLazyMarshal) GetValue() string {
 	return b.value
 }
 
-type baseAminoMarshal struct {
-	baseLazyMarshal
+type AminoMarshaler struct {
+	BaseMarshaler
 }
 
-func newBaseAminoMarshal(o interface{}) *baseAminoMarshal {
-	return &baseAminoMarshal{
-		baseLazyMarshal{
+func newAminoMarshaller(o interface{}) *AminoMarshaler {
+	watcherInitCdcOnce.Do(func() {
+		watcherCdc = codec.New()
+		watcherCdc.RegisterInterface((*interface{})(nil), nil)
+		watcherCdc.RegisterConcrete(&[]*Transaction{}, "watcher/Transaction", nil)
+		watcherCdc.RegisterConcrete(&[]common.Hash{}, "common/hash", nil)
+		apptypes.RegisterCodec(watcherCdc)
+		cryptocodec.RegisterCodec(watcherCdc)
+		codec.RegisterCrypto(watcherCdc)
+	})
+	return &AminoMarshaler{
+		BaseMarshaler{
 			origin: o,
+			value:  "", //value will be set when GetValue() is called
 		},
 	}
 }
-func (b *baseAminoMarshal) GetValue() string {
+func (b *AminoMarshaler) GetValue() string {
 	if b.origin != nil {
-		vs, err := amino.MarshalBinaryBare(b.origin)
+		vs, err := watcherCdc.MarshalBinaryBare(b.origin)
 		if nil != err {
-			panic("cant happen")
+			panic(fmt.Sprintf("fail to marshaled by amino, origin : %s, err : %s", reflect.TypeOf(b.origin), err.Error()))
 		}
 		b.value = string(vs)
 		b.origin = nil

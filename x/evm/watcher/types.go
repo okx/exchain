@@ -385,7 +385,7 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 	}
 	msg := MsgEthTx{
 		Key:                txHash.Bytes(),
-		LazyValueMarshaler: newBaseAminoMarshal(ethTx),
+		LazyValueMarshaler: newAminoMarshaller(ethTx),
 	}
 	return &msg
 }
@@ -414,7 +414,7 @@ func NewMsgCode(contractAddr common.Address, code []byte, height uint64) *MsgCod
 		Code:   hexutils.BytesToHex(code),
 	}
 	return &MsgCode{
-		LazyValueMarshaler: newBaseAminoMarshal(codeInfo),
+		LazyValueMarshaler: newAminoMarshaller(codeInfo),
 		Key:                contractAddr.Bytes(),
 	}
 }
@@ -493,7 +493,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), LazyValueMarshaler: newBaseAminoMarshal(tr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), LazyValueMarshaler: newAminoMarshaller(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
@@ -601,7 +601,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
-	return &MsgBlock{blockHash: blockHash.Bytes(), LazyValueMarshaler: newBaseAminoMarshal(b)}
+	return &MsgBlock{blockHash: blockHash.Bytes(), LazyValueMarshaler: newAminoMarshaller(b)}
 }
 
 func (m MsgBlock) GetKey() []byte {
@@ -666,7 +666,7 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 func NewMsgAccount(acc auth.Account) *MsgAccount {
 	return &MsgAccount{
 		addr:               acc.GetAddress().Bytes(),
-		LazyValueMarshaler: newBaseAminoMarshal(acc),
+		LazyValueMarshaler: newAminoMarshaller(acc),
 	}
 }
 
@@ -747,7 +747,7 @@ func (msgParams *MsgParams) GetType() uint32 {
 
 func NewMsgParams(params types.Params) *MsgParams {
 	return &MsgParams{
-		LazyValueMarshaler: newBaseAminoMarshal(params),
+		LazyValueMarshaler: newAminoMarshaller(params),
 		Params:             params,
 	}
 }

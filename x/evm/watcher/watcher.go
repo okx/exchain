@@ -400,8 +400,13 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
-
+	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
+		//when duplicate key was met,  cover the value with the new .
+		filterMap[bytes2Key(b.GetKey())] = b
+	}
+
+	for _, b := range filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
