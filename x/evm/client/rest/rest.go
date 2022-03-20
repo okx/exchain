@@ -100,7 +100,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	ethTx, ok := tx.(evmtypes.MsgEthereumTx)
+	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if ok {
 		return getEthTxResponse(node, resTx, ethTx)
 	}
@@ -119,7 +119,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 
 }
 
-func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes.MsgEthereumTx) (interface{}, error) {
+func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx *evmtypes.MsgEthereumTx) (interface{}, error) {
 	// Can either cache or just leave this out if not necessary
 	block, err := node.Block(&resTx.Height)
 	if err != nil {
@@ -127,7 +127,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := watcher.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
+	res, err := watcher.NewTransaction(ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}

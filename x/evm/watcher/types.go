@@ -484,7 +484,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		BlockHash:         types.EthHashStringer(blockHash).String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              types.EthAddressStringer(common.BytesToAddress(tx.From().Bytes())).String(),
+		From:              types.EthAddressStringer(common.BytesToAddress(tx.AccountAddress().Bytes())).String(),
 		To:                tx.To(),
 	}
 
