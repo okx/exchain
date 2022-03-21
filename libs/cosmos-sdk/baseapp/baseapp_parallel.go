@@ -3,7 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -270,7 +269,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			s := pm.txStatus[txBytes]
 			res := txReps[txIndex]
 
-			if res.Conflict(pm.cc, pm.getRunBase(txIndex), pm.txIndexWithGroupID) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				if pm.workgroup.isRunning(txIndex) {
 					runningTaskID := pm.workgroup.runningStats(txIndex)
 					pm.markFailed(runningTaskID)
@@ -423,24 +422,6 @@ type executeResult struct {
 
 func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 	return e.resp
-}
-
-func (e executeResult) Conflict(cc *conflictCheck, base int, mm map[int]int) bool {
-	//ts := time.Now()
-	//defer func() {
-	//	sdk.AddConflictTime(time.Now().Sub(ts))
-	//}()
-	if e.ms == nil {
-		return true //TODO fix later
-	}
-	for k, readValue := range e.readList {
-
-		if cc.isConflict(mm, k, base, readValue, int(e.counter)) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (e executeResult) GetCounter() uint32 {
@@ -599,11 +580,6 @@ func newConflictCheck() *conflictCheck {
 }
 
 func (c *conflictCheck) update(key string, value []byte, txIndex int) {
-	if data, ok := c.items[key]; ok && bytes.Equal(data.value, value) {
-		fmt.Println("sb---", txIndex, data.txIndex, hex.EncodeToString([]byte(key)), hex.EncodeToString(value))
-		return
-	}
-
 	c.items[key] = A{
 		value:   value,
 		txIndex: txIndex,
@@ -617,16 +593,27 @@ var (
 	whiteAcc = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
 )
 
-func (c *conflictCheck) isConflict(cc map[int]int, key string, base int, readValue []byte, txIndex int) bool {
-	//if key == whiteAcc {
-	//	return false
-	//}
+func (pm *parallelTxManager) newIsConflict(e *executeResult) bool {
+	base := pm.runBase[e.counter]
+	if e.ms == nil {
+		return true //TODO fix later
+	}
+	for k, readValue := range e.readList {
 
-	if dirtyTxIndex, ok := c.items[key]; ok {
+		if pm.isConflict(base, k, readValue, int(e.counter)) {
+			return true
+		}
+	}
+	return false
+
+}
+
+func (p *parallelTxManager) isConflict(base int, key string, readValue []byte, txIndex int) bool {
+	if dirtyTxIndex, ok := p.cc.items[key]; ok {
 		if !bytes.Equal(dirtyTxIndex.value, readValue) {
 			return true
 		} else {
-			if base < dirtyTxIndex.txIndex && cc[dirtyTxIndex.txIndex] != cc[txIndex] {
+			if base < dirtyTxIndex.txIndex && p.txIndexWithGroupID[dirtyTxIndex.txIndex] != p.txIndexWithGroupID[txIndex] {
 				//fmt.Println("ddddd", dirtyTxIndex.txIndex, "txIndex", txIndex, cc[dirtyTxIndex.txIndex], cc[txIndex])
 				return true
 			}
