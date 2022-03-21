@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"sort"
 	"strconv"
@@ -273,6 +274,9 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
+
+	// notify mptStore to tryUpdateTrie
+	mpt.GAccTryUpdateTrieChannel<- struct{}{}
 
 	if app.mptCommitHandler != nil {
 		app.mptCommitHandler(app.deliverState.ctx)

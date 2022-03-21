@@ -19,4 +19,7 @@ var (
 	KeyPrefixRootMptHash             = []byte{0x01}
 	KeyPrefixLatestStoredHeight      = []byte{0x02}
 	AccStoreCache               uint = 2048 // MB
+
+	GAccToPrefetchChannel    = make(chan [][]byte)
+	GAccTryUpdateTrieChannel = make(chan struct{})
 )

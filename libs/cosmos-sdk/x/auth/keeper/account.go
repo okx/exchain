@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/mpt"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
 	"github.com/tendermint/go-amino"
@@ -85,19 +86,17 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		panic(err)
 	}
 
-	store.Set(types.AddressStoreKey(addr), bz)
+	storeAccKey := types.AddressStoreKey(addr)
+	store.Set(storeAccKey, bz)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
-
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
-
-		ctx.WithGasMeter(rawGM)
+		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
 
 	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
+
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
@@ -119,14 +118,14 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 		store = ctx.KVStore(ak.key)
 	}
 
-	store.Delete(types.AddressStoreKey(addr))
+	storeAccKey := types.AddressStoreKey(addr)
+	store.Delete(storeAccKey)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
+		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
+	}
 
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
-
-		ctx.WithGasMeter(rawGM)
+	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 
 	ctx.Cache().UpdateAccount(addr, nil, 0, true)
