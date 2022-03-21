@@ -126,6 +126,7 @@ func NewSimulateKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
+		cci:           &chainConfigInfo{},
 	}
 }
 
@@ -270,7 +271,7 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // cache the chain config and gas costs.
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
-	if k.cci.cc != nil {
+	if k.cci != nil && k.cci.cc != nil {
 		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
 		return *k.cci.cc, true
 	}
