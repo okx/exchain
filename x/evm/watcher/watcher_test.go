@@ -147,7 +147,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	require.NoError(t, err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -198,7 +198,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 
 func TestMsgEthereumTxByWatcher(t *testing.T) {
 	var (
-		tx   types.MsgEthereumTx
+		tx   *types.MsgEthereumTx
 		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)

@@ -181,7 +181,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				suite.Require().NoError(err)
 
 				// sign transaction
-				ethTx, ok := tx.(evm_types.MsgEthereumTx)
+				ethTx, ok := tx.(*evm_types.MsgEthereumTx)
 				suite.Require().True(ok)
 
 				err = ethTx.Sign(chainID, privFrom.ToECDSA())
