@@ -6,7 +6,6 @@ import (
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -122,7 +121,10 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 
 	nextTxIndexInGroup := make(map[int]int)
 	preTxIndexInGroup := make(map[int]int)
-	for _, list := range groupList {
+	txIndexWithGroupID := make(map[int]int)
+	groupSize := len(groupList)
+	for groupIndex := 0; groupIndex < groupSize; groupIndex++ {
+		list := groupList[groupIndex]
 		for index := 0; index < len(list); index++ {
 			if index+1 <= len(list)-1 {
 				nextTxIndexInGroup[list[index]] = list[index+1]
@@ -130,10 +132,12 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 			if index-1 >= 0 {
 				preTxIndexInGroup[list[index]] = list[index-1]
 			}
+			txIndexWithGroupID[list[index]] = groupIndex
 		}
 	}
 	app.parallelTxManage.nextTxInGroup = nextTxIndexInGroup
 	app.parallelTxManage.preTxInGroup = preTxIndexInGroup
+	app.parallelTxManage.txIndexWithGroupID = txIndexWithGroupID
 	return groupList, nextTxIndexInGroup
 }
 
@@ -264,7 +268,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			s := pm.txStatus[txBytes]
 			res := txReps[txIndex]
 
-			if res.Conflict(pm.cc) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			if res.Conflict(pm.cc, pm.getRunBase(txIndex), pm.txIndexWithGroupID) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				if pm.workgroup.isRunning(txIndex) {
 					runningTaskID := pm.workgroup.runningStats(txIndex)
 					pm.markFailed(runningTaskID)
@@ -405,11 +409,6 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 	return asyncExe
 }
 
-type readData struct {
-	value []byte
-	sKey  types.StoreKey
-}
-
 type executeResult struct {
 	resp       abci.ResponseDeliverTx
 	ms         sdk.CacheMultiStore
@@ -424,7 +423,7 @@ func (e executeResult) GetResponse() abci.ResponseDeliverTx {
 	return e.resp
 }
 
-func (e executeResult) Conflict(cc *conflictCheck) bool {
+func (e executeResult) Conflict(cc *conflictCheck, base int, mm map[int]int) bool {
 	//ts := time.Now()
 	//defer func() {
 	//	sdk.AddConflictTime(time.Now().Sub(ts))
@@ -432,9 +431,9 @@ func (e executeResult) Conflict(cc *conflictCheck) bool {
 	if e.ms == nil {
 		return true //TODO fix later
 	}
+	for k, readValue := range e.readList {
 
-	for k, v := range e.readList {
-		if cc.isConflict(k, v) {
+		if cc.isConflict(mm, k, base, readValue, int(e.counter)) {
 			return true
 		}
 	}
@@ -460,6 +459,15 @@ func loadPreData(ms sdk.CacheMultiStore) (map[string][]byte, map[string][]byte) 
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
 	rSet, wSet := loadPreData(ms)
+
+	for key, v := range wSet {
+		if bytes.Equal(v, rSet[key]) {
+			delete(wSet, key)
+		}
+	}
+	delete(rSet, whiteAcc)
+	delete(wSet, whiteAcc)
+
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
@@ -565,9 +573,10 @@ type parallelTxManager struct {
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
 
-	txReps        []*executeResult
-	nextTxInGroup map[int]int
-	preTxInGroup  map[int]int
+	txReps             []*executeResult
+	nextTxInGroup      map[int]int
+	preTxInGroup       map[int]int
+	txIndexWithGroupID map[int]int
 
 	mu  sync.RWMutex
 	cms sdk.CacheMultiStore
@@ -578,36 +587,48 @@ type parallelTxManager struct {
 	markFailedStats map[int]bool
 	commitDone      chan struct{}
 }
+type A struct {
+	value   []byte
+	txIndex int
+}
 
 type conflictCheck struct {
-	items map[string][]byte
+	items map[string]A
 }
 
 func newConflictCheck() *conflictCheck {
 	return &conflictCheck{
-		items: make(map[string][]byte),
+		items: make(map[string]A),
 	}
 }
 
-func (c *conflictCheck) update(key string, value []byte) {
-	c.items[key] = value
+func (c *conflictCheck) update(key string, value []byte, txIndex int) {
+	c.items[key] = A{
+		value:   value,
+		txIndex: txIndex,
+	}
 }
 func (c *conflictCheck) clear() {
-	c.items = make(map[string][]byte, 0)
+	c.items = make(map[string]A, 0)
 }
 
 var (
 	whiteAcc = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
 )
 
-func (c *conflictCheck) isConflict(key string, vaule []byte) bool {
-	if key == whiteAcc {
-		return false
-	}
+func (c *conflictCheck) isConflict(cc map[int]int, key string, base int, readValue []byte, txIndex int) bool {
+	//if key == whiteAcc {
+	//	return false
+	//}
 
-	if dirtyItem, ok := c.items[key]; ok {
-		if !bytes.Equal(vaule, dirtyItem) {
+	if dirtyTxIndex, ok := c.items[key]; ok {
+		if !bytes.Equal(dirtyTxIndex.value, readValue) {
 			return true
+		} else {
+			if base < dirtyTxIndex.txIndex && cc[dirtyTxIndex.txIndex] != cc[txIndex] {
+				//fmt.Println("ddddd", dirtyTxIndex.txIndex, "txIndex", txIndex, cc[dirtyTxIndex.txIndex], cc[txIndex])
+				return true
+			}
 		}
 	}
 	return false
@@ -639,8 +660,9 @@ func newParallelTxManager() *parallelTxManager {
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
 
-		nextTxInGroup: make(map[int]int),
-		preTxInGroup:  make(map[int]int),
+		nextTxInGroup:      make(map[int]int),
+		preTxInGroup:       make(map[int]int),
+		txIndexWithGroupID: make(map[int]int),
 
 		cc:              newConflictCheck(),
 		currIndex:       -1,
@@ -659,7 +681,8 @@ func (f *parallelTxManager) clear() {
 	f.indexMapBytes = make([]string, 0)
 	f.nextTxInGroup = make(map[int]int)
 	f.preTxInGroup = make(map[int]int)
-	f.runBase = make(map[int]int)
+	f.txIndexWithGroupID = make(map[int]int)
+	//f.runBase = make(map[int]int)
 	f.currIndex = -1
 	f.cc.clear()
 	f.markFailedStats = make(map[int]bool)
@@ -705,16 +728,17 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	defer f.mu.Unlock()
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
+	//parent := f.currIndex
 	if ok && preIndexInGroup > f.currIndex {
 		if f.txStatus[f.indexMapBytes[preIndexInGroup]].anteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-			base = preIndexInGroup
+			//parent = preIndexInGroup
 		} else {
 			ms = f.cms.CacheMultiStore()
-			base = f.currIndex
 		}
 
 	}
+	//fmt.Println("runBase", index, base, parent)
 	f.runBase[int(index)] = base
 	return ms
 }
@@ -725,7 +749,7 @@ func (f *parallelTxManager) getRunBase(now int) int {
 	return f.runBase[now]
 }
 
-func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
+func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	//ts := time.Now()
 	//defer func() {
 	//	sdk.AddMergeTime(time.Now().Sub(ts))
@@ -738,7 +762,7 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 	chanStop := make(chan struct{}, 0)
 	go func() {
 		for k, v := range res.writeList {
-			f.cc.update(k, v)
+			f.cc.update(k, v, txIndex)
 		}
 		chanStop <- struct{}{}
 	}()
@@ -754,9 +778,10 @@ func (f *parallelTxManager) SetCurrentIndex(d int, res *executeResult) {
 		}
 		return true
 	}, nil)
-	f.currIndex = d
+	f.currIndex = txIndex
 	f.mu.Unlock()
 	<-chanStop
+	//fmt.Println("SetCurrent", txIndex)
 }
 
 var (
