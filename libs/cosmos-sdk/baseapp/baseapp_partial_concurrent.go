@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 3
+	maxDeliverTxsConcurrentNum = 10
 )
 
 var totalAnteDuration = int64(0)
@@ -36,10 +36,14 @@ type (
 )
 
 const (
-	partialConcurrentStepBasic partialConcurrentStep = iota
+	partialConcurrentStepStart partialConcurrentStep = iota
+	partialConcurrentStepBasicFailed
+	partialConcurrentStepBasicSucceed
 	partialConcurrentStepAnteStart
-	partialConcurrentStepAnteEnd
-	partialConcurrentStepSerialPrepare
+	partialConcurrentStepAnteFailed
+	partialConcurrentStepAnteSucceed
+	partialConcurrentStepInRerun
+	partialConcurrentStepInPending
 	partialConcurrentStepSerialExecute
 )
 
@@ -48,6 +52,8 @@ type DeliverTxTask struct {
 	index         int
 	feeForCollect int64
 	step          partialConcurrentStep
+	updateCount   int8
+	mtx           sync.Mutex
 
 	info      *runTxInfo
 	from      sdk.Address
@@ -67,6 +73,22 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	}
 
 	return t
+}
+
+func (dtt *DeliverTxTask) setStep(step partialConcurrentStep) {
+	dtt.mtx.Lock()
+	defer dtt.mtx.Unlock()
+
+	if dtt.step == partialConcurrentStepInRerun && step != partialConcurrentStepStart {
+		return
+	}
+	dtt.step = step
+}
+
+func (dtt *DeliverTxTask) getStep() partialConcurrentStep {
+	dtt.mtx.Lock()
+	defer dtt.mtx.Unlock()
+	return dtt.step
 }
 
 type NeedToRerunFn func(index int)
@@ -114,7 +136,9 @@ func (sm *sendersMap) Push(task *DeliverTxTask) (succeed bool) {
 				sm.pushToRerunList(task)
 				conflict = true
 			} else if task.index < tasksList[i].index {
-				sm.pushToRerunList(tasksList[i])
+				if tasksList[i].getStep() != partialConcurrentStepInRerun {
+					sm.pushToRerunList(tasksList[i])
+				}
 			} else {
 				sm.logger.Error("Push into notFinishedTasks failed.", "index", task.index)
 				return
@@ -170,9 +194,12 @@ func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	_, ok := sm.needRerunTasks.Load(task.index)
 	if !ok {
 		sm.logger.Error("MoveToRerun", "index", task.index)
+		task.setStep(partialConcurrentStepInRerun)
 		sm.needRerunTasks.Store(task.index, task)
 	}
-	sm.rerunNotifyFn(task.index)
+	if task.getStep() == partialConcurrentStepInPending {
+		sm.rerunNotifyFn(task.index)
+	}
 }
 
 func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
@@ -348,6 +375,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		//task.step = partialConcurrentStepBasic
 
 		if task.err != nil {
+			task.setStep(partialConcurrentStepBasicFailed)
 			dm.pushIntoPending(task)
 			return
 		}
@@ -358,17 +386,17 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		// execute ante
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
 		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
-		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
 		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 			task.err = err
 			dm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 			//dm.sendersMap.Pop(task)
+			task.setStep(partialConcurrentStepBasicFailed)
 			dm.pushIntoPending(task)
 			return
 		}
 
+		task.setStep(partialConcurrentStepBasicSucceed)
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
 			//dm.app.logger.Info("ExitConcurrent", "index", task.index)
@@ -378,25 +406,33 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	} else {
 		dm.app.logger.Error("ResetContext", "index", task.index)
 
+		task.setStep(partialConcurrentStepStart)
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
-		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 	}
 
 	if dm.app.anteHandler != nil {
+		task.setStep(partialConcurrentStepAnteStart)
 		//if blockHeight == AssignedBlockHeight {
 		dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
+		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
+		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
+
+		// todo: will change account. Account updated.
 		err := dm.runAnte(task)
 		if err != nil {
 			dm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
 			//task.anteFailed = true
+			task.setStep(partialConcurrentStepAnteFailed)
+		} else {
+			task.setStep(partialConcurrentStepAnteSucceed)
 		}
 		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
 		if !dm.sendersMap.shouldRerun(task) {
 			task.err = err
 
 			dm.pushIntoPending(task)
+			task.setStep(partialConcurrentStepInPending)
 
 			elapsed := time.Since(start).Microseconds()
 			//dm.mtx.Lock()
@@ -503,6 +539,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			gasStart := time.Now()
 
 			dm.updateFeeCollector()
+
+			// todo: will change account. Account updated.
 			handler.handleDeferRefund(info)
 
 			handler.handleDeferGasConsumed(info)
@@ -556,6 +594,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 		// execute runMsgs
 		runMsgStart := time.Now()
+		// todo: will change account. Account updated.
 		err = handler.handleRunMsg(info)
 		runMsgE := time.Since(runMsgStart).Microseconds()
 		dm.runMsgsTime += runMsgE
@@ -622,7 +661,7 @@ func (dm *DeliverTxTasksManager) extractStatefulTask() bool {
 	task, ok := dm.pendingTasks.Load(dm.statefulIndex + 1)
 	if ok {
 		dm.statefulTask = task.(*DeliverTxTask)
-		dm.statefulTask.step = partialConcurrentStepSerialExecute
+		dm.statefulTask.setStep(partialConcurrentStepSerialExecute)
 		dm.pendingTasks.Delete(dm.statefulTask.index)
 	}
 	return ok
@@ -674,11 +713,20 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 	}
 }
 
+//func (dm *DeliverTxTasksManager)OnAccountUpdated(acc exported.Account) {
+//	account := acc.GetAddress()
+//	dm.app.logger.Info("OnAccountUpdated", hex.EncodeToString(account))
+//}
+
 //-------------------------------------------------------------
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
 		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
+		// set observer for account's update
+		//if app.setAccountObserverFn != nil {
+		//	//app.setAccountObserverFn(app.deliverTxsMgr)
+		//}
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))

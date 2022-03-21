@@ -19,6 +19,9 @@ type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, Address, SigCache)
 
+//type SetAccountObserver func(o keeper.ObserverI) ()
+//type SetAccountObserver func() ()
+
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
 	AnteHandle(ctx Context, tx Tx, simulate bool, next AnteHandler) (newCtx Context, err error)

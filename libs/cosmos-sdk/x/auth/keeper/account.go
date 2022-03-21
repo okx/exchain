@@ -1,11 +1,13 @@
 package keeper
 
 import (
+	"encoding/hex"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/go-amino"
+	"log"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -71,6 +73,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	}
 	store.Set(types.AddressStoreKey(addr), bz)
 	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
+	log.Println("AccountKeeper.SetAccount", hex.EncodeToString(acc.GetAddress()))
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {

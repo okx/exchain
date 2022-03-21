@@ -38,23 +38,3 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 		return ek.FixLog(execResults)
 	}
 }
-
-// getTxFeeAndFromHandler get tx fee and from
-func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from sdk.Address, signCache sdk.SigCache) {
-		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
-			isEvm = true
-			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
-			evmTx.SetFromUseSigCache(signCache)
-			from = evmTx.From()
-		}
-		if feeTx, ok := tx.(authante.FeeTx); ok {
-			fee = feeTx.GetFee()
-			feePayer := feeTx.FeePayer(ctx)
-			feePayerAcc := ak.GetAccount(ctx, feePayer)
-			from = feePayerAcc.GetAddress()
-		}
-
-		return
-	}
-}

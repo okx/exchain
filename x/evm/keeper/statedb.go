@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"log"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/types"
@@ -16,6 +17,7 @@ import (
 
 // SetBalance calls CommitStateDB.SetBalance using the passed in context
 func (k *Keeper) SetBalance(ctx sdk.Context, addr ethcmn.Address, amount *big.Int) {
+	log.Println("Keeper.SetBalance", amount, addr.String())
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	csdb.SetBalance(addr, amount)
 	_ = csdb.Finalise(false)

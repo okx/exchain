@@ -172,9 +172,24 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
-func (app *BaseApp) SetGetTxFeeAndFromHandler(etf sdk.GetTxFeeAndFromHandler)  {
+func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){//}, aof sdk.SetAccountObserver)  {
 	if app.sealed {
-		panic("SetGetTxFeeAndFromHandler() on sealed BaseApp")
+		panic("SetPartialConcurrentHandlers() on sealed BaseApp")
 	}
 	app.getTxFeeAndFromHandler = etf
+	//app.setAccountObserverFn = aof
 }
+
+//func (app *BaseApp) SetGetTxFeeAndFromHandler(etf sdk.GetTxFeeAndFromHandler)  {
+//	if app.sealed {
+//		panic("SetGetTxFeeAndFromHandler() on sealed BaseApp")
+//	}
+//	app.getTxFeeAndFromHandler = etf
+//}
+//
+//func (app *BaseApp) SetAccountObserverFn(aof sdk.SetAccountObserver) {
+//	if app.sealed {
+//		panic("SetAccountObserverFn() on sealed BaseApp")
+//	}
+//	app.setAccountObserverFn = aof
+//}

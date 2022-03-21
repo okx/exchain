@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/tendermint/go-amino"
 
@@ -203,6 +204,7 @@ func (acc *EthAccount) SetBalance(denom string, amt sdk.Dec) {
 		return
 	}
 
+	log.Println("EthAccount.SetBalance", coins)
 	if err := acc.SetCoins(coins); err != nil {
 		panic(fmt.Errorf("could not set %s coins for address %s: %w", denom, acc.EthAddress().String(), err))
 	}
