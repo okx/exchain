@@ -395,7 +395,9 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 					ndb.saveNodeToPrePersistCache(n)
 					n.leftNode = nil
 					n.rightNode = nil
-					savedNodes[string(n.hash)] = n
+					if savedNodes != nil {
+						savedNodes[string(n.hash)] = n
+					}
 				}
 			}
 		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)
@@ -420,7 +422,9 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[string(node.hash)] = node
+	if savedNodes != nil {
+		savedNodes[string(node.hash)] = node
+	}
 
 	return node.hash
 }
