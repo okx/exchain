@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/tendermint/go-amino"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -31,6 +30,8 @@ type StdTx struct {
 	Fee        StdFee         `json:"fee" yaml:"fee"`
 	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
 	Memo       string         `json:"memo" yaml:"memo"`
+
+	sdk.BaseTx `json:"-" yaml:"-"`
 }
 
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -174,7 +175,6 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-
 func (tx StdTx) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }
@@ -237,22 +237,6 @@ func (tx StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	return sdk.AccAddress{}
 }
 
-// GetTxInfo return tx sender and gas price
-func (tx StdTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	exInfo := mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
-
-	if tx.GetSigners() != nil {
-		exInfo.Sender = tx.FeePayer(ctx).String()
-	}
-	exInfo.GasPrice = tx.Fee.GasPrices()[0].Amount.BigInt()
-
-	return exInfo
-}
-
 // GetGasPrice return gas price
 func (tx StdTx) GetGasPrice() *big.Int {
 	gasPrices := tx.Fee.GasPrices()
@@ -266,10 +250,21 @@ func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx StdTx) GetEthSignInfo(ctx sdk.Context) sdk.SigCache {
-	return nil
+func (tx StdTx) GetPartnerInfo(ctx sdk.Context) (string, string) {
+	return "", ""
 }
 
+func (tx StdTx) GetFrom() string {
+	signers := tx.GetSigners()
+	if len(signers) == 0 {
+		return ""
+	}
+	return signers[0].String()
+}
+
+func (tx StdTx) GetNonce() uint64 {
+	return 0
+}
 
 //__________________________________________________________
 
@@ -406,7 +401,7 @@ func StdSignBytes(chainID string, accnum uint64, sequence uint64, fee StdFee, ms
 // StdSignature represents a sig
 type StdSignature struct {
 	crypto.PubKey `json:"pub_key" yaml:"pub_key"` // optional
-	Signature     []byte                          `json:"signature" yaml:"signature"`
+	Signature     []byte `json:"signature" yaml:"signature"`
 }
 
 // DefaultTxDecoder logic for standard transaction decoding
@@ -427,6 +422,7 @@ func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
+		tx.BaseTx.Raw = txBytes
 
 		return tx, nil
 	}

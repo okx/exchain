@@ -5,9 +5,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -47,25 +44,25 @@ type Cache struct {
 	hitCount  int64
 }
 
-func (c *Cache) Get(key string) (*TxSigCache, bool) {
+func (c *Cache) Get(key string) (string, bool) {
 	// validate
 	if !c.validate(key) {
-		return nil, false
+		return "", false
 	}
 	atomic.AddInt64(&c.readCount, 1)
 	// get cache
 	value, ok := c.data.Get(key)
 	if ok {
-		sigCache, ok := value.(*TxSigCache)
+		sigCache, ok := value.(string)
 		if ok {
 			atomic.AddInt64(&c.hitCount, 1)
 			return sigCache, true
 		}
 	}
-	return nil, false
+	return "", false
 }
 
-func (c *Cache) Add(key string, value *TxSigCache) {
+func (c *Cache) Add(key string, value string) {
 	// validate
 	if !c.validate(key) {
 		return
@@ -100,23 +97,4 @@ func (c *Cache) validate(key string) bool {
 		return false
 	}
 	return true
-}
-
-// TxSignatureCache is used to cache the derived sender and contains the signer used
-// to derive it.
-type TxSigCache struct {
-	Signer ethtypes.Signer
-	From   ethcmn.Address
-}
-
-func (s *TxSigCache) GetFrom() ethcmn.Address {
-	return s.From
-}
-
-func (s *TxSigCache) GetSigner() ethtypes.Signer {
-	return s.Signer
-}
-
-func (s *TxSigCache) EqualSiger(siger ethtypes.Signer) bool {
-	return s.Signer.Equal(siger)
 }

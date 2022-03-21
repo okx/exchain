@@ -74,7 +74,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -225,13 +225,8 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs), 1)
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
-	hash := []byte{1}
-	err = suite.stateDB.WithContext(suite.ctx).SetLogs(ethcmn.BytesToHash(hash), resultData.Logs)
-	suite.Require().NoError(err)
-
-	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethcmn.BytesToHash(hash))
-	suite.Require().NoError(err, "failed to get logs")
-
+	suite.stateDB.WithContext(suite.ctx).SetLogs(resultData.Logs)
+	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
 	suite.Require().Equal(logs, resultData.Logs)
 }
 

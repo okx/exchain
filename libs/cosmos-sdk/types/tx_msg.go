@@ -3,8 +3,6 @@ package types
 import (
 	"encoding/json"
 	"math/big"
-
-	"github.com/okex/exchain/libs/tendermint/mempool"
 )
 
 // Transactions messages must fulfill the Msg
@@ -42,33 +40,55 @@ type Tx interface {
 	// require access to any other information.
 	ValidateBasic() error
 
-	// Return tx sender and gas price
-	GetTxInfo(ctx Context) mempool.ExTxInfo
-
 	// Return tx gas price
 	GetGasPrice() *big.Int
 
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
 
-	GetEthSignInfo(ctx Context) SigCache
+	GetPartnerInfo(ctx Context) (string, string)
 
 	GetType() TransactionType
 
 	GetSigners() []AccAddress
 
 	GetGas() uint64
+
+	GetRaw() []byte
+	GetFrom() string
+	GetNonce() uint64
+	TxHash() []byte
 }
+
+type BaseTx struct {
+	Raw   []byte
+	Hash  []byte
+	From  string
+	Nonce uint64
+}
+
+func (tx BaseTx) GetMsgs() []Msg                      { return nil }
+func (tx BaseTx) ValidateBasic() error                { return nil }
+func (tx BaseTx) GetGasPrice() *big.Int               { return big.NewInt(0) }
+func (tx BaseTx) GetTxFnSignatureInfo() ([]byte, int) { return nil, 0 }
+func (tx BaseTx) GetType() TransactionType            { return UnknownType }
+func (tx BaseTx) GetSigners() []AccAddress            { return nil }
+func (tx BaseTx) GetGas() uint64                      { return 0 }
+func (tx BaseTx) GetNonce() uint64                    { return tx.Nonce }
+func (tx BaseTx) GetFrom() string                     { return tx.From }
+func (tx BaseTx) GetRaw() []byte                      { return tx.Raw }
+func (tx BaseTx) TxHash() []byte                    { return tx.Hash }
+func (tx BaseTx) GetPartnerInfo(ctx Context) (string, string) {return "", ""}
 
 //__________________________________________________________
 
 type TransactionType int
+
 const (
 	UnknownType TransactionType = iota
 	StdTxType
 	EvmTxType
 )
-
 
 func (t TransactionType) String() (res string) {
 	switch t {
@@ -81,6 +101,7 @@ func (t TransactionType) String() (res string) {
 	}
 	return res
 }
+
 //__________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
