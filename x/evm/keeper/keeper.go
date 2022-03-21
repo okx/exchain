@@ -297,7 +297,9 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	k.cci.cc = nil
+	if k.cci != nil {
+		k.cci.cc = nil
+	}
 }
 
 // SetGovKeeper sets keeper of gov
