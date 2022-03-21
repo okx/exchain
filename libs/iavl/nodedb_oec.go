@@ -492,7 +492,7 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
 		ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
-		ndb.saveOrphan(batch, []byte(hash), fromVersion, toVersion)
+		ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
 	}
 }
 
