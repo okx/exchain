@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -153,17 +152,4 @@ func (k Keeper) GetOperAndValidatorAddr(ctx sdk.Context) types.OVPairs {
 		ovPairs = append(ovPairs, ovPair)
 	}
 	return ovPairs
-}
-
-// GetHistoricalInfo gets the historical info at a given height
-func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types2.HistoricalInfo, bool) {
-	store := ctx.KVStore(k.storeKey)
-	key := types2.GetHistoricalInfoKey(height)
-
-	value := store.Get(key)
-	if value == nil {
-		return types2.HistoricalInfo{}, false
-	}
-
-	return types2.MustUnmarshalHistoricalInfo(k.cdc, value), true
 }

@@ -1,7 +1,6 @@
 package rootmulti
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
@@ -89,7 +88,7 @@ var (
 // store will be created with a PruneNothing pruning strategy by default. After
 // a store is created, KVStores must be mounted and finally LoadLatestVersion or
 // LoadVersion must be called.
-func NewStore(db dbm.DB, os ...StoreOption) *Store {
+func NewStore(db dbm.DB) *Store {
 	var flatKVDB dbm.DB
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
@@ -106,10 +105,6 @@ func NewStore(db dbm.DB, os ...StoreOption) *Store {
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
 		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
 		upgradeVersion:             -1,
-	}
-
-	for _, opt := range os {
-		opt(ret)
 	}
 
 	return ret
@@ -902,62 +897,25 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	if tmtypes.HigherThanIBCHeight(ci.Version - 10) {
+	if tmtypes.HigherThanIBCHeight(ci.Version) {
 		return ci.ibcHash()
 	}
 	return ci.originHash()
-	//// TODO: cache to ci.hash []byte
-	//m := make(map[string][]byte, len(ci.StoreInfos))
-	//for _, storeInfo := range ci.StoreInfos {
-	//	m[storeInfo.Name] = storeInfo.Hash()
-	//}
-	//
-	//return merkle.SimpleHashFromMap(m)
-
-	// we need a special case for empty set, as SimpleProofsFromMap requires at least one entry
-	//if len(ci.StoreInfos) == 0 {
-	//	return nil
-	//}
-	//
-	//rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
-	//return rootHash
 }
 
-//func (ci commitInfo) originHash() []byte {
-//	m := make(map[string][]byte, len(ci.StoreInfos))
-//	for _, storeInfo := range ci.StoreInfos {
-//		m[storeInfo.Name] = storeInfo.Hash()
-//	}
-//	return merkle.SimpleHashFromMap(m)
-//}
-// Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) originHash() []byte {
+	// TODO: cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
-	hashs := make(Hashes, 0)
 	for _, storeInfo := range ci.StoreInfos {
-		hashs = append(hashs, HashInfo{
-			storeName: storeInfo.Name,
-			hash:      hex.EncodeToString(storeInfo.Hash()),
-		})
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
-	ret := merkle.SimpleHashFromMap(m)
-	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(ret), "detail", hashs.String())
-	return ret
+	return merkle.SimpleHashFromMap(m)
 }
 
+// Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) ibcHash() []byte {
 	m := ci.toMap()
 	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
-	hashs := make(Hashes, 0)
-	for name, v := range m {
-		hashs = append(hashs, HashInfo{
-			storeName: name,
-			hash:      hex.EncodeToString(v),
-		})
-	}
-	logrusplugin.Info("commitINfo", "version", ci.Version, "hash", hex.EncodeToString(rootHash), "detail", hashs.String())
-
 	return rootHash
 }
 
@@ -1059,12 +1017,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
-		if key.Name() == "ibc" {
-			viper.Set("debug", true)
-			defer func() {
-				viper.Set("debug", false)
-			}()
-		}
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}

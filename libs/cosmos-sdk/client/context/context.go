@@ -1,9 +1,7 @@
 package context
 
 import (
-	"encoding/json"
 	"fmt"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io"
 	"os"
 
@@ -45,8 +43,6 @@ type CLIContext struct {
 	GenerateOnly  bool
 	Indent        bool
 	SkipConfirm   bool
-
-	InterfaceRegistry codectypes.InterfaceRegistry
 }
 
 // NewCLIContextWithInputAndFrom returns a new initialized CLIContext with parameters from the
@@ -236,14 +232,6 @@ func (ctx CLIContext) WithBroadcastMode(mode string) CLIContext {
 // NOTE: pass in marshalled structs that have been unmarshaled
 // because this function will panic on marshaling errors
 func (ctx CLIContext) PrintOutput(toPrint interface{}) error {
-	out, err := ctx.OutPut(toPrint)
-	if nil != err {
-		return err
-	}
-	fmt.Println(string(out))
-	return nil
-}
-func (ctx CLIContext) OutPut(toPrint interface{}) ([]byte, error) {
 	var (
 		out []byte
 		err error
@@ -261,52 +249,11 @@ func (ctx CLIContext) OutPut(toPrint interface{}) ([]byte, error) {
 		}
 	}
 
-	return out, err
-}
-
-func (ctx CLIContext)Response(data interface{})error{
-	bs,err:=ctx.OutPut(data)
-	if nil!=err{
-		return err
-	}
-	return ctx.write(bs)
-}
-
-
-func (ctx CLIContext) write(out []byte) error {
-	if ctx.OutputFormat == "text" {
-		// handle text format by decoding and re-encoding JSON as YAML
-		var j interface{}
-
-		err := json.Unmarshal(out, &j)
-		if err != nil {
-			return err
-		}
-
-		out, err = yaml.Marshal(j)
-		if err != nil {
-			return err
-		}
-	}
-
-	writer := ctx.Output
-	if writer == nil {
-		writer = os.Stdout
-	}
-
-	_, err := writer.Write(out)
 	if err != nil {
 		return err
 	}
 
-	if ctx.OutputFormat != "text" {
-		// append new-line for formats besides YAML
-		_, err = writer.Write([]byte("\n"))
-		if err != nil {
-			return err
-		}
-	}
-
+	fmt.Println(string(out))
 	return nil
 }
 

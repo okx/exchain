@@ -123,10 +123,6 @@ func NewAppModule(cdc *codec.CodecProxy, keeper keeper.Keeper) AppModule {
 	return ret
 }
 
-func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
-	return nil, nil
-}
-
 // Name returns the capability module's name.
 func (am AppModule) Name() string {
 	return am.AppModuleBasic.Name()

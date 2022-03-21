@@ -169,7 +169,6 @@ func (b *Block) ValidateBasic() error {
 
 	// NOTE: b.Data.Txs may be nil, but b.Data.Hash() still works fine.
 	if !bytes.Equal(b.DataHash, b.Data.Hash(b.Height)) {
-		b.Data.Hash(b.Height)
 		return fmt.Errorf(
 			"wrong Header.DataHash. Expected %v, got %v",
 			b.Data.Hash(b.Height),
@@ -221,9 +220,6 @@ func (b *Block) Hash() tmbytes.HexBytes {
 	}
 	b.fillHeader()
 
-	//if HigherThanIBCHeight(b.Height) {
-	//	return b.Header.IBCHash()
-	//}
 	return b.Header.Hash()
 }
 
@@ -668,22 +664,6 @@ func (h *Header) Hash() tmbytes.HexBytes {
 		return h.IBCHash()
 	}
 	return h.originHash()
-	//return merkle.SimpleHashFromByteSlices([][]byte{
-	//	cdcEncode(h.Version),
-	//	cdcEncode(h.ChainID),
-	//	cdcEncode(h.Height),
-	//	cdcEncode(h.Time),
-	//	cdcEncode(h.LastBlockID),
-	//	cdcEncode(h.LastCommitHash),
-	//	cdcEncode(h.DataHash),
-	//	cdcEncode(h.ValidatorsHash),
-	//	cdcEncode(h.NextValidatorsHash),
-	//	cdcEncode(h.ConsensusHash),
-	//	cdcEncode(h.AppHash),
-	//	cdcEncode(h.LastResultsHash),
-	//	cdcEncode(h.EvidenceHash),
-	//	cdcEncode(h.ProposerAddress),
-	//})
 }
 func (h *Header) originHash() tmbytes.HexBytes {
 	return merkle.SimpleHashFromByteSlices([][]byte{
@@ -738,22 +718,6 @@ func (h *Header) IBCHash() tmbytes.HexBytes {
 		ibccdcEncode(h.EvidenceHash),
 		ibccdcEncode(h.ProposerAddress),
 	})
-	//logrusplugin.Info("info",
-	//	"chainId", h.ChainID,
-	//	"height", h.Height,
-	//	"hbz", hex.EncodeToString(hbz),
-	//	"pbt", hex.EncodeToString(pbt),
-	//	"bzbi", hex.EncodeToString(bzbi),
-	//	"lastCommitHash", hex.EncodeToString(h.LastCommitHash),
-	//	"dataHash", hex.EncodeToString(h.DataHash),
-	//	"ValidatorsHash", hex.EncodeToString(h.ValidatorsHash),
-	//	"NextValidatorsHash", hex.EncodeToString(h.NextValidatorsHash),
-	//	"AppHash", hex.EncodeToString(h.AppHash),
-	//	"LastResultsHash", hex.EncodeToString(h.LastResultsHash),
-	//	"EvidenceHash", hex.EncodeToString(h.EvidenceHash),
-	//	"ProposerAddress", hex.EncodeToString(h.ProposerAddress),
-	//	"ret", hex.EncodeToString(ret))
-
 	return ret
 }
 

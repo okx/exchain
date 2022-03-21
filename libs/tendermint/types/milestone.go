@@ -47,6 +47,7 @@ func init() {
 				}
 			}
 		}
+		milestoreIbcHeight = 20
 	})
 }
 

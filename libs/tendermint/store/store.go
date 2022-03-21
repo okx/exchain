@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"strconv"
 	"sync"
 
@@ -337,11 +336,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	if !blockParts.IsComplete() {
 		panic(fmt.Sprintf("BlockStore can only save complete block part sets"))
 	}
-	logrusplugin.Info("saveBlock",
-		"height", block.Height,
-		"txCount", len(block.Txs),
-		"blockHash", block.Hash(), "appHash", block.AppHash,
-		"dataHash", block.DataHash, "txHash", block.Data.Hash(block.Height))
+
 	// Save block meta
 	blockMeta := types.NewBlockMeta(block, blockParts)
 	metaBytes := cdc.MustMarshalBinaryBare(blockMeta)

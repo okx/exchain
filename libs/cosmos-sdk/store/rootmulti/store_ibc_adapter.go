@@ -11,8 +11,6 @@ func queryIbcProof(res *abci.ResponseQuery, info *commitInfo, storeName string) 
 	res.Proof.Ops = append(res.Proof.Ops, info.ProofOp(storeName))
 }
 
-type StoreOption func(s *Store)
-
 func (s *Store) getStores(h int64) map[types.StoreKey]types.CommitKVStore {
 	return s.stores
 }

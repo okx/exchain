@@ -602,7 +602,6 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
-			var memTx *mempoolTx
 			var exTxInfo ExTxInfo
 			if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
 				mem.cache.Remove(tx)
@@ -615,7 +614,7 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
-			memTx = &mempoolTx{
+			memTx := &mempoolTx{
 				height:    mem.height,
 				gasWanted: r.CheckTx.GasWanted,
 				tx:        tx,

@@ -683,7 +683,6 @@ func (app *OKExChainApp) setupUpgradeModules() {
 		app.GetCMS().SetCommitHeightFilterPipeline(pip)
 	}
 	vs := app.subspaces
-	fmt.Println(vs, pR)
 	for k, vv := range pR {
 		supace, exist := vs[k]
 		if !exist {

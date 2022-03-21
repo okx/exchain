@@ -125,10 +125,6 @@ func NewAppModule(k *keeper.Keeper) AppModule {
 	return ret
 }
 
-func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
-	return nil, nil
-}
-
 // TODO
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil

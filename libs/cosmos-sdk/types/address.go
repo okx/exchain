@@ -137,9 +137,6 @@ func VerifyAddressFormat(bz []byte) error {
 func AccAddressFromBech32(address string) (AccAddress, error) {
 	return AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
 }
-func UnsafeSetAddressPrefix(address string){
-	GetConfig().bech32AddressPrefix["account_addr"] = address
-}
 
 // AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
 func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (addr AccAddress, err error) {
@@ -265,16 +262,6 @@ func (aa AccAddress) Bech32String(bech32PrefixAccAddr string) string {
 	}
 
 	return bech32Addr
-}
-
-func Bech32ifyAddressBytes(prefix string, bs []byte) (string, error) {
-	if len(bs) == 0 {
-		return "", nil
-	}
-	if len(prefix) == 0 {
-		return "", errors.New("prefix cannot be empty")
-	}
-	return bech32.ConvertAndEncode(prefix, bs)
 }
 
 // Format implements the fmt.Formatter interface.

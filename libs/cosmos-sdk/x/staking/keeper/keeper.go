@@ -29,8 +29,6 @@ type Keeper struct {
 	paramstore         params.Subspace
 	validatorCache     map[string]cachedValidator
 	validatorCacheList *list.List
-
-	marshal *codec.CodecProxy
 }
 
 // NewKeeper creates a new staking Keeper instance
