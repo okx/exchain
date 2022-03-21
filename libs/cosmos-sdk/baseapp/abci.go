@@ -225,12 +225,13 @@ func (app *BaseApp) addCommitTraceInfo() {
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
 
-	// notify mptStore to tryUpdateTrie
-	mpt.GAccTryUpdateTrieChannel<- struct{}{}
-
 	if app.mptCommitHandler != nil {
 		app.mptCommitHandler(app.deliverState.ctx)
 	}
+
+	// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
+	mpt.GAccTryUpdateTrieChannel<- struct{}{}
+	<- mpt.GAccTrieUpdatedChannel
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root

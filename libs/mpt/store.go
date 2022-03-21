@@ -2,8 +2,6 @@ package mpt
 
 import (
 	"fmt"
-	"io"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	types3 "github.com/ethereum/go-ethereum/core/types"
@@ -16,6 +14,7 @@ import (
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/libs/types"
+	"io"
 
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -196,15 +195,15 @@ func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
 func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) {
 	ms.version++
 
+	// stop pre round prefetch
+	ms.StopPrefetcher()
+
 	root, err := ms.trie.Commit(nil)
 	if err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
-
-	// stop pre round prefetch
-	ms.StopPrefetcher()
 
 	// TODO: use a thread to push data to database
 	// push data to database
@@ -499,6 +498,7 @@ func (ms *MptStore) prefetchData() {
 					if trie := ms.prefetcher.Trie(ms.originalRoot); trie != nil {
 						ms.trie = trie
 					}
+					GAccTrieUpdatedChannel <- struct{}{}
 				}
 			case addr := <-GAccToPrefetchChannel:
 				if ms.prefetcher != nil {

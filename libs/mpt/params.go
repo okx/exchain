@@ -22,4 +22,5 @@ var (
 
 	GAccToPrefetchChannel    = make(chan [][]byte, 2000)
 	GAccTryUpdateTrieChannel = make(chan struct{})
+	GAccTrieUpdatedChannel = make(chan struct{})
 )
