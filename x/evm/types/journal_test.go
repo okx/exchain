@@ -68,7 +68,7 @@ func (suite *JournalTestSuite) SetupTest() {
 
 	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
 	// suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), balance)
-	suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("txhash")), []*ethtypes.Log{
+	suite.stateDB.SetLogs([]*ethtypes.Log{
 		{
 			Address:     suite.address,
 			Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic_0"))},

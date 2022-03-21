@@ -632,9 +632,6 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 	if mode == runTxModeDeliverInAsync && app.parallelTxManage.isAsyncDeliverTx {
 		ctx = ctx.WithAsync()
-		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
-			ctx = ctx.WithSigCache(s.signCache)
-		}
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
 
@@ -851,7 +848,12 @@ func (app *BaseApp) StopStore() {
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
-	exTxInfo := tx.GetTxInfo(ctx)
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   tx.GetFrom(),
+		GasPrice: tx.GetGasPrice(),
+		Nonce:    tx.GetNonce(),
+	}
+
 	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.AccHandler != nil {
 		addr, _ := sdk.AccAddressFromBech32(exTxInfo.Sender)
 		exTxInfo.Nonce = app.AccHandler(ctx, addr)

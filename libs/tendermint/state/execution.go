@@ -5,12 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/tendermint/go-amino"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
@@ -19,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 //-----------------------------------------------------------------------------
@@ -464,7 +463,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	// Run txs of block.
 	for count, tx := range block.Txs {
 		//if global.GetGlobalHeight() == 5810705 {
 		//	logger.Info("DeliverTxAsync", "index", count)

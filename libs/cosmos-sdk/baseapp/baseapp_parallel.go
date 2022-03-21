@@ -17,9 +17,8 @@ var (
 )
 
 type extraDataForTx struct {
-	fee       sdk.Coins
-	isEvm     bool
-	signCache sdk.SigCache
+	fee   sdk.Coins
+	isEvm bool
 }
 
 // txByteWithIndex = txByte + index
@@ -48,11 +47,10 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
-				fee:       coin,
-				isEvm:     isEvm,
-				signCache: s,
+				fee:   coin,
+				isEvm: isEvm,
 			}
 		}()
 	}
@@ -69,7 +67,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 
 	maxNums := runtime.NumCPU()
 	txSize := len(txs)
-	if maxNums < txSize {
+	if maxNums > txSize {
 		maxNums = txSize
 	}
 
@@ -112,7 +110,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	for k := range txs {
 		t := &txStatus{
 			indexInBlock: uint32(k),
-			signCache:    extraData[k].signCache,
 		}
 		if extraData[k].isEvm {
 			t.evmIndex = evmIndex
@@ -250,20 +247,20 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte) *executeResult {
 		mode runTxMode
 	)
 	mode = runTxModeDeliverInAsync
-	g, r, m, e := app.runTx(mode, txByte, tx, LatestSimulateTxHeight)
+	info, e := app.runTx(mode, txByte, tx, LatestSimulateTxHeight)
 	if e != nil {
-		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
+		resp = sdkerrors.ResponseDeliverTx(e, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
 		resp = abci.ResponseDeliverTx{
-			GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
-			GasUsed:   int64(g.GasUsed),   // TODO: Should type accept unsigned ints?
-			Log:       r.Log,
-			Data:      r.Data,
-			Events:    r.Events.ToABCIEvents(),
+			GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+			GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+			Log:       info.result.Log,
+			Data:      info.result.Data,
+			Events:    info.result.Events.ToABCIEvents(),
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, txStatus.indexInBlock, txStatus.evmIndex)
 	asyncExe.err = e
 	return asyncExe
 }
@@ -385,7 +382,6 @@ type txStatus struct {
 	evmIndex     uint32
 	indexInBlock uint32
 	anteErr      error
-	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {
