@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -165,7 +166,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			if chosen % 10 == 0 {
+			if chosen%10 == 0 {
 				k.mptCommitMu.Lock()
 				defer k.mptCommitMu.Unlock()
 				// If the header is missing (canonical chain behind), we're reorging a low

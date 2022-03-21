@@ -18,8 +18,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +37,7 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 		migrateAccountCmd(ctx),
 		migrateContractCmd(ctx),
 		cleanRawDBCmd(ctx),
+		iteratorMptCmd(ctx),
 	)
 
 	return cmd
@@ -79,6 +82,65 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
+func iteratorMptCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "iterate",
+		Args:  cobra.ExactArgs(1),
+		Short: "",
+		Run: func(cmd *cobra.Command, args []string) {
+			name := args[0]
+			iteratorMpt(ctx, name)
+		},
+	}
+	return cmd
+}
+
+func iteratorMpt(ctx *server.Context, name string) {
+	switch name {
+	case authtypes.StoreKey:
+		accMptDb := mpt.InstanceOfAccStore()
+		hhash, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+		panicError(err)
+		rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+		panicError(err)
+		accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
+		panicError(err)
+		fmt.Println("accTrie root hash:", accTrie.Hash())
+
+		itr := trie.NewIterator(accTrie.NodeIterator(nil))
+		for itr.Next() {
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
+		}
+
+	case evmtypes.StoreKey:
+		migApp := newMigrationApp(ctx)
+		ver, err := migApp.GetCommitVersion()
+		panicError(err)
+		// init deliver state
+		migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
+		cmCtx := migApp.GetDeliverStateCtx()
+
+		evmMptDb := mpt.InstanceOfEvmStore()
+		rootHash := migApp.EvmKeeper.GetMptRootHash(uint64(cmCtx.BlockHeight() - 1))
+		evmTrie, err := evmMptDb.OpenTrie(rootHash)
+		fmt.Println("evmTrie root hash:", evmTrie.Hash())
+
+		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
+		for itr.Next() {
+			addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
+			addrHash := ethcrypto.Keccak256Hash(addr[:])
+			contractTrie := getTrie(evmMptDb, addrHash)
+			fmt.Println(addr.String(), contractTrie.Hash())
+
+			cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
+			for cItr.Next() {
+				fmt.Printf("%s: %s\n", cItr.Key, cItr.Value)
+			}
+		}
+
+	}
+}
+
 //----------------------------------------------------------------
 func migrateAccount(ctx *server.Context) {
 	migApp := newMigrationApp(ctx)
@@ -102,6 +164,13 @@ func migrateAccount(ctx *server.Context) {
 	contractCnt := 0
 	emptyRootHashByte := types.EmptyRootHash.Bytes()
 
+	// update GlobalNumber
+	accountNumber := migApp.AccountKeeper.GetNextAccountNumber(cmCtx)
+	bz := migApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber)
+	err = accTrie.TryUpdate(authtypes.GlobalAccountNumberKey, bz)
+	panicError(err)
+
+	// update every account
 	migApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
 		cnt += 1
 		err := accTrie.TryUpdate(key, value)

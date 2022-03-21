@@ -94,13 +94,7 @@ func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
 
 	// Encode the account and update the account trie
 	addr := so.Address()
-
-	// Encoding []byte cannot fail, ok to ignore the error.
-	data, err := rlp.EncodeToBytes(so.stateRoot.Bytes())
-	if err != nil {
-		csdb.SetError(fmt.Errorf("encode state root (%x) error: %v", so.stateRoot.String(), err))
-	}
-	if err := csdb.trie.TryUpdate(addr[:], data); err != nil {
+	if err := csdb.trie.TryUpdate(addr[:], so.stateRoot.Bytes()); err != nil {
 		csdb.SetError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 }
