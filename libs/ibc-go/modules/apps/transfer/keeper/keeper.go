@@ -20,7 +20,7 @@ import (
 // Keeper defines the IBC fungible transfer keeper
 type Keeper struct {
 	storeKey   sdk.StoreKey
-	cdc        *codec.MarshalProxy
+	cdc        *codec.CodecProxy
 	paramSpace paramtypes.Subspace
 
 	channelKeeper types.ChannelKeeper
@@ -35,7 +35,7 @@ type Keeper struct {
 
 // NewKeeper creates a new IBC transfer Keeper instance
 func NewKeeper(
-	proxy *codec.MarshalProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace,
+	proxy *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper,
 	authKeeper types.AccountKeeper, bankKeeper types.BankKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
 	registry types2.InterfaceRegistry,
@@ -175,6 +175,6 @@ func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability
 }
 
 // Codec returns the IBC module codec.
-func (k Keeper) Codec() *codec.MarshalProxy {
+func (k Keeper) Codec() *codec.CodecProxy {
 	return k.cdc
 }

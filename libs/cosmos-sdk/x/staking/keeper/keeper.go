@@ -30,7 +30,7 @@ type Keeper struct {
 	validatorCache     map[string]cachedValidator
 	validatorCacheList *list.List
 
-	marshal *codec.MarshalProxy
+	marshal *codec.CodecProxy
 }
 
 // NewKeeper creates a new staking Keeper instance

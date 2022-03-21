@@ -43,7 +43,7 @@ var (
 )
 
 // SetConsensusState stores the consensus state at the given height.
-func SetConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, consensusState *ConsensusState, height exported.Height) {
+func SetConsensusState(clientStore sdk.KVStore, cdc *codec.CodecProxy, consensusState *ConsensusState, height exported.Height) {
 	key := host.ConsensusStateKey(height)
 	val := clienttypes.MustMarshalConsensusState(cdc, consensusState)
 	clientStore.Set(key, val)
@@ -51,7 +51,7 @@ func SetConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, consens
 
 // GetConsensusState retrieves the consensus state from the client prefixed
 // store. An error is returned if the consensus state does not exist.
-func GetConsensusState(store sdk.KVStore, cdc *codec.MarshalProxy, height exported.Height) (*ConsensusState, error) {
+func GetConsensusState(store sdk.KVStore, cdc *codec.CodecProxy, height exported.Height) (*ConsensusState, error) {
 	bz := store.Get(host.ConsensusStateKey(height))
 	if bz == nil {
 		return nil, sdkerrors.Wrapf(
@@ -242,7 +242,7 @@ func IterateConsensusStateAscending(clientStore sdk.KVStore, cb func(height expo
 // The Iterator returns a storetypes.Iterator which iterates from start (inclusive) to end (exclusive).
 // If the starting height exists in store, we need to call iterator.Next() to get the next consenus state.
 // Otherwise, the iterator is already at the next consensus state so we can call iterator.Value() immediately.
-func GetNextConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, height exported.Height) (*ConsensusState, bool) {
+func GetNextConsensusState(clientStore sdk.KVStore, cdc *codec.CodecProxy, height exported.Height) (*ConsensusState, bool) {
 	iterateStore := prefix.NewStore(clientStore, []byte(KeyIterateConsensusStatePrefix))
 	iterator := iterateStore.Iterator(bigEndianHeightBytes(height), nil)
 	defer iterator.Close()
@@ -267,7 +267,7 @@ func GetNextConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, hei
 // GetPreviousConsensusState returns the highest consensus state that is lower than the given height.
 // The Iterator returns a storetypes.Iterator which iterates from the end (exclusive) to start (inclusive).
 // Thus to get previous consensus state we call iterator.Value() immediately.
-func GetPreviousConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, height exported.Height) (*ConsensusState, bool) {
+func GetPreviousConsensusState(clientStore sdk.KVStore, cdc *codec.CodecProxy, height exported.Height) (*ConsensusState, bool) {
 	iterateStore := prefix.NewStore(clientStore, []byte(KeyIterateConsensusStatePrefix))
 	iterator := iterateStore.ReverseIterator(nil, bigEndianHeightBytes(height))
 	defer iterator.Close()
@@ -286,7 +286,7 @@ func GetPreviousConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy,
 // is deleted.
 func PruneAllExpiredConsensusStates(
 	ctx sdk.Context, clientStore sdk.KVStore,
-	cdc *codec.MarshalProxy, clientState *ClientState,
+	cdc *codec.CodecProxy, clientState *ClientState,
 ) (err error) {
 	var heights []exported.Height
 
@@ -318,7 +318,7 @@ func PruneAllExpiredConsensusStates(
 }
 
 // Helper function for GetNextConsensusState and GetPreviousConsensusState
-func getTmConsensusState(clientStore sdk.KVStore, cdc *codec.MarshalProxy, key []byte) (*ConsensusState, bool) {
+func getTmConsensusState(clientStore sdk.KVStore, cdc *codec.CodecProxy, key []byte) (*ConsensusState, bool) {
 	bz := clientStore.Get(key)
 	if bz == nil {
 		return nil, false

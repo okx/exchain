@@ -65,21 +65,21 @@ type ClientState interface {
 	// Initialization function
 	// Clients must validate the initial consensus state, and may store any client-specific metadata
 	// necessary for correct light client operation
-	Initialize(sdk.Context, *codec.MarshalProxy, sdk.KVStore, ConsensusState) error
+	Initialize(sdk.Context, *codec.CodecProxy, sdk.KVStore, ConsensusState) error
 
 	// Status function
 	// Clients must return their status. Only Active clients are allowed to process packets.
 	// Ywmet todo
-	Status(ctx sdk.Context, clientStore sdk.KVStore, cdc *codec.MarshalProxy) Status
+	Status(ctx sdk.Context, clientStore sdk.KVStore, cdc *codec.CodecProxy) Status
 
 	// Genesis function
 	ExportMetadata(sdk.KVStore) []GenesisMetadata
 
 	// Update and Misbehaviour functions
 
-	CheckHeaderAndUpdateState(sdk.Context, *codec.MarshalProxy, sdk.KVStore, Header) (ClientState, ConsensusState, error)
-	CheckMisbehaviourAndUpdateState(sdk.Context, *codec.MarshalProxy, sdk.KVStore, Misbehaviour) (ClientState, error)
-	CheckSubstituteAndUpdateState(ctx sdk.Context, cdc *codec.MarshalProxy, subjectClientStore, substituteClientStore sdk.KVStore, substituteClient ClientState) (ClientState, error)
+	CheckHeaderAndUpdateState(sdk.Context, *codec.CodecProxy, sdk.KVStore, Header) (ClientState, ConsensusState, error)
+	CheckMisbehaviourAndUpdateState(sdk.Context, *codec.CodecProxy, sdk.KVStore, Misbehaviour) (ClientState, error)
+	CheckSubstituteAndUpdateState(ctx sdk.Context, cdc *codec.CodecProxy, subjectClientStore, substituteClientStore sdk.KVStore, substituteClient ClientState) (ClientState, error)
 
 	// Upgrade functions
 	// NOTE: proof heights are not included as upgrade to a new revision is expected to pass only on the last
@@ -89,7 +89,7 @@ type ClientState interface {
 	// may be cancelled or modified before the last planned height.
 	VerifyUpgradeAndUpdateState(
 		ctx sdk.Context,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		store sdk.KVStore,
 		newClient ClientState,
 		newConsState ConsensusState,
@@ -105,7 +105,7 @@ type ClientState interface {
 
 	VerifyClientState(
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		counterpartyClientIdentifier string,
@@ -114,7 +114,7 @@ type ClientState interface {
 	) error
 	VerifyClientConsensusState(
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		counterpartyClientIdentifier string,
 		consensusHeight Height,
@@ -124,7 +124,7 @@ type ClientState interface {
 	) error
 	VerifyConnectionState(
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		proof []byte,
@@ -133,7 +133,7 @@ type ClientState interface {
 	) error
 	VerifyChannelState(
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		proof []byte,
@@ -144,7 +144,7 @@ type ClientState interface {
 	VerifyPacketCommitment(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -158,7 +158,7 @@ type ClientState interface {
 	VerifyPacketAcknowledgement(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -172,7 +172,7 @@ type ClientState interface {
 	VerifyPacketReceiptAbsence(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -185,7 +185,7 @@ type ClientState interface {
 	VerifyNextSequenceRecv(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc *codec.MarshalProxy,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,

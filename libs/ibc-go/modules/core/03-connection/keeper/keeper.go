@@ -23,12 +23,12 @@ type Keeper struct {
 
 	storeKey     sdk.StoreKey
 	paramSpace   paramtypes.Subspace
-	cdc          *codec.MarshalProxy
+	cdc          *codec.CodecProxy
 	clientKeeper types.ClientKeeper
 }
 
 // NewKeeper creates a new IBC connection Keeper instance
-func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
 	return Keeper{
 		storeKey:     key,
 		cdc:          cdc,

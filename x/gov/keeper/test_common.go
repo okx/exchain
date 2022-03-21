@@ -125,10 +125,9 @@ func CreateTestInput(
 		},
 	)
 	cdc := MakeTestCodec()
-	reg:=types2.NewInterfaceRegistry()
-	cc:=codec.NewProtoCodec(reg)
-	pro:=codec.NewMarshalProxy(cc,cdc)
-
+	reg := types2.NewInterfaceRegistry()
+	cc := codec.NewProtoCodec(reg)
+	pro := codec.NewCodecProxy(cc, cdc)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	notBondedPool := supply.NewEmptyModuleAccount(staking.NotBondedPoolName, supply.Staking)
@@ -171,7 +170,7 @@ func CreateTestInput(
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	// for staking/distr rollback to cosmos-sdk
-	stakingKeeper := staking.NewKeeper(cdc,pro, stakingSk, supplyKeeper,
+	stakingKeeper := staking.NewKeeper(cdc, pro, stakingSk, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())

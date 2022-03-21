@@ -37,7 +37,7 @@ type BaseKeeper struct {
 	ak         types.AccountKeeper
 	paramSpace params.Subspace
 
-	marshal *codec.MarshalProxy
+	marshal *codec.CodecProxy
 }
 
 // NewBaseKeeper returns a new BaseKeeper
@@ -53,7 +53,7 @@ func NewBaseKeeper(
 	}
 }
 
-func NewBaseKeeperWithMarshal(ak types.AccountKeeper, marshal *codec.MarshalProxy, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
+func NewBaseKeeperWithMarshal(ak types.AccountKeeper, marshal *codec.CodecProxy, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
 ) BaseKeeper {
 	ret := NewBaseKeeper(ak, paramSpace, blacklistedAddrs)
 	ret.marshal = marshal

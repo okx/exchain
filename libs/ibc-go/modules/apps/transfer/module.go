@@ -108,11 +108,11 @@ type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
-	m      *codec.MarshalProxy
+	m      *codec.CodecProxy
 }
 
 // NewAppModule creates a new 20-transfer module
-func NewAppModule(k keeper.Keeper, m *codec.MarshalProxy) AppModule {
+func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}

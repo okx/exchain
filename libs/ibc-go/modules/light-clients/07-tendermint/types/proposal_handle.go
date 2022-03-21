@@ -24,7 +24,7 @@ import (
 // the FrozenHeight to the zero Height. If a client is frozen and AllowUpdateAfterMisbehaviour
 // is set to true, the client will be unexpired even if AllowUpdateAfterExpiry is set to false.
 func (cs ClientState) CheckSubstituteAndUpdateState(
-	ctx sdk.Context, cdc *codec.MarshalProxy, subjectClientStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, subjectClientStore,
 	substituteClientStore sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
 	substituteClientState, ok := substituteClient.(*ClientState)

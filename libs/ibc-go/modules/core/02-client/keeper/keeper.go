@@ -23,13 +23,13 @@ import (
 
 type Keeper struct {
 	storeKey      sdk.StoreKey
-	cdc           *codec.MarshalProxy
+	cdc           *codec.CodecProxy
 	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
 }
 
 // NewKeeper creates a new NewKeeper instance
-func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
