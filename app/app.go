@@ -252,10 +252,10 @@ func NewOKExChainApp(
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
-	bApp.SetStoreLoader(bam.StoreLoaderWithUpgrade(&types.StoreUpgrades{
-		Added: []string{ibctransfertypes.StoreKey, capabilitytypes.StoreKey, host.StoreKey,
-			erc20.StoreKey},
-	}))
+	//bApp.SetStoreLoader(bam.StoreLoaderWithUpgrade(&types.StoreUpgrades{
+	//	Added: []string{ibctransfertypes.StoreKey, capabilitytypes.StoreKey, host.StoreKey,
+	//		erc20.StoreKey},
+	//}))
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
