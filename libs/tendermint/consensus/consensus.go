@@ -153,7 +153,8 @@ type State struct {
 
 	trc *trace.Tracer
 
-	prerunTx bool
+	prerunTx       bool
+	hasViewChanged bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -499,6 +500,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
+	cs.hasViewChanged = false
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -728,7 +730,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
 		// exe vc
-		cs.enterNewRound(cs.Height, cs.Round+1)
+		cs.enterNewRound(cs.Height, cs.Round+1, &msg.val)
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -807,7 +809,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 
 		cs.trc.Reset()
-		cs.enterNewRound(ti.Height, 0)
+		cs.enterNewRound(ti.Height, 0, nil)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
@@ -819,7 +821,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepPrecommitWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
-		cs.enterNewRound(ti.Height, ti.Round+1)
+		cs.enterNewRound(ti.Height, ti.Round+1, nil)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
 	}
@@ -860,7 +862,7 @@ func (cs *State) handleTxsAvailable() {
 // Enter: +2/3 precommits for nil at (height,round-1)
 // Enter: +2/3 prevotes any or +2/3 precommits for block or any from (height, round)
 // NOTE: cs.StartTime was already set for height.
-func (cs *State) enterNewRound(height int64, round int) {
+func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
 
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight) {
@@ -887,6 +889,9 @@ func (cs *State) enterNewRound(height int64, round int) {
 	if cs.Round < round {
 		validators = validators.Copy()
 		validators.IncrementProposerPriority(round - cs.Round)
+	}
+	if assignedVal != nil {
+		validators.Proposer = assignedVal
 	}
 
 	// Setup new round
@@ -1035,6 +1040,12 @@ func (cs *State) enterPropose(height int64, round int) {
 
 func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
+}
+
+func (cs *State) isNextNProposer(address []byte, times int)bool {
+	vals := cs.Validators.Copy()
+	vals.IncrementProposerPriority(times)
+	return bytes.Equal(vals.GetProposer().Address, address)
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int) {
@@ -1559,21 +1570,10 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	address := cs.privValidatorPubKey.Address()
-
-	ctx := context.Background()
-	vcCtx, vcCancel := context.WithCancel(ctx)
-	// this peer is a validator, and it is the next block proposer
-	// todo cs.isProposer should be cs.isNextProposer
-	if cs.Validators.HasAddress(address) && cs.isProposer(address) {
-		go cs.viewChangeRoutine(vcCtx)
-	}
-
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
 		block)
-	vcCancel()
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		err := tmos.Kill()
@@ -1946,7 +1946,7 @@ func (cs *State) addVote(
 		if cs.config.SkipTimeoutCommit && cs.LastCommit.HasAll() {
 			// go straight to new round (skip timeout commit)
 			// cs.scheduleTimeout(time.Duration(0), cs.Height, 0, cstypes.RoundStepNewHeight)
-			cs.enterNewRound(cs.Height, 0)
+			cs.enterNewRound(cs.Height, 0, nil)
 		}
 
 		return
@@ -2027,7 +2027,7 @@ func (cs *State) addVote(
 		switch {
 		case cs.Round < vote.Round && prevotes.HasTwoThirdsAny():
 			// Round-skip if there is any 2/3+ of votes ahead of us
-			cs.enterNewRound(height, vote.Round)
+			cs.enterNewRound(height, vote.Round, nil)
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
 			blockID, ok := prevotes.TwoThirdsMajority()
 			if ok && (cs.isProposalComplete() || len(blockID.Hash) == 0) {
@@ -2049,18 +2049,18 @@ func (cs *State) addVote(
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
 			// Executed as TwoThirdsMajority could be from a higher round
-			cs.enterNewRound(height, vote.Round)
+			cs.enterNewRound(height, vote.Round, nil)
 			cs.enterPrecommit(height, vote.Round)
 			if len(blockID.Hash) != 0 {
 				cs.enterCommit(height, vote.Round)
 				if cs.config.SkipTimeoutCommit && precommits.HasAll() {
-					cs.enterNewRound(cs.Height, 0)
+					cs.enterNewRound(cs.Height, 0, nil)
 				}
 			} else {
 				cs.enterPrecommitWait(height, vote.Round)
 			}
 		} else if cs.Round <= vote.Round && precommits.HasTwoThirdsAny() {
-			cs.enterNewRound(height, vote.Round)
+			cs.enterNewRound(height, vote.Round, nil)
 			cs.enterPrecommitWait(height, vote.Round)
 		}
 

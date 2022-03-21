@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
@@ -313,12 +314,35 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		panic(fmt.Sprintf("Peer %v has no state", src))
 	}
 
+	srcAddress, err := hex.DecodeString(string(src.ID()))
+	if err != nil {
+		conR.Logger.Error("Error decoding peer ID", "src", src, "err", err)
+		return
+	}
+
 	switch chID {
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			// todo ps.peer.ID() == cs.proposer
-			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+			// ApplyBlock of height-1 is finished
+			if msg.Height == conR.conS.Height {
+				// verify if src(peer) is proposer. To be sure the message is sent by proposer
+				if conR.conS.isProposer(srcAddress) {
+					conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+				}
+			} else if msg.Height == conR.conS.Height+1 {
+				// ApplyBlock of height-1 is not finished, and src should be next proposer of current state
+				if conR.conS.isNextNProposer(srcAddress, 1) {
+					// todo vc after scheduleRound0
+				}
+			}
+		case *ProposeBlockRequestMessage:
+			// this peer need vc, and it has not vc before
+			if conR.conS.Height < msg.Height && !conR.conS.hasViewChanged {
+				// broadcast vc message
+				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
+				conR.conS.hasViewChanged = true
+			}
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
@@ -479,10 +503,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
-	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventViewChange,
-		func(data tmevents.EventData) {
-			conR.broadcastViewChangeMessage()
-		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -495,8 +515,9 @@ func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
 }
 
-func (conR *Reactor) broadcastViewChangeMessage() {
-	vcMsg := ViewChangeMessage{}
+func (conR *Reactor) broadcastViewChangeMessage(height int64, address []byte) {
+	_, val := conR.conS.Validators.GetByAddress(address)
+	vcMsg := ViewChangeMessage{height, *val}
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(vcMsg))
 }
 
@@ -1514,8 +1535,22 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 
 //-------------------------------------
 
+// ProposeBlockRequestMessage from other peer for request the latest height of consensus block
+ type ProposeBlockRequestMessage struct {
+ 	Height	int64
+ }
+
+ func (m *ProposeBlockRequestMessage) ValidateBasic() error {
+	 if m.Height < 0 {
+		 return errors.New("negative Height")
+	 }
+	 return nil
+ }
+
 // ViewChangeMessage is sent for remind peer to do vc
 type ViewChangeMessage struct {
+	Height	int64
+	val	types.Validator
 }
 
 func (m *ViewChangeMessage) ValidateBasic() error {

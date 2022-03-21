@@ -207,7 +207,7 @@ func (cs *State) startTestRoutines(maxSteps int) {
 }
 
 func startTestRound(cs *State, height int64, round int) {
-	cs.enterNewRound(height, round)
+	cs.enterNewRound(height, round, nil)
 	cs.startTestRoutines(0)
 }
 
