@@ -52,7 +52,7 @@ type Keeper struct {
 	innerBlockData BlockInnerData
 
 	// cache chain config
-	cci *chainConfigInfo
+	cci chainConfigInfo
 }
 
 type chainConfigInfo struct {
@@ -99,7 +99,6 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
-		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	if k.Watcher.Enabled() {
@@ -126,7 +125,6 @@ func NewSimulateKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
-		cci:           &chainConfigInfo{},
 	}
 }
 
@@ -247,7 +245,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 }
 
 // getChainConfig get raw chain config and unmarshal it
-func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
@@ -269,9 +267,9 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // GetChainConfig gets chain config, the result if from cached result, or
 // it gains chain config and gas costs from getChainConfig, then
 // cache the chain config and gas costs.
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
-	if k.cci != nil && k.cci.cc != nil {
+	if k.cci.cc != nil {
 		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
 		return *k.cci.cc, true
 	}
@@ -281,7 +279,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	gasStop := ctx.GasMeter().GasConsumed()
 
 	// only cache chain config result when we found it, or try to found again.
-	if found && k.cci != nil {
+	if found {
 		k.cci.cc = &chainConfig
 		k.cci.gasReduced = gasStop - gasStart
 	}
@@ -290,16 +288,14 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
 
 	// invalid the chainConfig
-	if k.cci != nil {
-		k.cci.cc = nil
-	}
+	k.cci.cc = nil
 }
 
 // SetGovKeeper sets keeper of gov
