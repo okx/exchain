@@ -161,6 +161,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	app.parallelTxManage.isAsyncDeliverTx = true
 	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
+	app.parallelTxManage.runBase = make([]int, len(txs))
 
 	evmIndex := uint32(0)
 	for k := range txs {
@@ -578,7 +579,7 @@ type parallelTxManager struct {
 
 	cc              *conflictCheck
 	currIndex       int
-	runBase         map[int]int
+	runBase         []int
 	markFailedStats map[int]bool
 	commitDone      chan struct{}
 }
@@ -666,7 +667,7 @@ func newParallelTxManager() *parallelTxManager {
 
 		cc:              newConflictCheck(),
 		currIndex:       -1,
-		runBase:         make(map[int]int),
+		runBase:         make([]int, 0),
 		markFailedStats: make(map[int]bool),
 
 		commitDone: make(chan struct{}, 1),
@@ -744,8 +745,6 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 }
 
 func (f *parallelTxManager) getRunBase(now int) int {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	return f.runBase[now]
 }
 
