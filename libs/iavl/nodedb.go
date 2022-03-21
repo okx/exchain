@@ -122,12 +122,6 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if len(hash) == 0 {
 			panic("nodeDB.GetNode() requires hash")
 		}
-		// Check the cache.
-		if elem, ok := ndb.nodeCache[string(hash)]; ok {
-			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
-			return elem.Value.(*Node)
-		}
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
 			return elem
 		}
@@ -135,9 +129,16 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
 			return elem
 		}
+		// Check the cache.
+		if elem, ok := ndb.nodeCache[string(hash)]; ok {
+			// Already exists. Move to back of nodeCacheQueue.
+			ndb.nodeCacheQueue.MoveToBack(elem)
+			return elem.Value.(*Node)
+		}
 		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
 			return elem
 		}
+
 		return nil
 	}()
 
