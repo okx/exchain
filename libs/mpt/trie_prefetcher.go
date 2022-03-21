@@ -21,7 +21,7 @@ var (
 // Note, the prefetcher's API is not thread safe.
 type TriePrefetcher struct {
 	db       ethstate.Database             // Database to fetch trie nodes through
-	root     common.Hash                   // Root hash of theaccount trie for metrics
+	root     common.Hash                   // Root hash of the account trie for metrics
 	fetches  map[common.Hash]ethstate.Trie // Partially or fully fetcher tries
 	fetchers map[common.Hash]*subfetcher   // Subfetchers for each trie
 
