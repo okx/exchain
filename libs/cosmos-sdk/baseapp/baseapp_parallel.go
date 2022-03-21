@@ -3,6 +3,7 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -459,12 +460,6 @@ func loadPreData(ms sdk.CacheMultiStore) (map[string][]byte, map[string][]byte) 
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
 	rSet, wSet := loadPreData(ms)
-
-	for key, v := range wSet {
-		if bytes.Equal(v, rSet[key]) {
-			delete(wSet, key)
-		}
-	}
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
 
@@ -603,6 +598,11 @@ func newConflictCheck() *conflictCheck {
 }
 
 func (c *conflictCheck) update(key string, value []byte, txIndex int) {
+	if data, ok := c.items[key]; ok && bytes.Equal(data.value, value) {
+		fmt.Println("sb---", txIndex, data.txIndex, hex.EncodeToString([]byte(key)), hex.EncodeToString(value))
+		return
+	}
+
 	c.items[key] = A{
 		value:   value,
 		txIndex: txIndex,
