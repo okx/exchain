@@ -40,24 +40,24 @@ run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
     if [ "$startDaenom" = true ]; then
       echo "start run "
-#         nohup exchaind start --pruning=nothing --rpc.unsafe \
-#          --home=$CHAINDIR/$CHAINID \
-#          --local-rpc-port ${RPCPORT} \
-#          --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
-#          --rpc.external_laddr="0.0.0.0:${RPCPORT}" \
-#          --p2p.laddr="tcp://0.0.0.0:${P2PPORT}" \
-#          --log_level $LOG_LEVEL \
-#          --log_file json \
-#          --enable-dynamic-gp=false \
-#          --consensus.timeout_commit 2000ms \
-#          --enable-preruntx=false \
-#          --enable-gid \
-#          --append-pid=true \
-#          --iavl-commit-interval-height 10 \
-#          --iavl-output-modules evm=0,acc=0 \
-#          --trace --home=$CHAINDIR/$CHAINID --chain-id $CHAINID \
-#          --rest.laddr "tcp://localhost:${RESTPORT}" \
-#          --elapsed Round=1,CommitRound=1,Produce=1 >$CHAINDIR/$CHAINID/oec.txt 2>&1 &
+         nohup exchaind start --pruning=nothing --rpc.unsafe \
+          --home=$CHAINDIR/$CHAINID \
+          --local-rpc-port ${RPCPORT} \
+          --rpc.laddr="tcp://0.0.0.0:${RPCPORT}" \
+          --rpc.external_laddr="0.0.0.0:${RPCPORT}" \
+          --p2p.laddr="tcp://0.0.0.0:${P2PPORT}" \
+          --log_level $LOG_LEVEL \
+          --log_file json \
+          --enable-dynamic-gp=false \
+          --consensus.timeout_commit 2000ms \
+          --enable-preruntx=false \
+          --enable-gid \
+          --append-pid=true \
+          --iavl-commit-interval-height 10 \
+          --iavl-output-modules evm=0,acc=0 \
+          --trace --home=$CHAINDIR/$CHAINID --chain-id $CHAINID \
+          --rest.laddr "tcp://localhost:${RESTPORT}" \
+          --elapsed Round=1,CommitRound=1,Produce=1 >$CHAINDIR/$CHAINID/oec.txt 2>&1 &
     fi
     exit
 }
