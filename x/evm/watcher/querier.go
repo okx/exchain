@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -19,6 +20,28 @@ import (
 const MsgFunctionDisable = "fast query function has been disabled"
 
 var errNotFound = errors.New("leveldb: not found")
+
+const hashPrefixKeyLen = 33
+
+var hashPrefixKeyPool = &sync.Pool{
+	New: func() interface{} {
+		return &[hashPrefixKeyLen]byte{}
+	},
+}
+
+func getHashPrefixKey(prefix []byte, hash []byte) ([]byte, error) {
+	if len(prefix)+len(hash) > hashPrefixKeyLen {
+		return nil, errors.New("invalid prefix or hash len")
+	}
+	key := hashPrefixKeyPool.Get().(*[hashPrefixKeyLen]byte)
+	copy(key[:], prefix)
+	copy(key[len(prefix):], hash)
+	return key[:len(prefix)+len(hash)], nil
+}
+
+func putHashPrefixKey(key []byte) {
+	hashPrefixKeyPool.Put((*[hashPrefixKeyLen]byte)(key[:hashPrefixKeyLen]))
+}
 
 type Querier struct {
 	store *WatchStore
@@ -69,21 +92,31 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var block Block
-	b, e := q.store.Get(append(prefixBlock, hash.Bytes()...))
-	if e != nil {
-		return nil, e
-	}
-	if b == nil {
-		return nil, errNotFound
+	var err error
+	var blockHashKey []byte
+	if blockHashKey, err = getHashPrefixKey(prefixBlock, hash.Bytes()); err != nil {
+		blockHashKey = append(prefixBlock, hash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(blockHashKey)
 	}
 
-	e = json.Unmarshal(b, &block)
-	if e != nil {
-		return nil, e
+	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &block)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
-		txList := []*Transaction{}
+		txList := make([]*Transaction, 0, len(txsHash))
 		if len(txsHash) == 0 {
 			block.TransactionsRoot = ethtypes.EmptyRootHash
 		}
@@ -211,16 +244,26 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var tx Transaction
-	transaction, e := q.store.Get(append(prefixTx, hash.Bytes()...))
-	if e != nil {
-		return nil, e
+	var txHashKey []byte
+	var err error
+	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
+		txHashKey = append(prefixTx, hash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(txHashKey)
 	}
-	if transaction == nil {
-		return nil, errNotFound
-	}
-	e = json.Unmarshal(transaction, &tx)
-	if e != nil {
-		return nil, e
+
+	_, err = q.store.GetUnsafe(txHashKey, func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &tx)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &tx, nil
 }
