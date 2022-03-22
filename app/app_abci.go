@@ -1,7 +1,6 @@
 package app
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	appconfig "github.com/okex/exchain/app/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -47,7 +46,6 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
 	if tasks != nil {
-		logrusplugin.Error("开始upgrade", "height", app.BaseApp.LastBlockHeight()+1)
 		ctx := app.BaseApp.GetDeliverStateCtx()
 		for _, t := range *tasks {
 			if err := t.Execute(ctx); nil != err {

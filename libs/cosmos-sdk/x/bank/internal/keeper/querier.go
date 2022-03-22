@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -83,7 +82,6 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 				Denom:  c.Denom,
 				Amount: c.Amount.RoundInt(),
 			}
-			logrusplugin.Info("coin", "origin", c.String(), "after", ada.String())
 			bs = append(bs, ada)
 		}
 		resp := typesadapter.QueryAllBalancesResponse{

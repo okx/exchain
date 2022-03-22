@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -87,8 +86,6 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 	if len(tt.GetMsgs()) == 0 {
 		return nil, errors.New("asd")
 	}
-	logrusplugin.Info("tx", "coins", fmt.Sprintf("%s", tt.GetFee()))
-	//err = c.UnmarshalJSON(txBytes, &tt)
 	return *tt, err
 }
 

@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -72,7 +71,7 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	//if nil != err {
 	//	panic(err)
 	//}
-	logrusplugin.Info("acquire connection", "id", connectionID, "state", connection.State)
+	k.Logger(ctx).Info("acquire connection", "id", connectionID, "state", connection.State)
 	return connection, true
 }
 
@@ -86,7 +85,7 @@ func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection t
 	//	panic(err)
 	//}
 	store.Set(host.ConnectionKey(connectionID), bz)
-	logrusplugin.Info("write connection", "connectionId", connectionID, "state", connection.State)
+	k.Logger(ctx).Info("write connection", "connectionId", connectionID, "state", connection.State)
 }
 
 // GetTimestampAtHeight returns the timestamp in nanoseconds of the consensus state at the

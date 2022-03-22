@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -21,7 +20,7 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 	cacheCtx, commit := ctx.CacheContext()
 	err := k.ConvertVouchers(cacheCtx, receiver, vouchers)
 	if err != nil {
-		logrusplugin.Error(
+		k.Logger(ctx).Error(
 			fmt.Sprintf("Failed to convert vouchers to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, vouchers.String(), err))
 	}
@@ -62,7 +61,7 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 
 // ConvertVoucherToEvmDenom convert vouchers into evm denom.
 func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin) error {
-	logrusplugin.Info("convert voucher into evm token", "from", from.String(), "voucher", voucher.String())
+	k.Logger(ctx).Info("convert voucher into evm token", "from", from.String(), "voucher", voucher.String())
 	// 1. send voucher to escrow address
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, types.ModuleName, sdk.NewCoins(voucher)); err != nil {
 		return err
@@ -82,7 +81,7 @@ func (k Keeper) ConvertVoucherToEvmDenom(ctx sdk.Context, from sdk.AccAddress, v
 
 // ConvertVoucherToERC20 convert vouchers into evm token.
 func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin, autoDeploy bool) error {
-	logrusplugin.Info("convert vouchers into evm tokens",
+	k.Logger(ctx).Info("convert vouchers into evm tokens",
 		"fromBech32", from.String(),
 		"fromEth", common.BytesToAddress(from.Bytes()).String(),
 		"voucher", voucher.String())
@@ -103,7 +102,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 			return err
 		}
 		k.SetAutoContractForDenom(ctx, voucher.Denom, contract)
-		logrusplugin.Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
+		k.Logger(ctx).Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
 
 	// 1. transfer voucher from user address to contact address in bank
@@ -206,7 +205,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 	if len(to) == 0 {
 		return errors.New("to address cannot be empty")
 	}
-	logrusplugin.Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
+	k.Logger(ctx).Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
 
 	for _, c := range vouchers {
 		switch c.Denom {

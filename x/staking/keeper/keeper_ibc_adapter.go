@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	outtypes "github.com/okex/exchain/x/staking/types"
@@ -59,7 +58,6 @@ func (k Keeper) HistoricalEntries(ctx sdk.Context) (res uint32) {
 
 // DeleteHistoricalInfo deletes the historical info at a given height
 func (k Keeper) DeleteHistoricalInfo(ctx sdk.Context, height int64) {
-	logrusplugin.Info("清楚historical", "height", height)
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetHistoricalInfoKey(height)
 

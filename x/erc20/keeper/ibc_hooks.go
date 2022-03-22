@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 )
@@ -25,7 +24,7 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	sender sdk.AccAddress,
 	receiver string,
 	isSource bool) {
-	logrusplugin.Info(
+	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterSendTransfer",
 		"sourcePort", sourcePort,
@@ -43,7 +42,7 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	token sdk.SysCoin,
 	receiver string,
 	isSource bool) {
-	logrusplugin.Info(
+	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterRecvTransfer",
 		"destPort", destPort,
@@ -64,7 +63,7 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	token sdk.SysCoin,
 	sender string,
 	isSource bool) {
-	logrusplugin.Info(
+	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterRefundTransfer",
 		"sourcePort", sourcePort,
