@@ -277,6 +277,12 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Big, error) {
 	monitor := monitor.GetMonitor("eth_getBalance", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
+	defer func() {
+		r := recover()
+		if r != nil {
+			panic(r)
+		}
+	}()
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
