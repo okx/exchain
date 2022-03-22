@@ -761,7 +761,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Lock()
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
-			fmt.Println("update", fmt.Sprintf("height-%d", f.height), hex.EncodeToString(key), hex.EncodeToString(value))
+			//fmt.Println("update", fmt.Sprintf("height-%d", f.height), hex.EncodeToString(key), hex.EncodeToString(value))
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
 			} else if value != nil {
