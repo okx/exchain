@@ -191,7 +191,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 //TODO: fuck
 func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
-	for _, v := range txs {
+	for index, v := range txs {
 		txString := string(v)
 		if app.parallelTxManage.txStatus[txString].anteErr != nil {
 			continue
@@ -200,6 +200,7 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 		refundFee := app.parallelTxManage.getRefundFee(txString)
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
+		fmt.Println("fee", index, txFee, currTxFee)
 	}
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
