@@ -3,7 +3,6 @@ package rootmulti
 import (
 	"fmt"
 
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -517,7 +516,6 @@ func (rs *Store) pruneStores() {
 	}()
 	stores := rs.getFilterStores(rs.lastCommitInfo.Version + 1)
 	//stores = rs.stores
-	logrusplugin.Error("pruning start", "pruning-count", pruneCnt, "curr-height", rs.lastCommitInfo.Version+1)
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap

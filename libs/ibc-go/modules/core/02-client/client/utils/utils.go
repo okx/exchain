@@ -47,9 +47,9 @@ func QueryClientStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrClientNotFound, clientID)
 	}
 
-	cdc := clientCtx.Codec
+	cdc := clientCtx.CodecProy
 
-	clientState, err := types.UnmarshalClientState(*cdc, value)
+	clientState, err := types.UnmarshalClientState(cdc, value)
 	if err != nil {
 		return nil, err
 	}
@@ -99,9 +99,9 @@ func QueryConsensusStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrConsensusStateNotFound, clientID)
 	}
 
-	cdc := clientCtx.Codec
+	cdc := clientCtx.CodecProy
 
-	cs, err := types.UnmarshalConsensusState(*cdc, value)
+	cs, err := types.UnmarshalConsensusState(cdc, value)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func QueryNodeConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.Consensus
 	state := &ibctmtypes.ConsensusState{
 		Timestamp:          commit.Time,
 		Root:               commitmenttypes.NewMerkleRoot(commit.AppHash),
-		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(),
+		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(height),
 	}
 
 	return state, height, nil
@@ -241,7 +241,7 @@ func QuerySelfConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.Consensus
 	state := &ibctmtypes.ConsensusState{
 		Timestamp:          commit.Time,
 		Root:               commitmenttypes.NewMerkleRoot(commit.AppHash),
-		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(),
+		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(height),
 	}
 
 	return state, height, nil

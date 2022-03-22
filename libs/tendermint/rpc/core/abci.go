@@ -1,7 +1,6 @@
 package core
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/libs/tendermint/proxy"
@@ -25,12 +24,6 @@ func ABCIQuery(
 		Prove:  prove,
 	})
 	if err != nil {
-		logrusplugin.Error("发生错误", "err", err, "request", abci.RequestQuery{
-			Path:   path,
-			Data:   data,
-			Height: height,
-			Prove:  prove,
-		})
 		return nil, err
 	}
 	env.Logger.Info("ABCIQuery", "path", path, "data", data, "result", resQuery)

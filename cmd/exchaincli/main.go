@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
@@ -33,7 +34,8 @@ import (
 )
 
 var (
-	cdc = codec.MakeCodec(app.ModuleBasics)
+	cdc          = codec.MakeCodec(app.ModuleBasics)
+	interfaceReg = codec.MakeIBC(app.ModuleBasics)
 )
 
 func main() {
@@ -64,13 +66,14 @@ func main() {
 		utils.SetParseAppTx(parseMsgEthereumTx)
 		return client.InitConfig(rootCmd)
 	}
-
+	protoCdc := sdkcodec.NewProtoCodec(interfaceReg)
+	proxy := sdkcodec.NewCodecProxy(protoCdc, cdc)
 	// Construct Root Command
 	rootCmd.AddCommand(
 		clientrpc.StatusCommand(),
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
-		queryCmd(cdc),
-		txCmd(cdc),
+		queryCmd(proxy, interfaceReg),
+		txCmd(proxy, interfaceReg),
 		flags.LineBreak,
 		client.KeyCommands(),
 		client.AddrCommands(),
@@ -88,13 +91,13 @@ func main() {
 	}
 }
 
-func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
+func queryCmd(proxy *sdkcodec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:     "query",
 		Aliases: []string{"q"},
 		Short:   "Querying subcommands",
 	}
-
+	cdc := proxy.GetCdc()
 	queryCmd.AddCommand(
 		authcmd.GetAccountCmd(cdc),
 		flags.LineBreak,
@@ -105,16 +108,17 @@ func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 	// add modules' query commands
 	app.ModuleBasics.AddQueryCommands(queryCmd, cdc)
+	app.ModuleBasics.AddQueryCommandsV2(queryCmd, proxy, reg)
 
 	return queryCmd
 }
 
-func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
+func txCmd(proxy *sdkcodec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:   "tx",
 		Short: "Transactions subcommands",
 	}
-
+	cdc := proxy.GetCdc()
 	txCmd.AddCommand(
 		tokencmd.SendTxCmd(cdc),
 		flags.LineBreak,
@@ -129,6 +133,7 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 	// add modules' tx commands
 	app.ModuleBasics.AddTxCommands(txCmd, cdc)
+	app.ModuleBasics.AddTxCommandsV2(txCmd, proxy, reg)
 
 	// remove auth and bank commands as they're mounted under the root tx command
 	var cmdsToRemove []*cobra.Command

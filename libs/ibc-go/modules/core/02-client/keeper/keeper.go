@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -92,7 +91,7 @@ func (k Keeper) GetClientConsensusState(ctx sdk.Context, clientID string, height
 // height
 func (k Keeper) SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState) {
 	store := k.ClientStore(ctx, clientID)
-	logrusplugin.Info("set consensusState", "clientId", clientID, "height", height, "hash",
+	k.Logger(ctx).Info("set consensusState", "clientId", clientID, "height", height, "hash",
 		hex.EncodeToString(consensusState.GetRoot().GetHash()),
 		"consensusHeight", height)
 	store.Set(host.ConsensusStateKey(height), k.MustMarshalConsensusState(consensusState))
@@ -253,7 +252,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
 		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
-	logrusplugin.Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
+	k.Logger(ctx).Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
 	return consensusState, true
 }
 

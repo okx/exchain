@@ -2,18 +2,7 @@ package app
 
 import (
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
 )
-
-func MakeIBC() types.InterfaceRegistry {
-	interfaceReg := types.NewInterfaceRegistry()
-	ModuleBasics.RegisterInterfaces(interfaceReg)
-	cryptocodec.RegisterInterfaces(interfaceReg)
-
-	return interfaceReg
-}
 
 //func IBCMergeDecoder(cdc *codec.Codec, m codec.Marshaler) sdk.TxDecoder {
 //	return func(txBytes []byte, height ...int64) (sdk.Tx, error) {

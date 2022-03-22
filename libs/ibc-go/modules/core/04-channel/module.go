@@ -2,6 +2,8 @@ package channel
 
 import (
 	"github.com/gogo/protobuf/grpc"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/spf13/cobra"
@@ -18,8 +20,8 @@ func GetTxCmd() *cobra.Command {
 }
 
 // GetQueryCmd returns the root query command for IBC channels.
-func GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
+func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetQueryCmd(cdc, reg)
 }
 
 // RegisterQueryService registers the gRPC query service for IBC channels.
