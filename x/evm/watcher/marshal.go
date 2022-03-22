@@ -54,7 +54,7 @@ type AminoMarshaler struct {
 	BaseMarshaler
 }
 
-func newAminoMarshaller(o interface{}) *AminoMarshaler {
+func InitCodec() {
 	watcherInitCdcOnce.Do(func() {
 		watcherCdc = codec.New()
 		watcherCdc.RegisterInterface((*interface{})(nil), nil)
@@ -64,6 +64,14 @@ func newAminoMarshaller(o interface{}) *AminoMarshaler {
 		cryptocodec.RegisterCodec(watcherCdc)
 		codec.RegisterCrypto(watcherCdc)
 	})
+}
+func WatcherCodec() *amino.Codec {
+	InitCodec()
+	return watcherCdc
+}
+
+func newAminoMarshaller(o interface{}) *AminoMarshaler {
+	InitCodec()
 	return &AminoMarshaler{
 		BaseMarshaler{
 			origin: o,
