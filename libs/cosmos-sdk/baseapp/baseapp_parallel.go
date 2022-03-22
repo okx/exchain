@@ -245,7 +245,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txReps[receiveTxIndex] = execRes
 
 		//fmt.Println("receive---", receiveTxIndex, "markFailed", pm.isFailed(pm.workgroup.runningStats(receiveTxIndex)))
-		if pm.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
+		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
 			txReps[receiveTxIndex] = nil
 			pm.workgroup.AddTask(txs[receiveTxIndex], receiveTxIndex)
 
@@ -268,35 +268,38 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			res := txReps[txIndex]
 
 			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
-				if pm.workgroup.isRunning(txIndex) {
-					runningTaskID := pm.workgroup.runningStats(txIndex)
-					pm.markFailed(runningTaskID)
-					break
-				} else {
-					rerunIdx++
-					s.reRun = true
-					res = app.deliverTxWithCache(txs[txIndex], txIndex)
-					txReps[txIndex] = res
 
-					nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
+				//fmt.Println("conflict", txIndex)
+				//if pm.workgroup.isRunning(txIndex) {
+				//	runningTaskID := pm.workgroup.runningStats(txIndex)
+				//	pm.workgroup.markFailed(runningTaskID)
+				//	break
+				//}
+				//fmt.Println("rerun", txIndex)
 
-					if ok {
-						pp := nn
-						for true {
-							txReps[pp] = nil
-							pp, ok = app.parallelTxManage.nextTxInGroup[pp]
-							if !ok {
-								break
-							}
-						}
+				rerunIdx++
+				s.reRun = true
+				res = app.deliverTxWithCache(txs[txIndex], txIndex)
+				txReps[txIndex] = res
 
-						if !pm.workgroup.isRunning(nn) {
-							txReps[nn] = nil
-							pm.workgroup.AddTask(txs[nn], nn)
-						} else {
-							runningTaskID := pm.workgroup.runningStats(nn)
-							pm.markFailed(runningTaskID)
-						}
+				nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
+
+				if ok {
+					//pp := nn
+					//for true {
+					//	txReps[pp] = nil
+					//	pp, ok = app.parallelTxManage.nextTxInGroup[pp]
+					//	if !ok {
+					//		break
+					//	}
+					//}
+
+					if !pm.workgroup.isRunning(nn) {
+						txReps[nn] = nil
+						pm.workgroup.AddTask(txs[nn], nn)
+					} else {
+						//runningTaskID := pm.workgroup.runningStats(nn)
+						//pm.markFailed(runningTaskID)
 					}
 				}
 
@@ -465,8 +468,11 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 type asyncWorkGroup struct {
 	runningStatus map[int]int
 	isrunning     map[int]bool
-	indexInAll    int
-	runningMu     sync.RWMutex
+
+	markFailedStats map[int]bool
+
+	indexInAll int
+	runningMu  sync.RWMutex
 
 	resultCh chan *executeResult
 	resultCb func(*executeResult)
@@ -477,8 +483,9 @@ type asyncWorkGroup struct {
 
 func newAsyncWorkGroup() *asyncWorkGroup {
 	return &asyncWorkGroup{
-		runningStatus: make(map[int]int),
-		isrunning:     make(map[int]bool),
+		runningStatus:   make(map[int]int),
+		isrunning:       make(map[int]bool),
+		markFailedStats: make(map[int]bool),
 
 		resultCh: make(chan *executeResult, 100000),
 		resultCb: nil,
@@ -486,6 +493,18 @@ func newAsyncWorkGroup() *asyncWorkGroup {
 		taskCh:  make(chan *task, 100000),
 		taskRun: nil,
 	}
+}
+
+func (a *asyncWorkGroup) markFailed(txIndexAll int) {
+	a.runningMu.Lock()
+	defer a.runningMu.Unlock()
+	a.markFailedStats[txIndexAll] = true
+}
+
+func (a *asyncWorkGroup) isFailed(txindexAll int) bool {
+	a.runningMu.Lock()
+	defer a.runningMu.Unlock()
+	return a.markFailedStats[txindexAll]
 }
 
 func (a *asyncWorkGroup) setTxStatus(txIndex int, status bool) {
@@ -566,11 +585,10 @@ type parallelTxManager struct {
 	cms    sdk.CacheMultiStore
 	height int64
 
-	cc              *conflictCheck
-	currIndex       int
-	runBase         []int
-	markFailedStats map[int]bool
-	commitDone      chan struct{}
+	cc         *conflictCheck
+	currIndex  int
+	runBase    []int
+	commitDone chan struct{}
 }
 type A struct {
 	value   []byte
@@ -662,10 +680,9 @@ func newParallelTxManager() *parallelTxManager {
 		preTxInGroup:       make(map[int]int),
 		txIndexWithGroupID: make(map[int]int),
 
-		cc:              newConflictCheck(),
-		currIndex:       -1,
-		runBase:         make([]int, 0),
-		markFailedStats: make(map[int]bool),
+		cc:        newConflictCheck(),
+		currIndex: -1,
+		runBase:   make([]int, 0),
 
 		commitDone: make(chan struct{}, 1),
 	}
@@ -683,19 +700,11 @@ func (f *parallelTxManager) clear() {
 	//f.runBase = make(map[int]int)
 	f.currIndex = -1
 	f.cc.clear()
-	f.markFailedStats = make(map[int]bool)
+	f.workgroup.markFailedStats = make(map[int]bool)
 
 	f.workgroup.runningStatus = make(map[int]int)
 	f.workgroup.isrunning = make(map[int]bool)
 	f.workgroup.indexInAll = 0
-}
-
-func (f *parallelTxManager) markFailed(txIndexAll int) {
-	f.markFailedStats[txIndexAll] = true
-}
-
-func (f *parallelTxManager) isFailed(txindexAll int) bool {
-	return f.markFailedStats[txindexAll]
 }
 
 func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
@@ -741,7 +750,7 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	if next, ok := f.nextTxInGroup[index]; ok {
 		if f.workgroup.isRunning(next) {
 			//fmt.Println("markFailed", index, next)
-			f.markFailed(next)
+			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
 			f.txReps[next] = nil
 			//fmt.Println("setFailed", index, next)
