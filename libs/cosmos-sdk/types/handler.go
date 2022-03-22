@@ -17,7 +17,7 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 
-type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, Address, SigCache)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, Address)
 
 //type SetAccountObserver func(o keeper.ObserverI) ()
 //type SetAccountObserver func() ()

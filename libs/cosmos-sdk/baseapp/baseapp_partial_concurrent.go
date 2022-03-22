@@ -59,7 +59,7 @@ type DeliverTxTask struct {
 	from      sdk.Address
 	fee       sdk.Coins
 	isEvm     bool
-	signCache sdk.SigCache
+	//signCache sdk.SigCache
 	err       error
 	//anteErr        error
 	//anteFailed bool
@@ -385,7 +385,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		// execute ante
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-		task.fee, task.isEvm, task.from, task.signCache = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
+		task.fee, task.isEvm, task.from = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 
 		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 			task.err = err
@@ -415,7 +415,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		//if blockHeight == AssignedBlockHeight {
 		dm.app.logger.Info("RunAnte", "index", task.index)
 		//}
-		task.info.ctx = task.info.ctx.WithSigCache(task.signCache)
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
 		// todo: will change account. Account updated.

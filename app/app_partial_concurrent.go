@@ -12,12 +12,11 @@ type SetAccountObserver func(o keeper.ObserverI) ()
 
 // getTxFeeAndFromHandler get tx fee and from
 func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from sdk.Address, signCache sdk.SigCache) {
-		if evmTx, ok := tx.(evmtypes.MsgEthereumTx); ok {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from sdk.Address) {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
-			signCache, _ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
-			evmTx.SetFromUseSigCache(signCache)
-			from = evmTx.From()
+			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			from = evmTx.AccountAddress()
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
