@@ -447,7 +447,7 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
 
-	if counter == 6 {
+	if counter == 600 {
 		for k, v := range rSet {
 			fmt.Println("rSet", hex.EncodeToString([]byte(k)), hex.EncodeToString(v))
 		}

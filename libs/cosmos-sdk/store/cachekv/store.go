@@ -3,6 +3,8 @@ package cachekv
 import (
 	"bytes"
 	"container/list"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -331,7 +333,11 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
+	if hex.EncodeToString(key) == "05382bb369d343125bfb2117af9c149795c6c65c505e778218abdbdb1e48d34b846967a5a0bfde758e6c20e5c4c6b3b03a6b44afe2" {
+		fmt.Println("setCacheValue", hex.EncodeToString(key), hex.EncodeToString(value), dirty, deleted)
+	}
 	keyStr := string(key)
+
 	if !dirty {
 		store.readList[keyStr] = value
 		return
