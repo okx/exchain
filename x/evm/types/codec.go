@@ -20,7 +20,7 @@ const (
 // RegisterCodec registers all the necessary types and interfaces for the
 // evm module
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgEthereumTx{}, MsgEthereumTxName, nil)
+	cdc.RegisterConcrete(&MsgEthereumTx{}, MsgEthereumTxName, nil)
 	cdc.RegisterConcrete(TxData{}, TxDataName, nil)
 	cdc.RegisterConcrete(ChainConfig{}, ChainConfigName, nil)
 	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, ManageContractDeploymentWhitelistProposalName, nil)
@@ -42,7 +42,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		if err != nil {
 			return nil, 0, err
 		}
-		return msg, len(bytes), nil
+		return &msg, len(bytes), nil
 	})
 	cdc.RegisterConcreteUnmarshaller(TxDataName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var tx TxData

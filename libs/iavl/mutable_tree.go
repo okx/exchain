@@ -594,13 +594,13 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being
 		// removed.
-		tree.log(IavlDebug, "SAVE EMPTY TREE %v", version)
+		tree.log(IavlDebug, "SAVE EMPTY TREE", "version", version)
 		tree.ndb.SaveOrphans(batch, version, tree.orphans)
 		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
 			return nil, 0, err
 		}
 	} else {
-		tree.log(IavlDebug, "SAVE TREE %v", version)
+		tree.log(IavlDebug, "SAVE TREE", "version", version)
 		if useDeltas {
 			tree.SaveBranch(batch, tree.root)
 			if hex.EncodeToString(tree.root.hash) != hex.EncodeToString(tree.savedNodes["root"].hash) {
@@ -672,7 +672,7 @@ func (tree *MutableTree) SetInitialVersion(version uint64) {
 // DeleteVersions deletes a series of versions from the MutableTree.
 // Deprecated: please use DeleteVersionsRange instead.
 func (tree *MutableTree) DeleteVersions(versions ...int64) error {
-	tree.log(IavlDebug, "DELETING VERSIONS: %v", versions)
+	tree.log(IavlDebug, "DELETING", "VERSIONS", versions)
 
 	if len(versions) == 0 {
 		return nil
@@ -723,7 +723,7 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64) error
 // DeleteVersion deletes a tree version from disk. The version can then no
 // longer be accessed.
 func (tree *MutableTree) DeleteVersion(version int64) error {
-	tree.log(IavlDebug, "DELETE VERSION: %d", version)
+	tree.log(IavlDebug, "DELETE", "VERSION", version)
 	batch := tree.NewBatch()
 	if err := tree.deleteVersion(batch, version, tree.versions.Clone()); err != nil {
 		return err

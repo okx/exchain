@@ -23,6 +23,7 @@ const IGNORE_HEIGHT_CHECKING = -1
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
 // MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
+
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
 			return nil, fmt.Errorf("to many height parameters")
@@ -52,7 +53,19 @@ func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 			relayTx,
 		} {
 			if tx, err = f(cdc, proxyCodec, txBytes, height); err == nil {
-				return tx, nil
+				switch realTx := tx.(type) {
+				case authtypes.StdTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				case *MsgEthereumTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+				case *authtypes.IbcTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				}
 			}
 		}
 
@@ -158,7 +171,7 @@ func evmDecoder(_ *codec.Codec, proxy *codec.CodecProxy, txBytes []byte, height 
 
 	var ethTx MsgEthereumTx
 	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-		tx = ethTx
+		tx = &ethTx
 	}
 	return
 }

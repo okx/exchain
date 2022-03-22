@@ -1,8 +1,15 @@
 package baseapp
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"sync/atomic"
+	"syscall"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -10,12 +17,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"os"
-	"sort"
-	"strings"
-	"sync/atomic"
-	"syscall"
-	"time"
+	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -174,54 +176,42 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	return
 }
 
-// CheckTx implements the ABCI interface and executes a tx in CheckTx mode. In
-// CheckTx mode, messages are not executed. This means messages are only validated
-// and only the AnteHandler is executed. State is persisted to the BaseApp's
-// internal CheckTx state if the AnteHandler passes. Otherwise, the ResponseCheckTx
-// will contain releveant error information. Regardless of tx execution outcome,
-// the ResponseCheckTx will contain relevant gas execution context.
-func (app *BaseApp) CheckTxDev(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.txDecoder(req.Tx, app.Info(abci.RequestInfo{}).LastBlockHeight)
-	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
-	}
 
-	var mode runTxMode
+func (app *BaseApp) addCommitTraceInfo() {
+	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
+	dbReadCountStr := strconv.Itoa(app.cms.GetDBReadCount())
+	dbReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetDBReadTime()).Milliseconds(), 10)
+	dbWriteCountStr := strconv.Itoa(app.cms.GetDBWriteCount())
 
-	switch {
-	case req.Type == abci.CheckTxType_New:
-		mode = runTxModeCheck
+	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
-	case req.Type == abci.CheckTxType_Recheck:
-		mode = runTxModeReCheck
+	elapsedInfo := trace.GetElapsedInfo()
+	elapsedInfo.AddInfo("Iavl", iavlInfo)
 
-	default:
-		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
-	}
+	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
+	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
+	flatKvWriteCountStr := strconv.Itoa(app.cms.GetFlatKVWriteCount())
+	flatKvWriteTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds(), 10)
 
-	if abci.GetDisableCheckTx() {
-		var ctx sdk.Context
-		ctx = app.getContextForTx(mode, req.Tx)
-		exTxInfo := app.GetTxInfo(ctx, tx)
-		data, _ := json.Marshal(exTxInfo)
+	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
 
-		return abci.ResponseCheckTx{
-			Data: data,
-		}
-	}
+	elapsedInfo.AddInfo("FlatKV", flatInfo)
 
-	gInfo, result, _, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
-	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
-	}
+	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	return abci.ResponseCheckTx{
-		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       result.Log,
-		Data:      result.Data,
-		Events:    result.Events.ToABCIEvents(),
-	}
+	elapsedInfo.AddInfo(trace.WtxRatio,
+		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	)
+
+	readCache := float64(tmtypes.SignatureCache().ReadCount())
+	hitCache := float64(tmtypes.SignatureCache().HitCount())
+
+	elapsedInfo.AddInfo(trace.SigCacheRatio,
+		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), hitCache/readCache, 'f', 2, 32)),
+	)
+
+	elapsedInfo.AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
 }
 
 // Commit implements the ABCI interface. It will commit all state that exists in
@@ -251,23 +241,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
-	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
-		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), time.Duration(app.cms.GetDBReadTime()).Milliseconds(), app.cms.GetDBWriteCount()))
-	trace.GetElapsedInfo().AddInfo("FlatKV", fmt.Sprintf("rflat<%d>, rflatTs<%dms>, wflat<%d>, wflatTs<%dms>",
-		app.cms.GetFlatKVReadCount(), time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), app.cms.GetFlatKVWriteCount(), time.Duration(app.cms.GetFlatKVWriteTime()).Milliseconds()))
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
-
-	trace.GetElapsedInfo().AddInfo(trace.WtxRatio, fmt.Sprintf("%.2f", wtx/(wtx+rtx)))
-
-	readCache := float64(tmtypes.SignatureCache().ReadCount())
-	hitCache := float64(tmtypes.SignatureCache().HitCount())
-	trace.GetElapsedInfo().AddInfo(trace.SigCacheRatio, fmt.Sprintf("%.2f", hitCache/readCache))
-
-	trace.GetElapsedInfo().AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
+	app.addCommitTraceInfo()
 
 	app.cms.ResetCount()
-	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
+	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
 
 	// Reset the Check state to the latest committed.
 	//

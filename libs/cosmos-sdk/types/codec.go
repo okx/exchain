@@ -9,4 +9,5 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Msg)(nil), nil)
 	cdc.RegisterInterface((*MsgProtoAdapter)(nil), nil)
 	cdc.RegisterInterface((*Tx)(nil), nil)
+	cdc.RegisterConcrete(BaseTx{}, "cosmos-sdk/BaseTx", nil)
 }
