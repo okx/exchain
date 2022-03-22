@@ -193,11 +193,11 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
 	for index, v := range txs {
 		txString := string(v)
-		if app.parallelTxManage.txStatus[txString].anteErr != nil {
+		if app.parallelTxManage.txReps[index].anteErr != nil {
 			continue
 		}
 		txFee := app.parallelTxManage.fee[txString]
-		refundFee := app.parallelTxManage.getRefundFee(txString)
+		refundFee := app.parallelTxManage.txReps[index].refundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
 		fmt.Println("fee", index, txFee, currTxFee)
@@ -305,7 +305,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				}
 
 			}
-			if s.anteErr != nil {
+			if txReps[txIndex].anteErr != nil {
 				res.ms = nil
 			}
 
@@ -367,9 +367,9 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 func (app *BaseApp) endParallelTxs() [][]byte {
 
 	txExecStats := make([][]string, 0)
-	for _, v := range app.parallelTxManage.indexMapBytes {
+	for txIndex, v := range app.parallelTxManage.indexMapBytes {
 		errMsg := ""
-		if err := app.parallelTxManage.txStatus[v].anteErr; err != nil {
+		if err := app.parallelTxManage.txReps[txIndex].anteErr; err != nil {
 			errMsg = err.Error()
 		}
 		txExecStats = append(txExecStats, []string{string(getRealTxByte([]byte(v))), errMsg})
@@ -386,7 +386,7 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 
 	tx, err := app.txDecoder(getRealTxByte(txByte))
 	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil, nil)
 		return asyncExe
 	}
 	var (
@@ -394,7 +394,8 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 		mode runTxMode
 	)
 	mode = runTxModeDeliverInAsync
-	g, r, m, e := app.runTx(mode, txByte, tx, LatestSimulateTxHeight)
+	info, errM := app.runtx(mode, txByte, tx, LatestSimulateTxHeight)
+	g, r, m, e := info.gInfo, info.result, info.msCacheAnte, errM
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
@@ -407,7 +408,7 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.paraMsg.anteErr, info.paraMsg.refundFee)
 	asyncExe.err = e
 	return asyncExe
 }
@@ -420,6 +421,9 @@ type executeResult struct {
 	evmCounter uint32
 	readList   map[string][]byte
 	writeList  map[string][]byte
+
+	anteErr   error
+	refundFee sdk.Coins
 }
 
 func (e executeResult) GetResponse() abci.ResponseDeliverTx {
@@ -442,7 +446,7 @@ func loadPreData(ms sdk.CacheMultiStore) (map[string][]byte, map[string][]byte) 
 	return rSet, wSet
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32, anteErr error, refundFee sdk.Coins) *executeResult {
 	rSet, wSet := loadPreData(ms)
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
@@ -463,6 +467,9 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		evmCounter: evmCounter,
 		readList:   rSet,
 		writeList:  wSet,
+
+		anteErr:   anteErr,
+		refundFee: refundFee,
 	}
 }
 
@@ -571,8 +578,8 @@ type parallelTxManager struct {
 
 	fee map[string]sdk.Coins // not need mute
 
-	refundFee      map[string]sdk.Coins
-	refundFeeMutex sync.RWMutex
+	//refundFee      map[string]sdk.Coins
+	//refundFeeMutex sync.RWMutex
 
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
@@ -661,8 +668,8 @@ type txStatus struct {
 	isEvmTx      bool
 	evmIndex     uint32
 	indexInBlock uint32
-	anteErr      error
-	signCache    sdk.SigCache
+	//anteErr      error
+	signCache sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -671,8 +678,8 @@ func newParallelTxManager() *parallelTxManager {
 		workgroup:        newAsyncWorkGroup(),
 		fee:              make(map[string]sdk.Coins),
 
-		refundFee:      make(map[string]sdk.Coins),
-		refundFeeMutex: sync.RWMutex{},
+		//refundFee:      make(map[string]sdk.Coins),
+		//refundFeeMutex: sync.RWMutex{},
 
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
@@ -691,7 +698,7 @@ func newParallelTxManager() *parallelTxManager {
 
 func (f *parallelTxManager) clear() {
 	f.fee = make(map[string]sdk.Coins)
-	f.refundFee = make(map[string]sdk.Coins)
+	//f.refundFee = make(map[string]sdk.Coins)
 
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
@@ -709,16 +716,17 @@ func (f *parallelTxManager) clear() {
 }
 
 func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
-	f.refundFeeMutex.Lock()
-	defer f.refundFeeMutex.Unlock()
-	f.refundFee[key] = value
+	//f.refundFeeMutex.Lock()
+	//defer f.refundFeeMutex.Unlock()
+	//f.refundFee[key] = value
 }
 
 func (f *parallelTxManager) getRefundFee(key string) sdk.Coins {
 	//TODO delete (cal once)
-	f.refundFeeMutex.RLock()
-	defer f.refundFeeMutex.RUnlock()
-	return f.refundFee[key]
+	//f.refundFeeMutex.RLock()
+	//defer f.refundFeeMutex.RUnlock()
+	//return f.refundFee[key]
+	panic("sb")
 }
 
 func (f *parallelTxManager) isReRun(tx string) bool {
@@ -738,7 +746,7 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	base := f.currIndex
 	parent := f.currIndex
 	if ok && preIndexInGroup > f.currIndex {
-		if f.txStatus[f.indexMapBytes[preIndexInGroup]].anteErr == nil {
+		if f.txReps[preIndexInGroup].anteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 			parent = preIndexInGroup
 		} else {
@@ -885,4 +893,9 @@ func (l *LogForParallel) PrintLog() {
 	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
 	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
 	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
+}
+
+type paraInfo struct {
+	anteErr   error
+	refundFee sdk.Coins
 }

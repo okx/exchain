@@ -24,6 +24,7 @@ type runTxInfo struct {
 	result  *sdk.Result
 	txBytes []byte
 	tx      sdk.Tx
+	paraMsg paraInfo
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
@@ -162,7 +163,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
 	if mode == runTxModeDeliverInAsync {
-		app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
+		//app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
+		info.paraMsg.anteErr = err
 	}
 
 	if err != nil {
@@ -237,19 +239,20 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
 	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvmTx {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	info, errM := app.runtx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	g, r, m, e := info.gInfo, info.result, info.msCacheAnte, errM
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
@@ -262,7 +265,7 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.paraMsg.anteErr, info.paraMsg.refundFee)
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
 }
