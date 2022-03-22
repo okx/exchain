@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KEY="captain"
-CHAINID="exchain-67"
+CHAINID="exchain-99"
 MONIKER="oec"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
@@ -23,12 +23,13 @@ killbyname() {
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-    exchaind start --pruning=nothing --rpc.unsafe \
+    exchaind start --fast-query=true --rpc.unsafe \
+     --pruning=everything \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 4000ms \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
@@ -37,12 +38,13 @@ run() {
       --iavl-output-modules evm=0,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
+      --rpc-block-cache=1000 \
       --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \
 #      --iavl-cache-size int                              Max size of iavl cache (default 1000000)
-#      --iavl-commit-interval-height int                  Max interval to commit node cache into leveldb (default 100)
+#      --iavl-commit-interval-height int                  Max inshterval to commit node cache into leveldb (default 100)
 #      --iavl-debug int                                   Enable iavl project debug
 #      --iavl-enable-async-commit                         Enable async commit
 #      --iavl-enable-pruning-history-state                Enable pruning history state
