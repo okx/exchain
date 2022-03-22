@@ -103,6 +103,7 @@ func (AppModuleBasic) BuildCreateValidatorMsg(cliCtx context.CLIContext,
 // AppModule implements an application module for the staking module.
 type AppModule struct {
 	AppModuleBasic
+
 	keeper        Keeper
 	accountKeeper types.AccountKeeper
 	supplyKeeper  types.SupplyKeeper

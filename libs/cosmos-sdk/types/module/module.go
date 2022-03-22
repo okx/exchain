@@ -195,9 +195,6 @@ type Manager struct {
 	OrderExportGenesis []string
 	OrderBeginBlockers []string
 	OrderEndBlockers   []string
-
-	//
-	OrderUpgrades []string
 }
 
 // NewManager creates a new Manager object

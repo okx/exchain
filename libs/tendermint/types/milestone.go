@@ -37,11 +37,17 @@ func init() {
 		if milestoreIbcHeight == 0 {
 			// as default: genesisHeight is zero
 			milestoreIbcHeight = genesisHeight + 1
+			if IsMainNet() || IsTestNet() {
+				milestoreIbcHeight = math.MaxInt64 - 2
+			}
+		} else {
+			if IsMainNet() || IsTestNet() {
+				if milestoreIbcHeight < milestoneVenusHeight || milestoreIbcHeight < milestoneMercuryHeight {
+					panic("invalid ibc height")
+				}
+			}
 		}
-
-		if IsMainNet() || IsTestNet() {
-			milestoreIbcHeight = math.MaxInt64 - 5
-		}
+		milestoreIbcHeight = 20
 	})
 }
 

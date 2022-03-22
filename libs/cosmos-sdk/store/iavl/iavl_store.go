@@ -6,9 +6,8 @@ import (
 	"io"
 	"sync"
 
-	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -290,7 +289,7 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	if types2.HigherThanIBCHeight(req.Height) {
+	if tmtypes.HigherThanIBCHeight(req.Height) {
 		return st.queryKeyForIBC(req)
 	}
 	if len(req.Data) == 0 {
@@ -357,41 +356,6 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	}
 
 	return res
-}
-
-func getProofFromTree(tree *iavl.MutableTree, key []byte, exists bool) *merkle.Proof {
-
-	var (
-		commitmentProof *ics23.CommitmentProof
-		err             error
-	)
-	//tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-	if exists {
-		// value was found
-		commitmentProof, err = tree.GetMembershipProof(key)
-		if err != nil {
-			// sanity check: If value was found, membership proof must be creatable
-			panic(fmt.Sprintf("unexpected value for empty proof: %s", err.Error()))
-		}
-	} else {
-		// value wasn't found
-		commitmentProof, err = tree.GetNonMembershipProof(key)
-		if err != nil {
-			// sanity check: If value wasn't found, nonmembership proof must be creatable
-			panic(fmt.Sprintf("unexpected error for nonexistence proof: %s", err.Error()))
-		}
-	}
-
-	op := types.NewIavlCommitmentOp(key, commitmentProof)
-
-	//&merkle.Proof{Ops: []merkle.ProofOp{iavl.NewValueOp(key, proof).ProofOp()}}
-	opp := op.ProofOp()
-	return &merkle.Proof{
-		Ops:                  []merkle.ProofOp{opp},
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
-	}
 }
 
 func (st *Store) GetDBReadTime() int {

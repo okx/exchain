@@ -9,7 +9,6 @@ import (
 
 const (
 	defaultMinGasPrices = "0.0000000001" + sdk.DefaultBondDenom
-	DefaultGRPCAddress  = "0.0.0.0:9090"
 )
 
 // BaseConfig defines the server's basic configuration
@@ -39,8 +38,6 @@ type BaseConfig struct {
 // Config defines the server's top level configuration
 type Config struct {
 	BaseConfig `mapstructure:",squash"`
-
-	GRPC GRPCConfig `mapstructure:"grpc"`
 }
 
 // SetMinGasPrices sets the validator's minimum gas prices.
@@ -76,10 +73,6 @@ func DefaultConfig() *Config {
 		BaseConfig: BaseConfig{
 			MinGasPrices:    defaultMinGasPrices,
 			InterBlockCache: true,
-		},
-		GRPC: GRPCConfig{
-			Enable:  false,
-			Address: DefaultGRPCAddress,
 		},
 	}
 }

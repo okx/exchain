@@ -74,7 +74,7 @@ func (cs ClientState) IsFrozen() bool {
 func (cs ClientState) Status(
 	ctx sdk.Context,
 	clientStore sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 ) exported.Status {
 	if !cs.FrozenHeight.IsZero() {
 		return exported.Frozen
@@ -179,7 +179,7 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 
 // Initialize will check that initial consensus state is a Tendermint consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
-func (cs ClientState) Initialize(ctx sdk.Context, _ *codec.MarshalProxy, clientStore sdk.KVStore, consState exported.ConsensusState) error {
+func (cs ClientState) Initialize(ctx sdk.Context, _ *codec.CodecProxy, clientStore sdk.KVStore, consState exported.ConsensusState) error {
 	if _, ok := consState.(*ConsensusState); !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid initial consensus state. expected type: %T, got: %T",
 			&ConsensusState{}, consState)
@@ -193,7 +193,7 @@ func (cs ClientState) Initialize(ctx sdk.Context, _ *codec.MarshalProxy, clientS
 // stored on the target machine
 func (cs ClientState) VerifyClientState(
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	counterpartyClientIdentifier string,
@@ -232,7 +232,7 @@ func (cs ClientState) VerifyClientState(
 // Tendermint client stored on the target machine.
 func (cs ClientState) VerifyClientConsensusState(
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	counterpartyClientIdentifier string,
 	consensusHeight exported.Height,
@@ -276,7 +276,7 @@ func (cs ClientState) VerifyClientConsensusState(
 // specified connection end stored on the target machine.
 func (cs ClientState) VerifyConnectionState(
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -316,7 +316,7 @@ func (cs ClientState) VerifyConnectionState(
 // channel end, under the specified port, stored on the target machine.
 func (cs ClientState) VerifyChannelState(
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -358,7 +358,7 @@ func (cs ClientState) VerifyChannelState(
 func (cs ClientState) VerifyPacketCommitment(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -397,7 +397,7 @@ func (cs ClientState) VerifyPacketCommitment(
 func (cs ClientState) VerifyPacketAcknowledgement(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -437,7 +437,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 func (cs ClientState) VerifyPacketReceiptAbsence(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -475,7 +475,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 func (cs ClientState) VerifyNextSequenceRecv(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -545,7 +545,7 @@ func verifyDelayPeriodPassed(ctx sdk.Context, store sdk.KVStore, proofHeight exp
 // merkle proof, the consensus state and an error if one occurred.
 func produceVerificationArgs(
 	store sdk.KVStore,
-	cdc *codec.MarshalProxy,
+	cdc *codec.CodecProxy,
 	cs ClientState,
 	height exported.Height,
 	prefix exported.Prefix,

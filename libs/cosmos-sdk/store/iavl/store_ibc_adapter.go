@@ -2,11 +2,13 @@ package iavl
 
 import (
 	"fmt"
+	ics23 "github.com/confio/ics23/go"
+	storetyeps "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 )
 
 func (st *Store) queryKeyForIBC(req abci.RequestQuery) (res abci.ResponseQuery) {
@@ -67,4 +69,39 @@ func (st *Store) queryKeyForIBC(req abci.RequestQuery) (res abci.ResponseQuery) 
 	}
 
 	return res
+}
+
+func getProofFromTree(tree *iavl.MutableTree, key []byte, exists bool) *merkle.Proof {
+
+	var (
+		commitmentProof *ics23.CommitmentProof
+		err             error
+	)
+	//tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
+	if exists {
+		// value was found
+		commitmentProof, err = tree.GetMembershipProof(key)
+		if err != nil {
+			// sanity check: If value was found, membership proof must be creatable
+			panic(fmt.Sprintf("unexpected value for empty proof: %s", err.Error()))
+		}
+	} else {
+		// value wasn't found
+		commitmentProof, err = tree.GetNonMembershipProof(key)
+		if err != nil {
+			// sanity check: If value wasn't found, nonmembership proof must be creatable
+			panic(fmt.Sprintf("unexpected error for nonexistence proof: %s", err.Error()))
+		}
+	}
+
+	op := storetyeps.NewIavlCommitmentOp(key, commitmentProof)
+
+	//&merkle.Proof{Ops: []merkle.ProofOp{iavl.NewValueOp(key, proof).ProofOp()}}
+	opp := op.ProofOp()
+	return &merkle.Proof{
+		Ops:                  []merkle.ProofOp{opp},
+		XXX_NoUnkeyedLiteral: struct{}{},
+		XXX_unrecognized:     nil,
+		XXX_sizecache:        0,
+	}
 }

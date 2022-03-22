@@ -1,12 +1,10 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	types2 "github.com/okex/exchain/x/staking/types"
+	outtypes "github.com/okex/exchain/x/staking/types"
 )
-
 
 func (k Keeper) TrackHistoricalInfo(ctx sdk.Context) {
 	entryNum := k.HistoricalEntries(ctx)
@@ -34,18 +32,18 @@ func (k Keeper) TrackHistoricalInfo(ctx sdk.Context) {
 
 	// Create HistoricalInfo struct
 	lastVals := k.GetLastValidators(ctx)
-	historicalEntry := types2.NewHistoricalInfo(ctx.BlockHeader(), lastVals)
+	historicalEntry := outtypes.NewHistoricalInfo(ctx.BlockHeader(), lastVals)
 
 	// Set latest HistoricalInfo at current height
 	k.SetHistoricalInfo(ctx, ctx.BlockHeight(), historicalEntry)
 }
 
 // SetHistoricalInfo sets the historical info at a given height
-func (k Keeper) SetHistoricalInfo(ctx sdk.Context, height int64, hi types2.HistoricalInfo) {
+func (k Keeper) SetHistoricalInfo(ctx sdk.Context, height int64, hi outtypes.HistoricalInfo) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetHistoricalInfoKey(height)
 
-	value := types2.MustMarshalHistoricalInfo(k.cdc, hi)
+	value := outtypes.MustMarshalHistoricalInfo(k.cdc, hi)
 	store.Set(key, value)
 }
 
@@ -60,7 +58,6 @@ func (k Keeper) HistoricalEntries(ctx sdk.Context) (res uint32) {
 
 // DeleteHistoricalInfo deletes the historical info at a given height
 func (k Keeper) DeleteHistoricalInfo(ctx sdk.Context, height int64) {
-	logrusplugin.Info("清楚historical", "height", height)
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetHistoricalInfoKey(height)
 
@@ -68,12 +65,12 @@ func (k Keeper) DeleteHistoricalInfo(ctx sdk.Context, height int64) {
 }
 
 // get the group of the bonded validators
-func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []types2.Validator) {
+func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []outtypes.Validator) {
 	store := ctx.KVStore(k.storeKey)
 
 	// add the actual validator power sorted store
 	maxValidators := k.MaxValidators(ctx)
-	validators = make([]types2.Validator, maxValidators)
+	validators = make([]outtypes.Validator, maxValidators)
 
 	iterator := sdk.KVStorePrefixIterator(store, types.LastValidatorPowerKey)
 	defer iterator.Close()
@@ -92,4 +89,17 @@ func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []types2.Validato
 		i++
 	}
 	return validators[:i] // trim
+}
+
+// GetHistoricalInfo gets the historical info at a given height
+func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types.HistoricalInfo, bool) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetHistoricalInfoKey(height)
+
+	value := store.Get(key)
+	if value == nil {
+		return types.HistoricalInfo{}, false
+	}
+
+	return types.MustUnmarshalHistoricalInfo(k.cdc, value), true
 }

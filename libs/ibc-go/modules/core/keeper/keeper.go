@@ -23,7 +23,7 @@ type Keeper struct {
 	// implements gRPC QueryServer interface
 	types.QueryServer
 
-	cdc *codec.MarshalProxy
+	cdc *codec.CodecProxy
 
 	ClientKeeper     clientkeeper.Keeper
 	ConnectionKeeper connectionkeeper.Keeper
@@ -34,7 +34,7 @@ type Keeper struct {
 
 // NewKeeper creates a new ibc Keeper
 func NewKeeper(
-	proxy *codec.MarshalProxy,
+	proxy *codec.CodecProxy,
 	key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, scopedKeeper *capabilitykeeper.ScopedKeeper,
 	registry types2.InterfaceRegistry,
@@ -61,7 +61,7 @@ func NewKeeper(
 }
 
 // Codec returns the IBC module codec.
-func (k Keeper) Codec() *codec.MarshalProxy {
+func (k Keeper) Codec() *codec.CodecProxy {
 	return k.cdc
 }
 

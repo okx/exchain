@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	yaml "gopkg.in/yaml.v2"
@@ -81,13 +79,6 @@ type Address interface {
 	Format(s fmt.State, verb rune)
 }
 
-// SigCache is common interface for different types of tx used to cache tx from and signer
-type SigCache interface {
-	GetFrom() ethcmn.Address
-	GetSigner() ethtypes.Signer
-	EqualSiger(siger ethtypes.Signer) bool
-}
-
 // Ensure that different address types implement the interface
 var _ Address = AccAddress{}
 var _ Address = ValAddress{}
@@ -136,9 +127,6 @@ func VerifyAddressFormat(bz []byte) error {
 // AccAddressFromBech32 creates an AccAddress from a Bech32 string.
 func AccAddressFromBech32(address string) (AccAddress, error) {
 	return AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
-}
-func UnsafeSetAddressPrefix(address string){
-	GetConfig().bech32AddressPrefix["account_addr"] = address
 }
 
 // AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
@@ -265,16 +253,6 @@ func (aa AccAddress) Bech32String(bech32PrefixAccAddr string) string {
 	}
 
 	return bech32Addr
-}
-
-func Bech32ifyAddressBytes(prefix string, bs []byte) (string, error) {
-	if len(bs) == 0 {
-		return "", nil
-	}
-	if len(prefix) == 0 {
-		return "", errors.New("prefix cannot be empty")
-	}
-	return bech32.ConvertAndEncode(prefix, bs)
 }
 
 // Format implements the fmt.Formatter interface.

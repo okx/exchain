@@ -1,7 +1,6 @@
 package transfer
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -90,7 +89,7 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Rout
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
+	//types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
 }
 
 // GetTxCmd implements AppModuleBasic interface
@@ -108,20 +107,16 @@ type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
-	m      *codec.MarshalProxy
+	m      *codec.CodecProxy
 }
 
 // NewAppModule creates a new 20-transfer module
-func NewAppModule(k keeper.Keeper, m *codec.MarshalProxy) AppModule {
+func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
 	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
 	return ret
-}
-
-func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
-	return nil, nil
 }
 
 // RegisterInvariants implements the AppModule interface

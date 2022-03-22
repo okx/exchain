@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -21,14 +20,14 @@ var _ types.ValidatorSet = Keeper{}
 type Keeper struct {
 	storeKey     sdk.StoreKey
 	cdc          *codec.Codec
-	cdcMarshl    *codec.MarshalProxy
+	cdcMarshl    *codec.CodecProxy
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.MarshalProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {
 
 	// set KeyTable if it has not already been set
@@ -153,17 +152,4 @@ func (k Keeper) GetOperAndValidatorAddr(ctx sdk.Context) types.OVPairs {
 		ovPairs = append(ovPairs, ovPair)
 	}
 	return ovPairs
-}
-
-// GetHistoricalInfo gets the historical info at a given height
-func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types2.HistoricalInfo, bool) {
-	store := ctx.KVStore(k.storeKey)
-	key := types2.GetHistoricalInfoKey(height)
-
-	value := store.Get(key)
-	if value == nil {
-		return types2.HistoricalInfo{}, false
-	}
-
-	return types2.MustUnmarshalHistoricalInfo(k.cdc, value), true
 }

@@ -3,14 +3,10 @@ package ibc
 import (
 	"encoding/json"
 	"fmt"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 
-	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
-
-	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -123,10 +119,6 @@ func NewAppModule(k *keeper.Keeper) AppModule {
 	}
 	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
-}
-
-func (am AppModule) Upgrade(req *abci.UpgradeReq) (*abci.ModuleUpgradeResp, error) {
-	return nil, nil
 }
 
 // TODO
@@ -262,7 +254,6 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 	}
 	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
 		data := lazyGenesis()
-		logrusplugin.Info("core init genesis")
 		am.initGenesis(ctx, data)
 		return nil
 	})

@@ -2,6 +2,7 @@
 //// source: cosmos/auth/v1beta1/query.proto
 //
 package types
+
 //
 //import (
 //	context "context"

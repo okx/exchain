@@ -24,7 +24,7 @@ import (
 // - any Tendermint chain specified parameter in upgraded client such as ChainID, UnbondingPeriod,
 //   and ProofSpecs do not match parameters set by committed client
 func (cs ClientState) VerifyUpgradeAndUpdateState(
-	ctx sdk.Context, cdc *codec.MarshalProxy, clientStore sdk.KVStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, clientStore sdk.KVStore,
 	upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState,
 	proofUpgradeClient, proofUpgradeConsState []byte,
 ) (exported.ClientState, exported.ConsensusState, error) {

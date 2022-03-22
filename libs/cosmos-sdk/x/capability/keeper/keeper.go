@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -59,7 +58,7 @@ type (
 
 // NewKeeper constructs a new CapabilityKeeper instance and initializes maps
 // for capability map and scopedModules map.
-func NewKeeper(cdc *codec.MarshalProxy, storeKey, memKey sdk.StoreKey) *Keeper {
+func NewKeeper(cdc *codec.CodecProxy, storeKey, memKey sdk.StoreKey) *Keeper {
 	return &Keeper{
 		cdc:           *cdc.GetCdc(),
 		storeKey:      storeKey,
@@ -250,7 +249,6 @@ func (sk ScopedKeeper) NewCapability(ctx sdk.Context, name string) (*types.Capab
 	sk.capMap[index] = cap
 
 	logger(ctx).Info("created new capability", "module", sk.module, "name", name)
-	logrusplugin.Info("created new capability", "capabilityName", name, "module", sk.module)
 
 	return cap, nil
 }
@@ -319,7 +317,7 @@ func (sk ScopedKeeper) ReleaseCapability(ctx sdk.Context, cap *types.Capability)
 	memStore := ctx.KVStore(sk.memKey)
 	name1 := types.FwdCapabilityKey(sk.module, cap)
 	name2 := types.RevCapabilityKey(sk.module, name)
-	logrusplugin.Error("deleteCap", "name", name, "name1", name1, "name2", name2)
+	logger(ctx).Info("deleteCap", "name", name, "name1", name1, "name2", name2)
 	// Delete the forward mapping between the module and capability tuple and the
 	// capability name in the memKVStore
 	memStore.Delete(types.FwdCapabilityKey(sk.module, cap))
@@ -538,7 +536,6 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 		for ; iterator.Valid(); iterator.Next() {
 			kk := iterator.Key()
 			index := types.IndexFromKey(kk)
-			logrusplugin.Info("msg", "key", string(kk))
 			var capOwners types.CapabilityOwners
 
 			k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &capOwners)

@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -28,28 +27,13 @@ type runTxInfo struct {
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
-	txBytes []byte, tx sdk.Tx, height int64, from ...string) (gInfo sdk.GasInfo, result *sdk.Result,
-	msCacheList sdk.CacheMultiStore, err error) {
+	txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 
-	var info *runTxInfo
-	info, err = app.runtx(mode, txBytes, tx, height, from...)
-	return info.gInfo, info.result, info.msCacheAnte, err
-}
-
-func (app *BaseApp) runtx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
-	//if hex.EncodeToString(txBytes) == "9b0225a6be540a940208ef37120a3234323030303030303018c09a0c221412353b21915c293e01cc1cb542d0cdf122774d6b2a01303244dd592d08000000000000000000000000000000000000000000000000000000000000006800000000000000000000000000000000000000000000000000000000000000043a03313637424d36313039393832343630313633383535343636343234343338343933353931373931383433383939393532373034323237323533353332313539363830343734313931323838323630353931314a4c34343839363236323239313335323430353234343036323339343339303834373033313434323236383138333735363331393235363131353238373231353138343135333537323232303431" {
-	//fmt.Println(1)
-	//err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
-	//} else {
-	//	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
-	//}
-	if nil != err {
-		logrusplugin.Error("runTxFailed", "err", err.Error())
-	}
 	return
 }
+
 func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
@@ -185,25 +169,30 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 }
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-	tx, err := app.txDecoder(req.Tx)
-	if err != nil {
-		logrusplugin.Error("deliverTx decode failed", "req", req, "err", err)
-		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+
+	var realTx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		realTx, _ = mem.ReapEssentialTx(req.Tx).(sdk.Tx)
+	}
+	if realTx == nil {
+		realTx, err = app.txDecoder(req.Tx)
+		if err != nil {
+			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+		}
 	}
 
-	gInfo, result, _, err := app.runTx(runTxModeDeliver, req.Tx, tx, LatestSimulateTxHeight)
+	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
-		logrusplugin.Error("deliverTx failed", "req", req, "err", err)
-		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	logrusplugin.Info("deliverTx successfully")
 	return abci.ResponseDeliverTx{
-		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       result.Log,
-		Data:      result.Data,
-		Events:    result.Events.ToABCIEvents(),
+		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:       info.result.Log,
+		Data:      info.result.Data,
+		Events:    info.result.Events.ToABCIEvents(),
 	}
 }
 
@@ -254,20 +243,20 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	g, r, m, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	info, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
 	if e != nil {
-		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
+		resp = sdkerrors.ResponseDeliverTx(e, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
 		resp = abci.ResponseDeliverTx{
-			GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
-			GasUsed:   int64(g.GasUsed),   // TODO: Should type accept unsigned ints?
-			Log:       r.Log,
-			Data:      r.Data,
-			Events:    r.Events.ToABCIEvents(),
+			GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+			GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+			Log:       info.result.Log,
+			Data:      info.result.Data,
+			Events:    info.result.Events.ToABCIEvents(),
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, txStatus.indexInBlock, txStatus.evmIndex)
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
 }

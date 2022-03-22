@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -23,13 +22,13 @@ import (
 
 type Keeper struct {
 	storeKey      sdk.StoreKey
-	cdc           *codec.MarshalProxy
+	cdc           *codec.CodecProxy
 	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
 }
 
 // NewKeeper creates a new NewKeeper instance
-func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -92,7 +91,7 @@ func (k Keeper) GetClientConsensusState(ctx sdk.Context, clientID string, height
 // height
 func (k Keeper) SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState) {
 	store := k.ClientStore(ctx, clientID)
-	logrusplugin.Info("set consensusState", "clientId", clientID, "height", height, "hash",
+	k.Logger(ctx).Info("set consensusState", "clientId", clientID, "height", height, "hash",
 		hex.EncodeToString(consensusState.GetRoot().GetHash()),
 		"consensusHeight", height)
 	store.Set(host.ConsensusStateKey(height), k.MustMarshalConsensusState(consensusState))
@@ -253,7 +252,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
 		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
-	logrusplugin.Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
+	k.Logger(ctx).Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
 	return consensusState, true
 }
 

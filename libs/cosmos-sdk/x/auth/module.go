@@ -118,9 +118,6 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 // InitGenesis performs genesis initialization for the auth module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return am.initGenesis(ctx, data)
-}
-func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	InitGenesis(ctx, am.accountKeeper, genesisState)
@@ -130,9 +127,6 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the auth
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return am.exportGenesis(ctx)
-}
-func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := ExportGenesis(ctx, am.accountKeeper)
 	return types.ModuleCdc.MustMarshalJSON(gs)
 }

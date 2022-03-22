@@ -196,9 +196,9 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	blacklistedAddrs[distrAcc.GetAddress().String()] = true
 
 	cdc := MakeTestCodec()
-	reg:=types2.NewInterfaceRegistry()
-	cc:=codec.NewProtoCodec(reg)
-	pro:=codec.NewMarshalProxy(cc,cdc)
+	reg := types2.NewInterfaceRegistry()
+	cc := codec.NewProtoCodec(reg)
+	pro := codec.NewCodecProxy(cc, cdc)
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 
@@ -214,7 +214,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
 
-	sk := staking.NewKeeper(cdc,pro, keyStaking, supplyKeeper,
+	sk := staking.NewKeeper(cdc, pro, keyStaking, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
 

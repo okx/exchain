@@ -9,7 +9,7 @@ GithubTop=github.com
 
 
 
-Version=v1.1.10
+Version=v1.2.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -20,7 +20,7 @@ ClientName=exchaincli
 GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
-IbcHeight=5812000
+IbcHeight=0
 
 # process linker flags
 ifeq ($(VERSION),)

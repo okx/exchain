@@ -47,4 +47,3 @@ type (
 	GenesisState  = types.GenesisState
 	Supply        = types.Supply
 )
-

@@ -36,14 +36,7 @@ func TestStdTx(t *testing.T) {
 	feePayer := tx.GetSigners()[0]
 	require.Equal(t, addr, feePayer)
 }
-func TestParse(t *testing.T){
-	str:="{\"type\":\"cosmos-sdk/StdTx\",\"value\":{\"msg\":[{\"type\":\"cosmos-sdk/RelayMsg\",\"value\":{\"Bytes\":\"CrMBCisvaWJjLmxpZ2h0Y2xpZW50cy50ZW5kZXJtaW50LnYxLkNsaWVudFN0YXRlEoMBCgtleGNoYWluLTEwMRIECAEQAxoECLDRMyIECIDqSSoDCNgEMgA6BghlEOSrAUIZCgkIARgBIAEqAQASDAoCAAEQIRgEIAwwAUIZCgkIARgBIAEqAQASDAoCAAEQIBgBIAEwAUoHdXBncmFkZUoQdXBncmFkZWRJQkNTdGF0ZVABWAEShQEKLi9pYmMubGlnaHRjbGllbnRzLnRlbmRlcm1pbnQudjEuQ29uc2Vuc3VzU3RhdGUSUwoLCLSSvJAGEJCXrQUSIgogHUPFr5zYWarDReJojiMX0Ox8ulJ+XHzLMjnPCDMOBHQaINkx8OvC7n4sUMbo3OKhlF6906aM3YnWXzdNiZDRzuNtGilleDF5Y3FjeGc1ampwczBoN2pheHMzbTg0NnR2NzMzbjBrdjljNXVsZQ==\",\"Singers\":null}}],\"fee\":{\"amount\":[],\"gas\":\"0\"},\"signatures\":[],\"memo\":\"\"}}"
-	cdc := ModuleCdc
-	sdk.RegisterCodec(cdc)
-	var data sdk.Tx
-	err:=cdc.UnmarshalJSON([]byte(str),&data)
-	fmt.Println(err)
-}
+
 func TestStdTxAmino(t *testing.T) {
 	cdc := ModuleCdc
 	sdk.RegisterCodec(cdc)
@@ -84,6 +77,15 @@ func TestStdTxAmino(t *testing.T) {
 			Msgs:       []sdk.Msg{},
 			Signatures: []StdSignature{},
 			Memo:       "",
+		},
+
+		{
+			Msgs:       []sdk.Msg{},
+			Signatures: []StdSignature{},
+			Memo:       "",
+			BaseTx: sdk.BaseTx{
+				Raw: []byte{1, 2, 3},
+			},
 		},
 	}
 

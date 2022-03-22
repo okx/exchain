@@ -20,7 +20,6 @@ const (
 	LogFormatPlain = "plain"
 	// LogFormatJSON is a format for json output
 	LogFormatJSON = "json"
-	DefaultGRPCAddress = "0.0.0.0:9090"
 )
 
 // NOTE: Most of the structs & relevant comments + the
@@ -74,9 +73,6 @@ type Config struct {
 	Consensus       *ConsensusConfig       `mapstructure:"consensus"`
 	TxIndex         *TxIndexConfig         `mapstructure:"tx_index"`
 	Instrumentation *InstrumentationConfig `mapstructure:"instrumentation"`
-
-
-	GRPC      GRPCConfig       `mapstructure:"grpc"`
 }
 
 // DefaultConfig returns a default configuration for a Tendermint node
@@ -90,10 +86,6 @@ func DefaultConfig() *Config {
 		Consensus:       DefaultConsensusConfig(),
 		TxIndex:         DefaultTxIndexConfig(),
 		Instrumentation: DefaultInstrumentationConfig(),
-		GRPC: GRPCConfig{
-			Enable:  false,
-			Address: DefaultGRPCAddress,
-		},
 	}
 }
 

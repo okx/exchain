@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -23,12 +22,12 @@ type Keeper struct {
 
 	storeKey     sdk.StoreKey
 	paramSpace   paramtypes.Subspace
-	cdc          *codec.MarshalProxy
+	cdc          *codec.CodecProxy
 	clientKeeper types.ClientKeeper
 }
 
 // NewKeeper creates a new IBC connection Keeper instance
-func NewKeeper(cdc *codec.MarshalProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
 	return Keeper{
 		storeKey:     key,
 		cdc:          cdc,
@@ -72,7 +71,7 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	//if nil != err {
 	//	panic(err)
 	//}
-	logrusplugin.Info("acquire connection", "id", connectionID, "state", connection.State)
+	k.Logger(ctx).Info("acquire connection", "id", connectionID, "state", connection.State)
 	return connection, true
 }
 
@@ -86,7 +85,7 @@ func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection t
 	//	panic(err)
 	//}
 	store.Set(host.ConnectionKey(connectionID), bz)
-	logrusplugin.Info("write connection", "connectionId", connectionID, "state", connection.State)
+	k.Logger(ctx).Info("write connection", "connectionId", connectionID, "state", connection.State)
 }
 
 // GetTimestampAtHeight returns the timestamp in nanoseconds of the consensus state at the

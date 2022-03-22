@@ -215,16 +215,6 @@ func (psh *PartSetHeader) ToProto() tmproto.PartSetHeader {
 		Hash:  psh.Hash,
 	}
 }
-//func (psh *PartSetHeader) ToIBCProto() tmproto.IBCPartSetHeader {
-//	if psh == nil {
-//		return tmproto.IBCPartSetHeader{}
-//	}
-//	tmmc.PartSetHeader{}
-//	return tmproto.IBCPartSetHeader{
-//		Total: uint32(psh.Total),
-//		Hash:  psh.Hash,
-//	}
-//}
 
 func (psh *PartSetHeader) ToIBCProto() tmproto.PartSetHeader {
 	if psh == nil {

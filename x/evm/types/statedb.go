@@ -351,13 +351,12 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // ----------------------------------------------------------------------------
 
 // SetLogs sets the logs for a transaction in the KVStore.
-func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
+func (csdb *CommitStateDB) SetLogs(logs []*ethtypes.Log) {
 	csdb.logs = logs
-	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
-func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
+func (csdb *CommitStateDB) DeleteLogs() {
 	csdb.logs = []*ethtypes.Log{}
 }
 
@@ -701,8 +700,8 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 }
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
-func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	return csdb.logs, nil
+func (csdb *CommitStateDB) GetLogs() []*ethtypes.Log {
+	return csdb.logs
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -832,7 +831,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 
 	// invalidate journal because reverting across transactions is not allowed
 	csdb.clearJournalAndRefund()
-	csdb.DeleteLogs(csdb.thash)
+	csdb.DeleteLogs()
 	return nil
 }
 

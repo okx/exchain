@@ -94,7 +94,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	treeMap.updateMutableTreeMap(moduleName)
 
 	tree.removedVersions.Range(func(k, v interface{}) bool {
-		tree.log(IavlDebug, "Height (%d) removed from tree version map.", k.(int64))
+		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
 		tree.removeVersion(k.(int64))
 		tree.removedVersions.Delete(k)
 		return true
@@ -164,7 +164,7 @@ func (tree *MutableTree) commitSchedule() {
 func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 	versions, err := tree.ndb.getRoots()
 	if err != nil {
-		tree.log(IavlErr, "failed to get versions from db: %s", err.Error())
+		tree.log(IavlErr, "failed to get versions from db", "error", err.Error())
 	}
 	versionSlice := make([]int64, 0, len(versions))
 	for version := range versions {
@@ -178,13 +178,13 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.committedHeightQueue.PushBack(version)
 	}
 	if len(versionSlice) > 0 {
-		tree.log(IavlInfo, "Tree<%s>, committed height queue: <%v>", tree.GetModuleName(), versionSlice)
+		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "committed height queue", versionSlice)
 	}
 }
 
 func (tree *MutableTree) StopTree() {
-	tree.log(IavlInfo, "stopping iavl, commit height %d", tree.version)
-	defer tree.log(IavlInfo, "stopping iavl, commit height %d completed", tree.version)
+	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
 	if !EnableAsyncCommit {
 		return
@@ -210,8 +210,8 @@ func (tree *MutableTree) StopTree() {
 	wg.Wait()
 }
 
-func (tree *MutableTree) log(level int, format string, args ...interface{}) {
-	iavlLog(tree.GetModuleName(), level, format, args...)
+func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
+	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
 func (tree *MutableTree) setHeightOrphansItem(version int64, rootHash []byte) {
@@ -231,9 +231,9 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 		if EnablePruningHistoryState {
 
 			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
-				tree.log(IavlErr, "Failed to delete height(%d): %s", oldVersion, err)
+				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
-				tree.log(IavlDebug, "History state (%d) removed", oldVersion)
+				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
 			}
 		}

@@ -1,17 +1,14 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/tendermint/go-amino"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
@@ -20,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 //-----------------------------------------------------------------------------
@@ -169,9 +167,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	dc := blockExec.deltaContext
 
 	defer func() {
-		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))
-		trace.GetElapsedInfo().AddInfo(trace.Tx, fmt.Sprintf("%d", len(block.Data.Txs)))
-		trace.GetElapsedInfo().AddInfo(trace.BlockSize, fmt.Sprintf("%d", block.FastSize()))
+		trace.GetElapsedInfo().AddInfo(trace.Height, strconv.FormatInt(block.Height, 10))
+		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
+		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -251,15 +249,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	SaveState(blockExec.db, state)
-	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
+	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
-	if !bytes.Equal(block.DataHash, block.Data.Hash(block.Height)) {
-		panic("Asd")
-	}
+
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
@@ -420,6 +416,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
+	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -435,7 +432,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	// Run txs of block.
 	for count, tx := range block.Txs {
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {

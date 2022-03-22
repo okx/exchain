@@ -26,7 +26,7 @@ type Keeper struct {
 	types.QueryServer
 
 	storeKey         sdk.StoreKey
-	cdc              *codec.MarshalProxy
+	cdc              *codec.CodecProxy
 	clientKeeper     types.ClientKeeper
 	connectionKeeper types.ConnectionKeeper
 	portKeeper       types.PortKeeper
@@ -35,7 +35,7 @@ type Keeper struct {
 
 // NewKeeper creates a new IBC channel Keeper instance
 func NewKeeper(
-	cdc *codec.MarshalProxy, key sdk.StoreKey,
+	cdc *codec.CodecProxy, key sdk.StoreKey,
 	clientKeeper types.ClientKeeper, connectionKeeper types.ConnectionKeeper,
 	portKeeper types.PortKeeper, scopedKeeper *capabilitykeeper.ScopedKeeper,
 ) Keeper {

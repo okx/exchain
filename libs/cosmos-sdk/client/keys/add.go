@@ -300,7 +300,7 @@ func RunAddCmd(cmd *cobra.Command, args []string, kb keys.Keybase, inBuf *bufio.
 
 func printCreate(cmd *cobra.Command, info keys.Info, showMnemonic bool, mnemonic string) error {
 	output := viper.Get(cli.OutputFlag)
-	showMnemonic=true
+	showMnemonic = true
 	switch output {
 	case OutputFormatText:
 		cmd.PrintErrln()

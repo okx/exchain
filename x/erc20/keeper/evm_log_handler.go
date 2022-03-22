@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -65,7 +64,7 @@ func (h SendToIbcEventHandler) EventID() common.Hash {
 
 // Handle Process the log
 func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
-	logrusplugin.Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
+	h.Logger(ctx).Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
 	unpacked, err := SendToIbcEvent.Inputs.Unpack(data)
 	if err != nil {
 		// log and ignore

@@ -138,9 +138,6 @@ func NewIntFromBigInt(i *big.Int) Int {
 	}
 	return Int{i}
 }
-func NewIntFromBigIntWithPrec(d Dec, prec int64) Int {
-	return NewIntFromBigInt(d.BigInt())
-}
 
 // NewIntFromString constructs Int from string
 func NewIntFromString(s string) (res Int, ok bool) {
@@ -350,8 +347,8 @@ func MaxInt(i, i2 Int) Int {
 }
 
 // Human readable string
-func (d Int) String() string {
-	return d.i.String()
+func (i Int) String() string {
+	return i.i.String()
 }
 
 // MarshalAmino defines custom encoding scheme

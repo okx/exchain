@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"strings"
 
-	logrusplugin "github.com/itsfunny/go-cell/sdk/log/logrus"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -61,7 +60,6 @@ func (k Keeper) SendTransfer(
 		return types.ErrSendDisabled
 	}
 	token := sdk.NewCoin(adaToken.Denom, adaToken.Amount)
-	logrusplugin.Info("send transfer", "info", token.String(), "timeoutHeight", timeoutHeight, "timeoutTimestamp", timeoutTimestamp)
 	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return sdkerrors.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", sourcePort, sourceChannel)
@@ -150,7 +148,6 @@ func (k Keeper) SendTransfer(
 	packetData := types.NewFungibleTokenPacketData(
 		fullDenomPath, bi.String(), sender.String(), receiver,
 	)
-	logrusplugin.Info("packet", "amount", packetData.Amount)
 
 	packet := channeltypes.NewPacket(
 		packetData.GetBytes(),
@@ -246,7 +243,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
 		ccc := sdk.NewCoins(token)
-		logrusplugin.Info("new denomTrace",
+		k.Logger(ctx).Info("new denomTrace",
 			"tracePath", denomTrace.Path,
 			"baseDenom", denomTrace.BaseDenom,
 			"token", token.String(),
@@ -304,7 +301,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	)
 
 	voucher := sdk.NewDecCoin(voucherDenom, transferAmount)
-	logrusplugin.Info("on recvPacket", "info", voucher.String())
+	k.Logger(ctx).Info("on recvPacket", "info", voucher.String())
 
 	// mint new tokens if the source of the transfer is the same chain
 	if err := k.bankKeeper.MintCoins(
@@ -316,7 +313,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	// send to receiver
 	ccc := sdk.NewCoins(voucher)
 
-	logrusplugin.Info("new denomTrace",
+	k.Logger(ctx).Info("new denomTrace",
 		"tracePath", denomTrace.Path, "baseDenom",
 		denomTrace.BaseDenom, "traceHash", traceHash,
 		"voucher", voucher.String(),
