@@ -447,6 +447,15 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
 
+	if counter == 6 {
+		for k, v := range rSet {
+			fmt.Println("rSet", hex.EncodeToString([]byte(k)), hex.EncodeToString(v))
+		}
+		for k, v := range wSet {
+			fmt.Println("wSet", hex.EncodeToString([]byte(k)), hex.EncodeToString(v))
+		}
+	}
+
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
