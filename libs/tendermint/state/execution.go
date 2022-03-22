@@ -281,6 +281,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
 		}
 
+		//if block.Height == 5810955 {
+		//block.Txs = block.Txs[:7]
+		//block.Txs = types.Txs{block.Txs[1]}
+		//block.Txs = types.Txs{block.Txs[1], block.Txs[3], block.Txs[4], block.Txs[6]}
+		//}
 		if abciResponses == nil {
 			ctx := &executionTask{
 				logger:   blockExec.logger,
