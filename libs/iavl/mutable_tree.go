@@ -82,7 +82,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			ImmutableTree: head,
 			lastSaved:     head.clone(),
 			savedNodes:    map[string]*Node{},
-			deltas:        &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
+			deltas:        &TreeDelta{},
 			orphans:       []*Node{},
 			commitOrphans: map[string]int64{},
 			versions:      NewSyncMap(),
@@ -377,7 +377,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = &TreeDelta{}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = iTree
@@ -437,7 +437,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = &TreeDelta{}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 	tree.ImmutableTree = t
@@ -506,7 +506,7 @@ func (tree *MutableTree) Rollback() {
 		tree.ImmutableTree = &ImmutableTree{ndb: tree.ndb, version: 0}
 	}
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = &TreeDelta{}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = map[string]int64{}
 }
@@ -534,7 +534,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
 
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = &TreeDelta{}
 
 	if !ignoreVersionCheck && tree.versions.Get(version) {
 		// If the version already exists, return an error as we're attempting to overwrite.
@@ -556,7 +556,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.ImmutableTree = tree.ImmutableTree.clone()
 			tree.lastSaved = tree.ImmutableTree.clone()
 			tree.savedNodes = map[string]*Node{}
-			tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+			tree.deltas = &TreeDelta{}
 			tree.orphans = []*Node{}
 			tree.commitOrphans = map[string]int64{}
 			return existingHash, version, *tree.deltas, nil
