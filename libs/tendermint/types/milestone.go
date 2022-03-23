@@ -88,7 +88,7 @@ func GetIBCHeight() int64 {
 }
 
 func UpgradeIBCInRuntime() bool {
-	return milestoreIbcHeight > 1
+	return milestoreIbcHeight >= 1
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
