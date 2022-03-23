@@ -73,24 +73,33 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	defer func() {
+		app.pin(Refund, true, mode)
+		deferGasStart := time.Now()
+		handler.handleDeferRefund(info)
+		app.pin(Refund, false, mode)
+
+		handler.handleDeferGasConsumed(info)
+
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-	}()
 
-	defer handler.handleDeferGasConsumed(info)
-
-	defer func() {
-		app.pin(Refund, true, mode)
-		defer app.pin(Refund, false, mode)
-
-		deferGasStart := time.Now()
-		handler.handleDeferRefund(info)
 		totalDeferGasTime += time.Since(deferGasStart).Microseconds()
 	}()
+
+	//defer handler.handleDeferGasConsumed(info)
+	//
+	//defer func() {
+	//	app.pin(Refund, true, mode)
+	//	defer app.pin(Refund, false, mode)
+	//
+	//	deferGasStart := time.Now()
+	//	handler.handleDeferRefund(info)
+	//	totalDeferGasTime += time.Since(deferGasStart).Microseconds()
+	//}()
 
 	basicStart := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {

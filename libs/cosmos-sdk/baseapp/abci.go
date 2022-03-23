@@ -179,7 +179,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		"deferGasAll", totalDeferGasTime,
 		"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
 		"validateBasicAll", totalBasicTime,
-		"anteAll", totalAnteDuration)
+		"anteAll", totalAnteDuration,
+		"waitingAll", totalWaitingTime)
 
 	return
 }

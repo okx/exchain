@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 10
+	maxDeliverTxsConcurrentNum = 3
 )
 
 var totalAnteDuration = int64(0)
@@ -341,14 +341,14 @@ type DeliverTxTasksManager struct {
 	txResponses []*abci.ResponseDeliverTx
 
 	app                *BaseApp
-	anteDuration       int64
-	gasAndMsgsDuration int64
-	serialDuration     int64
-	writeDuration      int64
-	deferGasTime       int64
-	handleGasTime      int64
-	runMsgsTime        int64
-	finishTime         int64
+	//anteDuration       int64
+	//gasAndMsgsDuration int64
+	//serialDuration     int64
+	////writeDuration      int64
+	//deferGasTime       int64
+	//handleGasTime      int64
+	//runMsgsTime        int64
+	//finishTime         int64
 }
 
 func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
@@ -393,14 +393,14 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 
 	dm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 
-	dm.anteDuration = 0
-	dm.gasAndMsgsDuration = 0
-	dm.serialDuration = 0
-	dm.writeDuration = 0
-	dm.deferGasTime = 0
-	dm.handleGasTime = 0
-	dm.runMsgsTime = 0
-	dm.finishTime = 0
+	//dm.anteDuration = 0
+	//dm.gasAndMsgsDuration = 0
+	//dm.serialDuration = 0
+	////dm.writeDuration = 0
+	//dm.deferGasTime = 0
+	//dm.handleGasTime = 0
+	//dm.runMsgsTime = 0
+	//dm.finishTime = 0
 	//blockHeight = global.GetGlobalHeight()
 	go dm.makeTasksRoutine(txs)
 	go dm.runStatefulSerialRoutine()
@@ -504,15 +504,11 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 			dm.pushIntoPending(task)
 			task.setStep(partialConcurrentStepInPending)
-
-			elapsed := time.Since(start).Microseconds()
-			//dm.mtx.Lock()
-			dm.anteDuration += elapsed
-			//dm.mtx.Unlock()
 		} else {
 			dm.app.logger.Error("NeedToReRunAnte", "index", task.index)
 		}
 	}
+	totalAnteDuration += time.Since(start).Microseconds()
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
@@ -604,7 +600,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			<-dm.statefulSignal
 			elapsed := time.Since(start).Microseconds()
 			dm.app.logger.Info("time to waiting for extractStatefulTask", "index", dm.statefulIndex+1, "us", elapsed)
-			dm.anteDuration -= elapsed
+			//dm.anteDuration -= elapsed
 			totalWaitingTime += elapsed
 			continue
 		}
@@ -612,7 +608,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		//if blockHeight == AssignedBlockHeight {
 		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
-		start := time.Now()
+		//start := time.Now()
 
 		info := dm.statefulTask.info
 		handler := info.handler
@@ -636,7 +632,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			}
 			info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 
-			dm.deferGasTime += time.Since(gasStart).Microseconds()
+			totalDeferGasTime += time.Since(gasStart).Microseconds()
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
@@ -645,7 +641,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			dm.resetStatefulTask()
 			finished++
 
-			dm.gasAndMsgsDuration += time.Since(start).Microseconds()
+			//dm.gasAndMsgsDuration += time.Since(start).Microseconds()
 		}
 
 		// execute anteHandler failed
@@ -667,7 +663,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 		gasStart := time.Now()
 		err := info.handler.handleGasConsumed(info)
-		dm.handleGasTime += time.Since(gasStart).Microseconds()
+		//dm.handleGasTime += time.Since(gasStart).Microseconds()
+		totalHandleGasTime += time.Since(gasStart).Microseconds()
 		if err != nil {
 			dm.app.logger.Error("handleGasConsumed failed", "err", err)
 
@@ -677,13 +674,14 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		// execute runMsgs
-		runMsgStart := time.Now()
 		// todo: will change account. Account updated.
 		//dm.app.logger.Info("handleRunMsg", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
 		dm.sendersMap.accountUpdated(false, 2, dm.statefulTask.from, -1)
+		runMsgStart := time.Now()
 		err = handler.handleRunMsg(info)
-		runMsgE := time.Since(runMsgStart).Microseconds()
-		dm.runMsgsTime += runMsgE
+		//runMsgE := time.Since(runMsgStart).Microseconds()
+		//dm.runMsgsTime += runMsgE
+		totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
 
 		handleGasFn()
 
@@ -712,8 +710,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		dm.done <- 0
 		close(dm.statefulSignal)
 		close(dm.nextSignal)
-		dm.serialDuration = time.Since(begin).Microseconds()
-		totalSerialDuration += dm.serialDuration
+		//dm.serialDuration = time.Since(begin).Microseconds()
+		totalSerialDuration += time.Since(begin).Microseconds()
 	} else {
 		dm.app.logger.Error("finished count is not equal to total count", "finished", finished, "total", dm.totalCount)
 	}
@@ -816,7 +814,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))
-	start := time.Now()
+	//start := time.Now()
 	app.deliverTxsMgr.deliverTxs(txs)
 
 	if len(txs) > 0 {
@@ -824,36 +822,37 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
 
-		dur := time.Since(start).Microseconds()
-		totalAnteDuration += app.deliverTxsMgr.anteDuration
-		totalGasAndMsgsDuration += app.deliverTxsMgr.gasAndMsgsDuration
-		totalWriteTime += app.deliverTxsMgr.writeDuration
-		totalHandleGasTime += app.deliverTxsMgr.handleGasTime
-		totalDeferGasTime += app.deliverTxsMgr.deferGasTime
-		totalRunMsgsTime += app.deliverTxsMgr.runMsgsTime
-		totalSavedTime = totalSavedTime + (app.deliverTxsMgr.anteDuration + app.deliverTxsMgr.gasAndMsgsDuration - app.deliverTxsMgr.serialDuration)
-		app.logger.Info("all durations",
-			"whole", dur,
-			"ante", app.deliverTxsMgr.anteDuration,
-			"serial", app.deliverTxsMgr.serialDuration,
-			"gasAndMsgs", app.deliverTxsMgr.gasAndMsgsDuration,
-			"handleGas", app.deliverTxsMgr.handleGasTime,
-			"write", app.deliverTxsMgr.writeDuration,
-			"runMsgs", app.deliverTxsMgr.runMsgsTime,
-			"deferGas", app.deliverTxsMgr.deferGasTime,
-			"serialSum", app.deliverTxsMgr.handleGasTime+app.deliverTxsMgr.writeDuration+app.deliverTxsMgr.runMsgsTime+app.deliverTxsMgr.deferGasTime,
-			"handleGasAll", totalHandleGasTime,
-			"writeAll", totalWriteTime,
-			"runMsgsAll", totalRunMsgsTime,
-			"deferGasAll", totalDeferGasTime,
-			"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
-			"anteAll", totalAnteDuration,
-			"gasAndMsgsAll", totalGasAndMsgsDuration,
-			"serialAll", totalSerialDuration,
-			"waitingAll", totalWaitingTime,
-			"rerunAnteAll", totalRerunAnteTime,
-			"totalSavedTime", totalSavedTime,
-			"saved", float64(app.deliverTxsMgr.anteDuration)/float64(dur))
+		//dur := time.Since(start).Microseconds()
+		////totalAnteDuration += app.deliverTxsMgr.anteDuration
+		////totalGasAndMsgsDuration += app.deliverTxsMgr.gasAndMsgsDuration
+		////totalWriteTime += app.deliverTxsMgr.writeDuration
+		////totalHandleGasTime += app.deliverTxsMgr.handleGasTime
+		////totalDeferGasTime += app.deliverTxsMgr.deferGasTime
+		////totalRunMsgsTime += app.deliverTxsMgr.runMsgsTime
+		////totalSavedTime = totalSavedTime + (app.deliverTxsMgr.anteDuration + app.deliverTxsMgr.gasAndMsgsDuration - app.deliverTxsMgr.serialDuration)
+		//app.logger.Info("all durations",
+		//	"whole", dur,
+		//	//"ante", app.deliverTxsMgr.anteDuration,
+		//	//"serial", app.deliverTxsMgr.serialDuration,
+		//	//"gasAndMsgs", app.deliverTxsMgr.gasAndMsgsDuration,
+		//	//"handleGas", app.deliverTxsMgr.handleGasTime,
+		//	//"write", app.deliverTxsMgr.writeDuration,
+		//	//"runMsgs", app.deliverTxsMgr.runMsgsTime,
+		//	//"deferGas", app.deliverTxsMgr.deferGasTime,
+		//	"serialSum", app.deliverTxsMgr.handleGasTime+app.deliverTxsMgr.runMsgsTime+app.deliverTxsMgr.deferGasTime,
+		//	"handleGasAll", totalHandleGasTime,
+		//	"writeAll", totalWriteTime,
+		//	"runMsgsAll", totalRunMsgsTime,
+		//	"deferGasAll", totalDeferGasTime,
+		//	"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
+		//	"anteAll", totalAnteDuration,
+		//	"gasAndMsgsAll", totalGasAndMsgsDuration,
+		//	"serialAll", totalSerialDuration,
+		//	"waitingAll", totalWaitingTime,
+		//	"rerunAnteAll", totalRerunAnteTime,
+		//	//"totalSavedTime", totalSavedTime,
+		//	//"saved", float64(app.deliverTxsMgr.anteDuration)/float64(dur))
+		//)
 	}
 
 	return app.deliverTxsMgr.txResponses
