@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 4
+	maxDeliverTxsConcurrentNum = 5
 )
 
 var totalAnteDuration = int64(0)
@@ -514,8 +514,16 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
 	//dm.app.logger.Info("runTxPartConcurrent", "index", index)
-	tx, err := dm.app.txDecoder(txByte)
-	task := newDeliverTxTask(tx, index)
+	var realTx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		realTx, _ = mem.ReapEssentialTx(txByte).(sdk.Tx)
+	}
+	if realTx == nil {
+		realTx, err = dm.app.txDecoder(txByte)
+	}
+	//tx, err := dm.app.txDecoder(txByte)
+	task := newDeliverTxTask(realTx, index)
 	task.info.txBytes = txByte
 	if err != nil {
 		task.err = err
