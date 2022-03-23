@@ -1524,6 +1524,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
+	cdc.RegisterConcrete(&ProposeBlockRequestMessage{}, "tendermint/ProposeBlockRequestMessage", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {

@@ -730,7 +730,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
 		// exe vc
-		cs.enterNewRound(cs.Height, cs.Round+1, &msg.val)
+		cs.enterNewRound(cs.Height, cs.Round, &msg.val)
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
