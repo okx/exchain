@@ -170,7 +170,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 				}
 				to := versions[indexFrom+batch] + 1
 				t.Logf("Deleting versions %v-%v", from, to-1)
-				err = tree.DeleteVersionsRange(int64(from), int64(to))
+				err = tree.DeleteVersionsRange(int64(from), int64(to), false)
 				require.NoError(t, err)
 				for version := from; version < to; version++ {
 					delete(diskMirrors, int64(version))
@@ -270,7 +270,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 
 	case r.Float64() < deleteRangeChance:
 		t.Logf("Deleting versions %v-%v", remaining[0], remaining[len(remaining)-1])
-		err = tree.DeleteVersionsRange(int64(remaining[0]), int64(remaining[len(remaining)-1]+1))
+		err = tree.DeleteVersionsRange(int64(remaining[0]), int64(remaining[len(remaining)-1]+1), false)
 		require.NoError(t, err)
 
 	// adjust probability to take into account probability of range delete not happening

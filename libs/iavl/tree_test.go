@@ -1360,7 +1360,7 @@ func TestDeleteVersionsCompare(t *testing.T) {
 		require.NoError(err)
 		require.Equal(targetVersion, int64(maxLength), "targetVersion shouldn't larger than the actual tree latest version")
 
-		err = tree.DeleteVersionsRange(versions[fromLength], versions[int64(maxLength/2)])
+		err = tree.DeleteVersionsRange(versions[fromLength], versions[int64(maxLength/2)], false)
 		require.NoError(err, "DeleteVersionsRange should not fail")
 
 		databaseSizeDeleteVersionsRange = mdb.Stats()["database.size"]

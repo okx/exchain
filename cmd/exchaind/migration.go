@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -40,8 +41,9 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd.AddCommand(
 		migrateAccountCmd(ctx),
 		migrateContractCmd(ctx),
-		cleanRawDBCmd(ctx),
+		cleanIavlStoreCmd(ctx),
 		iteratorMptCmd(ctx),
+		migrateMpt2IavlCmd(ctx),
 	)
 
 	return cmd
@@ -73,13 +75,13 @@ func migrateContractCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
+func cleanIavlStoreCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "clean-rawdb",
-		Short: "3. clean up migrated iavl state",
+		Use:   "clean-IavlStore",
+		Short: "3. clean up migrated iavl store",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- clean state start ---------")
-			cleanRawDB(ctx)
+			cleanIavlStore(ctx)
 			log.Println("--------- clean state end ---------")
 		},
 	}
@@ -88,16 +90,34 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 
 func iteratorMptCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "iterate",
+		Use:   "iterate-mpt",
 		Args:  cobra.ExactArgs(1),
-		Short: "",
+		Short: "4. iterate mpt store (acc, evm)",
 		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("--------- iterate mpt data start ---------")
 			name := args[0]
 			iteratorMpt(ctx, name)
+			log.Println("--------- iterate mpt data end ---------")
 		},
 	}
 	return cmd
 }
+
+func migrateMpt2IavlCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "migrate-mpt2iavl",
+		Args:  cobra.ExactArgs(1),
+		Short: "5. migrate mpt data to iavl data",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("--------- migrate mpt data to iavl data start ---------")
+			name := args[0]
+			migrateMpt2Iavl(ctx, name)
+			log.Println("--------- migrate mpt data to iavl data end ---------")
+		},
+	}
+	return cmd
+}
+
 
 func iteratorMpt(ctx *server.Context, name string) {
 	switch name {
@@ -117,16 +137,13 @@ func iteratorMpt(ctx *server.Context, name string) {
 		}
 
 	case evmtypes.StoreKey:
-		migApp := newMigrationApp(ctx)
-		ver, err := migApp.GetCommitVersion()
+		evmMptDb := mpt.InstanceOfAccStore()
+		hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 		panicError(err)
-		// init deliver state
-		migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
-		cmCtx := migApp.GetDeliverStateCtx()
-
-		evmMptDb := mpt.InstanceOfEvmStore()
-		rootHash := migApp.EvmKeeper.GetMptRootHash(uint64(cmCtx.BlockHeight() - 1))
-		evmTrie, err := evmMptDb.OpenTrie(rootHash)
+		rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+		panicError(err)
+		evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
+		panicError(err)
 		fmt.Println("evmTrie root hash:", evmTrie.Hash())
 
 		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
@@ -142,6 +159,90 @@ func iteratorMpt(ctx *server.Context, name string) {
 			}
 		}
 
+	}
+}
+
+func migrateMpt2Iavl(ctx *server.Context, name string) {
+	switch name {
+	case authtypes.StoreKey:
+		iavl.SetIgnoreVersionCheck(true)
+		accMptDb := mpt.InstanceOfAccStore()
+		hhash, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+		panicError(err)
+		rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+		panicError(err)
+		accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
+		panicError(err)
+		fmt.Println("accTrie root hash:", accTrie.Hash())
+
+		rootDir := ctx.Config.RootDir
+		dataDir := filepath.Join(rootDir, "data")
+		db, err := openDB(applicationDB, dataDir)
+		if err != nil {
+			panic("fail to open application db: " + err.Error())
+		}
+		db = dbm.NewPrefixDB(db, []byte(KeyAcc))
+		defer db.Close()
+
+		initialVersion := binary.BigEndian.Uint64(hhash)
+		tree, err := iavl.NewMutableTreeWithOpts(db, DefaultCacheSize, &iavl.Options{InitialVersion: initialVersion})
+		if err != nil {
+			panic("fail to create iavl tree: " + err.Error())
+		}
+
+		itr := trie.NewIterator(accTrie.NodeIterator(nil))
+		for itr.Next() {
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
+			tree.Set(itr.Key, itr.Value)
+		}
+		_, _, _, err = tree.SaveVersion(false)
+		if err != nil {
+			fmt.Println("fail to migrate acc data to iavl: ", err)
+		}
+
+	case evmtypes.StoreKey:
+		iavl.SetIgnoreVersionCheck(true)
+		evmMptDb := mpt.InstanceOfAccStore()
+		hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+		panicError(err)
+		rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+		panicError(err)
+		evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
+		panicError(err)
+		fmt.Println("evmTrie root hash:", evmTrie.Hash())
+
+		rootDir := ctx.Config.RootDir
+		dataDir := filepath.Join(rootDir, "data")
+		db, err := openDB(applicationDB, dataDir)
+		if err != nil {
+			panic("fail to open application db: " + err.Error())
+		}
+		db = dbm.NewPrefixDB(db, []byte(KeyEvm))
+		defer db.Close()
+
+		initialVersion := binary.BigEndian.Uint64(hhash)
+		tree, err := iavl.NewMutableTreeWithOpts(db, DefaultCacheSize, &iavl.Options{InitialVersion: initialVersion})
+		if err != nil {
+			panic("fail to create iavl tree: " + err.Error())
+		}
+
+		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
+		for itr.Next() {
+			addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
+			addrHash := ethcrypto.Keccak256Hash(addr[:])
+			contractTrie := getTrie(evmMptDb, addrHash)
+			fmt.Println(addr.String(), contractTrie.Hash())
+
+			cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
+			for cItr.Next() {
+				fmt.Printf("%s: %s\n", cItr.Key, cItr.Value)
+				tree.Set(cItr.Key, cItr.Value)
+			}
+		}
+		_, _, _, err = tree.SaveVersion(false)
+		if err != nil {
+			fmt.Println("fail to migrate evm mpt data to iavl: ", err)
+		}
 	}
 }
 
@@ -268,7 +369,7 @@ func migrateContract(ctx *server.Context) {
 	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight()-1))
 }
 
-func cleanRawDB(ctx *server.Context) {
+func cleanIavlStore(ctx *server.Context) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	db, err := openDB(applicationDB, dataDir)
@@ -280,15 +381,15 @@ func cleanRawDB(ctx *server.Context) {
 	latestVersion := rs.GetLatestVersion()
 
 	fmt.Println("Start to clean account store")
-	err = CleanIAVLStore(db, []byte(KeyAcc), latestVersion + 1, DefaultCacheSize)
+	err = CleanIAVLStore(db, []byte(KeyAcc), latestVersion, DefaultCacheSize)
 	if err != nil {
-		fmt.Println("FUCK, fail to clean iavl store: ", err)
+		fmt.Println("fail to clean iavl store: ", err)
 	}
 
 	fmt.Println("Start to clean evm store")
-	err = CleanIAVLStore(db, []byte(KeyEvm), latestVersion + 1, DefaultCacheSize)
+	err = CleanIAVLStore(db, []byte(KeyEvm), latestVersion, DefaultCacheSize)
 	if err != nil {
-		fmt.Println("FUCK, fail to clean iavl store: ", err)
+		fmt.Println("fail to clean iavl store: ", err)
 	}
 }
 
@@ -350,8 +451,7 @@ func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) e
 	if err != nil {
 		return err
 	}
-	tree.Version()
 
 	// delete verion [from, to)
-	return tree.DeleteVersionsRange(0, maxVersion)
+	return tree.DeleteVersionsRange(0, maxVersion + 1, true)
 }

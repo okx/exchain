@@ -310,7 +310,7 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 }
 
 // DeleteVersionsRange deletes versions from an interval (not inclusive).
-func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64) error {
+func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64, enforce bool) error {
 	if fromVersion >= toVersion {
 		return errors.New("toVersion must be greater than fromVersion")
 	}
@@ -321,9 +321,11 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	latest := ndb.getLatestVersion()
-	if latest < toVersion {
-		return errors.Errorf("cannot delete latest saved version (%d)", latest)
+	if !enforce {
+		latest := ndb.getLatestVersion()
+		if latest < toVersion {
+			return errors.Errorf("cannot delete latest saved version (%d)", latest)
+		}
 	}
 
 	predecessor := ndb.getPreviousVersion(fromVersion)
