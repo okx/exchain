@@ -291,7 +291,7 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	return nil, existConflict
 }
 
-func (sm *sendersMap) accountUpdated(happened bool, times int8, address string) {
+func (sm *sendersMap) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
 	sm.mtx.Lock()
 	defer sm.mtx.Unlock()
 
@@ -303,15 +303,16 @@ func (sm *sendersMap) accountUpdated(happened bool, times int8, address string) 
 	tasksList := tasks.([]*DeliverTxTask)
 	num := len(tasksList)
 	for i := 0; i < num; i++ {
-		count := tasksList[i].getUpdateCount()
+		task := tasksList[i]
+		count := task.getUpdateCount()
 		if happened {
 			tasksList[i].setUpdateCount(count+times)
 			// todo: whether should rerun the task
-			if tasksList[i].updateCount > 0 && tasksList[i].needToRerunWhenContextChanged() {
-				sm.pushToRerunList(tasksList[i])
+			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
+				sm.pushToRerunList(task)
 			}
 		} else {
-			tasksList[i].setUpdateCount(count-times)
+			task.setUpdateCount(count-times)
 		}
 	}
 }
@@ -363,7 +364,11 @@ func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	//if !acc.GetCoins().Empty() {
-		dm.sendersMap.accountUpdated(true, 1, addr)
+	waitingIndex := int(-1)
+	if dm.statefulTask == nil {
+		waitingIndex = dm.statefulIndex+1
+	}
+		dm.sendersMap.accountUpdated(true, 1, addr, waitingIndex)
 	//}
 }
 
@@ -481,7 +486,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
 		// todo: will change account. Account updated.
-		dm.sendersMap.accountUpdated(false, 2, task.from)
+		dm.sendersMap.accountUpdated(false, 2, task.from, -1)
 		err := dm.runAnte(task)
 		if err != nil {
 			dm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
@@ -605,7 +610,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 			// todo: will change account. Account updated.
 			//dm.app.logger.Info("handleDeferRefund", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
-			dm.sendersMap.accountUpdated(false, 1, dm.statefulTask.from)
+			dm.sendersMap.accountUpdated(false, 1, dm.statefulTask.from, -1)
 			handler.handleDeferRefund(info)
 
 			handler.handleDeferGasConsumed(info)
@@ -661,7 +666,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		runMsgStart := time.Now()
 		// todo: will change account. Account updated.
 		//dm.app.logger.Info("handleRunMsg", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
-		dm.sendersMap.accountUpdated(false, 2, dm.statefulTask.from)
+		dm.sendersMap.accountUpdated(false, 2, dm.statefulTask.from, -1)
 		err = handler.handleRunMsg(info)
 		runMsgE := time.Since(runMsgStart).Microseconds()
 		dm.runMsgsTime += runMsgE
