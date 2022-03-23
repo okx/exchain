@@ -49,6 +49,13 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.From = addr
 }
 
+// GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
+func (tx *MsgEthereumTx) GetFrom() string {
+	// firstVerifySig will do nothing if tx.Base.GetFrom != "".
+	_ = tx.firstVerifySig(tx.ChainID())
+	return tx.BaseTx.GetFrom()
+}
+
 func (msg *MsgEthereumTx) GetNonce() uint64 {
 	return msg.Data.AccountNonce
 }
@@ -251,7 +258,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 }
 
 func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
-	if msg.GetFrom() != "" {
+	if msg.BaseTx.GetFrom() != "" {
 		return nil
 	}
 
