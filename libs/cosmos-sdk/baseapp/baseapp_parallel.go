@@ -3,7 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -206,10 +205,10 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 }
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
-	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
-	for index := 0; index < len(groupList); index++ {
-		fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
-	}
+	//fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
+	//for index := 0; index < len(groupList); index++ {
+	//	fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
+	//}
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -238,7 +237,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		}
 		txReps[receiveTxIndex] = execRes
 
-		fmt.Println("receive---", receiveTxIndex, "index", txIndex, "markFailed", pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)))
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
 			txReps[receiveTxIndex] = nil
 			pm.workgroup.AddTask(txs[receiveTxIndex], receiveTxIndex)
@@ -293,7 +291,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
-				ParaLog.Update(uint64(app.deliverState.ctx.BlockHeight()), len(txs), rerunIdx)
 				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs),
 					"Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx, "len(group)", len(groupList))
 				signal <- 0
@@ -682,17 +679,14 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	defer f.mu.Unlock()
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
-	parent := f.currIndex
 	if ok && preIndexInGroup > f.currIndex {
 		if f.txReps[preIndexInGroup].anteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-			parent = preIndexInGroup
 		} else {
 			ms = f.cms.CacheMultiStore()
 		}
 
 	}
-	fmt.Println("runBase", index, base, parent)
 
 	if next, ok := f.nextTxInGroup[index]; ok {
 		if f.workgroup.isRunning(next) {
@@ -739,90 +733,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.currIndex = txIndex
 	f.mu.Unlock()
 	<-chanStop
-}
-
-var (
-	ParaLog *LogForParallel
-)
-
-func init() {
-	ParaLog = NewLogForParallel()
-}
-
-type parallelBlockInfo struct {
-	height   uint64
-	txs      int
-	reRunTxs int
-}
-
-func (p parallelBlockInfo) better(n parallelBlockInfo) bool {
-	return 1-float64(p.reRunTxs)/float64(p.txs) > 1-float64(n.reRunTxs)/float64(n.txs)
-}
-
-func (p parallelBlockInfo) string() string {
-	return fmt.Sprintf("Height:%d Txs %d ReRunTxs %d", p.height, p.txs, p.reRunTxs)
-}
-
-type LogForParallel struct {
-	init         bool
-	sumTx        int
-	reRunTx      int
-	blockNumbers int
-
-	bestBlock     parallelBlockInfo
-	terribleBlock parallelBlockInfo
-}
-
-func NewLogForParallel() *LogForParallel {
-	return &LogForParallel{
-		sumTx:        0,
-		reRunTx:      0,
-		blockNumbers: 0,
-		bestBlock: parallelBlockInfo{
-			height:   0,
-			txs:      0,
-			reRunTxs: 0,
-		},
-		terribleBlock: parallelBlockInfo{
-			height:   0,
-			txs:      0,
-			reRunTxs: 0,
-		},
-	}
-}
-
-func (l *LogForParallel) Update(height uint64, txs int, reRunCnt int) {
-	l.sumTx += txs
-	l.reRunTx += reRunCnt
-	l.blockNumbers++
-
-	if txs < 20 {
-		return
-	}
-
-	info := parallelBlockInfo{height: height, txs: txs, reRunTxs: reRunCnt}
-	if !l.init {
-		l.bestBlock = info
-		l.terribleBlock = info
-		l.init = true
-		return
-	}
-
-	if info.better(l.bestBlock) {
-		l.bestBlock = info
-	}
-	if l.terribleBlock.better(info) {
-		l.terribleBlock = info
-	}
-}
-
-func (l *LogForParallel) PrintLog() {
-	fmt.Println("BlockNumbers", l.blockNumbers)
-	fmt.Println("AllTxs", l.sumTx)
-	fmt.Println("ReRunTxs", l.reRunTx)
-	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
-	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
-	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
 }
 
 type paraInfo struct {
