@@ -53,12 +53,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		info.ctx = info.ctx.WithCache(sdk.NewCache(app.blockCache, useCache(mode)))
+		info.ctx.SetCache(sdk.NewCache(app.blockCache, useCache(mode)))
 	}
 	for _, addr := range from {
 		// cache from if exist
 		if addr != "" {
-			info.ctx = info.ctx.WithFrom(addr)
+			info.ctx.SetFrom(addr)
 			break
 		}
 	}
@@ -120,7 +120,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 1. CacheTxContext
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
-	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
 
 	// 2. AnteChain
