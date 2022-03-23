@@ -247,6 +247,7 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeper(
 		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
