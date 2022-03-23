@@ -47,7 +47,7 @@ func init() {
 				}
 			}
 		}
-		milestoreIbcHeight = 20
+		milestoreIbcHeight = math.MaxInt64 - 2
 	})
 }
 
