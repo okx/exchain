@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"log"
 	"path/filepath"
+
+	"github.com/okex/exchain/libs/iavl"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -61,9 +65,9 @@ func migrateContractCmd(ctx *server.Context) *cobra.Command {
 		Use:   "migrate-contract",
 		Short: "2. migrate iavl contract state to mpt contract state",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- display state start ---------")
+			log.Println("--------- migrate contract state start ---------")
 			migrateContract(ctx)
-			log.Println("--------- display state end ---------")
+			log.Println("--------- migrate contract state end ---------")
 		},
 	}
 	return cmd
@@ -74,9 +78,9 @@ func cleanRawDBCmd(ctx *server.Context) *cobra.Command {
 		Use:   "clean-rawdb",
 		Short: "3. clean up migrated iavl state",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- display state start ---------")
+			log.Println("--------- clean state start ---------")
 			cleanRawDB(ctx)
-			log.Println("--------- display state end ---------")
+			log.Println("--------- clean state end ---------")
 		},
 	}
 	return cmd
@@ -265,7 +269,27 @@ func migrateContract(ctx *server.Context) {
 }
 
 func cleanRawDB(ctx *server.Context) {
-	fmt.Println("Not implement!!!")
+	rootDir := ctx.Config.RootDir
+	dataDir := filepath.Join(rootDir, "data")
+	db, err := openDB(applicationDB, dataDir)
+	if err != nil {
+		panic("fail to open application db: " + err.Error())
+	}
+
+	rs := rootmulti.NewStore(db)
+	latestVersion := rs.GetLatestVersion()
+
+	fmt.Println("Start to clean account store")
+	err = CleanIAVLStore(db, []byte(KeyAcc), latestVersion + 1, DefaultCacheSize)
+	if err != nil {
+		fmt.Println("FUCK, fail to clean iavl store: ", err)
+	}
+
+	fmt.Println("Start to clean evm store")
+	err = CleanIAVLStore(db, []byte(KeyEvm), latestVersion + 1, DefaultCacheSize)
+	if err != nil {
+		fmt.Println("FUCK, fail to clean iavl store: ", err)
+	}
 }
 
 //----------------------------------------------------------------
@@ -315,4 +339,19 @@ func setAccMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(height)
 	db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, hhash)
 	db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, hhash...), hash.Bytes())
+}
+
+func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error {
+	if len(prefix) != 0 {
+		db = dbm.NewPrefixDB(db, prefix)
+	}
+
+	tree, err := iavl.NewMutableTree(db, cacheSize)
+	if err != nil {
+		return err
+	}
+	tree.Version()
+
+	// delete verion [from, to)
+	return tree.DeleteVersionsRange(0, maxVersion)
 }

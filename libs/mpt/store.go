@@ -498,8 +498,8 @@ func (ms *MptStore) prefetchData() {
 					if trie := ms.prefetcher.Trie(ms.originalRoot); trie != nil {
 						ms.trie = trie
 					}
-					GAccTrieUpdatedChannel <- struct{}{}
 				}
+				GAccTrieUpdatedChannel <- struct{}{}
 			case addr := <-GAccToPrefetchChannel:
 				if ms.prefetcher != nil {
 					ms.prefetcher.Prefetch(ms.originalRoot, addr)
