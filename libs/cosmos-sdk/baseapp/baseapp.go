@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -195,6 +196,11 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
+
+	evmTxVerifySigHandler sdk.TxVerifySigHandler
+
+	blockTxSenderCache     map[string]string
+	blockTxSenderCacheLock sync.RWMutex
 }
 
 type recordHandle func(string)
@@ -219,10 +225,11 @@ func NewBaseApp(
 		fauxMerkleMode: false,
 		trace:          false,
 
-		parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewChainCache(),
-		txDecoder:        txDecoder,
-		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+		parallelTxManage:   newParallelTxManager(),
+		chainCache:         sdk.NewChainCache(),
+		txDecoder:          txDecoder,
+		anteTracer:         trace.NewTracer(trace.AnteChainDetail),
+		blockTxSenderCache: make(map[string]string),
 	}
 
 	for _, option := range options {
@@ -863,8 +870,28 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	if err != nil {
 		return mempool.ExTxInfo{}
 	}
+	app.tryRestoreSenderFromCache(tx)
 
 	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
+}
+
+func (app *BaseApp) tryRestoreSenderFromCache(tx sdk.Tx) {
+	if tx.GetType() == sdk.EvmTxType {
+		app.blockTxSenderCacheLock.RLock()
+		sender, ok := app.blockTxSenderCache[string(tx.TxHash())]
+		app.blockTxSenderCacheLock.RUnlock()
+		if ok {
+			app.getTxFee(app.deliverState.ctx.WithFrom(sender), tx)
+		}
+	}
+}
+
+func (app *BaseApp) clearSenderCache() {
+	app.blockTxSenderCacheLock.Lock()
+	for k := range app.blockTxSenderCache {
+		delete(app.blockTxSenderCache, k)
+	}
+	app.blockTxSenderCacheLock.Unlock()
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {

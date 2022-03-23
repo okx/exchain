@@ -255,11 +255,11 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 		return nil
 	}
 
-	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
-	if ok {
-		msg.BaseTx.From = from
-		return nil
-	}
+	//from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	//if ok {
+	//	msg.BaseTx.From = from
+	//	return nil
+	//}
 
 	var V *big.Int
 	var sigHash ethcmn.Hash

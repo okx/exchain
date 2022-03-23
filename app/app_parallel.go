@@ -1,6 +1,7 @@
 package app
 
 import (
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -8,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/pkg/errors"
 )
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
@@ -22,8 +24,14 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
-			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-
+			if evmTx.BaseTx.From == "" && ctx.From() != "" {
+				evmTx.BaseTx.From = ctx.From()
+			} else {
+				chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+				if err == nil {
+					_ = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+				}
+			}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
@@ -37,5 +45,22 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(execResults [][]string) (logs [][]byte) {
 		return ek.FixLog(execResults)
+	}
+}
+
+func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) error {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+			if err != nil {
+				return err
+			}
+			err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return errors.New("tx type is not evm tx")
 	}
 }

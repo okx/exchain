@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -194,6 +196,83 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		Data:      info.result.Data,
 		Events:    info.result.Events.ToABCIEvents(),
 	}
+}
+
+type realTxResult struct {
+	Tx  sdk.Tx
+	Err error
+}
+
+func (app *BaseApp) deliverTxsPreCheckRoutine(txs types.Txs, realTxCh chan<- realTxResult, stopedCh <-chan struct{}) {
+	app.clearSenderCache()
+
+	for _, tx := range txs {
+		var realTx sdk.Tx
+		var err error
+		if mem := GetGlobalMempool(); mem != nil {
+			realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
+		}
+		if realTx == nil {
+			realTx, err = app.txDecoder(tx)
+			if err != nil {
+				realTxCh <- realTxResult{Err: err}
+				continue
+			}
+
+			if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+				err = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
+				if err == nil {
+					if realTx.GetFrom() != "" {
+						app.blockTxSenderCacheLock.Lock()
+						app.blockTxSenderCache[string(realTx.TxHash())] = realTx.GetFrom()
+						app.blockTxSenderCacheLock.Unlock()
+					}
+				}
+			}
+		}
+		select {
+		case realTxCh <- realTxResult{Tx: realTx}:
+		case <-stopedCh:
+			close(realTxCh)
+			return
+		}
+	}
+	close(realTxCh)
+}
+
+func (app *BaseApp) DeliverTxs(txs types.Txs, stopFunc func(int) bool) []abci.ResponseDeliverTx {
+	realTxCh := make(chan realTxResult, 64)
+	stopedCh := make(chan struct{}, 1)
+	go app.deliverTxsPreCheckRoutine(txs, realTxCh, stopedCh)
+
+	resp := make([]abci.ResponseDeliverTx, len(txs))
+	count := 0
+	for realTx := range realTxCh {
+		if realTx.Err != nil {
+			resp[count] = sdkerrors.ResponseDeliverTx(realTx.Err, 0, 0, app.trace)
+		} else {
+			info, err := app.runTx(runTxModeDeliver, txs[count], realTx.Tx, LatestSimulateTxHeight)
+			if err != nil {
+				resp[count] = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
+			}
+			respPtr := &resp[count]
+			respPtr.GasWanted = int64(info.gInfo.GasWanted) // TODO: Should type accept unsigned ints?
+			respPtr.GasUsed = int64(info.gInfo.GasUsed)     // TODO: Should type accept unsigned ints?
+			respPtr.Log = info.result.Log
+			respPtr.Data = info.result.Data
+			respPtr.Events = info.result.Events.ToABCIEvents()
+		}
+
+		if stopFunc(count) {
+			resp = resp[:count+1]
+			stopedCh <- struct{}{}
+			close(stopedCh)
+			break
+		}
+		count += 1
+	}
+
+	return resp
 }
 
 // runTx processes a transaction within a given execution mode, encoded transaction
