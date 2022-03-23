@@ -342,6 +342,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
 				conR.conS.hasViewChanged = true
+				// todo vc after ApplyBlock scheduleRound0
 			}
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)
