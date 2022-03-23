@@ -280,6 +280,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	defer func() {
 		r := recover()
 		if r != nil {
+			api.logger.Debug(fmt.Sprintf("RPC: Method<eth_getBalance>, err : %v", r))
 			panic(r)
 		}
 	}()
@@ -1003,6 +1004,13 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
+	defer func() {
+		r := recover()
+		if r != nil {
+			api.logger.Debug(fmt.Sprintf("RPC: Method<eth_getBlockByHash>, err : %v", r))
+			panic(r)
+		}
+	}()
 	blockRes, err := api.backend.GetBlockByHash(hash)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
@@ -1084,7 +1092,13 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (b
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
-
+	defer func() {
+		r := recover()
+		if r != nil {
+			api.logger.Debug(fmt.Sprintf("RPC: Method<eth_getBlockByNumber>, err : %v", r))
+			panic(r)
+		}
+	}()
 	blockRes, err := api.getBlockByNumber(blockNum)
 	//modify block.Transactions to hashs when not fullTx
 	if err == nil && blockRes != nil && !fullTx {
