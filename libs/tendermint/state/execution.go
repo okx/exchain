@@ -416,7 +416,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
-	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	// proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -432,16 +432,26 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
-		}
+	reqs := make([]abci.RequestDeliverTx, len(block.Txs))
+	for i, tx := range block.Txs {
+		reqs[i].Tx = tx
+	}
 
+	var stopedIndex = -1
+	proxyAppConn.DeliverTxsAsync(reqs, func(i int) bool {
 		if context != nil && context.stopped {
-			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
-			return nil, fmt.Errorf("Prerun stopped")
+			stopedIndex = i
+			return true
 		}
+		return false
+	})
+
+	if err := proxyAppConn.Error(); err != nil {
+		return nil, err
+	}
+	if stopedIndex > -1 {
+		context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", stopedIndex+1, len(block.Txs)))
+		return nil, fmt.Errorf("Prerun stopped")
 	}
 
 	// End block.

@@ -51,6 +51,10 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
 	return func(ctx sdk.Context, tx sdk.Tx) error {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			if evmTx.BaseTx.From == "" && ctx.From() != "" {
+				evmTx.BaseTx.From = ctx.From()
+				return nil
+			}
 			chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 			if err != nil {
 				return err

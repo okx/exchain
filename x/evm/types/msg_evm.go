@@ -299,16 +299,16 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if msg.BaseTx.GetFrom() != "" {
 		return nil
 	}
-	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
-	if ok {
-		msg.BaseTx.From = from
-		return nil
-	}
+	//from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	//if ok {
+	//	msg.BaseTx.From = from
+	//	return nil
+	//}
 	from, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
-	tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
+	// tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
 	msg.BaseTx.From = from
 	return nil
 }

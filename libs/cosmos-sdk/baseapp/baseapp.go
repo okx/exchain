@@ -882,7 +882,7 @@ func (app *BaseApp) tryRestoreSenderFromCache(tx sdk.Tx) {
 		sender, ok := app.blockTxSenderCache[string(tx.TxHash())]
 		app.blockTxSenderCacheLock.RUnlock()
 		if ok {
-			app.getTxFee(app.deliverState.ctx.WithFrom(sender), tx)
+			_ = app.evmTxVerifySigHandler(app.deliverState.ctx.WithFrom(sender), tx)
 		}
 	}
 }
