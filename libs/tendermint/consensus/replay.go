@@ -545,6 +545,18 @@ func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeli
 	return *r
 }
 
+func (mock *mockProxyApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) bool) []abci.ResponseDeliverTx {
+	ret := make([]abci.ResponseDeliverTx, len(txs))
+	for i := range txs {
+		r := mock.abciResponses.DeliverTxs[mock.txCount]
+		mock.txCount++
+		if r != nil {
+			ret[i] = *r
+		}
+	}
+	return ret
+}
+
 func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlock {
 	mock.txCount = 0
 	return *mock.abciResponses.EndBlock

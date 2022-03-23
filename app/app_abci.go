@@ -35,6 +35,14 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	return resp
 }
 
+func (app *OKExChainApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) bool) []abci.ResponseDeliverTx {
+	ret := make([]abci.ResponseDeliverTx, len(txs))
+	for i, tx := range txs {
+		ret[i] = app.DeliverTx(tx)
+	}
+	return ret
+}
+
 // EndBlock implements the Application interface
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 

@@ -282,6 +282,10 @@ func (app *testApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	return abci.ResponseDeliverTx{Events: []abci.Event{}}
 }
 
+func (app *testApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) bool) []abci.ResponseDeliverTx {
+	return make([]abci.ResponseDeliverTx, len(txs))
+}
+
 func (app *testApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	return abci.ResponseCheckTx{}
 }

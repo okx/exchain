@@ -21,7 +21,8 @@ type Application interface {
 	InitChain(RequestInitChain) ResponseInitChain    // Initialize blockchain w validators/other info from TendermintCore
 	BeginBlock(RequestBeginBlock) ResponseBeginBlock // Signals the beginning of a block
 	DeliverTx(RequestDeliverTx) ResponseDeliverTx    // Deliver a tx for full processing
-	EndBlock(RequestEndBlock) ResponseEndBlock       // Signals the end of a block, returns changes to the validator set
+	DeliverTxs([]RequestDeliverTx, func(int) bool) []ResponseDeliverTx
+	EndBlock(RequestEndBlock) ResponseEndBlock // Signals the end of a block, returns changes to the validator set
 
 	Commit(RequestCommit) ResponseCommit // Commit the state and return the application Merkle root hash
 	ParallelTxs(txs [][]byte, onlyCalSender bool) []*ResponseDeliverTx
@@ -49,6 +50,14 @@ func (BaseApplication) SetOption(req RequestSetOption) ResponseSetOption {
 
 func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
 	return ResponseDeliverTx{Code: CodeTypeOK}
+}
+
+func (BaseApplication) DeliverTxs(txs []RequestDeliverTx, _ func(int) bool) (ret []ResponseDeliverTx) {
+	ret = make([]ResponseDeliverTx, len(txs))
+	for i := range txs {
+		ret[i].Code = CodeTypeOK
+	}
+	return
 }
 
 func (BaseApplication) CheckTx(req RequestCheckTx) ResponseCheckTx {

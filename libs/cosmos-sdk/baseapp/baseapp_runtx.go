@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -203,17 +201,17 @@ type realTxResult struct {
 	Err error
 }
 
-func (app *BaseApp) deliverTxsPreCheckRoutine(txs types.Txs, realTxCh chan<- realTxResult, stopedCh <-chan struct{}) {
+func (app *BaseApp) deliverTxsPreCheckRoutine(txs []abci.RequestDeliverTx, realTxCh chan<- realTxResult, stopedCh <-chan struct{}) {
 	app.clearSenderCache()
 
 	for _, tx := range txs {
 		var realTx sdk.Tx
 		var err error
 		if mem := GetGlobalMempool(); mem != nil {
-			realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
+			realTx, _ = mem.ReapEssentialTx(tx.Tx).(sdk.Tx)
 		}
 		if realTx == nil {
-			realTx, err = app.txDecoder(tx)
+			realTx, err = app.txDecoder(tx.Tx)
 			if err != nil {
 				realTxCh <- realTxResult{Err: err}
 				continue
@@ -240,7 +238,7 @@ func (app *BaseApp) deliverTxsPreCheckRoutine(txs types.Txs, realTxCh chan<- rea
 	close(realTxCh)
 }
 
-func (app *BaseApp) DeliverTxs(txs types.Txs, stopFunc func(int) bool) []abci.ResponseDeliverTx {
+func (app *BaseApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) bool) []abci.ResponseDeliverTx {
 	realTxCh := make(chan realTxResult, 64)
 	stopedCh := make(chan struct{}, 1)
 	go app.deliverTxsPreCheckRoutine(txs, realTxCh, stopedCh)
@@ -251,7 +249,7 @@ func (app *BaseApp) DeliverTxs(txs types.Txs, stopFunc func(int) bool) []abci.Re
 		if realTx.Err != nil {
 			resp[count] = sdkerrors.ResponseDeliverTx(realTx.Err, 0, 0, app.trace)
 		} else {
-			info, err := app.runTx(runTxModeDeliver, txs[count], realTx.Tx, LatestSimulateTxHeight)
+			info, err := app.runTx(runTxModeDeliver, txs[count].Tx, realTx.Tx, LatestSimulateTxHeight)
 			if err != nil {
 				resp[count] = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 			}
