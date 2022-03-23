@@ -160,7 +160,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 	app.parallelTxManage.isAsyncDeliverTx = true
 	app.parallelTxManage.cms = app.deliverState.ms.CacheMultiStore()
-	app.parallelTxManage.height = app.deliverState.ctx.BlockHeight()
 	app.parallelTxManage.runBase = make([]int, len(txs))
 
 	evmIndex := uint32(0)
@@ -181,11 +180,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 		app.parallelTxManage.txStatus[vString] = t
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
-
-	//sdk.AddPrePare(time.Now().Sub(ts))
-	//fmt.Println("calGroupTime", time.Now().Sub(ts).Milliseconds())
 	return app.runTxs(txWithIndex, groupList, nextIndexInGroup)
-
 }
 
 //TODO: fuck
@@ -200,7 +195,6 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 		refundFee := app.parallelTxManage.txReps[index].refundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
-		//fmt.Println("fee", index, txFee, currTxFee)
 	}
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
@@ -212,7 +206,6 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 }
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
-	//ts := time.Now()
 	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
 	for index := 0; index < len(groupList); index++ {
 		fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
@@ -278,21 +271,9 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				nn, ok := app.parallelTxManage.nextTxInGroup[txIndex]
 
 				if ok {
-					//pp := nn
-					//for true {
-					//	txReps[pp] = nil
-					//	pp, ok = app.parallelTxManage.nextTxInGroup[pp]
-					//	if !ok {
-					//		break
-					//	}
-					//}
-
 					if !pm.workgroup.isRunning(nn) {
 						txReps[nn] = nil
 						pm.workgroup.AddTask(txs[nn], nn)
-					} else {
-						//runningTaskID := pm.workgroup.runningStats(nn)
-						//pm.markFailed(runningTaskID)
 					}
 				}
 
@@ -443,15 +424,6 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
 
-	//if counter == 600 {
-	//	for k, v := range rSet {
-	//		fmt.Println("rSet", hex.EncodeToString([]byte(k)), hex.EncodeToString(v))
-	//	}
-	//	for k, v := range wSet {
-	//		fmt.Println("wSet", hex.EncodeToString([]byte(k)), hex.EncodeToString(v))
-	//	}
-	//}
-
 	return &executeResult{
 		resp:       r,
 		ms:         ms,
@@ -570,9 +542,6 @@ type parallelTxManager struct {
 
 	fee map[string]sdk.Coins // not need mute
 
-	//refundFee      map[string]sdk.Coins
-	//refundFeeMutex sync.RWMutex
-
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
 
@@ -581,9 +550,8 @@ type parallelTxManager struct {
 	preTxInGroup       map[int]int
 	txIndexWithGroupID map[int]int
 
-	mu     sync.RWMutex
-	cms    sdk.CacheMultiStore
-	height int64
+	mu  sync.RWMutex
+	cms sdk.CacheMultiStore
 
 	cc         *conflictCheck
 	currIndex  int
@@ -637,12 +605,9 @@ func (pm *parallelTxManager) newIsConflict(e *executeResult) bool {
 func (p *parallelTxManager) isConflict(base int, key string, readValue []byte, txIndex int) bool {
 	if dirtyTxIndex, ok := p.cc.items[key]; ok {
 		if !bytes.Equal(dirtyTxIndex.value, readValue) {
-			//fmt.Println("not equal", "txIndex", txIndex, "base", base, hex.EncodeToString([]byte(key)), "readValue", hex.EncodeToString(readValue),
-			//"dirtyValue", hex.EncodeToString(dirtyTxIndex.value))
 			return true
 		} else {
 			if base < dirtyTxIndex.txIndex && p.txIndexWithGroupID[dirtyTxIndex.txIndex] != p.txIndexWithGroupID[txIndex] {
-				//fmt.Println("ddddd", dirtyTxIndex.txIndex, "txIndex", txIndex, p.txIndexWithGroupID[dirtyTxIndex.txIndex], p.txIndexWithGroupID[txIndex])
 				return true
 			}
 		}
@@ -660,8 +625,7 @@ type txStatus struct {
 	isEvmTx      bool
 	evmIndex     uint32
 	indexInBlock uint32
-	//anteErr      error
-	signCache sdk.SigCache
+	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -669,9 +633,6 @@ func newParallelTxManager() *parallelTxManager {
 		isAsyncDeliverTx: false,
 		workgroup:        newAsyncWorkGroup(),
 		fee:              make(map[string]sdk.Coins),
-
-		//refundFee:      make(map[string]sdk.Coins),
-		//refundFeeMutex: sync.RWMutex{},
 
 		txStatus:      make(map[string]*txStatus),
 		indexMapBytes: make([]string, 0),
@@ -690,14 +651,13 @@ func newParallelTxManager() *parallelTxManager {
 
 func (f *parallelTxManager) clear() {
 	f.fee = make(map[string]sdk.Coins)
-	//f.refundFee = make(map[string]sdk.Coins)
 
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
 	f.nextTxInGroup = make(map[int]int)
 	f.preTxInGroup = make(map[int]int)
 	f.txIndexWithGroupID = make(map[int]int)
-	//f.runBase = make(map[int]int)
+
 	f.currIndex = -1
 	f.cc.clear()
 	f.workgroup.markFailedStats = make(map[int]bool)
@@ -705,20 +665,6 @@ func (f *parallelTxManager) clear() {
 	f.workgroup.runningStatus = make(map[int]int)
 	f.workgroup.isrunning = make(map[int]bool)
 	f.workgroup.indexInAll = 0
-}
-
-func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
-	//f.refundFeeMutex.Lock()
-	//defer f.refundFeeMutex.Unlock()
-	//f.refundFee[key] = value
-}
-
-func (f *parallelTxManager) getRefundFee(key string) sdk.Coins {
-	//TODO delete (cal once)
-	//f.refundFeeMutex.RLock()
-	//defer f.refundFeeMutex.RUnlock()
-	//return f.refundFee[key]
-	panic("sb")
 }
 
 func (f *parallelTxManager) isReRun(tx string) bool {
@@ -750,11 +696,9 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 
 	if next, ok := f.nextTxInGroup[index]; ok {
 		if f.workgroup.isRunning(next) {
-			//fmt.Println("markFailed", index, next)
 			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
 			f.txReps[next] = nil
-			//fmt.Println("setFailed", index, next)
 		}
 	}
 
@@ -795,7 +739,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.currIndex = txIndex
 	f.mu.Unlock()
 	<-chanStop
-	//fmt.Println("SetCurrent", txIndex)
 }
 
 var (
