@@ -100,9 +100,9 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	if err != nil {
 		broadcastReq := &typestx.BroadcastTxRequest{}
 		err = broadcastReq.Unmarshal(bytes)
-		if err != nil {
-			return authtypes.StdTx{}, err
-		}
+		//if err != nil {
+		//	return authtypes.StdTx{}, err
+		//}
 	} else {
 		tx = simReq.Tx
 		txBytes = simReq.TxBytes
