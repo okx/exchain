@@ -361,7 +361,7 @@ func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
 
 func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
+	dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	//if !acc.GetCoins().Empty() {
 		dm.sendersMap.accountUpdated(true, 1, addr)
 	//}
