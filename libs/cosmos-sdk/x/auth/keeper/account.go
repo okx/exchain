@@ -91,8 +91,8 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
+	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
 
-	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}

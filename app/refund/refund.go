@@ -37,14 +37,8 @@ type Handler struct {
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
-
 	currentGasMeter := ctx.GasMeter()
-	TempGasMeter := sdk.NewInfiniteGasMeter()
-	ctx = ctx.WithGasMeter(TempGasMeter)
-
-	defer func() {
-		ctx = ctx.WithGasMeter(currentGasMeter)
-	}()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	gasLimit := currentGasMeter.Limit()
 	gasUsed := currentGasMeter.GasConsumed()
@@ -60,7 +54,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 
 	feePayer := feeTx.FeePayer(ctx)
 
-	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(ctx, handler.ak, feePayer)
+	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(&ctx, handler.ak, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
