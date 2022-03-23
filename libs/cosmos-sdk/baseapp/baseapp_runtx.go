@@ -36,6 +36,7 @@ func (app *BaseApp) runTx(mode runTxMode,
 }
 
 func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
+	start := time.Now()
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
@@ -61,6 +62,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			break
 		}
 	}
+	totalAnteDuration += time.Since(start).Microseconds()
 
 	gasStart := time.Now()
 	err = handler.handleGasConsumed(info)
@@ -96,6 +98,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	totalBasicTime += time.Since(basicStart).Microseconds()
+	totalAnteDuration += time.Since(basicStart).Microseconds()
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
@@ -188,7 +191,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 }
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-
+	start := time.Now()
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {
@@ -200,7 +203,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
-
+	totalAnteDuration += time.Since(start).Microseconds()
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
