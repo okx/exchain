@@ -36,11 +36,21 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 }
 
 func (app *OKExChainApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) bool) []abci.ResponseDeliverTx {
-	ret := make([]abci.ResponseDeliverTx, len(txs))
-	for i, tx := range txs {
-		ret[i] = app.DeliverTx(tx)
+	analyzer.OnAppDeliverTxEnter()
+
+	resp := app.BaseApp.DeliverTxs(txs, stopFunc)
+
+	for i := range resp {
+		tx := txs[i]
+		if appconfig.GetOecConfig().GetEnableDynamicGp() {
+			tx, err := evm.TxDecoder(app.Codec())(tx.Tx)
+			if err == nil {
+				//optimize get tx gas price can not get value from verifySign method
+				app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
+			}
+		}
 	}
-	return ret
+	return resp
 }
 
 // EndBlock implements the Application interface
