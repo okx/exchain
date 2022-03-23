@@ -198,7 +198,7 @@ func produceAbciRsp() *ABCIResponses {
 		proxyApp: proxyApp.Consensus(),
 	}
 
-	abciResponses, _ := execBlockOnProxyApp(ctx)
+	abciResponses, _ := execBlockOnProxyApp(ctx, nil)
 	return abciResponses
 }
 

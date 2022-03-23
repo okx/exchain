@@ -76,7 +76,7 @@ func (t *executionTask) run() {
 	if t.isParalleledTx {
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
 	} else {
-		abciResponses, err = execBlockOnProxyApp(t)
+		abciResponses, err = execBlockOnProxyApp(t, nil)
 	}
 
 	if !t.stopped {
