@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 5
+	maxDeliverTxsConcurrentNum = 3
 )
 
 var totalAnteDuration = int64(0)
@@ -283,7 +283,7 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 	if minIndex >= 0 {
 		nextTask, ok := sm.needRerunTasks.Load(minIndex)
 		if ok {
-			sm.logger.Info("extractNextTask", "index", minIndex)
+			//sm.logger.Info("extractNextTask", "index", minIndex)
 			sm.needRerunTasks.Delete(minIndex)
 			return nextTask.(*DeliverTxTask), existConflict
 		}
@@ -361,7 +361,7 @@ func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
 
 func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
+	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	//if !acc.GetCoins().Empty() {
 		dm.sendersMap.accountUpdated(true, 1, addr)
 	//}
@@ -476,7 +476,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	if dm.app.anteHandler != nil {
 		task.setStep(partialConcurrentStepAnteStart)
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
+		//dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
 		//}
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -530,7 +530,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	//task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -604,7 +604,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			dm.updateFeeCollector()
 
 			// todo: will change account. Account updated.
-			dm.app.logger.Info("handleDeferRefund", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
+			//dm.app.logger.Info("handleDeferRefund", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
 			dm.sendersMap.accountUpdated(false, 1, dm.statefulTask.from)
 			handler.handleDeferRefund(info)
 
@@ -641,7 +641,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			continue
 		}
 
-		dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
@@ -660,7 +660,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		// execute runMsgs
 		runMsgStart := time.Now()
 		// todo: will change account. Account updated.
-		dm.app.logger.Info("handleRunMsg", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
+		//dm.app.logger.Info("handleRunMsg", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
 		dm.sendersMap.accountUpdated(false, 2, dm.statefulTask.from)
 		err = handler.handleRunMsg(info)
 		runMsgE := time.Since(runMsgStart).Microseconds()
