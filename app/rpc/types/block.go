@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	watcher "github.com/okex/exchain/x/evm/watcher"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -175,4 +177,58 @@ func BlockNumberOrHashWithHash(hash common.Hash, canonical bool) BlockNumberOrHa
 		BlockHash:        &hash,
 		RequireCanonical: canonical,
 	}
+}
+
+// Block represents a transaction returned to RPC clients.
+type Block struct {
+	Number           hexutil.Uint64     `json:"number"`
+	Hash             common.Hash        `json:"hash"`
+	ParentHash       common.Hash        `json:"parentHash"`
+	Nonce            watcher.BlockNonce `json:"nonce"`
+	UncleHash        common.Hash        `json:"sha3Uncles"`
+	LogsBloom        ethtypes.Bloom     `json:"logsBloom"`
+	TransactionsRoot common.Hash        `json:"transactionsRoot"`
+	StateRoot        common.Hash        `json:"stateRoot"`
+	Miner            common.Address     `json:"miner"`
+	MixHash          common.Hash        `json:"mixHash"`
+	Difficulty       hexutil.Uint64     `json:"difficulty"`
+	TotalDifficulty  hexutil.Uint64     `json:"totalDifficulty"`
+	ExtraData        hexutil.Bytes      `json:"extraData"`
+	Size             hexutil.Uint64     `json:"size"`
+	GasLimit         hexutil.Uint64     `json:"gasLimit"`
+	GasUsed          *hexutil.Big       `json:"gasUsed"`
+	Timestamp        hexutil.Uint64     `json:"timestamp"`
+	Uncles           []common.Hash      `json:"uncles"`
+	ReceiptsRoot     common.Hash        `json:"receiptsRoot"`
+	Transactions     interface{}        `json:"transactions"`
+}
+
+func RpcBlockFromWatcherBlock(watcherBlock *watcher.FullTxBlock, fullTx bool) *Block {
+	b := Block{
+		Number:           watcherBlock.Number,
+		Hash:             watcherBlock.Hash,
+		ParentHash:       watcherBlock.ParentHash,
+		Nonce:            watcherBlock.Nonce,
+		UncleHash:        watcherBlock.UncleHash,
+		LogsBloom:        watcherBlock.LogsBloom,
+		TransactionsRoot: watcherBlock.TransactionsRoot,
+		StateRoot:        watcherBlock.StateRoot,
+		Miner:            watcherBlock.Miner,
+		MixHash:          watcherBlock.MixHash,
+		Difficulty:       watcherBlock.Difficulty,
+		TotalDifficulty:  watcherBlock.TotalDifficulty,
+		ExtraData:        watcherBlock.ExtraData,
+		Size:             watcherBlock.Size,
+		GasLimit:         watcherBlock.GasLimit,
+		GasUsed:          watcherBlock.GasUsed,
+		Timestamp:        watcherBlock.Timestamp,
+		Uncles:           watcherBlock.Uncles,
+		ReceiptsRoot:     watcherBlock.ReceiptsRoot,
+	}
+	if fullTx {
+		b.Transactions = watcherBlock.FullTransactions
+	} else {
+		b.Transactions = watcherBlock.Transactions
+	}
+	return &b
 }

@@ -536,7 +536,7 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-// Block represents a transaction returned to RPC clients.
+// Block saved in watch db.
 type Block struct {
 	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
@@ -557,7 +557,11 @@ type Block struct {
 	Timestamp        hexutil.Uint64 `json:"timestamp"`
 	Uncles           []common.Hash  `json:"uncles"`
 	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
-	Transactions     interface{}    `json:"transactions"`
+	Transactions     []common.Hash  `json:"transactions"`
+}
+type FullTxBlock struct {
+	Block
+	FullTransactions []*Transaction `json:"transactions"`
 }
 
 // Transaction represents a transaction returned to RPC clients.
@@ -578,7 +582,7 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
+func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs []common.Hash) *MsgBlock {
 	b := Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,

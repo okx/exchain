@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	lru "github.com/hashicorp/golang-lru"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 )
@@ -49,25 +50,25 @@ func NewLruCache() *LruCache {
 	}
 }
 
-func (lc *LruCache) GetBlockByNumber(number uint64) (*watcher.Block, error) {
+func (lc *LruCache) GetBlockByNumber(number uint64) (*rpctypes.Block, error) {
 	hash, err := lc.GetBlockHash(number)
 	if err != nil {
 		return nil, err
 	}
 	return lc.GetBlockByHash(hash)
 }
-func (lc *LruCache) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
+func (lc *LruCache) GetBlockByHash(hash common.Hash) (*rpctypes.Block, error) {
 	data, ok := lc.lruBlock.Get(hash)
 	if !ok {
 		return nil, ErrLruDataNotFound
 	}
-	res, ok := data.(*watcher.Block)
+	res, ok := data.(*rpctypes.Block)
 	if !ok {
 		return nil, ErrLruDataWrongType
 	}
 	return res, nil
 }
-func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block) {
+func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *rpctypes.Block) {
 	lc.lruBlock.PeekOrAdd(hash, block)
 	lc.AddOrUpdateBlockHash(uint64(block.Number), hash)
 	if block.Transactions != nil {

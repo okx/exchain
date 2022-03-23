@@ -40,7 +40,7 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 		hash = common.HexToHash("0x000000000000000000000000000000")
 	}
 
-	block, e := ef.WrappedQuerier.GetBlockByHash(hash, false)
+	block, e := ef.WrappedQuerier.GetBlockByHash(hash)
 
 	if e == nil {
 		timestamp = time.Unix(int64(block.Timestamp), 0)

@@ -10,7 +10,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
@@ -77,7 +76,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = amino.UnmarshalBinaryBare(b, &receipt)
+	e = WatcherCdc().UnmarshalBinaryBare(b, &receipt)
 	if e != nil {
 		return nil, e
 	}
@@ -87,7 +86,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	return &receipt, nil
 }
 
-func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
+func (q Querier) GetBlockByHash(hash common.Hash) (*FullTxBlock, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -104,7 +103,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := amino.UnmarshalBinaryBare(value, &block)
+		e := WatcherCdc().UnmarshalBinaryBare(value, &block)
 		if e != nil {
 			return nil, e
 		}
@@ -113,25 +112,25 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if fullTx && block.Transactions != nil {
-		txsHash := block.Transactions.([]interface{})
-		txList := make([]*Transaction, 0, len(txsHash))
-		if len(txsHash) == 0 {
-			block.TransactionsRoot = ethtypes.EmptyRootHash
+	res := FullTxBlock{
+		Block: block,
+	}
+	if block.Transactions != nil {
+		txList := make([]*Transaction, 0, len(block.Transactions))
+		if len(block.Transactions) == 0 {
+			res.TransactionsRoot = ethtypes.EmptyRootHash
 		}
-		for _, tx := range txsHash {
-			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
+		for _, tx := range block.Transactions {
+			transaction, e := q.GetTransactionByHash(tx)
 			if e == nil && transaction != nil {
 				txList = append(txList, transaction)
 			}
 		}
-		block.Transactions = txList
+		res.FullTransactions = txList
 	}
-	block.UncleHash = ethtypes.EmptyUncleHash
-	block.ReceiptsRoot = ethtypes.EmptyRootHash
-
-	return &block, nil
+	res.UncleHash = ethtypes.EmptyUncleHash
+	res.ReceiptsRoot = ethtypes.EmptyRootHash
+	return &res, nil
 }
 
 func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
@@ -156,7 +155,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	return common.HexToHash(string(hash)), e
 }
 
-func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
+func (q Querier) GetBlockByNumber(number uint64) (*FullTxBlock, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -176,7 +175,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 		return nil, errNotFound
 	}
 
-	return q.GetBlockByHash(common.HexToHash(string(hash)), fullTx)
+	return q.GetBlockByHash(common.HexToHash(string(hash)))
 }
 
 func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, error) {
@@ -192,7 +191,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, errNotFound
 	}
 
-	e = amino.UnmarshalBinaryBare(info, &codeInfo)
+	e = WatcherCdc().UnmarshalBinaryBare(info, &codeInfo)
 	if e != nil {
 		return nil, e
 	}
@@ -256,7 +255,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := amino.UnmarshalBinaryBare(value, &tx)
+		e := WatcherCdc().UnmarshalBinaryBare(value, &tx)
 		if e != nil {
 			return nil, e
 		}
@@ -272,7 +271,7 @@ func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	block, e := q.GetBlockByNumber(number, true)
+	block, e := q.GetBlockByNumber(number)
 	if e != nil {
 		return nil, e
 	}
@@ -283,24 +282,21 @@ func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	block, e := q.GetBlockByHash(hash, true)
+	block, e := q.GetBlockByHash(hash)
 	if e != nil {
 		return nil, e
 	}
 	return q.getTransactionByBlockAndIndex(block, idx)
 }
 
-func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transaction, error) {
-	if block.Transactions == nil {
+func (q Querier) getTransactionByBlockAndIndex(block *FullTxBlock, idx uint) (*Transaction, error) {
+	if block.FullTransactions == nil {
 		return nil, errors.New("no such transaction in target block")
 	}
-	txs, ok := block.Transactions.([]*Transaction)
-	if ok {
-		for _, tx := range txs {
-			rawTx := *tx
-			if idx == uint(*rawTx.TransactionIndex) {
-				return &rawTx, nil
-			}
+	for _, tx := range block.FullTransactions {
+		rawTx := *tx
+		if idx == uint(*rawTx.TransactionIndex) {
+			return &rawTx, nil
 		}
 	}
 	return nil, errors.New("no such transaction in target block")
@@ -310,24 +306,20 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	block, err := q.GetBlockByNumber(number, true)
+	block, err := q.GetBlockByNumber(number)
 	if err != nil {
 		return nil, err
 	}
-	if block.Transactions == nil {
+	if block.FullTransactions == nil {
 		return nil, errors.New("no such transaction in target block")
 	}
 
-	rawTxs, ok := block.Transactions.([]*Transaction)
-	if ok {
-		var txs []*Transaction
-		for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
-			rawTx := *rawTxs[idx]
-			txs = append(txs, &rawTx)
-		}
-		return txs, nil
+	var txs []*Transaction
+	for idx := offset; idx < offset+limit && int(idx) < len(block.Transactions); idx++ {
+		rawTx := *block.FullTransactions[idx]
+		txs = append(txs, &rawTx)
 	}
-	return nil, errors.New("no such transaction in target block")
+	return txs, nil
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
@@ -353,7 +345,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = amino.UnmarshalBinaryBare(b, &acc)
+	e = WatcherCdc().UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -374,7 +366,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = amino.UnmarshalBinaryBare(b, &acc)
+	e = WatcherCdc().UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -455,7 +447,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 		return nil, errNotFound
 	}
 	var params evmtypes.Params
-	e = amino.UnmarshalBinaryBare(b, &params)
+	e = WatcherCdc().UnmarshalBinaryBare(b, &params)
 	if e != nil {
 		return nil, e
 	}

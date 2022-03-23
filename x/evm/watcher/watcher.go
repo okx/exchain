@@ -161,11 +161,11 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 	w.gasUsed += gasUsed
 }
 
-func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
+func (w *Watcher) UpdateBlockTxs(tx common.Hash) {
 	if !w.Enabled() {
 		return
 	}
-	w.blockTxs = append(w.blockTxs, txHash)
+	w.blockTxs = append(w.blockTxs, tx)
 }
 
 func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
