@@ -200,7 +200,7 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 		refundFee := app.parallelTxManage.txReps[index].refundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
-		fmt.Println("fee", index, txFee, currTxFee)
+		//fmt.Println("fee", index, txFee, currTxFee)
 	}
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
@@ -213,10 +213,10 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 
 func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup map[int]int) []*abci.ResponseDeliverTx {
 	//ts := time.Now()
-	//fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
-	//for index := 0; index < len(groupList); index++ {
-	//	fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
-	//}
+	fmt.Println("detail", app.deliverState.ctx.BlockHeight(), "len(group)", len(groupList))
+	for index := 0; index < len(groupList); index++ {
+		fmt.Println("groupIndex", index, "groupSize", len(groupList[index]), "list", groupList[index])
+	}
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -245,7 +245,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		}
 		txReps[receiveTxIndex] = execRes
 
-		//fmt.Println("receive---", receiveTxIndex, "markFailed", pm.isFailed(pm.workgroup.runningStats(receiveTxIndex)))
+		fmt.Println("receive---", receiveTxIndex, "index", txIndex, "markFailed", pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)))
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
 			txReps[receiveTxIndex] = nil
 			pm.workgroup.AddTask(txs[receiveTxIndex], receiveTxIndex)
@@ -269,14 +269,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			res := txReps[txIndex]
 
 			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
-
-				//fmt.Println("conflict", txIndex)
-				//if pm.workgroup.isRunning(txIndex) {
-				//	runningTaskID := pm.workgroup.runningStats(txIndex)
-				//	pm.workgroup.markFailed(runningTaskID)
-				//	break
-				//}
-				//fmt.Println("rerun", txIndex)
 
 				rerunIdx++
 				s.reRun = true
@@ -776,11 +768,6 @@ func (f *parallelTxManager) getRunBase(now int) int {
 }
 
 func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
-	//ts := time.Now()
-	//defer func() {
-	//	sdk.AddMergeTime(time.Now().Sub(ts))
-	//}()
-
 	if res.ms == nil {
 		return
 	}
