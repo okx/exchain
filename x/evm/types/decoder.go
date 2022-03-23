@@ -60,6 +60,7 @@ func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 				case *MsgEthereumTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
 				case *authtypes.IbcTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
