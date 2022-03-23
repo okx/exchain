@@ -7,9 +7,6 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
-	apptypes "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
 )
 
@@ -54,23 +51,17 @@ type AminoMarshaler struct {
 	BaseMarshaler
 }
 
-func initWatcherCdc() {
-	watcherInitCdcOnce.Do(func() {
-		watcherCdc = codec.New()
-		watcherCdc.RegisterInterface((*interface{})(nil), nil)
-		watcherCdc.RegisterConcrete([]*Transaction{}, "watcher/Transaction", nil)
-		watcherCdc.RegisterConcrete([]common.Hash{}, "common/hash", nil)
-		apptypes.RegisterCodec(watcherCdc)
-		cryptocodec.RegisterCodec(watcherCdc)
-		codec.RegisterCrypto(watcherCdc)
-	})
+func InitWatcherCdc(cdc *amino.Codec) {
+	watcherCdc = cdc
+	watcherCdc.RegisterInterface((*interface{})(nil), nil)
+	watcherCdc.RegisterConcrete([]*Transaction{}, "watcher/Transaction", nil)
+	watcherCdc.RegisterConcrete([]common.Hash{}, "common/hash", nil)
 }
+
 func WatcherCdc() *amino.Codec {
-	initWatcherCdc()
 	return watcherCdc
 }
 func newAminoMarshaller(o interface{}) *AminoMarshaler {
-	initWatcherCdc()
 	return &AminoMarshaler{
 		BaseMarshaler{
 			origin: o,

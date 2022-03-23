@@ -96,7 +96,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(logger),
+		Watcher:       watcher.NewWatcherWithCodec(logger, cdc),
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),

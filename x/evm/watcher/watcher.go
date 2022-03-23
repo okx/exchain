@@ -9,6 +9,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
@@ -67,10 +68,14 @@ func GetWatchLruSize() int {
 	})
 	return watcherLruSize
 }
-
+func NewWatcherWithCodec(logger log.Logger, cdc *amino.Codec) *Watcher {
+	InitWatcherCdc(cdc)
+	return NewWatcher(logger)
+}
 func NewWatcher(logger log.Logger) *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
 	checkWd = viper.GetBool(FlagCheckWd)
+
 	return watcher
 }
 
