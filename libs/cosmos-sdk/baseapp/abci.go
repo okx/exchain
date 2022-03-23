@@ -1,10 +1,8 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"os"
 	"sort"
 	"strings"
@@ -175,12 +173,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	go func() {
-		sdk.SbPrint.Clean()
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
-			sdk.SbPrint.Add(fmt.Sprintf("commit %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete))
-			return true
-		}, nil)
-
 		app.deliverState.ms.Write()
 		app.parallelTxManage.commitDone <- struct{}{}
 	}()

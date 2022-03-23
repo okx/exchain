@@ -163,7 +163,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
 	if mode == runTxModeDeliverInAsync {
-		//app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
 		info.paraMsg.anteErr = err
 	}
 

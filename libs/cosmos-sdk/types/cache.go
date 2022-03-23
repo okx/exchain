@@ -303,27 +303,3 @@ func (c *Cache) logInfo(logger log.Logger, deleteMsg string) {
 	nowStats := fmt.Sprintf("len(acc):%d len(contracts):%d len(storage):%d", len(c.accMap), len(c.storageMap), c.storageSize())
 	logger.Info("MultiCache", "deleteMsg", deleteMsg, "nowStats", nowStats)
 }
-
-var (
-	SbPrint = &PrintLog{
-		s: make([]string, 0),
-	}
-)
-
-type PrintLog struct {
-	s []string
-}
-
-func (p *PrintLog) Add(data string) {
-	p.s = append(p.s, data)
-}
-
-func (p *PrintLog) Clean() {
-	p.s = make([]string, 0)
-}
-
-func (p *PrintLog) Print() {
-	for _, v := range p.s {
-		fmt.Println(v)
-	}
-}

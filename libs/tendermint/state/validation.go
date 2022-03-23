@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
@@ -51,7 +50,6 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 
 	// Validate app info
 	if !bytes.Equal(block.AppHash, state.AppHash) {
-		sdk.SbPrint.Print()
 		return fmt.Errorf("wrong Block.Header.AppHash.  Expected %X, got %v",
 			state.AppHash,
 			block.AppHash,
