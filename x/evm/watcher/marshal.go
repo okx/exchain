@@ -57,7 +57,7 @@ type AminoMarshaler struct {
 func initWatcherCdc() {
 	watcherInitCdcOnce.Do(func() {
 		watcherCdc = codec.New()
-		watcherCdc.RegisterInterface((interface{})(nil), nil)
+		watcherCdc.RegisterInterface((*interface{})(nil), nil)
 		watcherCdc.RegisterConcrete([]*Transaction{}, "watcher/Transaction", nil)
 		watcherCdc.RegisterConcrete([]common.Hash{}, "common/hash", nil)
 		apptypes.RegisterCodec(watcherCdc)

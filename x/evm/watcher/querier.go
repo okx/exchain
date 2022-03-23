@@ -114,13 +114,16 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	}
 
 	if fullTx && block.Transactions != nil {
-		txsHash := block.Transactions.([]interface{})
+		txsHash, ok := block.Transactions.([]common.Hash)
+		if !ok {
+			return nil, errNotFound
+		}
 		txList := make([]*Transaction, 0, len(txsHash))
 		if len(txsHash) == 0 {
 			block.TransactionsRoot = ethtypes.EmptyRootHash
 		}
 		for _, tx := range txsHash {
-			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
+			transaction, e := q.GetTransactionByHash(tx)
 			if e == nil && transaction != nil {
 				txList = append(txList, transaction)
 			}
