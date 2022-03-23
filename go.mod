@@ -62,6 +62,7 @@ require (
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
+	github.com/valyala/fastjson v1.6.3
 	github.com/willf/bitset v1.1.11
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
@@ -148,7 +149,7 @@ require (
 
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
-	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec2
+	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec3
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain5
+	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain6
 )

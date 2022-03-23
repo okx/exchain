@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	yaml "gopkg.in/yaml.v2"
@@ -79,13 +77,6 @@ type Address interface {
 	Bytes() []byte
 	String() string
 	Format(s fmt.State, verb rune)
-}
-
-// SigCache is common interface for different types of tx used to cache tx from and signer
-type SigCache interface {
-	GetFrom() ethcmn.Address
-	GetSigner() ethtypes.Signer
-	EqualSiger(siger ethtypes.Signer) bool
 }
 
 // Ensure that different address types implement the interface

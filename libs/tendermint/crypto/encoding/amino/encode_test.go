@@ -247,6 +247,8 @@ func TestPubKeyAmino(t *testing.T) {
 		bz, err := cdc.MarshalBinaryBare(pubkey)
 		require.NoError(t, err)
 
+		require.Equal(t, len(bz), PubKeyAminoSize(pubkey, cdc))
+
 		bz2, err := MarshalPubKeyToAmino(cdc, pubkey)
 		require.NoError(t, err)
 		require.EqualValues(t, bz, bz2)
