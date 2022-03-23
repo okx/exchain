@@ -53,8 +53,10 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
-		} else {
+		} else if produceDelta {
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
+		} else {
+			tree.ndb.updateBranchConcurrency(tree.root, nil)
 		}
 
 		// generate state delta
@@ -82,7 +84,9 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
 	tree.orphans = []*Node{}
-	tree.savedNodes = map[string]*Node{}
+	for k := range tree.savedNodes {
+		delete(tree.savedNodes, k)
+	}
 
 	rootHash := tree.lastSaved.Hash()
 	tree.setHeightOrphansItem(version, rootHash)
@@ -278,8 +282,10 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			if node.persisted && EnablePruningHistoryState {
 				k := string(node.hash)
 				tree.commitOrphans[k] = node.version
-				commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
-				tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
+				if produceDelta {
+					commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
+					tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
+				}
 			}
 		}
 

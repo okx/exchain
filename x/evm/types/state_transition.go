@@ -79,12 +79,12 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	}
 }
 
-func (st StateTransition) newEVM(
+func (st *StateTransition) newEVM(
 	ctx sdk.Context,
 	csdb *CommitStateDB,
 	gasLimit uint64,
 	gasPrice *big.Int,
-	config ChainConfig,
+	config *ChainConfig,
 	vmConfig vm.Config,
 ) *vm.EVM {
 	// Create context for evm
@@ -144,7 +144,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
-	ctx = ctx.WithGasMeter(evmGasMeter)
+	ctx.SetGasMeter(evmGasMeter)
 	csdb := st.Csdb.WithContext(ctx)
 
 	StartTxLog := func(tag string) {
@@ -184,7 +184,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ContractVerifier: NewContractVerifier(params),
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
+	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, &config, vmConfig)
 
 	var (
 		ret             []byte
@@ -250,7 +250,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	defer func() {
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
-		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		currentGasMeter.ConsumeGas(gasConsumed, "EVM execution consumption")
 	}()
 
 	defer func() {
@@ -331,7 +331,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		resData.ContractAddress = contractAddress
 	}
 
-	resBz, err := EncodeResultData(*resData)
+	resBz, err := EncodeResultData(resData)
 	if err != nil {
 		return
 	}
