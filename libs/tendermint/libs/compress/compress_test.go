@@ -12,7 +12,7 @@ func TestCompress(t *testing.T) {
 	compressType := 3
 	compressFlag := 2
 
-	data := []byte("oec 2021")
+	data := []byte("okc 2021")
 
 	for ctype := 0; ctype <= compressType; ctype++ {
 		for flag := 0; flag <= compressFlag; flag++ {

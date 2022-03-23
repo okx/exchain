@@ -17,14 +17,14 @@ const (
 
 type accAddrToPrefixFunc func(sdk.AccAddress, string) string
 
-// AddrCommands registers a sub-tree of commands to interact with oec address
+// AddrCommands registers a sub-tree of commands to interact with okc address
 func AddrCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr",
-		Short: "opreate all kind of address in the OEC network",
-		Long: ` Address is a identification for join in the OEC network.
+		Short: "opreate all kind of address in the OKC network",
+		Long: ` Address is a identification for join in the OKC network.
 
-	The address in OEC network begins with "okexchain","ex" or "0x"`,
+	The address in OKC network begins with "okexchain","ex" or "0x"`,
 	}
 	cmd.AddCommand(convertCommand())
 	return cmd
@@ -34,7 +34,7 @@ func AddrCommands() *cobra.Command {
 func convertCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "convert [sourceAddr]",
-		Short: "convert source address to all kind of address in the OEC network",
+		Short: "convert source address to all kind of address in the OKC network",
 		Long: `sourceAddr must be begin with "okexchain","ex" or "0x".
 	
 	When input one of these address, we will convert to the other kinds.`,

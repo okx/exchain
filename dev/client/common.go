@@ -24,9 +24,9 @@ import (
 const (
 	//RpcUrl          = "https://exchaintestrpc.okex.org"
 	RpcUrl        = "http://127.0.0.1:8545"
-	ChainId int64 = 67 //  oec
+	ChainId int64 = 67 //  okc
 	//RpcUrl          = "https://exchainrpc.okex.org"
-	//ChainId int64   = 66 //  oec
+	//ChainId int64   = 66 //  okc
 	GasPrice int64  = 100000000 // 0.1 gwei
 	GasLimit uint64 = 3000000
 )

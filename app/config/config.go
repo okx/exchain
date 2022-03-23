@@ -207,7 +207,7 @@ func (c *OecConfig) loadFromApollo() bool {
 }
 
 func (c *OecConfig) format() string {
-	return fmt.Sprintf(`OEC config:
+	return fmt.Sprintf(`OKC config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d

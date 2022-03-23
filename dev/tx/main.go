@@ -21,7 +21,7 @@ const (
 	abiFile = "../client/contracts/counter/counter.abi"
 	binFile = "../client/contracts/counter/counter.bin"
 
-	ChainId int64 = 67 //  oec
+	ChainId int64 = 67 //  okc
 	GasPrice int64  = 100000000 // 0.1 gwei
 	GasLimit uint64 = 3000000
 )
