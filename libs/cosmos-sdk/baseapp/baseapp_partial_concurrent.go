@@ -334,6 +334,7 @@ type DeliverTxTasksManager struct {
 	pendingTasks  sync.Map
 	statefulTask  *DeliverTxTask
 	currTxFee     sdk.Coins
+	finished bool
 
 	sendersMap *sendersMap
 
@@ -385,6 +386,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.pendingTasks = sync.Map{}
 	dm.statefulTask = nil
 	dm.currTxFee = sdk.Coins{}
+	dm.finished = false
 
 	dm.sendersMap.reset()
 	dm.sendersMap.setLogger(dm.app.logger)
@@ -419,15 +421,16 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		} else if existConflict {
 			time.Sleep(1 * time.Millisecond)
 		} else {
-			dm.app.logger.Info("ExitMakeTasksRoutine")
+			dm.app.logger.Info("maxDeliverTxsConcurrentNum")
 			break
 		}
 	}
+	dm.finished = true
 }
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int, task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	//dm.app.logger.Info("MakeNextTask", "task", task == nil, "index", index)
+	dm.app.logger.Info("MakeNextTask", "task", task == nil, "index", index)
 	//}
 	go dm.runTxPartConcurrent(tx, index, task)
 }
@@ -555,9 +558,12 @@ func (dm *DeliverTxTasksManager) removeFromPending(index int) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	_, ok := dm.pendingTasks.LoadAndDelete(index)
+	task, ok := dm.pendingTasks.LoadAndDelete(index)
 	if ok {
 		dm.app.logger.Error("RemoveFromPendingTasks", "index", index)
+		if dm.finished {
+			go dm.makeNextTask(nil, index, task.(*DeliverTxTask))
+		}
 	}
 }
 
