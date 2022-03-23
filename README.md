@@ -1,7 +1,7 @@
 # OEC
 The Infrastructure of Decentralized Exchange
 
-![banner](./docs/images/oec.jpeg)
+![banner](./docs/images/oec.jpg)
 
 [![version](https://img.shields.io/github/tag/okex/exchain.svg)](https://github.com/okex/exchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)
