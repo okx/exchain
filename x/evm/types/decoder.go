@@ -90,38 +90,29 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 }
 
 var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
+	//bytes maybe SimulateRequest or BroadcastTxRequest
 	tx := &typestx.Tx{}
 	simReq := &typestx.SimulateRequest{}
 	txBytes := bytes
 
 	err := simReq.Unmarshal(bytes)
 	if err != nil {
-		//return authtypes.StdTx{}, err
-
 		broadcastReq := &typestx.BroadcastTxRequest{}
 		err = broadcastReq.Unmarshal(bytes)
-		fmt.Println("broadcastReq unmarshal", err)
-
+		if err != nil {
+			return authtypes.StdTx{}, err
+		}
 	} else {
 		tx = simReq.Tx
 		txBytes = simReq.TxBytes
 	}
 
-	//txBytes := simReq.TxBytes
 	if txBytes == nil && simReq.Tx != nil {
-		//txBytes, err = proto.Marshal(simReq.Tx)
 		txBytes, err = proto.Marshal(tx)
 		if err != nil {
 			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
 		}
 	}
-
-	//msgs := make([]sdk.Msg, 0)
-	//addr, _ := sdk.AccAddressFromBech32ByPrefix("ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9", "ex")
-	//for _, v := range wp.Msgs {
-	//	msgs = append(msgs, v)
-	//	v.Singers[0] = addr
-	//}
 
 	if txBytes == nil {
 		return nil, errors.New("relayTx empty txBytes is not allowed")
