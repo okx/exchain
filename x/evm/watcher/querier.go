@@ -10,6 +10,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
@@ -76,7 +77,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = WatcherCodec().UnmarshalBinaryBare(b, &receipt)
+	e = amino.UnmarshalBinaryBare(b, &receipt)
 	if e != nil {
 		return nil, e
 	}
@@ -103,7 +104,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := WatcherCodec().UnmarshalBinaryBare(value, &block)
+		e := amino.UnmarshalBinaryBare(value, &block)
 		if e != nil {
 			return nil, e
 		}
@@ -191,7 +192,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, errNotFound
 	}
 
-	e = WatcherCodec().UnmarshalBinaryBare(info, &codeInfo)
+	e = amino.UnmarshalBinaryBare(info, &codeInfo)
 	if e != nil {
 		return nil, e
 	}
@@ -255,7 +256,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := WatcherCodec().UnmarshalBinaryBare(value, &tx)
+		e := amino.UnmarshalBinaryBare(value, &tx)
 		if e != nil {
 			return nil, e
 		}
@@ -352,7 +353,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = WatcherCodec().UnmarshalBinaryBare(b, &acc)
+	e = amino.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -373,7 +374,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = WatcherCodec().UnmarshalBinaryBare(b, &acc)
+	e = amino.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -454,7 +455,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 		return nil, errNotFound
 	}
 	var params evmtypes.Params
-	e = WatcherCodec().UnmarshalBinaryBare(b, &params)
+	e = amino.UnmarshalBinaryBare(b, &params)
 	if e != nil {
 		return nil, e
 	}
