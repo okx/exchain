@@ -252,13 +252,14 @@ func (app *BaseApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) b
 			info, err := app.runTx(runTxModeDeliver, txs[count].Tx, realTx.Tx, LatestSimulateTxHeight)
 			if err != nil {
 				resp[count] = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
+			} else {
+				respPtr := &resp[count]
+				respPtr.GasWanted = int64(info.gInfo.GasWanted) // TODO: Should type accept unsigned ints?
+				respPtr.GasUsed = int64(info.gInfo.GasUsed)     // TODO: Should type accept unsigned ints?
+				respPtr.Log = info.result.Log
+				respPtr.Data = info.result.Data
+				respPtr.Events = info.result.Events.ToABCIEvents()
 			}
-			respPtr := &resp[count]
-			respPtr.GasWanted = int64(info.gInfo.GasWanted) // TODO: Should type accept unsigned ints?
-			respPtr.GasUsed = int64(info.gInfo.GasUsed)     // TODO: Should type accept unsigned ints?
-			respPtr.Log = info.result.Log
-			respPtr.Data = info.result.Data
-			respPtr.Events = info.result.Events.ToABCIEvents()
 		}
 
 		if stopFunc(count) {
