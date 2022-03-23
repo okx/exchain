@@ -476,7 +476,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	if dm.app.anteHandler != nil {
 		task.setStep(partialConcurrentStepAnteStart)
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
+		dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
 		//}
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -530,7 +530,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	//task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -591,7 +591,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		start := time.Now()
 
