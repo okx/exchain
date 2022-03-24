@@ -95,8 +95,6 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			tmPubKey := tmtypes.PubKeySecp256k1{}
 			copy(tmPubKey[:], pk.Bytes())
 
-			fmt.Println(pk, tmPubKey)
-
 			signatures = append(signatures,
 				authtypes.StdSignature{
 					Signature: s,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -91,25 +90,12 @@ var byteTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []by
 }
 
 var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []byte, i int64) (sdk.Tx, error) {
-	//bytes maybe SimulateRequest or BroadcastTxRequest
-	tx := &typestx.Tx{}
 	simReq := &typestx.SimulateRequest{}
 	txBytes := bytes
 
 	err := simReq.Unmarshal(bytes)
-	if err != nil {
-		broadcastReq := &typestx.BroadcastTxRequest{}
-		err = broadcastReq.Unmarshal(bytes)
-		//if err != nil {
-		//	return authtypes.StdTx{}, err
-		//}
-	} else {
-		tx = simReq.Tx
-		txBytes = simReq.TxBytes
-	}
-
-	if txBytes == nil && simReq.Tx != nil {
-		txBytes, err = proto.Marshal(tx)
+	if err == nil {
+		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
 			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
 		}
