@@ -67,10 +67,6 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 
 	var connection types.ConnectionEnd
 	connection = *common.MustUnmarshalConnection(k.cdc, bz)
-	//err:=k.cdc.GetCdc().UnmarshalJSON(bz,&connection)
-	//if nil != err {
-	//	panic(err)
-	//}
 	k.Logger(ctx).Info("acquire connection", "id", connectionID, "state", connection.State)
 	return connection, true
 }
@@ -79,11 +75,6 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection types.ConnectionEnd) {
 	store := ctx.KVStore(k.storeKey)
 	bz := common.MustMarshalConnection(k.cdc, &connection)
-	//bz,err:=k.cdc.GetCdc().MarshalJSON(&connection)
-	//bz, err := k.cdc.GetProtocMarshal().MarshalInterfaceJSON(&connection)
-	//if nil != err {
-	//	panic(err)
-	//}
 	store.Set(host.ConnectionKey(connectionID), bz)
 	k.Logger(ctx).Info("write connection", "connectionId", connectionID, "state", connection.State)
 }

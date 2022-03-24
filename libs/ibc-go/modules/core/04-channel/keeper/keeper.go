@@ -74,9 +74,6 @@ func (k Keeper) GetChannel(ctx sdk.Context, portID, channelID string) (types.Cha
 
 	ret := common.MustUnmarshalChannel(k.cdc, bz)
 	return *ret, true
-	//var channel types.Channel
-	//k.cdc.MustUnMarshal(bz, &channel)
-	//return channel, true
 }
 
 // SetChannel sets a channel to the store

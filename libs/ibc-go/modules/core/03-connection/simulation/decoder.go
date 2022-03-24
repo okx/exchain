@@ -25,8 +25,6 @@ func NewDecodeStore(cdc *codec.CodecProxy, kvA, kvB kv.Pair) (string, bool) {
 		var connectionA, connectionB types.ConnectionEnd
 		connectionA = *common.MustUnmarshalConnection(cdc, kvA.Value)
 		connectionB = *common.MustUnmarshalConnection(cdc, kvB.Value)
-		//cdc.MustUnMarshal(kvA.Value, &connectionA)
-		//cdc.MustUnMarshal(kvB.Value, &connectionB)
 		return fmt.Sprintf("ConnectionEnd A: %v\nConnectionEnd B: %v", connectionA, connectionB), true
 
 	default:

@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
@@ -85,7 +84,7 @@ func MarshalConsensusState(cdc *codec.CodecProxy, cs exported.ConsensusState) ([
 
 // MarshalHeader protobuf serializes a Header interface
 func MarshalHeader(cdc *codec.CodecProxy, h exported.Header) ([]byte, error) {
-	return common.DefaultMarshal(cdc, h)
+	return cdc.GetProtocMarshal().MarshalInterface(h)
 }
 
 // MustMarshalHeader attempts to encode a Header object and returns the
