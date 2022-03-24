@@ -290,8 +290,8 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 }
 
 func (sm *sendersMap) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
-	//sm.mtx.Lock()
-	//defer sm.mtx.Unlock()
+	sm.mtx.Lock()
+	defer sm.mtx.Unlock()
 
 	tasks, ok := sm.notFinishedTasks.Load(address)
 	if !ok {
