@@ -9,8 +9,6 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/iavl"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -24,6 +22,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -229,6 +228,23 @@ func migrateMpt2Iavl(ctx *server.Context, name string) {
 			panic("fail to create iavl tree: " + err.Error())
 		}
 
+		// 1.migrate bubble data to iavl
+		bubbleDB, err := openDB("evmBuble", dataDir)
+		if err != nil {
+			panic("fail to open application db: " + err.Error())
+		}
+		bItr, err := bubbleDB.Iterator(nil, nil)
+		if err != nil {
+			panic("fail to create iavl tree: " + err.Error())
+		}
+		defer bItr.Close()
+		fmt.Println("start to migrate bubble data to iavl")
+		for ; bItr.Valid(); bItr.Next() {
+			tree.Set(bItr.Key(), bItr.Value())
+		}
+		fmt.Println("finish migrate bubble data to iavl")
+
+		// 2.migrate state data to iavl
 		var stateRoot ethcmn.Hash
 		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 		for itr.Next() {
@@ -386,12 +402,26 @@ func cleanIavlStore(ctx *server.Context) {
 	rs := rootmulti.NewStore(db)
 	latestVersion := rs.GetLatestVersion()
 
+	// 1.clean account store
 	fmt.Println("Start to clean account store")
 	err = CleanIAVLStore(db, []byte(KeyAcc), latestVersion, DefaultCacheSize)
 	if err != nil {
 		fmt.Println("fail to clean iavl store: ", err)
 	}
 
+	// 2.migrate evm store's bubble data (which is not contract code and contract state) to a tmp key-val store
+	bubbleDB, err := openDB("evmBuble", dataDir)
+	if err != nil {
+		panic("fail to open application db: " + err.Error())
+	}
+
+	fmt.Println("Start migrate evm store's bubble data")
+	err = migrateEvmBubbleData(db, bubbleDB, []byte(KeyEvm), latestVersion, DefaultCacheSize)
+	if err != nil {
+		fmt.Println("fail to migrate evm bubble data: ", err)
+	}
+
+	// 3.clean evm store
 	fmt.Println("Start to clean evm store")
 	err = CleanIAVLStore(db, []byte(KeyEvm), latestVersion, DefaultCacheSize)
 	if err != nil {
@@ -460,4 +490,40 @@ func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) e
 
 	// delete verion [from, to)
 	return tree.DeleteVersionsRange(0, maxVersion + 1, true)
+}
+
+func migrateEvmBubbleData(db, bubbleDB dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error{
+	if len(prefix) != 0 {
+		db = dbm.NewPrefixDB(db, prefix)
+	}
+
+	tree, err := iavl.NewMutableTree(db, cacheSize)
+	if err != nil {
+		return err
+	}
+
+	_, err = tree.LoadVersion(maxVersion)
+	if err != nil {
+		return err
+	}
+
+	tree.IterateRange(nil, nil, true, func(key []byte, value []byte) bool {
+		saveEvmBubbleData(bubbleDB, key, value)
+		return false
+	})
+
+	return nil
+}
+
+func saveEvmBubbleData(db dbm.DB, key []byte, value []byte) {
+	switch key[0] {
+	case evmtypes.KeyPrefixBlockHash[0]:
+	case evmtypes.KeyPrefixBloom[0]:
+	case evmtypes.KeyPrefixChainConfig[0]:
+	case evmtypes.KeyPrefixHeightHash[0]:
+	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
+	case evmtypes.KeyPrefixContractBlockedList[0]:
+		db.Set(key, value)
+	default:
+	}
 }
