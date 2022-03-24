@@ -48,18 +48,6 @@ func (k Keeper) ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdatePropo
 
 	k.Logger(ctx).Info("client updated after governance proposal passed", "client-id", p.SubjectClientId, "height", clientState.GetLatestHeight().String())
 
-	defer func() {
-		// telemetry.IncrCounterWithLabels(
-		// 	[]string{"ibc", "client", "update"},
-		// 	1,
-		// 	[]metrics.Label{
-		// 		telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
-		// 		telemetry.NewLabel(types.LabelClientID, p.SubjectClientId),
-		// 		telemetry.NewLabel(types.LabelUpdateType, "proposal"),
-		// 	},
-		// )
-	}()
-
 	// emitting events in the keeper for proposal updates to clients
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

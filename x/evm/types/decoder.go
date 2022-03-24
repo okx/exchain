@@ -60,6 +60,7 @@ func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 				case *MsgEthereumTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
 				case *authtypes.IbcTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
@@ -99,9 +100,9 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	if err != nil {
 		broadcastReq := &typestx.BroadcastTxRequest{}
 		err = broadcastReq.Unmarshal(bytes)
-		if err != nil {
-			return authtypes.StdTx{}, err
-		}
+		//if err != nil {
+		//	return authtypes.StdTx{}, err
+		//}
 	} else {
 		tx = simReq.Tx
 		txBytes = simReq.TxBytes

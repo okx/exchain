@@ -3,12 +3,14 @@ package auth
 import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/internal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -30,6 +32,14 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	a := &am.accountKeeper
 	types.RegisterQueryServer(cfg.QueryServer(), a)
+}
+
+func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return nil
+}
+
+func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return nil
 }
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {

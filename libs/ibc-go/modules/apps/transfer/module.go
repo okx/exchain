@@ -33,9 +33,9 @@ import (
 )
 
 var (
-	_ module.AppModuleAdapter = AppModule{}
-	_ porttypes.IBCModule     = AppModule{}
-	_ module.AppModuleBasic   = AppModuleBasic{}
+	_ module.AppModuleAdapter      = AppModule{}
+	_ porttypes.IBCModule          = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 )
 
 // AppModuleBasic is the IBC Transfer AppModuleBasic
@@ -94,12 +94,20 @@ func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *r
 
 // GetTxCmd implements AppModuleBasic interface
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.NewTxCmd()
+	return nil
+}
+
+func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.NewTxCmd(cdc, reg)
 }
 
 // GetQueryCmd implements AppModuleBasic interface
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetQueryCmd()
+	return nil
+}
+
+func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetQueryCmd(cdc, reg)
 }
 
 // AppModule represents the AppModule for this module

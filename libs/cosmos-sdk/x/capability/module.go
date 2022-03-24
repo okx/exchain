@@ -23,10 +23,10 @@ import (
 )
 
 var (
-	_ module.AppModuleAdapter    = AppModule{}
-	_ module.AppModuleBasic      = AppModuleBasic{}
-	_ module.AppModuleSimulation = AppModule{}
-	_ upgrade.UpgradeModule      = AppModule{}
+	_ module.AppModuleAdapter      = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
+	_ module.AppModuleSimulation   = AppModule{}
+	_ upgrade.UpgradeModule        = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -91,8 +91,16 @@ func (a AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux 
 // GetTxCmd returns the capability module's root tx command.
 func (a AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command { return nil }
 
+func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg types2.InterfaceRegistry) *cobra.Command {
+	return nil
+}
+
 // GetQueryCmd returns the capability module's root query command.
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command { return nil }
+
+func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg types2.InterfaceRegistry) *cobra.Command {
+	return nil
+}
 
 // ----------------------------------------------------------------------------
 // AppModule
