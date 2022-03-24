@@ -400,8 +400,6 @@ func (blockExec *BlockExecutor) commit(
 
 //OnStart init the BlockExecutor when necessary
 func (blockExec *BlockExecutor) OnStart(isWriteDBAsync bool) {
-	fmt.Println("Block executor OnStart")
-	//
 	blockExec.isWriteDBAsync = isWriteDBAsync
 	if isWriteDBAsync {
 		blockExec.stateQueue = make(chan State, msgQueueSize)
@@ -413,7 +411,6 @@ func (blockExec *BlockExecutor) OnStart(isWriteDBAsync bool) {
 
 //OnStop do quit work when necessary
 func (blockExec *BlockExecutor) OnStop() {
-	fmt.Println("Block executor OnStop")
 	if blockExec.isWriteDBAsync {
 		close(blockExec.done)
 	}
@@ -432,10 +429,8 @@ func (blockExec *BlockExecutor) asyncSaveRoutine() {
 	for {
 		select {
 		case abciMsg := <-blockExec.abciMsgQueue:
-			fmt.Println("Save ABCIResponse Async at Height:", abciMsg.height)
 			SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
 		case stateMsg := <-blockExec.stateQueue:
-			fmt.Println("Save State Async at Height:", stateMsg.LastBlockHeight)
 			SaveState(blockExec.db, stateMsg)
 		case <-blockExec.done:
 			return
