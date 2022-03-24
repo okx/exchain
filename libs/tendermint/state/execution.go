@@ -440,17 +440,7 @@ func execBlockOnProxyApp(context *executionTask, mempool mempl.Mempool) (*ABCIRe
 	realTxCh := make(chan abci.TxEssentials, 64)
 	stopedCh := make(chan struct{}, 1)
 
-	go func(txs types.Txs, realTxCh chan<- abci.TxEssentials, stopedCh <-chan struct{}) {
-		for _, tx := range txs {
-			select {
-			case realTxCh <- proxyAppConn.PreDeliverRealTxAsync(abci.RequestDeliverTx{Tx: tx}):
-			case <-stopedCh:
-				close(realTxCh)
-				return
-			}
-		}
-		close(realTxCh)
-	}(block.Txs, realTxCh, stopedCh)
+	go preDeliverRoutine(proxyAppConn, block.Txs, realTxCh, stopedCh)
 
 	count := 0
 	for realTx := range realTxCh {
@@ -482,6 +472,19 @@ func execBlockOnProxyApp(context *executionTask, mempool mempl.Mempool) (*ABCIRe
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
+}
+
+func preDeliverRoutine(proxyAppConn proxy.AppConnConsensus, txs types.Txs, realTxCh chan<- abci.TxEssentials, stopedCh <-chan struct{}) {
+	for _, tx := range txs {
+		realTx := proxyAppConn.PreDeliverRealTxAsync(abci.RequestDeliverTx{Tx: tx})
+		select {
+		case realTxCh <- realTx:
+		case <-stopedCh:
+			close(realTxCh)
+			return
+		}
+	}
+	close(realTxCh)
 }
 
 func execBlockOnProxyAppWithDeltas(
