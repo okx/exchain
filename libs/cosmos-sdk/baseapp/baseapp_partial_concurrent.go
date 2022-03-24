@@ -87,8 +87,8 @@ func (dtt *DeliverTxTask) setStep(step partialConcurrentStep) {
 }
 
 func (dtt *DeliverTxTask) getStep() partialConcurrentStep {
-	//dtt.mtx.Lock()
-	//defer dtt.mtx.Unlock()
+	dtt.mtx.Lock()
+	defer dtt.mtx.Unlock()
 	return dtt.step
 }
 
@@ -113,8 +113,8 @@ func (dtt *DeliverTxTask) setUpdateCount(count int8) {
 }
 
 func (dtt *DeliverTxTask) getUpdateCount() int8 {
-	//dtt.mtx.Lock()
-	//defer dtt.mtx.Unlock()
+	dtt.mtx.Lock()
+	defer dtt.mtx.Unlock()
 
 	return dtt.updateCount
 }
