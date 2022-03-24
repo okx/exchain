@@ -112,7 +112,7 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
-
+	tmtypes.SetIBCHeightForTest()
 	cID, _ := ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), cID.Version)
 	hash := cID.Hash
@@ -124,6 +124,7 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
+	tmtypes.SetIBCHeightForTest()
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
@@ -184,6 +185,33 @@ func TestMultistoreCommitLoad(t *testing.T) {
 }
 
 func TestMultistoreLoadWithUpgrade(t *testing.T) {
+	if os.Getenv("SUB_PROCESS") == "1" {
+		testMultistoreLoadWithUpgrade(t)
+		return
+	}
+
+	var outb, errb bytes.Buffer
+	cmd := exec.Command(os.Args[0], "-test.run=TestMultistoreLoadWithUpgrade")
+	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		isFailed := false
+		if strings.Contains(outb.String(), "FAIL:") ||
+			strings.Contains(errb.String(), "FAIL:") {
+			fmt.Print(cmd.Stderr)
+			fmt.Print(cmd.Stdout)
+			isFailed = true
+		}
+		assert.Equal(t, isFailed, false)
+
+		return
+	}
+
+}
+
+func testMultistoreLoadWithUpgrade(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()

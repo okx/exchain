@@ -2,12 +2,10 @@ package maps
 
 import (
 	"encoding/binary"
-
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-
-	"github.com/cosmos/cosmos-sdk/types/kv"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	merkle2 "github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
 )
 
 // merkleMap defines a merkle-ized tree from a map. Leave values are treated as
@@ -183,7 +181,7 @@ func HashFromMap(m map[string][]byte) []byte {
 // ProofsFromMap generates proofs from a map. The keys/values of the map will be used as the keys/values
 // in the underlying key-value pairs.
 // The keys are sorted before the proofs are computed.
-func ProofsFromMap(m map[string][]byte) ([]byte, map[string]*tmcrypto.Proof, []string) {
+func ProofsFromMap(m map[string][]byte) ([]byte, map[string]*merkle2.SimpleProof, []string) {
 	sm := newSimpleMap()
 	for k, v := range m {
 		sm.Set(k, v)
@@ -197,7 +195,7 @@ func ProofsFromMap(m map[string][]byte) ([]byte, map[string]*tmcrypto.Proof, []s
 	}
 
 	rootHash, proofList := merkle.ProofsFromByteSlices(kvsBytes)
-	proofs := make(map[string]*tmcrypto.Proof)
+	proofs := make(map[string]*merkle2.SimpleProof)
 	keys := make([]string, len(proofList))
 
 	for i, kvp := range kvs.Pairs {

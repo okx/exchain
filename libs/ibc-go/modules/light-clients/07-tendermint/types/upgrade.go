@@ -3,13 +3,12 @@ package types
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // VerifyUpgradeAndUpdateState checks if the upgraded client has been committed by the current client
@@ -24,7 +23,7 @@ import (
 // - any Tendermint chain specified parameter in upgraded client such as ChainID, UnbondingPeriod,
 //   and ProofSpecs do not match parameters set by committed client
 func (cs ClientState) VerifyUpgradeAndUpdateState(
-	ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, clientStore sdk.KVStore,
 	upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState,
 	proofUpgradeClient, proofUpgradeConsState []byte,
 ) (exported.ClientState, exported.ConsensusState, error) {
@@ -56,10 +55,10 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 
 	// unmarshal proofs
 	var merkleProofClient, merkleProofConsState commitmenttypes.MerkleProof
-	if err := cdc.Unmarshal(proofUpgradeClient, &merkleProofClient); err != nil {
+	if err := cdc.UnMarshal(proofUpgradeClient, &merkleProofClient); err != nil {
 		return nil, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof, "could not unmarshal client merkle proof: %v", err)
 	}
-	if err := cdc.Unmarshal(proofUpgradeConsState, &merkleProofConsState); err != nil {
+	if err := cdc.UnMarshal(proofUpgradeConsState, &merkleProofConsState); err != nil {
 		return nil, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof, "could not unmarshal consensus state merkle proof: %v", err)
 	}
 
@@ -72,7 +71,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// Verify client proof
-	bz, err := cdc.MarshalInterface(upgradedClient)
+	bz, err := clienttypes.MarshalClientState(cdc, upgradedClient)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "could not marshal client state: %v", err)
 	}
@@ -83,7 +82,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// Verify consensus state proof
-	bz, err = cdc.MarshalInterface(upgradedConsState)
+	bz, err = clienttypes.MarshalConsensusState(cdc, upgradedConsState)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "could not marshal consensus state: %v", err)
 	}
@@ -133,7 +132,7 @@ func constructUpgradeClientMerklePath(upgradePath []string, lastHeight exported.
 	// append lastHeight and `upgradedClient` to last key of upgradePath and use as lastKey of clientPath
 	// this will create the IAVL key that is used to store client in upgrade store
 	lastKey := upgradePath[len(upgradePath)-1]
-	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(), upgradetypes.KeyUpgradedClient)
+	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(), "upgradedClient")
 
 	clientPath = append(clientPath, appendedKey)
 	return commitmenttypes.NewMerklePath(clientPath...)
@@ -148,7 +147,7 @@ func constructUpgradeConsStateMerklePath(upgradePath []string, lastHeight export
 	// append lastHeight and `upgradedClient` to last key of upgradePath and use as lastKey of clientPath
 	// this will create the IAVL key that is used to store client in upgrade store
 	lastKey := upgradePath[len(upgradePath)-1]
-	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(), upgradetypes.KeyUpgradedConsState)
+	appendedKey := fmt.Sprintf("%s/%d/%s", lastKey, lastHeight.GetRevisionHeight(), "upgradedConsState")
 
 	consPath = append(consPath, appendedKey)
 	return commitmenttypes.NewMerklePath(consPath...)

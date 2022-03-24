@@ -1,18 +1,18 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // AccountKeeper defines the contract required for account APIs.
 type AccountKeeper interface {
 	GetModuleAddress(name string) sdk.AccAddress
-	GetModuleAccount(ctx sdk.Context, name string) types.ModuleAccountI
+	GetModuleAccount(ctx sdk.Context, name string) exported2.ModuleAccountI
 }
 
 // BankKeeper defines the expected bank keeper
@@ -28,12 +28,13 @@ type BankKeeper interface {
 type ChannelKeeper interface {
 	GetChannel(ctx sdk.Context, srcPort, srcChan string) (channel channeltypes.Channel, found bool)
 	GetNextSequenceSend(ctx sdk.Context, portID, channelID string) (uint64, bool)
-	SendPacket(ctx sdk.Context, channelCap *capabilitytypes.Capability, packet ibcexported.PacketI) error
+	SendPacket(ctx sdk.Context, channelCap *capabilitytypes.Capability, packet exported.PacketI) error
+	ChanCloseInit(ctx sdk.Context, portID, channelID string, chanCap *capabilitytypes.Capability) error
 }
 
 // ClientKeeper defines the expected IBC client keeper
 type ClientKeeper interface {
-	GetClientConsensusState(ctx sdk.Context, clientID string) (connection ibcexported.ConsensusState, found bool)
+	GetClientConsensusState(ctx sdk.Context, clientID string) (connection exported.ConsensusState, found bool)
 }
 
 // ConnectionKeeper defines the expected IBC connection keeper

@@ -1,17 +1,18 @@
 package keeper
 
 import (
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Keeper defines the IBC connection keeper
@@ -21,17 +22,12 @@ type Keeper struct {
 
 	storeKey     sdk.StoreKey
 	paramSpace   paramtypes.Subspace
-	cdc          codec.BinaryCodec
+	cdc          *codec.CodecProxy
 	clientKeeper types.ClientKeeper
 }
 
 // NewKeeper creates a new IBC connection Keeper instance
-func NewKeeper(cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
-	// set KeyTable if it has not already been set
-	if !paramSpace.HasKeyTable() {
-		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
-	}
-
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace, ck types.ClientKeeper) Keeper {
 	return Keeper{
 		storeKey:     key,
 		cdc:          cdc,
@@ -70,16 +66,17 @@ func (k Keeper) GetConnection(ctx sdk.Context, connectionID string) (types.Conne
 	}
 
 	var connection types.ConnectionEnd
-	k.cdc.MustUnmarshal(bz, &connection)
-
+	connection = *common.MustUnmarshalConnection(k.cdc, bz)
+	k.Logger(ctx).Info("acquire connection", "id", connectionID, "state", connection.State)
 	return connection, true
 }
 
 // SetConnection sets a connection to the store
 func (k Keeper) SetConnection(ctx sdk.Context, connectionID string, connection types.ConnectionEnd) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshal(&connection)
+	bz := common.MustMarshalConnection(k.cdc, &connection)
 	store.Set(host.ConnectionKey(connectionID), bz)
+	k.Logger(ctx).Info("write connection", "connectionId", connectionID, "state", connection.State)
 }
 
 // GetTimestampAtHeight returns the timestamp in nanoseconds of the consensus state at the
@@ -109,7 +106,7 @@ func (k Keeper) GetClientConnectionPaths(ctx sdk.Context, clientID string) ([]st
 	}
 
 	var clientPaths types.ClientPaths
-	k.cdc.MustUnmarshal(bz, &clientPaths)
+	k.cdc.MustUnMarshal(bz, &clientPaths)
 	return clientPaths.Paths, true
 }
 
@@ -168,7 +165,7 @@ func (k Keeper) IterateConnections(ctx sdk.Context, cb func(types.IdentifiedConn
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var connection types.ConnectionEnd
-		k.cdc.MustUnmarshal(iterator.Value(), &connection)
+		k.cdc.MustUnMarshal(iterator.Value(), &connection)
 
 		connectionID := host.MustParseConnectionPath(string(iterator.Key()))
 		identifiedConnection := types.NewIdentifiedConnection(connectionID, connection)

@@ -2,11 +2,10 @@ package types
 
 import (
 	"bytes"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var _ exported.Misbehaviour = &Misbehaviour{}

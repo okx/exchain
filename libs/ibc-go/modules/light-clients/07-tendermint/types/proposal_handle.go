@@ -3,11 +3,11 @@ package types
 import (
 	"reflect"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // CheckSubstituteAndUpdateState will try to update the client with the state of the
@@ -24,7 +24,7 @@ import (
 // the FrozenHeight to the zero Height. If a client is frozen and AllowUpdateAfterMisbehaviour
 // is set to true, the client will be unexpired even if AllowUpdateAfterExpiry is set to false.
 func (cs ClientState) CheckSubstituteAndUpdateState(
-	ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, subjectClientStore,
 	substituteClientStore sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
 	substituteClientState, ok := substituteClient.(*ClientState)

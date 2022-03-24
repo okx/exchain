@@ -1,0 +1,18 @@
+{
+  "type": "cosmos",
+  "value": {
+    "key": "admin16",
+    "chain-id": "exchain-100",
+    "rpc-addr": "http://localhost:26657",
+    "grpc-addr": "",
+    "account-prefix": "ex",
+    "keyring-backend": "test",
+    "gas-adjustment": 1.5,
+    "gas-prices": "0.00000000000000001okt",
+    "debug": true,
+    "timeout": "10s",
+    "output-format": "json",
+    "sign-mode": "direct"
+  }
+}
+

@@ -1,32 +1,25 @@
 package types
 
 import (
-	"fmt"
-
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 )
 
 const (
 	// ProposalTypeClientUpdate defines the type for a ClientUpdateProposal
 	ProposalTypeClientUpdate = "ClientUpdate"
-	ProposalTypeUpgrade      = "IBCUpgrade"
 )
 
 var (
-	_ govtypes.Content                   = &ClientUpdateProposal{}
-	_ govtypes.Content                   = &UpgradeProposal{}
-	_ codectypes.UnpackInterfacesMessage = &UpgradeProposal{}
+	_ govtypes.Content = &ClientUpdateProposal{}
+	//_ codectypes.UnpackInterfacesMessage = &UpgradeProposal{}
 )
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeClientUpdate)
-	govtypes.RegisterProposalType(ProposalTypeUpgrade)
 }
 
+// NewClientUpdateProposal creates a new client update proposal.
 // NewClientUpdateProposal creates a new client update proposal.
 func NewClientUpdateProposal(title, description, subjectClientID, substituteClientID string) govtypes.Content {
 	return &ClientUpdateProposal{
@@ -69,73 +62,8 @@ func (cup *ClientUpdateProposal) ValidateBasic() error {
 	return nil
 }
 
-// NewUpgradeProposal creates a new IBC breaking upgrade proposal.
-func NewUpgradeProposal(title, description string, plan upgradetypes.Plan, upgradedClientState exported.ClientState) (govtypes.Content, error) {
-	any, err := PackClientState(upgradedClientState)
-	if err != nil {
-		return nil, err
-	}
-
-	return &UpgradeProposal{
-		Title:               title,
-		Description:         description,
-		Plan:                plan,
-		UpgradedClientState: any,
-	}, nil
-}
-
-// GetTitle returns the title of a upgrade proposal.
-func (up *UpgradeProposal) GetTitle() string { return up.Title }
-
-// GetDescription returns the description of a upgrade proposal.
-func (up *UpgradeProposal) GetDescription() string { return up.Description }
-
-// ProposalRoute returns the routing key of a upgrade proposal.
-func (up *UpgradeProposal) ProposalRoute() string { return RouterKey }
-
-// ProposalType returns the upgrade proposal type.
-func (up *UpgradeProposal) ProposalType() string { return ProposalTypeUpgrade }
-
-// ValidateBasic runs basic stateless validity checks
-func (up *UpgradeProposal) ValidateBasic() error {
-	if err := govtypes.ValidateAbstract(up); err != nil {
-		return err
-	}
-
-	if err := up.Plan.ValidateBasic(); err != nil {
-		return err
-	}
-
-	if up.UpgradedClientState == nil {
-		return sdkerrors.Wrap(ErrInvalidUpgradeProposal, "upgraded client state cannot be nil")
-	}
-
-	_, err := UnpackClientState(up.UpgradedClientState)
-	if err != nil {
-		return sdkerrors.Wrap(err, "failed to unpack upgraded client state")
-	}
-
-	return nil
-}
-
-// String returns the string representation of the UpgradeProposal.
-func (up UpgradeProposal) String() string {
-	var upgradedClientStr string
-	upgradedClient, err := UnpackClientState(up.UpgradedClientState)
-	if err != nil {
-		upgradedClientStr = "invalid IBC Client State"
-	} else {
-		upgradedClientStr = upgradedClient.String()
-	}
-
-	return fmt.Sprintf(`IBC Upgrade Proposal
-  Title: %s
-  Description: %s
-  %s
-  Upgraded IBC Client: %s`, up.Title, up.Description, up.Plan, upgradedClientStr)
-}
-
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (up UpgradeProposal) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
-	return unpacker.UnpackAny(up.UpgradedClientState, new(exported.ClientState))
-}
+// UnpackInterfaces implements the UnpackInterfacesMessage interface.
+// func (cup ClientUpdateProposal) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+// 	var header exported.Header
+// 	return unpacker.UnpackAny(cup.Header, &header)
+// }

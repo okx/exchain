@@ -135,7 +135,7 @@ func GetValidators(cliCtx context.CLIContext, height *int64, page, limit int) (R
 			return ResultValidatorsOutput{}, err
 		}
 
-		if !bytes.Equal(check.ValidatorsHash, tmtypes.NewValidatorSet(validatorsRes.Validators).Hash()) {
+		if !bytes.Equal(check.ValidatorsHash, tmtypes.NewValidatorSet(validatorsRes.Validators).Hash(*height)) {
 			return ResultValidatorsOutput{}, fmt.Errorf("received invalid validatorset")
 		}
 	}

@@ -4,21 +4,24 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/kv"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 )
 
 // NewDecodeStore returns a decoder function closure that unmarshals the KVPair's
 // Value to the corresponding channel type.
-func NewDecodeStore(cdc codec.BinaryCodec, kvA, kvB kv.Pair) (string, bool) {
+func NewDecodeStore(cdc *codec.CodecProxy, kvA, kvB kv.Pair) (string, bool) {
 	switch {
 	case bytes.HasPrefix(kvA.Key, []byte(host.KeyChannelEndPrefix)):
 		var channelA, channelB types.Channel
-		cdc.MustUnmarshal(kvA.Value, &channelA)
-		cdc.MustUnmarshal(kvB.Value, &channelB)
+		channelA = *common.MustUnmarshalChannel(cdc, kvA.Value)
+		channelB = *common.MustUnmarshalChannel(cdc, kvB.Value)
+		//cdc.MustUnMarshal(kvA.Value, &channelA)
+		//cdc.MustUnMarshal(kvB.Value, &channelB)
 		return fmt.Sprintf("Channel A: %v\nChannel B: %v", channelA, channelB), true
 
 	case bytes.HasPrefix(kvA.Key, []byte(host.KeyNextSeqSendPrefix)):

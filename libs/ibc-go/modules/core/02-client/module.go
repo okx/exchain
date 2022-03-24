@@ -2,10 +2,11 @@ package client
 
 import (
 	"github.com/gogo/protobuf/grpc"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/client/cli"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
 )
 
 // Name returns the IBC client name
@@ -14,13 +15,13 @@ func Name() string {
 }
 
 // GetQueryCmd returns no root query command for the IBC client
-func GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
+func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetQueryCmd(cdc, reg)
 }
 
 // GetTxCmd returns the root tx command for 02-client.
-func GetTxCmd() *cobra.Command {
-	return cli.NewTxCmd()
+func GetTxCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return cli.NewTxCmd(cdc, reg)
 }
 
 // RegisterQueryService registers the gRPC query service for IBC client.

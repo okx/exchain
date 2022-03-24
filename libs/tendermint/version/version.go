@@ -53,6 +53,11 @@ var (
 	BlockProtocol Protocol = 10
 )
 
+var (
+	IBCP2PProtocol   Protocol = 8
+	IBCBlockProtocol Protocol = 11
+)
+
 //------------------------------------------------------------------------
 // Version types
 

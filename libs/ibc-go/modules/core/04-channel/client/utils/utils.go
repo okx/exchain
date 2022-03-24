@@ -1,25 +1,24 @@
 package utils
 
+//
 import (
 	"context"
 	"encoding/binary"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clientutils "github.com/cosmos/ibc-go/v2/modules/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibcclient "github.com/cosmos/ibc-go/v2/modules/core/client"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client/utils"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/client"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // QueryChannel returns a channel end.
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryChannel(
-	clientCtx client.Context, portID, channelID string, prove bool,
+	clientCtx clictx.CLIContext, portID, channelID string, prove bool,
 ) (*types.QueryChannelResponse, error) {
 	if prove {
 		return queryChannelABCI(clientCtx, portID, channelID)
@@ -34,7 +33,7 @@ func QueryChannel(
 	return queryClient.Channel(context.Background(), req)
 }
 
-func queryChannelABCI(clientCtx client.Context, portID, channelID string) (*types.QueryChannelResponse, error) {
+func queryChannelABCI(clientCtx clictx.CLIContext, portID, channelID string) (*types.QueryChannelResponse, error) {
 	key := host.ChannelKey(portID, channelID)
 
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
@@ -47,10 +46,10 @@ func queryChannelABCI(clientCtx client.Context, portID, channelID string) (*type
 		return nil, sdkerrors.Wrapf(types.ErrChannelNotFound, "portID (%s), channelID (%s)", portID, channelID)
 	}
 
-	cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+	cdc := clientCtx.Codec
 
 	var channel types.Channel
-	if err := cdc.Unmarshal(value, &channel); err != nil {
+	if err := cdc.UnmarshalBinaryBare(value, &channel); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +60,7 @@ func queryChannelABCI(clientCtx client.Context, portID, channelID string) (*type
 // prove is true, it performs an ABCI store query in order to retrieve the
 // merkle proof. Otherwise, it uses the gRPC query client.
 func QueryChannelClientState(
-	clientCtx client.Context, portID, channelID string, prove bool,
+	clientCtx clictx.CLIContext, portID, channelID string, prove bool,
 ) (*types.QueryChannelClientStateResponse, error) {
 
 	queryClient := types.NewQueryClient(clientCtx)
@@ -76,7 +75,7 @@ func QueryChannelClientState(
 	}
 
 	if prove {
-		clientStateRes, err := clientutils.QueryClientStateABCI(clientCtx, res.IdentifiedClientState.ClientId)
+		clientStateRes, err := utils.QueryClientStateABCI(clientCtx, res.IdentifiedClientState.ClientId)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +95,7 @@ func QueryChannelClientState(
 // prove is true, it performs an ABCI store query in order to retrieve the
 // merkle proof. Otherwise, it uses the gRPC query client.
 func QueryChannelConsensusState(
-	clientCtx client.Context, portID, channelID string, height clienttypes.Height, prove bool,
+	clientCtx clictx.CLIContext, portID, channelID string, height clienttypes.Height, prove bool,
 ) (*types.QueryChannelConsensusStateResponse, error) {
 
 	queryClient := types.NewQueryClient(clientCtx)
@@ -113,7 +112,7 @@ func QueryChannelConsensusState(
 	}
 
 	if prove {
-		consensusStateRes, err := clientutils.QueryConsensusStateABCI(clientCtx, res.ClientId, height)
+		consensusStateRes, err := utils.QueryConsensusStateABCI(clientCtx, res.ClientId, height)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +126,7 @@ func QueryChannelConsensusState(
 // QueryLatestConsensusState uses the channel Querier to return the
 // latest ConsensusState given the source port ID and source channel ID.
 func QueryLatestConsensusState(
-	clientCtx client.Context, portID, channelID string,
+	clientCtx clictx.CLIContext, portID, channelID string,
 ) (exported.ConsensusState, clienttypes.Height, clienttypes.Height, error) {
 	clientRes, err := QueryChannelClientState(clientCtx, portID, channelID, false)
 	if err != nil {
@@ -161,7 +160,7 @@ func QueryLatestConsensusState(
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryNextSequenceReceive(
-	clientCtx client.Context, portID, channelID string, prove bool,
+	clientCtx clictx.CLIContext, portID, channelID string, prove bool,
 ) (*types.QueryNextSequenceReceiveResponse, error) {
 	if prove {
 		return queryNextSequenceRecvABCI(clientCtx, portID, channelID)
@@ -176,7 +175,7 @@ func QueryNextSequenceReceive(
 	return queryClient.NextSequenceReceive(context.Background(), req)
 }
 
-func queryNextSequenceRecvABCI(clientCtx client.Context, portID, channelID string) (*types.QueryNextSequenceReceiveResponse, error) {
+func queryNextSequenceRecvABCI(clientCtx clictx.CLIContext, portID, channelID string) (*types.QueryNextSequenceReceiveResponse, error) {
 	key := host.NextSequenceRecvKey(portID, channelID)
 
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
@@ -198,7 +197,7 @@ func queryNextSequenceRecvABCI(clientCtx client.Context, portID, channelID strin
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryPacketCommitment(
-	clientCtx client.Context, portID, channelID string,
+	clientCtx clictx.CLIContext, portID, channelID string,
 	sequence uint64, prove bool,
 ) (*types.QueryPacketCommitmentResponse, error) {
 	if prove {
@@ -216,7 +215,7 @@ func QueryPacketCommitment(
 }
 
 func queryPacketCommitmentABCI(
-	clientCtx client.Context, portID, channelID string, sequence uint64,
+	clientCtx clictx.CLIContext, portID, channelID string, sequence uint64,
 ) (*types.QueryPacketCommitmentResponse, error) {
 	key := host.PacketCommitmentKey(portID, channelID, sequence)
 
@@ -237,7 +236,7 @@ func queryPacketCommitmentABCI(
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryPacketReceipt(
-	clientCtx client.Context, portID, channelID string,
+	clientCtx clictx.CLIContext, portID, channelID string,
 	sequence uint64, prove bool,
 ) (*types.QueryPacketReceiptResponse, error) {
 	if prove {
@@ -255,7 +254,7 @@ func QueryPacketReceipt(
 }
 
 func queryPacketReceiptABCI(
-	clientCtx client.Context, portID, channelID string, sequence uint64,
+	clientCtx clictx.CLIContext, portID, channelID string, sequence uint64,
 ) (*types.QueryPacketReceiptResponse, error) {
 	key := host.PacketReceiptKey(portID, channelID, sequence)
 
@@ -270,7 +269,7 @@ func queryPacketReceiptABCI(
 // QueryPacketAcknowledgement returns the data about a packet acknowledgement.
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client
-func QueryPacketAcknowledgement(clientCtx client.Context, portID, channelID string, sequence uint64, prove bool) (*types.QueryPacketAcknowledgementResponse, error) {
+func QueryPacketAcknowledgement(clientCtx clictx.CLIContext, portID, channelID string, sequence uint64, prove bool) (*types.QueryPacketAcknowledgementResponse, error) {
 	if prove {
 		return queryPacketAcknowledgementABCI(clientCtx, portID, channelID, sequence)
 	}
@@ -285,7 +284,7 @@ func QueryPacketAcknowledgement(clientCtx client.Context, portID, channelID stri
 	return queryClient.PacketAcknowledgement(context.Background(), req)
 }
 
-func queryPacketAcknowledgementABCI(clientCtx client.Context, portID, channelID string, sequence uint64) (*types.QueryPacketAcknowledgementResponse, error) {
+func queryPacketAcknowledgementABCI(clientCtx clictx.CLIContext, portID, channelID string, sequence uint64) (*types.QueryPacketAcknowledgementResponse, error) {
 	key := host.PacketAcknowledgementKey(portID, channelID, sequence)
 
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)

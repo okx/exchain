@@ -6,18 +6,35 @@ import (
 	"sort"
 	"strings"
 
-	proto "github.com/gogo/protobuf/proto"
-
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
-var (
-	_ codectypes.UnpackInterfacesMessage = IdentifiedClientState{}
-	_ codectypes.UnpackInterfacesMessage = ConsensusStateWithHeight{}
-)
+// UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
+func (ics IdentifiedClientState) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	return unpacker.UnpackAny(ics.ClientState, new(exported.ClientState))
+}
+
+// NewConsensusStateWithHeight creates a new ConsensusStateWithHeight instance
+func NewConsensusStateWithHeight(height Height, consensusState exported.ConsensusState) ConsensusStateWithHeight {
+	msg, ok := consensusState.(proto.Message)
+	if !ok {
+		panic(fmt.Errorf("cannot proto marshal %T", consensusState))
+	}
+
+	anyConsensusState, err := types.NewAnyWithValue(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	return ConsensusStateWithHeight{
+		Height:         height,
+		ConsensusState: anyConsensusState,
+	}
+}
 
 // NewIdentifiedClientState creates a new IdentifiedClientState instance
 func NewIdentifiedClientState(clientID string, clientState exported.ClientState) IdentifiedClientState {
@@ -26,7 +43,7 @@ func NewIdentifiedClientState(clientID string, clientState exported.ClientState)
 		panic(fmt.Errorf("cannot proto marshal %T", clientState))
 	}
 
-	anyClientState, err := codectypes.NewAnyWithValue(msg)
+	anyClientState, err := types.NewAnyWithValue(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -35,11 +52,6 @@ func NewIdentifiedClientState(clientID string, clientState exported.ClientState)
 		ClientId:    clientID,
 		ClientState: anyClientState,
 	}
-}
-
-// UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
-func (ics IdentifiedClientState) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
-	return unpacker.UnpackAny(ics.ClientState, new(exported.ClientState))
 }
 
 var _ sort.Interface = IdentifiedClientStates{}
@@ -62,27 +74,11 @@ func (ics IdentifiedClientStates) Sort() IdentifiedClientStates {
 	return ics
 }
 
-// NewConsensusStateWithHeight creates a new ConsensusStateWithHeight instance
-func NewConsensusStateWithHeight(height Height, consensusState exported.ConsensusState) ConsensusStateWithHeight {
-	msg, ok := consensusState.(proto.Message)
-	if !ok {
-		panic(fmt.Errorf("cannot proto marshal %T", consensusState))
-	}
-
-	anyConsensusState, err := codectypes.NewAnyWithValue(msg)
-	if err != nil {
-		panic(err)
-	}
-
-	return ConsensusStateWithHeight{
-		Height:         height,
-		ConsensusState: anyConsensusState,
-	}
-}
-
-// UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
-func (cswh ConsensusStateWithHeight) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
-	return unpacker.UnpackAny(cswh.ConsensusState, new(exported.ConsensusState))
+// IsValidClientID checks if the clientID is valid and can be parsed into the client
+// identifier format.
+func IsValidClientID(clientID string) bool {
+	_, _, err := ParseClientIdentifier(clientID)
+	return err == nil
 }
 
 // ValidateClientType validates the client type. It cannot be blank or empty. It must be a valid

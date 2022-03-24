@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
 )
 
 // GetQueryCmd returns the query commands for IBC channels
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        types.SubModuleName,
 		Short:                      "IBC channel query subcommands",
@@ -18,18 +19,18 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		GetCmdQueryChannels(),
-		GetCmdQueryChannel(),
-		GetCmdQueryConnectionChannels(),
-		GetCmdQueryChannelClientState(),
-		GetCmdQueryPacketCommitment(),
-		GetCmdQueryPacketCommitments(),
-		GetCmdQueryPacketReceipt(),
-		GetCmdQueryPacketAcknowledgement(),
-		GetCmdQueryUnreceivedPackets(),
-		GetCmdQueryUnreceivedAcks(),
-		GetCmdQueryNextSequenceReceive(),
-		// TODO: next sequence Send ?
+		GetCmdQueryChannels(cdc, reg),
+		GetCmdQueryChannel(cdc, reg),
+		GetCmdQueryConnectionChannels(cdc, reg),
+		GetCmdQueryChannelClientState(cdc, reg),
+		GetCmdQueryPacketCommitment(cdc, reg),
+		GetCmdQueryPacketCommitments(cdc, reg),
+		GetCmdQueryPacketReceipt(cdc, reg),
+		GetCmdQueryPacketAcknowledgement(cdc, reg),
+		GetCmdQueryUnreceivedPackets(cdc, reg),
+		GetCmdQueryUnreceivedAcks(cdc, reg),
+		GetCmdQueryNextSequenceReceive(cdc, reg),
+		//// TODO: next sequence Send ?
 	)
 
 	return queryCmd

@@ -1,7 +1,7 @@
 package signing
 
 import (
-	"github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 )
 
 // SignatureData represents either a *SingleSignatureData or *MultiSignatureData.

@@ -2,16 +2,17 @@ package cli
 
 import (
 	"fmt"
-	"strconv"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/client/utils"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/client/utils"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	"strconv"
 )
 
 const (
@@ -20,20 +21,17 @@ const (
 
 // GetCmdQueryChannels defines the command to query all the channels ends
 // that this chain mantains.
-func GetCmdQueryChannels() *cobra.Command {
+func GetCmdQueryChannels(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "channels",
 		Short:   "Query all channels",
 		Long:    "Query all channels from a chain",
-		Example: fmt.Sprintf("%s query %s %s channels", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s channels", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-			queryClient := types.NewQueryClient(clientCtx)
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 
+			queryClient := types.NewQueryClient(clientCtx)
 			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
@@ -59,20 +57,17 @@ func GetCmdQueryChannels() *cobra.Command {
 }
 
 // GetCmdQueryChannel defines the command to query a channel end
-func GetCmdQueryChannel() *cobra.Command {
+func GetCmdQueryChannel(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "end [port-id] [channel-id]",
 		Short: "Query a channel end",
 		Long:  "Query an IBC channel end from a port and channel identifiers",
 		Example: fmt.Sprintf(
-			"%s query %s %s end [port-id] [channel-id]", version.AppName, host.ModuleName, types.SubModuleName,
+			"%s query %s %s end [port-id] [channel-id]", version.ServerName, host.ModuleName, types.SubModuleName,
 		),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
@@ -94,18 +89,15 @@ func GetCmdQueryChannel() *cobra.Command {
 
 // GetCmdQueryConnectionChannels defines the command to query all the channels associated with a
 // connection
-func GetCmdQueryConnectionChannels() *cobra.Command {
+func GetCmdQueryConnectionChannels(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "connections [connection-id]",
 		Short:   "Query all channels associated with a connection",
 		Long:    "Query all channels associated with a connection",
-		Example: fmt.Sprintf("%s query %s %s connections [connection-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s connections [connection-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
@@ -133,18 +125,15 @@ func GetCmdQueryConnectionChannels() *cobra.Command {
 }
 
 // GetCmdQueryChannelClientState defines the command to query a client state from a channel
-func GetCmdQueryChannelClientState() *cobra.Command {
+func GetCmdQueryChannelClientState(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "client-state [port-id] [channel-id]",
 		Short:   "Query the client state associated with a channel",
 		Long:    "Query the client state associated with a channel, by providing its port and channel identifiers.",
-		Example: fmt.Sprintf("%s query ibc channel client-state [port-id] [channel-id]", version.AppName),
+		Example: fmt.Sprintf("%s query ibc channel client-state [port-id] [channel-id]", version.ServerName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 
@@ -164,18 +153,15 @@ func GetCmdQueryChannelClientState() *cobra.Command {
 
 // GetCmdQueryPacketCommitments defines the command to query all packet commitments associated with
 // a channel
-func GetCmdQueryPacketCommitments() *cobra.Command {
+func GetCmdQueryPacketCommitments(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "packet-commitments [port-id] [channel-id]",
 		Short:   "Query all packet commitments associated with a channel",
 		Long:    "Query all packet commitments associated with a channel",
-		Example: fmt.Sprintf("%s query %s %s packet-commitments [port-id] [channel-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s packet-commitments [port-id] [channel-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
@@ -204,20 +190,17 @@ func GetCmdQueryPacketCommitments() *cobra.Command {
 }
 
 // GetCmdQueryPacketCommitment defines the command to query a packet commitment
-func GetCmdQueryPacketCommitment() *cobra.Command {
+func GetCmdQueryPacketCommitment(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "packet-commitment [port-id] [channel-id] [sequence]",
 		Short: "Query a packet commitment",
 		Long:  "Query a packet commitment",
 		Example: fmt.Sprintf(
-			"%s query %s %s packet-commitment [port-id] [channel-id] [sequence]", version.AppName, host.ModuleName, types.SubModuleName,
+			"%s query %s %s packet-commitment [port-id] [channel-id] [sequence]", version.ServerName, host.ModuleName, types.SubModuleName,
 		),
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
@@ -243,20 +226,17 @@ func GetCmdQueryPacketCommitment() *cobra.Command {
 }
 
 // GetCmdQueryPacketReceipt defines the command to query a packet receipt
-func GetCmdQueryPacketReceipt() *cobra.Command {
+func GetCmdQueryPacketReceipt(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "packet-receipt [port-id] [channel-id] [sequence]",
 		Short: "Query a packet receipt",
 		Long:  "Query a packet receipt",
 		Example: fmt.Sprintf(
-			"%s query %s %s packet-receipt [port-id] [channel-id] [sequence]", version.AppName, host.ModuleName, types.SubModuleName,
+			"%s query %s %s packet-receipt [port-id] [channel-id] [sequence]", version.ServerName, host.ModuleName, types.SubModuleName,
 		),
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
@@ -282,20 +262,17 @@ func GetCmdQueryPacketReceipt() *cobra.Command {
 }
 
 // GetCmdQueryPacketAcknowledgement defines the command to query a packet acknowledgement
-func GetCmdQueryPacketAcknowledgement() *cobra.Command {
+func GetCmdQueryPacketAcknowledgement(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "packet-ack [port-id] [channel-id] [sequence]",
 		Short: "Query a packet acknowledgement",
 		Long:  "Query a packet acknowledgement",
 		Example: fmt.Sprintf(
-			"%s query %s %s packet-ack [port-id] [channel-id] [sequence]", version.AppName, host.ModuleName, types.SubModuleName,
+			"%s query %s %s packet-ack [port-id] [channel-id] [sequence]", version.ServerName, host.ModuleName, types.SubModuleName,
 		),
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
@@ -322,7 +299,7 @@ func GetCmdQueryPacketAcknowledgement() *cobra.Command {
 
 // GetCmdQueryUnreceivedPackets defines the command to query all the unreceived
 // packets on the receiving chain
-func GetCmdQueryUnreceivedPackets() *cobra.Command {
+func GetCmdQueryUnreceivedPackets(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unreceived-packets [port-id] [channel-id]",
 		Short: "Query all the unreceived packets associated with a channel",
@@ -331,13 +308,10 @@ func GetCmdQueryUnreceivedPackets() *cobra.Command {
 The return value represents:
 - Unreceived packet commitments: no acknowledgement exists on receiving chain for the given packet commitment sequence on sending chain.
 `,
-		Example: fmt.Sprintf("%s query %s %s unreceived-packets [port-id] [channel-id] --sequences=1,2,3", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s unreceived-packets [port-id] [channel-id] --sequences=1,2,3", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
 			seqSlice, err := cmd.Flags().GetInt64Slice(flagSequences)
@@ -372,7 +346,7 @@ The return value represents:
 }
 
 // GetCmdQueryUnreceivedAcks defines the command to query all the unreceived acks on the original sending chain
-func GetCmdQueryUnreceivedAcks() *cobra.Command {
+func GetCmdQueryUnreceivedAcks(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unreceived-acks [port-id] [channel-id]",
 		Short: "Query all the unreceived acks associated with a channel",
@@ -381,13 +355,10 @@ func GetCmdQueryUnreceivedAcks() *cobra.Command {
 The return value represents:
 - Unreceived packet acknowledgement: packet commitment exists on original sending (executing) chain and ack exists on receiving chain.
 `,
-		Example: fmt.Sprintf("%s query %s %s unreceived-acks [port-id] [channel-id] --sequences=1,2,3", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s unreceived-acks [port-id] [channel-id] --sequences=1,2,3", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
 			seqSlice, err := cmd.Flags().GetInt64Slice(flagSequences)
@@ -422,20 +393,17 @@ The return value represents:
 }
 
 // GetCmdQueryNextSequenceReceive defines the command to query a next receive sequence for a given channel
-func GetCmdQueryNextSequenceReceive() *cobra.Command {
+func GetCmdQueryNextSequenceReceive(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "next-sequence-receive [port-id] [channel-id]",
 		Short: "Query a next receive sequence",
 		Long:  "Query the next receive sequence for a given channel",
 		Example: fmt.Sprintf(
-			"%s query %s %s next-sequence-receive [port-id] [channel-id]", version.AppName, host.ModuleName, types.SubModuleName,
+			"%s query %s %s next-sequence-receive [port-id] [channel-id]", version.ServerName, host.ModuleName, types.SubModuleName,
 		),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			portID := args[0]
 			channelID := args[1]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)

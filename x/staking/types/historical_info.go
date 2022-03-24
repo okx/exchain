@@ -3,80 +3,55 @@ package types
 import (
 	"sort"
 
-	"github.com/gogo/protobuf/proto"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
+
+// HistoricalInfo contains the historical information that gets stored at each height
+type HistoricalInfo struct {
+	Header abci.Header `json:"header" yaml:"header"`
+	ValSet []Validator `json:"valset" yaml:"valset"`
+}
 
 // NewHistoricalInfo will create a historical information struct from header and valset
 // it will first sort valset before inclusion into historical info
-func NewHistoricalInfo(header tmproto.Header, valSet Validators, powerReduction sdk.Int) HistoricalInfo {
-	// Must sort in the same way that tendermint does
-	sort.SliceStable(valSet, func(i, j int) bool {
-		return ValidatorsByVotingPower(valSet).Less(i, j, powerReduction)
-	})
-
+func NewHistoricalInfo(header abci.Header, valSet []Validator) HistoricalInfo {
+	sort.Sort(Validators(valSet))
 	return HistoricalInfo{
 		Header: header,
-		Valset: valSet,
+		ValSet: valSet,
 	}
 }
 
+// MustMarshalHistoricalInfo wll marshal historical info and panic on error
+func MustMarshalHistoricalInfo(cdc *codec.Codec, hi HistoricalInfo) []byte {
+	return cdc.MustMarshalBinaryLengthPrefixed(hi)
+}
+
 // MustUnmarshalHistoricalInfo wll unmarshal historical info and panic on error
-func MustUnmarshalHistoricalInfo(cdc codec.BinaryCodec, value []byte) HistoricalInfo {
+func MustUnmarshalHistoricalInfo(cdc *codec.Codec, value []byte) HistoricalInfo {
 	hi, err := UnmarshalHistoricalInfo(cdc, value)
 	if err != nil {
 		panic(err)
 	}
-
 	return hi
 }
 
 // UnmarshalHistoricalInfo will unmarshal historical info and return any error
-func UnmarshalHistoricalInfo(cdc codec.BinaryCodec, value []byte) (hi HistoricalInfo, err error) {
-	err = cdc.Unmarshal(value, &hi)
+func UnmarshalHistoricalInfo(cdc *codec.Codec, value []byte) (hi HistoricalInfo, err error) {
+	err = cdc.UnmarshalBinaryLengthPrefixed(value, &hi)
 	return hi, err
 }
 
 // ValidateBasic will ensure HistoricalInfo is not nil and sorted
 func ValidateBasic(hi HistoricalInfo) error {
-	if len(hi.Valset) == 0 {
+	if len(hi.ValSet) == 0 {
 		return sdkerrors.Wrap(ErrInvalidHistoricalInfo, "validator set is empty")
 	}
-
-	if !sort.IsSorted(Validators(hi.Valset)) {
+	if !sort.IsSorted(Validators(hi.ValSet)) {
 		return sdkerrors.Wrap(ErrInvalidHistoricalInfo, "validator set is not sorted by address")
-	}
-
-	return nil
-}
-
-// Equal checks if receiver is equal to the parameter
-func (hi *HistoricalInfo) Equal(hi2 *HistoricalInfo) bool {
-	if !proto.Equal(&hi.Header, &hi2.Header) {
-		return false
-	}
-	if len(hi.Valset) != len(hi2.Valset) {
-		return false
-	}
-	for i := range hi.Valset {
-		if !hi.Valset[i].Equal(&hi2.Valset[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (hi HistoricalInfo) UnpackInterfaces(c codectypes.AnyUnpacker) error {
-	for i := range hi.Valset {
-		if err := hi.Valset[i].UnpackInterfaces(c); err != nil {
-			return err
-		}
 	}
 	return nil
 }

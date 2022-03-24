@@ -3,36 +3,31 @@ package cli
 import (
 	"errors"
 	"fmt"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client/utils"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/client/utils"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
 )
 
 const (
 	flagLatestHeight = "latest-height"
 )
 
-// GetCmdQueryClientStates defines the command to query all the light clients
-// that this chain mantains.
-func GetCmdQueryClientStates() *cobra.Command {
+func GetCmdQueryClientStates(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "states",
 		Short:   "Query all available light clients",
 		Long:    "Query all available light clients",
-		Example: fmt.Sprintf("%s query %s %s states", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s states", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-			queryClient := types.NewQueryClient(clientCtx)
+			cliCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 
 			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
@@ -43,12 +38,13 @@ func GetCmdQueryClientStates() *cobra.Command {
 				Pagination: pageReq,
 			}
 
+			queryClient := types.NewQueryClient(cliCtx)
 			res, err := queryClient.ClientStates(cmd.Context(), req)
 			if err != nil {
 				return err
 			}
 
-			return clientCtx.PrintProto(res)
+			return cliCtx.PrintProto(res)
 		},
 	}
 	flags.AddQueryFlagsToCmd(cmd)
@@ -59,18 +55,16 @@ func GetCmdQueryClientStates() *cobra.Command {
 
 // GetCmdQueryClientState defines the command to query the state of a client with
 // a given id as defined in https://github.com/cosmos/ibc/tree/master/spec/core/ics-002-client-semantics#query
-func GetCmdQueryClientState() *cobra.Command {
+func GetCmdQueryClientState(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "state [client-id]",
 		Short:   "Query a client state",
 		Long:    "Query stored client state",
-		Example: fmt.Sprintf("%s query %s %s state [client-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s state [client-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			clientID := args[0]
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
 
@@ -89,53 +83,17 @@ func GetCmdQueryClientState() *cobra.Command {
 	return cmd
 }
 
-// GetCmdQueryClientStatus defines the command to query the status of a client with a given id
-func GetCmdQueryClientStatus() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "status [client-id]",
-		Short:   "Query client status",
-		Long:    "Query client activity status. Any client without an 'Active' status is considered inactive",
-		Example: fmt.Sprintf("%s query %s %s status [client-id]", version.AppName, host.ModuleName, types.SubModuleName),
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			clientID := args[0]
-			queryClient := types.NewQueryClient(clientCtx)
-
-			req := &types.QueryClientStatusRequest{
-				ClientId: clientID,
-			}
-
-			clientStatusRes, err := queryClient.ClientStatus(cmd.Context(), req)
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintProto(clientStatusRes)
-		},
-	}
-
-	return cmd
-}
-
 // GetCmdQueryConsensusStates defines the command to query all the consensus states from a given
 // client state.
-func GetCmdQueryConsensusStates() *cobra.Command {
+func GetCmdQueryConsensusStates(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "consensus-states [client-id]",
 		Short:   "Query all the consensus states of a client.",
 		Long:    "Query all the consensus states from a given client state.",
-		Example: fmt.Sprintf("%s query %s %s consensus-states [client-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s consensus-states [client-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			clientID := args[0]
 
 			queryClient := types.NewQueryClient(clientCtx)
@@ -166,19 +124,16 @@ func GetCmdQueryConsensusStates() *cobra.Command {
 
 // GetCmdQueryConsensusState defines the command to query the consensus state of
 // the chain as defined in https://github.com/cosmos/ibc/tree/master/spec/core/ics-002-client-semantics#query
-func GetCmdQueryConsensusState() *cobra.Command {
+func GetCmdQueryConsensusState(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "consensus-state [client-id] [height]",
 		Short: "Query the consensus state of a client at a given height",
 		Long: `Query the consensus state for a particular light client at a given height.
 If the '--latest' flag is included, the query returns the latest consensus state, overriding the height argument.`,
-		Example: fmt.Sprintf("%s query %s %s  consensus-state [client-id] [height]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s  consensus-state [client-id] [height]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			clientID := args[0]
 			queryLatestHeight, _ := cmd.Flags().GetBool(flagLatestHeight)
 			var height types.Height
@@ -188,10 +143,11 @@ If the '--latest' flag is included, the query returns the latest consensus state
 					return errors.New("must include a second 'height' argument when '--latest-height' flag is not provided")
 				}
 
-				height, err = types.ParseHeight(args[1])
+				h, err := types.ParseHeight(args[1])
 				if err != nil {
 					return err
 				}
+				height = h
 			}
 
 			prove, _ := cmd.Flags().GetBool(flags.FlagProve)
@@ -213,18 +169,15 @@ If the '--latest' flag is included, the query returns the latest consensus state
 }
 
 // GetCmdQueryHeader defines the command to query the latest header on the chain
-func GetCmdQueryHeader() *cobra.Command {
+func GetCmdQueryHeader(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "header",
 		Short:   "Query the latest header of the running chain",
 		Long:    "Query the latest Tendermint header of the running chain",
-		Example: fmt.Sprintf("%s query %s %s  header", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s  header", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			header, _, err := utils.QueryTendermintHeader(clientCtx)
 			if err != nil {
 				return err
@@ -240,18 +193,15 @@ func GetCmdQueryHeader() *cobra.Command {
 }
 
 // GetCmdSelfConsensusState defines the command to query the self consensus state of a chain
-func GetCmdSelfConsensusState() *cobra.Command {
+func GetCmdSelfConsensusState(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "self-consensus-state",
 		Short:   "Query the self consensus state for this chain",
 		Long:    "Query the self consensus state for this chain. This result may be used for verifying IBC clients representing this chain which are hosted on counterparty chains.",
-		Example: fmt.Sprintf("%s query %s %s self-consensus-state", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s self-consensus-state", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			state, _, err := utils.QuerySelfConsensusState(clientCtx)
 			if err != nil {
 				return err
@@ -267,18 +217,15 @@ func GetCmdSelfConsensusState() *cobra.Command {
 }
 
 // GetCmdParams returns the command handler for ibc client parameter querying.
-func GetCmdParams() *cobra.Command {
+func GetCmdParams(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "params",
 		Short:   "Query the current ibc client parameters",
 		Long:    "Query the current ibc client parameters",
 		Args:    cobra.NoArgs,
-		Example: fmt.Sprintf("%s query %s %s params", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s params", version.ServerName, host.ModuleName, types.SubModuleName),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
 			res, _ := queryClient.ClientParams(cmd.Context(), &types.QueryClientParamsRequest{})

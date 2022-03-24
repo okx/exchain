@@ -313,13 +313,13 @@ func (vals *ValidatorSet) findProposer() *Validator {
 
 // Hash returns the Merkle root hash build using validators (as leaves) in the
 // set.
-func (vals *ValidatorSet) Hash() []byte {
+func (vals *ValidatorSet) Hash(h int64) []byte {
 	if len(vals.Validators) == 0 {
 		return nil
 	}
 	bzs := make([][]byte, len(vals.Validators))
 	for i, val := range vals.Validators {
-		bzs[i] = val.Bytes()
+		bzs[i] = val.HeightBytes(h)
 	}
 	return merkle.SimpleHashFromByteSlices(bzs)
 }

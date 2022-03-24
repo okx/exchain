@@ -20,6 +20,8 @@ type Store interface { //nolint
 // something that can persist to disk
 type Committer interface {
 	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta) // CommitterCommit
+	//for add module to init store version eg:ibc/erc20/capabilty module
+	UpgradeVersion(int64)
 
 	LastCommitID() CommitID
 
@@ -150,6 +152,7 @@ type CacheMultiStore interface {
 type CommitMultiStore interface {
 	Committer
 	MultiStore
+	CommitMultiStorePipeline
 	CommitterCommitMap(iavl.TreeDeltaMap) (CommitID, iavl.TreeDeltaMap) // CommitterCommit
 
 	// Mount a store of type using the given db.
@@ -281,11 +284,6 @@ type CacheWrapper interface { //nolint
 // CommitID
 
 // CommitID contains the tree version number and its merkle root.
-type CommitID struct {
-	Version int64
-	Hash    []byte
-}
-
 func (cid CommitID) IsZero() bool { //nolint
 	return cid.Version == 0 && len(cid.Hash) == 0
 }
@@ -306,6 +304,7 @@ const (
 	StoreTypeDB
 	StoreTypeIAVL
 	StoreTypeTransient
+	StoreTypeMemory
 )
 
 //----------------------------------------
@@ -360,6 +359,25 @@ func (key *TransientStoreKey) Name() string {
 // Implements StoreKey
 func (key *TransientStoreKey) String() string {
 	return fmt.Sprintf("TransientStoreKey{%p, %s}", key, key.name)
+}
+
+// MemoryStoreKey defines a typed key to be used with an in-memory KVStore.
+type MemoryStoreKey struct {
+	name string
+}
+
+func NewMemoryStoreKey(name string) *MemoryStoreKey {
+	return &MemoryStoreKey{name: name}
+}
+
+// Name returns the name of the MemoryStoreKey.
+func (key *MemoryStoreKey) Name() string {
+	return key.name
+}
+
+// String returns a stringified representation of the MemoryStoreKey.
+func (key *MemoryStoreKey) String() string {
+	return fmt.Sprintf("MemoryStoreKey{%p, %s}", key, key.name)
 }
 
 //----------------------------------------

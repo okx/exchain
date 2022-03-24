@@ -2,13 +2,12 @@ package types
 
 import (
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"reflect"
 	"runtime/debug"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-
-	amino "github.com/tendermint/go-amino"
 )
 
 type anyCompat struct {
@@ -37,7 +36,7 @@ func anyCompatError(errType string, x interface{}) error {
 func (any Any) MarshalAmino() ([]byte, error) {
 	ac := any.compat
 	if ac == nil {
-		return nil, anyCompatError("amino binary marshal", any)
+		return nil, anyCompatError("amino binary unmarshal", any)
 	}
 	return ac.aminoBz, ac.err
 }

@@ -62,6 +62,9 @@ func (app *BaseApp) SetAppVersion(v string) {
 	}
 	app.appVersion = v
 }
+func(app *BaseApp)SetTxDecoder(decoder sdk.TxDecoder){
+	app.txDecoder=decoder
+}
 
 func (app *BaseApp) SetDB(db dbm.DB) {
 	if app.sealed {

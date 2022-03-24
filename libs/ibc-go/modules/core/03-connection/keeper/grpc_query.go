@@ -3,16 +3,16 @@ package keeper
 import (
 	"context"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -55,8 +55,11 @@ func (q Keeper) Connections(c context.Context, req *types.QueryConnectionsReques
 
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		var result types.ConnectionEnd
-		if err := q.cdc.Unmarshal(value, &result); err != nil {
+
+		if retr, err := common.UnmarshalConnection(q.cdc, value); err != nil {
 			return err
+		} else {
+			result = *retr
 		}
 
 		connectionID, err := host.ParseConnectionPath(string(key))

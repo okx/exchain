@@ -3,13 +3,11 @@ package client
 import (
 	"fmt"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // QueryTendermintProof performs an ABCI query with the given key and returns
@@ -21,7 +19,7 @@ import (
 // not supported. Queries with a client context height of 0 will perform a query
 // at the lastest state available.
 // Issue: https://github.com/cosmos/cosmos-sdk/issues/6567
-func QueryTendermintProof(clientCtx client.Context, key []byte) ([]byte, []byte, clienttypes.Height, error) {
+func QueryTendermintProof(clientCtx clictx.CLIContext, key []byte) ([]byte, []byte, clienttypes.Height, error) {
 	height := clientCtx.Height
 
 	// ABCI queries at heights 1, 2 or less than or equal to 0 are not supported.
@@ -50,14 +48,14 @@ func QueryTendermintProof(clientCtx client.Context, key []byte) ([]byte, []byte,
 		return nil, nil, clienttypes.Height{}, err
 	}
 
-	merkleProof, err := commitmenttypes.ConvertProofs(res.ProofOps)
+	merkleProof, err := commitmenttypes.ConvertProofs(res.Proof)
 	if err != nil {
 		return nil, nil, clienttypes.Height{}, err
 	}
 
-	cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+	cdc := clientCtx.Codec
 
-	proofBz, err := cdc.Marshal(&merkleProof)
+	proofBz, err := cdc.MarshalBinaryBare(&merkleProof)
 	if err != nil {
 		return nil, nil, clienttypes.Height{}, err
 	}

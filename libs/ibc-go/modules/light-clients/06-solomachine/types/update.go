@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // CheckHeaderAndUpdateState checks if the provided header is valid and updates
@@ -15,7 +15,7 @@ import (
 // - the header timestamp is less than the consensus state timestamp
 // - the currently registered public key did not provide the update signature
 func (cs ClientState) CheckHeaderAndUpdateState(
-	ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, clientStore sdk.KVStore,
 	header exported.Header,
 ) (exported.ClientState, exported.ConsensusState, error) {
 	smHeader, ok := header.(*Header)
@@ -34,7 +34,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 }
 
 // checkHeader checks if the Solo Machine update signature is valid.
-func checkHeader(cdc codec.BinaryCodec, clientState *ClientState, header *Header) error {
+func checkHeader(cdc *codec.CodecProxy, clientState *ClientState, header *Header) error {
 	// assert update sequence is current sequence
 	if header.Sequence != clientState.Sequence {
 		return sdkerrors.Wrapf(

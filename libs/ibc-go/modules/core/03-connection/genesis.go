@@ -1,14 +1,15 @@
 package connection
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/keeper"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 )
 
 // InitGenesis initializes the ibc connection submodule's state from a provided genesis
 // state.
 func InitGenesis(ctx sdk.Context, k keeper.Keeper, gs types.GenesisState) {
+	k.SetParams(ctx, gs.Params)
 	for _, connection := range gs.Connections {
 		conn := types.NewConnectionEnd(connection.State, connection.ClientId, connection.Counterparty, connection.Versions, connection.DelayPeriod)
 		k.SetConnection(ctx, connection.Id, conn)

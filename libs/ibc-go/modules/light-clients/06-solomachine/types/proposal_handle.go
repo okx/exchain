@@ -1,13 +1,12 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"reflect"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
 )
 
 // CheckSubstituteAndUpdateState verifies that the subject is allowed to be updated by
@@ -18,7 +17,7 @@ import (
 // the substitute is not a solo machine, or the current public key equals
 // the new public key.
 func (cs ClientState) CheckSubstituteAndUpdateState(
-	ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore,
+	ctx sdk.Context, cdc *codec.CodecProxy, subjectClientStore,
 	_ sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
 

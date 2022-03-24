@@ -3,24 +3,21 @@ package utils
 import (
 	"context"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/client"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibcclient "github.com/cosmos/ibc-go/v2/modules/core/client"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
-	ibctmtypes "github.com/cosmos/ibc-go/v2/modules/light-clients/07-tendermint/types"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/client"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // QueryClientState returns a client state. If prove is true, it performs an ABCI store query
 // in order to retrieve the merkle proof. Otherwise, it uses the gRPC query client.
 func QueryClientState(
-	clientCtx client.Context, clientID string, prove bool,
+	clientCtx clictx.CLIContext, clientID string, prove bool,
 ) (*types.QueryClientStateResponse, error) {
 	if prove {
 		return QueryClientStateABCI(clientCtx, clientID)
@@ -36,7 +33,7 @@ func QueryClientState(
 
 // QueryClientStateABCI queries the store to get the light client state and a merkle proof.
 func QueryClientStateABCI(
-	clientCtx client.Context, clientID string,
+	clientCtx clictx.CLIContext, clientID string,
 ) (*types.QueryClientStateResponse, error) {
 	key := host.FullClientStateKey(clientID)
 
@@ -50,7 +47,7 @@ func QueryClientStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrClientNotFound, clientID)
 	}
 
-	cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+	cdc := clientCtx.CodecProy
 
 	clientState, err := types.UnmarshalClientState(cdc, value)
 	if err != nil {
@@ -69,7 +66,7 @@ func QueryClientStateABCI(
 // QueryConsensusState returns a consensus state. If prove is true, it performs an ABCI store
 // query in order to retrieve the merkle proof. Otherwise, it uses the gRPC query client.
 func QueryConsensusState(
-	clientCtx client.Context, clientID string, height exported.Height, prove, latestHeight bool,
+	clientCtx clictx.CLIContext, clientID string, height exported.Height, prove, latestHeight bool,
 ) (*types.QueryConsensusStateResponse, error) {
 	if prove {
 		return QueryConsensusStateABCI(clientCtx, clientID, height)
@@ -89,10 +86,9 @@ func QueryConsensusState(
 // QueryConsensusStateABCI queries the store to get the consensus state of a light client and a
 // merkle proof of its existence or non-existence.
 func QueryConsensusStateABCI(
-	clientCtx client.Context, clientID string, height exported.Height,
+	clientCtx clictx.CLIContext, clientID string, height exported.Height,
 ) (*types.QueryConsensusStateResponse, error) {
 	key := host.FullConsensusStateKey(clientID, height)
-
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
 	if err != nil {
 		return nil, err
@@ -103,7 +99,7 @@ func QueryConsensusStateABCI(
 		return nil, sdkerrors.Wrap(types.ErrConsensusStateNotFound, clientID)
 	}
 
-	cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+	cdc := clientCtx.CodecProy
 
 	cs, err := types.UnmarshalConsensusState(cdc, value)
 	if err != nil {
@@ -120,13 +116,13 @@ func QueryConsensusStateABCI(
 
 // QueryTendermintHeader takes a client context and returns the appropriate
 // tendermint header
-func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, error) {
+func QueryTendermintHeader(clientCtx clictx.CLIContext) (ibctmtypes.Header, int64, error) {
 	node, err := clientCtx.GetNode()
 	if err != nil {
 		return ibctmtypes.Header{}, 0, err
 	}
 
-	info, err := node.ABCIInfo(context.Background())
+	info, err := node.ABCIInfo()
 	if err != nil {
 		return ibctmtypes.Header{}, 0, err
 	}
@@ -138,7 +134,7 @@ func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, 
 		height = info.Response.LastBlockHeight
 	}
 
-	commit, err := node.Commit(context.Background(), &height)
+	commit, err := node.Commit(&height)
 	if err != nil {
 		return ibctmtypes.Header{}, 0, err
 	}
@@ -146,7 +142,7 @@ func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, 
 	page := 1
 	count := 10_000
 
-	validators, err := node.Validators(context.Background(), &height, &page, &count)
+	validators, err := node.Validators(&height, page, count)
 	if err != nil {
 		return ibctmtypes.Header{}, 0, err
 	}
@@ -165,15 +161,15 @@ func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, 
 	return header, height, nil
 }
 
-// QuerySelfConsensusState takes a client context and returns the appropriate
+// QueryNodeConsensusState takes a client context and returns the appropriate
 // tendermint consensus state
-func QuerySelfConsensusState(clientCtx client.Context) (*ibctmtypes.ConsensusState, int64, error) {
+func QueryNodeConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.ConsensusState, int64, error) {
 	node, err := clientCtx.GetNode()
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
 
-	info, err := node.ABCIInfo(context.Background())
+	info, err := node.ABCIInfo()
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
@@ -185,7 +181,7 @@ func QuerySelfConsensusState(clientCtx client.Context) (*ibctmtypes.ConsensusSta
 		height = info.Response.LastBlockHeight
 	}
 
-	commit, err := node.Commit(context.Background(), &height)
+	commit, err := node.Commit(&height)
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
@@ -194,7 +190,7 @@ func QuerySelfConsensusState(clientCtx client.Context) (*ibctmtypes.ConsensusSta
 	count := 10_000
 
 	nextHeight := height + 1
-	nextVals, err := node.Validators(context.Background(), &nextHeight, &page, &count)
+	nextVals, err := node.Validators(&nextHeight, page, count)
 	if err != nil {
 		return &ibctmtypes.ConsensusState{}, 0, err
 	}
@@ -202,7 +198,50 @@ func QuerySelfConsensusState(clientCtx client.Context) (*ibctmtypes.ConsensusSta
 	state := &ibctmtypes.ConsensusState{
 		Timestamp:          commit.Time,
 		Root:               commitmenttypes.NewMerkleRoot(commit.AppHash),
-		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(),
+		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(height),
+	}
+
+	return state, height, nil
+}
+
+// QuerySelfConsensusState takes a client context and returns the appropriate
+// tendermint consensus state
+func QuerySelfConsensusState(clientCtx clictx.CLIContext) (*ibctmtypes.ConsensusState, int64, error) {
+	node, err := clientCtx.GetNode()
+	if err != nil {
+		return &ibctmtypes.ConsensusState{}, 0, err
+	}
+
+	info, err := node.ABCIInfo()
+	if err != nil {
+		return &ibctmtypes.ConsensusState{}, 0, err
+	}
+
+	var height int64
+	if clientCtx.Height != 0 {
+		height = clientCtx.Height
+	} else {
+		height = info.Response.LastBlockHeight
+	}
+
+	commit, err := node.Commit(&height)
+	if err != nil {
+		return &ibctmtypes.ConsensusState{}, 0, err
+	}
+
+	page := 1
+	count := 10_000
+
+	nextHeight := height + 1
+	nextVals, err := node.Validators(&nextHeight, page, count)
+	if err != nil {
+		return &ibctmtypes.ConsensusState{}, 0, err
+	}
+
+	state := &ibctmtypes.ConsensusState{
+		Timestamp:          commit.Time,
+		Root:               commitmenttypes.NewMerkleRoot(commit.AppHash),
+		NextValidatorsHash: tmtypes.NewValidatorSet(nextVals.Validators).Hash(height),
 	}
 
 	return state, height, nil

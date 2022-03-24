@@ -1,38 +1,36 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"reflect"
 	"strings"
 
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/light"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
-	ibctmtypes "github.com/cosmos/ibc-go/v2/modules/light-clients/07-tendermint/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	lite "github.com/okex/exchain/libs/tendermint/lite2"
 )
 
-// Keeper represents a type that grants read and write permissions to any client
-// state information
 type Keeper struct {
 	storeKey      sdk.StoreKey
-	cdc           codec.BinaryCodec
-	paramSpace    paramtypes.Subspace
+	cdc           *codec.CodecProxy
+	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
 	upgradeKeeper types.UpgradeKeeper
 }
 
 // NewKeeper creates a new NewKeeper instance
-func NewKeeper(cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace, sk types.StakingKeeper, uk types.UpgradeKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper, uk types.UpgradeKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -96,6 +94,9 @@ func (k Keeper) GetClientConsensusState(ctx sdk.Context, clientID string, height
 // height
 func (k Keeper) SetClientConsensusState(ctx sdk.Context, clientID string, height exported.Height, consensusState exported.ConsensusState) {
 	store := k.ClientStore(ctx, clientID)
+	k.Logger(ctx).Info("set consensusState", "clientId", clientID, "height", height, "hash",
+		hex.EncodeToString(consensusState.GetRoot().GetHash()),
+		"consensusHeight", height)
 	store.Set(host.ConsensusStateKey(height), k.MustMarshalConsensusState(consensusState))
 }
 
@@ -108,13 +109,6 @@ func (k Keeper) GetNextClientSequence(ctx sdk.Context) uint64 {
 	}
 
 	return sdk.BigEndianToUint64(bz)
-}
-
-// SetNextClientSequence sets the next client sequence to the store.
-func (k Keeper) SetNextClientSequence(ctx sdk.Context, sequence uint64) {
-	store := ctx.KVStore(k.storeKey)
-	bz := sdk.Uint64ToBigEndian(sequence)
-	store.Set([]byte(types.KeyNextClientSequence), bz)
 }
 
 // IterateConsensusStates provides an iterator over all stored consensus states.
@@ -261,6 +255,7 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
 		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
 	}
+	k.Logger(ctx).Info("GetSelfConsensusState", "height", height, "hash", consensusState.GetRoot().GetHash())
 	return consensusState, true
 }
 
@@ -268,12 +263,15 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 // This function is only used to validate the client state the counterparty stores for this chain
 // Client must be in same revision as the executing chain
 func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error {
+
 	tmClient, ok := clientState.(*ibctmtypes.ClientState)
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidClient, "client must be a Tendermint client, expected: %T, got: %T",
 			&ibctmtypes.ClientState{}, tmClient)
 	}
 
+	// old version
+	// if clientState.IsFrozen() {
 	if !tmClient.FrozenHeight.IsZero() {
 		return types.ErrClientFrozen
 	}
@@ -303,7 +301,7 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 			expectedProofSpecs, tmClient.ProofSpecs)
 	}
 
-	if err := light.ValidateTrustLevel(tmClient.TrustLevel.ToTendermint()); err != nil {
+	if err := lite.ValidateTrustLevel(tmClient.TrustLevel.ToTendermint()); err != nil {
 		return sdkerrors.Wrapf(types.ErrInvalidClient, "trust-level invalid: %v", err)
 	}
 
@@ -320,7 +318,8 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 
 	if len(tmClient.UpgradePath) != 0 {
 		// For now, SDK IBC implementation assumes that upgrade path (if defined) is defined by SDK upgrade module
-		expectedUpgradePath := []string{upgradetypes.StoreKey, upgradetypes.KeyUpgradedIBCState}
+
+		expectedUpgradePath := []string{UpgradeModuleName, KeyUpgradedIBCState}
 		if !reflect.DeepEqual(expectedUpgradePath, tmClient.UpgradePath) {
 			return sdkerrors.Wrapf(types.ErrInvalidClient, "upgrade path must be the upgrade path defined by upgrade module. expected %v, got %v",
 				expectedUpgradePath, tmClient.UpgradePath)
@@ -329,25 +328,11 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 	return nil
 }
 
-// GetUpgradePlan executes the upgrade keeper GetUpgradePlan function.
-func (k Keeper) GetUpgradePlan(ctx sdk.Context) (plan upgradetypes.Plan, havePlan bool) {
-	return k.upgradeKeeper.GetUpgradePlan(ctx)
-}
-
-// GetUpgradedClient executes the upgrade keeper GetUpgradeClient function.
-func (k Keeper) GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool) {
-	return k.upgradeKeeper.GetUpgradedClient(ctx, planHeight)
-}
-
-// GetUpgradedConsensusState returns the upgraded consensus state
-func (k Keeper) GetUpgradedConsensusState(ctx sdk.Context, planHeight int64) ([]byte, bool) {
-	return k.upgradeKeeper.GetUpgradedConsensusState(ctx, planHeight)
-}
-
-// SetUpgradedConsensusState executes the upgrade keeper SetUpgradedConsensusState function.
-func (k Keeper) SetUpgradedConsensusState(ctx sdk.Context, planHeight int64, bz []byte) error {
-	return k.upgradeKeeper.SetUpgradedConsensusState(ctx, planHeight, bz)
-}
+var (
+	// ModuleName is the name of this module
+	UpgradeModuleName   = "upgrade"
+	KeyUpgradedIBCState = "upgradedIBCState"
+)
 
 // IterateClients provides an iterator over all stored light client State
 // objects. For each State object, cb will be called. If the cb returns true,
@@ -372,6 +357,13 @@ func (k Keeper) IterateClients(ctx sdk.Context, cb func(clientID string, cs expo
 	}
 }
 
+// SetNextClientSequence sets the next client sequence to the store.
+func (k Keeper) SetNextClientSequence(ctx sdk.Context, sequence uint64) {
+	store := ctx.KVStore(k.storeKey)
+	bz := sdk.Uint64ToBigEndian(sequence)
+	store.Set([]byte(types.KeyNextClientSequence), bz)
+}
+
 // GetAllClients returns all stored light client State objects.
 func (k Keeper) GetAllClients(ctx sdk.Context) (states []exported.ClientState) {
 	k.IterateClients(ctx, func(_ string, state exported.ClientState) bool {
@@ -386,4 +378,19 @@ func (k Keeper) GetAllClients(ctx sdk.Context) (states []exported.ClientState) {
 func (k Keeper) ClientStore(ctx sdk.Context, clientID string) sdk.KVStore {
 	clientPrefix := []byte(fmt.Sprintf("%s/%s/", host.KeyClientStorePrefix, clientID))
 	return prefix.NewStore(ctx.KVStore(k.storeKey), clientPrefix)
+}
+
+// GetUpgradePlan executes the upgrade keeper GetUpgradePlan function.
+func (k Keeper) GetUpgradePlan(ctx sdk.Context) (plan upgrade.Plan, havePlan bool) {
+	return k.upgradeKeeper.GetUpgradePlan(ctx)
+}
+
+// GetUpgradedClient executes the upgrade keeper GetUpgradeClient function.
+func (k Keeper) GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool) {
+	return k.upgradeKeeper.GetUpgradedClient(ctx, planHeight)
+}
+
+// GetUpgradedConsensusState returns the upgraded consensus state
+func (k Keeper) GetUpgradedConsensusState(ctx sdk.Context, planHeight int64) ([]byte, bool) {
+	return k.upgradeKeeper.GetUpgradedConsensusState(ctx, planHeight)
 }
