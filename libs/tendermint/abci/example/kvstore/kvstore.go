@@ -119,6 +119,35 @@ func (app *Application) DeliverTx(req types.RequestDeliverTx) types.ResponseDeli
 	return types.ResponseDeliverTx{Code: code.CodeTypeOK, Events: events}
 }
 
+func (app *Application) PreDeliverRealTx(types.RequestDeliverTx) types.TxEssentials {
+	return nil
+}
+
+func (app *Application) DeliverRealTx(req types.TxEssentials) types.ResponseDeliverTx {
+	var key, value []byte
+	parts := bytes.Split(req.GetRaw(), []byte("="))
+	if len(parts) == 2 {
+		key, value = parts[0], parts[1]
+	} else {
+		key, value = req.GetRaw(), req.GetRaw()
+	}
+
+	app.state.db.Set(prefixKey(key), value)
+	app.state.Size++
+
+	events := []types.Event{
+		{
+			Type: "app",
+			Attributes: []kv.Pair{
+				{Key: []byte("creator"), Value: []byte("Cosmoshi Netowoko")},
+				{Key: []byte("key"), Value: key},
+			},
+		},
+	}
+
+	return types.ResponseDeliverTx{Code: code.CodeTypeOK, Events: events}
+}
+
 type tx struct {
 	sdk.BaseTx
 }

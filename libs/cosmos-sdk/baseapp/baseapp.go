@@ -195,6 +195,9 @@ type BaseApp struct { // nolint: maligned
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
+
+	evmTxVerifySigHandler sdk.TxVerifySigHandler
+	blockDataCache        *blockDataCache
 }
 
 type recordHandle func(string)
@@ -223,6 +226,7 @@ func NewBaseApp(
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+		blockDataCache:   NewBlockDataCache(),
 	}
 
 	for _, option := range options {
@@ -863,8 +867,17 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	if err != nil {
 		return mempool.ExTxInfo{}
 	}
-
+	app.tryRestoreSenderFromCache(tx)
 	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
+}
+
+func (app *BaseApp) tryRestoreSenderFromCache(tx sdk.Tx) {
+	if tx.GetType() == sdk.EvmTxType {
+		sender, ok := app.blockDataCache.GetSender(tx.TxHash())
+		if ok {
+			_ = app.evmTxVerifySigHandler(app.deliverState.ctx.WithFrom(sender), tx)
+		}
+	}
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {

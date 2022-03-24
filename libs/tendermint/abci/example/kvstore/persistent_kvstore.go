@@ -81,6 +81,10 @@ func (app *PersistentKVStoreApplication) DeliverTx(req types.RequestDeliverTx) t
 	return app.app.DeliverTx(req)
 }
 
+func (app *PersistentKVStoreApplication) PreDeliverRealTx(types.RequestDeliverTx) types.TxEssentials {
+	return nil
+}
+
 func (app *PersistentKVStoreApplication) DeliverRealTx(tx types.TxEssentials) types.ResponseDeliverTx {
 	// if it starts with "val:", update the validator set
 	// format is "val:pubkey!power"

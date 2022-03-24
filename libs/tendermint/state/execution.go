@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"time"
@@ -438,47 +437,40 @@ func execBlockOnProxyApp(context *executionTask, mempool mempl.Mempool) (*ABCIRe
 		return nil, err
 	}
 
-	realTxCh := make(chan realTxResult, 64)
+	realTxCh := make(chan abci.TxEssentials, 64)
+	stopedCh := make(chan struct{}, 1)
 
-	go func(txs types.Txs, realTxCh chan<- realTxResult) {
+	go func(txs types.Txs, realTxCh chan<- abci.TxEssentials, stopedCh <-chan struct{}) {
 		for _, tx := range txs {
-			var realTx abci.TxEssentials
-			if mempool != nil {
-				if realTx = mempool.ReapEssentialTx(tx); realTx != nil && bytes.Equal(realTx.GetRaw(), tx) {
-					realTxCh <- realTxResult{realTx, true}
-					continue
-				}
+			select {
+			case realTxCh <- proxyAppConn.PreDeliverRealTxAsync(abci.RequestDeliverTx{Tx: tx}):
+			case <-stopedCh:
+				close(realTxCh)
+				return
 			}
-
-			// deocder tx
-
-			realTxCh <- realTxResult{realTx, true}
 		}
-		realTxCh <- realTxResult{nil, true}
-	}(block.Txs, realTxCh)
+		close(realTxCh)
+	}(block.Txs, realTxCh, stopedCh)
 
 	count := 0
 	for realTx := range realTxCh {
-		if realTx.Tx == nil {
-			if realTx.Ok {
-				break
-			} else {
-				proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: block.Txs[count]})
-			}
+		if realTx != nil {
+			proxyAppConn.DeliverRealTxAsync(realTx)
 		} else {
-			proxyAppConn.DeliverRealTxAsync(realTx.Tx)
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: block.Txs[count]})
 		}
 
 		if err = proxyAppConn.Error(); err != nil {
 			return nil, err
 		}
 		if context != nil && context.stopped {
+			stopedCh <- struct{}{}
+			close(stopedCh)
 			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 		count += 1
 	}
-	close(realTxCh)
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})

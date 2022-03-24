@@ -36,6 +36,10 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	return resp
 }
 
+func (app *OKExChainApp) PreDeliverRealTx(req abci.RequestDeliverTx) (res abci.TxEssentials) {
+	return app.BaseApp.PreDeliverRealTx(req)
+}
+
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
 	analyzer.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)

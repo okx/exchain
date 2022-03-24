@@ -25,6 +25,7 @@ type Application interface {
 
 	Commit(RequestCommit) ResponseCommit // Commit the state and return the application Merkle root hash
 	ParallelTxs(txs [][]byte, onlyCalSender bool) []*ResponseDeliverTx
+	PreDeliverRealTx(RequestDeliverTx) TxEssentials
 	DeliverRealTx(TxEssentials) ResponseDeliverTx
 }
 
@@ -50,6 +51,10 @@ func (BaseApplication) SetOption(req RequestSetOption) ResponseSetOption {
 
 func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
 	return ResponseDeliverTx{Code: CodeTypeOK}
+}
+
+func (BaseApplication) PreDeliverRealTx(RequestDeliverTx) TxEssentials {
+	return nil
 }
 
 func (BaseApplication) DeliverRealTx(TxEssentials) ResponseDeliverTx {

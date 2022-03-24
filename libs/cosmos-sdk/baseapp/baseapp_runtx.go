@@ -196,6 +196,30 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 }
 
+func (app *BaseApp) PreDeliverRealTx(tx abci.RequestDeliverTx) abci.TxEssentials {
+	var realTx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		realTx, _ = mem.ReapEssentialTx(tx.Tx).(sdk.Tx)
+	}
+	if realTx == nil {
+		realTx, err = app.txDecoder(tx.Tx)
+		if err != nil {
+			return nil
+		}
+
+		if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+			err = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
+			if err == nil {
+				if realTx.GetFrom() != "" {
+					app.blockDataCache.SetSender(realTx.TxHash(), realTx.GetFrom())
+				}
+			}
+		}
+	}
+	return realTx
+}
+
 func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx {
 	var err error
 	realTx, _ := txes.(sdk.Tx)

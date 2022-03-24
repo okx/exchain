@@ -28,6 +28,7 @@ type Client interface {
 	InfoAsync(types.RequestInfo) *ReqRes
 	SetOptionAsync(types.RequestSetOption) *ReqRes
 	DeliverTxAsync(types.RequestDeliverTx) *ReqRes
+	PreDeliverRealTxAsync(types.RequestDeliverTx) types.TxEssentials
 	DeliverRealTxAsync(types.TxEssentials) *ReqRes
 	CheckTxAsync(types.RequestCheckTx) *ReqRes
 	QueryAsync(types.RequestQuery) *ReqRes
