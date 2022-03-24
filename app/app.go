@@ -236,6 +236,7 @@ func NewOKExChainApp(
 	})
 
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
+	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
@@ -245,7 +246,6 @@ func NewOKExChainApp(
 	bApp.SetStartLogHandler(analyzer.StartTxLog)
 	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
-	interfaceReg := MakeIBC()
 	bApp.SetInterfaceRegistry(interfaceReg)
 	cc := codec.NewProtoCodec(interfaceReg)
 
