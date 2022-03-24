@@ -290,7 +290,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			if blockExec.isAsync {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
-				abciResponses, err = execBlockOnProxyApp(ctx, blockExec.mempool)
+				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}
 	}
@@ -391,7 +391,7 @@ type realTxResult struct {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
-func execBlockOnProxyApp(context *executionTask, mempool mempl.Mempool) (*ABCIResponses, error) {
+func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	block := context.block
 	proxyAppConn := context.proxyApp
 	stateDB := context.db

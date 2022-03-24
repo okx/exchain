@@ -313,7 +313,7 @@ func ExecCommitBlock(
 		proxyApp: appConnConsensus,
 	}
 
-	_, err := execBlockOnProxyApp(ctx, nil)
+	_, err := execBlockOnProxyApp(ctx)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, err
@@ -345,7 +345,7 @@ func execCommitBlockDelta(
 		proxyApp: appConnConsensus,
 	}
 
-	abciResponses, err := execBlockOnProxyApp(ctx, nil)
+	abciResponses, err := execBlockOnProxyApp(ctx)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
 		return nil, nil, err
