@@ -40,11 +40,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		err = cdc.UnmarshalBinaryBare(txBytes, &raw)
 		if err != nil {
-			//return authtypes.StdTx{}, err
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
 		var body tx.TxBody
-
 		// allow non-critical unknown fields in TxBody
 		// txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
 		// if err != nil {

@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -21,7 +21,7 @@ func GetCmdQueryConnections(m *codec.CodecProxy, reg interfacetypes.InterfaceReg
 		Use:     "connections",
 		Short:   "Query all connections",
 		Long:    "Query all connections ends from a chain",
-		Example: fmt.Sprintf("%s query %s %s connections", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s connections", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
@@ -56,7 +56,7 @@ func GetCmdQueryConnection(m *codec.CodecProxy, reg interfacetypes.InterfaceRegi
 		Use:     "end [connection-id]",
 		Short:   "Query stored connection end",
 		Long:    "Query stored connection end",
-		Example: fmt.Sprintf("%s query %s %s end [connection-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query %s %s end [connection-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
@@ -84,7 +84,7 @@ func GetCmdQueryClientConnections(m *codec.CodecProxy, reg interfacetypes.Interf
 		Use:     "path [client-id]",
 		Short:   "Query stored client connection paths",
 		Long:    "Query stored client connection paths",
-		Example: fmt.Sprintf("%s query  %s %s path [client-id]", version.AppName, host.ModuleName, types.SubModuleName),
+		Example: fmt.Sprintf("%s query  %s %s path [client-id]", version.ServerName, host.ModuleName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
