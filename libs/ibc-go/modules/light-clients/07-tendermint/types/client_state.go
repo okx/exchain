@@ -5,18 +5,17 @@ import (
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
-	"github.com/tendermint/tendermint/light"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	common2 "github.com/okex/exchain/libs/ibc-go/modules/core/common"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	lite "github.com/okex/exchain/libs/tendermint/lite2"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -58,6 +57,11 @@ func (cs ClientState) GetLatestHeight() exported.Height {
 	return cs.LatestHeight
 }
 
+// IsFrozen returns true if the frozen height has been set.
+func (cs ClientState) IsFrozen() bool {
+	return !cs.FrozenHeight.IsZero()
+}
+
 // Status returns the status of the tendermint client.
 // The client may be:
 // - Active: FrozenHeight is zero and client is not expired
@@ -69,7 +73,7 @@ func (cs ClientState) GetLatestHeight() exported.Height {
 func (cs ClientState) Status(
 	ctx sdk.Context,
 	clientStore sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 ) exported.Status {
 	if !cs.FrozenHeight.IsZero() {
 		return exported.Frozen
@@ -88,6 +92,12 @@ func (cs ClientState) Status(
 	return exported.Active
 }
 
+// GetFrozenHeight returns the height at which client is frozen
+// NOTE: FrozenHeight is zero if client is unfrozen
+func (cs ClientState) GetFrozenHeight() exported.Height {
+	return cs.FrozenHeight
+}
+
 // IsExpired returns whether or not the client has passed the trusting period since the last
 // update (in which case no headers are considered valid).
 func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
@@ -100,17 +110,7 @@ func (cs ClientState) Validate() error {
 	if strings.TrimSpace(cs.ChainId) == "" {
 		return sdkerrors.Wrap(ErrInvalidChainID, "chain id cannot be empty string")
 	}
-
-	// NOTE: the value of tmtypes.MaxChainIDLen may change in the future.
-	// If this occurs, the code here must account for potential difference
-	// between the tendermint version being run by the counterparty chain
-	// and the tendermint version used by this light client.
-	// https://github.com/cosmos/ibc-go/issues/177
-	if len(cs.ChainId) > tmtypes.MaxChainIDLen {
-		return sdkerrors.Wrapf(ErrInvalidChainID, "chainID is too long; got: %d, max: %d", len(cs.ChainId), tmtypes.MaxChainIDLen)
-	}
-
-	if err := light.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
+	if err := lite.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
 		return err
 	}
 	if cs.TrustingPeriod == 0 {
@@ -178,7 +178,7 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 
 // Initialize will check that initial consensus state is a Tendermint consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
-func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientStore sdk.KVStore, consState exported.ConsensusState) error {
+func (cs ClientState) Initialize(ctx sdk.Context, _ *codec.CodecProxy, clientStore sdk.KVStore, consState exported.ConsensusState) error {
 	if _, ok := consState.(*ConsensusState); !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid initial consensus state. expected type: %T, got: %T",
 			&ConsensusState{}, consState)
@@ -192,7 +192,7 @@ func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientSto
 // stored on the target machine
 func (cs ClientState) VerifyClientState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	counterpartyClientIdentifier string,
@@ -219,7 +219,7 @@ func (cs ClientState) VerifyClientState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
 	}
 
-	bz, err := cdc.MarshalInterface(clientState)
+	bz, err := cdc.GetProtocMarshal().MarshalInterface(clientState)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (cs ClientState) VerifyClientState(
 // Tendermint client stored on the target machine.
 func (cs ClientState) VerifyClientConsensusState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	counterpartyClientIdentifier string,
 	consensusHeight exported.Height,
@@ -259,7 +259,7 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid consensus type %T, expected %T", consensusState, &ConsensusState{})
 	}
 
-	bz, err := cdc.MarshalInterface(consensusState)
+	bz, err := clienttypes.MarshalConsensusState(cdc, consensusState)
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func (cs ClientState) VerifyClientConsensusState(
 // specified connection end stored on the target machine.
 func (cs ClientState) VerifyConnectionState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -298,10 +298,11 @@ func (cs ClientState) VerifyConnectionState(
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid connection type %T", connectionEnd)
 	}
 
-	bz, err := cdc.Marshal(&connection)
-	if err != nil {
-		return err
-	}
+	bz := common2.MustMarshalConnection(cdc, &connection)
+	//bz, err := cdc.GetProtocMarshal().MarshalInterface(&connection)
+	//if err != nil {
+	//	return err
+	//}
 
 	if err := merkleProof.VerifyMembership(cs.ProofSpecs, consensusState.GetRoot(), path, bz); err != nil {
 		return err
@@ -314,7 +315,7 @@ func (cs ClientState) VerifyConnectionState(
 // channel end, under the specified port, stored on the target machine.
 func (cs ClientState) VerifyChannelState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -338,7 +339,8 @@ func (cs ClientState) VerifyChannelState(
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid channel type %T", channel)
 	}
 
-	bz, err := cdc.Marshal(&channelEnd)
+	bz, err := common2.MarshalChannel(cdc, &channelEnd)
+	//bz, err := cdc.GetProtocMarshal().MarshalInterface(&channelEnd)
 	if err != nil {
 		return err
 	}
@@ -355,7 +357,7 @@ func (cs ClientState) VerifyChannelState(
 func (cs ClientState) VerifyPacketCommitment(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -394,7 +396,7 @@ func (cs ClientState) VerifyPacketCommitment(
 func (cs ClientState) VerifyPacketAcknowledgement(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -434,7 +436,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 func (cs ClientState) VerifyPacketReceiptAbsence(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -472,7 +474,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 func (cs ClientState) VerifyNextSequenceRecv(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	delayTimePeriod uint64,
 	delayBlockPeriod uint64,
@@ -542,7 +544,7 @@ func verifyDelayPeriodPassed(ctx sdk.Context, store sdk.KVStore, proofHeight exp
 // merkle proof, the consensus state and an error if one occurred.
 func produceVerificationArgs(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	cs ClientState,
 	height exported.Height,
 	prefix exported.Prefix,
@@ -553,6 +555,10 @@ func produceVerificationArgs(
 			sdkerrors.ErrInvalidHeight,
 			"client state height < proof height (%d < %d), please ensure the client has been updated", cs.GetLatestHeight(), height,
 		)
+	}
+
+	if cs.IsFrozen() && !cs.FrozenHeight.GT(height) {
+		return commitmenttypes.MerkleProof{}, nil, clienttypes.ErrClientFrozen
 	}
 
 	if prefix == nil {
@@ -568,13 +574,13 @@ func produceVerificationArgs(
 		return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "proof cannot be empty")
 	}
 
-	if err = cdc.Unmarshal(proof, &merkleProof); err != nil {
+	if err = cdc.GetProtocMarshal().UnmarshalBinaryBare(proof, &merkleProof); err != nil {
 		return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "failed to unmarshal proof into commitment merkle proof")
 	}
 
 	consensusState, err = GetConsensusState(store, cdc, height)
 	if err != nil {
-		return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrap(err, "please ensure the proof was constructed against a height that exists on the client")
+		return commitmenttypes.MerkleProof{}, nil, err
 	}
 
 	return merkleProof, consensusState, nil

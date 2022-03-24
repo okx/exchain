@@ -1,9 +1,8 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"io"
-
-	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 // WriteListener interface for streaming data out from a listenkv.Store
@@ -18,11 +17,11 @@ type WriteListener interface {
 // protobuf encoded StoreKVPairs to an underlying io.Writer
 type StoreKVPairWriteListener struct {
 	writer     io.Writer
-	marshaller codec.BinaryCodec
+	marshaller *codec.CodecProxy
 }
 
 // NewStoreKVPairWriteListener wraps creates a StoreKVPairWriteListener with a provdied io.Writer and codec.BinaryCodec
-func NewStoreKVPairWriteListener(w io.Writer, m codec.BinaryCodec) *StoreKVPairWriteListener {
+func NewStoreKVPairWriteListener(w io.Writer, m *codec.CodecProxy) *StoreKVPairWriteListener {
 	return &StoreKVPairWriteListener{
 		writer:     w,
 		marshaller: m,
@@ -36,7 +35,7 @@ func (wl *StoreKVPairWriteListener) OnWrite(storeKey StoreKey, key []byte, value
 	kvPair.Delete = delete
 	kvPair.Key = key
 	kvPair.Value = value
-	by, err := wl.marshaller.MarshalLengthPrefixed(kvPair)
+	by, err := wl.marshaller.GetProtocMarshal().MarshalBinaryLengthPrefixed(kvPair)
 	if err != nil {
 		return err
 	}

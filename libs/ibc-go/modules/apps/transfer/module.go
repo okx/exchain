@@ -4,36 +4,39 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math"
 	"math/rand"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/client/cli"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/keeper"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/simulation"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibcexported "github.com/cosmos/ibc-go/v2/modules/core/exported"
 )
 
 var (
-	_ module.AppModule      = AppModule{}
-	_ porttypes.IBCModule   = AppModule{}
-	_ module.AppModuleBasic = AppModuleBasic{}
+	_ module.AppModuleAdapter      = AppModule{}
+	_ porttypes.IBCModule          = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 )
 
 // AppModuleBasic is the IBC Transfer AppModuleBasic
@@ -45,7 +48,11 @@ func (AppModuleBasic) Name() string {
 }
 
 // RegisterLegacyAminoCodec implements AppModuleBasic interface
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
+//func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
+//	types.RegisterLegacyAminoCodec(cdc)
+//}
+
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	types.RegisterLegacyAminoCodec(cdc)
 }
 
@@ -56,50 +63,69 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	return cdc.MustMarshalJSON(types.DefaultGenesisState())
+func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.IsUpgradeIBCInRuntime() {
+		return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	}
+	return nil
 }
 
-// ValidateGenesis performs genesis state validation for the ibc transfer module.
-func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config client.TxEncodingConfig, bz json.RawMessage) error {
-	var gs types.GenesisState
-	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+// ValidateGenesis performs genesis state validation for the mint module.
+func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.IsUpgradeIBCInRuntime() {
+		if nil == bz {
+			return nil
+		}
+	}
+	var data types.GenesisState
+	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
 	}
 
-	return gs.Validate()
+	return data.Validate()
 }
 
 // RegisterRESTRoutes implements AppModuleBasic interface
-func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
-}
+func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Router) {}
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
 }
 
 // GetTxCmd implements AppModuleBasic interface
-func (AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.NewTxCmd()
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
+
+func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.NewTxCmd(cdc, reg)
 }
 
 // GetQueryCmd implements AppModuleBasic interface
-func (AppModuleBasic) GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
+
+func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetQueryCmd(cdc, reg)
 }
 
 // AppModule represents the AppModule for this module
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
+	m      *codec.CodecProxy
 }
 
 // NewAppModule creates a new 20-transfer module
-func NewAppModule(k keeper.Keeper) AppModule {
-	return AppModule{
+func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
+	ret := AppModule{
 		keeper: k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
+	return ret
 }
 
 // RegisterInvariants implements the AppModule interface
@@ -108,8 +134,8 @@ func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 }
 
 // Route implements the AppModule interface
-func (am AppModule) Route() sdk.Route {
-	return sdk.Route{}
+func (am AppModule) Route() string {
+	return types.RouterKey
 }
 
 // QuerierRoute implements the AppModule interface
@@ -117,44 +143,72 @@ func (AppModule) QuerierRoute() string {
 	return types.QuerierRoute
 }
 
+func (a AppModule) NewHandler() sdk.Handler {
+	return NewHandler(a.keeper)
+}
+
+// TODO
+func (a AppModule) NewQuerierHandler() sdk.Querier {
+	return nil
+}
+
 // LegacyQuerierHandler implements the AppModule interface
-func (am AppModule) LegacyQuerierHandler(*codec.LegacyAmino) sdk.Querier {
+func (am AppModule) LegacyQuerierHandler(codec2 *codec.Codec) sdk.Querier {
 	return nil
 }
 
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	types.RegisterMsgServer(cfg.MsgServer(), am.keeper)
+	//types.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 }
 
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if !tmtypes.IsUpgradeIBCInRuntime() {
+		return am.initGenesis(ctx, data)
+	}
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
-	cdc.MustUnmarshalJSON(data, &genesisState)
+	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	am.keeper.InitGenesis(ctx, genesisState)
 	return []abci.ValidatorUpdate{}
 }
 
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
+func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.IsUpgradeIBCInRuntime() {
+		return am.exportGenesis(ctx)
+	}
+	return nil
+}
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)
-	return cdc.MustMarshalJSON(gs)
+	return ModuleCdc.MustMarshalJSON(gs)
+}
+func lazeGenesis() json.RawMessage {
+	ret := types.DefaultGenesisState()
+	return ModuleCdc.MustMarshalJSON(ret)
 }
 
 // ConsensusVersion implements AppModule/ConsensusVersion.
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // BeginBlock implements the AppModule interface
-func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
 }
 
 // EndBlock implements the AppModule interface
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
+
+// ____________________________________________________________________________
 
 // AppModuleSimulation functions
 
@@ -182,6 +236,8 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
 	return nil
 }
+
+// ____________________________________________________________________________
 
 // ValidateTransferChannelParams does validation of a newly created transfer channel. A transfer
 // channel must be UNORDERED, use the correct port (by default 'transfer'), and use the current
@@ -364,7 +420,7 @@ func (am AppModule) OnAcknowledgementPacket(
 	relayer sdk.AccAddress,
 ) error {
 	var ack channeltypes.Acknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+	if err := types.Marshal.GetProtocMarshal().UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
 	var data types.FungibleTokenPacketData
@@ -449,4 +505,19 @@ func (am AppModule) NegotiateAppVersion(
 	}
 
 	return types.Version, nil
+}
+
+func (am AppModule) RegisterTask() upgrade.HeightTask {
+	if !tmtypes.IsUpgradeIBCInRuntime() {
+		return nil
+	}
+	return upgrade.NewHeightTask(2, func(ctx sdk.Context) error {
+		data := lazeGenesis()
+		am.initGenesis(ctx, data)
+		return nil
+	})
+}
+
+func (am AppModule) RegisterParam() params.ParamSet {
+	return nil
 }

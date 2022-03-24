@@ -324,3 +324,10 @@ func (acc BaseAccount) MarshalYAML() (interface{}, error) {
 
 	return string(bz), err
 }
+
+
+
+// NewModuleAddress creates an AccAddress from the hash of the module's name
+func NewModuleAddress(name string) sdk.AccAddress {
+	return sdk.AccAddress(crypto.AddressHash([]byte(name)))
+}

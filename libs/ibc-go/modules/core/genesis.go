@@ -1,12 +1,12 @@
 package ibc
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	client "github.com/cosmos/ibc-go/v2/modules/core/02-client"
-	connection "github.com/cosmos/ibc-go/v2/modules/core/03-connection"
-	channel "github.com/cosmos/ibc-go/v2/modules/core/04-channel"
-	"github.com/cosmos/ibc-go/v2/modules/core/keeper"
-	"github.com/cosmos/ibc-go/v2/modules/core/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	client "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	connection "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection"
+	channel "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 )
 
 // InitGenesis initializes the ibc state from a provided genesis
@@ -15,6 +15,8 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, createLocalhost bool, gs *typ
 	client.InitGenesis(ctx, k.ClientKeeper, gs.ClientGenesis)
 	connection.InitGenesis(ctx, k.ConnectionKeeper, gs.ConnectionGenesis)
 	channel.InitGenesis(ctx, k.ChannelKeeper, gs.ChannelGenesis)
+
+	k.SetParams(ctx, gs.Params)
 }
 
 // ExportGenesis returns the ibc exported genesis.
@@ -23,5 +25,6 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
 		ClientGenesis:     client.ExportGenesis(ctx, k.ClientKeeper),
 		ConnectionGenesis: connection.ExportGenesis(ctx, k.ConnectionKeeper),
 		ChannelGenesis:    channel.ExportGenesis(ctx, k.ChannelKeeper),
+		Params:            k.GetParams(ctx),
 	}
 }

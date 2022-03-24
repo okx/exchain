@@ -1,8 +1,6 @@
 package types
 
-import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-)
+import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 const (
 	SubModuleName = "solo machine"

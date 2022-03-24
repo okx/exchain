@@ -2,22 +2,15 @@ package query
 
 import (
 	"fmt"
-	"math"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	db "github.com/tendermint/tm-db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 // DefaultLimit is the default `limit` for queries
 // if the `limit` is not supplied, paginate will use `DefaultLimit`
 const DefaultLimit = 100
-
-// MaxLimit is the maximum limit the paginate function can handle
-// which equals the maximum value that can be stored in uint64
-const MaxLimit = math.MaxUint64
 
 // ParsePagination validate PageRequest and returns page number & limit.
 func ParsePagination(pageReq *PageRequest) (page, limit int, err error) {
@@ -60,7 +53,6 @@ func Paginate(
 	key := pageRequest.Key
 	limit := pageRequest.Limit
 	countTotal := pageRequest.CountTotal
-	reverse := pageRequest.Reverse
 
 	if offset > 0 && key != nil {
 		return nil, fmt.Errorf("invalid request, either offset or key is expected, got both")
@@ -74,14 +66,13 @@ func Paginate(
 	}
 
 	if len(key) != 0 {
-		iterator := getIterator(prefixStore, key, reverse)
+		iterator := prefixStore.Iterator(key, nil)
 		defer iterator.Close()
 
 		var count uint64
 		var nextKey []byte
 
 		for ; iterator.Valid(); iterator.Next() {
-
 			if count == limit {
 				nextKey = iterator.Key()
 				break
@@ -102,7 +93,7 @@ func Paginate(
 		}, nil
 	}
 
-	iterator := getIterator(prefixStore, nil, reverse)
+	iterator := prefixStore.Iterator(nil, nil)
 	defer iterator.Close()
 
 	end := offset + limit
@@ -139,20 +130,4 @@ func Paginate(
 	}
 
 	return res, nil
-}
-
-func getIterator(prefixStore types.KVStore, start []byte, reverse bool) db.Iterator {
-	if reverse {
-		var end []byte
-		if start != nil {
-			itr := prefixStore.Iterator(start, nil)
-			defer itr.Close()
-			if itr.Valid() {
-				itr.Next()
-				end = itr.Key()
-			}
-		}
-		return prefixStore.ReverseIterator(nil, end)
-	}
-	return prefixStore.Iterator(start, nil)
 }

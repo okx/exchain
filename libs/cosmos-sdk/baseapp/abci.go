@@ -305,27 +305,44 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	var resp abci.ResponseQuery
+
+	ceptor := app.interceptors[req.Path]
+	if nil != ceptor {
+		if err := ceptor.Before(&req); nil != err {
+			return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, err.Error()))
+		}
+		defer ceptor.After(&resp)
+	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		resp = sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		return resp
+	}
+
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		resp = app.handleQueryGRPC(grpcHandler, req)
+		return resp
 	}
 
 	switch path[0] {
 	// "/app" prefix for special application queries
 	case "app":
-		return handleQueryApp(app, path, req)
+		resp = handleQueryApp(app, path, req)
 
 	case "store":
-		return handleQueryStore(app, path, req)
+		resp = handleQueryStore(app, path, req)
 
 	case "p2p":
-		return handleQueryP2P(app, path)
+		resp = handleQueryP2P(app, path)
 
 	case "custom":
-		return handleQueryCustom(app, path, req)
+		resp = handleQueryCustom(app, path, req)
+	default:
+		resp = sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
 
-	return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
+	return resp
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {

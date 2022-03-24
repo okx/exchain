@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
 )
 
 // GetQueryCmd returns the query commands for IBC clients
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        types.SubModuleName,
 		Short:                      "IBC client query subcommands",
@@ -18,21 +19,20 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		GetCmdQueryClientStates(),
-		GetCmdQueryClientState(),
-		GetCmdQueryClientStatus(),
-		GetCmdQueryConsensusStates(),
-		GetCmdQueryConsensusState(),
-		GetCmdQueryHeader(),
-		GetCmdSelfConsensusState(),
-		GetCmdParams(),
+		GetCmdQueryClientStates(cdc, reg),
+		GetCmdQueryClientState(cdc, reg),
+		GetCmdQueryConsensusStates(cdc, reg),
+		GetCmdQueryConsensusState(cdc, reg),
+		GetCmdQueryHeader(cdc, reg),
+		GetCmdSelfConsensusState(cdc, reg),
+		GetCmdParams(cdc, reg),
 	)
 
 	return queryCmd
 }
 
 // NewTxCmd returns the command to create and handle IBC clients
-func NewTxCmd() *cobra.Command {
+func NewTxCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        types.SubModuleName,
 		Short:                      "IBC client transaction subcommands",
@@ -42,10 +42,10 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		NewCreateClientCmd(),
-		NewUpdateClientCmd(),
-		NewSubmitMisbehaviourCmd(),
-		NewUpgradeClientCmd(),
+		NewCreateClientCmd(cdc, reg),
+		NewUpdateClientCmd(cdc, reg),
+		NewSubmitMisbehaviourCmd(cdc, reg),
+		NewUpgradeClientCmd(cdc, reg),
 	)
 
 	return txCmd

@@ -1,15 +1,14 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // CounterpartyHops returns the connection hops of the counterparty channel.
@@ -88,7 +87,7 @@ func (k Keeper) ChanOpenInit(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", "NONE", "new-state", "INIT")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "open-init")
+		//telemetry.IncrCounter(1, "ibc", "channel", "open-init")
 	}()
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -240,7 +239,7 @@ func (k Keeper) ChanOpenTry(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", previousChannel.State.String(), "new-state", "TRYOPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "open-try")
+		//telemetry.IncrCounter(1, "ibc", "channel", "open-try")
 	}()
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -321,7 +320,7 @@ func (k Keeper) ChanOpenAck(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", channel.State.String(), "new-state", "OPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "open-ack")
+		//telemetry.IncrCounter(1, "ibc", "channel", "open-ack")
 	}()
 
 	channel.State = types.OPEN
@@ -406,7 +405,7 @@ func (k Keeper) ChanOpenConfirm(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", "TRYOPEN", "new-state", "OPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "open-confirm")
+		//telemetry.IncrCounter(1, "ibc", "channel", "open-confirm")
 	}()
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -426,7 +425,7 @@ func (k Keeper) ChanOpenConfirm(
 // Closing Handshake
 //
 // This section defines the set of functions required to close a channel handshake
-// as defined in https://github.com/cosmos/ibc/tree/master/spec/core/ics-004-channel-and-packet-semantics#closing-handshake
+// as defined in https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#closing-handshake
 //
 // ChanCloseInit is called by either module to close their end of the channel. Once
 // closed, channels cannot be reopened.
@@ -464,7 +463,7 @@ func (k Keeper) ChanCloseInit(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", channel.State.String(), "new-state", "CLOSED")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "close-init")
+		//telemetry.IncrCounter(1, "ibc", "channel", "close-init")
 	}()
 
 	channel.State = types.CLOSED
@@ -542,7 +541,7 @@ func (k Keeper) ChanCloseConfirm(
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", channel.State.String(), "new-state", "CLOSED")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "channel", "close-confirm")
+		//telemetry.IncrCounter(1, "ibc", "channel", "close-confirm")
 	}()
 
 	channel.State = types.CLOSED

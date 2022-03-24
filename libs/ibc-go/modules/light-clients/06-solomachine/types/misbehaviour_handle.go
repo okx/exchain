@@ -1,11 +1,11 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // CheckMisbehaviourAndUpdateState determines whether or not the currently registered
@@ -16,7 +16,7 @@ import (
 // order processing dependent.
 func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	ctx sdk.Context,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	clientStore sdk.KVStore,
 	misbehaviour exported.Misbehaviour,
 ) (exported.ClientState, error) {
@@ -49,7 +49,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 // verifySignatureAndData verifies that the currently registered public key has signed
 // over the provided data and that the data is valid. The data is valid if it can be
 // unmarshaled into the specified data type.
-func verifySignatureAndData(cdc codec.BinaryCodec, clientState ClientState, misbehaviour *Misbehaviour, sigAndData *SignatureAndData) error {
+func verifySignatureAndData(cdc *codec.CodecProxy, clientState ClientState, misbehaviour *Misbehaviour, sigAndData *SignatureAndData) error {
 
 	// do not check misbehaviour timestamp since we want to allow processing of past misbehaviour
 

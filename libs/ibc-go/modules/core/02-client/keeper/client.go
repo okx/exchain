@@ -3,17 +3,14 @@ package keeper
 import (
 	"encoding/hex"
 
-	"github.com/armon/go-metrics"
-
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // CreateClient creates a new client state and populates it with a given consensus
-// state as defined in https://github.com/cosmos/ibc/tree/master/spec/core/ics-002-client-semantics#create
+// state as defined in https://github.com/cosmos/ics/tree/master/spec/ics-002-client-semantics#create
 func (k Keeper) CreateClient(
 	ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState,
 ) (string, error) {
@@ -43,14 +40,6 @@ func (k Keeper) CreateClient(
 
 	k.Logger(ctx).Info("client created at height", "client-id", clientID, "height", clientState.GetLatestHeight().String())
 
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "client", "create"},
-			1,
-			[]metrics.Label{telemetry.NewLabel(types.LabelClientType, clientState.ClientType())},
-		)
-	}()
-
 	return clientID, nil
 }
 
@@ -60,9 +49,8 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	if !found {
 		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot update client with ID %s", clientID)
 	}
-
 	clientStore := k.ClientStore(ctx, clientID)
-
+	// prevent update if the client is frozen before or at header height
 	if status := clientState.Status(ctx, clientStore, k.cdc); status != exported.Active {
 		return sdkerrors.Wrapf(types.ErrClientNotActive, "cannot update client (%s) with status %s", clientID, status)
 	}
@@ -107,35 +95,13 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 
 		k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
 
-		defer func() {
-			telemetry.IncrCounterWithLabels(
-				[]string{"ibc", "client", "update"},
-				1,
-				[]metrics.Label{
-					telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
-					telemetry.NewLabel(types.LabelClientID, clientID),
-					telemetry.NewLabel(types.LabelUpdateType, "msg"),
-				},
-			)
-		}()
 	} else {
 		// set eventType to SubmitMisbehaviour
 		eventType = types.EventTypeSubmitMisbehaviour
 
 		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
-
-		defer func() {
-			telemetry.IncrCounterWithLabels(
-				[]string{"ibc", "client", "misbehaviour"},
-				1,
-				[]metrics.Label{
-					telemetry.NewLabel(types.LabelClientType, clientState.ClientType()),
-					telemetry.NewLabel(types.LabelClientID, clientID),
-					telemetry.NewLabel(types.LabelMsgType, "update"),
-				},
-			)
-		}()
 	}
+	// emit the full header in events
 
 	// emitting events in the keeper emits for both begin block and handler client updates
 	ctx.EventManager().EmitEvent(
@@ -147,6 +113,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 			sdk.NewAttribute(types.AttributeKeyHeader, headerStr),
 		),
 	)
+
 	return nil
 }
 
@@ -175,17 +142,6 @@ func (k Keeper) UpgradeClient(ctx sdk.Context, clientID string, upgradedClient e
 	k.SetClientConsensusState(ctx, clientID, updatedClientState.GetLatestHeight(), updatedConsState)
 
 	k.Logger(ctx).Info("client state upgraded", "client-id", clientID, "height", updatedClientState.GetLatestHeight().String())
-
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "client", "upgrade"},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(types.LabelClientType, updatedClientState.ClientType()),
-				telemetry.NewLabel(types.LabelClientID, clientID),
-			},
-		)
-	}()
 
 	// emitting events in the keeper emits for client upgrades
 	ctx.EventManager().EmitEvent(
@@ -225,17 +181,6 @@ func (k Keeper) CheckMisbehaviourAndUpdateState(ctx sdk.Context, misbehaviour ex
 
 	k.SetClientState(ctx, misbehaviour.GetClientID(), clientState)
 	k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", misbehaviour.GetClientID())
-
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "client", "misbehaviour"},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(types.LabelClientType, misbehaviour.ClientType()),
-				telemetry.NewLabel(types.LabelClientID, misbehaviour.GetClientID()),
-			},
-		)
-	}()
 
 	return nil
 }

@@ -2,10 +2,9 @@ package multisig
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"strings"
-
-	"github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 )
 
 // AminoMultisignature is used to represent amino multi-signatures for StdTx's.

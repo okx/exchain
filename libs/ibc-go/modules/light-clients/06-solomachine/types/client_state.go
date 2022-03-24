@@ -1,19 +1,17 @@
 package types
 
 import (
-	"reflect"
-
 	ics23 "github.com/confio/ics23/go"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"reflect"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -44,7 +42,7 @@ func (cs ClientState) GetLatestHeight() exported.Height {
 // The client may be:
 // - Active: if frozen sequence is 0
 // - Frozen: otherwise solo machine is frozen
-func (cs ClientState) Status(_ sdk.Context, _ sdk.KVStore, _ codec.BinaryCodec) exported.Status {
+func (cs ClientState) Status(_ sdk.Context, _ sdk.KVStore, _ *codec.CodecProxy) exported.Status {
 	if cs.IsFrozen {
 		return exported.Frozen
 	}
@@ -77,7 +75,7 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 }
 
 // Initialize will check that initial consensus state is equal to the latest consensus state of the initial client.
-func (cs ClientState) Initialize(_ sdk.Context, _ codec.BinaryCodec, _ sdk.KVStore, consState exported.ConsensusState) error {
+func (cs ClientState) Initialize(_ sdk.Context, _ *codec.CodecProxy, _ sdk.KVStore, consState exported.ConsensusState) error {
 	if !reflect.DeepEqual(cs.ConsensusState, consState) {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "consensus state in initial client does not equal initial consensus state. expected: %s, got: %s",
 			cs.ConsensusState, consState)
@@ -92,7 +90,7 @@ func (cs ClientState) ExportMetadata(_ sdk.KVStore) []exported.GenesisMetadata {
 
 // VerifyUpgradeAndUpdateState returns an error since solomachine client does not support upgrades
 func (cs ClientState) VerifyUpgradeAndUpdateState(
-	_ sdk.Context, _ codec.BinaryCodec, _ sdk.KVStore,
+	_ sdk.Context, _ *codec.CodecProxy, _ sdk.KVStore,
 	_ exported.ClientState, _ exported.ConsensusState, _, _ []byte,
 ) (exported.ClientState, exported.ConsensusState, error) {
 	return nil, nil, sdkerrors.Wrap(clienttypes.ErrInvalidUpgradeClient, "cannot upgrade solomachine client")
@@ -102,7 +100,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 // stored on the solo machine.
 func (cs *ClientState) VerifyClientState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	counterpartyClientIdentifier string,
@@ -142,7 +140,7 @@ func (cs *ClientState) VerifyClientState(
 // running chain stored on the solo machine.
 func (cs *ClientState) VerifyClientConsensusState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	counterpartyClientIdentifier string,
 	consensusHeight exported.Height,
@@ -183,7 +181,7 @@ func (cs *ClientState) VerifyClientConsensusState(
 // specified connection end stored on the target machine.
 func (cs *ClientState) VerifyConnectionState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -220,7 +218,7 @@ func (cs *ClientState) VerifyConnectionState(
 // channel end, under the specified port, stored on the target machine.
 func (cs *ClientState) VerifyChannelState(
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
@@ -259,7 +257,7 @@ func (cs *ClientState) VerifyChannelState(
 func (cs *ClientState) VerifyPacketCommitment(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	_ uint64,
 	_ uint64,
@@ -301,7 +299,7 @@ func (cs *ClientState) VerifyPacketCommitment(
 func (cs *ClientState) VerifyPacketAcknowledgement(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	_ uint64,
 	_ uint64,
@@ -344,7 +342,7 @@ func (cs *ClientState) VerifyPacketAcknowledgement(
 func (cs *ClientState) VerifyPacketReceiptAbsence(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	_ uint64,
 	_ uint64,
@@ -385,7 +383,7 @@ func (cs *ClientState) VerifyPacketReceiptAbsence(
 func (cs *ClientState) VerifyNextSequenceRecv(
 	ctx sdk.Context,
 	store sdk.KVStore,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	height exported.Height,
 	_ uint64,
 	_ uint64,
@@ -426,7 +424,7 @@ func (cs *ClientState) VerifyNextSequenceRecv(
 // consensus state, the unmarshalled proof representing the signature and timestamp
 // along with the solo-machine sequence encoded in the proofHeight.
 func produceVerificationArgs(
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	cs *ClientState,
 	height exported.Height,
 	prefix exported.Prefix,
@@ -451,7 +449,7 @@ func produceVerificationArgs(
 	}
 
 	timestampedSigData := &TimestampedSignatureData{}
-	if err := cdc.Unmarshal(proof, timestampedSigData); err != nil {
+	if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(proof, timestampedSigData); err != nil {
 		return nil, nil, 0, 0, sdkerrors.Wrapf(err, "failed to unmarshal proof into type %T", timestampedSigData)
 	}
 
@@ -491,7 +489,7 @@ func produceVerificationArgs(
 }
 
 // sets the client state to the store
-func setClientState(store sdk.KVStore, cdc codec.BinaryCodec, clientState exported.ClientState) {
+func setClientState(store sdk.KVStore, cdc *codec.CodecProxy, clientState exported.ClientState) {
 	bz := clienttypes.MustMarshalClientState(cdc, clientState)
 	store.Set([]byte(host.KeyClientState), bz)
 }

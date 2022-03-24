@@ -1,22 +1,20 @@
 package keeper
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -160,7 +158,7 @@ func (q Keeper) ConsensusStates(c context.Context, req *types.QueryConsensusStat
 
 	pageRes, err := query.FilteredPaginate(store, req.Pagination, func(key, value []byte, accumulate bool) (bool, error) {
 		// filter any metadata stored under consensus state key
-		if bytes.Contains(key, []byte("/")) {
+		if strings.Contains(string(key), "/") {
 			return false, nil
 		}
 
@@ -211,7 +209,7 @@ func (q Keeper) ClientStatus(c context.Context, req *types.QueryClientStatusRequ
 	status := clientState.Status(ctx, clientStore, q.cdc)
 
 	return &types.QueryClientStatusResponse{
-		Status: status.String(),
+		Status: string(status),
 	}, nil
 }
 
@@ -225,7 +223,6 @@ func (q Keeper) ClientParams(c context.Context, _ *types.QueryClientParamsReques
 	}, nil
 }
 
-// UpgradedClientState implements the Query/UpgradedClientState gRPC method
 func (q Keeper) UpgradedClientState(c context.Context, req *types.QueryUpgradedClientStateRequest) (*types.QueryUpgradedClientStateResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
@@ -262,7 +259,6 @@ func (q Keeper) UpgradedClientState(c context.Context, req *types.QueryUpgradedC
 	}, nil
 }
 
-// UpgradedConsensusState implements the Query/UpgradedConsensusState gRPC method
 func (q Keeper) UpgradedConsensusState(c context.Context, req *types.QueryUpgradedConsensusStateRequest) (*types.QueryUpgradedConsensusStateResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")

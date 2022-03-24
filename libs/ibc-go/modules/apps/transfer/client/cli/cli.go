@@ -1,13 +1,14 @@
 package cli
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // GetQueryCmd returns the query commands for IBC connections
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        "ibc-transfer",
 		Short:                      "IBC fungible token transfer query subcommands",
@@ -16,17 +17,17 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	queryCmd.AddCommand(
-		GetCmdQueryDenomTrace(),
-		GetCmdQueryDenomTraces(),
-		GetCmdParams(),
-		GetCmdQueryEscrowAddress(),
+		GetCmdQueryDenomTrace(cdc, reg),
+		GetCmdQueryDenomTraces(cdc, reg),
+		GetCmdParams(cdc, reg),
+		GetCmdQueryEscrowAddress(cdc, reg),
 	)
 
 	return queryCmd
 }
 
 // NewTxCmd returns the transaction commands for IBC fungible token transfer
-func NewTxCmd() *cobra.Command {
+func NewTxCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        "ibc-transfer",
 		Short:                      "IBC fungible token transfer transaction subcommands",
@@ -36,7 +37,7 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		NewTransferTxCmd(),
+		NewTransferTxCmd(cdc, reg),
 	)
 
 	return txCmd

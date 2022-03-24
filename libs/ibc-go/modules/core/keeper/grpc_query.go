@@ -3,10 +3,11 @@ package keeper
 import (
 	"context"
 
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 )
 
 // ClientState implements the IBC QueryServer interface
@@ -40,9 +41,9 @@ func (q Keeper) ClientParams(c context.Context, req *clienttypes.QueryClientPara
 }
 
 // UpgradedClientState implements the IBC QueryServer interface
-func (q Keeper) UpgradedClientState(c context.Context, req *clienttypes.QueryUpgradedClientStateRequest) (*clienttypes.QueryUpgradedClientStateResponse, error) {
-	return q.ClientKeeper.UpgradedClientState(c, req)
-}
+// func (q Keeper) UpgradedClientState(c context.Context, req *clienttypes.QueryUpgradedClientStateRequest) (*clienttypes.QueryUpgradedClientStateResponse, error) {
+// 	return q.ClientKeeper.UpgradedClientState(c, req)
+// }
 
 // Connection implements the IBC QueryServer interface
 func (q Keeper) Connection(c context.Context, req *connectiontypes.QueryConnectionRequest) (*connectiontypes.QueryConnectionResponse, error) {
@@ -135,6 +136,15 @@ func (q Keeper) NextSequenceReceive(c context.Context, req *channeltypes.QueryNe
 }
 
 // AppVersion implements the IBC QueryServer interface
-func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
-	return q.PortKeeper.AppVersion(c, req)
+// func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
+// 	return q.PortKeeper.AppVersion(c, req)
+// }
+
+func (q Keeper) IbcParams(c context.Context, req *types.QueryIbcParamsRequest) (*types.QueryIbcParamsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	params := q.GetParams(ctx)
+
+	return &types.QueryIbcParamsResponse{
+		Params: &params,
+	}, nil
 }

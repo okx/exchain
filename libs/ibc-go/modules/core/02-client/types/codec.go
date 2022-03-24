@@ -1,18 +1,18 @@
 package types
 
 import (
-	proto "github.com/gogo/protobuf/proto"
-
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/msgservice"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/gogo/protobuf/proto"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // RegisterInterfaces registers the client interfaces to protobuf Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+
 	registry.RegisterInterface(
 		"ibc.core.client.v1.ClientState",
 		(*exported.ClientState)(nil),
@@ -35,12 +35,14 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*exported.Misbehaviour)(nil),
 	)
 	registry.RegisterImplementations(
-		(*govtypes.Content)(nil),
-		&ClientUpdateProposal{},
-		&UpgradeProposal{},
+		(*sdk.MsgAdapter)(nil),
+		&MsgCreateClient{},
+		&MsgUpdateClient{},
+		&MsgUpgradeClient{},
+		&MsgSubmitMisbehaviour{},
 	)
 	registry.RegisterImplementations(
-		(*sdk.Msg)(nil),
+		(*txmsg.Msg)(nil),
 		&MsgCreateClient{},
 		&MsgUpdateClient{},
 		&MsgUpgradeClient{},
@@ -48,6 +50,21 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+}
+
+// UnpackClientState unpacks an Any into a ClientState. It returns an error if the
+// client state can't be unpacked into a ClientState.
+func UnpackClientState(any *codectypes.Any) (exported.ClientState, error) {
+	if any == nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrUnpackAny, "protobuf Any message cannot be nil")
+	}
+
+	clientState, ok := any.GetCachedValue().(exported.ClientState)
+	if !ok {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnpackAny, "cannot unpack Any into ClientState %T", any)
+	}
+
+	return clientState, nil
 }
 
 // PackClientState constructs a new Any packed with the given client state value. It returns
@@ -65,21 +82,6 @@ func PackClientState(clientState exported.ClientState) (*codectypes.Any, error) 
 	}
 
 	return anyClientState, nil
-}
-
-// UnpackClientState unpacks an Any into a ClientState. It returns an error if the
-// client state can't be unpacked into a ClientState.
-func UnpackClientState(any *codectypes.Any) (exported.ClientState, error) {
-	if any == nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrUnpackAny, "protobuf Any message cannot be nil")
-	}
-
-	clientState, ok := any.GetCachedValue().(exported.ClientState)
-	if !ok {
-		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnpackAny, "cannot unpack Any into ClientState %T", any)
-	}
-
-	return clientState, nil
 }
 
 // PackConsensusState constructs a new Any packed with the given consensus state value. It returns

@@ -1,12 +1,12 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // RegisterInterfaces register the ibc channel submodule interfaces to protobuf
@@ -30,9 +30,9 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 }
 
-func UnmarshalSignatureData(cdc codec.BinaryCodec, data []byte) (signing.SignatureData, error) {
+func UnmarshalSignatureData(cdc *codec.CodecProxy, data []byte) (signing.SignatureData, error) {
 	protoSigData := &signing.SignatureDescriptor_Data{}
-	if err := cdc.Unmarshal(data, protoSigData); err != nil {
+	if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, protoSigData); err != nil {
 		return nil, sdkerrors.Wrapf(err, "failed to unmarshal proof into type %T", protoSigData)
 	}
 
@@ -43,7 +43,7 @@ func UnmarshalSignatureData(cdc codec.BinaryCodec, data []byte) (signing.Signatu
 
 // UnmarshalDataByType attempts to unmarshal the data to the specified type. An error is
 // return if it fails.
-func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) (Data, error) {
+func UnmarshalDataByType(cdc *codec.CodecProxy, dataType DataType, data []byte) (Data, error) {
 	if len(data) == 0 {
 		return nil, sdkerrors.Wrap(ErrInvalidSignatureAndData, "data cannot be empty")
 	}
@@ -54,7 +54,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case CLIENT:
 		clientData := &ClientStateData{}
-		if err := cdc.Unmarshal(data, clientData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, clientData); err != nil {
 			return nil, err
 		}
 
@@ -66,7 +66,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case CONSENSUS:
 		consensusData := &ConsensusStateData{}
-		if err := cdc.Unmarshal(data, consensusData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, consensusData); err != nil {
 			return nil, err
 		}
 
@@ -78,7 +78,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case CONNECTION:
 		connectionData := &ConnectionStateData{}
-		if err := cdc.Unmarshal(data, connectionData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, connectionData); err != nil {
 			return nil, err
 		}
 
@@ -86,7 +86,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case CHANNEL:
 		channelData := &ChannelStateData{}
-		if err := cdc.Unmarshal(data, channelData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, channelData); err != nil {
 			return nil, err
 		}
 
@@ -94,7 +94,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case PACKETCOMMITMENT:
 		commitmentData := &PacketCommitmentData{}
-		if err := cdc.Unmarshal(data, commitmentData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, commitmentData); err != nil {
 			return nil, err
 		}
 
@@ -102,7 +102,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case PACKETACKNOWLEDGEMENT:
 		ackData := &PacketAcknowledgementData{}
-		if err := cdc.Unmarshal(data, ackData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, ackData); err != nil {
 			return nil, err
 		}
 
@@ -110,7 +110,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case PACKETRECEIPTABSENCE:
 		receiptAbsenceData := &PacketReceiptAbsenceData{}
-		if err := cdc.Unmarshal(data, receiptAbsenceData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, receiptAbsenceData); err != nil {
 			return nil, err
 		}
 
@@ -118,7 +118,7 @@ func UnmarshalDataByType(cdc codec.BinaryCodec, dataType DataType, data []byte) 
 
 	case NEXTSEQUENCERECV:
 		nextSeqRecvData := &NextSequenceRecvData{}
-		if err := cdc.Unmarshal(data, nextSeqRecvData); err != nil {
+		if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(data, nextSeqRecvData); err != nil {
 			return nil, err
 		}
 

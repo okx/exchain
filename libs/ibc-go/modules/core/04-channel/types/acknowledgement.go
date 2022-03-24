@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // NewResultAcknowledgement returns a new instance of Acknowledgement using an Acknowledgement_Result

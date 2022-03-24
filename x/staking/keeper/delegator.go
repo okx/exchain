@@ -12,14 +12,14 @@ func (k Keeper) GetDelegator(ctx sdk.Context, delAddr sdk.AccAddress) (delegator
 		return delegator, false
 	}
 
-	delegator = types.MustUnMarshalDelegator(k.cdc, bytes)
+	delegator = types.MustUnMarshalDelegator(k.cdcMarshl.GetCdc(), bytes)
 	return delegator, true
 }
 
 // SetDelegator sets Delegator info to store
 func (k Keeper) SetDelegator(ctx sdk.Context, delegator types.Delegator) {
 	key := types.GetDelegatorKey(delegator.DelegatorAddress)
-	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(delegator)
+	bytes := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(delegator)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
 }
 
@@ -36,7 +36,7 @@ func (k Keeper) IterateDelegator(ctx sdk.Context, fn func(index int64, delegator
 
 	for i := int64(0); iterator.Valid(); iterator.Next() {
 		var delegator types.Delegator
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &delegator)
+		k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &delegator)
 		if stop := fn(i, delegator); stop {
 			break
 		}

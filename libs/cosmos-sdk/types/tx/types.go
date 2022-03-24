@@ -3,10 +3,13 @@ package tx
 import (
 	"fmt"
 
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	ibckeys "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // MaxGasWanted defines the max gas allowed.
@@ -14,22 +17,24 @@ const MaxGasWanted = uint64((1 << 63) - 1)
 
 // Interface implementation checks.
 var _, _, _, _ codectypes.UnpackInterfacesMessage = &Tx{}, &TxBody{}, &AuthInfo{}, &SignerInfo{}
-var _ sdk.Tx = &Tx{}
+
+//var _ sdk.Tx = &Tx{}
+var _ *Tx = &Tx{}
 
 // GetMsgs implements the GetMsgs method on sdk.Tx.
-func (t *Tx) GetMsgs() []sdk.Msg {
+func (t *Tx) GetMsgs() []ibcmsg.Msg {
 	if t == nil || t.Body == nil {
 		return nil
 	}
 
 	anys := t.Body.Messages
-	res := make([]sdk.Msg, len(anys))
+	res := make([]ibcmsg.Msg, len(anys))
 	for i, any := range anys {
 		cached := any.GetCachedValue()
 		if cached == nil {
 			panic("Any cached value is nil. Transaction messages must be correctly packed Any values.")
 		}
-		res[i] = cached.(sdk.Msg)
+		res[i] = cached.(ibcmsg.Msg)
 	}
 	return res
 }
@@ -132,7 +137,9 @@ func (t *Tx) GetSigners() []sdk.AccAddress {
 func (t *Tx) GetGas() uint64 {
 	return t.AuthInfo.Fee.GasLimit
 }
-func (t *Tx) GetFee() sdk.Coins {
+
+//func (t *Tx) GetFee() sdk.Coins {
+func (t *Tx) GetFee() sdk.CoinAdapters {
 	return t.AuthInfo.Fee.Amount
 }
 func (t *Tx) FeePayer() sdk.AccAddress {
@@ -178,7 +185,7 @@ func (t *Tx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 // UnpackInterfaces implements the UnpackInterfaceMessages.UnpackInterfaces method
 func (m *TxBody) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	for _, any := range m.Messages {
-		var msg sdk.Msg
+		var msg ibcmsg.Msg
 		err := unpacker.UnpackAny(any, &msg)
 		if err != nil {
 			return err
@@ -207,5 +214,7 @@ func (m *SignerInfo) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 // RegisterInterfaces registers the sdk.Tx interface.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterInterface("cosmos.tx.v1beta1.Tx", (*sdk.Tx)(nil))
+	//registry.RegisterInterface("cosmos.tx.v1beta1.Coin", (*sdk.Coin)(nil))
+	registry.RegisterInterface("cosmos.crypto.secp256k1.PubKey", (*ibckeys.PubKey)(nil))
 	registry.RegisterImplementations((*sdk.Tx)(nil), &Tx{})
 }

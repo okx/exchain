@@ -5,17 +5,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
 )
 
 var _ types.QueryServer = (*Keeper)(nil)
@@ -56,7 +56,7 @@ func (q Keeper) Channels(c context.Context, req *types.QueryChannelsRequest) (*t
 
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		var result types.Channel
-		if err := q.cdc.Unmarshal(value, &result); err != nil {
+		if err := q.cdc.GetProtocMarshal().UnmarshalBinaryBare(value, &result); err != nil {
 			return err
 		}
 
@@ -99,7 +99,7 @@ func (q Keeper) ConnectionChannels(c context.Context, req *types.QueryConnection
 
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		var result types.Channel
-		if err := q.cdc.Unmarshal(value, &result); err != nil {
+		if err := q.cdc.GetProtocMarshal().UnmarshalBinaryBare(value, &result); err != nil {
 			return err
 		}
 
@@ -358,7 +358,6 @@ func (q Keeper) PacketAcknowledgements(c context.Context, req *types.QueryPacket
 
 		ack := types.NewPacketState(req.PortId, req.ChannelId, sequence, value)
 		acks = append(acks, &ack)
-
 		return nil
 	})
 

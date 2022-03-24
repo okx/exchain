@@ -3,13 +3,14 @@ package mem
 import (
 	"io"
 
-	dbm "github.com/tendermint/tm-db"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/listenkv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okex/exchain/libs/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/store/cachekv"
-	"github.com/cosmos/cosmos-sdk/store/dbadapter"
-	"github.com/cosmos/cosmos-sdk/store/listenkv"
-	"github.com/cosmos/cosmos-sdk/store/tracekv"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 )
 
 var (
@@ -22,6 +23,44 @@ var (
 type Store struct {
 	dbadapter.Store
 }
+
+func (s *Store) CommitterCommit(_ *iavl.TreeDelta) (_ types.CommitID, _ *iavl.TreeDelta) {
+	return
+}
+
+func (s *Store) GetDBReadTime() int {
+	return 0
+}
+
+func (s *Store) GetDBWriteCount() int {
+	return 0
+}
+
+func (s *Store) GetDBReadCount() int {
+	return 0
+}
+
+func (s *Store) GetNodeReadCount() int {
+	return 0
+}
+
+func (s *Store) GetFlatKVReadTime() int {
+	return 0
+}
+
+func (s *Store) GetFlatKVWriteTime() int {
+	return 0
+}
+
+func (s *Store) GetFlatKVReadCount() int {
+	return 0
+}
+
+func (s *Store) GetFlatKVWriteCount() int {
+	return 0
+}
+
+func (s *Store) ResetCount() {}
 
 func NewStore() *Store {
 	return NewStoreWithDB(dbm.NewMemDB())
@@ -61,3 +100,4 @@ func (s *Store) SetPruning(pruning types.PruningOptions) {}
 func (s *Store) GetPruning() types.PruningOptions { return types.PruningOptions{} }
 
 func (s Store) LastCommitID() (id types.CommitID) { return }
+func (s *Store) UpgradeVersion(int64)             {}

@@ -3,11 +3,11 @@ package simulation
 import (
 	"math/rand"
 
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 )
 
 // GenChannelGenesis returns the default channel genesis state.
-func GenChannelGenesis(_ *rand.Rand, _ []simtypes.Account) types.GenesisState {
+func GenChannelGenesis(_ *rand.Rand, _ []simulation.Account) types.GenesisState {
 	return types.DefaultGenesisState()
 }

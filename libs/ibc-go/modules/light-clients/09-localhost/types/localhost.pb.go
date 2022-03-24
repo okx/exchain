@@ -5,9 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	types "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	io "io"
 	math "math"
 	math_bits "math/bits"

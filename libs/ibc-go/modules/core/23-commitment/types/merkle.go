@@ -7,27 +7,12 @@ import (
 
 	ics23 "github.com/confio/ics23/go"
 	"github.com/gogo/protobuf/proto"
-	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okex/exchain/libs/tendermint/proto/crypto"
 )
 
-// var representing the proofspecs for a SDK chain
-var sdkSpecs = []*ics23.ProofSpec{ics23.IavlSpec, ics23.TendermintSpec}
-
-// ICS 023 Merkle Types Implementation
-//
-// This file defines Merkle commitment types that implements ICS 023.
-
-// Merkle proof implementation of the Proof interface
-// Applied on SDK-based IBC implementation
 var _ exported.Root = (*MerkleRoot)(nil)
-
-// GetSDKSpecs is a getter function for the proofspecs of an sdk chain
-func GetSDKSpecs() []*ics23.ProofSpec {
-	return sdkSpecs
-}
 
 // NewMerkleRoot constructs a new MerkleRoot
 func NewMerkleRoot(hash []byte) MerkleRoot {
@@ -215,11 +200,14 @@ func (proof MerkleProof) BatchVerifyNonMembership(specs []*ics23.ProofSpec, root
 	return sdkerrors.Wrap(ErrInvalidProof, "batch proofs are currently unsupported")
 }
 
-// verifyChainedMembershipProof takes a list of proofs and specs and verifies each proof sequentially ensuring that the value is committed to
-// by first proof and each subsequent subroot is committed to by the next subroot and checking that the final calculated root is equal to the given roothash.
-// The proofs and specs are passed in from lowest subtree to the highest subtree, but the keys are passed in from highest subtree to lowest.
-// The index specifies what index to start chaining the membership proofs, this is useful since the lowest proof may not be a membership proof, thus we
-// will want to start the membership proof chaining from index 1 with value being the lowest subroot
+var blankMerkleProof = &MerkleProof{}
+var blankProofOps = &crypto.ProofOps{}
+
+// Empty returns true if the root is empty
+func (proof *MerkleProof) Empty() bool {
+	return proof == nil || proto.Equal(proof, blankMerkleProof) || proto.Equal(proof, blankProofOps)
+}
+
 func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs []*ics23.CommitmentProof, keys MerklePath, value []byte, index int) error {
 	var (
 		subroot []byte
@@ -269,16 +257,6 @@ func verifyChainedMembershipProof(root []byte, specs []*ics23.ProofSpec, proofs 
 	return nil
 }
 
-// blankMerkleProof and blankProofOps will be used to compare against their zero values,
-// and are declared as globals to avoid having to unnecessarily re-allocate on every comparison.
-var blankMerkleProof = &MerkleProof{}
-var blankProofOps = &tmcrypto.ProofOps{}
-
-// Empty returns true if the root is empty
-func (proof *MerkleProof) Empty() bool {
-	return proof == nil || proto.Equal(proof, blankMerkleProof) || proto.Equal(proof, blankProofOps)
-}
-
 // ValidateBasic checks if the proof is empty.
 func (proof MerkleProof) ValidateBasic() error {
 	if proof.Empty() {
@@ -309,4 +287,11 @@ func (proof MerkleProof) validateVerificationArgs(specs []*ics23.ProofSpec, root
 		}
 	}
 	return nil
+}
+
+var sdkSpecs = []*ics23.ProofSpec{ics23.IavlSpec, ics23.TendermintSpec}
+
+// GetSDKSpecs is a getter function for the proofspecs of an sdk chain
+func GetSDKSpecs() []*ics23.ProofSpec {
+	return sdkSpecs
 }
