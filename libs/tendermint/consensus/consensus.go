@@ -934,19 +934,19 @@ func (cs *State) needProofBlock(height int64) bool {
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
-func (cs *State) isBlockProducer() (string, string) {
+func (cs *State) isBlockProducer() (bool, string) {
 	const len2display int = 6
 	bpAddr := cs.Validators.GetProposer().Address
 	bpStr := bpAddr.String()
 	if len(bpStr) > len2display {
 		bpStr = bpStr[:len2display]
 	}
-	isBlockProducer := "n"
+	isBlockProducer := false
 	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
 		address := cs.privValidatorPubKey.Address()
 
 		if bytes.Equal(bpAddr, address) {
-			isBlockProducer = "y"
+			isBlockProducer = true
 		}
 	}
 
@@ -992,31 +992,10 @@ func (cs *State) enterPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
-	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
-		logger.Debug("This node is not a validator")
-		return
-	}
-	logger.Debug("This node is a validator")
-
-	if cs.privValidatorPubKey == nil {
-		// If this node is a validator & proposer in the current round, it will
-		// miss the opportunity to create a block.
-		logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
-		return
-	}
-	address := cs.privValidatorPubKey.Address()
-
-	// if not a validator, we're done
-	if !cs.Validators.HasAddress(address) {
-		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
-		return
-	}
-
-	if cs.isProposer(address) {
+	if isBlockProducer {
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
-			address,
+			bpAddr,
 			"privValidator",
 			cs.privValidator)
 		cs.decideProposal(height, round)
