@@ -208,6 +208,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
+
 	bi := transferAmount.BigInt()
 	bi = bi.Div(bi, big.NewInt(k.ibcFactor))
 	transferAmount = sdk.NewIntFromBigInt(bi)
@@ -256,22 +257,6 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			// escrow address by allowing more tokens to be sent back then were escrowed.
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
-
-		defer func() {
-			//telemetry.SetGaugeWithLabels(
-			//	[]string{"ibc", types.ModuleName, "packet", "receive"},
-			//	float32(data.Amount),
-			//	[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, unprefixedDenom)},
-			//)
-			//
-			//telemetry.IncrCounterWithLabels(
-			//	[]string{"ibc", types.ModuleName, "receive"},
-			//	1,
-			//	append(
-			//		labels, telemetry.NewLabel(coretypes.LabelSource, "true"),
-			//	),
-			//)
-		}()
 
 		k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource)
 		return nil

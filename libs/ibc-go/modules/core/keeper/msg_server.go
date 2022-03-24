@@ -529,19 +529,6 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 		}
 	}
 
-	// defer func() {
-	// 	telemetry.IncrCounterWithLabels(
-	// 		[]string{"tx", "msg", "ibc", channeltypes.EventTypeRecvPacket},
-	// 		1,
-	// 		[]metrics.Label{
-	// 			telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-	// 			telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-	// 		},
-	// 	)
-	// }()
-
 	return &channeltypes.MsgRecvPacketResponse{}, nil
 }
 
@@ -595,20 +582,6 @@ func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*c
 	if err = k.ChannelKeeper.TimeoutExecuted(ctx, cap, msg.Packet); err != nil {
 		return nil, err
 	}
-
-	// defer func() {
-	// 	telemetry.IncrCounterWithLabels(
-	// 		[]string{"ibc", "timeout", "packet"},
-	// 		1,
-	// 		[]metrics.Label{
-	// 			telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-	// 			telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-	// 			telemetry.NewLabel(coretypes.LabelTimeoutType, "height"),
-	// 		},
-	// 	)
-	// }()
 
 	return &channeltypes.MsgTimeoutResponse{}, nil
 }
@@ -667,20 +640,6 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 		return nil, err
 	}
 
-	// defer func() {
-	// 	telemetry.IncrCounterWithLabels(
-	// 		[]string{"ibc", "timeout", "packet"},
-	// 		1,
-	// 		[]metrics.Label{
-	// 			telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-	// 			telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-	// 			telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-	// 			telemetry.NewLabel(coretypes.LabelTimeoutType, "channel-closed"),
-	// 		},
-	// 	)
-	// }()
-
 	return &channeltypes.MsgTimeoutOnCloseResponse{}, nil
 }
 
@@ -729,19 +688,6 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "acknowledge packet callback failed")
 	}
-
-	defer func() {
-		//telemetry.IncrCounterWithLabels(
-		//	[]string{"tx", "msg", "ibc", msg.Type()},
-		//	1,
-		//	[]metrics.Label{
-		//		telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-		//		telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-		//		telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-		//		telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-		//	},
-		//)
-	}()
 
 	return &channeltypes.MsgAcknowledgementResponse{}, nil
 }

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
-	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -220,7 +219,7 @@ func (cs ClientState) VerifyClientState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
 	}
 
-	bz, err := common.DefaultMarshal(cdc, clientState)
+	bz, err := cdc.GetProtocMarshal().MarshalInterface(clientState)
 	if err != nil {
 		return err
 	}
@@ -260,7 +259,7 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid consensus type %T, expected %T", consensusState, &ConsensusState{})
 	}
 
-	bz, err := common.DefaultMarshal(cdc, consensusState)
+	bz, err := clienttypes.MarshalConsensusState(cdc, consensusState)
 	if err != nil {
 		return err
 	}

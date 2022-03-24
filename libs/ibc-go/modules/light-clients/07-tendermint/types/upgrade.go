@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/exchain/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -72,8 +71,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// Verify client proof
-
-	bz, err := common.DefaultMarshal(cdc, upgradedClient)
+	bz, err := clienttypes.MarshalClientState(cdc, upgradedClient)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "could not marshal client state: %v", err)
 	}
@@ -84,7 +82,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	}
 
 	// Verify consensus state proof
-	bz, err = common.DefaultMarshal(cdc, upgradedConsState)
+	bz, err = clienttypes.MarshalConsensusState(cdc, upgradedConsState)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "could not marshal consensus state: %v", err)
 	}

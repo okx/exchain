@@ -333,9 +333,5 @@ func (k Keeper) ConnOpenConfirm(
 	k.SetConnection(ctx, connectionID, connection)
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "TRYOPEN", "new-state", "OPEN")
 
-	defer func() {
-		//telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")
-	}()
-
 	return nil
 }
