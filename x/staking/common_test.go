@@ -1019,7 +1019,8 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		// check if the shares correct
 		b6 := true
 		if len(dlg.GetShareAddedValidatorAddresses()) > 0 {
-			expectDlgShares, err := keeper.SimulateWeight(getGlobalContext().BlockTime().Unix(), (dlg.TotalDelegatedTokens.Add(dlg.Tokens)))
+			gctx := getGlobalContext()
+			expectDlgShares, err := keeper.SimulateWeight(gctx.BlockTime().Unix(), (dlg.TotalDelegatedTokens.Add(dlg.Tokens)))
 			b6 = err == nil
 			b6 = b6 && assert.Equal(t, expectDlgShares.String(), dlg.Shares.String(), dlg)
 		} else {

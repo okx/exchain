@@ -96,6 +96,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, tx, simulate)
+	auth.SetGasMeter(simulate, &ctx, gasLimit)
+	return next(ctx, tx, simulate)
 }
