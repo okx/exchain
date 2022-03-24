@@ -368,6 +368,9 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 		cs.done = make(chan struct{})
 	}
 
+	// notify blockExec to init if necessary
+	cs.blockExec.OnStart(true)
+
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
 
@@ -383,6 +386,8 @@ func (cs *State) OnStop() {
 	cs.evsw.Stop()
 	cs.timeoutTicker.Stop()
 	// WAL is stopped in receiveRoutine.
+	// notify blockExec to stop if necessary
+	cs.blockExec.OnStop()
 }
 
 func (cs *State) OnReset() error {
