@@ -94,9 +94,6 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 }
 
 func (app *localClient) PreDeliverRealTxAsync(params types.RequestDeliverTx) types.TxEssentials {
-	app.mtx.Lock()
-	defer app.mtx.Unlock()
-
 	return app.Application.PreDeliverRealTx(params)
 }
 
