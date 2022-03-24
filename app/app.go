@@ -851,7 +851,7 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 	var pip types.HeightFilterPipeline
 	for height, mm := range hStoreInfoModule {
 		f := func(h int64) func(str string) bool {
-			if h > height {
+			if h >= height {
 				// next
 				return nil
 			}

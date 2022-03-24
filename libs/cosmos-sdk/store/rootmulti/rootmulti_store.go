@@ -1003,12 +1003,15 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if !tmtypes.HigherThanIBCHeight(version) {
-			name := key.Name()
-			if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
-				continue
-			}
+		if f(key.Name()) {
+			continue
 		}
+		//if !tmtypes.HigherThanIBCHeight(version) {
+		//	name := key.Name()
+		//	if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
+		//		continue
+		//	}
+		//}
 		if tmtypes.GetIBCHeight()+1 == version {
 			//init store tree version with block height
 			store.UpgradeVersion(version)
@@ -1020,9 +1023,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		si := storeInfo{}
-		if f(key.Name()) {
-			continue
-		}
+		//if f(key.Name()) {
+		//	continue
+		//}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		si.Core.CommitID.Version = version
