@@ -77,8 +77,8 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 }
 
 func (dtt *DeliverTxTask) setStep(step partialConcurrentStep) {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
+	//dtt.mtx.Lock()
+	//defer dtt.mtx.Unlock()
 
 	if dtt.step == partialConcurrentStepInRerun && step != partialConcurrentStepStart {
 		return
@@ -87,8 +87,8 @@ func (dtt *DeliverTxTask) setStep(step partialConcurrentStep) {
 }
 
 func (dtt *DeliverTxTask) getStep() partialConcurrentStep {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
+	//dtt.mtx.Lock()
+	//defer dtt.mtx.Unlock()
 	return dtt.step
 }
 
@@ -106,15 +106,15 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 }
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8) {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
+	//dtt.mtx.Lock()
+	//defer dtt.mtx.Unlock()
 
 	dtt.updateCount = count
 }
 
 func (dtt *DeliverTxTask) getUpdateCount() int8 {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
+	//dtt.mtx.Lock()
+	//defer dtt.mtx.Unlock()
 
 	return dtt.updateCount
 }
