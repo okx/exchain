@@ -9,8 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/tendermint/go-amino"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -19,6 +21,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	cosmosauthtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -28,6 +31,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/stretchr/testify/require"
+
+	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
+	apptypes "github.com/okex/exchain/app/types"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -368,6 +374,14 @@ func TestWriteLatestMsg(t *testing.T) {
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
 	w.SetWatchDataFunc()
 
+	cdc := amino.NewCodec()
+	apptypes.RegisterCodec(cdc)
+	cryptocodec.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	cosmosauthtypes.RegisterCodec(cdc)
+	cdc.RegisterConcrete(&mockDuplicateAccount{}, "watcher_test/mockDuplicateAccount", nil)
+	watcher.InitWatcherCdc(cdc)
+
 	a1 := newMockAccount(1, 1)
 	a11 := newMockAccount(1, 2)
 	a111 := newMockAccount(1, 3)
@@ -385,7 +399,8 @@ func TestWriteLatestMsg(t *testing.T) {
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
-	mm := make(map[string]interface{})
-	json.Unmarshal(v, &mm)
-	require.Equal(t, 3, int(mm["Seq"].(float64)))
+	var mm mockDuplicateAccount
+	err = watcher.WatcherCdc().UnmarshalBinaryBare(v, &mm)
+	require.NoError(t, err)
+	require.Equal(t, 3, int(mm.Seq))
 }
