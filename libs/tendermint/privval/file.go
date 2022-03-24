@@ -313,7 +313,7 @@ func (pv *FilePV) signVote(chainID string, vote *types.Vote) error {
 	if sameHRS {
 		if bytes.Equal(signBytes, lss.SignBytes) {
 			vote.Signature = lss.Signature
-		} else if timestamp, ok := checkVotesOnlyDifferByTimestamp(lss.SignBytes, signBytes); ok {
+		} else if timestamp, ok := checkVotesOnlyDifferByTimestamp(lss.Height, lss.SignBytes, signBytes); ok {
 			vote.Timestamp = timestamp
 			vote.Signature = lss.Signature
 		} else {
@@ -390,25 +390,32 @@ func (pv *FilePV) saveSigned(height int64, round int, step int8,
 
 // returns the timestamp from the lastSignBytes.
 // returns true if the only difference in the votes is their timestamp.
-func checkVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes []byte) (time.Time, bool) {
-	var lastVote, newVote types.CanonicalVote
-	if err := cdc.UnmarshalBinaryLengthPrefixed(lastSignBytes, &lastVote); err != nil {
-		panic(fmt.Sprintf("LastSignBytes cannot be unmarshalled into vote: %v", err))
+//func checkVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes []byte) (time.Time, bool) {
+//	var lastVote, newVote types.CanonicalVote
+//	if err := cdc.UnmarshalBinaryLengthPrefixed(lastSignBytes, &lastVote); err != nil {
+//		panic(fmt.Sprintf("LastSignBytes cannot be unmarshalled into vote: %v", err))
+//	}
+//	if err := cdc.UnmarshalBinaryLengthPrefixed(newSignBytes, &newVote); err != nil {
+//		panic(fmt.Sprintf("signBytes cannot be unmarshalled into vote: %v", err))
+//	}
+//
+//	lastTime := lastVote.Timestamp
+//
+//	// set the times to the same value and check equality
+//	now := tmtime.Now()
+//	lastVote.Timestamp = now
+//	newVote.Timestamp = now
+//	lastVoteBytes, _ := cdc.MarshalJSON(lastVote)
+//	newVoteBytes, _ := cdc.MarshalJSON(newVote)
+//
+//	return lastTime, bytes.Equal(newVoteBytes, lastVoteBytes)
+//}
+
+func checkVotesOnlyDifferByTimestamp(h int64, lastSignBytes, newSignBytes []byte) (time.Time, bool) {
+	if types.HigherThanIBCHeight(h) {
+		return ibcCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
 	}
-	if err := cdc.UnmarshalBinaryLengthPrefixed(newSignBytes, &newVote); err != nil {
-		panic(fmt.Sprintf("signBytes cannot be unmarshalled into vote: %v", err))
-	}
-
-	lastTime := lastVote.Timestamp
-
-	// set the times to the same value and check equality
-	now := tmtime.Now()
-	lastVote.Timestamp = now
-	newVote.Timestamp = now
-	lastVoteBytes, _ := cdc.MarshalJSON(lastVote)
-	newVoteBytes, _ := cdc.MarshalJSON(newVote)
-
-	return lastTime, bytes.Equal(newVoteBytes, lastVoteBytes)
+	return originCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
 }
 
 // returns the timestamp from the lastSignBytes.

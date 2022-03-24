@@ -30,6 +30,7 @@ package module
 
 import (
 	"encoding/json"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -112,11 +113,31 @@ func (bm BasicManager) AddTxCommands(rootTxCmd *cobra.Command, cdc *codec.Codec)
 	}
 }
 
+func (bm BasicManager) AddTxCommandsV2(rootTxCmd *cobra.Command, proxy *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) {
+	for _, b := range bm {
+		if ada, ok := b.(AppModuleBasicAdapter); ok {
+			if cmd := ada.GetTxCmdV2(proxy, reg); cmd != nil {
+				rootTxCmd.AddCommand(cmd)
+			}
+		}
+	}
+}
+
 // AddQueryCommands adds all query commands to the rootQueryCmd
 func (bm BasicManager) AddQueryCommands(rootQueryCmd *cobra.Command, cdc *codec.Codec) {
 	for _, b := range bm {
 		if cmd := b.GetQueryCmd(cdc); cmd != nil {
 			rootQueryCmd.AddCommand(cmd)
+		}
+	}
+}
+
+func (bm BasicManager) AddQueryCommandsV2(rootQueryCmd *cobra.Command, proxy *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) {
+	for _, b := range bm {
+		if ada, ok := b.(AppModuleBasicAdapter); ok {
+			if cmd := ada.GetQueryCmdV2(proxy, reg); cmd != nil {
+				rootQueryCmd.AddCommand(cmd)
+			}
 		}
 	}
 }
@@ -282,6 +303,10 @@ func (m *Manager) InitGenesis(ctx sdk.Context, genesisData map[string]json.RawMe
 func (m *Manager) ExportGenesis(ctx sdk.Context) map[string]json.RawMessage {
 	genesisData := make(map[string]json.RawMessage)
 	for _, moduleName := range m.OrderExportGenesis {
+		data := m.Modules[moduleName].ExportGenesis(ctx)
+		if nil == data {
+			continue
+		}
 		genesisData[moduleName] = m.Modules[moduleName].ExportGenesis(ctx)
 	}
 	return genesisData
@@ -328,3 +353,80 @@ func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.Respo
 		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
+
+// RegisterServices registers all module services
+func (m *Manager) RegisterServices(cfg Configurator) {
+	for _, module := range m.Modules {
+		if ada, ok := module.(AppModuleAdapter); ok {
+			ada.RegisterServices(cfg)
+		}
+	}
+}
+
+//func (m *Manager) CollectUpgradeModules() (map[int64]*HeightTasks, types.HeightFilterPipeline, map[string]params.ParamSet) {
+//	hm := make(map[int64]*HeightTasks)
+//	hStoreInfoModule := make(map[int64]map[string]struct{})
+//	paramsRet := make(map[string]params.ParamSet)
+//	for _, module := range m.Modules {
+//		if ada, ok := module.(UpgradeModule); ok {
+//			set := ada.RegisterParam()
+//			if set != nil {
+//				if p, exist := paramsRet[ada.ModuleName()]; exist {
+//					paramsRet[ada.ModuleName()] = p
+//				}
+//			}
+//			h := ada.UpgradeHeight()
+//			if h <= 0 {
+//				continue
+//			}
+//			t := ada.RegisterTask()
+//			if t == nil {
+//				continue
+//			}
+//			if err := t.ValidateBasic(); nil != err {
+//				panic(err)
+//			}
+//			storeInfoModule := hStoreInfoModule[h]
+//			if storeInfoModule == nil {
+//				storeInfoModule = make(map[string]struct{})
+//				hStoreInfoModule[h] = storeInfoModule
+//			}
+//			names := ada.BlockStoreModules()
+//			for _, n := range names {
+//				storeInfoModule[n] = struct{}{}
+//			}
+//			taskList := hm[h]
+//			if taskList == nil {
+//				v := make(HeightTasks, 0)
+//				taskList = &v
+//				hm[h] = taskList
+//			}
+//			*taskList = append(*taskList, t)
+//		}
+//	}
+//	for _, v := range hm {
+//		sort.Sort(*v)
+//	}
+//	var pip types.HeightFilterPipeline
+//	for height, mm := range hStoreInfoModule {
+//		f := func(h int64) func(str string) bool {
+//			if h > height {
+//				// next
+//				return nil
+//			}
+//			// filter block module
+//			return func(str string) bool {
+//				_, exist := mm[str]
+//				return exist
+//			}
+//		}
+//		if pip == nil {
+//			pip = f
+//		} else {
+//			pip = types.LinkPipeline(f, pip)
+//		}
+//	}
+//	return hm, pip, paramsRet
+//}
+
+type MigrationHandler func(sdk.Context) error

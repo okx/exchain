@@ -3,15 +3,14 @@ package keeper
 import (
 	"bytes"
 
+	//"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/gogo/protobuf/proto"
-
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // ConnOpenInit initialises a connection attempt on chain A. The generated connection identifier
@@ -47,7 +46,7 @@ func (k Keeper) ConnOpenInit(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "NONE", "new-state", "INIT")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-init")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-init")
 	}()
 
 	return connectionID, nil
@@ -182,7 +181,7 @@ func (k Keeper) ConnOpenTry(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", previousConnection.State.String(), "new-state", "TRYOPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-try")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-try")
 	}()
 
 	return connectionID, nil
@@ -282,7 +281,7 @@ func (k Keeper) ConnOpenAck(
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", connection.State.String(), "new-state", "OPEN")
 
 	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-ack")
+		//telemetry.IncrCounter(1, "ibc", "connection", "open-ack")
 	}()
 
 	// Update connection state to Open
@@ -333,10 +332,6 @@ func (k Keeper) ConnOpenConfirm(
 	connection.State = types.OPEN
 	k.SetConnection(ctx, connectionID, connection)
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "TRYOPEN", "new-state", "OPEN")
-
-	defer func() {
-		telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")
-	}()
 
 	return nil
 }

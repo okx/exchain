@@ -20,13 +20,40 @@ var _ types.ValidatorSet = Keeper{}
 type Keeper struct {
 	storeKey     sdk.StoreKey
 	cdc          *codec.Codec
+	cdcMarshl    *codec.CodecProxy
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeper(cdc *codec.Codec, cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+	paramstore params.Subspace) Keeper {
+
+	// set KeyTable if it has not already been set
+	if !paramstore.HasKeyTable() {
+		paramstore = paramstore.WithKeyTable(ParamKeyTable())
+	}
+	// ensure bonded and not bonded module accounts are set
+	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))
+	}
+
+	if addr := supplyKeeper.GetModuleAddress(types.NotBondedPoolName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.NotBondedPoolName))
+	}
+
+	return Keeper{
+		storeKey:     key,
+		cdc:          cdc,
+		cdcMarshl:    cdcMarshl,
+		supplyKeeper: supplyKeeper,
+		paramstore:   paramstore,
+		hooks:        nil,
+	}
+}
+
+func NewKeeperO(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {
 
 	// ensure bonded and not bonded module accounts are set

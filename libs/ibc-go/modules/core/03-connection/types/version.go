@@ -3,8 +3,8 @@ package types
 import (
 	"strings"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var (
@@ -24,6 +24,17 @@ var (
 		DefaultIBCVersionIdentifier: false,
 	}
 )
+
+// ProtoVersionsToExported converts a slice of the Version proto definition to
+// the Version interface.
+func ProtoVersionsToExported(versions []*Version) []exported.Version {
+	exportedVersions := make([]exported.Version, len(versions))
+	for i := range versions {
+		exportedVersions[i] = versions[i]
+	}
+
+	return exportedVersions
+}
 
 var _ exported.Version = &Version{}
 
@@ -94,23 +105,16 @@ func (version Version) VerifyProposedVersion(proposedVersion exported.Version) e
 	return nil
 }
 
-// VerifySupportedFeature takes in a version and feature string and returns
-// true if the feature is supported by the version and false otherwise.
-func VerifySupportedFeature(version exported.Version, feature string) bool {
-	for _, f := range version.GetFeatures() {
-		if f == feature {
+// contains returns true if the provided string element exists within the
+// string set.
+func contains(elem string, set []string) bool {
+	for _, element := range set {
+		if elem == element {
 			return true
 		}
 	}
-	return false
-}
 
-// GetCompatibleVersions returns a descending ordered set of compatible IBC
-// versions for the caller chain's connection end. The latest supported
-// version should be first element and the set should descend to the oldest
-// supported version.
-func GetCompatibleVersions() []exported.Version {
-	return []exported.Version{DefaultIBCVersion}
+	return false
 }
 
 // IsSupportedVersion returns true if the proposed version has a matching version
@@ -127,18 +131,6 @@ func IsSupportedVersion(proposedVersion *Version) bool {
 	}
 
 	return true
-}
-
-// FindSupportedVersion returns the version with a matching version identifier
-// if it exists. The returned boolean is true if the version is found and
-// false otherwise.
-func FindSupportedVersion(version exported.Version, supportedVersions []exported.Version) (exported.Version, bool) {
-	for _, supportedVersion := range supportedVersions {
-		if version.GetIdentifier() == supportedVersion.GetIdentifier() {
-			return supportedVersion, true
-		}
-	}
-	return nil, false
 }
 
 // PickVersion iterates over the descending ordered set of compatible IBC
@@ -196,25 +188,33 @@ func ExportedVersionsToProto(exportedVersions []exported.Version) []*Version {
 	return versions
 }
 
-// ProtoVersionsToExported converts a slice of the Version proto definition to
-// the Version interface.
-func ProtoVersionsToExported(versions []*Version) []exported.Version {
-	exportedVersions := make([]exported.Version, len(versions))
-	for i := range versions {
-		exportedVersions[i] = versions[i]
+// FindSupportedVersion returns the version with a matching version identifier
+// if it exists. The returned boolean is true if the version is found and
+// false otherwise.
+func FindSupportedVersion(version exported.Version, supportedVersions []exported.Version) (exported.Version, bool) {
+	for _, supportedVersion := range supportedVersions {
+		if version.GetIdentifier() == supportedVersion.GetIdentifier() {
+			return supportedVersion, true
+		}
 	}
-
-	return exportedVersions
+	return nil, false
 }
 
-// contains returns true if the provided string element exists within the
-// string set.
-func contains(elem string, set []string) bool {
-	for _, element := range set {
-		if elem == element {
+// GetCompatibleVersions returns a descending ordered set of compatible IBC
+// versions for the caller chain's connection end. The latest supported
+// version should be first element and the set should descend to the oldest
+// supported version.
+func GetCompatibleVersions() []exported.Version {
+	return []exported.Version{DefaultIBCVersion}
+}
+
+// VerifySupportedFeature takes in a version and feature string and returns
+// true if the feature is supported by the version and false otherwise.
+func VerifySupportedFeature(version exported.Version, feature string) bool {
+	for _, f := range version.GetFeatures() {
+		if f == feature {
 			return true
 		}
 	}
-
 	return false
 }

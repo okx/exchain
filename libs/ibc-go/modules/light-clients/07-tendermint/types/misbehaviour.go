@@ -3,13 +3,12 @@ package types
 import (
 	"time"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var _ exported.Misbehaviour = &Misbehaviour{}
@@ -34,6 +33,13 @@ func (misbehaviour Misbehaviour) ClientType() string {
 // GetClientID returns the ID of the client that committed a misbehaviour.
 func (misbehaviour Misbehaviour) GetClientID() string {
 	return misbehaviour.ClientId
+}
+
+// GetHeight returns the height at which misbehaviour occurred
+//
+// NOTE: assumes that misbehaviour headers have the same height
+func (misbehaviour Misbehaviour) GetHeight() exported.Height {
+	return misbehaviour.Header1.GetHeight()
 }
 
 // GetTime returns the timestamp at which misbehaviour occurred. It uses the

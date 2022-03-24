@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
 const (
@@ -34,13 +34,6 @@ func FormatClientIdentifier(clientType string, sequence uint64) string {
 // IsClientIDFormat checks if a clientID is in the format required on the SDK for
 // parsing client identifiers. The client identifier must be in the form: `{client-type}-{N}
 var IsClientIDFormat = regexp.MustCompile(`^.*[^-]-[0-9]{1,20}$`).MatchString
-
-// IsValidClientID checks if the clientID is valid and can be parsed into the client
-// identifier format.
-func IsValidClientID(clientID string) bool {
-	_, _, err := ParseClientIdentifier(clientID)
-	return err == nil
-}
 
 // ParseClientIdentifier parses the client type and sequence from the client identifier.
 func ParseClientIdentifier(clientID string) (string, uint64, error) {

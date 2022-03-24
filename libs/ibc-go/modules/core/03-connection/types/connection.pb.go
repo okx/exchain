@@ -5,9 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	types "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	io "io"
 	math "math"
 	math_bits "math/bits"
@@ -76,9 +76,8 @@ type ConnectionEnd struct {
 	State State `protobuf:"varint,3,opt,name=state,proto3,enum=ibc.core.connection.v1.State" json:"state,omitempty"`
 	// counterparty chain associated with this connection.
 	Counterparty Counterparty `protobuf:"bytes,4,opt,name=counterparty,proto3" json:"counterparty"`
-	// delay period that must pass before a consensus state can be used for
-	// packet-verification NOTE: delay period logic is only implemented by some
-	// clients.
+	// delay period that must pass before a consensus state can be used for packet-verification
+	// NOTE: delay period logic is only implemented by some clients.
 	DelayPeriod uint64 `protobuf:"varint,5,opt,name=delay_period,json=delayPeriod,proto3" json:"delay_period,omitempty" yaml:"delay_period"`
 }
 

@@ -2,6 +2,12 @@ package rootmulti
 
 import (
 	"fmt"
+
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+
+	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"io"
 	"log"
 	"path/filepath"
@@ -17,7 +23,8 @@ import (
 
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+
+	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -64,11 +71,16 @@ type Store struct {
 	interBlockCache types.MultiStorePersistentCache
 
 	logger tmlog.Logger
+
+	commitHeightFilterPipeline func(h int64) func(str string) bool
+	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	upgradeVersion             int64
 }
 
 var (
 	_ types.CommitMultiStore = (*Store)(nil)
 	_ types.Queryable        = (*Store)(nil)
+	_ types.CommitMultiStore = (*Store)(nil)
 )
 
 // NewStore returns a reference to a new Store object with the provided DB. The
@@ -80,16 +92,21 @@ func NewStore(db dbm.DB) *Store {
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
 	}
-	return &Store{
-		db:           db,
-		flatKVDB:     flatKVDB,
-		pruningOpts:  types.PruneNothing,
-		storesParams: make(map[types.StoreKey]storeParams),
-		stores:       make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:   make(map[string]types.StoreKey),
-		pruneHeights: make([]int64, 0),
-		versions:     make([]int64, 0),
+	ret := &Store{
+		db:                         db,
+		flatKVDB:                   flatKVDB,
+		pruningOpts:                types.PruneNothing,
+		storesParams:               make(map[types.StoreKey]storeParams),
+		stores:                     make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:                 make(map[string]types.StoreKey),
+		pruneHeights:               make([]int64, 0),
+		versions:                   make([]int64, 0),
+		commitHeightFilterPipeline: types.DefaultAcceptAll,
+		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		upgradeVersion:             -1,
 	}
+
+	return ret
 }
 
 func newFlatKVDB() dbm.DB {
@@ -437,7 +454,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
-	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap)
+	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.getStores(version), inputDeltaMap, rs.commitHeightFilterPipeline(version))
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -468,7 +485,6 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 		// batch prune if the current height is a pruning interval height
 		if rs.pruningOpts.Interval > 0 && version%int64(rs.pruningOpts.Interval) == 0 {
 			rs.pruneStores()
-
 		}
 
 		rs.versions = append(rs.versions, version)
@@ -498,12 +514,14 @@ func (rs *Store) pruneStores() {
 			rs.logger.Info("pruning end")
 		}
 	}()
-	for key, store := range rs.stores {
+	stores := rs.getFilterStores(rs.lastCommitInfo.Version + 1)
+	//stores = rs.stores
+	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-
+			store.LastCommitID()
 			if err := store.(*iavl.Store).DeleteVersions(rs.pruneHeights...); err != nil {
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
 					panic(err)
@@ -625,6 +643,7 @@ func (rs *Store) getStoreByName(name string) types.Store {
 // TODO: add proof for `multistore -> substore`.
 func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	path := req.Path
+	str := string(req.Data)
 	storeName, subpath, err := parsePath(path)
 	if err != nil {
 		return sdkerrors.QueryResult(err)
@@ -643,6 +662,13 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// trim the path and make the query
 	req.Path = subpath
 	res := queryable.Query(req)
+	if strings.Contains(str, "connections") {
+		defer func() {
+			if res.Proof == nil || len(res.Proof.Ops) == 0 {
+				panic("asd")
+			}
+		}()
+	}
 
 	if !req.Prove || !RequireProof(subpath) {
 		return res
@@ -666,11 +692,15 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	// Restore origin path and append proof op.
-	res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-		[]byte(storeName),
-		NewMultiStoreProof(commitInfo.StoreInfos),
-	).ProofOp())
+	if tmtypes.HigherThanIBCHeight(req.Height) {
+		queryIbcProof(&res, &commitInfo, storeName)
+	} else {
+		// Restore origin path and append proof op.
+		res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+			[]byte(storeName),
+			NewMultiStoreProof(commitInfo.StoreInfos),
+		).ProofOp())
+	}
 
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
@@ -746,6 +776,12 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		}
 
 		return transient.NewStore(), nil
+	case types.StoreTypeMemory:
+		if _, ok := key.(*types.MemoryStoreKey); !ok {
+			return nil, fmt.Errorf("unexpected key type for a MemoryStoreKey; got: %s", key.String())
+		}
+
+		return mem.NewStore(), nil
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -859,13 +895,26 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
+	if tmtypes.HigherThanIBCHeight(ci.Version) {
+		return ci.ibcHash()
+	}
+	return ci.originHash()
+}
+
+func (ci commitInfo) originHash() []byte {
 	// TODO: cache to ci.hash []byte
 	m := make(map[string][]byte, len(ci.StoreInfos))
 	for _, storeInfo := range ci.StoreInfos {
 		m[storeInfo.Name] = storeInfo.Hash()
 	}
-
 	return merkle.SimpleHashFromMap(m)
+}
+
+// Hash returns the simple merkle root hash of the stores sorted by name.
+func (ci commitInfo) ibcHash() []byte {
+	m := ci.toMap()
+	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
+	return rootHash
 }
 
 func (ci commitInfo) CommitID() types.CommitID {
@@ -928,22 +977,58 @@ func getLatestVersion(db dbm.DB) int64 {
 	return latest
 }
 
+type StoreSorts []StoreSort
+
+func (s StoreSorts) Len() int {
+	return len(s)
+}
+
+func (s StoreSorts) Less(i, j int) bool {
+	return s[i].key.Name() < s[j].key.Name()
+}
+
+func (s StoreSorts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+type StoreSort struct {
+	key types.StoreKey
+	v   types.CommitKVStore
+}
+
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
-	inputDeltaMap iavltree.TreeDeltaMap) (commitInfo, iavltree.TreeDeltaMap) {
+	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+		if f(key.Name()) {
+			continue
+		}
+		//if !tmtypes.HigherThanIBCHeight(version) {
+		//	name := key.Name()
+		//	if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
+		//		continue
+		//	}
+		//}
+		if tmtypes.GetIBCHeight()+1 == version {
+			//init store tree version with block height
+			store.UpgradeVersion(version)
+		}
 
+		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
 
 		si := storeInfo{}
+		//if f(key.Name()) {
+		//	continue
+		//}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
+		si.Core.CommitID.Version = version
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}
@@ -1235,4 +1320,9 @@ func (rs *Store) StopStore() {
 
 func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
+}
+
+func (rs *Store) UpgradeVersion(version int64) {
+
+	rs.upgradeVersion = version
 }

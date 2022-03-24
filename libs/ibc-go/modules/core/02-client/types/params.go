@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var (
@@ -21,19 +21,19 @@ func ParamKeyTable() paramtypes.KeyTable {
 	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
 }
 
-// NewParams creates a new parameter configuration for the ibc client module
+// NewParams creates a new parameter configuration for the ibc transfer module
 func NewParams(allowedClients ...string) Params {
 	return Params{
 		AllowedClients: allowedClients,
 	}
 }
 
-// DefaultParams is the default parameter configuration for the ibc-client module
+// DefaultParams is the default parameter configuration for the ibc-transfer module
 func DefaultParams() Params {
 	return NewParams(DefaultAllowedClients...)
 }
 
-// Validate all ibc-client module parameters
+// Validate all ibc-transfer module parameters
 func (p Params) Validate() error {
 	return validateClients(p.AllowedClients)
 }

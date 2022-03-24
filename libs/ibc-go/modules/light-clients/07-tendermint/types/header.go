@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"time"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var _ exported.Header = &Header{}
@@ -75,7 +74,8 @@ func (h Header) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "validator set is not tendermint validator set")
 	}
-	if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash()) {
+	//if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash()) {
+	if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash(h.Header.Height)) {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "validator set does not match hash")
 	}
 	return nil

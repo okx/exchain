@@ -1,42 +1,41 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	govcli "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"io/ioutil"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/version"
-	govcli "github.com/cosmos/cosmos-sdk/x/gov/client/cli"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
 )
 
 // NewCreateClientCmd defines the command to create a new IBC light client.
-func NewCreateClientCmd() *cobra.Command {
+func NewCreateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [path/to/client_state.json] [path/to/consensus_state.json]",
 		Short: "create new IBC client",
 		Long: `create a new IBC client with the specified client state and consensus state
 	- ClientState JSON example: {"@type":"/ibc.lightclients.solomachine.v1.ClientState","sequence":"1","frozen_sequence":"0","consensus_state":{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AtK50+5pJOoaa04qqAqrnyAqsYrwrR/INnA6UPIaYZlp"},"diversifier":"testing","timestamp":"10"},"allow_update_after_proposal":false}
 	- ConsensusState JSON example: {"@type":"/ibc.lightclients.solomachine.v1.ConsensusState","public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AtK50+5pJOoaa04qqAqrnyAqsYrwrR/INnA6UPIaYZlp"},"diversifier":"testing","timestamp":"10"}`,
-		Example: fmt.Sprintf("%s tx ibc %s create [path/to/client_state.json] [path/to/consensus_state.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.AppName, types.SubModuleName),
+		Example: fmt.Sprintf("%s tx ibc %s create [path/to/client_state.json] [path/to/consensus_state.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.ServerName, types.SubModuleName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+			cdc := m.GetProtocMarshal()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
 
 			// attempt to unmarshal client state argument
 			var clientState exported.ClientState
@@ -70,12 +69,12 @@ func NewCreateClientCmd() *cobra.Command {
 				}
 			}
 
-			msg, err := types.NewMsgCreateClient(clientState, consensusState, clientCtx.GetFromAddress().String())
+			msg, err := types.NewMsgCreateClient(clientState, consensusState, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
@@ -85,21 +84,20 @@ func NewCreateClientCmd() *cobra.Command {
 }
 
 // NewUpdateClientCmd defines the command to update an IBC client.
-func NewUpdateClientCmd() *cobra.Command {
+func NewUpdateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:     "update [client-id] [path/to/header.json]",
 		Short:   "update existing client with a header",
 		Long:    "update existing client with a header",
-		Example: fmt.Sprintf("%s tx ibc %s update [client-id] [path/to/header.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.AppName, types.SubModuleName),
+		Example: fmt.Sprintf("%s tx ibc %s update [client-id] [path/to/header.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.ServerName, types.SubModuleName),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			clientID := args[0]
+			cdc := m.GetProtocMarshal()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
 
-			cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+			clientID := args[0]
 
 			var header exported.Header
 			headerContentOrFileName := args[1]
@@ -116,31 +114,30 @@ func NewUpdateClientCmd() *cobra.Command {
 				}
 			}
 
-			msg, err := types.NewMsgUpdateClient(clientID, header, clientCtx.GetFromAddress().String())
+			msg, err := types.NewMsgUpdateClient(clientID, header, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
 
 // NewSubmitMisbehaviourCmd defines the command to submit a misbehaviour to prevent
 // future updates.
-func NewSubmitMisbehaviourCmd() *cobra.Command {
+func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:     "misbehaviour [path/to/misbehaviour.json]",
 		Short:   "submit a client misbehaviour",
 		Long:    "submit a client misbehaviour to prevent future updates",
-		Example: fmt.Sprintf("%s tx ibc %s misbehaviour [path/to/misbehaviour.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.AppName, types.SubModuleName),
+		Example: fmt.Sprintf("%s tx ibc %s misbehaviour [path/to/misbehaviour.json] --from node0 --home ../node0/<app>cli --chain-id $CID", version.ServerName, types.SubModuleName),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+			cdc := m.GetProtocMarshal()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
 
 			var misbehaviour exported.Misbehaviour
 			misbehaviourContentOrFileName := args[0]
@@ -157,32 +154,32 @@ func NewSubmitMisbehaviourCmd() *cobra.Command {
 				}
 			}
 
-			msg, err := types.NewMsgSubmitMisbehaviour(misbehaviour.GetClientID(), misbehaviour, clientCtx.GetFromAddress().String())
+			msg, err := types.NewMsgSubmitMisbehaviour(misbehaviour.GetClientID(), misbehaviour, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
 
 // NewUpgradeClientCmd defines the command to upgrade an IBC light client.
-func NewUpgradeClientCmd() *cobra.Command {
+func NewUpgradeClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade [client-identifier] [path/to/client_state.json] [path/to/consensus_state.json] [upgrade-client-proof] [upgrade-consensus-state-proof]",
 		Short: "upgrade an IBC client",
 		Long: `upgrade the IBC client associated with the provided client identifier while providing proof committed by the counterparty chain to the new client and consensus states
 	- ClientState JSON example: {"@type":"/ibc.lightclients.solomachine.v1.ClientState","sequence":"1","frozen_sequence":"0","consensus_state":{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AtK50+5pJOoaa04qqAqrnyAqsYrwrR/INnA6UPIaYZlp"},"diversifier":"testing","timestamp":"10"},"allow_update_after_proposal":false}
 	- ConsensusState JSON example: {"@type":"/ibc.lightclients.solomachine.v1.ConsensusState","public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AtK50+5pJOoaa04qqAqrnyAqsYrwrR/INnA6UPIaYZlp"},"diversifier":"testing","timestamp":"10"}`,
-		Example: fmt.Sprintf("%s tx ibc %s upgrade [client-identifier] [path/to/client_state.json] [path/to/consensus_state.json] [client-state-proof] [consensus-state-proof] --from node0 --home ../node0/<app>cli --chain-id $CID", version.AppName, types.SubModuleName),
+		Example: fmt.Sprintf("%s tx ibc %s upgrade [client-identifier] [path/to/client_state.json] [path/to/consensus_state.json] [client-state-proof] [consensus-state-proof] --from node0 --home ../node0/<app>cli --chain-id $CID", version.ServerName, types.SubModuleName),
 		Args:    cobra.ExactArgs(5),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
+			cdc := m.GetProtocMarshal()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+
 			clientID := args[0]
 
 			// attempt to unmarshal client state argument
@@ -220,12 +217,12 @@ func NewUpgradeClientCmd() *cobra.Command {
 			proofUpgradeClient := []byte(args[3])
 			proofUpgradeConsensus := []byte(args[4])
 
-			msg, err := types.NewMsgUpgradeClient(clientID, clientState, consensusState, proofUpgradeClient, proofUpgradeConsensus, clientCtx.GetFromAddress().String())
+			msg, err := types.NewMsgUpgradeClient(clientID, clientState, consensusState, proofUpgradeClient, proofUpgradeConsensus, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
@@ -235,7 +232,7 @@ func NewUpgradeClientCmd() *cobra.Command {
 }
 
 // NewCmdSubmitUpdateClientProposal implements a command handler for submitting an update IBC client proposal transaction.
-func NewCmdSubmitUpdateClientProposal() *cobra.Command {
+func NewCmdSubmitUpdateClientProposal(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update-client [subject-client-id] [substitute-client-id]",
 		Args:  cobra.ExactArgs(2),
@@ -244,10 +241,9 @@ func NewCmdSubmitUpdateClientProposal() *cobra.Command {
 			"Please specify a subject client identifier you want to update..\n" +
 			"Please specify the substitute client the subject client will be updated to.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
 
 			title, err := cmd.Flags().GetString(govcli.FlagTitle)
 			if err != nil {
@@ -275,16 +271,13 @@ func NewCmdSubmitUpdateClientProposal() *cobra.Command {
 				return err
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(content, deposit, from)
-			if err != nil {
-				return err
-			}
+			msg := govtypes.NewMsgSubmitProposal(content, deposit, from)
 
 			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
@@ -296,100 +289,99 @@ func NewCmdSubmitUpdateClientProposal() *cobra.Command {
 }
 
 // NewCmdSubmitUpgradeProposal implements a command handler for submitting an upgrade IBC client proposal transaction.
-func NewCmdSubmitUpgradeProposal() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "ibc-upgrade [name] [height] [path/to/upgraded_client_state.json] [flags]",
-		Args:  cobra.ExactArgs(3),
-		Short: "Submit an IBC upgrade proposal",
-		Long: "Submit an IBC client breaking upgrade proposal along with an initial deposit.\n" +
-			"The client state specified is the upgraded client state representing the upgraded chain\n" +
-			`Example Upgraded Client State JSON: 
-{
-	"@type":"/ibc.lightclients.tendermint.v1.ClientState",
- 	"chain_id":"testchain1",
-	"unbonding_period":"1814400s",
-	"latest_height":{"revision_number":"0","revision_height":"2"},
-	"proof_specs":[{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":33,"min_prefix_length":4,"max_prefix_length":12,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0},{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":32,"min_prefix_length":1,"max_prefix_length":1,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0}],
-	"upgrade_path":["upgrade","upgradedIBCState"],
-}
-			`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
-
-			title, err := cmd.Flags().GetString(govcli.FlagTitle)
-			if err != nil {
-				return err
-			}
-
-			description, err := cmd.Flags().GetString(govcli.FlagDescription)
-			if err != nil {
-				return err
-			}
-
-			name := args[0]
-
-			height, err := strconv.ParseInt(args[1], 10, 64)
-			if err != nil {
-				return err
-			}
-
-			plan := upgradetypes.Plan{
-				Name:   name,
-				Height: height,
-			}
-
-			// attempt to unmarshal client state argument
-			var clientState exported.ClientState
-			clientContentOrFileName := args[2]
-			if err := cdc.UnmarshalInterfaceJSON([]byte(clientContentOrFileName), &clientState); err != nil {
-
-				// check for file path if JSON input is not provided
-				contents, err := ioutil.ReadFile(clientContentOrFileName)
-				if err != nil {
-					return errors.Wrap(err, "neither JSON input nor path to .json file for client state were provided")
-				}
-
-				if err := cdc.UnmarshalInterfaceJSON(contents, &clientState); err != nil {
-					return errors.Wrap(err, "error unmarshalling client state file")
-				}
-			}
-
-			content, err := types.NewUpgradeProposal(title, description, plan, clientState)
-			if err != nil {
-				return err
-			}
-
-			from := clientCtx.GetFromAddress()
-
-			depositStr, err := cmd.Flags().GetString(govcli.FlagDeposit)
-			if err != nil {
-				return err
-			}
-			deposit, err := sdk.ParseCoinsNormalized(depositStr)
-			if err != nil {
-				return err
-			}
-
-			msg, err := govtypes.NewMsgSubmitProposal(content, deposit, from)
-			if err != nil {
-				return err
-			}
-
-			if err = msg.ValidateBasic(); err != nil {
-				return err
-			}
-
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
-		},
-	}
-
-	cmd.Flags().String(govcli.FlagTitle, "", "title of proposal")
-	cmd.Flags().String(govcli.FlagDescription, "", "description of proposal")
-	cmd.Flags().String(govcli.FlagDeposit, "", "deposit of proposal")
-
-	return cmd
-}
+//func NewCmdSubmitUpgradeProposal(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+//	cmd := &cobra.Command{
+//		Use:   "ibc-upgrade [name] [height] [path/to/upgraded_client_state.json] [flags]",
+//		Args:  cobra.ExactArgs(3),
+//		Short: "Submit an IBC upgrade proposal",
+//		Long: "Submit an IBC client breaking upgrade proposal along with an initial deposit.\n" +
+//			"The client state specified is the upgraded client state representing the upgraded chain\n" +
+//			`Example Upgraded Client State JSON:
+//{
+//	"@type":"/ibc.lightclients.tendermint.v1.ClientState",
+// 	"chain_id":"testchain1",
+//	"unbonding_period":"1814400s",
+//	"latest_height":{"revision_number":"0","revision_height":"2"},
+//	"proof_specs":[{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":33,"min_prefix_length":4,"max_prefix_length":12,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0},{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":32,"min_prefix_length":1,"max_prefix_length":1,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0}],
+//	"upgrade_path":["upgrade","upgradedIBCState"],
+//}
+//			`,
+//		RunE: func(cmd *cobra.Command, args []string) error {
+//			cdc := m.GetProtocMarshal()
+//			inBuf := bufio.NewReader(cmd.InOrStdin())
+//			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+//			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+//
+//			title, err := cmd.Flags().GetString(govcli.FlagTitle)
+//			if err != nil {
+//				return err
+//			}
+//
+//			description, err := cmd.Flags().GetString(govcli.FlagDescription)
+//			if err != nil {
+//				return err
+//			}
+//
+//			name := args[0]
+//
+//			height, err := strconv.ParseInt(args[1], 10, 64)
+//			if err != nil {
+//				return err
+//			}
+//
+//			plan := upgradetypes.Plan{
+//				Name:   name,
+//				Height: height,
+//			}
+//
+//			// attempt to unmarshal client state argument
+//			var clientState exported.ClientState
+//			clientContentOrFileName := args[2]
+//			if err := cdc.UnmarshalInterfaceJSON([]byte(clientContentOrFileName), &clientState); err != nil {
+//
+//				// check for file path if JSON input is not provided
+//				contents, err := ioutil.ReadFile(clientContentOrFileName)
+//				if err != nil {
+//					return errors.Wrap(err, "neither JSON input nor path to .json file for client state were provided")
+//				}
+//
+//				if err := cdc.UnmarshalInterfaceJSON(contents, &clientState); err != nil {
+//					return errors.Wrap(err, "error unmarshalling client state file")
+//				}
+//			}
+//
+//			content, err := types.NewUpgradeProposal(title, description, plan, clientState)
+//			if err != nil {
+//				return err
+//			}
+//
+//			from := clientCtx.GetFromAddress()
+//
+//			depositStr, err := cmd.Flags().GetString(govcli.FlagDeposit)
+//			if err != nil {
+//				return err
+//			}
+//			deposit, err := sdk.ParseCoinsNormalized(depositStr)
+//			if err != nil {
+//				return err
+//			}
+//
+//			msg, err := govtypes.NewMsgSubmitProposal(content, deposit, from)
+//			if err != nil {
+//				return err
+//			}
+//
+//			if err = msg.ValidateBasic(); err != nil {
+//				return err
+//			}
+//
+//			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+//		},
+//	}
+//
+//	cmd.Flags().String(govcli.FlagTitle, "", "title of proposal")
+//	cmd.Flags().String(govcli.FlagDescription, "", "description of proposal")
+//	cmd.Flags().String(govcli.FlagDeposit, "", "deposit of proposal")
+//
+//	return cmd
+//}

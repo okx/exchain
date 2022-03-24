@@ -1,11 +1,11 @@
 package types
 
 import (
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // message types for the IBC client
@@ -17,10 +17,10 @@ const (
 )
 
 var (
-	_ sdk.Msg = &MsgCreateClient{}
-	_ sdk.Msg = &MsgUpdateClient{}
-	_ sdk.Msg = &MsgSubmitMisbehaviour{}
-	_ sdk.Msg = &MsgUpgradeClient{}
+	_ sdk.MsgAdapter = &MsgCreateClient{}
+	_ sdk.MsgAdapter = &MsgUpdateClient{}
+	_ sdk.MsgAdapter = &MsgSubmitMisbehaviour{}
+	_ sdk.MsgAdapter = &MsgUpgradeClient{}
 
 	_ codectypes.UnpackInterfacesMessage = MsgCreateClient{}
 	_ codectypes.UnpackInterfacesMessage = MsgUpdateClient{}
@@ -31,7 +31,7 @@ var (
 // NewMsgCreateClient creates a new MsgCreateClient instance
 //nolint:interfacer
 func NewMsgCreateClient(
-	clientState exported.ClientState, consensusState exported.ConsensusState, signer string,
+	clientState exported.ClientState, consensusState exported.ConsensusState, signer sdk.AccAddress,
 ) (*MsgCreateClient, error) {
 
 	anyClientState, err := PackClientState(clientState)
@@ -47,8 +47,18 @@ func NewMsgCreateClient(
 	return &MsgCreateClient{
 		ClientState:    anyClientState,
 		ConsensusState: anyConsensusState,
-		Signer:         signer,
+		Signer:         signer.String(),
 	}, nil
+}
+
+// Route implements sdk.Msg
+func (msg MsgCreateClient) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgCreateClient) Type() string {
+	return TypeMsgCreateClient
 }
 
 // ValidateBasic implements sdk.Msg
@@ -80,6 +90,12 @@ func (msg MsgCreateClient) ValidateBasic() error {
 	return consensusState.ValidateBasic()
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgCreateClient) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgCreateClient) GetSigners() []sdk.AccAddress {
 	accAddr, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -103,7 +119,7 @@ func (msg MsgCreateClient) UnpackInterfaces(unpacker codectypes.AnyUnpacker) err
 
 // NewMsgUpdateClient creates a new MsgUpdateClient instance
 //nolint:interfacer
-func NewMsgUpdateClient(id string, header exported.Header, signer string) (*MsgUpdateClient, error) {
+func NewMsgUpdateClient(id string, header exported.Header, signer sdk.AccAddress) (*MsgUpdateClient, error) {
 	anyHeader, err := PackHeader(header)
 	if err != nil {
 		return nil, err
@@ -112,8 +128,18 @@ func NewMsgUpdateClient(id string, header exported.Header, signer string) (*MsgU
 	return &MsgUpdateClient{
 		ClientId: id,
 		Header:   anyHeader,
-		Signer:   signer,
+		Signer:   signer.String(),
 	}, nil
+}
+
+// Route implements sdk.Msg
+func (msg MsgUpdateClient) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgUpdateClient) Type() string {
+	return TypeMsgUpdateClient
 }
 
 // ValidateBasic implements sdk.Msg
@@ -135,6 +161,12 @@ func (msg MsgUpdateClient) ValidateBasic() error {
 	return host.ClientIdentifierValidator(msg.ClientId)
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgUpdateClient) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgUpdateClient) GetSigners() []sdk.AccAddress {
 	accAddr, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -153,7 +185,7 @@ func (msg MsgUpdateClient) UnpackInterfaces(unpacker codectypes.AnyUnpacker) err
 // NewMsgUpgradeClient creates a new MsgUpgradeClient instance
 // nolint: interfacer
 func NewMsgUpgradeClient(clientID string, clientState exported.ClientState, consState exported.ConsensusState,
-	proofUpgradeClient, proofUpgradeConsState []byte, signer string) (*MsgUpgradeClient, error) {
+	proofUpgradeClient, proofUpgradeConsState []byte, signer sdk.AccAddress) (*MsgUpgradeClient, error) {
 	anyClient, err := PackClientState(clientState)
 	if err != nil {
 		return nil, err
@@ -169,8 +201,18 @@ func NewMsgUpgradeClient(clientID string, clientState exported.ClientState, cons
 		ConsensusState:             anyConsState,
 		ProofUpgradeClient:         proofUpgradeClient,
 		ProofUpgradeConsensusState: proofUpgradeConsState,
-		Signer:                     signer,
+		Signer:                     signer.String(),
 	}, nil
+}
+
+// Route implements sdk.Msg
+func (msg MsgUpgradeClient) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgUpgradeClient) Type() string {
+	return TypeMsgUpgradeClient
 }
 
 // ValidateBasic implements sdk.Msg
@@ -205,6 +247,12 @@ func (msg MsgUpgradeClient) ValidateBasic() error {
 	return host.ClientIdentifierValidator(msg.ClientId)
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgUpgradeClient) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgUpgradeClient) GetSigners() []sdk.AccAddress {
 	accAddr, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -228,7 +276,7 @@ func (msg MsgUpgradeClient) UnpackInterfaces(unpacker codectypes.AnyUnpacker) er
 
 // NewMsgSubmitMisbehaviour creates a new MsgSubmitMisbehaviour instance.
 //nolint:interfacer
-func NewMsgSubmitMisbehaviour(clientID string, misbehaviour exported.Misbehaviour, signer string) (*MsgSubmitMisbehaviour, error) {
+func NewMsgSubmitMisbehaviour(clientID string, misbehaviour exported.Misbehaviour, signer sdk.AccAddress) (*MsgSubmitMisbehaviour, error) {
 	anyMisbehaviour, err := PackMisbehaviour(misbehaviour)
 	if err != nil {
 		return nil, err
@@ -237,8 +285,16 @@ func NewMsgSubmitMisbehaviour(clientID string, misbehaviour exported.Misbehaviou
 	return &MsgSubmitMisbehaviour{
 		ClientId:     clientID,
 		Misbehaviour: anyMisbehaviour,
-		Signer:       signer,
+		Signer:       signer.String(),
 	}, nil
+}
+
+// Route returns the MsgSubmitClientMisbehaviour's route.
+func (msg MsgSubmitMisbehaviour) Route() string { return host.RouterKey }
+
+// Type returns the MsgSubmitMisbehaviour's type.
+func (msg MsgSubmitMisbehaviour) Type() string {
+	return TypeMsgSubmitMisbehaviour
 }
 
 // ValidateBasic performs basic (non-state-dependant) validation on a MsgSubmitMisbehaviour.
@@ -263,6 +319,12 @@ func (msg MsgSubmitMisbehaviour) ValidateBasic() error {
 	}
 
 	return host.ClientIdentifierValidator(msg.ClientId)
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgSubmitMisbehaviour) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners returns the single expected signer for a MsgSubmitMisbehaviour.

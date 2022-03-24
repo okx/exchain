@@ -1,21 +1,23 @@
 package cli
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	channelutils "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/client/utils"
+	"github.com/spf13/cobra"
 	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	channelutils "github.com/cosmos/ibc-go/v2/modules/core/04-channel/client/utils"
 )
 
 const (
@@ -25,7 +27,7 @@ const (
 )
 
 // NewTransferTxCmd returns the command to create a NewMsgTransfer transaction
-func NewTransferTxCmd() *cobra.Command {
+func NewTransferTxCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer [src-port] [src-channel] [receiver] [amount]",
 		Short: "Transfer a fungible token through IBC",
@@ -35,14 +37,14 @@ in the form {revision}-{height} using the "packet-timeout-height" flag. Relative
 height queried from the latest consensus state corresponding to the counterparty channel. Relative timeout timestamp 
 is added to the greater value of the local clock time and the block timestamp queried from the latest consensus state 
 corresponding to the counterparty channel. Any timeout set to 0 is disabled.`),
-		Example: fmt.Sprintf("%s tx ibc-transfer transfer [src-port] [src-channel] [receiver] [amount]", version.AppName),
+		Example: fmt.Sprintf("%s tx ibc-transfer transfer [src-port] [src-channel] [receiver] [amount]", version.ServerName),
 		Args:    cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
-			if err != nil {
-				return err
-			}
-			sender := clientCtx.GetFromAddress().String()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+
+			sender := clientCtx.GetFromAddress()
 			srcPort := args[0]
 			srcChannel := args[1]
 			receiver := args[2]
@@ -113,7 +115,7 @@ corresponding to the counterparty channel. Any timeout set to 0 is disabled.`),
 			msg := types.NewMsgTransfer(
 				srcPort, srcChannel, coin, sender, receiver, timeoutHeight, timeoutTimestamp,
 			)
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 

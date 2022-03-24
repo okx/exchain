@@ -3,11 +3,11 @@ package types
 import (
 	"encoding/base64"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
 var _ sdk.Msg = &MsgChannelOpenInit{}
@@ -17,15 +17,25 @@ var _ sdk.Msg = &MsgChannelOpenInit{}
 // nolint:interfacer
 func NewMsgChannelOpenInit(
 	portID, version string, channelOrder Order, connectionHops []string,
-	counterpartyPortID string, signer string,
+	counterpartyPortID string, signer sdk.AccAddress,
 ) *MsgChannelOpenInit {
 	counterparty := NewCounterparty(counterpartyPortID, "")
 	channel := NewChannel(INIT, channelOrder, counterparty, connectionHops, version)
 	return &MsgChannelOpenInit{
 		PortId:  portID,
 		Channel: channel,
-		Signer:  signer,
+		Signer:  signer.String(),
 	}
+}
+
+// Route implements sdk.Msg
+func (msg MsgChannelOpenInit) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelOpenInit) Type() string {
+	return "channel_open_init"
 }
 
 // ValidateBasic implements sdk.Msg
@@ -47,6 +57,12 @@ func (msg MsgChannelOpenInit) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return msg.Channel.ValidateBasic()
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelOpenInit) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners implements sdk.Msg
@@ -78,6 +94,16 @@ func NewMsgChannelOpenTry(
 		ProofHeight:         proofHeight,
 		Signer:              signer,
 	}
+}
+
+// Route implements sdk.Msg
+func (msg MsgChannelOpenTry) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelOpenTry) Type() string {
+	return "channel_open_try"
 }
 
 // ValidateBasic implements sdk.Msg
@@ -114,6 +140,12 @@ func (msg MsgChannelOpenTry) ValidateBasic() error {
 	return msg.Channel.ValidateBasic()
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelOpenTry) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgChannelOpenTry) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -142,6 +174,16 @@ func NewMsgChannelOpenAck(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgChannelOpenAck) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelOpenAck) Type() string {
+	return "channel_open_ack"
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgChannelOpenAck) ValidateBasic() error {
 	if err := host.PortIdentifierValidator(msg.PortId); err != nil {
@@ -164,6 +206,12 @@ func (msg MsgChannelOpenAck) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelOpenAck) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners implements sdk.Msg
@@ -192,6 +240,16 @@ func NewMsgChannelOpenConfirm(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgChannelOpenConfirm) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelOpenConfirm) Type() string {
+	return "channel_open_confirm"
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgChannelOpenConfirm) ValidateBasic() error {
 	if err := host.PortIdentifierValidator(msg.PortId); err != nil {
@@ -211,6 +269,12 @@ func (msg MsgChannelOpenConfirm) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelOpenConfirm) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners implements sdk.Msg
@@ -236,6 +300,16 @@ func NewMsgChannelCloseInit(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgChannelCloseInit) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelCloseInit) Type() string {
+	return "channel_close_init"
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgChannelCloseInit) ValidateBasic() error {
 	if err := host.PortIdentifierValidator(msg.PortId); err != nil {
@@ -249,6 +323,12 @@ func (msg MsgChannelCloseInit) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelCloseInit) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners implements sdk.Msg
@@ -277,6 +357,16 @@ func NewMsgChannelCloseConfirm(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgChannelCloseConfirm) Route() string {
+	return host.RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg MsgChannelCloseConfirm) Type() string {
+	return "channel_close_confirm"
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgChannelCloseConfirm) ValidateBasic() error {
 	if err := host.PortIdentifierValidator(msg.PortId); err != nil {
@@ -296,6 +386,12 @@ func (msg MsgChannelCloseConfirm) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgChannelCloseConfirm) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetSigners implements sdk.Msg
@@ -323,6 +419,11 @@ func NewMsgRecvPacket(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgRecvPacket) Route() string {
+	return host.RouterKey
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgRecvPacket) ValidateBasic() error {
 	if len(msg.ProofCommitment) == 0 {
@@ -336,6 +437,12 @@ func (msg MsgRecvPacket) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
 	return msg.Packet.ValidateBasic()
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgRecvPacket) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
 }
 
 // GetDataSignBytes returns the base64-encoded bytes used for the
@@ -354,6 +461,11 @@ func (msg MsgRecvPacket) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{signer}
 }
 
+// Type implements sdk.Msg
+func (msg MsgRecvPacket) Type() string {
+	return "recv_packet"
+}
+
 var _ sdk.Msg = &MsgTimeout{}
 
 // NewMsgTimeout constructs new MsgTimeout
@@ -369,6 +481,11 @@ func NewMsgTimeout(
 		ProofHeight:      proofHeight,
 		Signer:           signer,
 	}
+}
+
+// Route implements sdk.Msg
+func (msg MsgTimeout) Route() string {
+	return host.RouterKey
 }
 
 // ValidateBasic implements sdk.Msg
@@ -389,6 +506,12 @@ func (msg MsgTimeout) ValidateBasic() error {
 	return msg.Packet.ValidateBasic()
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgTimeout) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgTimeout) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -396,6 +519,11 @@ func (msg MsgTimeout) GetSigners() []sdk.AccAddress {
 		panic(err)
 	}
 	return []sdk.AccAddress{signer}
+}
+
+// Type implements sdk.Msg
+func (msg MsgTimeout) Type() string {
+	return "timeout_packet"
 }
 
 // NewMsgTimeoutOnClose constructs new MsgTimeoutOnClose
@@ -413,6 +541,11 @@ func NewMsgTimeoutOnClose(
 		ProofHeight:      proofHeight,
 		Signer:           signer,
 	}
+}
+
+// Route implements sdk.Msg
+func (msg MsgTimeoutOnClose) Route() string {
+	return host.RouterKey
 }
 
 // ValidateBasic implements sdk.Msg
@@ -436,6 +569,12 @@ func (msg MsgTimeoutOnClose) ValidateBasic() error {
 	return msg.Packet.ValidateBasic()
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgTimeoutOnClose) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgTimeoutOnClose) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -443,6 +582,11 @@ func (msg MsgTimeoutOnClose) GetSigners() []sdk.AccAddress {
 		panic(err)
 	}
 	return []sdk.AccAddress{signer}
+}
+
+// Type implements sdk.Msg
+func (msg MsgTimeoutOnClose) Type() string {
+	return "timeout_on_close_packet"
 }
 
 var _ sdk.Msg = &MsgAcknowledgement{}
@@ -464,6 +608,11 @@ func NewMsgAcknowledgement(
 	}
 }
 
+// Route implements sdk.Msg
+func (msg MsgAcknowledgement) Route() string {
+	return host.RouterKey
+}
+
 // ValidateBasic implements sdk.Msg
 func (msg MsgAcknowledgement) ValidateBasic() error {
 	if len(msg.ProofAcked) == 0 {
@@ -482,6 +631,12 @@ func (msg MsgAcknowledgement) ValidateBasic() error {
 	return msg.Packet.ValidateBasic()
 }
 
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgAcknowledgement) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgAcknowledgement) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -489,4 +644,9 @@ func (msg MsgAcknowledgement) GetSigners() []sdk.AccAddress {
 		panic(err)
 	}
 	return []sdk.AccAddress{signer}
+}
+
+// Type implements sdk.Msg
+func (msg MsgAcknowledgement) Type() string {
+	return "acknowledge_packet"
 }

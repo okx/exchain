@@ -3,32 +3,30 @@ package utils
 import (
 	"context"
 	"fmt"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client/utils"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/client"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clientutils "github.com/cosmos/ibc-go/v2/modules/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibcclient "github.com/cosmos/ibc-go/v2/modules/core/client"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
 )
 
 // QueryConnection returns a connection end.
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryConnection(
-	clientCtx client.Context, connectionID string, prove bool,
+	clientCtx clictx.CLIContext, connectionID string, prove bool,
 ) (*types.QueryConnectionResponse, error) {
 	if prove {
 		return queryConnectionABCI(clientCtx, connectionID)
 	}
-
 	queryClient := types.NewQueryClient(clientCtx)
 	req := &types.QueryConnectionRequest{
 		ConnectionId: connectionID,
@@ -37,7 +35,7 @@ func QueryConnection(
 	return queryClient.Connection(context.Background(), req)
 }
 
-func queryConnectionABCI(clientCtx client.Context, connectionID string) (*types.QueryConnectionResponse, error) {
+func queryConnectionABCI(clientCtx clictx.CLIContext, connectionID string) (*types.QueryConnectionResponse, error) {
 	key := host.ConnectionKey(connectionID)
 
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
@@ -53,7 +51,7 @@ func queryConnectionABCI(clientCtx client.Context, connectionID string) (*types.
 	cdc := codec.NewProtoCodec(clientCtx.InterfaceRegistry)
 
 	var connection types.ConnectionEnd
-	if err := cdc.Unmarshal(value, &connection); err != nil {
+	if err := cdc.UnmarshalBinaryBare(value, &connection); err != nil {
 		return nil, err
 	}
 
@@ -64,7 +62,7 @@ func queryConnectionABCI(clientCtx client.Context, connectionID string) (*types.
 // If prove is true, it performs an ABCI store query in order to retrieve the merkle proof. Otherwise,
 // it uses the gRPC query client.
 func QueryClientConnections(
-	clientCtx client.Context, clientID string, prove bool,
+	clientCtx clictx.CLIContext, clientID string, prove bool,
 ) (*types.QueryClientConnectionsResponse, error) {
 	if prove {
 		return queryClientConnectionsABCI(clientCtx, clientID)
@@ -78,7 +76,7 @@ func QueryClientConnections(
 	return queryClient.ClientConnections(context.Background(), req)
 }
 
-func queryClientConnectionsABCI(clientCtx client.Context, clientID string) (*types.QueryClientConnectionsResponse, error) {
+func queryClientConnectionsABCI(clientCtx clictx.CLIContext, clientID string) (*types.QueryClientConnectionsResponse, error) {
 	key := host.ClientConnectionsKey(clientID)
 
 	value, proofBz, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
@@ -92,7 +90,7 @@ func queryClientConnectionsABCI(clientCtx client.Context, clientID string) (*typ
 	}
 
 	var paths []string
-	if err := clientCtx.LegacyAmino.Unmarshal(value, &paths); err != nil {
+	if err := clientCtx.CodecProy.GetCdc().UnmarshalBinaryBare(value, &paths); err != nil {
 		return nil, err
 	}
 
@@ -103,7 +101,7 @@ func queryClientConnectionsABCI(clientCtx client.Context, clientID string) (*typ
 // prove is true, it performs an ABCI store query in order to retrieve the
 // merkle proof. Otherwise, it uses the gRPC query client.
 func QueryConnectionClientState(
-	clientCtx client.Context, connectionID string, prove bool,
+	clientCtx clictx.CLIContext, connectionID string, prove bool,
 ) (*types.QueryConnectionClientStateResponse, error) {
 
 	queryClient := types.NewQueryClient(clientCtx)
@@ -117,7 +115,7 @@ func QueryConnectionClientState(
 	}
 
 	if prove {
-		clientStateRes, err := clientutils.QueryClientStateABCI(clientCtx, res.IdentifiedClientState.ClientId)
+		clientStateRes, err := utils.QueryClientStateABCI(clientCtx, res.IdentifiedClientState.ClientId)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +136,7 @@ func QueryConnectionClientState(
 // prove is true, it performs an ABCI store query in order to retrieve the
 // merkle proof. Otherwise, it uses the gRPC query client.
 func QueryConnectionConsensusState(
-	clientCtx client.Context, connectionID string, height clienttypes.Height, prove bool,
+	clientCtx clictx.CLIContext, connectionID string, height clienttypes.Height, prove bool,
 ) (*types.QueryConnectionConsensusStateResponse, error) {
 
 	queryClient := types.NewQueryClient(clientCtx)
@@ -154,7 +152,7 @@ func QueryConnectionConsensusState(
 	}
 
 	if prove {
-		consensusStateRes, err := clientutils.QueryConsensusStateABCI(clientCtx, res.ClientId, height)
+		consensusStateRes, err := utils.QueryConsensusStateABCI(clientCtx, res.ClientId, height)
 		if err != nil {
 			return nil, err
 		}
@@ -167,15 +165,15 @@ func QueryConnectionConsensusState(
 
 // ParseClientState unmarshals a cmd input argument from a JSON string to a client state
 // If the input is not a JSON, it looks for a path to the JSON file
-func ParseClientState(cdc *codec.LegacyAmino, arg string) (exported.ClientState, error) {
+func ParseClientState(cdc *codec.CodecProxy, arg string) (exported.ClientState, error) {
 	var clientState exported.ClientState
-	if err := cdc.UnmarshalJSON([]byte(arg), &clientState); err != nil {
+	if err := cdc.GetCdc().UnmarshalJSON([]byte(arg), &clientState); err != nil {
 		// check for file path if JSON input is not provided
 		contents, err := ioutil.ReadFile(arg)
 		if err != nil {
 			return nil, errors.New("either JSON input nor path to .json file were provided")
 		}
-		if err := cdc.UnmarshalJSON(contents, &clientState); err != nil {
+		if err := cdc.GetCdc().UnmarshalJSON(contents, &clientState); err != nil {
 			return nil, errors.Wrap(err, "error unmarshalling client state")
 		}
 	}
@@ -184,15 +182,15 @@ func ParseClientState(cdc *codec.LegacyAmino, arg string) (exported.ClientState,
 
 // ParsePrefix unmarshals an cmd input argument from a JSON string to a commitment
 // Prefix. If the input is not a JSON, it looks for a path to the JSON file.
-func ParsePrefix(cdc *codec.LegacyAmino, arg string) (commitmenttypes.MerklePrefix, error) {
+func ParsePrefix(cdc *codec.CodecProxy, arg string) (commitmenttypes.MerklePrefix, error) {
 	var prefix commitmenttypes.MerklePrefix
-	if err := cdc.UnmarshalJSON([]byte(arg), &prefix); err != nil {
+	if err := cdc.GetCdc().UnmarshalJSON([]byte(arg), &prefix); err != nil {
 		// check for file path if JSON input is not provided
 		contents, err := ioutil.ReadFile(arg)
 		if err != nil {
 			return commitmenttypes.MerklePrefix{}, errors.New("neither JSON input nor path to .json file were provided")
 		}
-		if err := cdc.UnmarshalJSON(contents, &prefix); err != nil {
+		if err := cdc.GetCdc().UnmarshalJSON(contents, &prefix); err != nil {
 			return commitmenttypes.MerklePrefix{}, errors.Wrap(err, "error unmarshalling commitment prefix")
 		}
 	}
@@ -202,18 +200,18 @@ func ParsePrefix(cdc *codec.LegacyAmino, arg string) (commitmenttypes.MerklePref
 // ParseProof unmarshals a cmd input argument from a JSON string to a commitment
 // Proof. If the input is not a JSON, it looks for a path to the JSON file. It
 // then marshals the commitment proof into a proto encoded byte array.
-func ParseProof(cdc *codec.LegacyAmino, arg string) ([]byte, error) {
+func ParseProof(cdc *codec.CodecProxy, arg string) ([]byte, error) {
 	var merkleProof commitmenttypes.MerkleProof
-	if err := cdc.UnmarshalJSON([]byte(arg), &merkleProof); err != nil {
+	if err := cdc.GetCdc().UnmarshalJSON([]byte(arg), &merkleProof); err != nil {
 		// check for file path if JSON input is not provided
 		contents, err := ioutil.ReadFile(arg)
 		if err != nil {
 			return nil, errors.New("neither JSON input nor path to .json file were provided")
 		}
-		if err := cdc.UnmarshalJSON(contents, &merkleProof); err != nil {
+		if err := cdc.GetCdc().UnmarshalJSON(contents, &merkleProof); err != nil {
 			return nil, fmt.Errorf("error unmarshalling commitment proof: %w", err)
 		}
 	}
 
-	return cdc.Marshal(&merkleProof)
+	return cdc.GetCdc().MarshalJSON(&merkleProof)
 }

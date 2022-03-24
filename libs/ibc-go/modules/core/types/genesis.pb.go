@@ -5,9 +5,13 @@ package types
 
 import (
 	fmt "fmt"
-	types "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	types1 "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	types2 "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	 "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	types1 "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	types2 "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+
+	//types "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	//types1 "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	//types2 "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"

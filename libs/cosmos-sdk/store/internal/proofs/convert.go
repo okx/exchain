@@ -2,10 +2,10 @@ package proofs
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
 	"math/bits"
 
 	ics23 "github.com/confio/ics23/go"
-	"github.com/tendermint/tendermint/proto/tendermint/crypto"
 )
 
 // ConvertExistenceProof will convert the given proof into a valid
@@ -13,7 +13,7 @@ import (
 //
 // This is the simplest case of the range proof and we will focus on
 // demoing compatibility here
-func ConvertExistenceProof(p *crypto.Proof, key, value []byte) (*ics23.ExistenceProof, error) {
+func ConvertExistenceProof(p *merkle.SimpleProof, key, value []byte) (*ics23.ExistenceProof, error) {
 	path, err := convertInnerOps(p)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func convertLeafOp() *ics23.LeafOp {
 	}
 }
 
-func convertInnerOps(p *crypto.Proof) ([]*ics23.InnerOp, error) {
+func convertInnerOps(p *merkle.SimpleProof) ([]*ics23.InnerOp, error) {
 	inners := make([]*ics23.InnerOp, 0, len(p.Aunts))
 	path := buildPath(p.Index, p.Total)
 

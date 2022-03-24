@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/types/kv"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 )
 
 // TransferUnmarshaler defines the expected encoding store functions.
@@ -15,15 +16,15 @@ type TransferUnmarshaler interface {
 
 // NewDecodeStore returns a decoder function closure that unmarshals the KVPair's
 // Value to the corresponding DenomTrace type.
-func NewDecodeStore(cdc TransferUnmarshaler) func(kvA, kvB kv.Pair) string {
-	return func(kvA, kvB kv.Pair) string {
+func NewDecodeStore(kCdc TransferUnmarshaler) func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
+	return func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
 		switch {
 		case bytes.Equal(kvA.Key[:1], types.PortKey):
 			return fmt.Sprintf("Port A: %s\nPort B: %s", string(kvA.Value), string(kvB.Value))
 
 		case bytes.Equal(kvA.Key[:1], types.DenomTraceKey):
-			denomTraceA := cdc.MustUnmarshalDenomTrace(kvA.Value)
-			denomTraceB := cdc.MustUnmarshalDenomTrace(kvB.Value)
+			denomTraceA := kCdc.MustUnmarshalDenomTrace(kvA.Value)
+			denomTraceB := kCdc.MustUnmarshalDenomTrace(kvB.Value)
 			return fmt.Sprintf("DenomTrace A: %s\nDenomTrace B: %s", denomTraceA.IBCDenom(), denomTraceB.IBCDenom())
 
 		default:

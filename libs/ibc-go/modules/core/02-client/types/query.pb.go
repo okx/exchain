@@ -6,8 +6,8 @@ package types
 import (
 	context "context"
 	fmt "fmt"
-	types "github.com/cosmos/cosmos-sdk/codec/types"
-	query "github.com/cosmos/cosmos-sdk/types/query"
+	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	query "github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	_ "github.com/gogo/protobuf/gogoproto"
 	grpc1 "github.com/gogo/protobuf/grpc"
 	proto "github.com/gogo/protobuf/proto"
@@ -1064,9 +1064,9 @@ type QueryServer interface {
 	// ClientParams queries all parameters of the ibc client.
 	ClientParams(context.Context, *QueryClientParamsRequest) (*QueryClientParamsResponse, error)
 	// UpgradedClientState queries an Upgraded IBC light client.
-	UpgradedClientState(context.Context, *QueryUpgradedClientStateRequest) (*QueryUpgradedClientStateResponse, error)
+	//UpgradedClientState(context.Context, *QueryUpgradedClientStateRequest) (*QueryUpgradedClientStateResponse, error)
 	// UpgradedConsensusState queries an Upgraded IBC consensus state.
-	UpgradedConsensusState(context.Context, *QueryUpgradedConsensusStateRequest) (*QueryUpgradedConsensusStateResponse, error)
+	//UpgradedConsensusState(context.Context, *QueryUpgradedConsensusStateRequest) (*QueryUpgradedConsensusStateResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -1210,41 +1210,41 @@ func _Query_ClientParams_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_UpgradedClientState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryUpgradedClientStateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).UpgradedClientState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ibc.core.client.v1.Query/UpgradedClientState",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).UpgradedClientState(ctx, req.(*QueryUpgradedClientStateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _Query_UpgradedClientState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(QueryUpgradedClientStateRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(QueryServer).UpgradedClientState(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/ibc.core.client.v1.Query/UpgradedClientState",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(QueryServer).UpgradedClientState(ctx, req.(*QueryUpgradedClientStateRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
-func _Query_UpgradedConsensusState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryUpgradedConsensusStateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).UpgradedConsensusState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ibc.core.client.v1.Query/UpgradedConsensusState",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).UpgradedConsensusState(ctx, req.(*QueryUpgradedConsensusStateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _Query_UpgradedConsensusState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(QueryUpgradedConsensusStateRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(QueryServer).UpgradedConsensusState(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/ibc.core.client.v1.Query/UpgradedConsensusState",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(QueryServer).UpgradedConsensusState(ctx, req.(*QueryUpgradedConsensusStateRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "ibc.core.client.v1.Query",
@@ -1274,14 +1274,14 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			MethodName: "ClientParams",
 			Handler:    _Query_ClientParams_Handler,
 		},
-		{
-			MethodName: "UpgradedClientState",
-			Handler:    _Query_UpgradedClientState_Handler,
-		},
-		{
-			MethodName: "UpgradedConsensusState",
-			Handler:    _Query_UpgradedConsensusState_Handler,
-		},
+		// {
+		// 	MethodName: "UpgradedClientState",
+		// 	Handler:    _Query_UpgradedClientState_Handler,
+		// },
+		// {
+		// 	MethodName: "UpgradedConsensusState",
+		// 	Handler:    _Query_UpgradedConsensusState_Handler,
+		// },
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "ibc/core/client/v1/query.proto",

@@ -1,30 +1,28 @@
-package client
+package context
 
 import (
 	gocontext "context"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	grpctypes "github.com/okex/exchain/libs/cosmos-sdk/types/grpc"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"reflect"
 	"strconv"
 
 	gogogrpc "github.com/gogo/protobuf/grpc"
-	abci "github.com/tendermint/tendermint/abci/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/cosmos/cosmos-sdk/codec/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
-	"github.com/cosmos/cosmos-sdk/types/tx"
 )
 
-var _ gogogrpc.ClientConn = Context{}
+var _ gogogrpc.ClientConn = CLIContext{}
 
 var protoCodec = encoding.GetCodec(proto.Name)
 
 // Invoke implements the grpc ClientConn.Invoke method
-func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply interface{}, opts ...grpc.CallOption) (err error) {
+func (ctx CLIContext) Invoke(grpcCtx gocontext.Context, method string, req, reply interface{}, opts ...grpc.CallOption) (err error) {
 	// Two things can happen here:
 	// 1. either we're broadcasting a Tx, in which call we call Tendermint's broadcast endpoint directly,
 	// 2. or we are querying for state, in which case we call ABCI's Query.
@@ -32,22 +30,6 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 	// In both cases, we don't allow empty request args (it will panic unexpectedly).
 	if reflect.ValueOf(req).IsNil() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "request cannot be nil")
-	}
-
-	// Case 1. Broadcasting a Tx.
-	if reqProto, ok := req.(*tx.BroadcastTxRequest); ok {
-		res, ok := reply.(*tx.BroadcastTxResponse)
-		if !ok {
-			return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxResponse)(nil), req)
-		}
-
-		broadcastRes, err := TxServiceBroadcast(grpcCtx, ctx, reqProto)
-		if err != nil {
-			return err
-		}
-		*res = *broadcastRes
-
-		return err
 	}
 
 	// Case 2. Querying state.
@@ -111,6 +93,6 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 }
 
 // NewStream implements the grpc ClientConn.NewStream method
-func (Context) NewStream(gocontext.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
+func (CLIContext) NewStream(gocontext.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
 	return nil, fmt.Errorf("streaming rpc not supported")
 }

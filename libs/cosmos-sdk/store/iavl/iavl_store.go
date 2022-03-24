@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -37,6 +38,8 @@ var (
 type Store struct {
 	tree        Tree
 	flatKVStore *flatkv.Store
+	//for upgrade
+	upgradeVersion int64
 }
 
 func (st *Store) StopStore() {
@@ -75,8 +78,9 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	}
 
 	st := &Store{
-		tree:        tree,
-		flatKVStore: flatkv.NewStore(flatKVDB),
+		tree:           tree,
+		flatKVStore:    flatkv.NewStore(flatKVDB),
+		upgradeVersion: -1,
 	}
 
 	if err = st.ValidateFlatVersion(); err != nil {
@@ -139,6 +143,11 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 	if inputDelta != nil {
 		flag = true
 		st.tree.SetDelta(inputDelta)
+	}
+	ver := st.GetUpgradeVersion()
+	if ver != -1 {
+		st.tree.UpgradeVersion(ver)
+		st.UpgradeVersion(-1)
 	}
 	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
@@ -280,6 +289,9 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
+	if tmtypes.HigherThanIBCHeight(req.Height) {
+		return st.queryKeyForIBC(req)
+	}
 	if len(req.Data) == 0 {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
@@ -565,4 +577,12 @@ func (st *Store) Import(version int64) (*iavl.Importer, error) {
 		return nil, errors.New("iavl import failed: unable to find mutable tree")
 	}
 	return tree.Import(version)
+}
+
+func (st *Store) UpgradeVersion(version int64) {
+	st.upgradeVersion = version
+}
+
+func (st *Store) GetUpgradeVersion() int64 {
+	return st.upgradeVersion
 }

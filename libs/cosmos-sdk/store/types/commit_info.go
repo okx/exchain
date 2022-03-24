@@ -2,12 +2,11 @@ package types
 
 import (
 	fmt "fmt"
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	sdkproofs "github.com/okex/exchain/libs/cosmos-sdk/store/internal/proofs"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	ics23 "github.com/confio/ics23/go"
-	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-
-	sdkmaps "github.com/cosmos/cosmos-sdk/store/internal/maps"
-	sdkproofs "github.com/cosmos/cosmos-sdk/store/internal/proofs"
 )
 
 // GetHash returns the GetHash from the CommitID.
@@ -41,7 +40,7 @@ func (ci CommitInfo) Hash() []byte {
 	return rootHash
 }
 
-func (ci CommitInfo) ProofOp(storeName string) tmcrypto.ProofOp {
+func (ci CommitInfo) ProofOp(storeName string) merkle.ProofOp {
 	cmap := ci.toMap()
 	_, proofs, _ := sdkmaps.ProofsFromMap(cmap)
 

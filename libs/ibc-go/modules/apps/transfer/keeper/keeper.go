@@ -1,24 +1,26 @@
 package keeper
 
 import (
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	"github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Keeper defines the IBC fungible transfer keeper
 type Keeper struct {
 	storeKey   sdk.StoreKey
-	cdc        codec.BinaryCodec
+	cdc        *codec.CodecProxy
 	paramSpace paramtypes.Subspace
 
 	channelKeeper types.ChannelKeeper
@@ -26,15 +28,21 @@ type Keeper struct {
 	authKeeper    types.AccountKeeper
 	bankKeeper    types.BankKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
+
+	hooks     types.TransferHooks
+	ibcFactor int64
 }
 
 // NewKeeper creates a new IBC transfer Keeper instance
 func NewKeeper(
-	cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
+	proxy *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper,
 	authKeeper types.AccountKeeper, bankKeeper types.BankKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
+	registry types2.InterfaceRegistry,
 ) Keeper {
 
+	//mm := codec.NewProtoCodec(registry)
+	//proxy:=codec.NewMarshalProxy(mm,cdc)
 	// ensure ibc transfer module account is set
 	if addr := authKeeper.GetModuleAddress(types.ModuleName); addr == nil {
 		panic("the IBC transfer module account has not been set")
@@ -46,14 +54,15 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		cdc:           cdc,
 		storeKey:      key,
+		cdc:           proxy,
 		paramSpace:    paramSpace,
 		channelKeeper: channelKeeper,
 		portKeeper:    portKeeper,
 		authKeeper:    authKeeper,
 		bankKeeper:    bankKeeper,
 		scopedKeeper:  scopedKeeper,
+		ibcFactor:     1000000,
 	}
 }
 
@@ -63,8 +72,19 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // GetTransferAccount returns the ICS20 - transfers ModuleAccount
-func (k Keeper) GetTransferAccount(ctx sdk.Context) authtypes.ModuleAccountI {
+func (k Keeper) GetTransferAccount(ctx sdk.Context) exported.ModuleAccountI {
 	return k.authKeeper.GetModuleAccount(ctx, types.ModuleName)
+}
+
+// ChanCloseInit defines a wrapper function for the channel Keeper's function
+// in order to expose it to the ICS20 transfer handler.
+func (k Keeper) ChanCloseInit(ctx sdk.Context, portID, channelID string) error {
+	capName := host.ChannelCapabilityPath(portID, channelID)
+	chanCap, ok := k.scopedKeeper.GetCapability(ctx, capName)
+	if !ok {
+		return sdkerrors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "could not retrieve channel capability at: %s", capName)
+	}
+	return k.channelKeeper.ChanCloseInit(ctx, portID, channelID, chanCap)
 }
 
 // IsBound checks if the transfer module is already bound to the desired port
@@ -99,7 +119,6 @@ func (k Keeper) GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) 
 	if bz == nil {
 		return types.DenomTrace{}, false
 	}
-
 	denomTrace := k.MustUnmarshalDenomTrace(bz)
 	return denomTrace, true
 }
@@ -153,4 +172,9 @@ func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Cap
 // passes to it
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
+}
+
+// Codec returns the IBC module codec.
+func (k Keeper) Codec() *codec.CodecProxy {
+	return k.cdc
 }

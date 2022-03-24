@@ -1,0 +1,15 @@
+{
+  "dst": {
+    "chain-id": "exchain-101",
+    "port-id": "transfer",
+    "order": "unordered",
+    "version": "ics20-1"
+  },
+  "src": {
+    "chain-id": "exchain-100",
+    "port-id": "transfer",
+    "order": "unordered",
+    "version": "ics20-1"
+  },
+  "strategy": { "type": "naive" }
+}

@@ -1,10 +1,8 @@
 package types
 
-import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-)
+import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
-// IBC transfer sentinel errors
+// IBC channel sentinel errors
 var (
 	ErrInvalidPacketTimeout    = sdkerrors.Register(ModuleName, 2, "invalid packet timeout")
 	ErrInvalidDenomForTransfer = sdkerrors.Register(ModuleName, 3, "invalid denomination for cross-chain transfer")

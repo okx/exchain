@@ -172,7 +172,9 @@ func (m *CanonicalProposal) XXX_Size() int {
 func (m *CanonicalProposal) XXX_DiscardUnknown() {
 	xxx_messageInfo_CanonicalProposal.DiscardUnknown(m)
 }
-
+const (
+	UnknownType SignedMsgType = 0
+)
 var xxx_messageInfo_CanonicalProposal proto.InternalMessageInfo
 
 func (m *CanonicalProposal) GetType() SignedMsgType {
