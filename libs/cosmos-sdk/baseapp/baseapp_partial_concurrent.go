@@ -616,7 +616,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		handleGasFn := func() {
 			gasStart := time.Now()
 
-			dm.updateFeeCollector()
+			//dm.updateFeeCollector()
 
 			// todo: will change account. Account updated.
 			//dm.app.logger.Info("handleDeferRefund", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
@@ -703,8 +703,8 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 	// all txs are executed
 	if finished == dm.totalCount {
-		//// update fee collector
-		//dm.updateFeeCollector()
+		// update fee collector
+		dm.updateFeeCollector()
 		dm.app.logger.Info("TotalTxFeeForCollector", "fee", dm.currTxFee)
 
 		dm.done <- 0
