@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
@@ -929,6 +928,11 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 	}
 }
 
+func (cs *State) requestForProposer() {
+	// broadcast ProposeRequestMessage
+	cs.evsw.FireEvent(types.EventProposeRequest, cs.Height)
+}
+
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
 // and where the last block (height-1) caused the app hash to change
 func (cs *State) needProofBlock(height int64) bool {
@@ -1620,6 +1624,9 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	cs.trc.Pin("Waiting")
+
+	// request for proposer of new height
+	cs.requestForProposer()
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
@@ -1628,22 +1635,6 @@ func (cs *State) finalizeCommit(height int64) {
 	// * cs.Height has been increment to height+1
 	// * cs.Step is now cstypes.RoundStepNewHeight
 	// * cs.StartTime is set to when we will start round0.
-}
-
-func (cs *State) viewChangeRoutine(ctx context.Context) {
-	t := time.After(time.Second * 3)
-	loop := true
-	for loop {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t:
-			loop = false
-		}
-	}
-
-	// the event is broadcastViewChangeMessage
-	cs.evsw.FireEvent(types.EventViewChange, nil)
 }
 
 func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {

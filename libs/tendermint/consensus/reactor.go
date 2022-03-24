@@ -336,7 +336,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 					// todo vc after scheduleRound0
 				}
 			}
-		case *ProposeBlockRequestMessage:
+		case *ProposeRequestMessage:
 			// this peer need vc, and it has not vc before
 			if conR.conS.Height < msg.Height && !conR.conS.hasViewChanged {
 				// broadcast vc message
@@ -504,6 +504,10 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
+		func(data tmevents.EventData) {
+			conR.broadcastProposeRequestMessage(data.(int64))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -511,15 +515,20 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
-func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
-	nrsMsg := makeRoundStepMessage(rs)
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
+func (conR *Reactor) broadcastProposeRequestMessage(height int64) {
+	prMsg := ProposeRequestMessage{height}
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
 func (conR *Reactor) broadcastViewChangeMessage(height int64, address []byte) {
 	_, val := conR.conS.Validators.GetByAddress(address)
 	vcMsg := ViewChangeMessage{height, *val}
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(vcMsg))
+}
+
+func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
+	nrsMsg := makeRoundStepMessage(rs)
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
 }
 
 func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
@@ -1524,7 +1533,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
-	cdc.RegisterConcrete(&ProposeBlockRequestMessage{}, "tendermint/ProposeBlockRequestMessage", nil)
+	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1537,12 +1546,12 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 
 //-------------------------------------
 
-// ProposeBlockRequestMessage from other peer for request the latest height of consensus block
- type ProposeBlockRequestMessage struct {
+// ProposeRequestMessage from other peer for request the latest height of consensus block
+ type ProposeRequestMessage struct {
  	Height	int64
  }
 
- func (m *ProposeBlockRequestMessage) ValidateBasic() error {
+ func (m *ProposeRequestMessage) ValidateBasic() error {
 	 if m.Height < 0 {
 		 return errors.New("negative Height")
 	 }
