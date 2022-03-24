@@ -137,7 +137,7 @@ func iteratorMpt(ctx *server.Context, name string) {
 		}
 
 	case evmtypes.StoreKey:
-		evmMptDb := mpt.InstanceOfAccStore()
+		evmMptDb := mpt.InstanceOfEvmStore()
 		hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 		panicError(err)
 		rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
@@ -146,11 +146,14 @@ func iteratorMpt(ctx *server.Context, name string) {
 		panicError(err)
 		fmt.Println("evmTrie root hash:", evmTrie.Hash())
 
+		var stateRoot ethcmn.Hash
 		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 		for itr.Next() {
 			addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
 			addrHash := ethcrypto.Keccak256Hash(addr[:])
-			contractTrie := getTrie(evmMptDb, addrHash)
+			stateRoot.SetBytes(itr.Value)
+
+			contractTrie := getTrie(evmMptDb, addrHash, stateRoot)
 			fmt.Println(addr.String(), contractTrie.Hash())
 
 			cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
@@ -202,7 +205,7 @@ func migrateMpt2Iavl(ctx *server.Context, name string) {
 
 	case evmtypes.StoreKey:
 		iavl.SetIgnoreVersionCheck(true)
-		evmMptDb := mpt.InstanceOfAccStore()
+		evmMptDb := mpt.InstanceOfEvmStore()
 		hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
 		panicError(err)
 		rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
@@ -226,11 +229,14 @@ func migrateMpt2Iavl(ctx *server.Context, name string) {
 			panic("fail to create iavl tree: " + err.Error())
 		}
 
+		var stateRoot ethcmn.Hash
 		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 		for itr.Next() {
 			addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
 			addrHash := ethcrypto.Keccak256Hash(addr[:])
-			contractTrie := getTrie(evmMptDb, addrHash)
+			stateRoot.SetBytes(itr.Value)
+
+			contractTrie := getTrie(evmMptDb, addrHash, stateRoot)
 			fmt.Println(addr.String(), contractTrie.Hash())
 
 			cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
@@ -343,7 +349,7 @@ func migrateContract(ctx *server.Context) {
 
 		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
 		addrHash := ethcrypto.Keccak256Hash(addr[:])
-		contractTrie := getTrie(evmMptDb, addrHash)
+		contractTrie := getTrie(evmMptDb, addrHash, ethcmn.Hash{})
 
 		_ = migApp.EvmKeeper.ForEachStorage(cmCtx, addr, func(key, value ethcmn.Hash) bool {
 			// Encoding []byte cannot fail, ok to ignore the error.
@@ -430,8 +436,8 @@ func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
 	)
 }
 
-func getTrie(db ethstate.Database, addrHash ethcmn.Hash) ethstate.Trie {
-	tr, _ := db.OpenStorageTrie(addrHash, ethcmn.Hash{})
+func getTrie(db ethstate.Database, addrHash ,  stateRoot ethcmn.Hash) ethstate.Trie {
+	tr, _ := db.OpenStorageTrie(addrHash, stateRoot)
 	return tr
 }
 
