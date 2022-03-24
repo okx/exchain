@@ -381,11 +381,6 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 	return ret
 }
 
-type realTxResult struct {
-	Tx abci.TxEssentials
-	Ok bool
-}
-
 //---------------------------------------------------------
 // Helper functions for executing blocks and updating state
 

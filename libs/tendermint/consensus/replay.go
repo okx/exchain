@@ -550,12 +550,7 @@ func (mock *mockProxyApp) PreDeliverRealTx(abci.RequestDeliverTx) abci.TxEssenti
 }
 
 func (mock *mockProxyApp) DeliverRealTx(abci.TxEssentials) abci.ResponseDeliverTx {
-	r := mock.abciResponses.DeliverTxs[mock.txCount]
-	mock.txCount++
-	if r == nil { //it could be nil because of amino unMarshall, it will cause an empty ResponseDeliverTx to become nil
-		return abci.ResponseDeliverTx{}
-	}
-	return *r
+	panic("do not support DeliverRealTx")
 }
 
 func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlock {

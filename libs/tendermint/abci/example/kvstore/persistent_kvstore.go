@@ -86,16 +86,7 @@ func (app *PersistentKVStoreApplication) PreDeliverRealTx(types.RequestDeliverTx
 }
 
 func (app *PersistentKVStoreApplication) DeliverRealTx(tx types.TxEssentials) types.ResponseDeliverTx {
-	// if it starts with "val:", update the validator set
-	// format is "val:pubkey!power"
-	if isValidatorTx(tx.GetRaw()) {
-		// update validators in the merkle tree
-		// and in app.ValUpdates
-		return app.execValidatorTx(tx.GetRaw())
-	}
-
-	// otherwise, update the key-value store
-	return app.app.DeliverRealTx(tx)
+	panic("do not support deliver real tx")
 }
 
 func (app *PersistentKVStoreApplication) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx {
