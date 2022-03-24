@@ -421,7 +421,7 @@ func execBlockOnProxyApp(context *executionTask, mempool mempl.Mempool) (*ABCIRe
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
-	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	// proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
