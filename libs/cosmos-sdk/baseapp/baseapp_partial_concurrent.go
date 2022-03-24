@@ -245,8 +245,8 @@ func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
 }
 
 func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
-	sm.mtx.Lock()
-	defer sm.mtx.Unlock()
+	//sm.mtx.Lock()
+	//defer sm.mtx.Unlock()
 
 	minIndex := -1
 	var task *DeliverTxTask
@@ -292,8 +292,8 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 }
 
 func (sm *sendersMap) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
-	sm.mtx.Lock()
-	defer sm.mtx.Unlock()
+	//sm.mtx.Lock()
+	//defer sm.mtx.Unlock()
 
 	tasks, ok := sm.notFinishedTasks.Load(address)
 	if !ok {
@@ -430,7 +430,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int, task *DeliverTxTask) {
 	//if blockHeight == AssignedBlockHeight {
-	dm.app.logger.Info("MakeNextTask", "task", task == nil, "index", index)
+	//dm.app.logger.Info("MakeNextTask", "task", task == nil, "index", index)
 	//}
 	go dm.runTxPartConcurrent(tx, index, task)
 }
@@ -484,7 +484,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	if dm.app.anteHandler != nil {
 		task.setStep(partialConcurrentStepAnteStart)
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
+		//dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
 		//}
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -542,7 +542,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	//dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	//task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -556,7 +556,7 @@ func (dm *DeliverTxTasksManager) removeFromPending(index int) {
 
 	task, ok := dm.pendingTasks.LoadAndDelete(index)
 	if ok {
-		dm.app.logger.Error("RemoveFromPendingTasks", "index", index)
+		//dm.app.logger.Error("RemoveFromPendingTasks", "index", index)
 		if dm.finished {
 			go dm.makeNextTask(nil, index, task.(*DeliverTxTask))
 		}
@@ -606,7 +606,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
 		//}
 		//start := time.Now()
 
