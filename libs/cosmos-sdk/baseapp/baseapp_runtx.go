@@ -262,7 +262,7 @@ func (app *BaseApp) DeliverTxs(txs []abci.RequestDeliverTx, stopFunc func(int) b
 			}
 		}
 
-		if stopFunc(count) {
+		if stopFunc != nil && stopFunc(count) {
 			resp = resp[:count+1]
 			stopedCh <- struct{}{}
 			close(stopedCh)
