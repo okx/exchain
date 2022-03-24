@@ -234,8 +234,6 @@ func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
 	if task == nil {
 		return
 	}
-	//sm.mtx.Lock()
-	//defer sm.mtx.Unlock()
 
 	_, ok := sm.needRerunTasks.Load(task.index)
 	if ok {
@@ -245,8 +243,8 @@ func (sm *sendersMap) shouldRerun(task *DeliverTxTask) (rerun bool) {
 }
 
 func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
-	//sm.mtx.Lock()
-	//defer sm.mtx.Unlock()
+	sm.mtx.Lock()
+	defer sm.mtx.Unlock()
 
 	minIndex := -1
 	var task *DeliverTxTask
