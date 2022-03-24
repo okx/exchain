@@ -113,12 +113,12 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error) {
 	//query block in cache first
-	/*block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
+	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
 	if err == nil {
 		return block, nil
-	}*/
+	}
 	//query block from watch db
-	block, err := b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
+	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
 	if err == nil {
 		//update block to cache
 		b.backendCache.AddOrUpdateBlock(block.Hash, block)
@@ -151,12 +151,12 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*wat
 // GetBlockByHash returns the block identified by hash.
 func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
 	//query block in cache first
-	/*block, err := b.backendCache.GetBlockByHash(hash)
+	block, err := b.backendCache.GetBlockByHash(hash)
 	if err == nil {
 		return block, err
-	}*/
+	}
 	//query block from watch db
-	block, err := b.wrappedBackend.GetBlockByHash(hash, true)
+	block, err = b.wrappedBackend.GetBlockByHash(hash, true)
 	if err == nil {
 		b.backendCache.AddOrUpdateBlock(hash, block)
 		return block, nil
@@ -381,10 +381,10 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*watch
 
 func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.Transaction, err error) {
 	// query tx in cache first
-	/*tx, err = b.backendCache.GetTransaction(hash)
+	tx, err = b.backendCache.GetTransaction(hash)
 	if err == nil {
 		return tx, err
-	}*/
+	}
 	// query tx in watch db
 	tx, err = b.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {
