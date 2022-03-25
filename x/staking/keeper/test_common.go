@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strconv"
 	"testing"
 	"time"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
@@ -177,7 +178,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	keeper := NewKeeper(cdc, pro, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
+	keeper := NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
 	keeper.SetParams(ctx, types.DefaultParams())
 
 	// set module accounts
