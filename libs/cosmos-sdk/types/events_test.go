@@ -58,7 +58,7 @@ func TestStringifyEvents(t *testing.T) {
 		NewEvent("message", NewAttribute("sender", "foo")),
 		NewEvent("message", NewAttribute("module", "bank")),
 	}
-	se := StringifyEvents(e.ToABCIEvents())
+	se := StringifyEvents(e)
 
 	expectedTxtStr := "\t\t- message\n\t\t\t- sender: foo\n\t\t\t- module: bank"
 	require.Equal(t, expectedTxtStr, se.String())

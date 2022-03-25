@@ -2,11 +2,12 @@ package keeper
 
 import (
 	"bytes"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"strconv"
 	"testing"
 	"time"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"

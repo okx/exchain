@@ -5,9 +5,10 @@ package keeper
 
 import (
 	"encoding/hex"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
 	"time"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/stretchr/testify/require"
 
