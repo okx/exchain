@@ -36,6 +36,11 @@ const (
 	//   - requires gcc
 	//   - use rocksdb build tag (go build -tags rocksdb)
 	RocksDBBackend BackendType = "rocksdb"
+	// PebbleBackend represents pebble (uses github.com/cockroachdb/pebble)
+	PebbleBackend BackendType = "pebble"
+	//	- pure go
+	//	- stable
+	//	- Pebble offers several improvements over RocksDB.
 	// UnknownDBBackend unknown db type
 	UnknownDBBackend BackendType = "unknown"
 
