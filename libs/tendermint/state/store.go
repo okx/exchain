@@ -384,6 +384,7 @@ func (arz *ABCIResponses) ResultsHash() []byte {
 // This is useful for recovering from crashes where we called app.Commit and before we called
 // s.Save(). It can also be used to produce Merkle proofs of the result of txs.
 func LoadABCIResponses(db dbm.DB, height int64) (*ABCIResponses, error) {
+	fmt.Println("LoadABCIResponses from DB")
 	buf, err := db.Get(calcABCIResponsesKey(height))
 	if err != nil {
 		return nil, err

@@ -20,10 +20,6 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-var (
-	msgQueueSize = 100
-)
-
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
@@ -55,17 +51,6 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
-
-	// async write db
-	isWriteDBAsync bool
-	abciMsgQueue   chan abciMsg
-	stateQueue     chan State
-	done           chan struct{}
-}
-
-type abciMsg struct {
-	height    int64
-	responses *ABCIResponses
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -214,11 +199,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	if !blockExec.isWriteDBAsync {
-		SaveABCIResponses(blockExec.db, block.Height, abciResponses)
-	} else {
-		blockExec.SaveABCIResponsesAsync(block.Height, abciResponses)
-	}
+	go SaveABCIResponses(blockExec.db, block.Height, abciResponses)
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
 	blockExec.metrics.BlockProcessingTime.Observe(float64(endTime-startTime) / 1e6)
@@ -266,12 +247,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	if !blockExec.isWriteDBAsync {
-		SaveState(blockExec.db, state)
-	} else {
-		//Async save state
-		blockExec.SaveStateAsync(state)
-	}
+	SaveState(blockExec.db, state)
 	blockExec.logger.Debug("SaveState", "state", &state)
 
 	fail.Fail() // XXX
@@ -395,46 +371,6 @@ func (blockExec *BlockExecutor) commit(
 	}
 
 	return res, res.RetainHeight, err
-}
-
-//OnStart init the BlockExecutor when necessary
-func (blockExec *BlockExecutor) OnStart(isWriteDBAsync bool) {
-	blockExec.isWriteDBAsync = isWriteDBAsync
-	if isWriteDBAsync {
-		blockExec.stateQueue = make(chan State, msgQueueSize)
-		blockExec.abciMsgQueue = make(chan abciMsg, msgQueueSize)
-		blockExec.done = make(chan struct{})
-	}
-	go blockExec.asyncSaveRoutine()
-}
-
-//OnStop do quit work when necessary
-func (blockExec *BlockExecutor) OnStop() {
-	if blockExec.isWriteDBAsync {
-		close(blockExec.done)
-	}
-}
-
-func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
-	blockExec.abciMsgQueue <- abciMsg{height, responses}
-}
-
-func (blockExec *BlockExecutor) SaveStateAsync(state State) {
-	blockExec.stateQueue <- state
-}
-
-// asyncSaveRoutine handle the write db work
-func (blockExec *BlockExecutor) asyncSaveRoutine() {
-	for {
-		select {
-		case abciMsg := <-blockExec.abciMsgQueue:
-			SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
-		case stateMsg := <-blockExec.stateQueue:
-			SaveState(blockExec.db, stateMsg)
-		case <-blockExec.done:
-			return
-		}
-	}
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
