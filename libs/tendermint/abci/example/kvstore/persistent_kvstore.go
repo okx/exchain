@@ -81,7 +81,7 @@ func (app *PersistentKVStoreApplication) DeliverTx(req types.RequestDeliverTx) t
 	return app.app.DeliverTx(req)
 }
 
-func (app *PersistentKVStoreApplication) PreDeliverRealTx(types.RequestDeliverTx) types.TxEssentials {
+func (app *PersistentKVStoreApplication) PreDeliverRealTx([]byte) types.TxEssentials {
 	return nil
 }
 

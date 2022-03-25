@@ -196,14 +196,14 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 }
 
-func (app *BaseApp) PreDeliverRealTx(tx abci.RequestDeliverTx) abci.TxEssentials {
+func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {
-		realTx, _ = mem.ReapEssentialTx(tx.Tx).(sdk.Tx)
+		realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
 	}
 	if realTx == nil {
-		realTx, err = app.txDecoder(tx.Tx)
+		realTx, err = app.txDecoder(tx)
 		if err != nil {
 			return nil
 		}

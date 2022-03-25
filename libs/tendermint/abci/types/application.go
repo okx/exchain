@@ -25,10 +25,10 @@ type Application interface {
 
 	Commit(RequestCommit) ResponseCommit // Commit the state and return the application Merkle root hash
 	ParallelTxs(txs [][]byte, onlyCalSender bool) []*ResponseDeliverTx
-	// PreDeliverRealTx will try convert RequestDeliverTx to TxEssentials, it should be thread safe,
+	// PreDeliverRealTx will try convert bytes of tx to TxEssentials, it should be thread safe,
 	// if return nil, it means failed or this Application doesn't support PreDeliverRealTx and you must use DeliverTx,
 	// else, you can call DeliverRealTx to process the TxEssentials
-	PreDeliverRealTx(RequestDeliverTx) TxEssentials
+	PreDeliverRealTx([]byte) TxEssentials
 	// DeliverRealTx deliver tx returned by PreDeliverRealTx, if PreDeliverRealTx returns nil, DeliverRealTx SHOULD NOT be called
 	DeliverRealTx(TxEssentials) ResponseDeliverTx
 }
@@ -57,7 +57,7 @@ func (BaseApplication) DeliverTx(req RequestDeliverTx) ResponseDeliverTx {
 	return ResponseDeliverTx{Code: CodeTypeOK}
 }
 
-func (BaseApplication) PreDeliverRealTx(RequestDeliverTx) TxEssentials {
+func (BaseApplication) PreDeliverRealTx([]byte) TxEssentials {
 	return nil
 }
 

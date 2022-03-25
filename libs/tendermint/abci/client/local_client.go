@@ -93,7 +93,7 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 	)
 }
 
-func (app *localClient) PreDeliverRealTxAsync(params types.RequestDeliverTx) types.TxEssentials {
+func (app *localClient) PreDeliverRealTxAsync(params []byte) types.TxEssentials {
 	return app.Application.PreDeliverRealTx(params)
 }
 

@@ -36,7 +36,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	return resp
 }
 
-func (app *OKExChainApp) PreDeliverRealTx(req abci.RequestDeliverTx) (res abci.TxEssentials) {
+func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 	return app.BaseApp.PreDeliverRealTx(req)
 }
 
