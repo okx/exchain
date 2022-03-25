@@ -902,7 +902,7 @@ func (mem *CListMempool) Update(
 		}
 
 		// remove tx signature cache
-		types.SignatureCache().Remove(types.Bytes2Hash(tx, height))
+		// types.SignatureCache().Remove(types.Bytes2Hash(tx, height))
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))
