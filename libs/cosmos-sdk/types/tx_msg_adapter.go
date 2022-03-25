@@ -20,7 +20,7 @@ const (
 
 var (
 	//	_   Msg = (*RelayMsg)(nil)
-	cdc = codec.New()
+	cdcRelayer = codec.New()
 	//	_   Tx  = (*RelayTxMsg)(nil)
 )
 
@@ -121,7 +121,7 @@ func (r *RelayMsg) ValidateBasic() error {
 }
 
 func (r *RelayMsg) GetSignBytes() []byte {
-	ret, err := cdc.MarshalJSON(r)
+	ret, err := cdcRelayer.MarshalJSON(r)
 	if nil != err {
 		panic(err)
 	}
