@@ -143,6 +143,8 @@ func (ms multiStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
+func (ms multiStore) UpgradeVersion(int64) {}
+
 var _ sdk.KVStore = kvStore{}
 
 type kvStore struct {

@@ -2,13 +2,14 @@ package keeper
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"strings"
 )
 
 // initialized is a global variable used by GetCapability to ensure that the memory store
@@ -108,7 +109,7 @@ func (k *Keeper) InitializeAndSeal(ctx sdk.Context) {
 	memStoreType := memStore.GetStoreType()
 
 	if memStoreType != sdk.StoreTypeMemory {
-		panic(fmt.Sprintf("invalid memory store type; got %s, expected: %s", memStoreType, sdk.StoreTypeMemory))
+		panic(fmt.Sprintf("invalid memory store type; got %d, expected: %d", memStoreType, sdk.StoreTypeMemory))
 	}
 
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
