@@ -5,6 +5,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -13,26 +14,57 @@ import (
 )
 
 const (
-	FlagDisplayVersion      string = "display-version"
-	FlagDisplayContractAddr string = "display-contract-address"
+	FlagDisplayVersion string = "version"
+	FlagDisplayAddress    string = "address"
 )
 
 func displayStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "display-state",
-		Short: "display evm storage account's state",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- display state start ---------")
-			displayState(ctx)
-			log.Println("--------- display state end ---------")
-		},
+		Short: "display account or contract state",
 	}
-	cmd.Flags().String(FlagDisplayContractAddr, "", "target contract address to display")
-	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
+
+	cmd.AddCommand(
+		displayAccount(ctx),
+		displayContract(ctx),
+	)
+
 	return cmd
 }
 
-func displayState(ctx *server.Context) {
+func displayAccount(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "account",
+		Short: "display account info at given height",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("--------- display account start ---------")
+			displayAccountState(ctx)
+			log.Println("--------- display account end ---------")
+		},
+	}
+	cmd.Flags().String(FlagDisplayAddress, "", "target contract address to display")
+	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
+
+	return cmd
+}
+
+func displayContract(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "contract",
+		Short: "display contract state info at given height",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("--------- display contract state start ---------")
+			displayContractState(ctx)
+			log.Println("--------- display contract state end ---------")
+		},
+	}
+	cmd.Flags().String(FlagDisplayAddress, "", "target contract address to display")
+	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
+
+	return cmd
+}
+
+func displayAccountState(ctx *server.Context) {
 	dispApp := newDisplayApp(ctx)
 
 	// load start version
@@ -42,7 +74,30 @@ func displayState(ctx *server.Context) {
 	err := dispApp.LoadHeight(displayVersion)
 	panicError(err)
 
-	contractAddr := viper.GetString(FlagDisplayContractAddr)
+	accountAddr := viper.GetString(FlagDisplayAddress)
+	accAddr, err := sdk.AccAddressFromBech32(accountAddr)
+	if err != nil {
+		panic("Fail to parser AccAddress from : " + accountAddr)
+	}
+
+	// init deliver state
+	dispApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: displayVersion + 1}})
+
+	acc := dispApp.AccountKeeper.GetAccount(dispApp.GetDeliverStateCtx(), accAddr)
+	fmt.Println("account is: ", acc.String())
+}
+
+func displayContractState(ctx *server.Context) {
+	dispApp := newDisplayApp(ctx)
+
+	// load start version
+	displayVersion := viper.GetInt64(FlagDisplayVersion)
+	dispApp.EvmKeeper.SetTargetMptVersion(displayVersion)
+
+	err := dispApp.LoadHeight(displayVersion)
+	panicError(err)
+
+	contractAddr := viper.GetString(FlagDisplayAddress)
 	addr := ethcmn.HexToAddress(contractAddr)
 
 	// init deliver state

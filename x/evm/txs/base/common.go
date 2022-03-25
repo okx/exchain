@@ -51,8 +51,10 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 }
 
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-	if from := ctx.From(); len(from) > 0 {
-		return common.HexToAddress(from), nil
+	if ctx.IsCheckTx() {
+		if from := ctx.From(); len(from) > 0 {
+			return common.HexToAddress(from), nil
+		}
 	}
 	err = msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err == nil {
