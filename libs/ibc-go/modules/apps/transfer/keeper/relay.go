@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	"math/big"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -88,11 +87,6 @@ func (k Keeper) SendTransfer(
 	fullDenomPath := token.Denom
 
 	var err error
-	k.IterateDenomTraces(ctx, func(denomTrace types.DenomTrace) bool {
-		fmt.Println(denomTrace.Path)
-		return true
-	})
-
 	// deconstruct the token denomination into the denomination trace info
 	// to determine if the sender is the source chain
 	if strings.HasPrefix(token.Denom, "ibc/") {
@@ -101,11 +95,6 @@ func (k Keeper) SendTransfer(
 			return err
 		}
 	}
-
-	//labels := []metrics.Label{
-	//	telemetry.NewLabel(coretypes.LabelDestinationPort, destinationPort),
-	//	telemetry.NewLabel(coretypes.LabelDestinationChannel, destinationChannel),
-	//}
 
 	// NOTE: SendTransfer simply sends the denomination as it exists on its own
 	// chain inside the packet data. The receiving chain will perform denom
@@ -143,10 +132,8 @@ func (k Keeper) SendTransfer(
 			panic(fmt.Sprintf("cannot burn coins after a successful send to a module account: %v", err))
 		}
 	}
-	bi := adaToken.Amount.BigInt()
-	bi = bi.Mul(bi, big.NewInt(k.ibcFactor))
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, bi.String(), sender.String(), receiver,
+		fullDenomPath, adaToken.Amount.String(), sender.String(), receiver,
 	)
 
 	packet := channeltypes.NewPacket(
@@ -163,20 +150,6 @@ func (k Keeper) SendTransfer(
 	if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
 		return err
 	}
-
-	defer func() {
-		//telemetry.SetGaugeWithLabels(
-		//	[]string{"tx", "msg", "ibc", "transfer"},
-		//	float32(token.Amount.Int64()),
-		//[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, fullDenomPath)},
-		//)
-
-		//telemetry.IncrCounterWithLabels(
-		//	[]string{"ibc", types.ModuleName, "send"},
-		//	1,
-		//	labels,
-		//)
-	}()
 
 	k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
 	return nil
@@ -209,9 +182,6 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
 
-	bi := transferAmount.BigInt()
-	bi = bi.Div(bi, big.NewInt(k.ibcFactor))
-	transferAmount = sdk.NewIntFromBigInt(bi)
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
 	// receiving chain.
@@ -310,22 +280,6 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
-	defer func() {
-		//telemetry.SetGaugeWithLabels(
-		//	[]string{"ibc", types.ModuleName, "packet", "receive"},
-		//	float32(data.Amount),
-		//	[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, data.Denom)},
-		//)
-		//
-		//telemetry.IncrCounterWithLabels(
-		//	[]string{"ibc", types.ModuleName, "receive"},
-		//	1,
-		//	append(
-		//		labels, telemetry.NewLabel(coretypes.LabelSource, "false"),
-		//	),
-		//)
-	}()
-
 	k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource)
 	return nil
 }
@@ -366,9 +320,6 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
-	bi := transferAmount.BigInt()
-	bi = bi.Div(bi, big.NewInt(k.ibcFactor))
-	transferAmount = sdk.NewIntFromBigInt(bi)
 
 	token := sdk.NewCoin(trace.IBCDenom(), transferAmount)
 
