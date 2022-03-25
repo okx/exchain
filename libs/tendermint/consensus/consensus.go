@@ -934,19 +934,19 @@ func (cs *State) needProofBlock(height int64) bool {
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
 
-func (cs *State) isBlockProducer() (bool, string) {
+func (cs *State) isBlockProducer() (string, string) {
 	const len2display int = 6
 	bpAddr := cs.Validators.GetProposer().Address
 	bpStr := bpAddr.String()
 	if len(bpStr) > len2display {
 		bpStr = bpStr[:len2display]
 	}
-	isBlockProducer := false
+	isBlockProducer := "n"
 	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
 		address := cs.privValidatorPubKey.Address()
 
 		if bytes.Equal(bpAddr, address) {
-			isBlockProducer = true
+			isBlockProducer = "y"
 		}
 	}
 
@@ -992,7 +992,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
-	if isBlockProducer {
+	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
 			bpAddr,
