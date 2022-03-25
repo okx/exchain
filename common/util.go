@@ -6,16 +6,14 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+// TODO
 func UnmarshalMsgAdapter(cdc *codec.CodecProxy, data []byte) (sdk.MsgProtoAdapter, error) {
 	var ret sdk.MsgProtoAdapter
 	err := cdc.GetProtocMarshal().UnmarshalInterface(data, &ret)
 	return ret, err
-	//if nil == err {
-	//	return ret, err
-	//}
-	//return ret, cdc.GetProtocMarshal().MustUnmarshalBinaryBare(data, &ret)
 }
 
+// TODO
 func UnmarshalGuessss(cdc *codec.CodecProxy, data []byte, guesss ...sdk.MsgProtoAdapter) (sdk.MsgProtoAdapter, error) {
 	ret, err := UnmarshalMsgAdapter(cdc, data)
 	if nil == err {

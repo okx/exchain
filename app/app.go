@@ -2,7 +2,7 @@ package app
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	upgrade2 "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 
 	"io"
@@ -23,6 +23,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -211,7 +212,7 @@ type OKExChainApp struct {
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 	marshal              *codec.CodecProxy
-	heightTasks          map[int64]*upgrade2.HeightTasks
+	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
 }
 
@@ -247,20 +248,12 @@ func NewOKExChainApp(
 	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
-	cc := codec.NewProtoCodec(interfaceReg)
 
 	ibcCodec := codec.NewProtoCodec(interfaceReg)
 	cdcproxy := codec.NewCodecProxy(ibcCodec, cdc)
 
-	//proxy := codec.NewMarshalProxy(cc, cdc)
-
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		ret, err = evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
-		if nil == err {
-			return ret, err
-		}
-		cc.UnmarshalInterface(txBytes, &ret)
-		return
+		return evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
 	})
 
 	keys := sdk.NewKVStoreKeys(
@@ -283,7 +276,7 @@ func NewOKExChainApp(
 		keys:           keys,
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
-		heightTasks:    make(map[int64]*upgrade2.HeightTasks),
+		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
 	bApp.Cdc = cdc
 	bApp.SetInterceptors(makeInterceptors(cdc))
@@ -326,7 +319,7 @@ func NewOKExChainApp(
 	)
 
 	stakingKeeper := staking.NewKeeper(
-		cdc, cdcproxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		cdcproxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -683,42 +676,18 @@ func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
 	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "app/simulate"
 		return nil
-	}, func(resp *abci.ResponseQuery) {
-
-	})
+	}, func(resp *abci.ResponseQuery) {})
 
 	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "custom/bank/grpc_balances"
 		return nil
-	}, func(resp *abci.ResponseQuery) {
-
-	})
+	}, func(resp *abci.ResponseQuery) {})
 
 	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
 		req.Path = "custom/staking/parameters"
 		return nil
-	}, func(resp *abci.ResponseQuery) {
-	})
-	//m["/cosmos.auth.v1beta1.Query/Account"] = func(req *abci.RequestQuery) error {
-	//	var reqA types.QueryAccountRequest
-	//	err := protoCodec.Unmarshal(req.Data, &reqA)
-	//	if nil != err {
-	//		return err
-	//	}
-	//	p := auth.QueryAccountParams{}
-	//	add, err := sdk.AccAddressFromBech32ByPrefix(reqA.Address, "ex")
-	//	if nil != err {
-	//		return err
-	//	}
-	//	p.Address = add
-	//	data, err := cdc.MarshalJSON(p)
-	//	if nil != err {
-	//		return err
-	//	}
-	//	req.Data = data
-	//	req.Path = "custom/acc/account"
-	//	return nil
-	//}
+	}, func(resp *abci.ResponseQuery) {})
+
 	return m
 }
 
@@ -804,12 +773,12 @@ func PreRun(ctx *server.Context) error {
 	return nil
 }
 
-func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgrade2.HeightTasks, types.HeightFilterPipeline, map[string]params.ParamSet) {
-	hm := make(map[int64]*upgrade2.HeightTasks)
+func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, types.HeightFilterPipeline, map[string]params.ParamSet) {
+	hm := make(map[int64]*upgradetypes.HeightTasks)
 	hStoreInfoModule := make(map[int64]map[string]struct{})
 	paramsRet := make(map[string]params.ParamSet)
 	for _, mm := range m.Modules {
-		if ada, ok := mm.(upgrade2.UpgradeModule); ok {
+		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
 			set := ada.RegisterParam()
 			if set != nil {
 				if _, exist := paramsRet[ada.ModuleName()]; !exist {
@@ -838,7 +807,7 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 			}
 			taskList := hm[h]
 			if taskList == nil {
-				v := make(upgrade2.HeightTasks, 0)
+				v := make(upgradetypes.HeightTasks, 0)
 				taskList = &v
 				hm[h] = taskList
 			}

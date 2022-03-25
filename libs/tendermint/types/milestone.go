@@ -22,8 +22,8 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
-	MILESTONE_IBC_HEIGHT string
-	milestoreIbcHeight   int64
+	MILESTONE_VENUS1_HEIGHT string
+	milestoneVenus1Height   int64
 
 	once sync.Once
 )
@@ -33,16 +33,16 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
-		milestoreIbcHeight = string2number(MILESTONE_IBC_HEIGHT)
-		if milestoreIbcHeight == 0 {
+		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		if milestoneVenus1Height == 0 {
 			// as default: genesisHeight is zero
-			milestoreIbcHeight = genesisHeight + 1
+			milestoneVenus1Height = genesisHeight + 1
 			if IsMainNet() || IsTestNet() {
-				milestoreIbcHeight = math.MaxInt64 - 2
+				milestoneVenus1Height = math.MaxInt64 - 2
 			}
 		} else {
 			if IsMainNet() || IsTestNet() {
-				if milestoreIbcHeight < milestoneVenusHeight || milestoreIbcHeight < milestoneMercuryHeight {
+				if milestoneVenus1Height < milestoneVenusHeight || milestoneVenus1Height < milestoneMercuryHeight {
 					panic("invalid ibc height")
 				}
 			}
@@ -78,17 +78,17 @@ func HigherThanVenus(height int64) bool {
 }
 
 func HigherThanIBCHeight(h int64) bool {
-	if milestoreIbcHeight == 0 {
+	if milestoneVenus1Height == 0 {
 		return false
 	}
-	return h > milestoreIbcHeight
+	return h > milestoneVenus1Height
 }
 func GetIBCHeight() int64 {
-	return milestoreIbcHeight
+	return milestoneVenus1Height
 }
 
 func UpgradeIBCInRuntime() bool {
-	return milestoreIbcHeight >= 1
+	return milestoneVenus1Height >= 1
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
