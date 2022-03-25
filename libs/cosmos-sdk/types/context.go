@@ -47,7 +47,6 @@ type Context struct {
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
-	kvStoreCache   map[StoreKey]KVStore
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -188,7 +187,6 @@ func (c Context) WithContext(ctx context.Context) Context {
 
 func (c Context) WithMultiStore(ms MultiStore) Context {
 	c.ms = ms
-	c.kvStoreCache = nil
 	return c
 }
 
@@ -254,7 +252,6 @@ func (c Context) WithVoteInfos(voteInfo []abci.VoteInfo) Context {
 
 func (c Context) WithGasMeter(meter GasMeter) Context {
 	c.gasMeter = meter
-	c.kvStoreCache = nil
 	return c
 }
 
@@ -343,16 +340,7 @@ func (c Context) WithValue(key, value interface{}) Context {
 }
 
 func (c *Context) SetGasMeter(meter GasMeter) {
-	c.clearKvStoreCache()
 	c.gasMeter = meter
-}
-
-func (c *Context) clearKvStoreCache() {
-	if c.kvStoreCache != nil {
-		for k := range c.kvStoreCache {
-			delete(c.kvStoreCache, k)
-		}
-	}
 }
 
 func (c *Context) SetMultiStore(ms MultiStore) {
@@ -390,14 +378,7 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
-	if c.kvStoreCache == nil {
-		c.kvStoreCache = make(map[StoreKey]KVStore)
-	} else if s, ok := c.kvStoreCache[key]; ok {
-		return s
-	}
-	s := gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
-	c.kvStoreCache[key] = s
-	return s
+	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
 }
 
 func (c *Context) KVStoreWithoutGas(key StoreKey) KVStore {
