@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"github.com/VictoriaMetrics/fastcache"
 
+	"math/big"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -14,7 +16,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -56,7 +57,7 @@ type Keeper struct {
 	UpdatedAccount []ethcmn.Address
 
 	// cache chain config
-	cci *chainConfigInfo
+	cci chainConfigInfo
 }
 
 type chainConfigInfo struct {
@@ -106,7 +107,6 @@ func NewKeeper(
 
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
-		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -152,7 +152,7 @@ func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 }
 
 // Logger returns a module-specific logger.
-func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
+func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:      k.storeKey,
 		ParamSpace:    k.paramSpace,
@@ -267,7 +267,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address ethcmn.Address) (type
 }
 
 // getChainConfig get raw chain config and unmarshal it
-func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
@@ -289,7 +289,7 @@ func (k Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // GetChainConfig gets chain config, the result if from cached result, or
 // it gains chain config and gas costs from getChainConfig, then
 // cache the chain config and gas costs.
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
 	if k.cci.cc != nil {
 		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
@@ -310,7 +310,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 }
 
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig

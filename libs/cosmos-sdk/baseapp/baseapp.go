@@ -639,9 +639,6 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
-		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
-			ctx = ctx.WithSigCache(s.signCache)
-		}
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
 	}
 
@@ -767,7 +764,8 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		).(sdk.CacheMultiStore)
 	}
 
-	return ctx.WithMultiStore(msCache), msCache
+	ctx.SetMultiStore(msCache)
+	return ctx, msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
@@ -862,7 +860,12 @@ func (app *BaseApp) StopBaseApp() {
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
-	exTxInfo := tx.GetTxInfo(ctx)
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   tx.GetFrom(),
+		GasPrice: tx.GetGasPrice(),
+		Nonce:    tx.GetNonce(),
+	}
+
 	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.accNonceHandler != nil {
 		addr, _ := sdk.AccAddressFromBech32(exTxInfo.Sender)
 		exTxInfo.Nonce = app.accNonceHandler(ctx, addr)
@@ -932,7 +935,22 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 					return
 				}
 
-				cmstx.GetEthSignInfo(app.checkState.ctx.WithTxBytes(tx))
+				// load account from db into cache
+				from, to := cmstx.GetPartnerInfo(app.checkState.ctx.WithTxBytes(tx))
+				if from != "" {
+					senderAddr, err := sdk.AccAddressFromBech32(from)
+					if err != nil {
+						return
+					}
+					app.accNonceHandler(app.checkState.ctx, senderAddr)
+				}
+				if to != "" {
+					receiverAddr, err := sdk.AccAddressFromBech32(to)
+					if err != nil {
+						return
+					}
+					app.accNonceHandler(app.checkState.ctx, receiverAddr)
+				}
 			}(tx)
 		}
 	}()

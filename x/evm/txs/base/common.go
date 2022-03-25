@@ -1,12 +1,13 @@
 package base
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
@@ -50,13 +51,16 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 }
 
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-	if from := ctx.From(); len(from) > 0 {
-		return common.HexToAddress(from), nil
+	if ctx.IsCheckTx() {
+		if from := ctx.From(); len(from) > 0 {
+			sender = common.HexToAddress(from)
+			return
+		}
 	}
 
-	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.TxBytes(), ctx.SigCache())
+	err = msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err == nil {
-		sender = senderSigCache.GetFrom()
+		sender = common.HexToAddress(msg.GetFrom())
 	}
 
 	return

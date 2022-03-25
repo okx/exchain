@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -78,12 +79,12 @@ func GetHashFn(ctx sdk.Context, csdb *CommitStateDB) vm.GetHashFunc {
 	}
 }
 
-func (st StateTransition) newEVM(
+func (st *StateTransition) newEVM(
 	ctx sdk.Context,
 	csdb *CommitStateDB,
 	gasLimit uint64,
 	gasPrice *big.Int,
-	config ChainConfig,
+	config *ChainConfig,
 	vmConfig vm.Config,
 ) *vm.EVM {
 	// Create context for evm
@@ -148,7 +149,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
-	ctx = ctx.WithGasMeter(evmGasMeter)
+	ctx.SetGasMeter(evmGasMeter)
 	csdb := st.Csdb.WithContext(ctx)
 
 	StartTxLog := func(tag string) {
@@ -164,11 +165,15 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
+	var senderStr = EthAddressToString(&st.Sender)
+
 	to := ""
+	var recipientStr string
 	if st.Recipient != nil {
-		to = EthAddressStringer(*st.Recipient).String()
+		to = EthAddressToString(st.Recipient)
+		recipientStr = to
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), EthAddressStringer(st.Sender).String(), to)
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), senderStr, to)
 
 	var tracer vm.Tracer
 	if st.TraceTxLog || enableDebug {
@@ -184,7 +189,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ContractVerifier: NewContractVerifier(params),
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
+	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, &config, vmConfig)
 
 	var (
 		ret             []byte
@@ -200,7 +205,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, EthAddressStringer(st.Sender).String(), "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -226,9 +231,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		StartTxLog(analyzer.EVMCORE)
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(contractAddress).String(), innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
+		contractAddressStr := EthAddressToString(&contractAddress)
+		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
@@ -244,9 +251,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		defer StopTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
-		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
+		if recipientStr == "" {
+			recipientStr = EthAddressToString(st.Recipient)
+		}
 
-		innertx.UpdateDefaultInnerTx(callTx, EthAddressStringer(*st.Recipient).String(), innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
+		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
+
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
 	}
 
 	gasConsumed := gasLimit - leftOverGas
@@ -256,7 +267,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	defer func() {
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
-		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		currentGasMeter.ConsumeGas(gasConsumed, "EVM execution consumption")
 	}()
 
 	defer func() {
@@ -337,14 +348,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		resData.ContractAddress = contractAddress
 	}
 
-	resBz, err := EncodeResultData(*resData)
+	resBz, err := EncodeResultData(resData)
 	if err != nil {
 		return
 	}
 
-	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", EthAddressStringer(st.Sender).String(), recipientLog,
-	)
+	resultLog := strings.Join([]string{"executed EVM state transition; sender address ", senderStr, "; ", recipientLog}, "")
 	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,

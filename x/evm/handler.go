@@ -28,9 +28,9 @@ func NewHandler(k *Keeper) sdk.Handler {
 			recordHGU(ctx, msg)
 		}()
 
-		evmtx, ok := msg.(types.MsgEthereumTx)
+		evmtx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
-			result, err = handleMsgEthereumTx(ctx, k, &evmtx)
+			result, err = handleMsgEthereumTx(ctx, k, evmtx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 			}
@@ -82,7 +82,7 @@ func recordHGU(ctx sdk.Context, msg sdk.Msg) {
 
 func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	switch msg := msg.(type) {
-	case types.MsgEthereumTx:
+	case *types.MsgEthereumTx:
 		return msg.GetTxFnSignatureInfo()
 	default:
 		return nil, 0

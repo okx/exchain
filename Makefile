@@ -9,7 +9,7 @@ GithubTop=github.com
 
 
 
-Version=v1.1.10
+Version=v1.2.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -19,8 +19,8 @@ ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
 MercuryHeight=1
-VenusHeight=1
-MarsHeight=0
+VenusHeight=0
+MarsHeight=1
 
 # process linker flags
 ifeq ($(VERSION),)

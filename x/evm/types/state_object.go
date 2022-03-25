@@ -370,7 +370,7 @@ func (so *stateObject) commitCode() {
 // ----------------------------------------------------------------------------
 
 // Address returns the address of the state object.
-func (so stateObject) Address() ethcmn.Address {
+func (so *stateObject) Address() ethcmn.Address {
 	return so.address
 }
 
@@ -411,7 +411,7 @@ func (so *stateObject) Code(db ethstate.Database) []byte {
 		}
 
 		code := make([]byte, 0)
-		ctx := so.stateDB.ctx
+		ctx := &so.stateDB.ctx
 		if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
 			code = data
 		} else {
@@ -470,7 +470,7 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 		// otherwise load the value from the KVStore
 		state := NewState(key, ethcmn.Hash{})
 
-		ctx := so.stateDB.ctx
+		ctx := &so.stateDB.ctx
 		rawValue := make([]byte, 0)
 		var ok bool
 
@@ -557,7 +557,7 @@ func (so *stateObject) touch() {
 
 // GetStorageByAddressKey returns a hash of the composite key for a state
 // object's storage prefixed with it's address.
-func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
+func (so *stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 	prefix := so.Address().Bytes()
 
 	var compositeKey []byte

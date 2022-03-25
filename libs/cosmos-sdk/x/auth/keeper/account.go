@@ -85,17 +85,12 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		panic(err)
 	}
 
-	store.Set(types.AddressStoreKey(addr), bz)
+	storeAccKey := types.AddressStoreKey(addr)
+	store.Set(storeAccKey, bz)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
-
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Set(types.AddressStoreKey(addr), bz)
-
-		ctx.WithGasMeter(rawGM)
+		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
-
-	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
+	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {
@@ -119,14 +114,10 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 		store = ctx.KVStore(ak.key)
 	}
 
-	store.Delete(types.AddressStoreKey(addr))
+	storeAccKey := types.AddressStoreKey(addr)
+	store.Delete(storeAccKey)
 	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
-		rawGM := ctx.GasMeter()
-
-		ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-		ctx.KVStore(ak.mptKey).Delete(types.AddressStoreKey(addr))
-
-		ctx.WithGasMeter(rawGM)
+		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
 	}
 
 	ctx.Cache().UpdateAccount(addr, nil, 0, true)

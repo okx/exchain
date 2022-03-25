@@ -15,7 +15,7 @@ type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
 type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
-type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
+type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 
 type CustomizeOnStop func(ctx Context) error
 
@@ -73,6 +73,7 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
+
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()
