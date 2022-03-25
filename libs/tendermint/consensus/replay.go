@@ -545,14 +545,6 @@ func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeli
 	return *r
 }
 
-func (mock *mockProxyApp) PreDeliverRealTx(abci.RequestDeliverTx) abci.TxEssentials {
-	return nil
-}
-
-func (mock *mockProxyApp) DeliverRealTx(abci.TxEssentials) abci.ResponseDeliverTx {
-	panic("do not support DeliverRealTx")
-}
-
 func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlock {
 	mock.txCount = 0
 	return *mock.abciResponses.EndBlock
