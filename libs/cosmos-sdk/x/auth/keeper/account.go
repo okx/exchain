@@ -29,7 +29,9 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
+		if ctx.IsGasMeterEnabled() {
+			ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
+		}
 		if data == nil {
 			return nil
 		}

@@ -143,8 +143,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
 	currentGasMeter := ctx.GasMeter()
-	evmGasMeter := sdk.NewInfiniteGasMeter()
-	ctx.SetGasMeter(evmGasMeter)
+	// evmGasMeter := sdk.NewInfiniteGasMeter()
+	// ctx.SetGasMeter(evmGasMeter)
+	ctx.EnableGasMeter(false)
 	csdb := st.Csdb.WithContext(ctx)
 
 	StartTxLog := func(tag string) {

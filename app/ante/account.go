@@ -175,7 +175,8 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.Acc
 
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	// ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.EnableGasMeter(false)
 
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {

@@ -40,6 +40,7 @@ type Context struct {
 	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	isAsync        bool
+	gasDisabled    bool
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
@@ -87,9 +88,8 @@ func (c *Context) EventManager() *EventManager { return c.eventManager }
 func (c *Context) IsAsync() bool               { return c.isAsync }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
-func (c *Context) Cache() *Cache {
-	return c.cache
-}
+func (c *Context) Cache() *Cache               { return c.cache }
+func (c *Context) IsGasMeterEnabled() bool     { return !c.gasDisabled }
 
 type AccountCache struct {
 	FromAcc       interface{} // must be auth.Account
@@ -363,6 +363,10 @@ func (c *Context) SetFrom(from string) {
 	c.from = from
 }
 
+func (c *Context) EnableGasMeter(enabled bool) {
+	c.gasDisabled = !enabled
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)
@@ -378,7 +382,11 @@ func (c Context) Value(key interface{}) interface{} {
 
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
-	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+	if !c.gasDisabled {
+		return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+	} else {
+		return c.MultiStore().GetKVStore(key)
+	}
 }
 
 func (c *Context) KVStoreWithoutGas(key StoreKey) KVStore {
