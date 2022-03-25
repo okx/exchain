@@ -876,7 +876,7 @@ func (app *BaseApp) tryRestoreSenderFromCache(tx sdk.Tx) {
 	if tx.GetType() == sdk.EvmTxType {
 		sender, ok := app.blockDataCache.GetSender(tx.TxHash())
 		if ok {
-			_ = app.evmTxVerifySigHandler(app.deliverState.ctx.WithFrom(sender), tx)
+			_ = app.evmTxVerifySigHandler(app.checkState.ctx.WithFrom(sender).WithBlockHeight(app.checkState.ctx.BlockHeight()+1), tx)
 		}
 	}
 }
