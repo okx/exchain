@@ -138,7 +138,7 @@ func (k Keeper) OnAccountUpdated(acc auth.Account) {
 }
 
 // Logger returns a module-specific logger.
-func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
+func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:      k.storeKey,
 		ParamSpace:    k.paramSpace,
