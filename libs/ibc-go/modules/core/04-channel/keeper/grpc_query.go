@@ -56,7 +56,7 @@ func (q Keeper) Channels(c context.Context, req *types.QueryChannelsRequest) (*t
 
 	pageRes, err := query.Paginate(store, req.Pagination, func(key, value []byte) error {
 		var result types.Channel
-		if err := q.cdc.UnMarshal(value, &result); err != nil {
+		if err := q.cdc.GetProtocMarshal().UnmarshalBinaryBare(value, &result); err != nil {
 			return err
 		}
 

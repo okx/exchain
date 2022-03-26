@@ -11,6 +11,7 @@ import (
 
 func (ctx CLIContext) WithProxy(cdc *codec.CodecProxy) CLIContext {
 	ctx.CodecProy = cdc
+	ctx.Codec = cdc.GetCdc()
 	return ctx
 }
 
@@ -21,7 +22,7 @@ func (ctx CLIContext) WithInterfaceRegistry(r interfacetypes.InterfaceRegistry) 
 
 func (ctx CLIContext) PrintProto(toPrint proto.Message) error {
 	// always serialize JSON initially because proto json can't be directly YAML encoded
-	out, err := ctx.Codec.MarshalJSON(toPrint)
+	out, err := ctx.CodecProy.GetProtocMarshal().MarshalJSON(toPrint)
 	if err != nil {
 		return err
 	}
