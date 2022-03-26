@@ -204,8 +204,6 @@ type BaseApp struct { // nolint: maligned
 	parseF       map[string]func(str string) string
 	interceptors map[string]Interceptor
 
-	Cdc *codec.Codec
-
 	anteTracer *trace.Tracer
 }
 
