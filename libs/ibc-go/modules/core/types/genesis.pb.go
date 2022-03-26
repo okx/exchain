@@ -5,13 +5,13 @@ package types
 
 import (
 	fmt "fmt"
-	 "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	types1 "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	types2 "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltyeps "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 
 	//types "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	//types1 "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	//types2 "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	//conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	//channeltyeps "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
@@ -35,9 +35,9 @@ type GenesisState struct {
 	// ICS002 - Clients genesis state
 	ClientGenesis types.GenesisState `protobuf:"bytes,1,opt,name=client_genesis,json=clientGenesis,proto3" json:"client_genesis" yaml:"client_genesis"`
 	// ICS003 - Connections genesis state
-	ConnectionGenesis types1.GenesisState `protobuf:"bytes,2,opt,name=connection_genesis,json=connectionGenesis,proto3" json:"connection_genesis" yaml:"connection_genesis"`
+	ConnectionGenesis conntypes.GenesisState `protobuf:"bytes,2,opt,name=connection_genesis,json=connectionGenesis,proto3" json:"connection_genesis" yaml:"connection_genesis"`
 	// ICS004 - Channel genesis state
-	ChannelGenesis types2.GenesisState `protobuf:"bytes,3,opt,name=channel_genesis,json=channelGenesis,proto3" json:"channel_genesis" yaml:"channel_genesis"`
+	ChannelGenesis channeltyeps.GenesisState `protobuf:"bytes,3,opt,name=channel_genesis,json=channelGenesis,proto3" json:"channel_genesis" yaml:"channel_genesis"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }
@@ -80,18 +80,18 @@ func (m *GenesisState) GetClientGenesis() types.GenesisState {
 	return types.GenesisState{}
 }
 
-func (m *GenesisState) GetConnectionGenesis() types1.GenesisState {
+func (m *GenesisState) GetConnectionGenesis() conntypes.GenesisState {
 	if m != nil {
 		return m.ConnectionGenesis
 	}
-	return types1.GenesisState{}
+	return conntypes.GenesisState{}
 }
 
-func (m *GenesisState) GetChannelGenesis() types2.GenesisState {
+func (m *GenesisState) GetChannelGenesis() channeltyeps.GenesisState {
 	if m != nil {
 		return m.ChannelGenesis
 	}
-	return types2.GenesisState{}
+	return channeltyeps.GenesisState{}
 }
 
 func init() {

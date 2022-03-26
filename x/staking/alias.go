@@ -27,7 +27,6 @@ const (
 var (
 	// functions aliases
 	NewKeeper                          = keeper.NewKeeper
-	NewKeeperO                         = keeper.NewKeeperO
 	NewQuerier                         = keeper.NewQuerier
 	RegisterCodec                      = types.RegisterCodec
 	NewCommission                      = types.NewCommission

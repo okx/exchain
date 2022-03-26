@@ -73,14 +73,6 @@ func (node *Node) traverseInRange2(tree *ImmutableTree, start, end []byte, ascen
 	return stop
 }
 
-// Only used in testing...
-func (node *Node) lmd(t *ImmutableTree) *Node {
-	if node.isLeaf() {
-		return node
-	}
-	return node.getLeftNode(t).lmd(t)
-}
-
 func (t *traversal) next() *Node {
 	// End of traversal.
 	if t.delayedNodes.length() == 0 {

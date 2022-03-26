@@ -170,7 +170,7 @@ func CreateTestInput(
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	// for staking/distr rollback to cosmos-sdk
-	stakingKeeper := staking.NewKeeper(cdc, pro, stakingSk, supplyKeeper,
+	stakingKeeper := staking.NewKeeper(pro, stakingSk, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())

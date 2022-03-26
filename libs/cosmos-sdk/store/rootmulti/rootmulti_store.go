@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
-	//types2 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"io"
 	"log"
 	"path/filepath"

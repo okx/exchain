@@ -25,6 +25,17 @@ type IBCBlockID struct {
 	Hash          tmbytes.HexBytes `json:"hash"`
 	PartSetHeader IBCPartSetHeader `json:"parts"`
 }
+
+func (b IBCBlockID) ToBlockID() BlockID {
+	return BlockID{
+		Hash: b.Hash,
+		PartsHeader: PartSetHeader{
+			Total: int(b.PartSetHeader.Total),
+			Hash:  b.PartSetHeader.Hash,
+		},
+	}
+}
+
 type IBCHeader struct {
 	// basic block info
 	Version tmversion.Consensus `json:"version"`
@@ -68,6 +79,17 @@ type IBCCommit struct {
 	// unmarshaling.
 	hash     tmbytes.HexBytes
 	bitArray *bits.BitArray
+}
+
+func (c *IBCCommit) ToCommit() *Commit {
+	return &Commit{
+		Height:     c.Height,
+		Round:      int(c.Round),
+		BlockID:    c.BlockID.ToBlockID(),
+		Signatures: c.Signatures,
+		hash:       c.hash,
+		bitArray:   c.bitArray,
+	}
 }
 
 //func (commit *IBCCommit) VoteSignBytes(chainID string, valIdx int32) []byte {

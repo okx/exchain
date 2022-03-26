@@ -164,7 +164,6 @@ var _ simapp.App = (*OKExChainApp)(nil)
 // Tendermint consensus.
 type OKExChainApp struct {
 	*bam.BaseApp
-	cdc *codec.Codec
 
 	invCheckPeriod uint
 
@@ -249,11 +248,10 @@ func NewOKExChainApp(
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
-	ibcCodec := codec.NewProtoCodec(interfaceReg)
-	cdcproxy := codec.NewCodecProxy(ibcCodec, cdc)
-
+	protoCodec := codec.NewProtoCodec(interfaceReg)
+	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		return evm.TxDecoder(cdc, cdcproxy)(txBytes, height...)
+		return evm.TxDecoder(cdc, codecProxy)(txBytes, height...)
 	})
 
 	keys := sdk.NewKVStoreKeys(
@@ -271,14 +269,12 @@ func NewOKExChainApp(
 
 	app := &OKExChainApp{
 		BaseApp:        bApp,
-		cdc:            cdc,
 		invCheckPeriod: invCheckPeriod,
 		keys:           keys,
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
-	bApp.Cdc = cdc
 	bApp.SetInterceptors(makeInterceptors(cdc))
 
 	// init params keeper and subspaces
@@ -303,14 +299,14 @@ func NewOKExChainApp(
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.ModuleName)
 
 	//proxy := codec.NewMarshalProxy(cc, cdc)
-	app.marshal = cdcproxy
+	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
-		&app.AccountKeeper, cdcproxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
+		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
@@ -319,7 +315,7 @@ func NewOKExChainApp(
 	)
 
 	stakingKeeper := staking.NewKeeper(
-		cdcproxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -336,26 +332,26 @@ func NewOKExChainApp(
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
 	)
-	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
+	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
-		keys[token.StoreKey], keys[token.KeyLock], app.cdc, false, &app.AccountKeeper)
+		keys[token.StoreKey], keys[token.KeyLock], app.marshal.GetCdc(), false, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
-		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
+		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.marshal.GetCdc())
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, false, orderMetrics)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, orderMetrics)
 
-	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
+	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
-		app.keys[farm.StoreKey], app.cdc)
+		app.keys[farm.StoreKey], app.marshal.GetCdc())
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -366,7 +362,7 @@ func NewOKExChainApp(
 	app.EvidenceKeeper = *evidenceKeeper
 
 	// add capability keeper and ScopeToModule for ibc module
-	app.CapabilityKeeper = capabilitykeeper.NewKeeper(cdcproxy, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
+	app.CapabilityKeeper = capabilitykeeper.NewKeeper(codecProxy, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(host.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
@@ -374,18 +370,18 @@ func NewOKExChainApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		cdcproxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
+		codecProxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
-		cdcproxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
+		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
-	ibctransfertypes.SetMarshal(cdcproxy)
+	ibctransfertypes.SetMarshal(codecProxy)
 
-	app.Erc20Keeper = erc20.NewKeeper(app.cdc, app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
+	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
 	// register the proposal types
@@ -408,7 +404,7 @@ func NewOKExChainApp(
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, app.Erc20Keeper)
 	app.GovKeeper = gov.NewKeeper(
-		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
+		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
 		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
@@ -420,10 +416,10 @@ func NewOKExChainApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	//app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
-	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := transfer.NewAppModule(app.TransferKeeper, cdcproxy)
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	transferModule := transfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
@@ -460,7 +456,7 @@ func NewOKExChainApp(
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
 		ibc.NewAppModule(app.IBCKeeper),
-		capabilityModule.NewAppModule(cdcproxy, *app.CapabilityKeeper),
+		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 	)
@@ -603,7 +599,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
 	var genesisState simapp.GenesisState
-	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
+	app.marshal.GetCdc().MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
@@ -639,7 +635,7 @@ func (app *OKExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
 // NOTE: This is solely to be used for testing purposes as it may be desirable
 // for modules to register their own custom testing types.
 func (app *OKExChainApp) Codec() *codec.Codec {
-	return app.cdc
+	return app.marshal.GetCdc()
 }
 
 func (app *OKExChainApp) Marshal() *codec.CodecProxy {

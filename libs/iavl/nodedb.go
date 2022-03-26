@@ -720,7 +720,6 @@ func (ndb *nodeDB) String() string {
 
 	ndb.traverseOrphans(func(key, value []byte) {
 		strs = append(strs, fmt.Sprintf("%s: %x\n", string(key), value))
-		//str += fmt.Sprintf("%s: %x\n", string(key), value)
 	})
 	str += "\n"
 
@@ -728,19 +727,13 @@ func (ndb *nodeDB) String() string {
 		v := ""
 		switch {
 		case len(hash) == 0:
-			//str += "<nil>\n"
 			v = "<nil>\n"
 		case node == nil:
-			//str += fmt.Sprintf("%s%40x: <nil>\n", nodeKeyFormat.Prefix(), hash)
 			v = fmt.Sprintf("%s%40x: <nil>\n", nodeKeyFormat.Prefix(), hash)
 		case node.value == nil && node.height > 0:
-			//str += fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n",
-			//	nodeKeyFormat.Prefix(), hash, node.key, "", node.height, node.version)
 			v = fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n",
 				nodeKeyFormat.Prefix(), hash, node.key, "", node.height, node.version)
 		default:
-			//str += fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n",
-			//	nodeKeyFormat.Prefix(), hash, node.key, node.value, node.height, node.version)
 			v = fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n",
 				nodeKeyFormat.Prefix(), hash, node.key, node.value, node.height, node.version)
 		}
