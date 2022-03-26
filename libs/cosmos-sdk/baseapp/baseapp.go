@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
@@ -201,10 +200,7 @@ type BaseApp struct { // nolint: maligned
 	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 
-	parseF       map[string]func(str string) string
 	interceptors map[string]Interceptor
-
-	Cdc *codec.Codec
 
 	anteTracer *trace.Tracer
 }
@@ -801,8 +797,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	events := sdk.EmptyEvents()
 
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
-	//for i := len(msgs) - 1; i >= 0; i-- {
-	//msg := msgs[i]
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {

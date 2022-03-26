@@ -163,6 +163,7 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 		return nil
 	}
 	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
+		am.initGenesis(ctx, types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState()))
 		return nil
 	})
 }

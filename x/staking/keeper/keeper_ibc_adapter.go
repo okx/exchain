@@ -43,7 +43,7 @@ func (k Keeper) SetHistoricalInfo(ctx sdk.Context, height int64, hi outtypes.His
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetHistoricalInfoKey(height)
 
-	value := outtypes.MustMarshalHistoricalInfo(k.cdc, hi)
+	value := outtypes.MustMarshalHistoricalInfo(k.cdcMarshl.GetCdc(), hi)
 	store.Set(key, value)
 }
 
@@ -101,5 +101,5 @@ func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types.Historic
 		return types.HistoricalInfo{}, false
 	}
 
-	return types.MustUnmarshalHistoricalInfo(k.cdc, value), true
+	return types.MustUnmarshalHistoricalInfo(k.cdcMarshl.GetCdc(), value), true
 }

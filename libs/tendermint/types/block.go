@@ -1819,16 +1819,6 @@ func (blockID *BlockID) ToProto() tmproto.BlockID {
 	}
 }
 
-//func (blockID *BlockID) ToIBCProto() tmproto.IBCBlockID {
-//	if blockID == nil {
-//		return tmproto.IBCBlockID{}
-//	}
-//	return tmproto.IBCBlockID{
-//		Hash:          blockID.Hash,
-//		IBCPartSetHeader: blockID.PartsHeader.ToIBCProto(),
-//	}
-//}
-
 func (blockID *BlockID) ToIBCProto() tmproto.BlockID {
 	if blockID == nil {
 		return tmproto.BlockID{}

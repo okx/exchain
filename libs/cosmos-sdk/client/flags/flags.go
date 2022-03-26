@@ -41,13 +41,6 @@ const (
 // List of CLI flags
 const (
 	FlagHome               = tmcli.HomeFlag
-	FlagKeyringDir       = "keyring-dir"
-	FlagOffline          = "offline"
-	FlagSignMode         = "sign-mode"
-	FlagGas              = "gas"
-	FlagPageKey          = "page-key"
-	FlagOffset           = "offset"
-	SignModeLegacyAminoJSON = "amino-json"
 	FlagUseLedger          = "ledger"
 	FlagChainID            = "chain-id"
 	FlagNode               = "node"
@@ -63,8 +56,6 @@ const (
 	FlagGasPrices          = "gas-prices"
 	FlagBroadcastMode      = "broadcast-mode"
 	FlagDryRun             = "dry-run"
-	FlagTimeoutHeight    = "timeout-height"
-	FlagCountTotal       = "count-total"
 	FlagGenerateOnly       = "generate-only"
 	FlagIndentResponse     = "indent"
 	FlagListenAddr         = "laddr"
@@ -79,6 +70,13 @@ const (
 	FlagLimit              = "limit"
 	FlagUnsafeCORS         = "unsafe-cors"
 	FlagNodeIndex          = "node-index"
+)
+
+const (
+	FlagPageKey       = "page-key"
+	FlagOffset        = "offset"
+	FlagTimeoutHeight = "timeout-height"
+	FlagCountTotal    = "count-total"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -230,7 +228,6 @@ To configure your bash shell to load completions for each session add to your ba
 	return cmd
 }
 
-
 // AddQueryFlagsToCmd adds common flags to a module query command.
 func AddQueryFlagsToCmd(cmd *cobra.Command) {
 	cmd.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to Tendermint RPC interface for this chain")
@@ -245,7 +242,6 @@ func AddQueryFlagsToCmd(cmd *cobra.Command) {
 
 // AddTxFlagsToCmd adds common flags to a module tx command.
 func AddTxFlagsToCmd(cmd *cobra.Command) {
-	cmd.Flags().String(FlagKeyringDir, "", "The client Keyring directory; if omitted, the default 'home' directory will be used")
 	cmd.Flags().String(FlagFrom, "", "Name or address of private key with which to sign")
 	cmd.Flags().Uint64P(FlagAccountNumber, "a", 0, "The account number of the signing account (offline mode only)")
 	cmd.Flags().Uint64P(FlagSequence, "s", 0, "The sequence number of the signing account (offline mode only)")
@@ -258,14 +254,11 @@ func AddTxFlagsToCmd(cmd *cobra.Command) {
 	cmd.Flags().StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	cmd.Flags().Bool(FlagDryRun, false, "ignore the --gas flag and perform a simulation of a transaction, but don't broadcast it")
 	cmd.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible)")
-	cmd.Flags().Bool(FlagOffline, false, "Offline mode (does not allow any online functionality")
 	cmd.Flags().BoolP(FlagSkipConfirmation, "y", false, "Skip tx broadcasting prompt confirmation")
 	cmd.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test|memory)")
-	cmd.Flags().String(FlagSignMode, "", "Choose sign mode (direct|amino-json), this is an advanced feature")
 	cmd.Flags().Uint64(FlagTimeoutHeight, 0, "Set a block timeout height to prevent the tx from being committed past a certain height")
 
 	// --gas can accept integers and "auto"
-	cmd.Flags().String(FlagGas, "", fmt.Sprintf("gas limit to set per-transaction; set to %q to calculate sufficient gas automatically (default %d)", GasFlagAuto, DefaultGasLimit))
 
 	cmd.MarkFlagRequired(FlagChainID)
 

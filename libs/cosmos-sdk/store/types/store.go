@@ -284,11 +284,6 @@ type CacheWrapper interface { //nolint
 // CommitID
 
 // CommitID contains the tree version number and its merkle root.
-//type CommitID struct {
-//	Version int64
-//	Hash    []byte
-//}
-
 func (cid CommitID) IsZero() bool { //nolint
 	return cid.Version == 0 && len(cid.Hash) == 0
 }
