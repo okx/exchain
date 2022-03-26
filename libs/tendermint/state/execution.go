@@ -432,7 +432,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	realTxCh := make(chan abci.TxEssentials, 64)
+	realTxCh := make(chan abci.TxEssentials, len(block.Txs))
 	stopedCh := make(chan struct{}, 1)
 
 	go preDeliverRoutine(proxyAppConn, block.Txs, realTxCh, stopedCh)
@@ -456,6 +456,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		}
 		count += 1
 	}
+	close(stopedCh)
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
