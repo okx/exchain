@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"log"
 	"path/filepath"
 
@@ -96,6 +97,12 @@ func migrateAccount(ctx *server.Context) {
 
 	cnt := 0
 	contractCnt := 0
+
+	// update GlobalNumber
+	accountNumber := migApp.AccountKeeper.GetNextAccountNumber(cmCtx)
+	bz := migApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber)
+	err = mptTrie.TryUpdate(authtypes.GlobalAccountNumberKey, bz)
+	panicError(err)
 
 	migApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
 		cnt += 1
