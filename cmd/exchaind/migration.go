@@ -1,35 +1,25 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	dbm "github.com/okex/exchain/libs/tm-db"
 	"log"
 	"path/filepath"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	dbm "github.com/okex/exchain/libs/tm-db"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/okex/exchain/app"
-	types2 "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
-
-var emptyCodeHash = ethcrypto.Keccak256(nil)
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -38,39 +28,11 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		migrateAccountCmd(ctx),
-		migrateContractCmd(ctx),
 		cleanIavlStoreCmd(ctx),
 		iteratorMptCmd(ctx),
 		migrateMpt2IavlCmd(ctx),
 	)
 
-	return cmd
-}
-
-func migrateAccountCmd(ctx *server.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "migrate-account",
-		Short: "1. migrate iavl account to mpt account",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- migrate account start ---------")
-			migrateAccount(ctx)
-			log.Println("--------- migrate account end ---------")
-		},
-	}
-	return cmd
-}
-
-func migrateContractCmd(ctx *server.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "migrate-contract",
-		Short: "2. migrate iavl contract state to mpt contract state",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- migrate contract state start ---------")
-			migrateContract(ctx)
-			log.Println("--------- migrate contract state end ---------")
-		},
-	}
 	return cmd
 }
 
@@ -116,7 +78,6 @@ func migrateMpt2IavlCmd(ctx *server.Context) *cobra.Command {
 	}
 	return cmd
 }
-
 
 func iteratorMpt(ctx *server.Context, name string) {
 	switch name {
@@ -268,129 +229,6 @@ func migrateMpt2Iavl(ctx *server.Context, name string) {
 	}
 }
 
-//----------------------------------------------------------------
-func migrateAccount(ctx *server.Context) {
-	migApp := newMigrationApp(ctx)
-
-	ver, err := migApp.GetCommitVersion()
-	panicError(err)
-
-	// init deliver state
-	migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
-	cmCtx := migApp.GetDeliverStateCtx()
-
-	accMptDb := mpt.InstanceOfAccStore()
-	accTrie, err := accMptDb.OpenTrie(ethcmn.Hash{})
-	panicError(err)
-
-	evmMptDb := mpt.InstanceOfEvmStore()
-	evmTrie, err := evmMptDb.OpenTrie(ethcmn.Hash{})
-	panicError(err)
-
-	cnt := 0
-	contractCnt := 0
-	emptyRootHashByte := types.EmptyRootHash.Bytes()
-
-	// update GlobalNumber
-	accountNumber := migApp.AccountKeeper.GetNextAccountNumber(cmCtx)
-	bz := migApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber)
-	err = accTrie.TryUpdate(authtypes.GlobalAccountNumberKey, bz)
-	panicError(err)
-
-	// update every account
-	migApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
-		cnt += 1
-		err := accTrie.TryUpdate(key, value)
-		panicError(err)
-
-		if cnt%100 == 0 {
-			pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight()-1)
-			fmt.Println(cnt)
-		}
-
-		// contract account
-		switch account.(type) {
-		case *types2.EthAccount:
-			ethAcc := account.(*types2.EthAccount)
-
-			if !bytes.Equal(ethAcc.CodeHash, emptyCodeHash) {
-				contractCnt += 1
-				err = evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), emptyRootHashByte)
-				panicError(err)
-
-				cHash := ethcmn.BytesToHash(ethAcc.CodeHash)
-
-				// migrate code
-				codeWriter := evmMptDb.TrieDB().DiskDB().NewBatch()
-				code := migApp.EvmKeeper.GetCodeByHash(cmCtx, cHash)
-				rawdb.WriteCode(codeWriter, cHash, code)
-				err = codeWriter.Write()
-				panicError(err)
-
-				if contractCnt%100 == 0 {
-					pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
-				}
-			}
-		default:
-			//do nothing
-		}
-
-		return false
-	})
-	pushData2Database(accMptDb, accTrie, cmCtx.BlockHeight()-1)
-	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
-
-	fmt.Println(fmt.Sprintf("Successfule migrate %d account (include %d contract account) at version %d", cnt, contractCnt, cmCtx.BlockHeight()-1))
-}
-
-func migrateContract(ctx *server.Context) {
-	migApp := newMigrationApp(ctx)
-
-	ver, err := migApp.GetCommitVersion()
-	panicError(err)
-
-	// init deliver state
-	migApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: ver + 1}})
-	cmCtx := migApp.GetDeliverStateCtx()
-
-	evmMptDb := mpt.InstanceOfEvmStore()
-	rootHash := migApp.EvmKeeper.GetMptRootHash(uint64(cmCtx.BlockHeight() - 1))
-	evmTrie, err := evmMptDb.OpenTrie(rootHash)
-	panicError(err)
-
-	cnt := 0
-	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
-	for itr.Next() {
-		cnt += 1
-
-		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
-		addrHash := ethcrypto.Keccak256Hash(addr[:])
-		contractTrie := getTrie(evmMptDb, addrHash, ethcmn.Hash{})
-
-		_ = migApp.EvmKeeper.ForEachStorage(cmCtx, addr, func(key, value ethcmn.Hash) bool {
-			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-			err := contractTrie.TryUpdate(key[:], v)
-			panicError(err)
-
-			return false
-		})
-		rootHash, err := contractTrie.Commit(nil)
-		panicError(err)
-		fmt.Println(addr.String(), rootHash.String())
-		err = evmTrie.TryUpdate(addr[:], rootHash.Bytes())
-		panicError(err)
-
-		if cnt%100 == 0 {
-			pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
-			fmt.Println(cnt)
-		}
-	}
-	pushData2Database(evmMptDb, evmTrie, cmCtx.BlockHeight()-1)
-
-	fmt.Println(fmt.Sprintf("Successfule migrate %d contract stroage at version %d", cnt, cmCtx.BlockHeight()-1))
-}
-
 func cleanIavlStore(ctx *server.Context) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
@@ -431,51 +269,9 @@ func cleanIavlStore(ctx *server.Context) {
 
 //----------------------------------------------------------------
 
-func pushData2Database(db ethstate.Database, tr ethstate.Trie, height int64) {
-	var storageRoot ethcmn.Hash
-	root, err := tr.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != types.EmptyRootHash {
-			db.TrieDB().Reference(storageRoot, parent)
-		}
-		return nil
-	})
-	panicError(err)
-
-	err = db.TrieDB().Commit(root, false, nil)
-	panicError(err)
-
-	setAccMptRootHash(db, uint64(height), root)
-}
-
-func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
-	rootDir := ctx.Config.RootDir
-	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
-	if err != nil {
-		panic("fail to open application db: " + err.Error())
-	}
-
-	return app.NewOKExChainApp(
-		ctx.Logger,
-		db,
-		nil,
-		true,
-		map[int64]bool{},
-		0,
-	)
-}
-
-func getTrie(db ethstate.Database, addrHash ,  stateRoot ethcmn.Hash) ethstate.Trie {
+func getTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethstate.Trie {
 	tr, _ := db.OpenStorageTrie(addrHash, stateRoot)
 	return tr
-}
-
-// SetMptRootHash sets the mapping from block height to root mpt hash
-func setAccMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash) {
-	hhash := sdk.Uint64ToBigEndian(height)
-	db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, hhash)
-	db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, hhash...), hash.Bytes())
 }
 
 func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error {
@@ -489,10 +285,10 @@ func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) e
 	}
 
 	// delete verion [from, to)
-	return tree.DeleteVersionsRange(0, maxVersion + 1, true)
+	return tree.DeleteVersionsRange(0, maxVersion+1, true)
 }
 
-func migrateEvmBubbleData(db, bubbleDB dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error{
+func migrateEvmBubbleData(db, bubbleDB dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error {
 	if len(prefix) != 0 {
 		db = dbm.NewPrefixDB(db, prefix)
 	}

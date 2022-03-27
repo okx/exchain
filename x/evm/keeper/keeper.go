@@ -2,11 +2,13 @@ package keeper
 
 import (
 	"encoding/binary"
+	"math/big"
+	"sync"
+
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/mpt"
-	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -18,7 +20,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -211,6 +212,10 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ModuleName)
 }
 
+func (k Keeper) GetStoreKey() store.StoreKey {
+	return k.storeKey
+}
+
 // ----------------------------------------------------------------------------
 // Block hash mapping functions
 // Required by Web3 API.
@@ -234,6 +239,17 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
+}
+
+// IterateBlockHash iterates all over the block hash in every height
+func (k Keeper) IterateBlockHash(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
+	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		if stop := fn(iterator.Key(), iterator.Value()); stop {
+			break
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -268,14 +284,21 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
 	return ethtypes.BytesToBloom(bz)
 }
 
-func (k Keeper) GetStoreKey() store.StoreKey {
-	return k.storeKey
-}
-
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
+}
+
+// IterateBlockBloom iterates all over the bloom value in every height
+func (k Keeper) IterateBlockBloom(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
+	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		if stop := fn(iterator.Key(), iterator.Value()); stop {
+			break
+		}
+	}
 }
 
 // GetAccountStorage return state storage associated with an account
