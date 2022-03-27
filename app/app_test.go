@@ -1,13 +1,14 @@
 package app
 
 import (
+	"os"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/params"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 

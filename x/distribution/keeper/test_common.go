@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"

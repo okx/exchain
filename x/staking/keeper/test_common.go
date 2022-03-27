@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strconv"
 	"testing"
 	"time"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 

@@ -520,7 +520,7 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 	memStore := ctx.KVStore(k.memKey)
 	memStoreType := memStore.GetStoreType()
 	if memStoreType != sdk.StoreTypeMemory {
-		panic(fmt.Sprintf("invalid memory store type; got %s, expected: %s", memStoreType, sdk.StoreTypeMemory))
+		panic(fmt.Sprintf("invalid memory store type; got %d, expected: %d", memStoreType, sdk.StoreTypeMemory))
 	}
 
 	// create context with no block gas meter to ensure we do not consume gas during local initialization logic.
