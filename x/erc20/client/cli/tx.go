@@ -23,7 +23,7 @@ import (
 func GetCmdTokenMappingProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token-mapping [denom] [contract]",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		Short: "Submit a token mapping proposal",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a token mapping proposal.
