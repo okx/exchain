@@ -99,34 +99,15 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				authtypes.StdSignature{
 					Signature: s,
 					PubKey:    tmPubKey,
-					//PubKey:    ibcTx.AuthInfo.SignerInfos[0].PublicKey,
 				},
 			)
 		}
-
-		//relayMsgs := []*sdk.RelayMsg{}
-		relayMsgs := []*sdk.RelayMsg{}
-		for _, ibcmsg := range ibcTx.Body.Messages {
-			//ibcTx.Body.UnpackInterfaces(i)
-			//relayMsgs = append(relayMsgs, &sdk.RelayMsg{
-			if ibcmsg.TypeUrl == "/ibc.applications.transfer.v1.MsgTransfer" {
-				relayMsgs = append(relayMsgs,
-					sdk.NewRelayMsg(
-						ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl), sdk.WithRouter("transfer"),
-					),
-				)
-			} else {
-				relayMsgs = append(relayMsgs,
-					sdk.NewRelayMsg(
-						ibcmsg.Value, ibcTx.GetSigners(), sdk.WithMsgDetailType(ibcmsg.TypeUrl),
-					),
-				)
-			}
-		}
 		stdmsgs := []sdk.Msg{}
-		for _, v := range relayMsgs {
-			stdmsgs = append(stdmsgs, v)
+		for _, ibcmsg := range ibcTx.Body.Messages {
+			m := ibcmsg.GetCachedValue().(sdk.Msg)
+			stdmsgs = append(stdmsgs, m)
 		}
+
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdmsgs,

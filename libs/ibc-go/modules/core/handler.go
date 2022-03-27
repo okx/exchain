@@ -83,12 +83,7 @@ func unmarshalFromRelayMsg(k keeper.Keeper, msg *sdk.RelayMsg) (sdk.MsgAdapter, 
 
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
-	return func(ctx sdk.Context, re sdk.Msg) (*sdk.Result, error) {
-		m := re.(*sdk.RelayMsg)
-		msg, err := unmarshalFromRelayMsg(k, m)
-		if nil != err {
-			return nil, err
-		}
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
