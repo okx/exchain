@@ -13,6 +13,7 @@ func MptCmd(ctx *server.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		iavl2mptCmd(ctx),
+		cleanIavlStoreCmd(ctx),
 	)
 
 	return cmd

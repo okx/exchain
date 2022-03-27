@@ -6,7 +6,6 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -28,24 +27,10 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		cleanIavlStoreCmd(ctx),
 		iteratorMptCmd(ctx),
 		migrateMpt2IavlCmd(ctx),
 	)
 
-	return cmd
-}
-
-func cleanIavlStoreCmd(ctx *server.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "clean-IavlStore",
-		Short: "3. clean up migrated iavl store",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- clean state start ---------")
-			cleanIavlStore(ctx)
-			log.Println("--------- clean state end ---------")
-		},
-	}
 	return cmd
 }
 
@@ -229,97 +214,9 @@ func migrateMpt2Iavl(ctx *server.Context, name string) {
 	}
 }
 
-func cleanIavlStore(ctx *server.Context) {
-	rootDir := ctx.Config.RootDir
-	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
-	if err != nil {
-		panic("fail to open application db: " + err.Error())
-	}
-
-	rs := rootmulti.NewStore(db)
-	latestVersion := rs.GetLatestVersion()
-
-	// 1.clean account store
-	fmt.Println("Start to clean account store")
-	err = CleanIAVLStore(db, []byte(KeyAcc), latestVersion, DefaultCacheSize)
-	if err != nil {
-		fmt.Println("fail to clean iavl store: ", err)
-	}
-
-	// 2.migrate evm store's bubble data (which is not contract code and contract state) to a tmp key-val store
-	bubbleDB, err := openDB("evmBuble", dataDir)
-	if err != nil {
-		panic("fail to open application db: " + err.Error())
-	}
-
-	fmt.Println("Start migrate evm store's bubble data")
-	err = migrateEvmBubbleData(db, bubbleDB, []byte(KeyEvm), latestVersion, DefaultCacheSize)
-	if err != nil {
-		fmt.Println("fail to migrate evm bubble data: ", err)
-	}
-
-	// 3.clean evm store
-	fmt.Println("Start to clean evm store")
-	err = CleanIAVLStore(db, []byte(KeyEvm), latestVersion, DefaultCacheSize)
-	if err != nil {
-		fmt.Println("fail to clean iavl store: ", err)
-	}
-}
-
 //----------------------------------------------------------------
 
 func getTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethstate.Trie {
 	tr, _ := db.OpenStorageTrie(addrHash, stateRoot)
 	return tr
-}
-
-func CleanIAVLStore(db dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error {
-	if len(prefix) != 0 {
-		db = dbm.NewPrefixDB(db, prefix)
-	}
-
-	tree, err := iavl.NewMutableTree(db, cacheSize)
-	if err != nil {
-		return err
-	}
-
-	// delete verion [from, to)
-	return tree.DeleteVersionsRange(0, maxVersion+1, true)
-}
-
-func migrateEvmBubbleData(db, bubbleDB dbm.DB, prefix []byte, maxVersion int64, cacheSize int) error {
-	if len(prefix) != 0 {
-		db = dbm.NewPrefixDB(db, prefix)
-	}
-
-	tree, err := iavl.NewMutableTree(db, cacheSize)
-	if err != nil {
-		return err
-	}
-
-	_, err = tree.LoadVersion(maxVersion)
-	if err != nil {
-		return err
-	}
-
-	tree.IterateRange(nil, nil, true, func(key []byte, value []byte) bool {
-		saveEvmBubbleData(bubbleDB, key, value)
-		return false
-	})
-
-	return nil
-}
-
-func saveEvmBubbleData(db dbm.DB, key []byte, value []byte) {
-	switch key[0] {
-	case evmtypes.KeyPrefixBlockHash[0]:
-	case evmtypes.KeyPrefixBloom[0]:
-	case evmtypes.KeyPrefixChainConfig[0]:
-	case evmtypes.KeyPrefixHeightHash[0]:
-	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
-	case evmtypes.KeyPrefixContractBlockedList[0]:
-		db.Set(key, value)
-	default:
-	}
 }
