@@ -13,6 +13,7 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmdb "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -45,19 +46,24 @@ func checkValidKey(key string) error {
  */
 // newMigrationApp generates a new app with the given key and application.db
 func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
-	dataDir := filepath.Join(ctx.Config.RootDir, "data")
-	db, err := sdk.NewLevelDB(applicationDB, dataDir)
-	if err != nil {
-		panicError(fmt.Errorf("fail to open application db: %s", err.Error()))
-	}
+	appDb := openApplicationDb(ctx.Config.RootDir)
 	return app.NewOKExChainApp(
 		ctx.Logger,
-		db,
+		appDb,
 		nil,
 		true,
 		map[int64]bool{},
 		0,
 	)
+}
+
+func openApplicationDb(rootdir string) tmdb.DB {
+	dataDir := filepath.Join(rootdir, "data")
+	appDb, err := sdk.NewLevelDB(applicationDB, dataDir)
+	if err != nil {
+		panic("fail to open application db: " + err.Error())
+	}
+	return appDb
 }
 
 func getDeliverStateCtx(migrationApp *app.OKExChainApp) sdk.Context {

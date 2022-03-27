@@ -34,9 +34,9 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Printf("--------- migrate %s start ---------\n", args[0])
 			switch args[0] {
-			case authtypes.StoreKey:
+			case accStoreKey:
 				migrateAccFromIavlToMpt(ctx)
-			case evmtypes.StoreKey:
+			case evmStoreKey:
 				migrateEvmFromIavlToMpt(ctx)
 			}
 			log.Printf("--------- migrate %s end ---------\n", args[0])
@@ -71,6 +71,10 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	batch := evmMptDb.TrieDB().DiskDB().NewBatch()
 	migrationApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
 		count++
+		if len(value) == 0 {
+			log.Printf("[warning] %s has nil value\n", account.GetAddress().String())
+		}
+		
 		// update acc mpt for every account
 		panicError(accTrie.TryUpdate(key, value))
 		if count%100 == 0 {

@@ -8,9 +8,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -25,9 +23,9 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Printf("--------- iterate %s data start ---------\n", args[0])
 			switch args[0] {
-			case authtypes.StoreKey:
+			case accStoreKey:
 				iterateAccMpt(ctx)
-			case evmtypes.StoreKey:
+			case evmStoreKey:
 				iterateEvmMpt(ctx)
 			}
 			log.Printf("--------- iterate %s data end ---------\n", args[0])
