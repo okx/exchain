@@ -2,6 +2,7 @@ package erc20
 
 import (
 	"encoding/json"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
@@ -163,6 +164,9 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 		return nil
 	}
 	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
+		ret := types.DefaultGenesisState()
+		data := types.ModuleCdc.MustMarshalJSON(ret)
+		am.initGenesis(ctx, data)
 		return nil
 	})
 }
