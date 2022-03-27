@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -214,7 +215,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
 
-	sk := staking.NewKeeper(cdc, pro, keyStaking, supplyKeeper,
+	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
 
