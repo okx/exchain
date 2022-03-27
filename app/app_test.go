@@ -24,7 +24,7 @@ func TestOKExChainAppExport(t *testing.T) {
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
 	genesisState := ModuleBasics.DefaultGenesis()
-	stateBytes, err := codec.MarshalJSONIndent(app.cdc, genesisState)
+	stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
 	require.NoError(t, err)
 
 	// Initialize the chain
