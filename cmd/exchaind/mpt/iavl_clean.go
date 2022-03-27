@@ -29,7 +29,7 @@ func cleanIavlStoreCmd(ctx *server.Context) *cobra.Command {
 
 func clean(ctx *server.Context) {
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
-	db, err := sdk.NewLevelDB("application", dataDir)
+	db, err := sdk.NewLevelDB(applicationDB, dataDir)
 	if err != nil {
 		panic("fail to open application db: " + err.Error())
 	}

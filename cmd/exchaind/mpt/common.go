@@ -17,6 +17,8 @@ import (
 )
 
 const (
+	applicationDB = "application"
+
 	accStoreKey = authtypes.StoreKey
 	evmStoreKey = evmtypes.StoreKey
 
@@ -44,7 +46,7 @@ func checkValidKey(key string) error {
 // newMigrationApp generates a new app with the given key and application.db
 func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
-	db, err := sdk.NewLevelDB("application", dataDir)
+	db, err := sdk.NewLevelDB(applicationDB, dataDir)
 	if err != nil {
 		panicError(fmt.Errorf("fail to open application db: %s", err.Error()))
 	}

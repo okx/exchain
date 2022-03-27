@@ -27,25 +27,9 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		iteratorMptCmd(ctx),
 		migrateMpt2IavlCmd(ctx),
 	)
 
-	return cmd
-}
-
-func iteratorMptCmd(ctx *server.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "iterate-mpt",
-		Args:  cobra.ExactArgs(1),
-		Short: "4. iterate mpt store (acc, evm)",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- iterate mpt data start ---------")
-			name := args[0]
-			iteratorMpt(ctx, name)
-			log.Println("--------- iterate mpt data end ---------")
-		},
-	}
 	return cmd
 }
 
@@ -62,52 +46,6 @@ func migrateMpt2IavlCmd(ctx *server.Context) *cobra.Command {
 		},
 	}
 	return cmd
-}
-
-func iteratorMpt(ctx *server.Context, name string) {
-	switch name {
-	case authtypes.StoreKey:
-		accMptDb := mpt.InstanceOfAccStore()
-		hhash, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
-		panicError(err)
-		rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
-		panicError(err)
-		accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
-		panicError(err)
-		fmt.Println("accTrie root hash:", accTrie.Hash())
-
-		itr := trie.NewIterator(accTrie.NodeIterator(nil))
-		for itr.Next() {
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
-		}
-
-	case evmtypes.StoreKey:
-		evmMptDb := mpt.InstanceOfEvmStore()
-		hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
-		panicError(err)
-		rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
-		panicError(err)
-		evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
-		panicError(err)
-		fmt.Println("evmTrie root hash:", evmTrie.Hash())
-
-		var stateRoot ethcmn.Hash
-		itr := trie.NewIterator(evmTrie.NodeIterator(nil))
-		for itr.Next() {
-			addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
-			addrHash := ethcrypto.Keccak256Hash(addr[:])
-			stateRoot.SetBytes(itr.Value)
-
-			contractTrie := getTrie(evmMptDb, addrHash, stateRoot)
-			fmt.Println(addr.String(), contractTrie.Hash())
-
-			cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
-			for cItr.Next() {
-				fmt.Printf("%s: %s\n", cItr.Key, cItr.Value)
-			}
-		}
-
-	}
 }
 
 func migrateMpt2Iavl(ctx *server.Context, name string) {
