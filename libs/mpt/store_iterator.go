@@ -12,9 +12,6 @@ type mptIterator struct {
 	// Domain
 	start, end []byte
 
-	key   []byte // The current key (mutable)
-	value []byte // The current value (mutable)
-
 	// Underlying store
 	iterator *trie.Iterator
 
@@ -37,7 +34,6 @@ func (it *mptIterator) Domain() (start []byte, end []byte) {
 }
 
 func (it *mptIterator) Valid() bool {
-	// return it.invalid
 	return it.valid
 }
 
