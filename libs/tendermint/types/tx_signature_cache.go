@@ -3,8 +3,6 @@ package types
 import (
 	"sync/atomic"
 
-	"github.com/spf13/viper"
-
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -25,13 +23,13 @@ func init() {
 }
 
 func InitSignatureCache() {
-	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
-	if err != nil {
-		panic(err)
-	}
-	signatureCache = &Cache{
-		data: lruCache,
-	}
+	//lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//signatureCache = &Cache{
+	//	data: lruCache,
+	//}
 }
 
 func SignatureCache() *Cache {
