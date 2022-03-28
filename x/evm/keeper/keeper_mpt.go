@@ -18,7 +18,7 @@ import (
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	hhash := sdk.Uint64ToBigEndian(height)
-	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, hhash...))
 	if err != nil || len(rst) == 0 {
 		return ethcmn.Hash{}
 	}
@@ -28,7 +28,7 @@ func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 // SetMptRootHash sets the mapping from block height to root mpt hash
 func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
-	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, hhash...), hash.Bytes())
+	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, hhash...), hash.Bytes())
 
 	// put root hash to iavl and participate the process of calculate appHash
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
@@ -39,7 +39,7 @@ func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 
 // GetLatestStoredBlockHeight get latest stored mpt storage height
 func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
-	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0
 	}
@@ -49,7 +49,7 @@ func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
 // SetLatestStoredBlockHeight sets the latest stored storage height
 func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 	hhash := sdk.Uint64ToBigEndian(height)
-	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, hhash)
+	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, hhash)
 }
 
 func (k *Keeper) OpenTrie() {

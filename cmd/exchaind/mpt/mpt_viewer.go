@@ -35,10 +35,10 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 }
 
 func iterateAccMpt(ctx *server.Context) {
-	accMptDb := mpt.InstanceOfAccStore()
-	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+	accMptDb := mpt.InstanceOfMptStore()
+	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, heightBytes...))
+	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
@@ -51,10 +51,10 @@ func iterateAccMpt(ctx *server.Context) {
 }
 
 func iterateEvmMpt(ctx *server.Context) {
-	evmMptDb := mpt.InstanceOfEvmStore()
-	hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
+	evmMptDb := mpt.InstanceOfMptStore()
+	hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, hhash...))
+	rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, hhash...))
 	panicError(err)
 	evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)

@@ -16,43 +16,43 @@ import (
 )
 
 const (
-	AccMptDataDir = "data"
-	AccMptSpace   = "acc"
+	MptDataDir = "data"
+	MptSpace   = "mpt"
 )
 
 var (
-	gAccMptDatabase ethstate.Database = nil
-	initAccOnce     sync.Once
+	gMptDatabase ethstate.Database = nil
+	initMptOnce  sync.Once
 )
 
-func InstanceOfAccStore() ethstate.Database {
-	initAccOnce.Do(func() {
+func InstanceOfMptStore() ethstate.Database {
+	initMptOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
-		path := filepath.Join(homeDir, AccMptDataDir)
+		path := filepath.Join(homeDir, MptDataDir)
 
 		backend := sdk.DBBackend
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}
 
-		kvstore, e := types.CreateKvDB(AccMptSpace, types.BackendType(backend), path)
+		kvstore, e := types.CreateKvDB(MptSpace, types.BackendType(backend), path)
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
 		db := rawdb.NewDatabase(kvstore)
-		gAccMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
+		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(types.TrieCacheSize),
 			Journal:   "",
 			Preimages: true,
 		})
 	})
 
-	return gAccMptDatabase
+	return gMptDatabase
 }
 
 // GetLatestStoredBlockHeight get latest mpt storage height
 func (ms *MptStore) GetLatestStoredBlockHeight() uint64 {
-	rst, err := ms.db.TrieDB().DiskDB().Get(KeyPrefixLatestStoredHeight)
+	rst, err := ms.db.TrieDB().DiskDB().Get(KeyPrefixAccLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0
 	}
@@ -62,13 +62,13 @@ func (ms *MptStore) GetLatestStoredBlockHeight() uint64 {
 // SetLatestStoredBlockHeight sets the latest stored storage height
 func (ms *MptStore) SetLatestStoredBlockHeight(height uint64) {
 	hhash := sdk.Uint64ToBigEndian(height)
-	ms.db.TrieDB().DiskDB().Put(KeyPrefixLatestStoredHeight, hhash)
+	ms.db.TrieDB().DiskDB().Put(KeyPrefixAccLatestStoredHeight, hhash)
 }
 
 // GetMptRootHash gets root mpt hash from block height
 func (ms *MptStore) GetMptRootHash(height uint64) ethcmn.Hash {
 	hhash := sdk.Uint64ToBigEndian(height)
-	rst, err := ms.db.TrieDB().DiskDB().Get(append(KeyPrefixRootMptHash, hhash...))
+	rst, err := ms.db.TrieDB().DiskDB().Get(append(KeyPrefixAccRootMptHash, hhash...))
 	if err != nil || len(rst) == 0 {
 		return ethcmn.Hash{}
 	}
@@ -79,5 +79,5 @@ func (ms *MptStore) GetMptRootHash(height uint64) ethcmn.Hash {
 // SetMptRootHash sets the mapping from block height to root mpt hash
 func (ms *MptStore) SetMptRootHash(height uint64, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(height)
-	ms.db.TrieDB().DiskDB().Put(append(KeyPrefixRootMptHash, hhash...), hash.Bytes())
+	ms.db.TrieDB().DiskDB().Put(append(KeyPrefixAccRootMptHash, hhash...), hash.Bytes())
 }
