@@ -7,13 +7,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
 
-//import (
-//	"github.com/gogo/protobuf/proto"
-//	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-//	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-//	"math/big"
-//)
-
 const (
 	IBCROUTER = "ibc"
 )
