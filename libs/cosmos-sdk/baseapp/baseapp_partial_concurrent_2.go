@@ -97,8 +97,8 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				dttr.logger.Error("DonotRunAnte", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "err", dttr.task.err)
 			}
 		case <-dttr.rerunCh:
-			if dttr.task == nil {
-				dttr.logger.Error("task is empty")
+			if dttr.task == nil || dttr.task.step == partialConcurrentStepFinished {
+				dttr.logger.Error("task is empty or finished")
 			} else if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
 				//dttr.task.needToRerun = true
 				dttr.runAnteFn(dttr.task)
