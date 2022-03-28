@@ -27,6 +27,7 @@ type dttRoutine struct {
 	txIndex int
 	rerunCh chan int
 	index   int8
+	finished bool
 
 	logger log.Logger
 
@@ -54,6 +55,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
+	dttr.finished = false
 	dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
@@ -292,6 +294,28 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		return fmt.Errorf("anteHandler cannot be nil")
 	}
 
+	//checkConflict := func() bool {
+	//	conflicted := false
+	//	count := len(dttm.dttRoutineList)
+	//	for i := 0; i < count; i++ {
+	//		dttr := dttm.dttRoutineList[i]
+	//		if dttr == nil {
+	//			continue
+	//		}
+	//		conflicted = dttr.checkConflict(task.from, task.index)
+	//		if conflicted {
+	//			dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
+	//			task.needToRerun = true
+	//		}
+	//	}
+	//	return conflicted
+	//}
+	//
+	//conflicted := checkConflict()
+	//if conflicted {
+	//	return nil
+	//}
+
 	if task.needToRerun {
 		dttm.app.logger.Error("ResetContext", "index", task.index)
 
@@ -409,6 +433,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
+				dttr.finished = true
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
 					if !dttm.startFinished {
@@ -434,15 +459,16 @@ func (dttm *DTTManager) serialRoutine() {
 					// if exists the next task which has finished the concurrent execution
 					if dttr.task.index == dttm.serialIndex+1 {
 						//dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
-						if dttr.task.from == task.from {
+						if dttr.task.from == task.from || dttr.task.needToRerun {
 							//go func() {
 							getRerun = true
 							dttr.logger.Error("rerunCh", "index", dttr.task.index)
 							dttr.task.needToRerun = true
 							dttr.rerunCh <- 0
 							//}()
-						} else if dttr.task.needToRerun {
-							dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
+						//} else if dttr.task.needToRerun {
+						//	dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
+						//	dttr.couldRerun(task.index)
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
 							dttr.task.step == partialConcurrentStepAnteFailed ||
 							dttr.task.step == partialConcurrentStepAnteSucceed {
