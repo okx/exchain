@@ -13,6 +13,7 @@ import (
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/erc20/keeper"
+	"github.com/okex/exchain/x/erc20/types"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -39,6 +40,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 		Time:    time.Now().UTC(),
 	})
 	suite.querier = keeper.NewQuerier(suite.app.Erc20Keeper)
+	suite.app.Erc20Keeper.SetParams(suite.ctx, types.DefaultParams())
 }
 
 func (suite *KeeperTestSuite) MintCoins(address sdk.AccAddress, coins sdk.Coins) error {

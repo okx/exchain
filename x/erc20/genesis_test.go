@@ -5,7 +5,7 @@ import (
 	"github.com/okex/exchain/x/erc20/types"
 )
 
-func (suite *CronosTestSuite) TestInitGenesis() {
+func (suite *Erc20TestSuite) TestInitGenesis() {
 	testCases := []struct {
 		name     string
 		malleate func()
@@ -19,7 +19,7 @@ func (suite *CronosTestSuite) TestInitGenesis() {
 			false,
 		},
 		{
-			"Wrong ibcCroDenom length",
+			"Wrong ibcDenom length",
 			func() {},
 			types.GenesisState{
 				Params: types.Params{
@@ -28,7 +28,7 @@ func (suite *CronosTestSuite) TestInitGenesis() {
 			true,
 		},
 		{
-			"Wrong ibcCroDenom prefix",
+			"Wrong ibcDenom prefix",
 			func() {},
 			types.GenesisState{
 				Params: types.Params{
@@ -124,7 +124,7 @@ func (suite *CronosTestSuite) TestInitGenesis() {
 	}
 }
 
-func (suite *CronosTestSuite) TestExportGenesis() {
+func (suite *Erc20TestSuite) TestExportGenesis() {
 	genesisState := erc20.ExportGenesis(suite.ctx, suite.app.Erc20Keeper)
 	suite.Require().Equal(genesisState.Params.IbcDenom, types.DefaultParams().IbcDenom)
 }
