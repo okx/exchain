@@ -26,7 +26,7 @@ import (
 func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Args:  cobra.ExactArgs(1),
-		Use:   "iavl2mpt",
+		Use:   "iavl2mpt acc/evm",
 		Short: "migrate data from iavl to mpt",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return checkValidKey(args[0])
