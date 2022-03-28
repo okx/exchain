@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/okex/exchain/app/logevents"
+	"github.com/okex/exchain/cmd/exchaind/mpt"
 
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -85,7 +86,7 @@ func main() {
 		replayCmd(ctx, client.RegisterAppFlag),
 		repairStateCmd(ctx),
 		displayStateCmd(ctx),
-		migrateCmd(ctx),
+		mpt.MptCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
