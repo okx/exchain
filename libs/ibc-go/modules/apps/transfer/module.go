@@ -88,9 +88,7 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Router) {}
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
-	//types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
-}
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {}
 
 // GetTxCmd implements AppModuleBasic interface
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
