@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"reflect"
 	"strings"
 
@@ -25,10 +26,11 @@ type Keeper struct {
 	cdc           *codec.CodecProxy
 	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
+	upgradeKeeper types.UpgradeKeeper
 }
 
 // NewKeeper creates a new NewKeeper instance
-func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper) Keeper {
+func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspace, sk types.StakingKeeper, uk types.UpgradeKeeper) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -39,6 +41,7 @@ func NewKeeper(cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace params.Subspa
 		cdc:           cdc,
 		paramSpace:    paramSpace,
 		stakingKeeper: sk,
+		upgradeKeeper: uk,
 	}
 }
 
@@ -375,4 +378,19 @@ func (k Keeper) GetAllClients(ctx sdk.Context) (states []exported.ClientState) {
 func (k Keeper) ClientStore(ctx sdk.Context, clientID string) sdk.KVStore {
 	clientPrefix := []byte(fmt.Sprintf("%s/%s/", host.KeyClientStorePrefix, clientID))
 	return prefix.NewStore(ctx.KVStore(k.storeKey), clientPrefix)
+}
+
+// GetUpgradePlan executes the upgrade keeper GetUpgradePlan function.
+func (k Keeper) GetUpgradePlan(ctx sdk.Context) (plan upgrade.Plan, havePlan bool) {
+	return k.upgradeKeeper.GetUpgradePlan(ctx)
+}
+
+// GetUpgradedClient executes the upgrade keeper GetUpgradeClient function.
+func (k Keeper) GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bool) {
+	return k.upgradeKeeper.GetUpgradedClient(ctx, planHeight)
+}
+
+// GetUpgradedConsensusState returns the upgraded consensus state
+func (k Keeper) GetUpgradedConsensusState(ctx sdk.Context, planHeight int64) ([]byte, bool) {
+	return k.upgradeKeeper.GetUpgradedConsensusState(ctx, planHeight)
 }

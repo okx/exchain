@@ -1,0 +1,277 @@
+# The configurations that used for the recording, feel free to edit them
+config:
+
+  # Specify a command to be executed
+  # like `/bin/bash -l`, `ls`, or any other commands
+  # the default is bash for Linux
+  # or powershell.exe for Windows
+  command: bash -l
+  
+  # Specify the current working directory path
+  # the default is the current working directory path
+  cwd: /Users/lvcong/go/src/github.com/okex/exchain/dev/ibc
+  
+  # Export additional ENV variables
+  env:
+    recording: true
+  
+  # Explicitly set the number of columns
+  # or use `auto` to take the current
+  # number of columns of your shell
+  cols: 80
+  
+  # Explicitly set the number of rows
+  # or use `auto` to take the current
+  # number of rows of your shell
+  rows: 40
+  
+  # Amount of times to repeat GIF
+  # If value is -1, play once
+  # If value is 0, loop indefinitely
+  # If value is a positive number, loop n times
+  repeat: 0
+  
+  # Quality
+  # 1 - 100
+  quality: 100
+  
+  # Delay between frames in ms
+  # If the value is `auto` use the actual recording delays
+  frameDelay: auto
+  
+  # Maximum delay between frames in ms
+  # Ignored if the `frameDelay` isn't set to `auto`
+  # Set to `auto` to prevent limiting the max idle time
+  maxIdleTime: 2000
+  
+  # The surrounding frame box
+  # The `type` can be null, window, floating, or solid`
+  # To hide the title use the value null
+  # Don't forget to add a backgroundColor style with a null as type
+  frameBox:
+    type: floating
+    title: Terminalizer
+    style:
+      border: 0px black solid
+      # boxShadow: none
+      # margin: 0px
+  
+  # Add a watermark image to the rendered gif
+  # You need to specify an absolute path for
+  # the image on your machine or a URL, and you can also
+  # add your own CSS styles
+  watermark:
+    imagePath: null
+    style:
+      position: absolute
+      right: 15px
+      bottom: 15px
+      width: 100px
+      opacity: 0.9
+  
+  # Cursor style can be one of
+  # `block`, `underline`, or `bar`
+  cursorStyle: block
+  
+  # Font family
+  # You can use any font that is installed on your machine
+  # in CSS-like syntax
+  fontFamily: "Monaco, Lucida Console, Ubuntu Mono, Monospace"
+  
+  # The size of the font
+  fontSize: 12
+  
+  # The height of lines
+  lineHeight: 1
+  
+  # The spacing between letters
+  letterSpacing: 0
+  
+  # Theme
+  theme:
+    background: "transparent"
+    foreground: "#afafaf"
+    cursor: "#c7c7c7"
+    black: "#232628"
+    red: "#fc4384"
+    green: "#b3e33b"
+    yellow: "#ffa727"
+    blue: "#75dff2"
+    magenta: "#ae89fe"
+    cyan: "#708387"
+    white: "#d5d5d0"
+    brightBlack: "#626566"
+    brightRed: "#ff7fac"
+    brightGreen: "#c8ed71"
+    brightYellow: "#ebdf86"
+    brightBlue: "#75dff2"
+    brightMagenta: "#ae89fe"
+    brightCyan: "#b1c6ca"
+    brightWhite: "#f9f9f4"
+  
+# Records, feel free to edit them
+records:
+  - delay: 298
+    content: "Restored session: 2022年 3月28日 星期一 10时33分57秒 CST\r\n"
+  - delay: 8
+    content: "\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 492
+    content: "\e[7mrly tx link oec100_ibc0  -d -o 3s  --override\e[27m"
+  - delay: 316
+    content: "\r\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[Crly tx link oec100_ibc0  -d -o 3s  --override\r\n\e[?2004l\r"
+  - delay: 51
+    content: "[2022-03-28T10:34:26+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0] -> creating client on ibc-0 for exchain-100 header-height{7} trust-period(235h0m0s)\r\n[2022-03-28T10:34:26+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): No client found on src chain {ibc-0} tracking the state of counterparty chain {exchain-100}\r\n"
+  - delay: 2187
+    content: "[2022-03-28T10:34:29+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [ibc-0]@{18} - msg(0:/ibc.core.client.v1.MsgCreateClient) hash(BC9A39D172CD7C14B02E3B0A14F183C867E7D0EDC79C34F52D7516472B9FED68)\r\n[2022-03-28T10:34:29+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [exchain-100] -> creating client on exchain-100 for ibc-0 header-height{16} trust-period(352h0m0s)\r\n[2022-03-28T10:34:29+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): No client found on src chain {exchain-100} tracking the state of counterparty chain {ibc-0}\r\n"
+  - delay: 2418
+    content: "[2022-03-28T10:34:31+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{9} - msg(0:/ibc.core.client.v1.MsgCreateClient) hash(2C6233E237817BA4459A59A3E7402E587DD1AD0B31CDFA7C5E3B7EAF9D4CF60A)\r\n[2022-03-28T10:34:31+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): ★ Clients created: client(07-tendermint-0) on chain[ibc-0] and client(07-tendermint-0) on chain[exchain-100]\r\n"
+  - delay: 6
+    content: "[2022-03-28T10:34:31+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - attempting to create new connection ends from chain[ibc-0] with chain[exchain-100]\r\n"
+  - delay: 533
+    content: "[2022-03-28T10:34:32+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [ibc-0]@{21} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.connection.v1.MsgConnectionOpenInit) hash(AA5C72E26F82FE6FC006711D360F229D71269DCFA65E85B1BA24E163B837C979)\r\n"
+  - delay: 2476
+    content: "[2022-03-28T10:34:34+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - chain[exchain-100] trying to open connection end on chain[ibc-0]\r\n"
+  - delay: 1568
+    content: "[2022-03-28T10:34:36+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{11} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.connection.v1.MsgConnectionOpenTry) hash(9B01C5BD750BA5145BE9C9F1899832E7B5CE0FB30F5F9D3FDBD7B9F9F1BAD498)\r\n"
+  - delay: 4426
+    content: "[2022-03-28T10:34:40+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 27}}conn(connection-0)-{STATE_INIT} : [exchain-100]@{{100 12}}conn(connection-0)-{STATE_TRYOPEN}\r\n"
+  - delay: 1048
+    content: "[2022-03-28T10:34:41+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [ibc-0]@{29} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.connection.v1.MsgConnectionOpenAck) hash(48C16A23571158B82CBB6E40013AF76F98216E509302EA158F1ECF386FAD6EE4)\r\n"
+  - delay: 1952
+    content: "[2022-03-28T10:34:43+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 29}}conn(connection-0)-{STATE_INIT} : [exchain-100]@{{100 13}}conn(connection-0)-{STATE_TRYOPEN}\r\n"
+  - delay: 6309
+    content: "[2022-03-28T10:34:49+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0] -> failed sending transaction:\r\n{\"client_id\":\"07-tendermint-0\",\"header\":{\"@type\":\"/ibc.lightclients.tendermint.v1.Header\",\"signed_header\":{\"header\":{\"version\":{\"block\":\"11\",\"app\":\"0\"},\"chain_id\":\"exchain-100\",\"height\":\"14\",\"time\":\"2022-03-28T02:34:40.115383Z\",\"last_block_id\":{\"hash\":\"XvTfyHBvWMI8TAf4BPXsy6AVo7pyDrFdNIsfAy9H0EA=\",\"part_set_header\":{\"total\":1,\"hash\":\"YjavCqXzzgRAW8Jc3LzD3FhKBRud/DjE2qrv2g1vGZs=\"}},\"last_commit_hash\":\"VMGB7XSvkTGFC95GKMzW2Dqk1I2m+qJYExZ1UC468tE=\",\"data_hash\":null,\"validators_hash\":\"hzVOkNl+PJVAHgwoHxXnFbfH7O1q9Fpc5V+6GHrhuig=\",\"next_validators_hash\":\"hzVOkNl+PJVAHgwoHxXnFbfH7O1q9Fpc5V+6GHrhuig=\",\"consensus_hash\":\"BICRvH3cKD93v7+R1zxE2ljD34qcvIZ0Bdi389qtoi8=\",\"app_hash\":\"K7v2hLdsSI1kA97ueFJ51cbk9feoGrCNMZhFEu+56X8=\",\"last_results_hash\":null,\"evidence_hash\":null,\"proposer_address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\"},\"commit\":{\"height\":\"14\",\"round\":0,\"block_id\":{\"hash\":\"BYFFYETtGI6XMOAyVWpCoH4QNonm8HLp+zQLfOwhMog=\",\"part_set_header\":{\"total\":1,\"hash\":\"wlwVLlixWrpmgOMAJVQQLqaF+9qXO5JrpouiakDL23U=\"}},\"signatures\":[{\"block_id_flag\":\"BLOCK_ID_FLAG_COMMIT\",\"validator_address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"timestamp\":\"2022-03-28T02:34:42.423312Z\",\"signature\":\"BVH2gYBfcH2xLZb2TwIoIJI16tTrY/hPSgHtiQt8ArAneum8y0SwuLQbZjXvZuGPuXIIH4kMgCw0cxxAXON1DQ==\"}]}},\"validator_set\":{\"validators\":[{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"}],\"proposer\":{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"},\"total_voting_power\":\"0\"},\"trusted_height\":{\"revision_number\":\"100\",\"revision_height\":\"13\"},\"trusted_validators\":{\"validators\":[{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"}],\"proposer\":{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"},\"total_voting_power\":\"0\"}},\"signer\":\"cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49\"}\r\n{\"connection_id\":\"connection-0\",\"counterparty_connection_id\":\"connection-0\",\"version\":{\"identifier\":\"1\",\"features\":[\"ORDER_ORDERED\",\"ORDER_UNORDERED\"]},\"client_state\":{\"@type\":\"/ibc.lightclients.tendermint.v1.ClientState\",\"chain_id\":\"ibc-0\",\"trust_level\":{\"numerator\":\"1\",\"denominator\":\"3\"},\"trusting_period\":\"1267200s\",\"unbonding_period\":\"1814400s\",\"max_clock_drift\":\"600s\",\"frozen_height\":{\"revision_number\":\"0\",\"revision_height\":\"0\"},\"latest_height\":{\"revision_number\":\"0\",\"revision_height\":\"23\"},\"proof_specs\":[{\"leaf_spec\":{\"hash\":\"SHA256\",\"prehash_key\":\"NO_HASH\",\"prehash_value\":\"SHA256\",\"length\":\"VAR_PROTO\",\"prefix\":\"AA==\"},\"inner_spec\":{\"child_order\":[0,1],\"child_size\":33,\"min_prefix_length\":4,\"max_prefix_length\":12,\"empty_child\":null,\"hash\":\"SHA256\"},\"max_depth\":0,\"min_depth\":0},{\"leaf_spec\":{\"hash\":\"SHA256\",\"prehash_key\":\"NO_HASH\",\"prehash_value\":\"SHA256\",\"length\":\"VAR_PROTO\",\"prefix\":\"AA==\"},\"inner_spec\":{\"child_order\":[0,1],\"child_size\":32,\"min_prefix_length\":1,\"max_prefix_length\":1,\"empty_child\":null,\"hash\":\"SHA256\"},\"max_depth\":0,\"min_depth\":0}],\"upgrade_path\":[\"upgrade\",\"upgradedIBCState\"],\"allow_update_after_expiry\":true,\"allow_update_after_misbehaviour\":true},\"proof_height\":{\"revision_number\":\"100\",\"revision_height\":\"14\"},\"proof_try\":\"CuUCCuICChhjb25uZWN0aW9ucy9jb25uZWN0aW9uLTASYAoPMDctdGVuZGVybWludC0wEiMKATESDU9SREVSX09SREVSRUQSD09SREVSX1VOT1JERVJFRBgCIiYKDzA3LXRlbmRlcm1pbnQtMBIMY29ubmVjdGlvbi0wGgUKA2liYxoLCAEYASABKgMAAhYiKQgBEiUCBBYgtiHkbg+Gdtw71N3W781KVyEitR+ymu0gc6BFeG3ABqogIikIARIlBAgWIEGq7Leskl8MnUmYAjyOuto3u2FV0Xv+X52WKFbZKyiNICIpCAESJQYMFiAs8r5mxxa1ZN8dpfxFN2i8Lva7pbBrMCinMzveY+ci1yAiKwgBEgQIEhYgGiEgr+78tB+ZZruAAcfxbVCmBZbM8WnnaS9ftS1D2Jl6fq0iKQgBEiUKHBYgYolpb54jTxckkI8fpWXV9eTl1KeU3dAnkJCYwA7y44QgCv4BCvsBCgNpYmMSIFDwPwrnvMc77sKE39E/PGBSMuVlFY5PECTInqyxYeT8GgkIARgBIAEqAQAiJwgBEgEBGiCl1mL0nWCvbP3g0MSo2VHMPxPrDpt3+k1O7+C2ldtXXiIlCAESIQHEpxV6+yjgNsOjjV3hJLNo+C7RY/tCTDOqAWnkmTjIcyInCAESAQEaIN01Yxt+U9QfvTYBsdGymhjrutRpgxxDNInzA3wDdwG9IiUIARIhAZUc1nI22qgCzuxjwyuSqyYXVrAwGH5+2kyw8V0B51/zIicIARIBARoggTrasOKgJEbIZder+6aTBX1APL29vQ2rai82bsHeUnw=\",\"proof_client\":\"CpQDCpEDCiNjbGllbnRzLzA3LXRlbmRlcm1pbnQtMC9jbGllbnRTdGF0ZRKoAQorL2liYy5saWdodGNsaWVudHMudGVuZGVybWludC52MS5DbGllbnRTdGF0ZRJ5CgVpYmMtMBIECAEQAxoECICsTSIECIDfbioDCNgEMgA6AhAXQhkKCQgBGAEgASoBABIMCgIAARAhGAQgDDABQhkKCQgBGAEgASoBABIMCgIAARAgGAEgATABSgd1cGdyYWRlShB1cGdyYWRlZElCQ1N0YXRlUAFYARoLCAEYASABKgMAAhYiKwgBEgQCBBYgGiEgo7QehblNVnNTj/0DCUE8J8ILK/MC/ie1nDpqfJdBGYgiKwgBEgQEBhYgGiEg3VVB9rW5/HSSbtwHZkToVKf3oTPn6KRDTS2HkqehnQciKwgBEgQGChYgGiEgiAO3sIegJFWrCe4LdNHvR81kV51as0zb3bx7fJlW/0wiKwgBEgQKHBYgGiEgo/ZO//JCtYNDpwir+dWDTgswgnUI5fS7KcKxBRgyzY0K/gEK+wEKA2liYxIgUPA/Cue8xzvuwoTf0T88YFIy5WUVjk8QJMierLFh5PwaCQgBGAEgASoBACInCAESAQEaIKXWYvSdYK9s/eDQxKjZUcw/E+sOm3f6TU7v4LaV21deIiUIARIhAcSnFXr7KOA2w6ONXeEks2j4LtFj+0JMM6oBaeSZOMhzIicIARIBARog3TVjG35T1B+9NgGx0bKaGOu61GmDHEM0ifMDfAN3Ab0iJQgBEiEBlRzWcjbaqALO7GPDK5KrJhdWsDAYfn7aTLDxXQHnX/MiJwgBEgEBGiCBOtqw4qAkRshl16v7ppMFfUA8vb29DatqLzZuwd5SfA==\",\"proof_consensus\":\"CvkCCvYCCixjbGllbnRzLzA3LXRlbmRlcm1pbnQtMC9jb25zZW5zdXNTdGF0ZXMvMC0yMxKGAQouL2liYy5saWdodGNsaWVudHMudGVuZGVybWludC52MS5Db25zZW5zdXNTdGF0ZRJUCgwIuL2EkgYQqP6qxAMSIgogk92NMXKdVNZvEtwTkQM2NYetOauPeeosOm0YNMI7UMMaILRh0TM9zTO6PY8eqoa/y5AP52peaXxu2CP7VuWVKxsBGgsIARgBIAEqAwACFiIrCAESBAIEFiAaISAXVMFmItn6icn32iea7HSZuXfftHDxZd2g8v/RfuwL9yIrCAESBAYMFiAaISAi6uz2p80I9wjFoAu10+bftt+9OkySloJUZ3a8vw/btCIrCAESBAgSFiAaISCv7vy0H5lmu4ABx/FtUKYFlszxaedpL1+1LUPYmXp+rSIpCAESJQocFiBiiWlvniNPFySQjx+lZdX15OXUp5Td0CeQkJjADvLjhCAK/gEK+wEKA2liYxIgUPA/Cue8xzvuwoTf0T88YFIy5WUVjk8QJMierLFh5PwaCQgBGAEgASoBACInCAESAQEaIKXWYvSdYK9s/eDQxKjZUcw/E+sOm3f6TU7v4LaV21deIiUIARIhAcSnFXr7KOA2w6ONXeEks2j4LtFj+0JMM6oBaeSZOMhzIicIARIBARog3TVjG35T1B+9NgGx0bKaGOu61GmDHEM0ifMDfAN3Ab0iJQgBEiEBlRzWcjbaqALO7GPDK5KrJhdWsDAYfn7aTLDxXQHnX/MiJwgBEgEBGiCBOtqw4qAkRshl16v7ppMFfUA8vb29DatqLzZuwd5SfA==\",\"consensus_height\":{\"revision_number\":\"0\",\"revision_height\":\"23\"},\"signer\":\"cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49\"}\r\n[2022-03-28T10:34:49+08:00]\e[0;31mERROR\e[0m\e[0;36m (ALL)\e[0m(relayer/log-chain.go:27): - [ibc-0] -> err(rpc error: code = InvalidArgument desc = failed to execute message; message index: 1: connection handshake open ack failed: connection state is not INIT or TRYOPEN (got STATE_OPEN): invalid connection state: invalid request)\r\n[2022-03-28T10:34:49+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): rpc error: code = InvalidArgument desc = failed to execute message; message index: 1: connection handshake open ack failed: connection state is not INIT or TRYOPEN (got STATE_OPEN): invalid connection state: invalid request\r\n[2022-03-28T10:34:49+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): retrying transaction...\r\n"
+  - delay: 5012
+    content: "[2022-03-28T10:34:54+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [exchain-100]@{{100 18}}conn(connection-0)-{STATE_TRYOPEN} : [ibc-0]@{{0 39}}conn(connection-0)-{STATE_OPEN}\r\n"
+  - delay: 1056
+    content: "[2022-03-28T10:34:55+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{20} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.connection.v1.MsgConnectionOpenConfirm) hash(13C36ACEE52F091E57A2C43AE123CB9E07ABE825AF4F3346C255DB0D43640CA9)\r\n[2022-03-28T10:34:55+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 41}}conn(connection-0)-{STATE_OPEN} : [exchain-100]@{{100 20}}conn(connection-0)-{STATE_TRYOPEN}\r\n[2022-03-28T10:34:55+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): ★ Connection created: [ibc-0]client{07-tendermint-0}conn{connection-0} -> [exchain-100]client{07-tendermint-0}conn{connection-0}\r\n[2022-03-28T10:34:55+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - attempting to create new channel ends from chain[ibc-0] with chain[exchain-100]\r\n"
+  - delay: 1063
+    content: "[2022-03-28T10:34:56+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [ibc-0]@{42} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.channel.v1.MsgChannelOpenInit) hash(EF435342AC377ECE792402D967CDCE405B7653F34413A583D6201DACB7E60BB7)\r\n"
+  - delay: 1943
+    content: "[2022-03-28T10:34:58+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - chain[exchain-100] trying to open channel end on chain[ibc-0]\r\n"
+  - delay: 1673
+    content: "[2022-03-28T10:35:00+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{22} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.channel.v1.MsgChannelOpenTry) hash(A09958E78329CAAC31A0574C38B9219AC654736BFD3DED72DA3407E0745D42FF)\r\n"
+  - delay: 4324
+    content: "[2022-03-28T10:35:04+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 47}}chan(channel-0)-{STATE_INIT} : [exchain-100]@{{100 23}}chan(channel-0)-{STATE_TRYOPEN}\r\n"
+  - delay: 1456
+    content: "[2022-03-28T10:35:06+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [ibc-0]@{50} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.channel.v1.MsgChannelOpenAck) hash(7C53E84E54FB63710D5EC436F889FDD849F7BFA99BFAC09A1A38D1C4BF374ECA)\r\n"
+  - delay: 1553
+    content: "[2022-03-28T10:35:07+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 50}}chan(channel-0)-{STATE_INIT} : [exchain-100]@{{100 24}}chan(channel-0)-{STATE_TRYOPEN}\r\n"
+  - delay: 6303
+    content: "[2022-03-28T10:35:14+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0] -> failed sending transaction:\r\n{\"client_id\":\"07-tendermint-0\",\"header\":{\"@type\":\"/ibc.lightclients.tendermint.v1.Header\",\"signed_header\":{\"header\":{\"version\":{\"block\":\"11\",\"app\":\"0\"},\"chain_id\":\"exchain-100\",\"height\":\"25\",\"time\":\"2022-03-28T02:35:04.451226Z\",\"last_block_id\":{\"hash\":\"iCA0/j/LgOjBMqVQRWr+yCB+pDkaR3HKL1lxhdDRwzM=\",\"part_set_header\":{\"total\":1,\"hash\":\"rX7dldYuzxhDd+tOFQ/wNwsQljisPNl/jgMV8hQP/2A=\"}},\"last_commit_hash\":\"H17k5qt8r9IHbRbzDhp07VJYjSI3R1s4uz595lBpLu4=\",\"data_hash\":null,\"validators_hash\":\"hzVOkNl+PJVAHgwoHxXnFbfH7O1q9Fpc5V+6GHrhuig=\",\"next_validators_hash\":\"hzVOkNl+PJVAHgwoHxXnFbfH7O1q9Fpc5V+6GHrhuig=\",\"consensus_hash\":\"BICRvH3cKD93v7+R1zxE2ljD34qcvIZ0Bdi389qtoi8=\",\"app_hash\":\"WkAMhgBAyGqkG7siLS9zImuKBhdSZ3gqs4tQkmkpbKg=\",\"last_results_hash\":null,\"evidence_hash\":null,\"proposer_address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\"},\"commit\":{\"height\":\"25\",\"round\":0,\"block_id\":{\"hash\":\"qrqzI1+o/Tl6vRbrHHjj5CJ6B9DTjGEZYrW03zqdgzE=\",\"part_set_header\":{\"total\":1,\"hash\":\"ysjOPpquAzcKN/2Vgk2ZnxiIDuZBxdw0tW6Thiorjgg=\"}},\"signatures\":[{\"block_id_flag\":\"BLOCK_ID_FLAG_COMMIT\",\"validator_address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"timestamp\":\"2022-03-28T02:35:06.690682Z\",\"signature\":\"xQYT3kEut6eEJCEIgX300LxNctAkQ+ld8YAWH3LCSwmYwC1AzoSDgzL02vhWx1IVIT4gZJQCnmZsqAAaNclNBg==\"}]}},\"validator_set\":{\"validators\":[{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"}],\"proposer\":{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"},\"total_voting_power\":\"0\"},\"trusted_height\":{\"revision_number\":\"100\",\"revision_height\":\"24\"},\"trusted_validators\":{\"validators\":[{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"}],\"proposer\":{\"address\":\"R8LWhQTDPtGw5S5FiZqEeRQv1k4=\",\"pub_key\":{\"ed25519\":\"GIT4jZCMBGix5+buE2qXAmugyE3eZv1KQh48hSFtWME=\"},\"voting_power\":\"1\",\"proposer_priority\":\"0\"},\"total_voting_power\":\"0\"}},\"signer\":\"cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49\"}\r\n{\"port_id\":\"transfer\",\"channel_id\":\"channel-0\",\"counterparty_channel_id\":\"channel-0\",\"counterparty_version\":\"ics20-1\",\"proof_try\":\"CtQCCtECCi1jaGFubmVsRW5kcy9wb3J0cy90cmFuc2Zlci9jaGFubmVscy9jaGFubmVsLTASMggCEAEaFQoIdHJhbnNmZXISCWNoYW5uZWwtMCIMY29ubmVjdGlvbi0wKgdpY3MyMC0xGgsIARgBIAEqAwACLCIrCAESBAIELCAaISCcW1H3ipo/rKF1XMChkT9RqiWgcv0MdW/0GhJMkvODCyIrCAESBAQILCAaISBP7cTERVl7PL0L7a+j2kUH4Rc2zLq2N7oT6jpDkjIuNiIrCAESBAYMLCAaISCIA7ewh6AkVasJ7gt00e9HzWRXnVqzTNvdvHt8mVb/TCIrCAESBAgULCAaISA/47L0jjpCc7ZDiZ0erLbELe1DizMVxuJ7EOxWPc9JOCIrCAESBAw0LCAaISD4efr21fkDEvt112PcrkQYFgsPkfbQxsMd9Q4+8ZET3gr+AQr7AQoDaWJjEiCP49m2gEHViJf0ubE8i9GehlqRwEZOBdue/ar/GCn98xoJCAEYASABKgEAIicIARIBARogpdZi9J1gr2z94NDEqNlRzD8T6w6bd/pNTu/gtpXbV14iJQgBEiEBxKcVevso4DbDo41d4SSzaPgu0WP7QkwzqgFp5Jk4yHMiJwgBEgEBGiC6Md0pyImKndjn6G+sasMpVjXUrDmbvWFRxuPezsjnSSIlCAESIQEmmYhUgMkKfzsuILeotGu7b5tbBNkPbokwZero0dwmEiInCAESAQEaIFcpZN6R12cI7XgBT8CblLDGJx6ExB0/4CuCqSgZKFAz\",\"proof_height\":{\"revision_number\":\"100\",\"revision_height\":\"25\"},\"signer\":\"cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49\"}\r\n[2022-03-28T10:35:14+08:00]\e[0;31mERROR\e[0m\e[0;36m (ALL)\e[0m(relayer/log-chain.go:27): - [ibc-0] -> err(rpc error: code = InvalidArgument desc = failed to execute message; message index: 1: channel handshake open ack failed: channel state should be INIT or TRYOPEN (got STATE_OPEN): invalid channel state: invalid request)\r\n[2022-03-28T10:35:14+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): rpc error: code = InvalidArgument desc = failed to execute message; message index: 1: channel handshake open ack failed: channel state should be INIT or TRYOPEN (got STATE_OPEN): invalid channel state: invalid request\r\n[2022-03-28T10:35:14+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): retrying transaction...\r\n"
+  - delay: 5005
+    content: "[2022-03-28T10:35:19+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [exchain-100]@{{100 29}}chan(channel-0)-{STATE_TRYOPEN} : [ibc-0]@{{0 59}}chan(channel-0)-{STATE_OPEN}\r\n"
+  - delay: 950
+    content: "[2022-03-28T10:35:20+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{31} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.channel.v1.MsgChannelOpenConfirm) hash(C274F14A721B1C535F2C7BC3A31B67A36EA2C3510A6FE65B62BFD5072FE109AF)\r\n[2022-03-28T10:35:20+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): - [ibc-0]@{{0 61}}chan(channel-0)-{STATE_OPEN} : [exchain-100]@{{100 31}}chan(channel-0)-{STATE_TRYOPEN}\r\n[2022-03-28T10:35:20+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): ★ Channel created: [ibc-0]chan{channel-0}port{transfer} -> [exchain-100]chan{channel-0}port{transfer}\r\n"
+  - delay: 6
+    content: "\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 3143
+    content: v
+  - delay: 553
+    content: "\b\e[K"
+  - delay: 209
+    content: "\e[7mexchaincli status  --node tcp://0.0.0.0:26657  |\e[27m\e[7m \e[27m\e[7mgrep 'latest_block_height'\e[27m"
+  - delay: 764
+    content: "\e[A\e[C\e[C\e[C\e[C\e[Cexchaincli status  --node tcp://0.0.0.0:26657  | grep 'latest_block_height'\r\n\e[?2004l\r"
+  - delay: 79
+    content: "    \"latest_block_height\": \"33\",\r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 3525
+    content: "\e[7mrly q bal exchain-100 admin16\e[27m"
+  - delay: 180
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal exchain-100 admin16\r\n\e[?2004l\r"
+  - delay: 63
+    content: "address {ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq} balance {899999995okt} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 2980
+    content: "\e[7mrly q bal ibc-0 testkey\e[27m"
+  - delay: 214
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal ibc-0 testkey\r\n\e[?2004l\r"
+  - delay: 48
+    content: "address {cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49} balance {100000000000samoleans,99999980756stake} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 4441
+    content: "\e[7mrly tx transfer exchain-100 ibc-0 10000okt $(rly\e[27m\e[7m \e[27m\e[7mchains address ibc-0) --path oec100_ibc0 --timeout-height-offset 1\e[27m"
+  - delay: 418
+    content: "\e[A\r\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[C\e[Crly tx transfer exchain-100 ibc-0 10000okt $(rly chains address ibc-0) --path oec100_ibc0 --timeout-height-offset 1\r\n\e[?2004l\r"
+  - delay: 1137
+    content: "[2022-03-28T10:35:37+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{39} - msg(0:/ibc.applications.transfer.v1.MsgTransfer) hash(BDF144C9AE167A4D6E8486C23C86CDC1D1161D1A9830C82FC5D4390C723D1DCB)\r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 3096
+    content: "\e[7mexchaincli status  --node tcp://0.0.0.0:26657  |\e[27m\e[7m \e[27m\e[7mgrep 'latest_block_height'\e[27m"
+  - delay: 1097
+    content: "\e[A\e[C\e[C\e[C\e[C\e[Cexchaincli status  --node tcp://0.0.0.0:26657  | grep 'latest_block_height'\r\n\e[?2004l\r"
+  - delay: 78
+    content: "    \"latest_block_height\": \"40\",\r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 4176
+    content: "\e[7mrly q bal exchain-100 admin16\e[27m"
+  - delay: 301
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal exchain-100 admin16\r\n\e[?2004l\r"
+  - delay: 52
+    content: "address {ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq} balance {899989994okt} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 3599
+    content: "\e[7mrly q bal ibc-0 testkey\e[27m"
+  - delay: 374
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal ibc-0 testkey\r\n\e[?2004l\r"
+  - delay: 59
+    content: "address {cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49} balance {100000000000samoleans,99999980756stake} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 3119
+    content: r
+  - delay: 126
+    content: l
+  - delay: 151
+    content: 'y'
+  - delay: 153
+    content: ' '
+  - delay: 147
+    content: ' '
+  - delay: 238
+    content: t
+  - delay: 196
+    content: x
+  - delay: 138
+    content: ' '
+  - delay: 275
+    content: r
+  - delay: 28
+    content: e
+  - delay: 602
+    content: '-'
+  - delay: 389
+    content: "\b\e[K"
+  - delay: 447
+    content: l
+  - delay: 167
+    content: a
+  - delay: 177
+    content: 'y'
+  - delay: 6800
+    content: "\b\b\b\b\b\e[K"
+  - delay: 184
+    content: "\b\b\b\e[K"
+  - delay: 181
+    content: "\b\b\b\b\b\e[K"
+  - delay: 237
+    content: "\a"
+  - delay: 357
+    content: "\e[7mrly tx relay-pkts oec100_ibc0 -d\e[27m"
+  - delay: 463
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly tx relay-pkts oec100_ibc0 -d\r\n\e[?2004l\r"
+  - delay: 1317
+    content: "[2022-03-28T10:36:06+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(client/chain_client.go:177): ✔ [exchain-100]@{52} - msg(0:/ibc.core.client.v1.MsgUpdateClient,1:/ibc.core.channel.v1.MsgTimeout) hash(703241716668BE0B9F7B6BA6BCD955CAB62848F6120BE8BDD9318CD20900E998)\r\n[2022-03-28T10:36:06+08:00]\e[0;32m INFO\e[0m\e[0;36m (ALL)\e[0m(relayer/chain.go:218): ★ Relayed 1 packets: [ibc-0]port{transfer}->[exchain-100]port{transfer}\r\n"
+  - delay: 11
+    content: "\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 2887
+    content: "\e[7mrly q bal exchain-100 admin16\e[27m"
+  - delay: 407
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal exchain-100 admin16\r\n\e[?2004l\r"
+  - delay: 58
+    content: "address {ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq} balance {899999993okt} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 4002
+    content: "\e[7mrly q bal ibc-0 testkey\e[27m"
+  - delay: 277
+    content: "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\brly q bal ibc-0 testkey\r\n\e[?2004l\r"
+  - delay: 49
+    content: "address {cosmos1u94n6y9vc6hghymtxat6y6e88g8mes0p80ne49} balance {100000000000samoleans,99999980756stake} \r\n\e]7;file://lvcongdeMacBook-Pro.local/Users/lvcong/go/src/github.com/okex/exchain/dev/ibc\a\e[?2004hlvcongdeMacBook-Pro:ibc lvcong$ "
+  - delay: 1469
+    content: "\e[?2004l\r\r\n注销\r\n\r\nSaving session..."
+  - delay: 23
+    content: "\r\n...saving history..."
+  - delay: 9
+    content: "truncating history files...\r\n...completed.\r\n"

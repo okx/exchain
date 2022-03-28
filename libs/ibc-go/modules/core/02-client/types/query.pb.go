@@ -6,11 +6,11 @@ package types
 import (
 	context "context"
 	fmt "fmt"
-	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	query "github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	_ "github.com/gogo/protobuf/gogoproto"
 	grpc1 "github.com/gogo/protobuf/grpc"
 	proto "github.com/gogo/protobuf/proto"
+	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	query "github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -1064,9 +1064,9 @@ type QueryServer interface {
 	// ClientParams queries all parameters of the ibc client.
 	ClientParams(context.Context, *QueryClientParamsRequest) (*QueryClientParamsResponse, error)
 	// UpgradedClientState queries an Upgraded IBC light client.
-	//UpgradedClientState(context.Context, *QueryUpgradedClientStateRequest) (*QueryUpgradedClientStateResponse, error)
+	UpgradedClientState(context.Context, *QueryUpgradedClientStateRequest) (*QueryUpgradedClientStateResponse, error)
 	// UpgradedConsensusState queries an Upgraded IBC consensus state.
-	//UpgradedConsensusState(context.Context, *QueryUpgradedConsensusStateRequest) (*QueryUpgradedConsensusStateResponse, error)
+	UpgradedConsensusState(context.Context, *QueryUpgradedConsensusStateRequest) (*QueryUpgradedConsensusStateResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
