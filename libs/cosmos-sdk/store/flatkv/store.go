@@ -27,6 +27,7 @@ type Store struct {
 	enable      bool
 	asyncCommit bool
 	tree        Tree
+	preloadCh   chan []byte
 }
 
 func NewStore(db dbm.DB, tree Tree) *Store {
@@ -40,8 +41,18 @@ func NewStore(db dbm.DB, tree Tree) *Store {
 		enable:      viper.GetBool(FlagEnable),
 		asyncCommit: iavl.EnableAsyncCommit,
 		tree:        tree,
+		preloadCh:   make(chan []byte, 0),
+	}
+	if st.enable {
+		go st.preloadSchedule()
 	}
 	return st
+}
+
+func (st *Store) preloadSchedule() {
+	for key := range st.preloadCh {
+		go st.tree.Get(key)
+	}
 }
 
 func (st *Store) Enable() bool {
