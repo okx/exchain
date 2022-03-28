@@ -23,8 +23,8 @@ const (
 	accStoreKey = authtypes.StoreKey
 	evmStoreKey = evmtypes.StoreKey
 
-	accDbName = accStoreKey + ".db"
-	evmDbName = evmStoreKey + ".db"
+	iavlAccKey = "s/k:acc/"
+	iavlEvmKey = "s/k:evm/"
 )
 
 func panicError(err error) {

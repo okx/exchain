@@ -27,7 +27,7 @@ func mpt2iavlCmd(ctx *server.Context) *cobra.Command {
 			return checkValidKey(args[0])
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- migrate mpt data to iavl data start ---------")
+			log.Printf("--------- migrate %s data to iavl data start ---------\n", args[0])
 			iavl.SetIgnoreVersionCheck(true)
 			switch args[0] {
 			case accStoreKey:
@@ -35,7 +35,7 @@ func mpt2iavlCmd(ctx *server.Context) *cobra.Command {
 			case evmStoreKey:
 				migrateEvmFroMptToIavl(ctx)
 			}
-			log.Println("--------- migrate mpt data to iavl data end ---------")
+			log.Printf("--------- migrate %s data to iavl data end ---------\n", args[0])
 		},
 	}
 	return cmd
@@ -47,16 +47,19 @@ func migrateAccFroMptToIavl(ctx *server.Context) {
 	fmt.Println("accTrie root hash:", accTrie.Hash())
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
-	prefixDb := dbm.NewPrefixDB(appDb, []byte(accStoreKey))
+	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlAccKey))
 	defer prefixDb.Close()
 
 	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height})
-	panicError(fmt.Errorf("fail to create iavl tree: " + err.Error()))
+	if err != nil {
+		panic("fail to create iavl tree: " + err.Error())
+	}
 
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
-		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
-		tree.Set(itr.Key, itr.Value)
+		originKey := accTrie.GetKey(itr.Key)
+		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(originKey), ethcmn.Bytes2Hex(itr.Value))
+		tree.Set(originKey, itr.Value)
 	}
 	_, _, _, err = tree.SaveVersion(false)
 	if err != nil {
@@ -70,7 +73,7 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	fmt.Println("evmTrie root hash:", evmTrie.Hash())
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
-	prefixDb := dbm.NewPrefixDB(appDb, []byte(evmStoreKey))
+	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvmKey))
 	defer prefixDb.Close()
 
 	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height})
@@ -91,16 +94,23 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	// 1.2 set BlockHash/HeightHash back to iavl
 	dIter := diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil)
 	for dIter.Next() {
+		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(dIter.Key()), ethcmn.Bytes2Hex(dIter.Value()))
 		tree.Set(dIter.Key(), dIter.Value())
-		tree.Set(append(evmtypes.KeyPrefixHeightHash, dIter.Key()[1:]...), dIter.Value())
+	}
+	dIter = diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil)
+	for dIter.Next() {
+		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(dIter.Key()), ethcmn.Bytes2Hex(dIter.Value()))
+		tree.Set(dIter.Key(), dIter.Value())
 	}
 	// 1.3 set Bloom back to iavl
 	dIter = diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil)
 	for dIter.Next() {
+		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(dIter.Key()), ethcmn.Bytes2Hex(dIter.Value()))
 		tree.Set(dIter.Key(), dIter.Value())
 	}
 
 	// 2.migrate state data to iavl
+	var originKey []byte
 	var stateRoot ethcmn.Hash
 	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 	for itr.Next() {
@@ -112,8 +122,9 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
 		for cItr.Next() {
-			fmt.Printf("%s: %s\n", cItr.Key, cItr.Value)
-			tree.Set(cItr.Key, cItr.Value)
+			originKey = contractTrie.GetKey(cItr.Key)
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(originKey), ethcmn.Bytes2Hex(cItr.Value))
+			tree.Set(originKey, cItr.Value)
 		}
 	}
 	_, _, _, err = tree.SaveVersion(false)

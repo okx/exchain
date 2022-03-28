@@ -39,13 +39,13 @@ func clean(ctx *server.Context) {
 
 	// 1.clean acc store
 	fmt.Println("Start to clean account store")
-	if err = deleteIavlStore(db, []byte(accStoreKey), latestVersion, iavlstore.IavlCacheSize); err != nil {
+	if err = deleteIavlStore(db, []byte(iavlAccKey), latestVersion, iavlstore.IavlCacheSize); err != nil {
 		fmt.Println("fail to clean iavl store: ", err)
 	}
 
 	// 2.clean evm store
 	fmt.Println("Start to clean evm store")
-	if err = deleteIavlStore(db, []byte(evmStoreKey), latestVersion, iavlstore.IavlCacheSize); err != nil {
+	if err = deleteIavlStore(db, []byte(iavlEvmKey), latestVersion, iavlstore.IavlCacheSize); err != nil {
 		fmt.Println("fail to clean iavl store: ", err)
 	}
 }

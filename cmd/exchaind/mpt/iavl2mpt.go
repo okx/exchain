@@ -65,6 +65,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	accountNumber := migrationApp.AccountKeeper.GetNextAccountNumber(cmCtx)
 	err = accTrie.TryUpdate(authtypes.GlobalAccountNumberKey, migrationApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber))
 	panicError(err)
+	fmt.Println("GlobalNumber", accountNumber)
 
 	// 1.2 update every account to mpt
 	count, contractCount := 0, 0
@@ -74,7 +75,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 		if len(value) == 0 {
 			log.Printf("[warning] %s has nil value\n", account.GetAddress().String())
 		}
-		
+
 		// update acc mpt for every account
 		panicError(accTrie.TryUpdate(key, value))
 		if count%100 == 0 {
@@ -205,6 +206,7 @@ func miragteBlockHashesToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, b
 	migrationApp.EvmKeeper.IterateBlockHash(cmCtx, func(key []byte, value []byte) bool {
 		count++
 		panicError(batch.Put(key, value))
+		panicError(batch.Put(append(evmtypes.KeyPrefixHeightHash, value...), key[1:]))
 
 		if count%1000 == 0 {
 			writeDataToRawdb(batch)
