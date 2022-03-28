@@ -211,6 +211,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		}
 		dttm.setConcurrentIndex(i)
 		dttr.makeNewTask(txs[i], i)
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
