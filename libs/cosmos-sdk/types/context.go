@@ -25,7 +25,7 @@ and standard additions here would be better just to add to the Context struct
 type Context struct {
 	ctx            context.Context
 	ms             MultiStore
-	header         abci.Header
+	header         *abci.Header
 	chainID        string
 	from           string
 	txBytes        []byte
@@ -39,12 +39,11 @@ type Context struct {
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
 	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	isAsync        bool
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
 	eventManager   *EventManager
 	accountNonce   uint64
-	sigCache       SigCache
-	isAsync        bool
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
@@ -68,18 +67,17 @@ func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c Context) IsDeliver() bool {
 	return c.isDeliver || c.isAsync
 }
-func (c Context) IsCheckTx() bool             { return c.checkTx }
-func (c Context) IsReCheckTx() bool           { return c.recheckTx }
-func (c Context) IsTraceTx() bool             { return c.traceTx }
-func (c Context) IsTraceTxLog() bool          { return c.traceTxLog }
-func (c Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
-func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
-func (c Context) EventManager() *EventManager { return c.eventManager }
-func (c Context) IsAsync() bool               { return c.isAsync }
-func (c Context) AccountNonce() uint64        { return c.accountNonce }
-func (c Context) SigCache() SigCache          { return c.sigCache }
-func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
-func (c Context) Cache() *Cache {
+func (c *Context) IsCheckTx() bool             { return c.checkTx }
+func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
+func (c *Context) IsTraceTx() bool             { return c.traceTx }
+func (c *Context) IsTraceTxLog() bool          { return c.traceTxLog }
+func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
+func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
+func (c *Context) EventManager() *EventManager { return c.eventManager }
+func (c *Context) IsAsync() bool               { return c.isAsync }
+func (c *Context) AccountNonce() uint64        { return c.accountNonce }
+func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
+func (c *Context) Cache() *Cache {
 	return c.cache
 }
 
@@ -135,11 +133,19 @@ func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
 	}
 }
 
-func (c *Context) BlockProposerAddress() []byte { return c.header.ProposerAddress }
+func (c *Context) BlockProposerAddress() []byte {
+	if c.header == nil {
+		return nil
+	}
+	return c.header.ProposerAddress
+}
 
 // clone the header before returning
 func (c Context) BlockHeader() abci.Header {
-	var msg = proto.Clone(&c.header).(*abci.Header)
+	if c.header == nil {
+		return abci.Header{}
+	}
+	var msg = proto.Clone(c.header).(*abci.Header)
 	return *msg
 }
 
@@ -154,7 +160,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	return Context{
 		ctx:          context.Background(),
 		ms:           ms,
-		header:       header,
+		header:       &header,
 		chainID:      header.ChainID,
 		checkTx:      isCheckTx,
 		logger:       logger,
@@ -186,7 +192,7 @@ func (c *Context) SetDeliver() {
 func (c Context) WithBlockHeader(header abci.Header) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
-	c.header = header
+	c.header = &header
 	return c
 }
 
@@ -309,7 +315,7 @@ func (c Context) WithCache(cache *Cache) Context {
 }
 
 // TODO: remove???
-func (c Context) IsZero() bool {
+func (c *Context) IsZero() bool {
 	return c.ms == nil
 }
 
@@ -327,6 +333,26 @@ func (c *Context) SetGasMeter(meter GasMeter) {
 	c.gasMeter = meter
 }
 
+func (c *Context) SetMultiStore(ms MultiStore) {
+	c.ms = ms
+}
+
+func (c *Context) SetEventManager(em *EventManager) {
+	c.eventManager = em
+}
+
+func (c *Context) SetAccountNonce(nonce uint64) {
+	c.accountNonce = nonce
+}
+
+func (c *Context) SetCache(cache *Cache) {
+	c.cache = cache
+}
+
+func (c *Context) SetFrom(from string) {
+	c.from = from
+}
+
 // Value is deprecated, provided for backwards compatibility
 // Please use
 //     ctx.Context().Value(key)
@@ -341,7 +367,7 @@ func (c Context) Value(key interface{}) interface{} {
 // ----------------------------------------------------------------------------
 
 // KVStore fetches a KVStore from the MultiStore.
-func (c Context) KVStore(key StoreKey) KVStore {
+func (c *Context) KVStore(key StoreKey) KVStore {
 	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
 }
 
@@ -357,12 +383,6 @@ func (c Context) CacheContext() (cc Context, writeCache func()) {
 	cms := c.MultiStore().CacheMultiStore()
 	cc = c.WithMultiStore(cms).WithEventManager(NewEventManager())
 	return cc, cms.Write
-}
-
-// WithSigCache set sigCache.
-func (c Context) WithSigCache(cache SigCache) Context {
-	c.sigCache = cache
-	return c
 }
 
 // An emptyCtx  has no values. It is a
