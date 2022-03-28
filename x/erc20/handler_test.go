@@ -8,10 +8,11 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/erc20"
+	"github.com/okex/exchain/x/erc20/types"
 	"github.com/stretchr/testify/suite"
 )
 
-type CronosTestSuite struct {
+type Erc20TestSuite struct {
 	suite.Suite
 
 	ctx     sdk.Context
@@ -19,14 +20,15 @@ type CronosTestSuite struct {
 	app     *app.OKExChainApp
 }
 
-func TestCronosTestSuite(t *testing.T) {
-	suite.Run(t, new(CronosTestSuite))
+func TestErc20TestSuite(t *testing.T) {
+	suite.Run(t, new(Erc20TestSuite))
 }
 
-func (suite *CronosTestSuite) SetupTest() {
+func (suite *Erc20TestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(false)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = erc20.NewHandler(suite.app.Erc20Keeper)
+	suite.app.Erc20Keeper.SetParams(suite.ctx, types.DefaultParams())
 }

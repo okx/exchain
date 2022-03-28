@@ -36,7 +36,7 @@ func (suite *KeeperTestSuite) TestGetSourceChannelID() {
 			suite.SetupTest() // reset
 			// Create erc20 Keeper with mock transfer keeper
 			erc20Keeper := erc20Keeper.NewKeeper(
-				suite.app.Cdc,
+				suite.app.Codec(),
 				suite.app.GetKey(types.StoreKey),
 				suite.app.GetSubspace(types.ModuleName),
 				suite.app.AccountKeeper,
