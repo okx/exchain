@@ -54,7 +54,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	dttr.logger.Info("concurrentBasic", "index", dttr.txIndex)
+	dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
 
@@ -195,18 +195,14 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		//dttr.setLogger(dttm.app.logger)
 		////dttm.dttRoutineList[i] = dttr
 		//dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
-		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
 		dttr := dttm.dttRoutineList[i]
 
+		dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
 		err := dttr.OnStart()
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		}
-		//dttm.setConcurrentIndex(i)
-		//if dttm.concurrentIndex < i {
-		//	dttm.concurrentIndex = i
 		dttm.setConcurrentIndex(i)
-		//}
 		dttr.makeNewTask(txs[i], i)
 	}
 }
@@ -364,6 +360,7 @@ func (dttm *DTTManager) serialRoutine() {
 			if task.index == dttm.serialIndex+1 {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
+				dttm.serialTask.step = partialConcurrentStepSerialExecute
 				dttm.serialExecution()
 				dttm.serialTask = nil
 				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
