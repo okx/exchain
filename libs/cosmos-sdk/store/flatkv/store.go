@@ -122,7 +122,8 @@ func (st *Store) write(version int64) {
 			batch.Set([]byte(key), cValue.value)
 		}
 	}
-	st.setLatestVersion(batch, version)
+	//st.setLatestVersion(batch, version)
+	st.setLatestVersion(batch, 0)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
