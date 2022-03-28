@@ -448,10 +448,10 @@ func (dttm *DTTManager) serialRoutine() {
 					rerunRoutine.couldRerun(task.index)
 				}
 				if nextTask != nil {
-					//go func() {
+					go func() {
 					//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
-					//}()
+					}()
 				}
 			//} else {
 			//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
