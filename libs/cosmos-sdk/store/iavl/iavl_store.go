@@ -106,7 +106,8 @@ func GetCommitVersion(db dbm.DB) (int64, error) {
 // passed into iavl.MutableTree
 func UnsafeNewStore(tree *iavl.MutableTree) *Store {
 	return &Store{
-		tree: tree,
+		tree:           tree,
+		upgradeVersion: -1,
 	}
 }
 
