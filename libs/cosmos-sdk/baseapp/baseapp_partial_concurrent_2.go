@@ -54,7 +54,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
+	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
 
@@ -304,7 +304,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.step = partialConcurrentStepAnteStart
-	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	//dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
@@ -443,7 +443,7 @@ func (dttm *DTTManager) serialRoutine() {
 							dttr.rerunCh <- 0
 							//}()
 						} else if dttr.task.needToRerun {
-							dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
+							//dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
 							dttr.couldRerun(task.index)
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
 							dttr.task.step == partialConcurrentStepAnteFailed ||
@@ -503,7 +503,7 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
+		//dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 	}
 
