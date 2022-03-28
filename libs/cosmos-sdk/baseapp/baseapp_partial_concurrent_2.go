@@ -133,8 +133,10 @@ func (dttr *dttRoutine) couldRerun(index int) {
 	if dttr.task == nil || dttr.task.canRerun > 0 || dttr.task.index == index {
 		return
 	}
-	dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
-	dttr.rerunCh <- 0
+	go func() {
+		dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
+		dttr.rerunCh <- 0
+	}()
 }
 
 //-------------------------------------
@@ -406,10 +408,10 @@ func (dttm *DTTManager) serialRoutine() {
 					if dttr.task.index == dttm.serialIndex+1 {
 						dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
 						if dttr.task.from == task.from {
-							//go func() {
-							dttr.logger.Error("rerunCh", "index", dttr.task.index)
-							dttr.rerunCh <- 0
-							//}()
+							go func() {
+								dttr.logger.Error("rerunCh", "index", dttr.task.index)
+								dttr.rerunCh <- 0
+							}()
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
 							dttr.task.step == partialConcurrentStepAnteFailed ||
 							dttr.task.step == partialConcurrentStepAnteSucceed {
@@ -588,8 +590,10 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			// todo: whether should rerun the task
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
 				task.needToRerun = true
-				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
-				dttr.rerunCh <- 0
+				go func() {
+					dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
+					dttr.rerunCh <- 0
+				}()
 			}
 		} else {
 			task.setUpdateCount(count - times)
