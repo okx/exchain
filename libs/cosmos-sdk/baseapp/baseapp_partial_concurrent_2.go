@@ -177,7 +177,7 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 		dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
-		dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
+		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
 
 		//err := dttr.OnStart()
 		//if err != nil {
@@ -211,7 +211,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		//dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		dttr := dttm.dttRoutineList[i]
 
-		dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
+		//dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
 		err := dttr.OnStart()
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
@@ -312,7 +312,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		//task.anteFailed = true
 		task.step = partialConcurrentStepAnteFailed
 	} else {
-		dttm.app.logger.Info("AnteSucceed", "index", task.index)
+		//dttm.app.logger.Info("AnteSucceed", "index", task.index)
 		task.step = partialConcurrentStepAnteSucceed
 	}
 	task.err = err
@@ -331,20 +331,20 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if task.canRerun > 0 {
 		dttr := dttm.dttRoutineList[task.routineIndex]
 		//go func() {
-			dttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		//	dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 			dttr.rerunCh <- 0
 		//}()
 	} else if dttm.serialIndex+1 == task.index {
 		if dttm.serialTask == nil {
-			go func() {
-				dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
+			//go func() {
+				//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
 				dttm.serialCh <- task
-			}()
+			//}()
 		} else {
-			dttm.app.logger.Info("AnteFinishedWhileSerialIsNotEmpty", "index", task.index)
+			//dttm.app.logger.Info("AnteFinishedWhileSerialIsNotEmpty", "index", task.index)
 		}
 	} else {
-		dttm.app.logger.Info("AnteFinishedOther", "index", task.index)
+		//dttm.app.logger.Info("AnteFinishedOther", "index", task.index)
 	}
 
 	return nil
@@ -387,7 +387,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask.step = partialConcurrentStepFinished
 				dttm.serialTask = nil
 
-				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
@@ -406,7 +406,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				dttr.task = nil
+				//dttr.task = nil
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
@@ -424,7 +424,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 					// if exists the next task which has finished the concurrent execution
 					if dttr.task.index == dttm.serialIndex+1 {
-						dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
+						//dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
 						if dttr.task.from == task.from {
 							//go func() {
 								dttr.logger.Error("rerunCh", "index", dttr.task.index)
@@ -448,10 +448,10 @@ func (dttm *DTTManager) serialRoutine() {
 					rerunRoutine.couldRerun(task.index)
 				}
 				if nextTask != nil {
-					go func() {
-						dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
+					//go func() {
+					//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
-					}()
+					//}()
 				}
 			//} else {
 			//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
