@@ -101,6 +101,14 @@ func (st *Store) Commit(version int64) {
 	}
 }
 
+// writes cache to db when app is stopped and async commit is enabled
+func (st *Store) Stop() {
+	if !st.enable || !st.asyncCommit {
+		return
+	}
+	st.write(0)
+}
+
 func (st *Store) write(version int64) {
 	ts := time.Now()
 	// commit to flat kv db

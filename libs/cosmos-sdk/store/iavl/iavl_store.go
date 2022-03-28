@@ -42,6 +42,7 @@ type Store struct {
 func (st *Store) StopStore() {
 	tr := st.tree.(*iavl.MutableTree)
 	tr.StopTree()
+	st.stopFlatKV()
 }
 
 func (st *Store) GetHeights() map[int64][]byte {

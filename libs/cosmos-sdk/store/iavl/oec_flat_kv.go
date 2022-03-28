@@ -73,7 +73,7 @@ func (st *Store) GetFlatKVWriteCount() int {
 }
 
 func (st *Store) ValidateFlatVersion() error {
-	if !st.flatKVStore.Enable() {
+	if st.flatKVStore == nil || !st.flatKVStore.Enable() {
 		return nil
 	}
 
@@ -84,4 +84,11 @@ func (st *Store) ValidateFlatVersion() error {
 			flatVersion, treeVersion)
 	}
 	return nil
+}
+
+func (st *Store) stopFlatKV() {
+	if st.flatKVStore == nil {
+		return
+	}
+	st.flatKVStore.Stop()
 }
