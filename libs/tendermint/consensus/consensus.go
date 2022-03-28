@@ -154,6 +154,9 @@ type State struct {
 
 	prerunTx       bool
 	hasViewChanged bool
+
+	// assigned proposer when enterNewRound
+	proposer *types.Validator
 }
 
 // StateOption sets an optional parameter on the State.
@@ -728,8 +731,21 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		// exe vc
-		cs.enterNewRound(cs.Height, 0, &msg.val)
+		if peerID == "" {
+			// ApplyBlock of height-1 is not finished
+			// RoundStepNewHeight enterNewRound use msg.val
+			cs.proposer = &msg.val
+		} else {
+			// ApplyBlock of height-1 is finished, and vc immediately
+			cs.enterNewRound(cs.Height, 0, &msg.val)
+		}
+	case *ProposeRequestMessage:
+		// ApplyBlock of height-1 is not finished
+		// RoundStepNewHeight enterNewRound use peer as val
+		if srcAddress, err := hex.DecodeString(string(peerID)); err == nil {
+			_, val := cs.Validators.GetByAddress(srcAddress)
+			cs.proposer = val
+		}
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -808,7 +824,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 
 		cs.trc.Reset()
-		cs.enterNewRound(ti.Height, 0, nil)
+		cs.enterNewRound(ti.Height, 0, cs.proposer)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
@@ -891,6 +907,7 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 	}
 	if assignedVal != nil {
 		validators.Proposer = assignedVal
+		cs.proposer = nil
 	}
 
 	// Setup new round

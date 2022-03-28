@@ -333,7 +333,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			} else if msg.Height == conR.conS.Height+1 {
 				// ApplyBlock of height-1 is not finished, and src should be next proposer of current state
 				if conR.conS.isNextNProposer(srcAddress, 1) {
-					// todo vc after scheduleRound0
+					// vc after scheduleRound0
+					conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 				}
 			}
 		case *ProposeRequestMessage:
@@ -342,7 +343,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
 				conR.conS.hasViewChanged = true
-				// todo vc after ApplyBlock scheduleRound0
+				// vc after ApplyBlock scheduleRound0
+				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 			}
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)
