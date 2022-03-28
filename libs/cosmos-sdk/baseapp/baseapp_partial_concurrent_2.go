@@ -54,7 +54,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	dttr.logger.Info("makeNewTask 1", "index", dttr.txIndex)
+	//dttr.logger.Info("makeNewTask 1", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
 
@@ -204,7 +204,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		}
 		//dttm.setConcurrentIndex(i)
 		//if dttm.concurrentIndex < i {
-			dttm.concurrentIndex = i
+		//	dttm.concurrentIndex = i
+		dttm.setConcurrentIndex(i)
 		//}
 		dttr.makeNewTask(txs[i], i)
 	}
@@ -289,7 +290,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	dttm.accountUpdated(false, 2, task.from, -1)
 	err := dttm.runAnte(task)
 	if err != nil {
-		dttm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
+		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 		//task.anteFailed = true
 		task.step = partialConcurrentStepAnteFailed
 	} else {
@@ -305,27 +306,27 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 		conflicted := dttr.checkConflict(task.from, task.index)
 		if conflicted {
-			dttr.logger.Error("needToRerun 2", "index", task.index, "conflicted", dttr.task.index)
+			dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
 			task.needToRerun = true
 		}
 	}
 	if task.canRerun > 0 {
 		dttr := dttm.dttRoutineList[task.routineIndex]
 		go func() {
-			dttr.logger.Error("rerunCh 2", "index", task.index)
+			dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 			dttr.rerunCh <- 0
 		}()
 	} else if dttm.serialIndex+1 == task.index {
 		if dttm.serialTask == nil {
 			go func() {
-				dttm.app.logger.Info("ExtractNextSerial 1", "index", task.index)
+				dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
 				dttm.serialCh <- task
 			}()
 		} else {
-			dttm.app.logger.Info("AnteFinished 2", "index", task.index)
+			dttm.app.logger.Info("AnteFinishedWhileSerialIsNotEmpty", "index", task.index)
 		}
 	} else {
-		dttm.app.logger.Info("AnteFinished 3", "index", task.index)
+		dttm.app.logger.Info("AnteFinishedOther", "index", task.index)
 	}
 
 	return nil
@@ -382,13 +383,13 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				//currIndex := dttm.concurrentIndex
+				currIndex := dttm.concurrentIndex
 				//if currIndex < maxDeliverTxsConcurrentNum {
 				//	currIndex = maxDeliverTxsConcurrentNum
 				//}
-				if dttr != nil && dttm.concurrentIndex < dttm.totalCount-1 {
-					dttm.concurrentIndex++
-					dttr.makeNewTask(dttm.txs[dttm.concurrentIndex], dttm.concurrentIndex)
+				if dttr != nil && currIndex < dttm.totalCount-1 {
+					dttm.setConcurrentIndex(currIndex+1)
+					dttr.makeNewTask(dttm.txs[currIndex+1], currIndex+1)
 				}
 
 				// todo: check whether there are ante-finished task
@@ -428,7 +429,7 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 				if nextTask != nil {
 					go func() {
-						dttm.app.logger.Info("ExtractNextSerial", "index", nextTask.index)
+						dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
 					}()
 				}
@@ -521,19 +522,19 @@ func (dttm *DTTManager) serialExecution() {
 	execFinishedFn(resp)
 }
 
-//func (dttm *DTTManager) setConcurrentIndex(index int) {
-//	dttm.mtx.Lock()
-//	defer dttm.mtx.Unlock()
-//
-//	dttm.concurrentIndex = index
-//}
-//
-//func (dttm *DTTManager) getConcurrentIndex() int {
-//	dttm.mtx.Lock()
-//	defer dttm.mtx.Unlock()
-//
-//	return dttm.concurrentIndex
-//}
+func (dttm *DTTManager) setConcurrentIndex(index int) {
+	dttm.mtx.Lock()
+	defer dttm.mtx.Unlock()
+
+	dttm.concurrentIndex = index
+}
+
+func (dttm *DTTManager) getConcurrentIndex() int {
+	dttm.mtx.Lock()
+	defer dttm.mtx.Unlock()
+
+	return dttm.concurrentIndex
+}
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dttm.mtx.Lock()
@@ -586,7 +587,7 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			task.setUpdateCount(count + times)
 			// todo: whether should rerun the task
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
-				//task.needToRerun = true
+				task.needToRerun = true
 				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
 				dttr.rerunCh <- 0
 			}
