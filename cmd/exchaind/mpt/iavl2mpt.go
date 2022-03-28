@@ -173,6 +173,9 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 		_ = migrationApp.EvmKeeper.ForEachStorage(cmCtx, addr, func(key, value ethcmn.Hash) bool {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+			if len(v) == 0 {
+				log.Printf("[warning] %s in %s has nil value\n", addr.String(), key.String())
+			}
 			// 1.2 set every storage into solo
 			panicError(contractTrie.TryUpdate(key[:], v))
 			return false
