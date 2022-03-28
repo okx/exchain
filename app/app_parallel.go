@@ -37,7 +37,7 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 
 // fixLogForParallelTxHandler fix log for parallel tx
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(execResults [][]string) (logs [][]byte) {
-		return ek.FixLog(execResults)
+	return func(logIndex []int, errs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, errs)
 	}
 }

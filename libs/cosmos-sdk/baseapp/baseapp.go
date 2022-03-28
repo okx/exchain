@@ -629,6 +629,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			ctx = ctx.WithSigCache(s.signCache)
 		}
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
+		ctx = ctx.WithParaMsg(&sdk.ParaMsg{})
 	}
 
 	if mode == runTxModeDeliver {

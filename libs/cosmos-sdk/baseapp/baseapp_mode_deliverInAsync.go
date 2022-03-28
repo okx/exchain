@@ -20,7 +20,7 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 		panic(err)
 	}
 	info.msCache.Write()
-	info.paraMsg.refundFee = refundGas
+	info.ctx.ParaMsg().RefundFee = refundGas
 }
 
 func (m *modeHandlerDeliverInAsync) handleDeferGasConsumed(info *runTxInfo) {

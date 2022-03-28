@@ -7,15 +7,16 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(execResults [][]string) [][]byte {
-	res := make([][]byte, len(execResults), len(execResults))
+func (k *Keeper) FixLog(logIndex []int, errs []error) [][]byte {
+	txSize := len(logIndex)
+	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
-	txInBlock := int(-1)
+	txInBlock := -1
 	k.Bloom = new(big.Int)
 
-	for index := 0; index < len(execResults); index++ {
-		rs, ok := k.LogsManages.Get(execResults[index][0])
-		if !ok || execResults[index][1] != "" {
+	for index := 0; index < txSize; index++ {
+		rs, ok := k.LogsManages.Get(logIndex[index])
+		if !ok || errs[index] != nil {
 			continue
 		}
 		txInBlock++
@@ -41,27 +42,31 @@ func (k *Keeper) FixLog(execResults [][]string) [][]byte {
 }
 
 type LogsManager struct {
+	cnt     int
 	mu      sync.RWMutex
-	Results map[string]TxResult
+	Results map[int]TxResult
 }
 
 func NewLogManager() *LogsManager {
 	return &LogsManager{
 		mu:      sync.RWMutex{},
-		Results: make(map[string]TxResult),
+		Results: make(map[int]TxResult),
 	}
 }
 
-func (l *LogsManager) Set(txBytes string, value TxResult) {
+func (l *LogsManager) Set(value TxResult) int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Results[txBytes] = value
+
+	l.cnt++
+	l.Results[l.cnt] = value
+	return l.cnt
 }
 
-func (l *LogsManager) Get(txBytes string) (TxResult, bool) {
+func (l *LogsManager) Get(index int) (TxResult, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	data, ok := l.Results[txBytes]
+	data, ok := l.Results[index]
 	return data, ok
 }
 
@@ -72,7 +77,8 @@ func (l *LogsManager) Len() int {
 }
 
 func (l *LogsManager) Reset() {
-	l.Results = make(map[string]TxResult)
+	l.Results = make(map[int]TxResult)
+	l.cnt = 0
 }
 
 type TxResult struct {

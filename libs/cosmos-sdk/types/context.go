@@ -48,6 +48,7 @@ type Context struct {
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
+	paraMsg        *ParaMsg
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -81,6 +82,9 @@ func (c Context) SigCache() SigCache          { return c.sigCache }
 func (c Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c Context) Cache() *Cache {
 	return c.cache
+}
+func (c Context) ParaMsg() *ParaMsg {
+	return c.paraMsg
 }
 
 type AccountCache struct {
@@ -305,6 +309,11 @@ func (c Context) WithAccountNonce(nonce uint64) Context {
 
 func (c Context) WithCache(cache *Cache) Context {
 	c.cache = cache
+	return c
+}
+
+func (c Context) WithParaMsg(m *ParaMsg) Context {
+	c.paraMsg = m
 	return c
 }
 

@@ -190,11 +190,11 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
 	for index, v := range txs {
 		txString := string(v)
-		if app.parallelTxManage.txReps[index].anteErr != nil {
+		if app.parallelTxManage.txReps[index].paraMsg.AnteErr != nil {
 			continue
 		}
 		txFee := app.parallelTxManage.fee[txString]
-		refundFee := app.parallelTxManage.txReps[index].refundFee
+		refundFee := app.parallelTxManage.txReps[index].paraMsg.RefundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
 	}
@@ -279,7 +279,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				}
 
 			}
-			if txReps[txIndex].anteErr != nil {
+			if txReps[txIndex].paraMsg.AnteErr != nil {
 				res.ms = nil
 			}
 
@@ -339,16 +339,15 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 func (app *BaseApp) endParallelTxs() [][]byte {
 
-	txExecStats := make([][]string, 0)
-	for txIndex, v := range app.parallelTxManage.indexMapBytes {
-		errMsg := ""
-		if err := app.parallelTxManage.txReps[txIndex].anteErr; err != nil {
-			errMsg = err.Error()
-		}
-		txExecStats = append(txExecStats, []string{string(getRealTxByte([]byte(v))), errMsg})
+	logIndex := make([]int, 0)
+	errs := make([]error, 0)
+	for txIndex, _ := range app.parallelTxManage.indexMapBytes {
+		paraM := app.parallelTxManage.txReps[txIndex].paraMsg
+		logIndex = append(logIndex, paraM.LogIndex)
+		errs = append(errs, paraM.AnteErr)
 	}
 	app.parallelTxManage.clear()
-	return app.logFix(txExecStats)
+	return app.logFix(logIndex, errs)
 }
 
 //we reuse the nonce that changed by the last async call
@@ -359,7 +358,7 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 
 	tx, err := app.txDecoder(getRealTxByte(txByte))
 	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil, nil)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		return asyncExe
 	}
 	var (
@@ -381,7 +380,7 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.paraMsg.anteErr, info.paraMsg.refundFee)
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.ctx.ParaMsg())
 	asyncExe.err = e
 	return asyncExe
 }
@@ -395,8 +394,7 @@ type executeResult struct {
 	readList   map[string][]byte
 	writeList  map[string][]byte
 
-	anteErr   error
-	refundFee sdk.Coins
+	paraMsg *sdk.ParaMsg
 }
 
 func (e executeResult) GetResponse() abci.ResponseDeliverTx {
@@ -419,7 +417,7 @@ func loadPreData(ms sdk.CacheMultiStore) (map[string][]byte, map[string][]byte) 
 	return rSet, wSet
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32, anteErr error, refundFee sdk.Coins) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32, paraMsg *sdk.ParaMsg) *executeResult {
 	rSet, wSet := loadPreData(ms)
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
@@ -431,9 +429,7 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		evmCounter: evmCounter,
 		readList:   rSet,
 		writeList:  wSet,
-
-		anteErr:   anteErr,
-		refundFee: refundFee,
+		paraMsg:    paraMsg,
 	}
 }
 
@@ -683,7 +679,7 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
 	if ok && preIndexInGroup > f.currIndex {
-		if f.txReps[preIndexInGroup].anteErr == nil {
+		if f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 		} else {
 			ms = f.cms.CacheMultiStore()
@@ -753,9 +749,4 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Unlock()
 	<-chanStop
 	<-chanStop
-}
-
-type paraInfo struct {
-	anteErr   error
-	refundFee sdk.Coins
 }
