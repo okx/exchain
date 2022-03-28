@@ -134,14 +134,16 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 			KeyPrefixContractBlockedList         = []byte{0x09}
 
 	   So, here are data list about the migration process:
-	   1. Accounts    -> evmTrie; Code、Storage -> a contractTire
+	   1. Accounts    -> evmTrie
+	      Code        -> rawdb   (note: done in iavl2mpt acc)
+	      Storage     -> a contractTire
 	   2. ChainConfig              -> rawdb
 	   3. BlockHash = HeightHash   -> rawdb
 	   4. Bloom                    -> rawdb
 	   5. ContractDeploymentWhitelist、ContractBlockedList -> evmTrie
 	*/
 
-	// 1. Migratess Accounts、Code、Storage
+	// 1. Migratess Accounts、Storage
 	migrateContractToMpt(migrationApp, cmCtx, evmMptDb, evmTrie)
 
 	// 2. Migrates ChainConfig -> rawdb
@@ -177,7 +179,7 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 				log.Printf("[warning] %s in %s has nil value\n", addr.String(), key.String())
 			}
 			// 1.2 set every storage into solo
-			panicError(contractTrie.TryUpdate(key[:], v))
+			panicError(contractTrie.TryUpdate(append(evmtypes.AddressStoragePrefix(addr), key.Bytes()...), v))
 			return false
 		})
 		// 1.3 calculate rootHash of contract mpt
