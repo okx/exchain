@@ -75,12 +75,12 @@ func deployContractTx(index int, nonce uint64, contract *Contract) (*types.Trans
 		return nil, err
 	}
 	data := append(contract.byteCode, input...)
-	return types.NewContractCreation(nonce, value, GasLimit + uint64(index), big.NewInt(GasPrice+int64(index)), data), err
+	return types.NewContractCreation(nonce, value, GasLimit+uint64(index), big.NewInt(GasPrice+int64(index)), data), err
 }
 
 func createCall(index int, nonce uint64, data []byte) []byte {
 	amount := big.NewInt(0)
-	gasPrice := big.NewInt(GasPrice+int64(index))
+	gasPrice := big.NewInt(GasPrice + int64(index))
 	unsignedTx := types.NewTransaction(nonce, counterContract.addr, amount, GasLimit+uint64(index), gasPrice, data)
 
 	// 2. sign unsignedTx -> rawTx
@@ -89,6 +89,6 @@ func createCall(index int, nonce uint64, data []byte) []byte {
 		return nil
 	}
 
-	tx,_ := signedTx.MarshalBinary()
+	tx, _ := signedTx.MarshalBinary()
 	return tx
 }
