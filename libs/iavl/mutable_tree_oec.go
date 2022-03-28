@@ -69,8 +69,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.SaveOrphans(batch, version, tree.orphans)
 
-	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
-		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
+	shouldPersist := tree.ShouldPersist(version)
 
 	if shouldPersist {
 		if err := tree.persist(batch, version); err != nil {
@@ -106,6 +105,11 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
 	return rootHash, version, nil
+}
+
+func (tree *MutableTree) ShouldPersist(version int64) bool {
+	return (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
+		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 }
 
 func (tree *MutableTree) removeVersion(version int64) {

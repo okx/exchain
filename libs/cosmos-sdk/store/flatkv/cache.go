@@ -2,51 +2,55 @@ package flatkv
 
 import "sync"
 
+// cache value
+type cValue struct {
+	value   []byte
+	deleted bool
+	dirty   bool
+}
+
+// Cache defines flat kv cache
 type Cache struct {
 	mtx  sync.RWMutex
-	data map[string][]byte
+	data map[string]cValue
 }
 
 func newCache() *Cache {
 	return &Cache{
-		data: make(map[string][]byte),
+		data: make(map[string]cValue),
 	}
 }
 
-func (c *Cache) get(key []byte) (value []byte, ok bool) {
+func (c *Cache) get(key []byte) ([]byte, bool) {
 	strKey := string(key)
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-	value, ok = c.data[strKey]
-	return
+	cacheValue, ok := c.data[strKey]
+	if !ok {
+		return nil, false
+	}
+	return cacheValue.value, true
 }
 
-func (c *Cache) add(key, value []byte) {
+func (c *Cache) add(key, value []byte, deleted bool, dirty bool) {
 	strKey := string(key)
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	c.data[strKey] = value
+	c.data[strKey] = cValue{
+		value:   value,
+		deleted: deleted,
+		dirty:   dirty,
+	}
 }
 
-func (c *Cache) delete(key []byte) {
-	strKey := string(key)
+// return cache and clear cache
+func (c *Cache) reset() map[string]cValue {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	delete(c.data, strKey)
-}
-
-func (c *Cache) copy() map[string][]byte {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	copyMap := make(map[string][]byte, len(c.data))
+	copyMap := make(map[string]cValue, len(c.data))
 	for k, v := range c.data {
 		copyMap[k] = v
+		delete(c.data, k)
 	}
 	return copyMap
-}
-
-func (c *Cache) reset() {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.data = make(map[string][]byte)
 }

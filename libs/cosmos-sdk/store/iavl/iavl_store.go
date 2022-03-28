@@ -76,7 +76,7 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 
 	st := &Store{
 		tree:        tree,
-		flatKVStore: flatkv.NewStore(flatKVDB),
+		flatKVStore: flatkv.NewStore(flatKVDB, tree),
 	}
 
 	if err = st.ValidateFlatVersion(); err != nil {

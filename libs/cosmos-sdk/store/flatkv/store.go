@@ -4,6 +4,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/okex/exchain/libs/iavl"
+
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -16,25 +18,30 @@ const (
 
 // Store wraps app_flat_kv.db for read performance.
 type Store struct {
-	db         dbm.DB
-	cache      *Cache
-	readTime   int64
-	writeTime  int64
-	readCount  int64
-	writeCount int64
-	enable     bool
+	db          dbm.DB
+	cache       *Cache
+	readTime    int64
+	writeTime   int64
+	readCount   int64
+	writeCount  int64
+	enable      bool
+	asyncCommit bool
+	tree        Tree
 }
 
-func NewStore(db dbm.DB) *Store {
-	return &Store{
-		db:         db,
-		cache:      newCache(),
-		readTime:   0,
-		writeTime:  0,
-		readCount:  0,
-		writeCount: 0,
-		enable:     viper.GetBool(FlagEnable),
+func NewStore(db dbm.DB, tree Tree) *Store {
+	st := &Store{
+		db:          db,
+		cache:       newCache(),
+		readTime:    0,
+		writeTime:   0,
+		readCount:   0,
+		writeCount:  0,
+		enable:      viper.GetBool(FlagEnable),
+		asyncCommit: iavl.EnableAsyncCommit,
+		tree:        tree,
 	}
+	return st
 }
 
 func (st *Store) Enable() bool {
@@ -52,6 +59,7 @@ func (st *Store) Get(key []byte) []byte {
 	st.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBReadCount()
 	if err == nil && len(value) != 0 {
+		st.cache.add(key, value, false, false)
 		return value
 	}
 	return nil
@@ -61,52 +69,55 @@ func (st *Store) Set(key, value []byte) {
 	if !st.enable {
 		return
 	}
-	st.cache.add(key, value)
+	st.cache.add(key, value, false, true)
 }
 
 func (st *Store) Has(key []byte) bool {
 	if !st.enable {
 		return false
 	}
-	if _, ok := st.cache.get(key); ok {
-		return true
-	}
-	st.addDBReadCount()
-	if ok, err := st.db.Has(key); err == nil && ok {
-		return true
-	}
-	return false
+	value := st.Get(key)
+	return value != nil
 }
 
 func (st *Store) Delete(key []byte) {
 	if !st.enable {
 		return
 	}
-	ts := time.Now()
-	st.db.Delete(key)
-	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
-	st.addDBWriteCount()
-	st.cache.delete(key)
+	st.cache.add(key, nil, true, true)
 }
 
 func (st *Store) Commit(version int64) {
 	if !st.enable {
 		return
 	}
+	if !st.asyncCommit {
+		st.write(version)
+		return
+	}
+
+	if st.tree.ShouldPersist(version) {
+		go st.write(version)
+	}
+}
+
+func (st *Store) write(version int64) {
 	ts := time.Now()
 	// commit to flat kv db
 	batch := st.db.NewBatch()
 	defer batch.Close()
-	cache := st.cache.copy()
-	for key, value := range cache {
-		batch.Set([]byte(key), value)
+	cache := st.cache.reset()
+	for key, cValue := range cache {
+		if cValue.deleted {
+			batch.Delete([]byte(key))
+		} else if cValue.dirty {
+			batch.Set([]byte(key), cValue.value)
+		}
 	}
 	st.setLatestVersion(batch, version)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
-	// clear cache
-	st.cache.reset()
 }
 
 func (st *Store) ResetCount() {
