@@ -497,6 +497,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -585,16 +586,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	if cs.R0PrevoteTime.IsZero() {
-		// "Now" makes it easier to sync up dev nodes.
-		// We add timeoutCommit to allow transactions
-		// to be gathered for the first block.
-		// And alternative solution that relies on clocks:
-		// cs.StartTime = state.LastBlockTime.Add(timeoutCommit)
-		cs.StartTime = cs.config.Commit(tmtime.Now())
-	} else {
-		cs.StartTime = cs.config.Commit(cs.R0PrevoteTime)
-	}
 
 	cs.Validators = validators
 	cs.Proposal = nil
