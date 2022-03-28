@@ -36,7 +36,8 @@ type Keeper struct {
 func NewKeeper(
 	proxy *codec.CodecProxy,
 	key sdk.StoreKey, paramSpace paramtypes.Subspace,
-	stakingKeeper clienttypes.StakingKeeper, scopedKeeper *capabilitykeeper.ScopedKeeper,
+	stakingKeeper clienttypes.StakingKeeper, upgradeKeeper clienttypes.UpgradeKeeper,
+	scopedKeeper *capabilitykeeper.ScopedKeeper,
 	registry types2.InterfaceRegistry,
 ) *Keeper {
 	//mm := codec.NewProtoCodec(registry)
@@ -46,7 +47,7 @@ func NewKeeper(
 		keyTable.RegisterParamSet(&connectiontypes.Params{})
 		paramSpace = paramSpace.WithKeyTable(keyTable)
 	}
-	clientKeeper := clientkeeper.NewKeeper(proxy, key, paramSpace, stakingKeeper)
+	clientKeeper := clientkeeper.NewKeeper(proxy, key, paramSpace, stakingKeeper, upgradeKeeper)
 	connectionKeeper := connectionkeeper.NewKeeper(proxy, key, paramSpace, clientKeeper)
 	portKeeper := portkeeper.NewKeeper(scopedKeeper)
 	channelKeeper := channelkeeper.NewKeeper(proxy, key, clientKeeper, connectionKeeper, portKeeper, scopedKeeper)

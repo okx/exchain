@@ -1,6 +1,7 @@
 package ibc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -81,7 +82,11 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // TODO
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {}
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
+	clienttypes.RegisterQueryHandlerClient(context.Background(), mux, clienttypes.NewQueryClient(ctx))
+	connectiontypes.RegisterQueryHandlerClient(context.Background(), mux, connectiontypes.NewQueryClient(ctx))
+	channeltypes.RegisterQueryHandlerClient(context.Background(), mux, channeltypes.NewQueryClient(ctx))
+}
 
 // GetTxCmd returns the root tx command for the ibc module.
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
