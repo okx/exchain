@@ -48,17 +48,17 @@ $ %s tx gov submit-proposal token-mapping xxb 0x0000...0000 --from=<key_or_addre
 			}
 
 			var contract *common.Address
-			if len(args[1]) > 0 {
+			if len(args[1]) > 0 && common.IsHexAddress(args[1]) {
 				addr := common.HexToAddress(args[1])
 				contract = &addr
+			} else {
+				return fmt.Errorf("invalid contract address %s", args[1])
 			}
 
 			content := types.NewTokenMappingProposal(
 				title, description, args[0], contract,
 			)
-
-			err = content.ValidateBasic()
-			if err != nil {
+			if err := content.ValidateBasic(); err != nil {
 				return err
 			}
 
