@@ -36,9 +36,9 @@ type dttRoutine struct {
 
 func newDttRoutine(index int8, basicProcess BasicProcessFn, runAnte RunAnteFn) *dttRoutine {
 	dttr := &dttRoutine{
-		done:       make(chan int),
-		txByte:     make(chan []byte),
-		rerunCh:    make(chan int),
+		//done:       make(chan int),
+		//txByte:     make(chan []byte),
+		//rerunCh:    make(chan int),
 		index:      index,
 		basicProFn: basicProcess,
 		runAnteFn:  runAnte,
@@ -54,11 +54,14 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	//dttr.logger.Info("makeNewTask 1", "index", dttr.txIndex)
+	dttr.logger.Info("makeNewTask 1", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
 
 func (dttr *dttRoutine) OnStart() error {
+	dttr.done = make(chan int)
+	dttr.txByte = make(chan []byte)
+	dttr.rerunCh = make(chan int)
 	go dttr.executeTaskRoutine()
 	return nil
 }
@@ -154,11 +157,23 @@ type DTTManager struct {
 }
 
 func NewDTTManager(app *BaseApp) *DTTManager {
-	dm := &DTTManager{
+	dttm := &DTTManager{
 		app: app,
 	}
+	dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
+	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
+		dttr := newDttRoutine(int8(i), dttm.makeNewTask, dttm.runConcurrentAnte)
+		dttr.setLogger(dttm.app.logger)
+		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
+		dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
 
-	return dm
+		//err := dttr.OnStart()
+		//if err != nil {
+		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
+		//}
+	}
+
+	return dttm
 }
 
 func (dttm *DTTManager) deliverTxs(txs [][]byte) {
@@ -174,19 +189,23 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
 
-	dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
+	//dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
 	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
-		dttr := newDttRoutine(int8(i), dttm.makeNewTask, dttm.runConcurrentAnte)
-		dttr.setLogger(dttm.app.logger)
-		//dttm.dttRoutineList[i] = dttr
-		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
-		dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
+		//dttr := newDttRoutine(int8(i), dttm.makeNewTask, dttm.runConcurrentAnte)
+		//dttr.setLogger(dttm.app.logger)
+		////dttm.dttRoutineList[i] = dttr
+		//dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
+		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
+		dttr := dttm.dttRoutineList[i]
 
 		err := dttr.OnStart()
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		}
-		dttm.concurrentIndex = i
+		//dttm.setConcurrentIndex(i)
+		//if dttm.concurrentIndex < i {
+			dttm.concurrentIndex = i
+		//}
 		dttr.makeNewTask(txs[i], i)
 	}
 }
@@ -344,7 +363,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = task
 				dttm.serialExecution()
 				dttm.serialTask = nil
-				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					count := len(dttm.dttRoutineList)
@@ -361,6 +380,10 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
+				//currIndex := dttm.concurrentIndex
+				//if currIndex < maxDeliverTxsConcurrentNum {
+				//	currIndex = maxDeliverTxsConcurrentNum
+				//}
 				if dttr != nil && dttm.concurrentIndex < dttm.totalCount-1 {
 					dttm.concurrentIndex++
 					dttr.makeNewTask(dttm.txs[dttm.concurrentIndex], dttm.concurrentIndex)
@@ -494,6 +517,20 @@ func (dttm *DTTManager) serialExecution() {
 	}
 	execFinishedFn(resp)
 }
+
+//func (dttm *DTTManager) setConcurrentIndex(index int) {
+//	dttm.mtx.Lock()
+//	defer dttm.mtx.Unlock()
+//
+//	dttm.concurrentIndex = index
+//}
+//
+//func (dttm *DTTManager) getConcurrentIndex() int {
+//	dttm.mtx.Lock()
+//	defer dttm.mtx.Unlock()
+//
+//	return dttm.concurrentIndex
+//}
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dttm.mtx.Lock()
