@@ -68,7 +68,7 @@ func (suite *KeeperTestSuite) TestEvmHooks() {
 			Topics:  []common.Hash{},
 			Address: suite.address,
 		})
-		logs := vmdb.GetLogs( /*common.Hash{}*/ )
+		logs := vmdb.GetLogs()
 		receipt := &ethtypes.Receipt{
 			TxHash: txHash,
 			Logs:   logs,

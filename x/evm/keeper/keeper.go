@@ -329,6 +329,13 @@ func (k *Keeper) SetHooks(hooks types.EvmHooks) *Keeper {
 	return k
 }
 
+// ResetHooks resets the hooks for the EVM module
+func (k *Keeper) ResetHooks() *Keeper {
+	k.hooks = nil
+
+	return k
+}
+
 // GetHooks gets the hooks for the EVM module
 func (k *Keeper) GetHooks() types.EvmHooks {
 	return k.hooks
