@@ -180,6 +180,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.done = make(chan int, 1)
 
 	dttm.totalCount = len(txs)
+	dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
 	dttm.txs = txs
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
@@ -366,21 +367,23 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
+					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 					count := len(dttm.dttRoutineList)
 					for i := 0; i < count; i++ {
 						dttr := dttm.dttRoutineList[i]
 						dttr.stop()
 					}
-					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 
 					dttm.done <- 0
-					close(dttm.serialCh)
+					go func() {
+						close(dttm.serialCh)
+					}()
 					return
 				}
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				currIndex := dttm.concurrentIndex
+				currIndex := dttm.getConcurrentIndex()
 				//if currIndex < maxDeliverTxsConcurrentNum {
 				//	currIndex = maxDeliverTxsConcurrentNum
 				//}
