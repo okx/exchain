@@ -457,7 +457,7 @@ func (dttm *DTTManager) serialRoutine() {
 					}
 				}
 
-				if rerunRoutine != nil {
+				if !getRerun && rerunRoutine != nil {
 					rerunRoutine.couldRerun(task.index)
 				}
 				if nextTask != nil {
