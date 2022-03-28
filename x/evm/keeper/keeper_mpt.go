@@ -87,6 +87,11 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 	}
 	k.rootTrie = tr
 	k.rootHash = targetMptRootHash
+	k.startHeight = uint64(targetVersion)
+	if targetVersion == 0 {
+		k.startHeight = uint64(tmtypes.GetStartBlockHeight())
+	}
+
 	k.EvmStateDb = types2.NewCommitStateDB(k.GenerateCSDBParams())
 }
 

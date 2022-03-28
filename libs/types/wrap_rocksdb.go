@@ -19,12 +19,16 @@ func init() {
 
 type WrapRocksDB struct {
 	*tmdb.RocksDB
+	preBatch *WrapRocksDBBatch
 }
 
 func NewWrapRocksDB(name string, dir string) (*WrapRocksDB, error) {
 	rdb, err := tmdb.NewRocksDB(name, dir)
 
-	return &WrapRocksDB{rdb}, err
+	return &WrapRocksDB{
+		rdb,
+		nil,
+	}, err
 }
 
 func (db *WrapRocksDB) Put(key []byte, value []byte) error {
@@ -32,7 +36,12 @@ func (db *WrapRocksDB) Put(key []byte, value []byte) error {
 }
 
 func (db *WrapRocksDB) NewBatch() ethdb.Batch {
-	return NewWrapRocksDBBatch(db.RocksDB)
+	if db.preBatch != nil {
+		db.preBatch.Close()
+	}
+	batch := NewWrapRocksDBBatch(db.RocksDB)
+	db.preBatch = batch
+	return batch
 }
 
 func (db *WrapRocksDB) NewIterator(prefix []byte, start []byte) ethdb.Iterator {

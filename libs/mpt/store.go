@@ -470,6 +470,10 @@ func getVersionedWithProof(trie ethstate.Trie, key []byte) ([]byte, [][]byte, er
 }
 
 func (ms *MptStore) StartPrefetcher(namespace string) {
+	if !tmtypes.HigherThanMars(ms.version) {
+		return
+	}
+
 	if ms.prefetcher != nil {
 		ms.prefetcher.Close()
 		ms.prefetcher = nil
