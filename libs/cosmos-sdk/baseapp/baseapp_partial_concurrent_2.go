@@ -145,23 +145,23 @@ func (dttr *dttRoutine) couldRerun(index int) {
 		return
 	}
 	//go func() {
-		dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
-		dttr.rerunCh <- 0
+	dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
+	dttr.rerunCh <- 0
 	//}()
 }
 
 //-------------------------------------
 
 type DTTManager struct {
-	done            chan int
-	totalCount      int
-	txs             [][]byte
+	done       chan int
+	totalCount int
+	txs        [][]byte
 	//concurrentIndex int
-	startFinished bool
-	dttRoutineList  []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
-	serialIndex     int
-	serialTask      *DeliverTxTask
-	serialCh        chan *DeliverTxTask
+	startFinished  bool
+	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
+	serialIndex    int
+	serialTask     *DeliverTxTask
+	serialCh       chan *DeliverTxTask
 
 	mtx       sync.Mutex
 	currTxFee sdk.Coins
@@ -334,13 +334,13 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr := dttm.dttRoutineList[task.routineIndex]
 		//go func() {
 		//	dttr.logger.Error("rerunChInFromAnte", "index", task.index)
-			dttr.rerunCh <- 0
+		dttr.rerunCh <- 0
 		//}()
 	} else if dttm.serialIndex+1 == task.index {
 		if dttm.serialTask == nil {
 			//go func() {
-				//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
-				dttm.serialCh <- task
+			//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
+			dttm.serialCh <- task
 			//}()
 		} else {
 			//dttm.app.logger.Info("AnteFinishedWhileSerialIsNotEmpty", "index", task.index)
@@ -421,7 +421,11 @@ func (dttm *DTTManager) serialRoutine() {
 				count := len(dttm.dttRoutineList)
 				var nextTask *DeliverTxTask
 				var rerunRoutine *dttRoutine
+				getRerun := false
 				for i := 0; i < count; i++ {
+					if getRerun {
+						break
+					}
 					dttr = dttm.dttRoutineList[i]
 					if dttr.task == nil {
 						continue
@@ -432,8 +436,9 @@ func (dttm *DTTManager) serialRoutine() {
 						//dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
 						if dttr.task.from == task.from {
 							//go func() {
-								dttr.logger.Error("rerunCh", "index", dttr.task.index)
-								dttr.rerunCh <- 0
+							getRerun = true
+							dttr.logger.Error("rerunCh", "index", dttr.task.index)
+							dttr.rerunCh <- 0
 							//}()
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
 							dttr.task.step == partialConcurrentStepAnteFailed ||
@@ -454,12 +459,12 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 				if nextTask != nil {
 					go func() {
-					//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
+						//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
 					}()
 				}
-			//} else {
-			//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
+				//} else {
+				//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
 			}
 		}
 	}
@@ -613,8 +618,8 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			// todo: whether should rerun the task
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
 				//go func() {
-					dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
-					dttr.rerunCh <- 0
+				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
+				dttr.rerunCh <- 0
 				//}()
 			}
 		} else {
