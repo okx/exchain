@@ -54,7 +54,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	//dttr.logger.Info("makeNewTask 1", "index", dttr.txIndex)
+	dttr.logger.Info("concurrentBasic", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
 
@@ -162,7 +162,7 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 	}
 	dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
 	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
-		dttr := newDttRoutine(int8(i), dttm.makeNewTask, dttm.runConcurrentAnte)
+		dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
@@ -191,7 +191,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 
 	//dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
 	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
-		//dttr := newDttRoutine(int8(i), dttm.makeNewTask, dttm.runConcurrentAnte)
+		//dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
 		//dttr.setLogger(dttm.app.logger)
 		////dttm.dttRoutineList[i] = dttr
 		//dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
@@ -211,8 +211,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	}
 }
 
-func (dttm *DTTManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	dttm.app.logger.Info("makeNewTask", "index", index)
+func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
+	dttm.app.logger.Info("concurrentBasic", "index", index)
 
 	// create a new task
 	var realTx sdk.Tx
