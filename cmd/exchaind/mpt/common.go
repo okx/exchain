@@ -76,7 +76,7 @@ func getStorageTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethst
 }
 
 // pushData2Database commit the data to the database
-func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64) {
+func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool) {
 	var storageRoot ethcmn.Hash
 	root, err := trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
 		storageRoot.SetBytes(leaf)
@@ -90,14 +90,19 @@ func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64) {
 	err = db.TrieDB().Commit(root, false, nil)
 	panicError(err)
 
-	setMptRootHash(db, uint64(height), root)
+	setMptRootHash(db, uint64(height), root, isEvm)
 }
 
 // setMptRootHash sets the mapping from block height to root mpt hash
-func setMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash) {
+func setMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash, isEvm bool) {
 	heightBytes := sdk.Uint64ToBigEndian(height)
-	db.TrieDB().DiskDB().Put(mpt.KeyPrefixLatestStoredHeight, heightBytes)
-	db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixRootMptHash, heightBytes...), hash.Bytes())
+	if isEvm {
+		db.TrieDB().DiskDB().Put(mpt.KeyPrefixEvmLatestStoredHeight, heightBytes)
+		db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...), hash.Bytes())
+	} else {
+		db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, heightBytes)
+		db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixAccRootMptHash, heightBytes...), hash.Bytes())
+	}
 }
 
 func writeDataToRawdb(batch ethdb.Batch) {

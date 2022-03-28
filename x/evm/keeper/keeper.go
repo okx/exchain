@@ -118,7 +118,7 @@ func NewKeeper(
 
 		innerBlockData: defaultBlockInnerData(),
 
-		db:             mpt.InstanceOfEvmStore(),
+		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
@@ -153,7 +153,7 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             mpt.InstanceOfEvmStore(),
+		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),

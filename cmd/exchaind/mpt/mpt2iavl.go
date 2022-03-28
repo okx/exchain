@@ -44,8 +44,8 @@ func mpt2iavlCmd(ctx *server.Context) *cobra.Command {
 }
 
 func migrateAccFroMptToIavl(ctx *server.Context) {
-	accMptDb := mpt.InstanceOfAccStore()
-	accTrie, height := openLatestTrie(accMptDb)
+	accMptDb := mpt.InstanceOfMptStore()
+	accTrie, height := openLatestTrie(accMptDb, false)
 	fmt.Println("accTrie root hash:", accTrie.Hash(), ", height:", height)
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
@@ -70,8 +70,8 @@ func migrateAccFroMptToIavl(ctx *server.Context) {
 }
 
 func migrateEvmFroMptToIavl(ctx *server.Context) {
-	evmMptDb := mpt.InstanceOfEvmStore()
-	evmTrie, height := openLatestTrie(evmMptDb)
+	evmMptDb := mpt.InstanceOfMptStore()
+	evmTrie, height := openLatestTrie(evmMptDb, true)
 	fmt.Println("evmTrie root hash:", evmTrie.Hash(), ", height:", height)
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
@@ -126,11 +126,21 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	}
 }
 
-func openLatestTrie(db ethstate.Database) (ethstate.Trie, uint64) {
-	heightBytes, err := db.TrieDB().DiskDB().Get(mpt.KeyPrefixLatestStoredHeight)
-	panicError(err)
-	rootHash, err := db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixRootMptHash, heightBytes...))
-	panicError(err)
+func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
+	var heightBytes, rootHash []byte
+	var err error
+	if isEvm {
+		heightBytes, err = db.TrieDB().DiskDB().Get(mpt.KeyPrefixEvmLatestStoredHeight)
+		panicError(err)
+		rootHash, err = db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...))
+		panicError(err)
+	} else {
+		heightBytes, err = db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+		panicError(err)
+		rootHash, err = db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
+		panicError(err)
+	}
+
 	t, err := db.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
 	return t, binary.BigEndian.Uint64(heightBytes)

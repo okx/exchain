@@ -53,11 +53,11 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	committedHeight := cmCtx.BlockHeight() - 1
 
 	// 0.1 initialize database of acc mpt
-	accMptDb := mpt.InstanceOfAccStore()
+	accMptDb := mpt.InstanceOfMptStore()
 	accTrie, err := accMptDb.OpenTrie(mpt.NilHash)
 	panicError(err)
 	// 0.2 initialize database of evm mpt
-	evmMptDb := mpt.InstanceOfEvmStore()
+	evmMptDb := mpt.InstanceOfMptStore()
 	evmTrie, err := evmMptDb.OpenTrie(mpt.NilHash)
 	panicError(err)
 
@@ -79,7 +79,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 		// update acc mpt for every account
 		panicError(accTrie.TryUpdate(key, value))
 		if count%100 == 0 {
-			pushData2Database(accMptDb, accTrie, committedHeight)
+			pushData2Database(accMptDb, accTrie, committedHeight, false)
 			log.Println(count)
 		}
 
@@ -90,7 +90,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 				// update evm mpt. Key is the address of the contract; Value is the empty root hash
 				panicError(evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), mpt.EmptyRootHashBytes))
 				if contractCount%100 == 0 {
-					pushData2Database(evmMptDb, evmTrie, committedHeight)
+					pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 				}
 
 				// write code to evm.db in direct
@@ -105,8 +105,8 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	})
 
 	// 1.3 make sure the last data is committed to the database
-	pushData2Database(accMptDb, accTrie, committedHeight)
-	pushData2Database(evmMptDb, evmTrie, committedHeight)
+	pushData2Database(accMptDb, accTrie, committedHeight, false)
+	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 
 	fmt.Println(fmt.Sprintf("Successfully migrate %d account (include %d contract account) at version %d", count, contractCount, committedHeight))
 }
@@ -118,7 +118,7 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	cmCtx := migrationApp.MockContext()
 
 	// 0.1 initialize database of evm mpt, and open trie based on the latest root hash
-	evmMptDb := mpt.InstanceOfEvmStore()
+	evmMptDb := mpt.InstanceOfMptStore()
 	rootHash := migrationApp.EvmKeeper.GetMptRootHash(uint64(cmCtx.BlockHeight() - 1))
 	evmTrie, err := evmMptDb.OpenTrie(rootHash)
 	panicError(err)
@@ -189,11 +189,11 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 		panicError(evmTrie.TryUpdate(addr[:], rootHash.Bytes()))
 
 		if count%1000 == 0 {
-			pushData2Database(evmMptDb, evmTrie, committedHeight)
+			pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 			log.Println(count)
 		}
 	}
-	pushData2Database(evmMptDb, evmTrie, committedHeight)
+	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 	fmt.Printf("Successfully migrate %d contract stroage at version %d\n", count, committedHeight)
 }
 
@@ -261,7 +261,7 @@ func migrateSpecialAddrsToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context,
 	}
 
 	committedHeight := cmCtx.BlockHeight() - 1
-	pushData2Database(evmMptDb, evmTrie, committedHeight)
+	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list at version %d\n",
 		len(whiteList), len(blockedList), len(bcml), committedHeight)
 }
