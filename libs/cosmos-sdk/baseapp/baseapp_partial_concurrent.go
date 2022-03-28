@@ -38,6 +38,7 @@ const (
 	partialConcurrentStepInRerun
 	partialConcurrentStepInPending
 	partialConcurrentStepSerialExecute
+	partialConcurrentStepFinished
 )
 
 type DeliverTxTask struct {

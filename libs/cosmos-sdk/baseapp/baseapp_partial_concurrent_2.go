@@ -118,12 +118,15 @@ func (dttr *dttRoutine) checkConflict(addr string, index int) bool {
 			dttr.logger.Error("needToRerun 1", "index", dttr.task.index, "conflicted", index)
 			dttr.task.needToRerun = true
 		}
+		//if dttr.task.step == partialConcurrentStepAnteSucceed || dttr.task.step == partialConcurrentStepAnteFailed {
+		//	return true
+		//}
 		return false
 	}
 }
 
 func (dttr *dttRoutine) hasExistPrevTask(addr string, index int) bool {
-	if dttr.task == nil {
+	if dttr.task == nil || dttr.task.step == partialConcurrentStepFinished || dttr.task.step == partialConcurrentStepBasicFailed {
 		return false
 	}
 	// do not deal with the situation that getTxFeeAndFromHandler has not finished
@@ -265,9 +268,9 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 		count := len(dttm.dttRoutineList)
 		for i := 0; i < count; i++ {
 			dttr := dttm.dttRoutineList[i]
-			if dttr == nil {
-				continue
-			}
+			//if dttr == nil {
+			//	continue
+			//}
 			//dttm.app.logger.Info("hasExistPrevTask 1", "routine", dttr.index, "task", dttr.txIndex)
 			task.needToRerun = dttr.hasExistPrevTask(task.from, task.index)
 			if task.needToRerun {
@@ -379,7 +382,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = task
 				dttm.serialTask.step = partialConcurrentStepSerialExecute
 				dttm.serialExecution()
+				dttm.serialTask.step = partialConcurrentStepFinished
 				dttm.serialTask = nil
+
 				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
@@ -399,15 +404,9 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				//nextIndex := dttm.concurrentIndex+1
-				//if !dttm.startFinished {
-					nextIndex := maxDeliverTxsConcurrentNum + task.index
-				//}
+				dttr.task = nil
+				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
-					////dttm.setConcurrentIndex(currIndex+1)
-					//if dttm.startFinished {
-					//	dttm.concurrentIndex = nextIndex
-					//}
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
