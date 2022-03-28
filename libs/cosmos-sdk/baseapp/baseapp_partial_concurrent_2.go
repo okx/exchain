@@ -317,7 +317,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}()
 	} else if dttm.serialIndex+1 == task.index {
 		if dttm.serialTask == nil {
-			dttm.app.logger.Info("AnteFinished 1", "index", task.index)
+			dttm.app.logger.Info("ExtractNextSerial 1", "index", task.index)
 			dttm.serialCh <- task
 		} else {
 			dttm.app.logger.Info("AnteFinished 2", "index", task.index)
@@ -430,8 +430,8 @@ func (dttm *DTTManager) serialRoutine() {
 						dttm.serialCh <- nextTask
 					}()
 				}
-			} else {
-				panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
+			//} else {
+			//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))
 			}
 		}
 	}
