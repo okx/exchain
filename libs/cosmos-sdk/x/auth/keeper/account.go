@@ -66,7 +66,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	bz := ak.encodeAccount(acc)
 
 	store.Set(types.AddressStoreKey(addr), bz)
-	ctx.Cache().UpdateAccount(acc.GetAddress(), acc, len(bz), true)
+	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {

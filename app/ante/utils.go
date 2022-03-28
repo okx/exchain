@@ -15,5 +15,5 @@ func getAccount(ak *auth.AccountKeeper, ctx *sdk.Context, addr sdk.AccAddress, a
 			return accCache, gasUsed
 		}
 	}
-	return exported.GetAccountAndGas(*ctx, ak, addr)
+	return exported.GetAccountAndGas(ctx, ak, addr)
 }
