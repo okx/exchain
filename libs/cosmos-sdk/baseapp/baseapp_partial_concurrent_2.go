@@ -317,8 +317,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}()
 	} else if dttm.serialIndex+1 == task.index {
 		if dttm.serialTask == nil {
-			dttm.app.logger.Info("ExtractNextSerial 1", "index", task.index)
-			dttm.serialCh <- task
+			go func() {
+				dttm.app.logger.Info("ExtractNextSerial 1", "index", task.index)
+				dttm.serialCh <- task
+			}()
 		} else {
 			dttm.app.logger.Info("AnteFinished 2", "index", task.index)
 		}
