@@ -864,7 +864,7 @@ func (cs *State) handleTxsAvailable() {
 func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if cs.Height != height || round < cs.Round {
+	if cs.Height != height || round < cs.Round || (cs.Round == round && round != 0) {
 		logger.Debug(fmt.Sprintf(
 			"enterNewRound(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
