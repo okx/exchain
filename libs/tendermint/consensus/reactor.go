@@ -56,6 +56,8 @@ type Reactor struct {
 	conHeight             int64
 
 	metrics *Metrics
+
+	hasViewChanged	bool
 }
 
 type ReactorOption func(*Reactor)
@@ -338,13 +340,17 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				}
 			}
 		case *ProposeRequestMessage:
-			// this peer need vc, and it has not vc before
-			if conR.conS.Height < msg.Height && !conR.conS.hasViewChanged {
-				// broadcast vc message
-				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
-				conR.conS.hasViewChanged = true
-				// vc after ApplyBlock scheduleRound0
-				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+			// this peer is nextProposer, and it need vc, and it has not vc before
+			if conR.conS.Height == msg.Height {
+				conR.hasViewChanged = false
+			} else if msg.Height == conR.conS.Height+1 {
+				if !conR.hasViewChanged && conR.conS.isNextNProposer(conR.conS.privValidatorPubKey.Address(), 1) {
+					conR.hasViewChanged = true
+					// broadcast vc message
+					conR.broadcastViewChangeMessage(msg.Height, srcAddress)
+					// vc after ApplyBlock scheduleRound0
+					conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+				}
 			}
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)

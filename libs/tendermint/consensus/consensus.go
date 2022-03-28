@@ -152,8 +152,7 @@ type State struct {
 
 	trc *trace.Tracer
 
-	prerunTx       bool
-	hasViewChanged bool
+	prerunTx bool
 
 	// assigned proposer when enterNewRound
 	proposer *types.Validator
@@ -502,7 +501,6 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
-	cs.hasViewChanged = false
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
