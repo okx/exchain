@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 3
+	maxDeliverTxsConcurrentNum = 4
 )
 
 var totalAnteDuration = int64(0)
@@ -47,6 +47,10 @@ type DeliverTxTask struct {
 	step          partialConcurrentStep
 	updateCount   int8
 	mtx           sync.Mutex
+	needToRerun   bool
+	canRerun int8
+	concurrentFinished bool
+	routineIndex int8
 
 	info  *runTxInfo
 	from  string //sdk.Address//exported.Account
@@ -91,7 +95,10 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 	case partialConcurrentStepSerialExecute:
 		return false
 	}
-	return true
+	if dtt.canRerun == 0 && !dtt.needToRerun {
+		return true
+	}
+	return false
 }
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8) {
@@ -107,6 +114,8 @@ func (dtt *DeliverTxTask) getUpdateCount() int8 {
 
 	return dtt.updateCount
 }
+
+//-------------------------------------
 
 type NeedToRerunFn func(index int)
 
@@ -157,7 +166,7 @@ func (sm *sendersMap) Push(task *DeliverTxTask) (succeed bool) {
 					sm.pushToRerunList(tasksList[i])
 				}
 			} else {
-				sm.logger.Error("Push into notFinishedTasks failed.", "index", task.index)
+				sm.logger.Error("Push into notFinishedTasks failed.", "txIndex", task.index)
 				return
 			}
 		}
@@ -168,7 +177,7 @@ func (sm *sendersMap) Push(task *DeliverTxTask) (succeed bool) {
 		tasks = append(tasksList, task)
 	}
 	sm.notFinishedTasks.Store(address, tasks)
-	//sm.logger.Info("PushTask", "index", task.index, "addr", address)
+	//sm.logger.Info("PushTask", "txIndex", task.txIndex, "addr", address)
 
 	return
 }
@@ -198,7 +207,7 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 	}
 
 	tasksList = append(tasksList[:pos], tasksList[pos+1:]...)
-	//	sm.logger.Info("PopTask", "index", task.index, "addr", address)
+	//	sm.logger.Info("PopTask", "txIndex", task.txIndex, "addr", address)
 	sm.notFinishedTasks.Store(address, tasksList)
 	return
 }
@@ -206,7 +215,7 @@ func (sm *sendersMap) Pop(task *DeliverTxTask) {
 func (sm *sendersMap) pushToRerunList(task *DeliverTxTask) {
 	_, ok := sm.needRerunTasks.Load(task.index)
 	if !ok {
-		sm.logger.Error("MoveToRerun", "index", task.index)
+		sm.logger.Error("MoveToRerun", "txIndex", task.index)
 		task.setStep(partialConcurrentStepInRerun)
 		sm.needRerunTasks.Store(task.index, task)
 	}
@@ -257,14 +266,14 @@ func (sm *sendersMap) extractNextTask() (*DeliverTxTask, bool) {
 				minIndex = index
 			}
 		}
-		sm.logger.Error("NeedRerunTasks", "index", index)
+		sm.logger.Error("NeedRerunTasks", "txIndex", index)
 		return true
 	})
 
 	if minIndex >= 0 {
 		nextTask, ok := sm.needRerunTasks.Load(minIndex)
 		if ok {
-			//sm.logger.Info("extractNextTask", "index", minIndex)
+			//sm.logger.Info("extractNextTask", "txIndex", minIndex)
 			sm.needRerunTasks.Delete(minIndex)
 			return nextTask.(*DeliverTxTask), existConflict
 		}
@@ -302,6 +311,8 @@ func (sm *sendersMap) reset() {
 	sm.notFinishedTasks = sync.Map{}
 	sm.needRerunTasks = sync.Map{}
 }
+
+//-------------------------------------
 
 type DeliverTxTasksManager struct {
 	done           chan int // done for all transactions are executed
@@ -376,7 +387,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 		if nextTask != nil {
 			dm.makeNextTask(nil, nextTask.index, nextTask)
 		} else if taskIndex < dm.totalCount {
-			//dm.app.logger.Info("MakeNextTask", "index", taskIndex, "totalCount", dm.totalCount)
+			//dm.app.logger.Info("MakeNextTask", "txIndex", taskIndex, "totalCount", dm.totalCount)
 			dm.makeNextTask(txs[taskIndex], taskIndex, nil)
 			taskIndex++
 			dm.incrementWaitingCount(true)
@@ -392,7 +403,7 @@ func (dm *DeliverTxTasksManager) makeTasksRoutine(txs [][]byte) {
 }
 
 func (dm *DeliverTxTasksManager) makeNextTask(tx []byte, index int, task *DeliverTxTask) {
-	//dm.app.logger.Info("MakeNextTask", "task", task == nil, "index", index)
+	//dm.app.logger.Info("MakeNextTask", "task", task == nil, "txIndex", txIndex)
 	go dm.runTxPartConcurrent(tx, index, task)
 }
 
@@ -430,12 +441,12 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		task.setStep(partialConcurrentStepBasicSucceed)
 		if !dm.sendersMap.Push(task) {
 			//if blockHeight == AssignedBlockHeight {
-			//dm.app.logger.Info("ExitConcurrent", "index", task.index)
+			//dm.app.logger.Info("ExitConcurrent", "txIndex", task.txIndex)
 			//}
 			return
 		}
 	} else {
-		dm.app.logger.Error("ResetContext", "index", task.index)
+		dm.app.logger.Error("ResetContext", "txIndex", task.index)
 
 		task.setStep(partialConcurrentStepStart)
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
@@ -445,7 +456,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 	if dm.app.anteHandler != nil {
 		task.setStep(partialConcurrentStepAnteStart)
 		//if blockHeight == AssignedBlockHeight {
-		dm.app.logger.Info("RunAnte", "index", task.index, "addr", task.from)
+		dm.app.logger.Info("RunAnte", "txIndex", task.index, "addr", task.from)
 		//}
 		task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dm.app.blockCache, useCache(mode))) // one cache for a tx
 
@@ -453,27 +464,27 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 		dm.sendersMap.accountUpdated(false, 2, task.from, -1)
 		err := dm.runAnte(task)
 		if err != nil {
-			dm.app.logger.Error("ante failed 1", "index", task.index, "err", err)
+			dm.app.logger.Error("ante failed 1", "txIndex", task.index, "err", err)
 			//task.anteFailed = true
 			task.setStep(partialConcurrentStepAnteFailed)
 		} else {
 			task.setStep(partialConcurrentStepAnteSucceed)
 		}
-		//dm.app.logger.Info("RunAnteSucceed 1", "index", task.index)
+		//dm.app.logger.Info("RunAnteSucceed 1", "txIndex", task.txIndex)
 		if !dm.sendersMap.shouldRerun(task) {
 			task.err = err
 
 			dm.pushIntoPending(task)
 			task.setStep(partialConcurrentStepInPending)
 		} else {
-			dm.app.logger.Error("NeedToReRunAnte", "index", task.index)
+			dm.app.logger.Error("NeedToReRunAnte", "txIndex", task.index)
 		}
 	}
 	totalAnteDuration += time.Since(start).Microseconds()
 }
 
 func (dm *DeliverTxTasksManager) makeNewTask(txByte []byte, index int) *DeliverTxTask {
-	//dm.app.logger.Info("runTxPartConcurrent", "index", index)
+	//dm.app.logger.Info("runTxPartConcurrent", "txIndex", txIndex)
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {
@@ -501,7 +512,7 @@ func (dm *DeliverTxTasksManager) pushIntoPending(task *DeliverTxTask) {
 	dm.mtx.Lock()
 	defer dm.mtx.Unlock()
 
-	dm.app.logger.Info("NewIntoPendingTasks", "index", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
+	dm.app.logger.Info("NewIntoPendingTasks", "txIndex", task.index, "curSerial", dm.statefulIndex+1, "task", dm.statefulTask != nil)
 	//task.step = partialConcurrentStepSerialPrepare
 	dm.pendingTasks.Store(task.index, task)
 	if dm.statefulTask == nil && task.index == dm.statefulIndex+1 {
@@ -515,7 +526,7 @@ func (dm *DeliverTxTasksManager) removeFromPending(index int) {
 
 	task, ok := dm.pendingTasks.LoadAndDelete(index)
 	if ok {
-		dm.app.logger.Error("RemoveFromPendingTasks", "index", index)
+		dm.app.logger.Error("RemoveFromPendingTasks", "txIndex", index)
 		if dm.finished {
 			go dm.makeNextTask(nil, index, task.(*DeliverTxTask))
 		}
@@ -558,12 +569,12 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 			start := time.Now()
 			<-dm.statefulSignal
 			elapsed := time.Since(start).Microseconds()
-			dm.app.logger.Info("time to waiting for extractStatefulTask", "index", dm.statefulIndex+1, "us", elapsed)
+			dm.app.logger.Info("time to waiting for extractStatefulTask", "txIndex", dm.statefulIndex+1, "us", elapsed)
 			totalWaitingTime += elapsed
 			continue
 		}
 
-		dm.app.logger.Info("RunStatefulSerialRoutine", "index", dm.statefulTask.index)
+		dm.app.logger.Info("RunStatefulSerialRoutine", "txIndex", dm.statefulTask.index)
 
 		info := dm.statefulTask.info
 		handler := info.handler
@@ -573,7 +584,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 			dm.updateFeeCollector()
 
-			//dm.app.logger.Info("handleDeferRefund", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
+			//dm.app.logger.Info("handleDeferRefund", "txIndex", dm.statefulTask.txIndex, "addr", dm.statefulTask.from)
 			dm.sendersMap.accountUpdated(false, 1, dm.statefulTask.from, -1)
 			handler.handleDeferRefund(info)
 
@@ -590,7 +601,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-			//dm.app.logger.Info("SerialFinished", "index", dm.statefulTask.index)
+			//dm.app.logger.Info("SerialFinished", "txIndex", dm.statefulTask.txIndex)
 			dm.txResponses[dm.statefulTask.index] = &txRs
 			dm.resetStatefulTask()
 			finished++
@@ -598,13 +609,13 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 
 		// execute anteHandler failed
 		if dm.statefulTask.err != nil {
-			dm.app.logger.Error("RunSerialFinished", "index", dm.statefulTask.index, "err", dm.statefulTask.err)
+			dm.app.logger.Error("RunSerialFinished", "txIndex", dm.statefulTask.index, "err", dm.statefulTask.err)
 			txRs := sdkerrors.ResponseDeliverTx(dm.statefulTask.err, 0, 0, dm.app.trace) //execResult.GetResponse()
 			execFinishedFn(txRs)
 			continue
 		}
 
-		//dm.app.logger.Info("WriteAnteCache", "index", dm.statefulTask.index)
+		//dm.app.logger.Info("WriteAnteCache", "txIndex", dm.statefulTask.txIndex)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
@@ -622,7 +633,7 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		}
 
 		// execute runMsgs
-		//dm.app.logger.Info("handleRunMsg", "index", dm.statefulTask.index, "addr", dm.statefulTask.from)
+		//dm.app.logger.Info("handleRunMsg", "txIndex", dm.statefulTask.txIndex, "addr", dm.statefulTask.from)
 		dm.sendersMap.accountUpdated(false, 2, dm.statefulTask.from, -1)
 		runMsgStart := time.Now()
 		err = handler.handleRunMsg(info)
@@ -684,7 +695,7 @@ func (dm *DeliverTxTasksManager) updateFeeCollector() {
 }
 
 func (dm *DeliverTxTasksManager) extractStatefulTask() bool {
-	//dm.app.logger.Info("extractStatefulTask", "index", dm.statefulIndex + 1)
+	//dm.app.logger.Info("extractStatefulTask", "txIndex", dm.statefulIndex + 1)
 	task, ok := dm.pendingTasks.Load(dm.statefulIndex + 1)
 	if ok {
 		dm.statefulTask = task.(*DeliverTxTask)
@@ -727,7 +738,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
-		app.deliverTxsMgr = NewDeliverTxTasksManager(app)
+		app.deliverTxsMgr = NewDTTManager(app)//NewDeliverTxTasksManager(app)
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))

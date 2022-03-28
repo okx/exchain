@@ -15,9 +15,10 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-			feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
-			feePayerAcc := ak.GetAccount(ctx, feePayer)
-			from = feePayerAcc.GetAddress().String()
+			from = evmTx.From
+			//feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
+			//feePayerAcc := ak.GetAccount(ctx, feePayer)
+			//from = feePayerAcc.GetAddress().String()
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()

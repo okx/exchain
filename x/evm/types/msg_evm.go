@@ -252,6 +252,7 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 	if msg.GetFrom() != "" {
+		//fmt.Println("skip firstVerifySig")
 		return nil
 	}
 

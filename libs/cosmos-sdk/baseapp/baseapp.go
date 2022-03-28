@@ -194,7 +194,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-	deliverTxsMgr    *DeliverTxTasksManager
+	deliverTxsMgr    *DTTManager//DeliverTxTasksManager
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -796,12 +796,12 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message txIndex: %d", msgRoute, i)
 		}
 
 		msgResult, err := handler(ctx, msg)
 		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
+			return nil, sdkerrors.Wrapf(err, "failed to execute message; message txIndex: %d", i)
 		}
 
 		msgEvents := sdk.Events{

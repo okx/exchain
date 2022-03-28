@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"sync"
 
@@ -234,7 +233,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 	}
 
 	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Add(amt)
-	log.Println("stateObject.AddBalance", amount.Int64(), so.account.GetAddress().String())
+	//log.Println("stateObject.AddBalance", amount.Int64(), so.account.GetAddress().String())
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -246,7 +245,7 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 		return
 	}
 	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Sub(amt)
-	log.Println("stateObject.SubBalance", amount.Int64(), so.account.GetAddress().String())
+	//log.Println("stateObject.SubBalance", amount.Int64(), so.account.GetAddress().String())
 	so.SetBalance(newBalance.BigInt())
 }
 
