@@ -3,6 +3,8 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -141,6 +143,7 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	sdk.DebugLogByScf.Clean()
 	if len(txs) == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
 	}
@@ -710,11 +713,27 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		return
 	}
 
-	chanStop := make(chan struct{}, 0)
+	chanStop := make(chan struct{}, 2)
 	go func() {
 		for k, v := range res.writeList {
 			f.cc.update(k, v, txIndex)
 		}
+		chanStop <- struct{}{}
+	}()
+
+	go func() {
+		tt := make([]string, 0)
+		for k, v := range res.readList {
+			if len(v) < 200 {
+				tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+			}
+		}
+
+		for k, v := range res.writeList {
+			tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+		}
+		tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
+		sdk.DebugLogByScf.AddRWSet(tt)
 		chanStop <- struct{}{}
 	}()
 
@@ -732,6 +751,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	}, nil)
 	f.currIndex = txIndex
 	f.mu.Unlock()
+	<-chanStop
 	<-chanStop
 }
 
