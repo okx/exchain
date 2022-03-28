@@ -97,7 +97,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 		case <-dttr.rerunCh:
 			if dttr.task == nil {
 				continue
-			} else if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
+			}
+			if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
+				dttr.task.needToRerun = true
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index, "step", dttr.task.step)
@@ -139,9 +141,9 @@ func (dttr *dttRoutine) hasExistPrevTask(addr string, index int) bool {
 }
 
 func (dttr *dttRoutine) couldRerun(index int) {
-	//if dttr.task == nil || dttr.task.canRerun > 0 || dttr.task.index == index {
-	//	return
-	//}
+	if dttr.task == nil || dttr.task.canRerun > 0 || dttr.task.index == index {
+		return
+	}
 	//go func() {
 		dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
 		dttr.rerunCh <- 0
@@ -406,7 +408,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				//dttr.task = nil
+				dttr.task = nil
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
@@ -607,7 +609,6 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			task.setUpdateCount(count + times)
 			// todo: whether should rerun the task
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
-				task.needToRerun = true
 				//go func() {
 					dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
 					dttr.rerunCh <- 0
