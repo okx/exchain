@@ -459,16 +459,16 @@ func (dttm *DTTManager) serialRoutine() {
 					// if exists the next task which has finished the concurrent execution
 					if dttr.task.index == dttm.serialIndex+1 {
 						//dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
-						if dttr.task.from == task.from || dttr.task.needToRerun {
+						if dttr.task.from == task.from {
 							//go func() {
 							getRerun = true
 							dttr.logger.Error("rerunCh", "index", dttr.task.index)
 							dttr.task.needToRerun = true
 							dttr.rerunCh <- 0
 							//}()
-						//} else if dttr.task.needToRerun {
-						//	dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
-						//	dttr.couldRerun(task.index)
+						} else if dttr.task.needToRerun {
+							dttm.app.logger.Info("NeedToWaitRerun", "index", dttr.task.index)
+							dttr.couldRerun(task.index)
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
 							dttr.task.step == partialConcurrentStepAnteFailed ||
 							dttr.task.step == partialConcurrentStepAnteSucceed {
