@@ -157,7 +157,7 @@ type DTTManager struct {
 	totalCount      int
 	txs             [][]byte
 	//concurrentIndex int
-	//startFinished bool
+	startFinished bool
 	dttRoutineList  []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex     int
 	serialTask      *DeliverTxTask
@@ -200,7 +200,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan *DeliverTxTask, 1)
-	//dttm.startFinished = false
+	dttm.startFinished = false
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
@@ -225,7 +225,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		dttr.makeNewTask(txs[i], i)
 		time.Sleep(1 * time.Millisecond)
 	}
-	//dttm.startFinished = true
+	dttm.startFinished = true
 	//if dttm.getConcurrentIndex() == 0 {
 	//	dttm.setConcurrentIndex(maxDeliverTxsConcurrentNum-1)
 	//}
@@ -411,6 +411,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttr.task = nil
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
+					if !dttm.startFinished {
+						time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
+					}
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
