@@ -47,7 +47,7 @@ func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 			evmDecoder,
 			ubruDecoder,
 			ubDecoder,
-			byteTx,
+			//byteTx,
 			relayTx,
 		} {
 			if tx, err = f(cdc, proxyCodec, txBytes, height); err == nil {
