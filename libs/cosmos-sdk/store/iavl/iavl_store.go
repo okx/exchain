@@ -193,18 +193,20 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
-	st.setFlatKV(key, value)
+	//st.setFlatKV(key, value)
 }
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	value := st.getFlatKV(key)
+	//value := st.getFlatKV(key)
+	//if value != nil {
+	//	return value
+	//}
+	_, value := st.tree.Get(key)
 	if value != nil {
-		return value
-	}
-	_, value = st.tree.Get(key)
-	if value != nil {
-		st.setFlatKV(key, value)
+		if !st.hasFlatKV(key) {
+			st.setFlatKV(key, value)
+		}
 	}
 
 	return value
@@ -212,16 +214,16 @@ func (st *Store) Get(key []byte) []byte {
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
-	if st.hasFlatKV(key) {
-		return true
-	}
+	//if st.hasFlatKV(key) {
+	//	return true
+	//}
 	return st.tree.Has(key)
 }
 
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
-	st.deleteFlatKV(key)
+	//st.deleteFlatKV(key)
 }
 
 // DeleteVersions deletes a series of versions from the MutableTree. An error
