@@ -49,7 +49,7 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 func migrateAccFromIavlToMpt(ctx *server.Context) {
 	// 0.1 initialize App and context
 	migrationApp := newMigrationApp(ctx)
-	cmCtx := getDeliverStateCtx(migrationApp)
+	cmCtx := migrationApp.MockContext()
 	committedHeight := cmCtx.BlockHeight() - 1
 
 	// 0.1 initialize database of acc mpt
@@ -115,7 +115,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 0.1 initialize App and context
 	migrationApp := newMigrationApp(ctx)
-	cmCtx := getDeliverStateCtx(migrationApp)
+	cmCtx := migrationApp.MockContext()
 
 	// 0.1 initialize database of evm mpt, and open trie based on the latest root hash
 	evmMptDb := mpt.InstanceOfEvmStore()

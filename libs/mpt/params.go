@@ -19,8 +19,8 @@ const (
 )
 
 var (
-	KeyPrefixRootMptHash             = []byte{0x01}
-	KeyPrefixLatestStoredHeight      = []byte{0x02}
+	KeyPrefixRootMptHash             = []byte{0x11}
+	KeyPrefixLatestStoredHeight      = []byte{0x12}
 	AccStoreCache               uint = 2048 // MB
 
 	GAccToPrefetchChannel    = make(chan [][]byte, 2000)
