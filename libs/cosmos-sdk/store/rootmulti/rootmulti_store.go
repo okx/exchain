@@ -1266,6 +1266,7 @@ func (src Store) Copy() *Store {
 		traceWriter:     src.traceWriter,
 		traceContext:    src.traceContext,
 		interBlockCache: src.interBlockCache,
+		upgradeVersion:  src.upgradeVersion,
 	}
 
 	dst.lastCommitInfo = commitInfo{
