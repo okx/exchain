@@ -5,6 +5,7 @@ import (
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	clientkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -23,7 +24,8 @@ type Keeper struct {
 	// implements gRPC QueryServer interface
 	types.QueryServer
 
-	cdc *codec.CodecProxy
+	cdc        *codec.CodecProxy
+	paramSpace params.Subspace
 
 	ClientKeeper     clientkeeper.Keeper
 	ConnectionKeeper connectionkeeper.Keeper
@@ -43,7 +45,8 @@ func NewKeeper(
 	//mm := codec.NewProtoCodec(registry)
 	//proxy:=codec.NewMarshalProxy(mm,cdcc)
 	if !paramSpace.HasKeyTable() {
-		keyTable := clienttypes.ParamKeyTable()
+		keyTable := types.ParamKeyTable()
+		keyTable.RegisterParamSet(&clienttypes.Params{})
 		keyTable.RegisterParamSet(&connectiontypes.Params{})
 		paramSpace = paramSpace.WithKeyTable(keyTable)
 	}
@@ -58,6 +61,7 @@ func NewKeeper(
 		ConnectionKeeper: connectionKeeper,
 		ChannelKeeper:    channelKeeper,
 		PortKeeper:       portKeeper,
+		paramSpace:       paramSpace,
 	}
 }
 
