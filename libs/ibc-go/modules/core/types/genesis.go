@@ -15,6 +15,7 @@ func DefaultGenesisState() *GenesisState {
 		ClientGenesis:     clienttypes.DefaultGenesisState(),
 		ConnectionGenesis: connectiontypes.DefaultGenesisState(),
 		ChannelGenesis:    channeltypes.DefaultGenesisState(),
+		Params:            DefaultParams(),
 	}
 }
 
