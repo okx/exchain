@@ -149,7 +149,8 @@ type DTTManager struct {
 	done            chan int
 	totalCount      int
 	txs             [][]byte
-	concurrentIndex int
+	//concurrentIndex int
+	//startFinished bool
 	dttRoutineList  []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex     int
 	serialTask      *DeliverTxTask
@@ -192,6 +193,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan *DeliverTxTask, 1)
+	//dttm.startFinished = false
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
@@ -209,10 +211,17 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		}
-		dttm.setConcurrentIndex(i)
+		////dttm.setConcurrentIndex(i)
+		//if dttm.concurrentIndex < i {
+		//	dttm.concurrentIndex = i
+		//}
 		dttr.makeNewTask(txs[i], i)
 		time.Sleep(1 * time.Millisecond)
 	}
+	//dttm.startFinished = true
+	//if dttm.getConcurrentIndex() == 0 {
+	//	dttm.setConcurrentIndex(maxDeliverTxsConcurrentNum-1)
+	//}
 }
 
 func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
@@ -390,13 +399,16 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				currIndex := dttm.getConcurrentIndex()
-				//if currIndex < maxDeliverTxsConcurrentNum {
-				//	currIndex = maxDeliverTxsConcurrentNum
+				//nextIndex := dttm.concurrentIndex+1
+				//if !dttm.startFinished {
+					nextIndex := maxDeliverTxsConcurrentNum + task.index
 				//}
-				if dttr != nil && currIndex < dttm.totalCount-1 {
-					dttm.setConcurrentIndex(currIndex+1)
-					dttr.makeNewTask(dttm.txs[currIndex+1], currIndex+1)
+				if dttr != nil && nextIndex < dttm.totalCount {
+					////dttm.setConcurrentIndex(currIndex+1)
+					//if dttm.startFinished {
+					//	dttm.concurrentIndex = nextIndex
+					//}
+					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
 				// todo: check whether there are ante-finished task
@@ -529,19 +541,19 @@ func (dttm *DTTManager) serialExecution() {
 	execFinishedFn(resp)
 }
 
-func (dttm *DTTManager) setConcurrentIndex(index int) {
-	dttm.mtx.Lock()
-	defer dttm.mtx.Unlock()
-
-	dttm.concurrentIndex = index
-}
-
-func (dttm *DTTManager) getConcurrentIndex() int {
-	dttm.mtx.Lock()
-	defer dttm.mtx.Unlock()
-
-	return dttm.concurrentIndex
-}
+//func (dttm *DTTManager) setConcurrentIndex(index int) {
+//	dttm.mtx.Lock()
+//	defer dttm.mtx.Unlock()
+//
+//	dttm.concurrentIndex = index
+//}
+//
+//func (dttm *DTTManager) getConcurrentIndex() int {
+//	dttm.mtx.Lock()
+//	defer dttm.mtx.Unlock()
+//
+//	return dttm.concurrentIndex
+//}
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dttm.mtx.Lock()
