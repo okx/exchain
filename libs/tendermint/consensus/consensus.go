@@ -585,7 +585,7 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	if cs.CommitTime.IsZero() {
+	if cs.R0PrevoteTime.IsZero() {
 		// "Now" makes it easier to sync up dev nodes.
 		// We add timeoutCommit to allow transactions
 		// to be gathered for the first block.
@@ -848,7 +848,7 @@ func (cs *State) handleTxsAvailable() {
 // State functions
 // Used internally by handleTimeout and handleMsg to make state transitions
 
-// Enter: `timeoutNewHeight` by startTime (commitTime+timeoutCommit),
+// Enter: `timeoutNewHeight` by startTime (R0PrevoteTime+timeoutCommit),
 // 	or, if SkipTimeoutCommit==true, after receiving all precommits from (height,round-1)
 // Enter: `timeoutPrecommits` after any +2/3 precommits from (height,round-1)
 // Enter: +2/3 precommits for nil at (height,round-1)
@@ -1394,7 +1394,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
-		cs.CommitTime = tmtime.Now()
 		cs.newStep()
 
 		// Maybe finalize immediately.
