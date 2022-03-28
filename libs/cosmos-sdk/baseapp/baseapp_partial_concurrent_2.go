@@ -274,7 +274,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		//task.anteFailed = true
 		task.step = partialConcurrentStepAnteFailed
 	} else {
-		//dttm.app.logger.Info("AnteSucceed", "index", task.index)
+		dttm.app.logger.Info("AnteSucceed", "index", task.index)
 		task.step = partialConcurrentStepAnteSucceed
 	}
 	task.err = err
@@ -344,7 +344,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = task
 				dttm.serialExecution()
 				dttm.serialTask = nil
-				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					count := len(dttm.dttRoutineList)
@@ -519,7 +519,7 @@ func (dttm *DTTManager) updateFeeCollector() {
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
 	if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
-		dttm.app.logger.Error("OnAccountUpdated: %s\n", addr)
+		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
 	}
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	waitingIndex := -1
@@ -541,13 +541,13 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 		}
 
 		task := dttr.task
-		count := dttr.task.getUpdateCount()
+		count := task.getUpdateCount()
 		if happened {
-			dttr.task.setUpdateCount(count + times)
+			task.setUpdateCount(count + times)
 			// todo: whether should rerun the task
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
 				//task.needToRerun = true
-				dttm.app.logger.Error("accountUpdatedToRerun", "index", dttr.task.index, "step", dttr.task.step)
+				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
 				dttr.rerunCh <- 0
 			}
 		} else {
