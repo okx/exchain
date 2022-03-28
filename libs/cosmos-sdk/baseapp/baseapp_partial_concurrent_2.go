@@ -95,7 +95,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				dttr.logger.Error("DonotRunAnte", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "err", dttr.task.err)
 			}
 		case <-dttr.rerunCh:
-			if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
+			if dttr.task == nil {
+				continue
+			} else if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index, "step", dttr.task.step)
