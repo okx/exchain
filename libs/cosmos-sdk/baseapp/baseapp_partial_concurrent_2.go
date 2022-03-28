@@ -134,9 +134,9 @@ func (dttr *dttRoutine) hasExistPrevTask(addr string, index int) bool {
 }
 
 func (dttr *dttRoutine) couldRerun(index int) {
-	if dttr.task == nil || dttr.task.canRerun > 0 || dttr.task.index == index {
-		return
-	}
+	//if dttr.task == nil || dttr.task.canRerun > 0 || dttr.task.index == index {
+	//	return
+	//}
 	//go func() {
 		dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
 		dttr.rerunCh <- 0
