@@ -60,8 +60,8 @@ func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 
 func (dttr *dttRoutine) OnStart() error {
 	dttr.done = make(chan int)
-	dttr.txByte = make(chan []byte)
-	dttr.rerunCh = make(chan int)
+	dttr.txByte = make(chan []byte, 1)
+	dttr.rerunCh = make(chan int, 1)
 	go dttr.executeTaskRoutine()
 	return nil
 }
@@ -187,7 +187,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
-	dttm.serialCh = make(chan *DeliverTxTask)
+	dttm.serialCh = make(chan *DeliverTxTask, 1)
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
