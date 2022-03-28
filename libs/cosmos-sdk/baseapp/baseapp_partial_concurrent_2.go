@@ -98,7 +98,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			if dttr.task == nil {
 				dttr.logger.Error("task is empty")
 			} else if dttr.task.step == partialConcurrentStepBasicSucceed || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed {
-				dttr.task.needToRerun = true
+				//dttr.task.needToRerun = true
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index, "step", dttr.task.step)
@@ -145,6 +145,7 @@ func (dttr *dttRoutine) couldRerun(index int) {
 	}
 	//go func() {
 	dttr.logger.Error("couldRerun", "index", dttr.task.index, "finished", index)
+	dttr.task.needToRerun = true
 	dttr.rerunCh <- 0
 	//}()
 }
@@ -333,6 +334,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr := dttm.dttRoutineList[task.routineIndex]
 		//go func() {
 		//	dttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		dttr.task.needToRerun = true
 		dttr.rerunCh <- 0
 		//}()
 	} else if dttm.serialIndex+1 == task.index {
@@ -425,17 +427,21 @@ func (dttm *DTTManager) serialRoutine() {
 						break
 					}
 					dttr = dttm.dttRoutineList[i]
-					if dttr.task == nil {
+					if dttr.task == nil || dttr.task.needToRerun {
 						continue
 					}
 
 					// if exists the next task which has finished the concurrent execution
 					if dttr.task.index == dttm.serialIndex+1 {
 						//dttm.app.logger.Info("WaitNextSerialTask", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "step", dttr.task.step)
+						//if dttr.task.needToRerun {
+						//	continue
+						//}
 						if dttr.task.from == task.from {
 							//go func() {
 							getRerun = true
 							dttr.logger.Error("rerunCh", "index", dttr.task.index)
+							dttr.task.needToRerun = true
 							dttr.rerunCh <- 0
 							//}()
 						} else if dttr.task.step == partialConcurrentStepBasicFailed ||
@@ -617,6 +623,7 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
 				//go func() {
 				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.step)
+				dttr.task.needToRerun = true
 				dttr.rerunCh <- 0
 				//}()
 			}
