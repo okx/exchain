@@ -44,7 +44,7 @@ jobs:
           mkdir -p /tmp/logs /tmp/workspace/profiles
 
           excluded_packages_expr="(exchain/x/.*/client)|(x/simulation)|(exchain/app/rpc)"
-          included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/token")
+          included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/token" "./x/erc20")
           serial_exec_packages=("./app")
           norace_exec_packages=("./x/evm")
           #thread_num=2
