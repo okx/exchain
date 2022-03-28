@@ -7,12 +7,17 @@ import (
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 )
 
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+		if !k.GetIbcEnabled(ctx) {
+			return nil, types.ErrIbcDisabled
+		}
 
 		switch msg := msg.(type) {
 		// IBC client msg interface types

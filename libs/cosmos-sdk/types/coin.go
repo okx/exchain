@@ -600,7 +600,7 @@ var (
 	reDnm  *regexp.Regexp
 	reCoin *regexp.Regexp
 
-	ibcReDnm       *regexp.Regexp
+	//ibcReDnm       *regexp.Regexp
 	//reDecCoin   *regexp.Regexp
 )
 
@@ -624,7 +624,7 @@ func SetCoinDenomRegex(reFn func() string) {
 	reDnm = regexp.MustCompile(fmt.Sprintf(`^%s$`, coinDenomRegex()))
 	reCoin = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reAmt, reSpc, coinDenomRegex()))
 	//reDecCoin = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reDecAmt, reSpc, coinDenomRegex()))
-	ibcReDnm= regexp.MustCompile(fmt.Sprintf(`^%s$`,"[a-zA-Z][a-zA-Z0-9/-]{2,127}"))
+	ibcReDnm = regexp.MustCompile(fmt.Sprintf(`^%s$`, "[a-zA-Z][a-zA-Z0-9/-]{2,127}"))
 }
 
 // ValidateDenom validates a denomination string returning an error if it is

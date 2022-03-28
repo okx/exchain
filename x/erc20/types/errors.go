@@ -26,7 +26,7 @@ var (
 func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
-			DefaultParamspace,
+			ModuleName,
 			21,
 			fmt.Sprintf("the contract is already registered: %s", contract),
 		),
