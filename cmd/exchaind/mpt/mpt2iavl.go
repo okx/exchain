@@ -44,13 +44,13 @@ func mpt2iavlCmd(ctx *server.Context) *cobra.Command {
 func migrateAccFroMptToIavl(ctx *server.Context) {
 	accMptDb := mpt.InstanceOfAccStore()
 	accTrie, height := openLatestTrie(accMptDb)
-	fmt.Println("accTrie root hash:", accTrie.Hash())
+	fmt.Println("accTrie root hash:", accTrie.Hash(), ", height:", height)
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
 	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlAccKey))
 	defer prefixDb.Close()
 
-	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height})
+	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
 	if err != nil {
 		panic("fail to create iavl tree: " + err.Error())
 	}
@@ -70,7 +70,7 @@ func migrateAccFroMptToIavl(ctx *server.Context) {
 func migrateEvmFroMptToIavl(ctx *server.Context) {
 	evmMptDb := mpt.InstanceOfEvmStore()
 	evmTrie, height := openLatestTrie(evmMptDb)
-	fmt.Println("evmTrie root hash:", evmTrie.Hash())
+	fmt.Println("evmTrie root hash:", evmTrie.Hash(), ", height:", height)
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
 	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvmKey))

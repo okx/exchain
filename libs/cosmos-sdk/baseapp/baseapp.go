@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/libs/mpt"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -268,6 +269,16 @@ func (app *BaseApp) SetStartLogHandler(handle recordHandle) {
 // SetStopLogHandler set the endLog of the BaseApp.
 func (app *BaseApp) SetEndLogHandler(handle recordHandle) {
 	app.endLog = handle
+}
+
+// MockContext returns a initialized context
+func (app *BaseApp) MockContext() sdk.Context {
+	committedHeight, err := app.GetCommitVersion()
+	if err != nil {
+		panic(err)
+	}
+	mCtx := sdk.NewContext(app.cms, abci.Header{Height: committedHeight + 1}, false, app.logger)
+	return mCtx
 }
 
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp

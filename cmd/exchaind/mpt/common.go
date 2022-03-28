@@ -12,7 +12,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmdb "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -64,15 +63,6 @@ func openApplicationDb(rootdir string) tmdb.DB {
 		panic("fail to open application db: " + err.Error())
 	}
 	return appDb
-}
-
-func getDeliverStateCtx(migrationApp *app.OKExChainApp) sdk.Context {
-	committedHeight, err := migrationApp.GetCommitVersion()
-	panicError(err)
-	// init deliver state
-	migrationApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: committedHeight + 1}})
-	cmCtx := migrationApp.GetDeliverStateCtx()
-	return cmCtx
 }
 
 /*
