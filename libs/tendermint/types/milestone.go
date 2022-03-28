@@ -83,6 +83,9 @@ func HigherThanIBCHeight(h int64) bool {
 	}
 	return h > milestoneVenus1Height
 }
+func SetIBCHeightForTest() {
+	milestoneVenus1Height = 99999999
+}
 func GetIBCHeight() int64 {
 	return milestoneVenus1Height
 }
