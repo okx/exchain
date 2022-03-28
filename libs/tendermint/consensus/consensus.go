@@ -729,7 +729,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
 		// exe vc
-		cs.enterNewRound(cs.Height, cs.Round, &msg.val)
+		cs.enterNewRound(cs.Height, 0, &msg.val)
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -864,7 +864,7 @@ func (cs *State) handleTxsAvailable() {
 func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
 
-	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight) {
+	if cs.Height != height || round < cs.Round {
 		logger.Debug(fmt.Sprintf(
 			"enterNewRound(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
