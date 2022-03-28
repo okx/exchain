@@ -8,6 +8,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"runtime"
 	"sync"
 )
 
@@ -16,10 +17,10 @@ var (
 )
 
 type extraDataForTx struct {
-	fee       sdk.Coins
-	isEvm     bool
-	signCache sdk.SigCache
-	to        *ethcommon.Address
+	fee   sdk.Coins
+	isEvm bool
+	from  string
+	to    *ethcommon.Address
 }
 
 // txByteWithIndex = txByte + index
@@ -51,10 +52,10 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 			}
 			coin, isEvm, s, toAddr := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			res[index] = &extraDataForTx{
-				fee:       coin,
-				isEvm:     isEvm,
-				signCache: s,
-				to:        toAddr,
+				fee:   coin,
+				isEvm: isEvm,
+				from:  s,
+				to:    toAddr,
 			}
 		}()
 	}
@@ -63,52 +64,53 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 var (
-	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
+	rootAddr = make(map[string]string, 0)
 )
 
-func Find(x ethcommon.Address) ethcommon.Address {
+func Find(x string) string {
 	if rootAddr[x] != x {
 		rootAddr[x] = Find(rootAddr[x])
 	}
 	return rootAddr[x]
 }
 
-func Union(x ethcommon.Address, y *ethcommon.Address) {
+func Union(x string, y *ethcommon.Address) {
 	if _, ok := rootAddr[x]; !ok {
 		rootAddr[x] = x
 	}
 	if y == nil {
 		return
 	}
-	if _, ok := rootAddr[*y]; !ok {
-		rootAddr[*y] = *y
+	yString := y.String()
+	if _, ok := rootAddr[yString]; !ok {
+		rootAddr[yString] = yString
 	}
 	fx := Find(x)
-	fy := Find(*y)
+	fy := Find(yString)
 	if fx != fy {
 		rootAddr[fy] = fx
 	}
 }
 
 func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map[int]int) {
-	rootAddr = make(map[ethcommon.Address]ethcommon.Address, 0)
+	rootAddr = make(map[string]string, 0)
 	app.parallelTxManage.txReps = make([]*executeResult, len(txsExtraData))
 	for index, tx := range txsExtraData {
 		if tx.isEvm { //evmTx
-			Union(tx.signCache.GetFrom(), tx.to)
+			Union(tx.from, tx.to)
 		} else {
 			app.parallelTxManage.txReps[index] = &executeResult{}
 		}
 	}
 
 	groupList := make(map[int][]int, 0)
-	addrToID := make(map[ethcommon.Address]int, 0)
+	addrToID := make(map[string]int, 0)
 
 	for index, sender := range txsExtraData {
 		if !sender.isEvm {
 			continue
 		}
-		rootAddr := Find(sender.signCache.GetFrom())
+		rootAddr := Find(sender.from)
 		id, exist := addrToID[rootAddr]
 		if !exist {
 			id = len(groupList)
@@ -140,9 +142,47 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 	return groupList, nextTxIndexInGroup
 }
 
-func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) paraLoadSender(txs [][]byte) {
+
+	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+
+	maxNums := runtime.NumCPU()
+	txSize := len(txs)
+	if maxNums > txSize {
+		maxNums = txSize
+	}
+
+	txJobChan := make(chan []byte)
+	var wg sync.WaitGroup
+	wg.Add(txSize)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan []byte, wg *sync.WaitGroup) {
+			for txBytes := range ch {
+				tx, err := app.txDecoder(txBytes)
+				if err == nil {
+					app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+				}
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+	for _, v := range txs {
+		txJobChan <- v
+	}
+
+	wg.Wait()
+	close(txJobChan)
+}
+
+func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
 	if len(txs) == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
+	}
+
+	if onlyCalSender {
+		app.paraLoadSender(txs)
+		return nil
 	}
 	//ts := time.Now()
 	//defer func() {
@@ -165,7 +205,6 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	for k := range txs {
 		t := &txStatus{
 			indexInBlock: uint32(k),
-			signCache:    extraData[k].signCache,
 		}
 		if extraData[k].isEvm {
 			t.evmIndex = evmIndex
@@ -364,7 +403,7 @@ func (app *BaseApp) deliverTxWithCache(txByte []byte, txIndex int) *executeResul
 		mode runTxMode
 	)
 	mode = runTxModeDeliverInAsync
-	info, errM := app.runtx(mode, txByte, tx, LatestSimulateTxHeight)
+	info, errM := app.runTx(mode, txByte, tx, LatestSimulateTxHeight)
 	g, r, m, e := info.gInfo, info.result, info.msCacheAnte, errM
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
@@ -622,7 +661,6 @@ type txStatus struct {
 	isEvmTx      bool
 	evmIndex     uint32
 	indexInBlock uint32
-	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {

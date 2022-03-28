@@ -252,8 +252,8 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runtx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
-	g, r, m, e := info.gInfo, info.result, info.msCacheAnte, errM
+	info, errM := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	m, e := info.msCacheAnte, errM
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -265,7 +265,7 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 			Events:    info.result.Events.ToABCIEvents(),
 		}
 	}
-	
+
 	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.paraMsg.anteErr, info.paraMsg.refundFee)
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
