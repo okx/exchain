@@ -27,7 +27,6 @@ type dttRoutine struct {
 	txIndex int
 	rerunCh chan int
 	index   int8
-	finished bool
 
 	logger log.Logger
 
@@ -55,7 +54,6 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	dttr.task = nil
-	dttr.finished = false
 	dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
@@ -75,10 +73,6 @@ func (dttr *dttRoutine) OnReset() error {
 func (dttr *dttRoutine) stop() {
 	dttr.done <- 0
 }
-
-//func (dttr *dttRoutine) ()  {
-//
-//}
 
 func (dttr *dttRoutine) executeTaskRoutine() {
 	for {
@@ -155,10 +149,9 @@ func (dttr *dttRoutine) couldRerun(index int) {
 //-------------------------------------
 
 type DTTManager struct {
-	done       chan int
-	totalCount int
-	txs        [][]byte
-	//concurrentIndex int
+	done           chan int
+	totalCount     int
+	txs            [][]byte
 	startFinished  bool
 	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex    int
@@ -182,11 +175,6 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
-
-		//err := dttr.OnStart()
-		//if err != nil {
-		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
-		//}
 	}
 
 	return dttm
@@ -209,10 +197,6 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 
 	//dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
 	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
-		//dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
-		//dttr.setLogger(dttm.app.logger)
-		////dttm.dttRoutineList[i] = dttr
-		//dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		dttr := dttm.dttRoutineList[i]
 
 		//dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
@@ -220,21 +204,14 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		}
-		////dttm.setConcurrentIndex(i)
-		//if dttm.concurrentIndex < i {
-		//	dttm.concurrentIndex = i
-		//}
 		dttr.makeNewTask(txs[i], i)
 		time.Sleep(1 * time.Millisecond)
 	}
 	dttm.startFinished = true
-	//if dttm.getConcurrentIndex() == 0 {
-	//	dttm.setConcurrentIndex(maxDeliverTxsConcurrentNum-1)
-	//}
 }
 
 func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
-	dttm.app.logger.Info("concurrentBasic", "index", index)
+	//dttm.app.logger.Info("concurrentBasic", "index", index)
 
 	// create a new task
 	var realTx sdk.Tx
@@ -433,7 +410,6 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				dttr.finished = true
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
 					if !dttm.startFinished {
@@ -500,7 +476,7 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
+	//dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
 
 	info := dttm.serialTask.info
 	handler := info.handler
