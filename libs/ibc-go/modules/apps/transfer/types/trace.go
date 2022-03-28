@@ -54,9 +54,9 @@ func (dt DenomTrace) GetPrefix() string {
 // 'ibc/{hash(tracePath + baseDenom)}'. If the trace is empty, it will return the base denomination.
 func (dt DenomTrace) IBCDenom() string {
 	if dt.Path != "" {
-		return fmt.Sprintf("%s/%s", DenomPrefix, dt.Hash())
+		return strings.ToLower(fmt.Sprintf("%s/%s", DenomPrefix, dt.Hash()))
 	}
-	return dt.BaseDenom
+	return strings.ToLower(dt.BaseDenom)
 }
 
 // GetFullDenomPath returns the full denomination according to the ICS20 specification:
