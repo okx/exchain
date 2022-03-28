@@ -206,6 +206,13 @@ func TestSubDecCoins(t *testing.T) {
 	}
 }
 
+func TestP(t *testing.T) {
+	//ParseDecCoin
+	coin, err := ParseDecCoin("1000000ibc/27A6394C3F9FF9C9DCF5DFFADF9BB5FE9A37C7E92B006199894CF1824DF9AC7C")
+	fmt.Println(err)
+	fmt.Println(coin)
+}
+
 func TestSortDecCoins(t *testing.T) {
 	good := DecCoins{
 		NewInt64DecCoin("gas", 1),
