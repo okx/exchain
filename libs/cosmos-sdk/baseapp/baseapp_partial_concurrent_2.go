@@ -426,6 +426,7 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 				if nextTask != nil {
 					go func() {
+						dttm.app.logger.Info("ExtractNextSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
 					}()
 				}
