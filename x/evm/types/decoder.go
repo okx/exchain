@@ -47,7 +47,7 @@ func TxDecoder(cdc *codec.Codec, proxy ...*codec.CodecProxy) sdk.TxDecoder {
 			evmDecoder,
 			ubruDecoder,
 			ubDecoder,
-			byteTx,
+			//byteTx,
 			relayTx,
 		} {
 			if tx, err = f(cdc, proxyCodec, txBytes, height); err == nil {
@@ -94,7 +94,7 @@ var relayTx decodeFunc = func(c *codec.Codec, proxy *codec.CodecProxy, bytes []b
 	txBytes := bytes
 
 	err := simReq.Unmarshal(bytes)
-	if err == nil {
+	if err == nil && simReq.Tx != nil {
 		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
 			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
