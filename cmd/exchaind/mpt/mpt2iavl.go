@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +55,7 @@ func migrateAccFroMptToIavl(ctx *server.Context) {
 
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
-		//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
+		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
 		tree.Set(itr.Key, itr.Value)
 	}
 	_, _, _, err = tree.SaveVersion(false)
@@ -77,17 +78,36 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 		panic("fail to create iavl tree: " + err.Error())
 	}
 
-	// 1.migrate bubble data to iavl
+	// 1.migrate rawdb's data to iavl
+	/*  ChainConfig              -> rawdb
+	 *  BlockHash = HeightHash   -> rawdb
+	 *  Bloom                    -> rawdb
+	 */
+	diskdb := evmMptDb.TrieDB().DiskDB()
+	// 1.1 set ChainConfig back to iavl
+	configValue, err := diskdb.Get(evmtypes.KeyPrefixChainConfig)
+	panicError(err)
+	tree.Set(evmtypes.KeyPrefixChainConfig, configValue)
+	// 1.2 set BlockHash/HeightHash back to iavl
+	dIter := diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil)
+	for dIter.Next() {
+		tree.Set(dIter.Key(), dIter.Value())
+		tree.Set(append(evmtypes.KeyPrefixHeightHash, dIter.Key()[1:]...), dIter.Value())
+	}
+	// 1.3 set Bloom back to iavl
+	dIter = diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil)
+	for dIter.Next() {
+		tree.Set(dIter.Key(), dIter.Value())
+	}
 
 	// 2.migrate state data to iavl
 	var stateRoot ethcmn.Hash
 	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 	for itr.Next() {
 		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
-		addrHash := ethcrypto.Keccak256Hash(addr[:])
 		stateRoot.SetBytes(itr.Value)
 
-		contractTrie := getStorageTrie(evmMptDb, addrHash, stateRoot)
+		contractTrie := getStorageTrie(evmMptDb, ethcrypto.Keccak256Hash(addr[:]), stateRoot)
 		fmt.Println(addr.String(), contractTrie.Hash())
 
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
