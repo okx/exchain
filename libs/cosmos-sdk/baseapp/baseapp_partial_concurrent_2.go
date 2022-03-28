@@ -117,7 +117,7 @@ func (dttr *dttRoutine) checkConflict(addr string, index int) bool {
 	if dttr.task.index < index {
 		return true
 	} else {
-		if dttr.task.step != partialConcurrentStepBasicFailed {
+		if dttr.task.step != partialConcurrentStepBasicFailed && dttr.task.step != partialConcurrentStepFinished {
 			dttr.logger.Error("needToRerun 1", "index", dttr.task.index, "conflicted", index)
 			dttr.task.needToRerun = true
 		}
@@ -407,7 +407,6 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// make new task for this routine
 				dttr := dttm.dttRoutineList[task.routineIndex]
-				dttr.task = nil
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
 					if !dttm.startFinished {
