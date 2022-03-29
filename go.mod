@@ -64,7 +64,6 @@ require (
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.16.0
-	github.com/tendermint/tendermint v0.35.2
 	github.com/tyler-smith/go-bip39 v1.0.2
 	github.com/valyala/fastjson v1.6.3
 	github.com/willf/bitset v1.1.11
