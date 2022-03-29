@@ -70,6 +70,7 @@ func (st *Store) Get(key []byte) []byte {
 	st.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBReadCount()
 	if err == nil && len(value) != 0 {
+		st.preloadCh <- key
 		st.cache.add(key, value, false, false)
 		return value
 	}
