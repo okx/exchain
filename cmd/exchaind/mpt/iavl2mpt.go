@@ -188,7 +188,7 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 		// 1.4 set the rootHash of contract mpt into evm mpt
 		panicError(evmTrie.TryUpdate(addr[:], rootHash.Bytes()))
 
-		if count%1000 == 0 {
+		if count%100 == 0 {
 			pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 			log.Println(count)
 		}

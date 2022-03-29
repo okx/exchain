@@ -93,6 +93,5 @@ func (b *RocksDBBatch) WriteWithoutClose() error {
 	}
 	// Never call b.Close() here!!!
 	//b.Close()
-	b.batch.Clear()
 	return nil
 }
