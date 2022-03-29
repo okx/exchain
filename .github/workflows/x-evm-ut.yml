@@ -15,7 +15,7 @@ jobs:
           go-version: 1.17
       - name: go mod tidy
         run:
-          go mod tidy
+          go mod tidy -compat=1.17
       - name: Cache go modules
         run:
           make go-mod-cache
