@@ -247,7 +247,7 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.Address) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+	if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.Address) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 			log.Printf("change account: %s\n", coins)
 	}
 	acc.Coins = coins

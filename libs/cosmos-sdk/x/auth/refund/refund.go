@@ -33,9 +33,9 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
 	}
 	ctx.UpdateFromAccountCache(feeCollector, 0)
-	if global.GetGlobalHeight() == 5811070 {
+	if global.GetGlobalHeight() == 5811111 {
 		hexacc := hex.EncodeToString(acc)
-		if hexacc == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+		if hexacc == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 			log.Printf("From FeeCollector: %s origin:%s\n", refundFees, coins)
 		}
 	}

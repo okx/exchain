@@ -371,8 +371,8 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = task
 				dttm.serialTask.step = partialConcurrentStepSerialExecute
 				dttm.serialExecution()
-				dttm.serialTask.step = partialConcurrentStepFinished
 				dttm.serialTask = nil
+				task.step = partialConcurrentStepFinished
 
 				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
@@ -564,7 +564,7 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+	if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
 	}
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
