@@ -194,7 +194,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-	deliverTxsMgr    *DeliverTxTasksManager
+	deliverTxsMgr    *DTTManager//DeliverTxTasksManager
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache

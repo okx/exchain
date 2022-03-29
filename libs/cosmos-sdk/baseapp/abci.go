@@ -181,7 +181,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		"validateBasicAll", totalBasicTime,
 		"anteAll", totalAnteDuration,
 		"waitingAll", totalWaitingTime,
-		"serialWaitingCount", totalSerialWaitingCount)
+		"serialWaitingCount", totalSerialWaitingCount,
+		"preload", totalPreloadConDuration)
 
 	return
 }

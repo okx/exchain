@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 3
+	maxDeliverTxsConcurrentNum = 4
 )
 
 var totalAnteDuration = int64(0)
@@ -23,6 +23,7 @@ var totalHandleGasTime = int64(0)
 var totalRunMsgsTime = int64(0)
 var totalWaitingTime = int64(0)
 var totalBasicTime = int64(0)
+var totalPreloadConDuration = int64(0)
 
 type (
 	partialConcurrentStep uint8
@@ -739,7 +740,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
-		app.deliverTxsMgr = NewDeliverTxTasksManager(app)//NewDTTManager(app)
+		app.deliverTxsMgr = NewDTTManager(app)//NewDeliverTxTasksManager(app)
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))

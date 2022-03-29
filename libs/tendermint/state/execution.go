@@ -32,7 +32,8 @@ const (
 	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
 )
 
-var deliverTxDuration int64
+var deliverTxDuration = int64(0)
+var totalPreloadDuration = int64(0)
 
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
@@ -447,7 +448,9 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
+	start := time.Now()
 	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	totalPreloadDuration += time.Since(start).Microseconds()
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -463,7 +466,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	start := time.Now()
+	start = time.Now()
 	for count, tx := range block.Txs {
 		//if global.GetGlobalHeight() == 5810705 {
 		//	logger.Info("DeliverTxAsync", "index", count)
@@ -479,7 +482,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		}
 	}
 	deliverTxDuration += time.Since(start).Microseconds()
-	logger.Info("DeliverTxs duration", "total", deliverTxDuration)
+	logger.Info("DeliverTxs duration", "total", deliverTxDuration, "preload", totalPreloadDuration)
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})

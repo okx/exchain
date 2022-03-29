@@ -20,7 +20,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	stateDB dbm.DB,
 	) (*ABCIResponses, error) {
 
-	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	//proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 
 	abciResponses := NewABCIResponses(block)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)

@@ -200,7 +200,10 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	//dttm.serialNextCh = make(chan *DeliverTxTask, 1)
 	dttm.startFinished = false
 
-	//dttm.preloadSender(txs)
+	start := time.Now()
+	dttm.preloadSender(txs)
+	totalPreloadConDuration += time.Since(start).Microseconds()
+	//logger.Info("DeliverTxs duration", "preload", totalPreloadConDuration)
 	//dttm.app.logger.Error("preloadFinished")
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
@@ -251,8 +254,8 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 				//task := newDeliverTxTask(realTx, index)
 				//task.info.txBytes = txBytes
 				if err == nil {
-					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
-					//dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), tx)
+					//dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), tx)
 					//dttm.app.logger.Info("preload", "from", from)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
 				}
