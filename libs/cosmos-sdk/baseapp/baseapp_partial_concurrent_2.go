@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -181,6 +182,7 @@ type DTTManager struct {
 	currTxFee sdk.Coins
 
 	txResponses []*abci.ResponseDeliverTx
+	invalidTxs int
 	app         *BaseApp
 }
 
@@ -226,6 +228,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	//dttm.app.logger.Error("preloadFinished")
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
+	dttm.invalidTxs = 0
+
 	go dttm.serialRoutine()
 	//go dttm.serialNextRoutine()
 
@@ -585,6 +589,10 @@ func (dttm *DTTManager) serialExecution() {
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
 		//dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
+		if txRs.Code != abci.CodeTypeOK {
+			logger.Debug("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialTask.index)
+			dttm.invalidTxs++
+		}
 	}
 
 	// execute anteHandler failed

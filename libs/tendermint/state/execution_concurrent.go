@@ -1,10 +1,8 @@
 package state
 
 import (
-	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"time"
 
@@ -40,18 +38,19 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 
 	// Run txs of block.
 	start := time.Now()
+	//var invalidTxs = 0
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	elapsed := time.Since(start).Microseconds()
 	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
 
-	var validTxs, invalidTxs = 0, 0
-	for _, v := range abciResponses.DeliverTxs {
-		if v.Code == abci.CodeTypeOK {
-			validTxs++
-		} else {
-			invalidTxs++
-		}
-	}
+	//var validTxs, invalidTxs = 0, 0
+	//for _, v := range abciResponses.DeliverTxs {
+	//	if v.Code == abci.CodeTypeOK {
+	//		validTxs++
+	//	} else {
+	//		invalidTxs++
+	//	}
+	//}
 	deliverTxDuration += elapsed
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
@@ -60,7 +59,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 		return nil, err
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
+	//trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
 }

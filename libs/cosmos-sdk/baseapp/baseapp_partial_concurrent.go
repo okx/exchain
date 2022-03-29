@@ -1,7 +1,9 @@
 package baseapp
 
 import (
+	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"sync"
 	"time"
 
@@ -752,6 +754,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", app.deliverTxsMgr.invalidTxs))
 
 	return app.deliverTxsMgr.txResponses
 }
