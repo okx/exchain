@@ -55,7 +55,7 @@ func (st *Store) preloadSchedule() {
 	for i := 0; i < num; i++ {
 		go func() {
 			for key := range st.preloadCh {
-				st.tree.Get(key)
+				go st.tree.Get(key)
 			}
 		}()
 	}
