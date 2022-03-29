@@ -203,6 +203,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.startFinished = false
 
 	dttm.preloadSender(txs)
+	//dttm.app.logger.Error("preloadFinished")
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
@@ -231,6 +232,7 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 	if maxNums > txSize {
 		maxNums = txSize
 	}
+	//dttm.app.logger.Error("preloadStart", "maxNum", maxNums)
 
 	txJobChan := make(chan []byte)
 	var wg sync.WaitGroup
@@ -251,7 +253,8 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 				//task := newDeliverTxTask(realTx, index)
 				//task.info.txBytes = txBytes
 				if err == nil {
-					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), tx)
+					//dttm.app.logger.Info("preload", "from", from)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
 				}
 				wg.Done()
