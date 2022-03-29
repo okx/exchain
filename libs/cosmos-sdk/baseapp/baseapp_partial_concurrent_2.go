@@ -36,9 +36,6 @@ type dttRoutine struct {
 
 func newDttRoutine(index int8, basicProcess BasicProcessFn, runAnte RunAnteFn) *dttRoutine {
 	dttr := &dttRoutine{
-		//done:       make(chan int),
-		//txByte:     make(chan []byte),
-		//rerunCh:    make(chan int),
 		index:      index,
 		basicProFn: basicProcess,
 		runAnteFn:  runAnte,
@@ -175,6 +172,10 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
+		err := dttr.OnStart()
+		if err != nil {
+			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
+		}
 	}
 
 	return dttm
@@ -200,10 +201,10 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		dttr := dttm.dttRoutineList[i]
 
 		//dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
-		err := dttr.OnStart()
-		if err != nil {
-			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
-		}
+		//err := dttr.OnStart()
+		//if err != nil {
+		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
+		//}
 		dttr.makeNewTask(txs[i], i)
 		time.Sleep(1 * time.Millisecond)
 	}
@@ -270,28 +271,6 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if dttm.app.anteHandler == nil {
 		return fmt.Errorf("anteHandler cannot be nil")
 	}
-
-	//checkConflict := func() bool {
-	//	conflicted := false
-	//	count := len(dttm.dttRoutineList)
-	//	for i := 0; i < count; i++ {
-	//		dttr := dttm.dttRoutineList[i]
-	//		if dttr == nil {
-	//			continue
-	//		}
-	//		conflicted = dttr.checkConflict(task.from, task.index)
-	//		if conflicted {
-	//			dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
-	//			task.needToRerun = true
-	//		}
-	//	}
-	//	return conflicted
-	//}
-	//
-	//conflicted := checkConflict()
-	//if conflicted {
-	//	return nil
-	//}
 
 	if task.needToRerun {
 		dttm.app.logger.Error("ResetContext", "index", task.index)
@@ -395,11 +374,11 @@ func (dttm *DTTManager) serialRoutine() {
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
-					count := len(dttm.dttRoutineList)
-					for i := 0; i < count; i++ {
-						dttr := dttm.dttRoutineList[i]
-						dttr.stop()
-					}
+					//count := len(dttm.dttRoutineList)
+					//for i := 0; i < count; i++ {
+					//	dttr := dttm.dttRoutineList[i]
+					//	dttr.stop()
+					//}
 
 					dttm.done <- 0
 					go func() {
@@ -557,20 +536,6 @@ func (dttm *DTTManager) serialExecution() {
 	execFinishedFn(resp)
 }
 
-//func (dttm *DTTManager) setConcurrentIndex(index int) {
-//	dttm.mtx.Lock()
-//	defer dttm.mtx.Unlock()
-//
-//	dttm.concurrentIndex = index
-//}
-//
-//func (dttm *DTTManager) getConcurrentIndex() int {
-//	dttm.mtx.Lock()
-//	defer dttm.mtx.Unlock()
-//
-//	return dttm.concurrentIndex
-//}
-
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
 	dttm.mtx.Lock()
 	defer dttm.mtx.Unlock()
@@ -606,9 +571,6 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
-	//dttm.mtx.Lock()
-	//defer dttm.mtx.Unlock()
-
 	num := len(dttm.dttRoutineList)
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
