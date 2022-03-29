@@ -37,7 +37,7 @@ rm -rf ~/.exchaincli
 
 
 run() {
-    LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
+    LOG_LEVEL=*:error,x/ibc/client:info,x/ibc/connection:info,x/ibc/transfer:info,x/ibc/channel:info,x/ibc/*:debug
     if [ "$startDaenom" = true ]; then
       echo "start run "
          nohup exchaind start --pruning=nothing --rpc.unsafe \
