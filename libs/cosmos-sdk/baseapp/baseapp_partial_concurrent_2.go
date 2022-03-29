@@ -358,9 +358,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if task.needToRerun {
 		dttm.app.logger.Error("ResetContext", "index", task.index)
 
-		task.setStep(partialConcurrentStepBasicSucceed)
 		task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 		task.setUpdateCount(0)
+		task.setStep(partialConcurrentStepBasicSucceed)
 		task.needToRerun = false
 		task.canRerun = 0
 	}
@@ -672,6 +672,9 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
 	num := len(dttm.dttRoutineList)
+	if global.GetGlobalHeight() == 5811111 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+		dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "waitingIndex", waitingIndex)
+	}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || dttr.task.from != address {
