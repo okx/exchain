@@ -1,6 +1,7 @@
 package flatkv
 
 import (
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -44,14 +45,19 @@ func NewStore(db dbm.DB, tree Tree) *Store {
 		preloadCh:   make(chan []byte, 0),
 	}
 	if st.enable {
-		go st.preloadSchedule()
+		st.preloadSchedule()
 	}
 	return st
 }
 
 func (st *Store) preloadSchedule() {
-	for key := range st.preloadCh {
-		go st.tree.Get(key)
+	num := runtime.NumCPU()
+	for i := 0; i < num; i++ {
+		go func() {
+			for key := range st.preloadCh {
+				st.tree.Get(key)
+			}
+		}()
 	}
 }
 
@@ -70,8 +76,8 @@ func (st *Store) Get(key []byte) []byte {
 	st.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBReadCount()
 	if err == nil && len(value) != 0 {
-		st.preloadCh <- key
 		st.cache.add(key, value, false, false)
+		st.preloadCh <- key
 		return value
 	}
 	return nil
@@ -126,14 +132,7 @@ func (st *Store) write(version int64) {
 	// commit to flat kv db
 	batch := st.db.NewBatch()
 	defer batch.Close()
-	cache := st.cache.reset()
-	for key, cValue := range cache {
-		if cValue.deleted {
-			batch.Delete([]byte(key))
-		} else if cValue.dirty {
-			batch.Set([]byte(key), cValue.value)
-		}
-	}
+	st.cache.write(batch)
 	st.setLatestVersion(batch, version)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())

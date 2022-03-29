@@ -1,6 +1,10 @@
 package flatkv
 
-import "sync"
+import (
+	"sync"
+
+	tmdb "github.com/okex/exchain/libs/tm-db"
+)
 
 // cache value
 type cValue struct {
@@ -43,14 +47,16 @@ func (c *Cache) add(key, value []byte, deleted bool, dirty bool) {
 	}
 }
 
-// return cache and clear cache
-func (c *Cache) reset() map[string]cValue {
+// write cache to batch and clear cache
+func (c *Cache) write(batch tmdb.Batch) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	copyMap := make(map[string]cValue, len(c.data))
-	for k, v := range c.data {
-		copyMap[k] = v
-		delete(c.data, k)
+	for key, cValue := range c.data {
+		if cValue.deleted {
+			batch.Delete([]byte(key))
+		} else if cValue.dirty {
+			batch.Set([]byte(key), cValue.value)
+		}
+		delete(c.data, key)
 	}
-	return copyMap
 }
