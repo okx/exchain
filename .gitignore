@@ -79,3 +79,6 @@ result.txt
 ethermint
 _cache_evm
 dump.rdb
+dev
+myc
+.gitignore

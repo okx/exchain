@@ -659,9 +659,19 @@ func NewNode(config *cfg.Config,
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
+	// make block executor for consensus reactors to execute blocks
+	blockExecCs := sm.NewBlockExecutor(
+		stateDB,
+		logger.With("module", "state"),
+		proxyApp.Consensus(),
+		mempool,
+		evidencePool,
+		sm.BlockExecutorWithMetrics(smMetrics),
+	)
+	blockExecCs.SetIsAsyncSaveDB(true)
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
-		config, state, blockExec, blockStore, deltasStore, mempool, evidencePool,
+		config, state, blockExecCs, blockStore, deltasStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
 

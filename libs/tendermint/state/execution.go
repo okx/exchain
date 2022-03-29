@@ -20,6 +20,10 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+var (
+	msgQueueSize = 100
+)
+
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
@@ -51,6 +55,19 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
+
+	// async write db
+	abciMsgQueue     chan abciMsg
+	stateQueue       chan State
+	syncedHeightChan chan int64
+	isAsyncSaveDB    bool
+
+	isStateAsyncing bool
+}
+
+type abciMsg struct {
+	height    int64
+	responses *ABCIResponses
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -90,6 +107,12 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
+	res.abciMsgQueue = make(chan abciMsg, msgQueueSize)
+	res.stateQueue = make(chan State, msgQueueSize)
+	res.syncedHeightChan = make(chan int64, msgQueueSize)
+
+	go res.asyncSaveStateRoutine()
+	go res.asyncSaveABCIRespRoutine()
 	return res
 }
 
@@ -103,6 +126,10 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
+}
+
+func (blockExec *BlockExecutor) SetIsAsyncSaveDB(isAsyncSaveDB bool) {
+	blockExec.isAsyncSaveDB = isAsyncSaveDB
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -188,6 +215,19 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	//wait till the last block state be saved
+	if blockExec.isAsyncSaveDB && blockExec.isStateAsyncing {
+	WAIT_LOOP:
+		for {
+			select {
+			case r := <-blockExec.syncedHeightChan:
+				if r == (block.Height - 1) {
+					break WAIT_LOOP
+				}
+			}
+		}
+	}
+
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -199,7 +239,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	go SaveABCIResponses(blockExec.db, block.Height, abciResponses)
+	if blockExec.isAsyncSaveDB {
+		blockExec.SaveABCIResponsesAsync(block.Height, abciResponses)
+	} else {
+		SaveABCIResponses(blockExec.db, block.Height, abciResponses)
+	}
+
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
 	blockExec.metrics.BlockProcessingTime.Observe(float64(endTime-startTime) / 1e6)
@@ -247,7 +292,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	SaveState(blockExec.db, state)
+	if blockExec.isAsyncSaveDB {
+		blockExec.SaveStateAsync(state)
+	} else {
+		//Async save state
+		SaveState(blockExec.db, state)
+	}
+
 	blockExec.logger.Debug("SaveState", "state", &state)
 
 	fail.Fail() // XXX
@@ -371,6 +422,35 @@ func (blockExec *BlockExecutor) commit(
 	}
 
 	return res, res.RetainHeight, err
+}
+
+func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
+	blockExec.abciMsgQueue <- abciMsg{height, responses}
+}
+
+func (blockExec *BlockExecutor) SaveStateAsync(state State) {
+	blockExec.isStateAsyncing = true
+	blockExec.stateQueue <- state
+}
+
+// asyncSaveRoutine handle the write db work
+func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
+	for {
+		select {
+		case stateMsg := <-blockExec.stateQueue:
+			SaveState(blockExec.db, stateMsg)
+			blockExec.syncedHeightChan <- stateMsg.LastBlockHeight
+		}
+	}
+}
+
+func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
+	for {
+		select {
+		case abciMsg := <-blockExec.abciMsgQueue:
+			SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
+		}
+	}
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
