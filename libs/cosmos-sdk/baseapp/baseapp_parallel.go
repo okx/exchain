@@ -421,6 +421,9 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 	rSet, wSet := loadPreData(ms)
 	delete(rSet, whiteAcc)
 	delete(wSet, whiteAcc)
+	if paraMsg == nil {
+		paraMsg = &sdk.ParaMsg{}
+	}
 
 	return &executeResult{
 		resp:       r,
