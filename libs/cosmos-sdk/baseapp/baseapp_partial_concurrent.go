@@ -93,6 +93,8 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 	case partialConcurrentStepInRerun:
 		fallthrough
 	case partialConcurrentStepSerialExecute:
+		fallthrough
+	case partialConcurrentStepFinished:
 		return false
 	}
 	if dtt.canRerun == 0 && !dtt.needToRerun {
