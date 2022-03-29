@@ -36,7 +36,6 @@ const (
 	partialConcurrentStepAnteFailed
 	partialConcurrentStepAnteSucceed
 	partialConcurrentStepInRerun
-	partialConcurrentStepInPending
 	partialConcurrentStepSerialExecute
 	partialConcurrentStepFinished
 )
@@ -476,7 +475,6 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 			task.err = err
 
 			dm.pushIntoPending(task)
-			task.setStep(partialConcurrentStepInPending)
 		} else {
 			dm.app.logger.Error("NeedToReRunAnte", "txIndex", task.index)
 		}

@@ -252,13 +252,13 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	} else {
 		//dttm.app.logger.Info("hasExistPrevTask", "index", task.index, "from", task.from)
 		task.step = partialConcurrentStepBasicSucceed
+		if dttm.serialTask == nil && task.index == dttm.serialIndex+1 {
+			return task
+		}
 		// need to check whether exist running tx who has the same from but smaller txIndex
 		count := len(dttm.dttRoutineList)
 		for i := 0; i < count; i++ {
 			dttr := dttm.dttRoutineList[i]
-			//if dttr == nil {
-			//	continue
-			//}
 			//dttm.app.logger.Info("hasExistPrevTask 1", "routine", dttr.index, "task", dttr.txIndex)
 			task.needToRerun = dttr.hasExistPrevTask(task.from, task.index)
 			if task.needToRerun {
