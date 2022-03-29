@@ -107,12 +107,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	totalBasicTime += time.Since(basicStart).Microseconds()
-	totalAnteDuration += time.Since(basicStart).Microseconds()
+	//totalAnteDuration += time.Since(basicStart).Microseconds()
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
-	anteStart := time.Now()
 	if app.anteHandler != nil {
+		anteStart := time.Now()
 		err = app.runAnte(info, mode)
 		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
