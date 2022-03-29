@@ -739,7 +739,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
-		app.deliverTxsMgr = NewDTTManager(app)//NewDeliverTxTasksManager(app)
+		app.deliverTxsMgr = NewDeliverTxTasksManager(app)//NewDTTManager(app)
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))
