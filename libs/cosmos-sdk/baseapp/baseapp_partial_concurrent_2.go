@@ -9,13 +9,14 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"runtime"
 
 	//"github.com/okex/exchain/libs/tendermint/libs/service"
 	"sync"
 	"time"
 )
 
-var totalSerialWaitingCount = int(0)
+var totalSerialWaitingCount = 0
 
 //-------------------------------------
 type BasicProcessFn func(txByte []byte, index int) *DeliverTxTask
@@ -151,11 +152,13 @@ type DTTManager struct {
 	done           chan int
 	totalCount     int
 	txs            [][]byte
+	//tasks []*DeliverTxTask
 	startFinished  bool
 	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex    int
 	serialTask     *DeliverTxTask
 	serialCh       chan *DeliverTxTask
+	//serialNextCh       chan *DeliverTxTask
 
 	mtx       sync.Mutex
 	currTxFee sdk.Coins
@@ -191,14 +194,19 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	totalSerialWaitingCount += dttm.totalCount
 
 	dttm.txs = txs
+	//dttm.tasks = make([]*DeliverTxTask, len(txs))
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan *DeliverTxTask, 1)
+	//dttm.serialNextCh = make(chan *DeliverTxTask, 1)
 	dttm.startFinished = false
+
+	dttm.preloadSender(txs)
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
 	go dttm.serialRoutine()
+	//go dttm.serialNextRoutine()
 
 	//dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
 	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
@@ -213,6 +221,49 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		//time.Sleep(1 * time.Millisecond)
 	}
 	dttm.startFinished = true
+}
+
+func (dttm *DTTManager) preloadSender(txs [][]byte) {
+	checkStateCtx := dttm.app.checkState.ctx.WithBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
+
+	maxNums := runtime.NumCPU()
+	txSize := len(txs)
+	if maxNums > txSize {
+		maxNums = txSize
+	}
+
+	txJobChan := make(chan []byte)
+	var wg sync.WaitGroup
+	wg.Add(txSize)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan []byte, wg *sync.WaitGroup) {
+			for txBytes := range ch {
+				//var realTx sdk.Tx
+				//var err error
+				//if mem := GetGlobalMempool(); mem != nil {
+				//	realTx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
+				//}
+				//if realTx == nil {
+				//	realTx, err = dttm.app.txDecoder(txBytes)
+				//}
+				tx, err := dttm.app.txDecoder(txBytes)
+				//task := newDeliverTxTask(realTx, index)
+				//task.info.txBytes = txBytes
+				if err == nil {
+					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
+				}
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+	for _, v := range txs {
+		txJobChan <- v
+	}
+
+	wg.Wait()
+	close(txJobChan)
 }
 
 func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
@@ -363,6 +414,15 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 	return nil
 }
 
+//func (dttm *DTTManager) serialNextRoutine() {
+//	for {
+//		select {
+//		case task := <-dttm.serialNextCh:
+//			dttm.serialCh <- task
+//		}
+//	}
+//}
+
 func (dttm *DTTManager) serialRoutine() {
 	for {
 		select {
@@ -389,6 +449,7 @@ func (dttm *DTTManager) serialRoutine() {
 					dttm.done <- 0
 					go func() {
 						close(dttm.serialCh)
+						//close(dttm.serialNextCh)
 					}()
 					return
 				}
@@ -453,6 +514,7 @@ func (dttm *DTTManager) serialRoutine() {
 						//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
 					}()
+					//dttm.serialNextCh <- nextTask
 				}
 				//} else {
 				//	panic(fmt.Sprintf("invalid index for serial execution: expected %x, got %x\n", dttm.serialIndex, task.index))

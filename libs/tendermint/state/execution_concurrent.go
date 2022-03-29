@@ -19,8 +19,8 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	block *types.Block,
 	stateDB dbm.DB,
 	) (*ABCIResponses, error) {
-
 	abciResponses := NewABCIResponses(block)
+
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -51,7 +51,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 			invalidTxs++
 		}
 	}
-
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
