@@ -191,7 +191,7 @@ func TestMultistoreLoadWithUpgrade(t *testing.T) {
 	}
 
 	var outb, errb bytes.Buffer
-	cmd := exec.Command(os.Args[0], "-test.run=TestCommitDelta")
+	cmd := exec.Command(os.Args[0], "-test.run=TestMultistoreLoadWithUpgrade")
 	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
