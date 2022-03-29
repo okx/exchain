@@ -92,7 +92,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			if dttr.task.err == nil && !dttr.task.needToRerun {
 				dttr.runAnteFn(dttr.task)
 			} else {
-				dttr.logger.Error("DonotRunAnte", "index", dttr.task.index, "needToRerun", dttr.task.needToRerun, "err", dttr.task.err)
+				dttr.logger.Error("DonotRunAnte", "index", dttr.task.index)
 			}
 		case <-dttr.rerunCh:
 			step := dttr.task.getStep()
@@ -376,14 +376,14 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 		conflicted := dttr.checkConflict(task.from, task.index)
 		if conflicted {
-			//dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
+			dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
 			task.needToRerun = true
 		}
 	}
 	if task.canRerun > 0 {
 		dttr := dttm.dttRoutineList[task.routineIndex]
 		//go func() {
-		//	dttr.logger.Error("rerunChInFromAnte", "index", task.index)
+			dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		dttr.task.needToRerun = true
 		dttr.rerunCh <- 0
 		//}()
@@ -497,7 +497,7 @@ func (dttm *DTTManager) serialRoutine() {
 						if dttr.task.from == task.from {
 							//go func() {
 							getRerun = true
-							//dttr.logger.Error("rerunCh", "index", dttr.task.index)
+							dttr.logger.Error("rerunCh", "index", dttr.task.index)
 							dttr.task.needToRerun = true
 							dttr.rerunCh <- 0
 							//}()
