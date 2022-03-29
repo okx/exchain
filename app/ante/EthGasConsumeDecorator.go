@@ -1,6 +1,8 @@
 package ante
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -9,7 +11,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 // EthGasConsumeDecorator validates enough intrinsic gas for the transaction and
@@ -43,12 +44,12 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 	pinAnte(ctx.AnteTracer(), "EthGasConsumeDecorator")
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	msgEthTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	address := msgEthTx.From()
+	address := msgEthTx.AccountAddress()
 	if address.Empty() {
 		panic("sender address cannot be empty")
 	}
@@ -95,6 +96,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, tx, simulate)
+	auth.SetGasMeter(simulate, &ctx, gasLimit)
+	return next(ctx, tx, simulate)
 }

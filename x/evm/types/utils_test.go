@@ -34,7 +34,7 @@ func TestEvmDataEncoding(t *testing.T) {
 		Ret: ret,
 	}
 
-	enc, err := EncodeResultData(data)
+	enc, err := EncodeResultData(&data)
 	require.NoError(t, err)
 
 	res, err := DecodeResultData(enc)
@@ -287,7 +287,7 @@ func TestResultDataAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
 
-		encoded, err := EncodeResultData(data)
+		encoded, err := EncodeResultData(&data)
 		require.NoError(t, err)
 		decodedRd, err := DecodeResultData(encoded)
 		require.NoError(t, err)
@@ -311,7 +311,7 @@ func BenchmarkDecodeResultData(b *testing.B) {
 		TxHash: ethcmn.BigToHash(big.NewInt(10)),
 	}
 
-	enc, err := EncodeResultData(data)
+	enc, err := EncodeResultData(&data)
 	require.NoError(b, err)
 	b.ResetTimer()
 	b.Run("amino", func(b *testing.B) {

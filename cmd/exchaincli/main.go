@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/okex/exchain/app"
@@ -150,11 +151,11 @@ func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx evmtypes.MsgEthereumTx
 	// try to decode through RLP first
 	if err := authtypes.EthereumTxDecode(txBytes, &tx); err == nil {
-		return tx, nil
+		return &tx, nil
 	}
 	//try to decode through animo if it is not RLP-encoded
 	if err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx); err != nil {
 		return nil, err
 	}
-	return tx, nil
+	return &tx, nil
 }

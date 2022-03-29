@@ -31,7 +31,7 @@ func (k *Keeper) FixLog(logIndex []int, errs []error) [][]byte {
 		}
 
 		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
-		data, err := types.EncodeResultData(*rs.ResultData)
+		data, err := types.EncodeResultData(rs.ResultData)
 		if err != nil {
 			panic(err)
 		}

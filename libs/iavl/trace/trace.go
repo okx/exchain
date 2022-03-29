@@ -63,6 +63,10 @@ func (t *Tracer) Format() string {
 	return info
 }
 
+func (t *Tracer) String() string {
+	return t.Format()
+}
+
 func (t *Tracer) Reset() {
 	t.startTime = time.Now().UnixNano()
 	t.lastPin = ""
