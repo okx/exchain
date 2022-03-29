@@ -22,7 +22,7 @@ var _ types.QueryServer = (*Keeper)(nil)
 // Keeper defines each ICS keeper for IBC
 type Keeper struct {
 	// implements gRPC QueryServer interface
-	types.QueryServer
+	types.QueryService
 
 	cdc        *codec.CodecProxy
 	paramSpace params.Subspace

@@ -3,9 +3,11 @@ package keeper
 import (
 	"context"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 )
 
 // ClientState implements the IBC QueryServer interface
@@ -137,3 +139,12 @@ func (q Keeper) NextSequenceReceive(c context.Context, req *channeltypes.QueryNe
 // func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
 // 	return q.PortKeeper.AppVersion(c, req)
 // }
+
+func (q Keeper) IbcParams(c context.Context, req *types.QueryIbcParamsRequest) (*types.QueryIbcParamsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	params := q.GetParams(ctx)
+
+	return &types.QueryIbcParamsResponse{
+		Params: &params,
+	}, nil
+}
