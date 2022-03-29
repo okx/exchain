@@ -3,7 +3,7 @@ package flatkv
 import (
 	"sync"
 
-	tmdb "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // cache value
@@ -47,10 +47,12 @@ func (c *Cache) add(key, value []byte, deleted bool, dirty bool) {
 	}
 }
 
-// write cache to batch and clear cache
-func (c *Cache) write(batch tmdb.Batch) {
+// write cache to db and clear cache
+func (c *Cache) write(db dbm.DB, version int64) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	batch := db.NewBatch()
+	defer batch.Close()
 	for key, cValue := range c.data {
 		if cValue.deleted {
 			batch.Delete([]byte(key))
@@ -59,4 +61,6 @@ func (c *Cache) write(batch tmdb.Batch) {
 		}
 		delete(c.data, key)
 	}
+	setLatestVersion(batch, version)
+	batch.Write()
 }

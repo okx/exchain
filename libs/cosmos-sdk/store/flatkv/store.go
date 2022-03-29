@@ -128,13 +128,9 @@ func (st *Store) Stop() {
 }
 
 func (st *Store) write(version int64) {
-	ts := time.Now()
 	// commit to flat kv db
-	batch := st.db.NewBatch()
-	defer batch.Close()
-	st.cache.write(batch)
-	st.setLatestVersion(batch, version)
-	batch.Write()
+	ts := time.Now()
+	st.cache.write(st.db, version)
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
 }
@@ -233,7 +229,7 @@ func getLatestVersion(db dbm.DB) int64 {
 	return latest
 }
 
-func (st *Store) setLatestVersion(batch dbm.Batch, version int64) {
+func setLatestVersion(batch dbm.Batch, version int64) {
 	latestBytes := cdc.MustMarshalBinaryLengthPrefixed(version)
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
