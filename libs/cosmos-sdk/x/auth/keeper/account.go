@@ -6,8 +6,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
 	"github.com/tendermint/go-amino"
 )
 
@@ -88,7 +88,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpttypes.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
 	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
@@ -119,7 +119,7 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpttypes.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
 	}
 

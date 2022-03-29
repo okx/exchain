@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/leveldb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"path/filepath"
-	"strings"
 )
 
 const (

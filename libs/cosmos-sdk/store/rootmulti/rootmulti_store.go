@@ -3,22 +3,25 @@ package rootmulti
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
-	types2 "github.com/okex/exchain/libs/types"
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/spf13/viper"
-
 	jsoniter "github.com/json-iterator/go"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -26,14 +29,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/spf13/viper"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -961,7 +957,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			}
 		} else {
 			// old version, mpt(acc) store
-			if key.Name() == mpt.StoreKey && !types2.EnableDoubleWrite {
+			if key.Name() == mpt.StoreKey && !mpttypes.EnableDoubleWrite {
 				continue
 			}
 		}

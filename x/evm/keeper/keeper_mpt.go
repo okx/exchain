@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
+	types3 "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 

@@ -7,19 +7,18 @@ import (
 	"math/big"
 	"sync"
 
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 const keccak256HashSize = 100000
@@ -155,7 +154,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account, stateRoot 
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 	if stateRoot == (ethcmn.Hash{}) {
-		stateRoot = types2.EmptyRootHash
+		stateRoot = ethtypes.EmptyRootHash
 	}
 
 	ethAddr := ethermintAccount.EthAddress()
@@ -307,7 +306,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	}
 
 	var tr ethstate.Trie = nil
-	if types3.EnableDoubleWrite {
+	if mpttypes.EnableDoubleWrite {
 		tr = so.getTrie(db)
 	}
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
@@ -339,7 +338,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-		if types3.EnableDoubleWrite {
+		if mpttypes.EnableDoubleWrite {
 			if UseCompositeKey {
 				key = prefixKey
 			}
@@ -355,7 +354,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 	}
 
-	if so.stateDB.prefetcher != nil && types3.EnableDoubleWrite {
+	if so.stateDB.prefetcher != nil && mpttypes.EnableDoubleWrite {
 		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 

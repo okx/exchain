@@ -1,20 +1,22 @@
+//go:build rocksdb
 // +build rocksdb
 
 package types
 
 import (
 	"container/list"
+	"sync"
+	"sync/atomic"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	tmdb "github.com/okex/exchain/libs/tm-db"
 	"github.com/tecbot/gorocksdb"
-	"sync"
-	"sync/atomic"
 )
 
 type BatchCache struct {
-	batchList *list.List
+	batchList  *list.List
 	batchCache map[int64]*list.Element
-	maxSize int
+	maxSize    int
 
 	lock sync.Mutex
 }
@@ -27,7 +29,7 @@ func NewBatchCache(maxSize int) *BatchCache {
 	}
 }
 
-func (bc *BatchCache ) PushBack(batch  *WrapRocksDBBatch)  {
+func (bc *BatchCache) PushBack(batch *WrapRocksDBBatch) {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 
@@ -35,7 +37,7 @@ func (bc *BatchCache ) PushBack(batch  *WrapRocksDBBatch)  {
 	bc.batchCache[batch.GetID()] = ele
 }
 
-func (bc *BatchCache ) TryPopFront() *WrapRocksDBBatch {
+func (bc *BatchCache) TryPopFront() *WrapRocksDBBatch {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 
@@ -52,7 +54,7 @@ func (bc *BatchCache ) TryPopFront() *WrapRocksDBBatch {
 	return nil
 }
 
-func (bc *BatchCache ) MoveToBack(id int64) {
+func (bc *BatchCache) MoveToBack(id int64) {
 	bc.lock.Lock()
 	defer bc.lock.Unlock()
 
@@ -62,9 +64,10 @@ func (bc *BatchCache ) MoveToBack(id int64) {
 }
 
 var (
-	bCache *BatchCache
+	bCache      *BatchCache
 	batchIdSeed int64
 )
+
 const MaxBatchSize = 100
 
 func init() {
@@ -136,6 +139,6 @@ func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
 	return nil
 }
 
-func (wrsdbb *WrapRocksDBBatch) GetID() int64{
+func (wrsdbb *WrapRocksDBBatch) GetID() int64 {
 	return wrsdbb.id
 }

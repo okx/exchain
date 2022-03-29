@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/okex/exchain/app/utils/sanity"
 	"io"
 	"math/big"
 	"os"
@@ -12,6 +11,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -28,14 +28,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/types"
-
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	libTypes "github.com/okex/exchain/libs/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -194,7 +192,7 @@ func NewOKExChainApp(
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
-		)
+	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
 		logStartingFlags(logger)
@@ -617,7 +615,7 @@ func PreRun(ctx *server.Context) error {
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || types.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
 			return ak.OnStop(ctx)
 		}
 		return nil
@@ -626,8 +624,8 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || libTypes.EnableDoubleWrite {
-			if libTypes.MptAsnyc {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
+			if mpttypes.MptAsnyc {
 				ak.AddMptAsyncTask(ctx.BlockHeight())
 			} else {
 				ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())

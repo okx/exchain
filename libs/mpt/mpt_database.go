@@ -2,7 +2,6 @@ package mpt
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/libs/types"
 	"path/filepath"
 	"sync"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/mpt/types"
 	"github.com/spf13/viper"
 )
 

@@ -2,27 +2,27 @@ package mpt
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	types3 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common/prque"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types2 "github.com/okex/exchain/libs/types"
-	"io"
-
-	"github.com/ethereum/go-ethereum/common/prque"
-	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/iavl"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var cdc = codec.New()
@@ -253,8 +253,8 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 	curMptRoot := ms.GetMptRootHash(uint64(curHeight))
 
 	triedb := ms.db.TrieDB()
-	if types2.TrieDirtyDisabled {
-		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == types3.EmptyRootHash {
+	if mpttypes.TrieDirtyDisabled {
+		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
@@ -293,7 +293,7 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := ms.GetMptRootHash(uint64(chosen))
-				if chRoot == (ethcmn.Hash{}) || chRoot == types3.EmptyRootHash {
+				if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
 					chRoot = ethcmn.Hash{}
 				} else {
 					// Flush an entire trie and restart the counters, it's not a thread safe process,
@@ -327,12 +327,12 @@ func (ms *MptStore) OnStop() error {
 	ms.exitSignal <- struct{}{}
 	ms.StopPrefetcher()
 
-	if !tmtypes.HigherThanMars(ms.version) && !types2.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ms.version) && !mpttypes.EnableDoubleWrite {
 		return nil
 	}
 
 	// Ensure the state of a recent block is also stored to disk before exiting.
-	if !types2.TrieDirtyDisabled {
+	if !mpttypes.TrieDirtyDisabled {
 		triedb := ms.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
@@ -344,7 +344,7 @@ func (ms *MptStore) OnStop() error {
 			}
 
 			recentMptRoot := ms.GetMptRootHash(version)
-			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types3.EmptyRootHash {
+			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == ethtypes.EmptyRootHash {
 				recentMptRoot = ethcmn.Hash{}
 			} else {
 				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {

@@ -1,10 +1,10 @@
 package mpt
 
 import (
-	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 )
@@ -181,16 +181,16 @@ func (p *TriePrefetcher) Used(root common.Hash, used [][]byte) {
 // main prefetcher is paused and either all requested items are processed or if
 // the trie being worked on is retrieved from the prefetcher.
 type subfetcher struct {
-	db   ethstate.Database     // Database to load trie nodes through
-	root common.Hash // Root hash of the trie to prefetch
-	trie ethstate.Trie        // Trie being populated with nodes
+	db   ethstate.Database // Database to load trie nodes through
+	root common.Hash       // Root hash of the trie to prefetch
+	trie ethstate.Trie     // Trie being populated with nodes
 
 	tasks [][]byte   // Items queued up for retrieval
 	lock  sync.Mutex // Lock protecting the task queue
 
-	wake chan struct{}  // Wake channel if a new task is scheduled
-	stop chan struct{}  // Channel to interrupt processing
-	term chan struct{}  // Channel to signal iterruption
+	wake chan struct{}           // Wake channel if a new task is scheduled
+	stop chan struct{}           // Channel to interrupt processing
+	term chan struct{}           // Channel to signal iterruption
 	copy chan chan ethstate.Trie // Channel to request a copy of the current trie
 
 	seen map[string]struct{} // Tracks the entries already loaded
@@ -200,7 +200,7 @@ type subfetcher struct {
 
 // newSubfetcher creates a goroutine to prefetch state items belonging to a
 // particular root hash.
-func newSubfetcher(db ethstate.Database , root common.Hash) *subfetcher {
+func newSubfetcher(db ethstate.Database, root common.Hash) *subfetcher {
 	sf := &subfetcher{
 		db:   db,
 		root: root,

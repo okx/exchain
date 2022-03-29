@@ -5,19 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	ethstate "github.com/ethereum/go-ethereum/core/state"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types2 "github.com/okex/exchain/libs/types"
 )
 
 func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Hash, error) {
@@ -163,7 +162,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 	}
 
 	storageRoot := types.EmptyRootHash
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
 		root, err := csdb.loadContractStorageRoot(addr)
 		if err != nil {
 			csdb.SetError(err)

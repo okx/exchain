@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/types"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -128,14 +128,14 @@ func RepairState(ctx *server.Context, onStart bool) {
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
-	rawTrieDirtyDisabledFlag :=  viper.GetBool(types2.FlagTrieDirtyDisabled)
-	types2.TrieDirtyDisabled = true
+	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
+	mpttypes.TrieDirtyDisabled = true
 	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
 
-	types2.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
+	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

@@ -2,28 +2,24 @@ package types
 
 import (
 	"fmt"
-	"github.com/VictoriaMetrics/fastcache"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/okex/exchain/libs/mpt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	types2 "github.com/okex/exchain/libs/types"
 	"math/big"
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-
+	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 )
 
@@ -79,10 +75,10 @@ type CacheCode struct {
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
 type CommitStateDB struct {
-	db         ethstate.Database
-	trie       ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
-	StateCache *fastcache.Cache
-	prefetcher *mpt.TriePrefetcher
+	db           ethstate.Database
+	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
+	StateCache   *fastcache.Cache
+	prefetcher   *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
 
 	// TODO: We need to store the context as part of the structure itself opposed
@@ -167,8 +163,8 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
-		db:   csdbParams.DB,
-		trie: csdbParams.Trie,
+		db:           csdbParams.DB,
+		trie:         csdbParams.Trie,
 		originalRoot: csdbParams.RootHash,
 
 		storeKey:      csdbParams.StoreKey,
@@ -781,7 +777,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	}
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		if types2.EnableDoubleWrite {
+		if mpttypes.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 			usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))

@@ -4,9 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
-	types2 "github.com/okex/exchain/libs/types"
-	types3 "github.com/okex/exchain/x/evm/types"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,17 +13,19 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // exchain full-node start flags
@@ -246,12 +245,12 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
-	cmd.Flags().UintVar(&types2.TrieCacheSize, types2.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
-	cmd.Flags().BoolVar(&types2.MptAsnyc, types2.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
-	cmd.Flags().BoolVar(&types2.TrieDirtyDisabled, types2.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	cmd.Flags().BoolVar(&types2.EnableDoubleWrite, types2.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
-	cmd.Flags().BoolVar(&types3.UseCompositeKey, types3.FlagUseCompositeKey,false, "Use composite key to store contract state")
-	cmd.Flags().UintVar(&types3.ContractStateCache, types3.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
+	cmd.Flags().UintVar(&mpttypes.TrieCacheSize, mpttypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().BoolVar(&mpttypes.MptAsnyc, mpttypes.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
+	cmd.Flags().BoolVar(&mpttypes.TrieDirtyDisabled, mpttypes.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
+	cmd.Flags().BoolVar(&mpttypes.EnableDoubleWrite, mpttypes.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
+	cmd.Flags().BoolVar(&evmtypes.UseCompositeKey, evmtypes.FlagUseCompositeKey, false, "Use composite key to store contract state")
+	cmd.Flags().UintVar(&evmtypes.ContractStateCache, evmtypes.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 
 	return cmd
