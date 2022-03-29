@@ -44,17 +44,16 @@ func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
 	return gas, true
 }
 
-func GetAccountAndGas(ctx sdk.Context, keeper AccountKeeper, addr sdk.AccAddress) (Account, sdk.Gas) {
+func GetAccountAndGas(ctx *sdk.Context, keeper AccountKeeper, addr sdk.AccAddress) (Account, sdk.Gas) {
 	gasMeter := ctx.GasMeter()
 	tmpGasMeter := sdk.NewInfiniteGasMeter()
 	ctx.SetGasMeter(tmpGasMeter)
-	gasBefore := tmpGasMeter.GasConsumed()
+	defer ctx.SetGasMeter(gasMeter)
 
-	acc := keeper.GetAccount(ctx, addr)
+	acc := keeper.GetAccount(*ctx, addr)
 
-	gasUsed := tmpGasMeter.GasConsumed() - gasBefore
+	gasUsed := tmpGasMeter.GasConsumed()
 	gasMeter.ConsumeGas(gasUsed, "get account")
-	ctx.SetGasMeter(gasMeter)
 
 	return acc, gasUsed
 }
