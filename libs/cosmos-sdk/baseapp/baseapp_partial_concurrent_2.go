@@ -139,10 +139,10 @@ func (dttr *dttRoutine) checkConflict(addr string, index int) bool {
 }
 
 func (dttr *dttRoutine) hasExistPrevTask(addr string, index int) bool {
-	step := dttr.task.getStep()
+	//step := dttr.task.getStep()
 	if dttr.task == nil ||
-		step == partialConcurrentStepFinished ||
-		step == partialConcurrentStepBasicFailed {
+		dttr.task.getStep() == partialConcurrentStepFinished ||
+		dttr.task.getStep() == partialConcurrentStepBasicFailed {
 		return false
 	}
 	// do not deal with the situation that getTxFeeAndFromHandler has not finished
