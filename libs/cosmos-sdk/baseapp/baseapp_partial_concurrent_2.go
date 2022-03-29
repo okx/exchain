@@ -287,7 +287,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.step = partialConcurrentStepAnteStart
-	//dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	if global.GetGlobalHeight() == 5811111 {
+		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
@@ -460,7 +462,9 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	//dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
+	if global.GetGlobalHeight() == 5811111 {
+		dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
+	}
 
 	info := dttm.serialTask.info
 	handler := info.handler
