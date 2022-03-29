@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -232,7 +231,7 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 	if maxNums > txSize {
 		maxNums = txSize
 	}
-	//dttm.app.logger.Error("preloadStart", "maxNum", maxNums)
+	dttm.app.logger.Error("preloadStart", "maxNum", maxNums)
 
 	txJobChan := make(chan []byte)
 	var wg sync.WaitGroup
@@ -253,7 +252,8 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 				//task := newDeliverTxTask(realTx, index)
 				//task.info.txBytes = txBytes
 				if err == nil {
-					dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), tx)
+					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					//dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), tx)
 					//dttm.app.logger.Info("preload", "from", from)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
 				}
@@ -633,9 +633,9 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	}
+	//if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	//}
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	waitingIndex := -1
 	if dttm.serialTask == nil {
