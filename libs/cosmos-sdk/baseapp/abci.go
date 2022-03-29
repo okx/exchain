@@ -181,7 +181,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
 		"validateBasicAll", totalBasicTime,
 		"anteAll", totalAnteDuration,
-		"waitingAll", totalWaitingTime)
+		"waitingAll", totalWaitingTime,
+		"serialWaitingCount", totalSerialWaitingCount)
 
 	return
 }

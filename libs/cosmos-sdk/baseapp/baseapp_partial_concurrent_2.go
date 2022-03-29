@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+var totalSerialWaitingCount = int(0)
+
 //-------------------------------------
 type BasicProcessFn func(txByte []byte, index int) *DeliverTxTask
 type RunAnteFn func(task *DeliverTxTask) error
@@ -186,6 +188,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 
 	dttm.totalCount = len(txs)
 	dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
+	totalSerialWaitingCount += dttm.totalCount
+
 	dttm.txs = txs
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
@@ -206,7 +210,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		//}
 		dttr.makeNewTask(txs[i], i)
-		time.Sleep(1 * time.Millisecond)
+		//time.Sleep(1 * time.Millisecond)
 	}
 	dttm.startFinished = true
 }
@@ -391,9 +395,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttr := dttm.dttRoutineList[task.routineIndex]
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
-					if !dttm.startFinished {
-						time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
-					}
+					//if !dttm.startFinished {
+					//	time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
+					//}
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
@@ -442,6 +446,7 @@ func (dttm *DTTManager) serialRoutine() {
 					rerunRoutine.couldRerun(task.index)
 				}
 				if nextTask != nil {
+					totalSerialWaitingCount--
 					go func() {
 						//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 						dttm.serialCh <- nextTask
