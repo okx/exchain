@@ -119,8 +119,9 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
 		for cItr.Next() {
 			originKey := contractTrie.GetKey(cItr.Key)
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(originKey), ethcmn.Bytes2Hex(cItr.Value))
-			tree.Set(originKey, ethcmn.BytesToHash(cItr.Value).Bytes())
+			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.Bytes2Hex(cItr.Value))
+			tree.Set(key, ethcmn.BytesToHash(cItr.Value).Bytes())
 		}
 	}
 	_, _, _, err = tree.SaveVersion(false)
@@ -150,6 +151,7 @@ func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
 }
 
 func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, keyLen int) {
+	defer dIter.Release()
 	for dIter.Next() {
 		if len(dIter.Key()) != keyLen {
 			continue
