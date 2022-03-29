@@ -945,7 +945,7 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 
 func (cs *State) requestForProposer() {
 	// broadcast ProposeRequestMessage
-	cs.evsw.FireEvent(types.EventProposeRequest, cs.Height)
+	cs.evsw.FireEvent(types.EventProposeRequest, ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address.String()})
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
@@ -1061,7 +1061,7 @@ func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
 }
 
-func (cs *State) isNextNProposer(address []byte, times int)bool {
+func (cs *State) isNextNProposer(address []byte, times int) bool {
 	vals := cs.Validators.Copy()
 	vals.IncrementProposerPriority(times)
 	return bytes.Equal(vals.GetProposer().Address, address)

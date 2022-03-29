@@ -57,7 +57,7 @@ type Reactor struct {
 
 	metrics *Metrics
 
-	hasViewChanged	int64
+	hasViewChanged int64
 }
 
 type ReactorOption func(*Reactor)
@@ -341,7 +341,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 		case *ProposeRequestMessage:
 			// this peer has not vc before this height, and it needs vc, and it is nextProposer
-			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.isNextNProposer(conR.conS.privValidatorPubKey.Address(), 1) {
+			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.privValidatorPubKey.Address().String() == msg.proposerAddress {
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
@@ -510,7 +510,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
-			conR.broadcastProposeRequestMessage(data.(int64))
+			conR.broadcastProposeRequestMessage(data.(ProposeRequestMessage))
 		})
 }
 
@@ -519,8 +519,7 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
-func (conR *Reactor) broadcastProposeRequestMessage(height int64) {
-	prMsg := ProposeRequestMessage{height}
+func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
@@ -1551,21 +1550,22 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 //-------------------------------------
 
 // ProposeRequestMessage from other peer for request the latest height of consensus block
- type ProposeRequestMessage struct {
- 	Height	int64
- }
+type ProposeRequestMessage struct {
+	Height          int64
+	proposerAddress string
+}
 
- func (m *ProposeRequestMessage) ValidateBasic() error {
-	 if m.Height < 0 {
-		 return errors.New("negative Height")
-	 }
-	 return nil
- }
+func (m *ProposeRequestMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
+	}
+	return nil
+}
 
 // ViewChangeMessage is sent for remind peer to do vc
 type ViewChangeMessage struct {
-	Height	int64
-	val	types.Validator
+	Height int64
+	val    types.Validator
 }
 
 func (m *ViewChangeMessage) ValidateBasic() error {
