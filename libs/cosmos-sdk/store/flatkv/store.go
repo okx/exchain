@@ -45,17 +45,17 @@ func NewStore(db dbm.DB, tree Tree) *Store {
 		preloadCh:   make(chan []byte, 0),
 	}
 	if st.enable {
-		st.preloadSchedule()
+		st.loadTreeCacheSchedule()
 	}
 	return st
 }
 
-func (st *Store) preloadSchedule() {
+func (st *Store) loadTreeCacheSchedule() {
 	num := runtime.NumCPU()
 	for i := 0; i < num; i++ {
 		go func() {
 			for key := range st.preloadCh {
-				go st.tree.Get(key)
+				st.tree.Get(key)
 			}
 		}()
 	}
