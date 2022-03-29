@@ -6,7 +6,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"runtime"
 
@@ -201,7 +200,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	//dttm.serialNextCh = make(chan *DeliverTxTask, 1)
 	dttm.startFinished = false
 
-	dttm.preloadSender(txs)
+	//dttm.preloadSender(txs)
 	//dttm.app.logger.Error("preloadFinished")
 
 	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
@@ -341,9 +340,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.step = partialConcurrentStepAnteStart
-	if global.GetGlobalHeight() == 5811111 {
-		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
-	}
+	//if global.GetGlobalHeight() == 5811111 {
+	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
@@ -527,9 +526,9 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	if global.GetGlobalHeight() == 5811111 {
-		dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
-	}
+	//if global.GetGlobalHeight() == 5811111 {
+	//	dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
+	//}
 
 	info := dttm.serialTask.info
 	handler := info.handler

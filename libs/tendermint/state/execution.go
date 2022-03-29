@@ -463,13 +463,12 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
+	start := time.Now()
 	for count, tx := range block.Txs {
 		//if global.GetGlobalHeight() == 5810705 {
 		//	logger.Info("DeliverTxAsync", "index", count)
 		//}
-		start := time.Now()
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		deliverTxDuration += time.Since(start).Microseconds()
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
 		}
@@ -479,6 +478,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			return nil, fmt.Errorf("Prerun stopped")
 		}
 	}
+	deliverTxDuration += time.Since(start).Microseconds()
 	logger.Info("DeliverTxs duration", "total", deliverTxDuration)
 
 	// End block.

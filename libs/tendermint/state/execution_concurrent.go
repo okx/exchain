@@ -19,8 +19,10 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	block *types.Block,
 	stateDB dbm.DB,
 	) (*ABCIResponses, error) {
-	abciResponses := NewABCIResponses(block)
 
+	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+
+	abciResponses := NewABCIResponses(block)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -40,7 +42,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	start := time.Now()
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	elapsed := time.Since(start).Microseconds()
-	deliverTxDuration += elapsed
 	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
 
 	var validTxs, invalidTxs = 0, 0
@@ -51,6 +52,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 			invalidTxs++
 		}
 	}
+	deliverTxDuration += elapsed
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
