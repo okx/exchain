@@ -91,14 +91,17 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	 */
 	diskdb := evmMptDb.TrieDB().DiskDB()
 	// 1.1 set ChainConfig back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil))
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil), 1)
 	// 1.2 set BlockHash/HeightHash back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil))
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil))
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), 1+32)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), 1+8)
 	// 1.3 set Bloom back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil))
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), 1+8)
 	// 1.4 set Code back to iavl
 	for dIter := diskdb.NewIterator(rawdb.CodePrefix, nil); dIter.Next(); {
+		if len(dIter.Key()) != 1+32 {
+			continue
+		}
 		k, v := deepCopyKV(append(evmtypes.KeyPrefixCode, dIter.Key()[1:]...), dIter.Value())
 		tree.Set(k, v)
 	}
@@ -146,8 +149,11 @@ func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
 	return t, binary.BigEndian.Uint64(heightBytes)
 }
 
-func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator) {
+func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, keyLen int) {
 	for dIter.Next() {
+		if len(dIter.Key()) != keyLen {
+			continue
+		}
 		k, v := deepCopyKV(dIter.Key(), dIter.Value())
 		tree.Set(k, v)
 	}

@@ -5,20 +5,20 @@ import (
 	"fmt"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
-	types2 "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // GetMptRootHash gets root mpt hash from block height
 func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
-	hhash := sdk.Uint64ToBigEndian(height)
-	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, hhash...))
+	heightBytes := sdk.Uint64ToBigEndian(height)
+	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...))
 	if err != nil || len(rst) == 0 {
 		return ethcmn.Hash{}
 	}
@@ -27,13 +27,13 @@ func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 
 // SetMptRootHash sets the mapping from block height to root mpt hash
 func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
-	hhash := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
-	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, hhash...), hash.Bytes())
+	heightBytes := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
+	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...), hash.Bytes())
 
 	// put root hash to iavl and participate the process of calculate appHash
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types2.KeyPrefixRootMptHashForIavl)
-		store.Set(hhash, hash.Bytes())
+		store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixRootMptHashForIavl)
+		store.Set(heightBytes, hash.Bytes())
 	}
 }
 
@@ -48,8 +48,8 @@ func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
 
 // SetLatestStoredBlockHeight sets the latest stored storage height
 func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
-	hhash := sdk.Uint64ToBigEndian(height)
-	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, hhash)
+	heightBytes := sdk.Uint64ToBigEndian(height)
+	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, heightBytes)
 }
 
 func (k *Keeper) OpenTrie() {
@@ -92,7 +92,7 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 		k.startHeight = uint64(tmtypes.GetStartBlockHeight())
 	}
 
-	k.EvmStateDb = types2.NewCommitStateDB(k.GenerateCSDBParams())
+	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 }
 
 // Stop stops the blockchain service. If any imports are currently in progress
@@ -110,7 +110,7 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 			}
 
 			recentMptRoot := k.GetMptRootHash(version)
-			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == types.EmptyRootHash {
+			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == ethtypes.EmptyRootHash {
 				recentMptRoot = ethcmn.Hash{}
 			} else {
 				k.mptCommitMu.Lock()
@@ -138,7 +138,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 
 	triedb := k.db.TrieDB()
 	if types3.TrieDirtyDisabled {
-		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == types.EmptyRootHash {
+		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
 			k.mptCommitMu.Lock()
@@ -177,7 +177,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := k.GetMptRootHash(uint64(chosen))
-				if chRoot == (ethcmn.Hash{}) || chRoot == types.EmptyRootHash {
+				if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
 					chRoot = ethcmn.Hash{}
 				} else {
 					// Flush an entire trie and restart the counters, it's not a thread safe process,
@@ -219,7 +219,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 		var storageRoot ethcmn.Hash
 		root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
 			storageRoot.SetBytes(leaf)
-			if storageRoot != types.EmptyRootHash {
+			if storageRoot != ethtypes.EmptyRootHash {
 				k.db.TrieDB().Reference(storageRoot, parent)
 			}
 
