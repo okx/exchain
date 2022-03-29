@@ -24,6 +24,8 @@ var (
 
 	// param key for global account number
 	GlobalAccountNumberKey = []byte("globalAccountNumber")
+
+	MptRootStoreKeyPrefix = []byte("mptRootHash")
 )
 
 // AddressStoreKey turn an address to key used to get it from the account store

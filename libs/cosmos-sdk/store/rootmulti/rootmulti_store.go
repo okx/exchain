@@ -954,10 +954,14 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		// old version, mpt(acc) store
-		if !tmtypes.HigherThanMars(version) && key.Name() == mpt.StoreKey {
-			// only write to iavl
-			if !types2.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(version) {
+			// ignore acc and evm store
+			if key.Name() == "acc" || key.Name() == "evm" {
+				continue
+			}
+		} else {
+			// old version, mpt(acc) store
+			if key.Name() == mpt.StoreKey && !types2.EnableDoubleWrite {
 				continue
 			}
 		}

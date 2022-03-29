@@ -97,6 +97,10 @@ func (a AccountKeeperProxy) RemoveAccount(ctx sdk.Context, account authexported.
 	return
 }
 
+func (a AccountKeeperProxy) SetEvmRootHash(ctx sdk.Context, hash []byte) {
+	return
+}
+
 type SupplyKeeperProxy struct {
 }
 

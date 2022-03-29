@@ -56,6 +56,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	accMptDb := mpt.InstanceOfMptStore()
 	accTrie, err := accMptDb.OpenTrie(mpt.NilHash)
 	panicError(err)
+
 	// 0.2 initialize database of evm mpt
 	evmMptDb := mpt.InstanceOfMptStore()
 	evmTrie, err := evmMptDb.OpenTrie(mpt.NilHash)
@@ -97,7 +98,6 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 				codeHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 				rawdb.WriteCode(batch, codeHash, migrationApp.EvmKeeper.GetCodeByHash(cmCtx, codeHash))
 				writeDataToRawdb(batch)
-
 			}
 		}
 
@@ -179,7 +179,7 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 				log.Printf("[warning] %s in %s has nil value\n", addr.String(), key.String())
 			}
 			// 1.2 set every storage into solo
-			panicError(contractTrie.TryUpdate(append(evmtypes.AddressStoragePrefix(addr), key.Bytes()...), v))
+			panicError(contractTrie.TryUpdate(key.Bytes(), v))
 			return false
 		})
 		// 1.3 calculate rootHash of contract mpt
