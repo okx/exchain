@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -18,20 +19,20 @@ import (
 var totalSerialWaitingCount = 0
 
 //-------------------------------------
-type BasicProcessFn func(task *DeliverTxTask)
+type BasicProcessFn func(txByte []byte, index int) *DeliverTxTask
 type RunAnteFn func(task *DeliverTxTask) error
 
-type txBytesWithTxIndex struct {
-	txBytes []byte
-	index int
-}
+//type txBytesWithTxIndex struct {
+//	txBytes []byte
+//	index int
+//}
 
 type dttRoutine struct {
 	//service.BaseService
 	done    chan int
 	task    *DeliverTxTask
-	tasksCh   chan int
-	//txIndex int
+	txByte  chan []byte
+	txIndex int
 	rerunCh chan int
 	index   int8
 	mtx sync.Mutex
@@ -56,17 +57,16 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 	dttr.logger = logger
 }
 
-func (dttr *dttRoutine) makeNewTask(task *DeliverTxTask) {
-	//dttr.txIndex = task.index
-	dttr.task = task
-	dttr.task.routineIndex = dttr.index
+func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
+	dttr.txIndex = index
+	dttr.task = nil
 	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
-	dttr.tasksCh <- 0
+	dttr.txByte <- txByte
 }
 
 func (dttr *dttRoutine) OnStart() error {
 	dttr.done = make(chan int)
-	dttr.tasksCh = make(chan int, 1)
+	dttr.txByte = make(chan []byte, 1)
 	dttr.rerunCh = make(chan int, 1)
 	go dttr.executeTaskRoutine()
 	return nil
@@ -84,12 +84,13 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 	for {
 		select {
 		case <-dttr.done:
-			close(dttr.tasksCh)
+			close(dttr.txByte)
 			close(dttr.rerunCh)
 			return
-		case <-dttr.tasksCh:
+		case tx := <-dttr.txByte:
 			//dttr.logger.Info("basicProFn", "index", dttr.txIndex)
-			dttr.basicProFn(dttr.task)
+			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
+			dttr.task.routineIndex = dttr.index
 			if dttr.task.err == nil && (!dttr.task.needToRerun || dttr.task.canRerun > 0) {
 				dttr.runAnteFn(dttr.task)
 			} else {
@@ -167,8 +168,8 @@ func (dttr *dttRoutine) couldRerun(index int) {
 type DTTManager struct {
 	done           chan int
 	totalCount     int
-	//txs            [][]byte
-	tasks []*DeliverTxTask
+	txs            [][]byte
+	//tasks []*DeliverTxTask
 	startFinished  bool
 	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex    int
@@ -209,8 +210,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
 	totalSerialWaitingCount += dttm.totalCount
 
-	//dttm.txs = txs
-	dttm.tasks = make([]*DeliverTxTask, len(txs))
+	dttm.txs = txs
+	//dttm.tasks = make([]*DeliverTxTask, len(txs))
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
@@ -218,9 +219,9 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	//dttm.serialNextCh = make(chan *DeliverTxTask, 1)
 	dttm.startFinished = false
 
-	start := time.Now()
-	dttm.preloadSender(txs)
-	totalPreloadConDuration += time.Since(start).Microseconds()
+	//start := time.Now()
+	//dttm.preloadSender(txs)
+	//totalPreloadConDuration += time.Since(start).Microseconds()
 	//logger.Info("DeliverTxs duration", "preload", totalPreloadConDuration)
 	//dttm.app.logger.Error("preloadFinished")
 
@@ -237,7 +238,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		if err != nil {
 			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
 		}
-		dttr.makeNewTask(dttm.tasks[i])
+		dttr.makeNewTask(txs[i], i)
 		//time.Sleep(1 * time.Millisecond)
 	}
 	dttm.startFinished = true
@@ -253,64 +254,78 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 	}
 	dttm.app.logger.Error("preloadStart", "maxNum", maxNums)
 
-	//txJobChan := make(chan []byte)
-	txJobChan := make(chan *txBytesWithTxIndex)
+	txJobChan := make(chan []byte)
+	//txJobChan := make(chan *txBytesWithTxIndex)
 	var wg sync.WaitGroup
 	wg.Add(txSize)
 
 	for index := 0; index < maxNums; index++ {
-		go func(ch chan *txBytesWithTxIndex, wg *sync.WaitGroup) {
-			for tbi := range ch {
+		go func(ch chan []byte, wg *sync.WaitGroup) {
+			for txBytes := range ch {
 				var realTx sdk.Tx
 				var err error
 				if mem := GetGlobalMempool(); mem != nil {
-					realTx, _ = mem.ReapEssentialTx(tbi.txBytes).(sdk.Tx)
+					realTx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 				}
 				if realTx == nil {
-					realTx, err = dttm.app.txDecoder(tbi.txBytes)
+					realTx, err = dttm.app.txDecoder(txBytes)
 				}
 				//tx, err := dttm.app.txDecoder(tbi.txBytes)
-				task := newDeliverTxTask(realTx, tbi.index)
-				task.info.txBytes = tbi.txBytes
+				//task := newDeliverTxTask(realTx, tbi.index)
+				//task.info.txBytes = tbi.txBytes
 				if err == nil {
-					//dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
-					task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(tbi.txBytes), realTx)
+					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), realTx)
+					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(tbi.txBytes), realTx)
 					//dttm.app.logger.Info("preload", "from", from)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
-				} else {
-					task.err = err
-					task.setStep(partialConcurrentStepBasicFailed)
+				//} else {
+				//	task.err = err
+				//	task.setStep(partialConcurrentStepBasicFailed)
 				}
-				dttm.setTask(task)
+				//dttm.setTask(task)
 
 				wg.Done()
 			}
 		}(txJobChan, &wg)
 	}
-	for k, v := range txs {
-		txJobChan <- &txBytesWithTxIndex{index: k, txBytes: v}
+	for _, v := range txs {
+		txJobChan <- v//&txBytesWithTxIndex{index: k, txBytes: v}
 	}
 
 	wg.Wait()
 	close(txJobChan)
 }
 
-func (dttm *DTTManager) setTask(task *DeliverTxTask) {
-	dttm.mtx.Lock()
-	defer dttm.mtx.Unlock()
-
-	dttm.tasks[task.index] = task
-}
-
-func (dttm *DTTManager) concurrentBasic(task *DeliverTxTask) {
+func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
 	//dttm.app.logger.Info("concurrentBasic", "index", index)
+	// create a new task
+	var realTx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		realTx, _ = mem.ReapEssentialTx(txByte).(sdk.Tx)
+	}
+	if realTx == nil {
+		realTx, err = dttm.app.txDecoder(txByte)
+	}
+	task := newDeliverTxTask(realTx, index)
+	task.info.txBytes = txByte
+	if err != nil {
+		task.err = err
+		//dm.app.logger.Error("tx decode failed", "err", err)
+	}
+
+	if task.err != nil {
+		task.step = partialConcurrentStepBasicFailed
+		//task.setStep(partialConcurrentStepBasicFailed)
+		return task
+	}
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent)                 //dm.handler
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.setUpdateCount(0)
 	task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 
-	if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
+	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
 		dttm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		task.setStep(partialConcurrentStepBasicFailed)
@@ -318,7 +333,7 @@ func (dttm *DTTManager) concurrentBasic(task *DeliverTxTask) {
 		//dttm.app.logger.Info("hasExistPrevTask", "index", task.index, "from", task.from)
 		task.setStep(partialConcurrentStepBasicSucceed)
 		if dttm.serialTask == nil && task.index == dttm.serialIndex+1 {
-			return
+			return task
 		}
 		// need to check whether exist running tx who has the same from but smaller txIndex
 		count := len(dttm.dttRoutineList)
@@ -332,6 +347,7 @@ func (dttm *DTTManager) concurrentBasic(task *DeliverTxTask) {
 			}
 		}
 	}
+	return task
 }
 
 func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
@@ -474,7 +490,7 @@ func (dttm *DTTManager) serialRoutine() {
 					//if !dttm.startFinished {
 					//	time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
 					//}
-					dttr.makeNewTask(dttm.tasks[nextIndex])
+					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
 				// todo: check whether there are ante-finished task
@@ -644,10 +660,9 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	//if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	//}
-	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
+	if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	}
 	waitingIndex := -1
 	if dttm.serialTask == nil {
 		waitingIndex = dttm.serialIndex + 1
