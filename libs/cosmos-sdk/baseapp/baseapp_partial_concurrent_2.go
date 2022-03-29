@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -468,8 +467,10 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialExecution()
 				dttm.serialTask = nil
 				task.setStep(partialConcurrentStepFinished)
-				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
-
+				if global.GetGlobalHeight() == 5811244 {
+					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				}
+				
 				if dttm.serialIndex == dttm.totalCount-1 {
 					//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 					count := len(dttm.dttRoutineList)
@@ -667,9 +668,9 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	}
+	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	//}
 	waitingIndex := -1
 	if dttm.serialTask == nil {
 		waitingIndex = dttm.serialIndex + 1
@@ -679,9 +680,9 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
 	num := len(dttm.dttRoutineList)
-	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "waitingIndex", waitingIndex)
-	//}
+	if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+		dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "waitingIndex", waitingIndex)
+	}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || dttr.task.from != address {
