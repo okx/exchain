@@ -177,10 +177,10 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
 		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
-		err := dttr.OnStart()
-		if err != nil {
-			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
-		}
+		//err := dttr.OnStart()
+		//if err != nil {
+		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
+		//}
 	}
 
 	return dttm
@@ -214,10 +214,10 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 		dttr := dttm.dttRoutineList[i]
 
 		//dttm.app.logger.Info("StartDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
-		//err := dttr.OnStart()
-		//if err != nil {
-		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
-		//}
+		err := dttr.OnStart()
+		if err != nil {
+			dttm.app.logger.Error("Error starting DttRoutine", "err", err)
+		}
 		dttr.makeNewTask(txs[i], i)
 		//time.Sleep(1 * time.Millisecond)
 	}
@@ -443,11 +443,11 @@ func (dttm *DTTManager) serialRoutine() {
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
-					//count := len(dttm.dttRoutineList)
-					//for i := 0; i < count; i++ {
-					//	dttr := dttm.dttRoutineList[i]
-					//	dttr.stop()
-					//}
+					count := len(dttm.dttRoutineList)
+					for i := 0; i < count; i++ {
+						dttr := dttm.dttRoutineList[i]
+						dttr.stop()
+					}
 
 					dttm.done <- 0
 					go func() {
