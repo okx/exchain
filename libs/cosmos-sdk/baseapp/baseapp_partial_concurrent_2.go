@@ -89,7 +89,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 		case <-dttr.tasksCh:
 			//dttr.logger.Info("basicProFn", "index", dttr.txIndex)
 			dttr.basicProFn(dttr.task)
-			if dttr.task.err == nil && !dttr.task.needToRerun {
+			if dttr.task.err == nil && (!dttr.task.needToRerun || dttr.task.canRerun > 0) {
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.logger.Error("DonotRunAnte", "index", dttr.task.index)
