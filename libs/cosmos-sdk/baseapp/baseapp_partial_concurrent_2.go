@@ -316,7 +316,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 			//dttm.app.logger.Info("hasExistPrevTask 1", "routine", dttr.index, "task", dttr.txIndex)
 			task.needToRerun = dttr.hasExistPrevTask(task.from, task.index)
 			if task.needToRerun {
-				dttm.app.logger.Error("needToRerun 3", "index", task.index, "conflicted", dttr.task.index)
+				//dttm.app.logger.Error("needToRerun 3", "index", task.index, "conflicted", dttr.task.index)
 				break
 			}
 		}
@@ -350,7 +350,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	dttm.accountUpdated(false, 2, task.from, -1)
 	err := dttm.runAnte(task)
 	if err != nil {
-		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
+		//dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 		//task.anteFailed = true
 		task.step = partialConcurrentStepAnteFailed
 	} else {
@@ -366,7 +366,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 		conflicted := dttr.checkConflict(task.from, task.index)
 		if conflicted {
-			dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
+			//dttr.logger.Error("needToRerunFromAnte", "index", task.index, "conflicted", dttr.task.index)
 			task.needToRerun = true
 		}
 	}
@@ -487,7 +487,7 @@ func (dttm *DTTManager) serialRoutine() {
 						if dttr.task.from == task.from {
 							//go func() {
 							getRerun = true
-							dttr.logger.Error("rerunCh", "index", dttr.task.index)
+							//dttr.logger.Error("rerunCh", "index", dttr.task.index)
 							dttr.task.needToRerun = true
 							dttr.rerunCh <- 0
 							//}()
