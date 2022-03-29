@@ -369,7 +369,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.setStep(partialConcurrentStepAnteStart)
-	if global.GetGlobalHeight() == 5811111 {
+	if global.GetGlobalHeight() == 5811244 {
 		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	}
 
@@ -557,7 +557,7 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	if global.GetGlobalHeight() == 5811111 {
+	if global.GetGlobalHeight() == 5811244 {
 		dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
 	}
 
@@ -667,7 +667,7 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	if global.GetGlobalHeight() == 5811111 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
 	}
 	waitingIndex := -1
@@ -679,9 +679,9 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string, waitingIndex int) {
 	num := len(dttm.dttRoutineList)
-	if global.GetGlobalHeight() == 5811111 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
-		dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "waitingIndex", waitingIndex)
-	}
+	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+	//	dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "waitingIndex", waitingIndex)
+	//}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || dttr.task.from != address {
