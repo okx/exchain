@@ -341,7 +341,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 		case *ProposeRequestMessage:
 			// this peer has not vc before this height, and it needs vc, and it is nextProposer
-			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.privValidatorPubKey.Address().String() == msg.proposerAddress {
+			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.privValidatorPubKey.Address().String() == msg.ProposerAddress {
+				conR.Logger.Debug("ReceivePRM", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg.Height, srcAddress)
@@ -520,6 +521,7 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 }
 
 func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
+	conR.Logger.Debug("broadcastProposeRequestMessage", "prMsg", prMsg)
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
@@ -1552,7 +1554,7 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 // ProposeRequestMessage from other peer for request the latest height of consensus block
 type ProposeRequestMessage struct {
 	Height          int64
-	proposerAddress string
+	ProposerAddress string
 }
 
 func (m *ProposeRequestMessage) ValidateBasic() error {
