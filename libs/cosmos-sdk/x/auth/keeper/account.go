@@ -6,7 +6,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/mpt"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types3 "github.com/okex/exchain/libs/types"
 	"github.com/tendermint/go-amino"
 )
@@ -41,7 +41,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	}
 
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
@@ -72,7 +72,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
@@ -88,11 +88,10 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
 	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
-
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
@@ -112,7 +111,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
@@ -120,7 +119,7 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
-	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
 	}
 
@@ -134,7 +133,7 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 // IterateAccounts iterates over all the stored accounts and performs a callback function
 func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exported.Account) (stop bool)) {
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
@@ -154,7 +153,7 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 // IterateAccounts iterates over all the stored accounts and performs a callback function
 func (ak AccountKeeper) MigrateAccounts(ctx sdk.Context, cb func(account exported.Account, key, value []byte) (stop bool)) {
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)

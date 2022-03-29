@@ -2,11 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-	types3 "github.com/okex/exchain/libs/types"
-
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -14,6 +9,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	types3 "github.com/okex/exchain/libs/types"
 )
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
@@ -79,7 +78,7 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
@@ -97,7 +96,7 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
-	if !types2.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && types3.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
 	}
 
@@ -106,7 +105,7 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 func (ak AccountKeeper) SetEvmRootHash(ctx sdk.Context, hash []byte) {
 	var store sdk.KVStore
-	if types2.HigherThanMars(ctx.BlockHeight()) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		store = ctx.KVStore(ak.mptKey)
 	} else {
 		store = ctx.KVStore(ak.key)
