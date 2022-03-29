@@ -6,6 +6,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"runtime"
 
@@ -349,9 +350,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.setStep(partialConcurrentStepAnteStart)
-	//if global.GetGlobalHeight() == 5811111 {
+	if global.GetGlobalHeight() == 5811111 {
 		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
-	//}
+	}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
@@ -448,10 +449,10 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialExecution()
 				dttm.serialTask = nil
 				task.setStep(partialConcurrentStepFinished)
-				dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				//dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 
 				if dttm.serialIndex == dttm.totalCount-1 {
-					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
+					//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 					count := len(dttm.dttRoutineList)
 					for i := 0; i < count; i++ {
 						dttr := dttm.dttRoutineList[i]
@@ -537,9 +538,9 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	//if global.GetGlobalHeight() == 5811111 {
+	if global.GetGlobalHeight() == 5811111 {
 		dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
-	//}
+	}
 
 	info := dttm.serialTask.info
 	handler := info.handler
