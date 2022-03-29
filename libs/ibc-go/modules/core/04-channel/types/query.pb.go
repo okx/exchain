@@ -6,9 +6,13 @@ package types
 import (
 	context "context"
 	fmt "fmt"
-	types1 "github.com/cosmos/cosmos-sdk/codec/types"
-	query "github.com/cosmos/cosmos-sdk/types/query"
-	types "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
+	types1 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+
+	//types1 "github.com/cosmos/cosmos-sdk/codec/types"
+	//query "github.com/cosmos/cosmos-sdk/types/query"
+	//types "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	grpc1 "github.com/gogo/protobuf/grpc"
 	proto "github.com/gogo/protobuf/proto"

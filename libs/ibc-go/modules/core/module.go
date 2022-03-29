@@ -4,36 +4,39 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+
 	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	//ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	ibcclient "github.com/cosmos/ibc-go/v2/modules/core/02-client"
-	clientkeeper "github.com/cosmos/ibc-go/v2/modules/core/02-client/keeper"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/client/cli"
-	"github.com/cosmos/ibc-go/v2/modules/core/keeper"
-	"github.com/cosmos/ibc-go/v2/modules/core/simulation"
-	"github.com/cosmos/ibc-go/v2/modules/core/types"
 )
 
 var (
-	_ module.AppModule           = AppModule{}
-	_ module.AppModuleBasic      = AppModuleBasic{}
-	_ module.AppModuleSimulation = AppModule{}
+	_ module.AppModuleAdapter      = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
+	_ module.AppModuleSimulation   = AppModule{}
 )
 
 // AppModuleBasic defines the basic application module used by the ibc module.
@@ -46,43 +49,61 @@ func (AppModuleBasic) Name() string {
 	return host.ModuleName
 }
 
-// RegisterLegacyAminoCodec does nothing. IBC does not support amino.
-func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
-
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	return cdc.MustMarshalJSON(types.DefaultGenesisState())
+func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	}
+	return nil
 }
 
-// ValidateGenesis performs genesis state validation for the ibc module.
-func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config client.TxEncodingConfig, bz json.RawMessage) error {
-	var gs types.GenesisState
-	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", host.ModuleName, err)
+// ValidateGenesis performs genesis state validation for the mint module.
+func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if tmtypes.UpgradeIBCInRuntime() {
+		if nil == bz {
+			return nil
+		}
+	}
+	var data types.GenesisState
+	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
 	}
 
-	return gs.Validate()
+	return data.Validate()
 }
 
 // RegisterRESTRoutes does nothing. IBC does not support legacy REST routes.
-func (AppModuleBasic) RegisterRESTRoutes(client.Context, *mux.Router) {}
+func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Router) {}
 
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	types.RegisterCodec(cdc)
+}
+
+// TODO
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	clienttypes.RegisterQueryHandlerClient(context.Background(), mux, clienttypes.NewQueryClient(clientCtx))
-	connectiontypes.RegisterQueryHandlerClient(context.Background(), mux, connectiontypes.NewQueryClient(clientCtx))
-	channeltypes.RegisterQueryHandlerClient(context.Background(), mux, channeltypes.NewQueryClient(clientCtx))
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
+	clienttypes.RegisterQueryHandlerClient(context.Background(), mux, clienttypes.NewQueryClient(ctx))
+	connectiontypes.RegisterQueryHandlerClient(context.Background(), mux, connectiontypes.NewQueryClient(ctx))
+	channeltypes.RegisterQueryHandlerClient(context.Background(), mux, channeltypes.NewQueryClient(ctx))
 }
 
 // GetTxCmd returns the root tx command for the ibc module.
-func (AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.GetTxCmd()
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
+
+func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetTxCmd(cdc, reg)
 }
 
 // GetQueryCmd returns no root query command for the ibc module.
-func (AppModuleBasic) GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
+
+func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	return cli.GetQueryCmd(cdc, reg)
 }
 
 // RegisterInterfaces registers module concrete types into protobuf Any.
@@ -93,6 +114,7 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // AppModule implements an application module for the ibc module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper *keeper.Keeper
 
 	// create localhost by default
@@ -101,9 +123,20 @@ type AppModule struct {
 
 // NewAppModule creates a new AppModule object
 func NewAppModule(k *keeper.Keeper) AppModule {
-	return AppModule{
+	ret := AppModule{
 		keeper: k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
+}
+
+// TODO
+func (a AppModule) NewQuerierHandler() sdk.Querier {
+	return nil
+}
+
+func (a AppModule) NewHandler() sdk.Handler {
+	return NewHandler(*a.keeper)
 }
 
 // Name returns the ibc module's name.
@@ -117,8 +150,9 @@ func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 }
 
 // Route returns the message routing key for the ibc module.
-func (am AppModule) Route() sdk.Route {
-	return sdk.Route{}
+func (am AppModule) Route() string {
+	return host.RouterKey
+	//return sdk.NewRoute(host.RouterKey, NewHandler(*am.keeper))
 }
 
 // QuerierRoute returns the ibc module's querier route name.
@@ -127,9 +161,9 @@ func (AppModule) QuerierRoute() string {
 }
 
 // LegacyQuerierHandler returns nil. IBC does not support the legacy querier.
-func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-	return nil
-}
+//func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+//	return nil
+//}
 
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
@@ -138,15 +172,23 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryService(cfg.QueryServer(), am.keeper)
 
-	m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
-	cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
+	//m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
+	//cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
 }
 
 // InitGenesis performs genesis initialization for the ibc module. It returns
 // no validator updates.
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) []abci.ValidatorUpdate {
+//func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.initGenesis(ctx, data)
+	}
+	return nil
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var gs types.GenesisState
-	err := cdc.UnmarshalJSON(bz, &gs)
+	err := ModuleCdc.UnmarshalJSON(data, &gs)
 	if err != nil {
 		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", host.ModuleName, err))
 	}
@@ -156,15 +198,27 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.Ra
 
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
-	return cdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper))
+func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return am.exportGenesis(ctx)
+	}
+	return nil
 }
 
-// ConsensusVersion implements AppModule/ConsensusVersion.
-func (AppModule) ConsensusVersion() uint64 { return 2 }
+func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
+	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper))
+}
+
+func lazyGenesis() json.RawMessage {
+	ret := DefaultGenesisState()
+	return ModuleCdc.MustMarshalJSON(&ret)
+}
 
 // BeginBlock returns the begin blocker for the ibc module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	if !tmtypes.HigherThanIBCHeight(req.Header.Height) {
+		return
+	}
 	ibcclient.BeginBlocker(ctx, am.keeper.ClientKeeper)
 }
 
@@ -174,6 +228,8 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	return []abci.ValidatorUpdate{}
 }
 
+// ____________________________________________________________________________
+
 // AppModuleSimulation functions
 
 // GenerateGenesisState creates a randomized GenState of the ibc module.
@@ -182,12 +238,12 @@ func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
 }
 
 // ProposalContents doesn't return any content functions for governance proposals.
-func (AppModule) ProposalContents(_ module.SimulationState) []simtypes.WeightedProposalContent {
+func (AppModule) ProposalContents(_ module.SimulationState) []simulation2.WeightedProposalContent {
 	return nil
 }
 
 // RandomizedParams returns nil since IBC doesn't register parameter changes.
-func (AppModule) RandomizedParams(_ *rand.Rand) []simtypes.ParamChange {
+func (AppModule) RandomizedParams(_ *rand.Rand) []simulation2.ParamChange {
 	return nil
 }
 
@@ -197,6 +253,21 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 }
 
 // WeightedOperations returns the all the ibc module operations with their respective weights.
-func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
+func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.WeightedOperation {
+	return nil
+}
+
+func (am AppModule) RegisterTask() upgrade.HeightTask {
+	if !tmtypes.UpgradeIBCInRuntime() {
+		return nil
+	}
+	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
+		data := lazyGenesis()
+		am.initGenesis(ctx, data)
+		return nil
+	})
+}
+
+func (am AppModule) RegisterParam() params.ParamSet {
 	return nil
 }

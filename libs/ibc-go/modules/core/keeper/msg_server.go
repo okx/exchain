@@ -3,16 +3,14 @@ package keeper
 import (
 	"context"
 
-	"github.com/armon/go-metrics"
-
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	coretypes "github.com/cosmos/ibc-go/v2/modules/core/types"
+	//"github.com/armon/go-metrics"
+	//"github.com/cosmos/cosmos-sdk/telemetry"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 )
 
 var _ clienttypes.MsgServer = Keeper{}
@@ -531,19 +529,6 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 		}
 	}
 
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"tx", "msg", "ibc", channeltypes.EventTypeRecvPacket},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-				telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-				telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-				telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-			},
-		)
-	}()
-
 	return &channeltypes.MsgRecvPacketResponse{}, nil
 }
 
@@ -597,20 +582,6 @@ func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*c
 	if err = k.ChannelKeeper.TimeoutExecuted(ctx, cap, msg.Packet); err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "timeout", "packet"},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-				telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-				telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-				telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-				telemetry.NewLabel(coretypes.LabelTimeoutType, "height"),
-			},
-		)
-	}()
 
 	return &channeltypes.MsgTimeoutResponse{}, nil
 }
@@ -669,20 +640,6 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 		return nil, err
 	}
 
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", "timeout", "packet"},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-				telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-				telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-				telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-				telemetry.NewLabel(coretypes.LabelTimeoutType, "channel-closed"),
-			},
-		)
-	}()
-
 	return &channeltypes.MsgTimeoutOnCloseResponse{}, nil
 }
 
@@ -731,19 +688,6 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "acknowledge packet callback failed")
 	}
-
-	defer func() {
-		telemetry.IncrCounterWithLabels(
-			[]string{"tx", "msg", "ibc", channeltypes.EventTypeAcknowledgePacket},
-			1,
-			[]metrics.Label{
-				telemetry.NewLabel(coretypes.LabelSourcePort, msg.Packet.SourcePort),
-				telemetry.NewLabel(coretypes.LabelSourceChannel, msg.Packet.SourceChannel),
-				telemetry.NewLabel(coretypes.LabelDestinationPort, msg.Packet.DestinationPort),
-				telemetry.NewLabel(coretypes.LabelDestinationChannel, msg.Packet.DestinationChannel),
-			},
-		)
-	}()
 
 	return &channeltypes.MsgAcknowledgementResponse{}, nil
 }

@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"time"
 
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // CheckMisbehaviourAndUpdateState determines whether or not two conflicting
@@ -23,7 +22,7 @@ import (
 // Misbehaviour sets frozen height to {0, 1} since it is only used as a boolean value (zero or non-zero).
 func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	ctx sdk.Context,
-	cdc codec.BinaryCodec,
+	cdc *codec.CodecProxy,
 	clientStore sdk.KVStore,
 	misbehaviour exported.Misbehaviour,
 ) (exported.ClientState, error) {
@@ -57,8 +56,6 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 			return nil, sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers are not at same height and are monotonically increasing")
 		}
 	}
-
-	// Regardless of the type of misbehaviour, ensure that both headers are valid and would have been accepted by light-client
 
 	// Retrieve trusted consensus states for each Header in misbehaviour
 	// and unmarshal from clientStore
@@ -136,7 +133,7 @@ func checkMisbehaviourHeader(
 	// - ValidatorSet must have TrustLevel similarity with trusted FromValidatorSet
 	// - ValidatorSets on both headers are valid given the last trusted ValidatorSet
 	if err := tmTrustedValset.VerifyCommitLightTrusting(
-		chainID, tmCommit, clientState.TrustLevel.ToTendermint(),
+		chainID, tmCommit.BlockID, header.Header.Height, tmCommit, clientState.TrustLevel.ToTendermint(),
 	); err != nil {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "validator set in header has too much change from trusted validator set: %v", err)
 	}

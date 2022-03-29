@@ -2,9 +2,9 @@ package exported
 
 import (
 	ics23 "github.com/confio/ics23/go"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // Status represents the status of a client
@@ -37,6 +37,22 @@ const (
 	Unknown Status = "Unknown"
 )
 
+// Height is a wrapper interface over clienttypes.Height
+// all clients must use the concrete implementation in types
+type Height interface {
+	IsZero() bool
+	LT(Height) bool
+	LTE(Height) bool
+	EQ(Height) bool
+	GT(Height) bool
+	GTE(Height) bool
+	GetRevisionNumber() uint64
+	GetRevisionHeight() uint64
+	Increment() Height
+	Decrement() (Height, bool)
+	String() string
+}
+
 // ClientState defines the required common functions for light clients.
 type ClientState interface {
 	proto.Message
@@ -49,20 +65,21 @@ type ClientState interface {
 	// Initialization function
 	// Clients must validate the initial consensus state, and may store any client-specific metadata
 	// necessary for correct light client operation
-	Initialize(sdk.Context, codec.BinaryCodec, sdk.KVStore, ConsensusState) error
+	Initialize(sdk.Context, *codec.CodecProxy, sdk.KVStore, ConsensusState) error
 
 	// Status function
 	// Clients must return their status. Only Active clients are allowed to process packets.
-	Status(ctx sdk.Context, clientStore sdk.KVStore, cdc codec.BinaryCodec) Status
+	// Ywmet todo
+	Status(ctx sdk.Context, clientStore sdk.KVStore, cdc *codec.CodecProxy) Status
 
 	// Genesis function
 	ExportMetadata(sdk.KVStore) []GenesisMetadata
 
 	// Update and Misbehaviour functions
 
-	CheckHeaderAndUpdateState(sdk.Context, codec.BinaryCodec, sdk.KVStore, Header) (ClientState, ConsensusState, error)
-	CheckMisbehaviourAndUpdateState(sdk.Context, codec.BinaryCodec, sdk.KVStore, Misbehaviour) (ClientState, error)
-	CheckSubstituteAndUpdateState(ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore, substituteClientStore sdk.KVStore, substituteClient ClientState) (ClientState, error)
+	CheckHeaderAndUpdateState(sdk.Context, *codec.CodecProxy, sdk.KVStore, Header) (ClientState, ConsensusState, error)
+	CheckMisbehaviourAndUpdateState(sdk.Context, *codec.CodecProxy, sdk.KVStore, Misbehaviour) (ClientState, error)
+	CheckSubstituteAndUpdateState(ctx sdk.Context, cdc *codec.CodecProxy, subjectClientStore, substituteClientStore sdk.KVStore, substituteClient ClientState) (ClientState, error)
 
 	// Upgrade functions
 	// NOTE: proof heights are not included as upgrade to a new revision is expected to pass only on the last
@@ -72,7 +89,7 @@ type ClientState interface {
 	// may be cancelled or modified before the last planned height.
 	VerifyUpgradeAndUpdateState(
 		ctx sdk.Context,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		store sdk.KVStore,
 		newClient ClientState,
 		newConsState ConsensusState,
@@ -88,7 +105,7 @@ type ClientState interface {
 
 	VerifyClientState(
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		counterpartyClientIdentifier string,
@@ -97,7 +114,7 @@ type ClientState interface {
 	) error
 	VerifyClientConsensusState(
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		counterpartyClientIdentifier string,
 		consensusHeight Height,
@@ -107,7 +124,7 @@ type ClientState interface {
 	) error
 	VerifyConnectionState(
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		proof []byte,
@@ -116,7 +133,7 @@ type ClientState interface {
 	) error
 	VerifyChannelState(
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		prefix Prefix,
 		proof []byte,
@@ -127,7 +144,7 @@ type ClientState interface {
 	VerifyPacketCommitment(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -141,7 +158,7 @@ type ClientState interface {
 	VerifyPacketAcknowledgement(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -155,7 +172,7 @@ type ClientState interface {
 	VerifyPacketReceiptAbsence(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -168,7 +185,7 @@ type ClientState interface {
 	VerifyNextSequenceRecv(
 		ctx sdk.Context,
 		store sdk.KVStore,
-		cdc codec.BinaryCodec,
+		cdc *codec.CodecProxy,
 		height Height,
 		delayTimePeriod uint64,
 		delayBlockPeriod uint64,
@@ -203,6 +220,9 @@ type Misbehaviour interface {
 	ClientType() string
 	GetClientID() string
 	ValidateBasic() error
+
+	// Height at which the infraction occurred
+	GetHeight() Height
 }
 
 // Header is the consensus state update information
@@ -214,22 +234,6 @@ type Header interface {
 	ValidateBasic() error
 }
 
-// Height is a wrapper interface over clienttypes.Height
-// all clients must use the concrete implementation in types
-type Height interface {
-	IsZero() bool
-	LT(Height) bool
-	LTE(Height) bool
-	EQ(Height) bool
-	GT(Height) bool
-	GTE(Height) bool
-	GetRevisionNumber() uint64
-	GetRevisionHeight() uint64
-	Increment() Height
-	Decrement() (Height, bool)
-	String() string
-}
-
 // GenesisMetadata is a wrapper interface over clienttypes.GenesisMetadata
 // all clients must use the concrete implementation in types
 type GenesisMetadata interface {
@@ -237,9 +241,4 @@ type GenesisMetadata interface {
 	GetKey() []byte
 	// returns metadata value
 	GetValue() []byte
-}
-
-// String returns the string representation of a client status.
-func (s Status) String() string {
-	return string(s)
 }

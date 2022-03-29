@@ -1,18 +1,20 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	clientkeeper "github.com/cosmos/ibc-go/v2/modules/core/02-client/keeper"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectionkeeper "github.com/cosmos/ibc-go/v2/modules/core/03-connection/keeper"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	channelkeeper "github.com/cosmos/ibc-go/v2/modules/core/04-channel/keeper"
-	portkeeper "github.com/cosmos/ibc-go/v2/modules/core/05-port/keeper"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	clientkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectionkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/keeper"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
+	portkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/keeper"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 )
 
 var _ types.QueryServer = (*Keeper)(nil)
@@ -20,9 +22,10 @@ var _ types.QueryServer = (*Keeper)(nil)
 // Keeper defines each ICS keeper for IBC
 type Keeper struct {
 	// implements gRPC QueryServer interface
-	types.QueryServer
+	types.QueryService
 
-	cdc codec.BinaryCodec
+	cdc        *codec.CodecProxy
+	paramSpace params.Subspace
 
 	ClientKeeper     clientkeeper.Keeper
 	ConnectionKeeper connectionkeeper.Keeper
@@ -33,34 +36,37 @@ type Keeper struct {
 
 // NewKeeper creates a new ibc Keeper
 func NewKeeper(
-	cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace paramtypes.Subspace,
+	proxy *codec.CodecProxy,
+	key sdk.StoreKey, paramSpace paramtypes.Subspace,
 	stakingKeeper clienttypes.StakingKeeper, upgradeKeeper clienttypes.UpgradeKeeper,
-	scopedKeeper capabilitykeeper.ScopedKeeper,
+	scopedKeeper *capabilitykeeper.ScopedKeeper,
+	registry types2.InterfaceRegistry,
 ) *Keeper {
-	// register paramSpace at top level keeper
-	// set KeyTable if it has not already been set
+	//mm := codec.NewProtoCodec(registry)
+	//proxy:=codec.NewMarshalProxy(mm,cdcc)
 	if !paramSpace.HasKeyTable() {
-		keyTable := clienttypes.ParamKeyTable()
+		keyTable := types.ParamKeyTable()
+		keyTable.RegisterParamSet(&clienttypes.Params{})
 		keyTable.RegisterParamSet(&connectiontypes.Params{})
 		paramSpace = paramSpace.WithKeyTable(keyTable)
 	}
-
-	clientKeeper := clientkeeper.NewKeeper(cdc, key, paramSpace, stakingKeeper, upgradeKeeper)
-	connectionKeeper := connectionkeeper.NewKeeper(cdc, key, paramSpace, clientKeeper)
+	clientKeeper := clientkeeper.NewKeeper(proxy, key, paramSpace, stakingKeeper, upgradeKeeper)
+	connectionKeeper := connectionkeeper.NewKeeper(proxy, key, paramSpace, clientKeeper)
 	portKeeper := portkeeper.NewKeeper(scopedKeeper)
-	channelKeeper := channelkeeper.NewKeeper(cdc, key, clientKeeper, connectionKeeper, portKeeper, scopedKeeper)
+	channelKeeper := channelkeeper.NewKeeper(proxy, key, clientKeeper, connectionKeeper, portKeeper, scopedKeeper)
 
 	return &Keeper{
-		cdc:              cdc,
+		cdc:              proxy,
 		ClientKeeper:     clientKeeper,
 		ConnectionKeeper: connectionKeeper,
 		ChannelKeeper:    channelKeeper,
 		PortKeeper:       portKeeper,
+		paramSpace:       paramSpace,
 	}
 }
 
 // Codec returns the IBC module codec.
-func (k Keeper) Codec() codec.BinaryCodec {
+func (k Keeper) Codec() *codec.CodecProxy {
 	return k.cdc
 }
 

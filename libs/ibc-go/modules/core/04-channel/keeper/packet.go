@@ -2,16 +2,17 @@ package keeper
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	connectiontypes "github.com/cosmos/ibc-go/v2/modules/core/03-connection/types"
-	"github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // SendPacket is called by a module in order to send an IBC packet on a channel
@@ -135,6 +136,7 @@ func (k Keeper) SendPacket(
 		"dst_channel", packet.GetDestChannel(),
 	)
 
+	k.Logger(ctx).Info("packet sent", "packet", fmt.Sprintf("%v", packet))
 	return nil
 }
 
@@ -232,11 +234,10 @@ func (k Keeper) RecvPacket(
 		// check if the packet receipt has been received already for unordered channels
 		_, found := k.GetPacketReceipt(ctx, packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
 		if found {
-			EmitRecvPacketEvent(ctx, packet, channel)
-			// This error indicates that the packet has already been relayed. Core IBC will
-			// treat this error as a no-op in order to prevent an entire relay transaction
-			// from failing and consuming unnecessary fees.
-			return types.ErrNoOpMsg
+			return sdkerrors.Wrapf(
+				types.ErrInvalidPacket,
+				"packet sequence (%d) already has been received", packet.GetSequence(),
+			)
 		}
 
 		// All verification complete, update state
@@ -453,7 +454,7 @@ func (k Keeper) AcknowledgePacket(
 		ctx, connectionEnd, proofHeight, proof, packet.GetDestPort(), packet.GetDestChannel(),
 		packet.GetSequence(), acknowledgement,
 	); err != nil {
-		return err
+		return sdkerrors.Wrap(err, "packet acknowledgement verification failed")
 	}
 
 	// assert packets acknowledged in order

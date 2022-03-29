@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -35,6 +36,8 @@ type BaseKeeper struct {
 
 	ak         types.AccountKeeper
 	paramSpace params.Subspace
+
+	marshal *codec.CodecProxy
 }
 
 // NewBaseKeeper returns a new BaseKeeper
@@ -48,6 +51,13 @@ func NewBaseKeeper(
 		ak:             ak,
 		paramSpace:     ps,
 	}
+}
+
+func NewBaseKeeperWithMarshal(ak types.AccountKeeper, marshal *codec.CodecProxy, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
+) BaseKeeper {
+	ret := NewBaseKeeper(ak, paramSpace, blacklistedAddrs)
+	ret.marshal = marshal
+	return ret
 }
 
 // DelegateCoins performs delegation by deducting amt coins from an account with
@@ -311,7 +321,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	if !amt.IsValid() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
-	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
 	return keeper.subtractCoins(ctx, addr, acc, gasUsed, amt)
 }
 
@@ -345,7 +355,7 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 
 	// oldCoins := keeper.GetCoins(ctx, addr)
 
-	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
 	return keeper.addCoins(ctx, addr, acc, gasUsed, amt)
 }
 
@@ -401,7 +411,7 @@ func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, 
 			return acc, gasused
 		}
 	}
-	return authexported.GetAccountAndGas(*ctx, keeper.ak, addr)
+	return authexported.GetAccountAndGas(ctx, keeper.ak, addr)
 }
 
 func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {

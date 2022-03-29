@@ -2,13 +2,12 @@ package types
 
 import (
 	ics23 "github.com/confio/ics23/go"
-	crypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 )
 
 // ConvertProofs converts crypto.ProofOps into MerkleProof
-func ConvertProofs(tmProof *crypto.ProofOps) (MerkleProof, error) {
+func ConvertProofs(tmProof *merkle.Proof) (MerkleProof, error) {
 	if tmProof == nil {
 		return MerkleProof{}, sdkerrors.Wrapf(ErrInvalidMerkleProof, "tendermint proof is nil")
 	}

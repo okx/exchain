@@ -4,21 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
-)
-
-var (
-	_ codectypes.UnpackInterfacesMessage = IdentifiedClientState{}
-	_ codectypes.UnpackInterfacesMessage = ClientsConsensusStates{}
-	_ codectypes.UnpackInterfacesMessage = ClientConsensusStates{}
-	_ codectypes.UnpackInterfacesMessage = GenesisState{}
-)
-
-var (
-	_ sort.Interface           = ClientsConsensusStates{}
-	_ exported.GenesisMetadata = GenesisMetadata{}
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // ClientsConsensusStates defines a slice of ClientConsensusStates that supports the sort interface
@@ -49,14 +37,6 @@ func (ccs ClientsConsensusStates) UnpackInterfaces(unpacker codectypes.AnyUnpack
 	return nil
 }
 
-// NewClientConsensusStates creates a new ClientConsensusStates instance.
-func NewClientConsensusStates(clientID string, consensusStates []ConsensusStateWithHeight) ClientConsensusStates {
-	return ClientConsensusStates{
-		ClientId:        clientID,
-		ConsensusStates: consensusStates,
-	}
-}
-
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 func (ccs ClientConsensusStates) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	for _, consStateWithHeight := range ccs.ConsensusStates {
@@ -67,18 +47,43 @@ func (ccs ClientConsensusStates) UnpackInterfaces(unpacker codectypes.AnyUnpacke
 	return nil
 }
 
-// NewGenesisState creates a GenesisState instance.
-func NewGenesisState(
-	clients []IdentifiedClientState, clientsConsensus ClientsConsensusStates, clientsMetadata []IdentifiedGenesisMetadata,
-	params Params, createLocalhost bool, nextClientSequence uint64,
-) GenesisState {
-	return GenesisState{
-		Clients:            clients,
-		ClientsConsensus:   clientsConsensus,
-		ClientsMetadata:    clientsMetadata,
-		Params:             params,
-		CreateLocalhost:    createLocalhost,
-		NextClientSequence: nextClientSequence,
+// UnpackInterfaces implements UnpackInterfacesMesssage.UnpackInterfaces
+func (cswh ConsensusStateWithHeight) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	return unpacker.UnpackAny(cswh.ConsensusState, new(exported.ConsensusState))
+}
+
+// NewClientConsensusStates creates a new ClientConsensusStates instance.
+func NewClientConsensusStates(clientID string, consensusStates []ConsensusStateWithHeight) ClientConsensusStates {
+	return ClientConsensusStates{
+		ClientId:        clientID,
+		ConsensusStates: consensusStates,
+	}
+}
+
+// GetKey returns the key of metadata. Implements exported.GenesisMetadata interface.
+func (gm GenesisMetadata) GetKey() []byte {
+	return gm.Key
+}
+
+// GetValue returns the value of metadata. Implements exported.GenesisMetadata interface.
+func (gm GenesisMetadata) GetValue() []byte {
+	return gm.Value
+}
+
+// NewIdentifiedGenesisMetadata takes in a client ID and list of genesis metadata for that client
+// and constructs a new IdentifiedGenesisMetadata.
+func NewIdentifiedGenesisMetadata(clientID string, gms []GenesisMetadata) IdentifiedGenesisMetadata {
+	return IdentifiedGenesisMetadata{
+		ClientId:       clientID,
+		ClientMetadata: gms,
+	}
+}
+
+// NewGenesisMetadata is a constructor for GenesisMetadata
+func NewGenesisMetadata(key, val []byte) GenesisMetadata {
+	return GenesisMetadata{
+		Key:   key,
+		Value: val,
 	}
 }
 
@@ -211,24 +216,6 @@ func (gs GenesisState) Validate() error {
 	return nil
 }
 
-// NewGenesisMetadata is a constructor for GenesisMetadata
-func NewGenesisMetadata(key, val []byte) GenesisMetadata {
-	return GenesisMetadata{
-		Key:   key,
-		Value: val,
-	}
-}
-
-// GetKey returns the key of metadata. Implements exported.GenesisMetadata interface.
-func (gm GenesisMetadata) GetKey() []byte {
-	return gm.Key
-}
-
-// GetValue returns the value of metadata. Implements exported.GenesisMetadata interface.
-func (gm GenesisMetadata) GetValue() []byte {
-	return gm.Value
-}
-
 // Validate ensures key and value of metadata are not empty
 func (gm GenesisMetadata) Validate() error {
 	if len(gm.Key) == 0 {
@@ -238,13 +225,4 @@ func (gm GenesisMetadata) Validate() error {
 		return fmt.Errorf("genesis metadata value cannot be empty")
 	}
 	return nil
-}
-
-// NewIdentifiedGenesisMetadata takes in a client ID and list of genesis metadata for that client
-// and constructs a new IdentifiedGenesisMetadata.
-func NewIdentifiedGenesisMetadata(clientID string, gms []GenesisMetadata) IdentifiedGenesisMetadata {
-	return IdentifiedGenesisMetadata{
-		ClientId:       clientID,
-		ClientMetadata: gms,
-	}
 }

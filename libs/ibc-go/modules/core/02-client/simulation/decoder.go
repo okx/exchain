@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/types/kv"
-	"github.com/cosmos/ibc-go/v2/modules/core/02-client/keeper"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	"github.com/cosmos/ibc-go/v2/modules/core/exported"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 )
 
 var _ ClientUnmarshaler = (*keeper.Keeper)(nil)

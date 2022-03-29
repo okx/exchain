@@ -452,7 +452,7 @@ func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 
 var resultDataBufferPool = amino.NewBufferPool()
 
-func (rd ResultData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (rd *ResultData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf = resultDataBufferPool.Get()
 	defer resultDataBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
@@ -572,12 +572,12 @@ func (rd ResultData) String() string {
 
 // EncodeResultData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
-func EncodeResultData(data ResultData) ([]byte, error) {
+func EncodeResultData(data *ResultData) ([]byte, error) {
 	var buf = new(bytes.Buffer)
 
 	bz, err := data.MarshalToAmino(ModuleCdc)
 	if err != nil {
-		bz, err = ModuleCdc.MarshalBinaryBare(data)
+		bz, err = ModuleCdc.MarshalBinaryBare(*data)
 		if err != nil {
 			return nil, err
 		}

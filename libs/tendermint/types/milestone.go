@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"strconv"
 	"sync"
 )
@@ -9,6 +10,7 @@ import (
 // 1. TransferToContractBlock
 // 2. ChangeEvmDenomByProposal
 // 3. BankTransferBlock
+// 4. ibc
 
 var (
 	MILESTONE_GENESIS_HEIGHT string
@@ -20,6 +22,9 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
+	MILESTONE_VENUS1_HEIGHT string
+	milestoneVenus1Height   int64
+
 	once sync.Once
 )
 
@@ -28,6 +33,20 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		if milestoneVenus1Height == 0 {
+			// as default: genesisHeight is zero
+			milestoneVenus1Height = genesisHeight + 1
+			if IsMainNet() || IsTestNet() {
+				milestoneVenus1Height = math.MaxInt64 - 2
+			}
+		} else {
+			if IsMainNet() || IsTestNet() {
+				if milestoneVenus1Height < milestoneVenusHeight || milestoneVenus1Height < milestoneMercuryHeight {
+					panic("invalid ibc height")
+				}
+			}
+		}
 	})
 }
 
@@ -56,6 +75,23 @@ func HigherThanVenus(height int64) bool {
 		return false
 	}
 	return height >= milestoneVenusHeight
+}
+
+func HigherThanIBCHeight(h int64) bool {
+	if milestoneVenus1Height == 0 {
+		return false
+	}
+	return h > milestoneVenus1Height
+}
+func SetIBCHeightForTest() {
+	milestoneVenus1Height = 99999999
+}
+func GetIBCHeight() int64 {
+	return milestoneVenus1Height
+}
+
+func UpgradeIBCInRuntime() bool {
+	return milestoneVenus1Height >= 1
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight

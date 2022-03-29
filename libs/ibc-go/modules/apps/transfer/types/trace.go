@@ -7,12 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // ParseDenomTrace parses a string with the ibc prefix (denom trace) and the base denomination
@@ -55,9 +54,9 @@ func (dt DenomTrace) GetPrefix() string {
 // 'ibc/{hash(tracePath + baseDenom)}'. If the trace is empty, it will return the base denomination.
 func (dt DenomTrace) IBCDenom() string {
 	if dt.Path != "" {
-		return fmt.Sprintf("%s/%s", DenomPrefix, dt.Hash())
+		return strings.ToLower(fmt.Sprintf("%s/%s", DenomPrefix, dt.Hash()))
 	}
-	return dt.BaseDenom
+	return strings.ToLower(dt.BaseDenom)
 }
 
 // GetFullDenomPath returns the full denomination according to the ICS20 specification:
@@ -163,7 +162,7 @@ func ValidatePrefixedDenom(denom string) error {
 // ValidateIBCDenom validates that the given denomination is either:
 //
 //  - A valid base denomination (eg: 'uatom')
-//  - A valid fungible token representation (i.e 'ibc/{hash}') per ADR 001 https://github.com/cosmos/ibc-go/blob/main/docs/architecture/adr-001-coin-source-tracing.md
+//  - A valid fungible token representation (i.e 'ibc/{hash}') per ADR 001 https://github.com/cosmos/cosmos-sdk/blob/master/docs/architecture/adr-001-coin-source-tracing.md
 func ValidateIBCDenom(denom string) error {
 	if err := sdk.ValidateDenom(denom); err != nil {
 		return err

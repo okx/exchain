@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
 // IBC channel events
@@ -41,12 +41,12 @@ const (
 
 // IBC channel events vars
 var (
-	EventTypeChannelOpenInit     = "channel_open_init"
-	EventTypeChannelOpenTry      = "channel_open_try"
-	EventTypeChannelOpenAck      = "channel_open_ack"
-	EventTypeChannelOpenConfirm  = "channel_open_confirm"
-	EventTypeChannelCloseInit    = "channel_close_init"
-	EventTypeChannelCloseConfirm = "channel_close_confirm"
+	EventTypeChannelOpenInit     = MsgChannelOpenInit{}.Type()
+	EventTypeChannelOpenTry      = MsgChannelOpenTry{}.Type()
+	EventTypeChannelOpenAck      = MsgChannelOpenAck{}.Type()
+	EventTypeChannelOpenConfirm  = MsgChannelOpenConfirm{}.Type()
+	EventTypeChannelCloseInit    = MsgChannelCloseInit{}.Type()
+	EventTypeChannelCloseConfirm = MsgChannelCloseConfirm{}.Type()
 
 	AttributeValueCategory = fmt.Sprintf("%s_%s", host.ModuleName, SubModuleName)
 )

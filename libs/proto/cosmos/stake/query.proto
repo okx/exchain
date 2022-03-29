@@ -1,0 +1,17 @@
+syntax = "proto3";
+package cosmos.staking.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "cosmos/stake/staking.proto";
+
+option go_package = "github.com/cosmos/cosmos-sdk/x/staking/types";
+
+
+// QueryParamsRequest is request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  // params holds all the parameters of this module.
+  IBCParams params = 1 [(gogoproto.nullable) = false];
+}

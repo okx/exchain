@@ -1,8 +1,6 @@
 package host
 
-import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-)
+import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 // SubModuleName defines the ICS 24 host
 const SubModuleName = "host"

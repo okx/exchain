@@ -2,11 +2,10 @@ package types
 
 import (
 	"fmt"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"sort"
 
 	yaml "gopkg.in/yaml.v2"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // NewCapability returns a reference to a new Capability to be used as an
