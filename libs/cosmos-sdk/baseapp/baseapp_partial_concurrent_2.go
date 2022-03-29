@@ -59,7 +59,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
-	dttr.task = nil
+	//dttr.task = nil
 	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	dttr.txByte <- txByte
 }
