@@ -6,7 +6,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"runtime"
 
@@ -657,9 +656,9 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
 	num := len(dttm.dttRoutineList)
-	if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
-		dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened)
-	}
+	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+		dttm.app.logger.Info("OnAccountUpdated", "times", times, "happened", happened)
+	//}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
@@ -668,17 +667,24 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 
 		task := dttr.task
 		//count := task.getUpdateCount()
-		if happened {
-			// todo: whether should rerun the task
-			if task.setUpdateCount(times, true) {
-				//go func() {
-				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
-				//dttr.task.needToRerun = true
-				dttr.shouldRerun(-1)
-				//}()
-			}
-		} else {
-			task.setUpdateCount(times, false)
+		if task.setUpdateCount(times, happened) {
+			//go func() {
+			dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
+			//dttr.task.needToRerun = true
+			dttr.shouldRerun(-1)
+			//}()
 		}
+		//if happened {
+		//	// todo: whether should rerun the task
+		//	if task.setUpdateCount(times, true) {
+		//		//go func() {
+		//		dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
+		//		//dttr.task.needToRerun = true
+		//		dttr.shouldRerun(-1)
+		//		//}()
+		//	}
+		//} else {
+		//	task.setUpdateCount(times, false)
+		//}
 	}
 }
