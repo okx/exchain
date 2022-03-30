@@ -6,17 +6,18 @@ import (
 	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/okex/exchain/libs/mpt"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
@@ -224,6 +225,10 @@ func (k Keeper) GetStoreKey() store.StoreKey {
 
 // GetBlockHash gets block height from block consensus hash
 func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		return k.getBlockHashInDiskDB(hash)
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := store.Get(hash)
 	if len(bz) == 0 {
@@ -236,13 +241,26 @@ func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
 
 // SetBlockHash sets the mapping from block consensus hash to block height
 func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		k.setBlockHashInDiskDB(hash, height)
+		return
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
+	if mpttypes.EnableDoubleWrite {
+		k.setBlockHashInDiskDB(hash, height)
+	}
 }
 
 // IterateBlockHash iterates all over the block hash in every height
 func (k Keeper) IterateBlockHash(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		k.iterateBlockHashInDiskDB(fn)
+		return
+	}
+
 	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -274,24 +292,40 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash ethcmn.Hash) 
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		return k.getBlockBloomInDiskDB(height)
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
 		return ethtypes.Bloom{}
 	}
-
 	bz := store.Get(types.BloomKey(height))
 	return ethtypes.BytesToBloom(bz)
 }
 
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		k.setBlockBloomInDiskDB(height, bloom)
+		return
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
+	if mpttypes.EnableDoubleWrite {
+		k.setBlockBloomInDiskDB(height, bloom)
+	}
 }
 
 // IterateBlockBloom iterates all over the bloom value in every height
 func (k Keeper) IterateBlockBloom(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		k.iterateBlockBloomInDiskDB(fn)
+		return
+	}
+
 	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
@@ -318,6 +352,10 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address ethcmn.Address) (type
 
 // getChainConfig get raw chain config and unmarshal it
 func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		return k.getChainConfigInDiskDB()
+	}
+
 	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
@@ -361,10 +399,18 @@ func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		k.setChainConfigInDiskDB(config)
+		return
+	}
+
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+	if mpttypes.EnableDoubleWrite {
+		k.setChainConfigInDiskDB(config)
+	}
 
 	// invalid the chainConfig
 	k.cci.cc = nil

@@ -97,7 +97,10 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), 1+8)
 	// 1.3 set Bloom back to iavl
 	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), 1+8)
-	// 1.4 set Code back to iavl
+	// 1.4 set white、blocked addresses back to iavl
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractDeploymentWhitelist, nil), 1+20)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractBlockedList, nil), 1+20)
+	// 1.5 set Code back to iavl
 	for dIter := diskdb.NewIterator(rawdb.CodePrefix, nil); dIter.Next(); {
 		if len(dIter.Key()) != 1+32 {
 			continue

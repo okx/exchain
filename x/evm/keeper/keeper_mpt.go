@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
-	types3 "github.com/okex/exchain/libs/mpt/types"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -38,7 +38,7 @@ func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 
 // GetLatestStoredBlockHeight get latest stored mpt storage height
 func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
-	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixEvmLatestStoredHeight)
 	if err != nil || len(rst) == 0 {
 		return 0
 	}
@@ -48,7 +48,7 @@ func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
 // SetLatestStoredBlockHeight sets the latest stored storage height
 func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 	heightBytes := sdk.Uint64ToBigEndian(height)
-	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, heightBytes)
+	k.db.TrieDB().DiskDB().Put(mpt.KeyPrefixEvmLatestStoredHeight, heightBytes)
 }
 
 func (k *Keeper) OpenTrie() {
@@ -97,7 +97,7 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 // Stop stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt.
 func (k *Keeper) OnStop(ctx sdk.Context) error {
-	if !types3.TrieDirtyDisabled {
+	if !mpttypes.TrieDirtyDisabled {
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
@@ -136,7 +136,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 	curMptRoot := k.GetMptRootHash(uint64(curHeight))
 
 	triedb := k.db.TrieDB()
-	if types3.TrieDirtyDisabled {
+	if mpttypes.TrieDirtyDisabled {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
@@ -210,7 +210,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) || types3.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
 		k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 		// The onleaf func is called _serially_, so we can reuse the same account
@@ -242,4 +242,83 @@ func (k *Keeper) asyncCommit(logger log.Logger) {
 		}
 	}()
 
+}
+
+/*
+ * Getters for keys in x/evm/types/keys.go
+ */
+func (k Keeper) getBlockHashInDiskDB(hash []byte) (int64, bool) {
+	bz, err := k.db.TrieDB().DiskDB().Get(append(types.KeyPrefixBlockHash, hash...))
+	if err != nil {
+		return 0, false
+	}
+	if len(bz) == 0 {
+		return 0, false
+	}
+
+	height := binary.BigEndian.Uint64(bz)
+	return int64(height), true
+}
+
+func (k Keeper) setBlockHashInDiskDB(hash []byte, height int64) {
+	bz := sdk.Uint64ToBigEndian(uint64(height))
+	k.db.TrieDB().DiskDB().Put(append(types.KeyPrefixBlockHash, hash...), bz)
+}
+
+func (k Keeper) iterateBlockHashInDiskDB(fn func(key []byte, value []byte) (stop bool)) {
+	iterator := k.db.TrieDB().DiskDB().NewIterator(types.KeyPrefixBlockHash, nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		if len(iterator.Key()) != len(types.KeyPrefixBlockHash)+ethcmn.HashLength {
+			continue
+		}
+		key, value := iterator.Key(), iterator.Value()
+		if stop := fn(key, value); stop {
+			break
+		}
+	}
+}
+
+func (k Keeper) getBlockBloomInDiskDB(height int64) ethtypes.Bloom {
+	bz, err := k.db.TrieDB().DiskDB().Get(append(types.KeyPrefixBloom, types.BloomKey(height)...))
+	if err != nil {
+		return ethtypes.Bloom{}
+	}
+
+	return ethtypes.BytesToBloom(bz)
+}
+
+func (k Keeper) setBlockBloomInDiskDB(height int64, bloom ethtypes.Bloom) {
+	k.db.TrieDB().DiskDB().Put(append(types.KeyPrefixBloom, types.BloomKey(height)...), bloom.Bytes())
+}
+
+func (k Keeper) iterateBlockBloomInDiskDB(fn func(key []byte, value []byte) (stop bool)) {
+	iterator := k.db.TrieDB().DiskDB().NewIterator(types.KeyPrefixBloom, nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		if len(iterator.Key()) != len(types.KeyPrefixBloom)+8 {
+			continue
+		}
+		key, value := iterator.Key(), iterator.Value()
+		if stop := fn(key, value); stop {
+			break
+		}
+	}
+}
+
+func (k Keeper) getChainConfigInDiskDB() (types.ChainConfig, bool) {
+	var config types.ChainConfig
+	bz, err := k.db.TrieDB().DiskDB().Get(types.KeyPrefixChainConfig)
+	if err != nil {
+		return config, false
+	}
+	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
+		k.cdc.MustUnmarshalBinaryBare(bz, &config)
+	}
+	return config, true
+}
+
+func (k Keeper) setChainConfigInDiskDB(config types.ChainConfig) {
+	bz := k.cdc.MustMarshalBinaryBare(config)
+	k.db.TrieDB().DiskDB().Put(types.KeyPrefixChainConfig, bz)
 }

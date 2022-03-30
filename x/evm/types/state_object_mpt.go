@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	types2 "github.com/ethereum/go-ethereum/core/types"
@@ -13,12 +14,12 @@ import (
 
 const (
 	FlagContractStateCache = "contract-state-cache"
-	FlagUseCompositeKey string = "use-composite-key"
+	FlagUseCompositeKey    = "use-composite-key"
 )
 
 var (
 	ContractStateCache uint = 2048 // MB
-	UseCompositeKey = true
+	UseCompositeKey         = true
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
@@ -85,7 +86,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 	return value
 }
 
-func (so *stateObject) CodeMpt(db ethstate.Database) []byte {
+func (so *stateObject) CodeInRawDB(db ethstate.Database) []byte {
 	if so.code != nil {
 		return so.code
 	}
@@ -95,8 +96,9 @@ func (so *stateObject) CodeMpt(db ethstate.Database) []byte {
 	code, err := db.ContractCode(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
 	if err != nil {
 		so.setError(fmt.Errorf("can't load code hash %x: %v", so.CodeHash(), err))
+	} else {
+		so.code = code
 	}
-	so.code = code
 
 	return code
 }
@@ -226,9 +228,7 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		return len(so.Code(db))
-	} else {
+	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
 			return 0
 		}
@@ -237,6 +237,8 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 			so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
 		}
 		return size
+	} else {
+		return len(so.Code(db))
 	}
 }
 

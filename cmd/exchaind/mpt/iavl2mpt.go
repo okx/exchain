@@ -156,8 +156,8 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 4. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
-	// 5. Migrate ContractDeploymentWhitelist、ContractBlockedList -> evmTrie
-	migrateSpecialAddrsToMpt(migrationApp, cmCtx, evmMptDb, evmTrie)
+	// 5. Migrate ContractDeploymentWhitelist、ContractBlockedList -> rawdb
+	migrateSpecialAddrsToDb(migrationApp, cmCtx, batch)
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -240,28 +240,29 @@ func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch 
 	fmt.Printf("Successfully migrate %d blooms\n", count)
 }
 
-// 5. migrateSpecialAddrsToMpt Migrates ContractDeploymentWhitelist、ContractBlockedList
-func migrateSpecialAddrsToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evmMptDb ethstate.Database, evmTrie ethstate.Trie) {
+// 5. migrateSpecialAddrsToDb Migrates ContractDeploymentWhitelist、ContractBlockedList
+func migrateSpecialAddrsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch ethdb.Batch) {
 	csdb := evmtypes.CreateEmptyCommitStateDB(migrationApp.EvmKeeper.GenerateCSDBParams(), cmCtx)
 	whiteList := csdb.GetContractDeploymentWhitelist()
 	for i := 0; i < len(whiteList); i++ {
-		panicError(evmTrie.TryUpdate(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(" ")))
+		panicError(batch.Put(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte("")))
 	}
 
 	blockedList := csdb.GetContractBlockedList()
 	for i := 0; i < len(blockedList); i++ {
-		panicError(evmTrie.TryUpdate(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte(" ")))
+		panicError(batch.Put(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte("")))
 	}
 	bcml := csdb.GetContractMethodBlockedList()
 	for i := 0; i < len(bcml); i++ {
-		evmtypes.SortContractMethods(bcml[i].BlockMethods)
-		value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
-		sortedValue := sdk.MustSortJSON(value)
-		panicError(evmTrie.TryUpdate(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue))
+		if !bcml[i].IsAllMethodBlocked() {
+			evmtypes.SortContractMethods(bcml[i].BlockMethods)
+			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
+			sortedValue := sdk.MustSortJSON(value)
+			panicError(batch.Put(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue))
+		}
 	}
 
-	committedHeight := cmCtx.BlockHeight() - 1
-	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
-	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list at version %d\n",
-		len(whiteList), len(blockedList), len(bcml), committedHeight)
+	writeDataToRawdb(batch)
+	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list\n",
+		len(whiteList), len(blockedList), len(bcml))
 }
