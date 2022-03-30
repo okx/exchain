@@ -120,6 +120,7 @@ func (dttr *dttRoutine) shouldRerun() {
 		return
 	}
 	if dttr.task.step == partialConcurrentStepAnteStart || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed  {
+		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "step", dttr.task.step)
 		dttr.rerunCh <- 0
 	}
 }
