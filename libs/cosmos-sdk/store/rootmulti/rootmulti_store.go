@@ -512,6 +512,10 @@ func (rs *Store) pruneStores() {
 	}()
 	for key, store := range rs.stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
+			if (key.Name() == "acc" || key.Name() == "evm") && tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
+				continue
+			}
+
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
