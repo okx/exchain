@@ -479,6 +479,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 		Tx:     memTx.tx,
 	}})
 
+	types.SignatureCache().Remove(memTx.realTx.TxHash())
+
 	return nil
 }
 
@@ -902,7 +904,7 @@ func (mem *CListMempool) Update(
 		}
 
 		// remove tx signature cache
-		// types.SignatureCache().Remove(types.Bytes2Hash(tx, height))
+		types.SignatureCache().Remove(tx.Hash(height))
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))

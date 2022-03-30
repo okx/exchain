@@ -53,7 +53,7 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 func (tx *MsgEthereumTx) GetFrom() string {
 	from := tx.BaseTx.GetFrom()
 	if from == "" {
-		from, _ = tmtypes.SignatureCache().Get(string(tx.TxHash()))
+		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
 			from, _ = tx.firstVerifySig(tx.ChainID())
 		}
@@ -299,16 +299,16 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if msg.BaseTx.GetFrom() != "" {
 		return nil
 	}
-	//from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
-	//if ok {
-	//	msg.BaseTx.From = from
-	//	return nil
-	//}
+	from, ok := tmtypes.SignatureCache().Get(msg.TxHash())
+	if ok {
+		msg.BaseTx.From = from
+		return nil
+	}
 	from, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
-	//tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
+	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
 	return nil
 }

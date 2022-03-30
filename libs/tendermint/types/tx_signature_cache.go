@@ -3,6 +3,9 @@ package types
 import (
 	"sync/atomic"
 
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
+
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -23,13 +26,13 @@ func init() {
 }
 
 func InitSignatureCache() {
-	//lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
-	//if err != nil {
-	//	panic(err)
-	//}
-	//signatureCache = &Cache{
-	//	data: lruCache,
-	//}
+	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
+	if err != nil {
+		panic(err)
+	}
+	signatureCache = &Cache{
+		data: lruCache,
+	}
 }
 
 func SignatureCache() *Cache {
@@ -42,14 +45,14 @@ type Cache struct {
 	hitCount  int64
 }
 
-func (c *Cache) Get(key string) (string, bool) {
+func (c *Cache) Get(key []byte) (string, bool) {
 	// validate
 	if !c.validate(key) {
 		return "", false
 	}
 	atomic.AddInt64(&c.readCount, 1)
 	// get cache
-	value, ok := c.data.Get(key)
+	value, ok := c.data.Get(amino.BytesToStr(key))
 	if ok {
 		sigCache, ok := value.(string)
 		if ok {
@@ -60,21 +63,21 @@ func (c *Cache) Get(key string) (string, bool) {
 	return "", false
 }
 
-func (c *Cache) Add(key string, value string) {
+func (c *Cache) Add(key []byte, value string) {
 	// validate
 	if !c.validate(key) {
 		return
 	}
 	// add cache
-	c.data.Add(key, value)
+	c.data.Add(string(key), value)
 }
 
-func (c *Cache) Remove(key string) {
+func (c *Cache) Remove(key []byte) {
 	// validate
 	if !c.validate(key) {
 		return
 	}
-	c.data.Remove(key)
+	c.data.Remove(amino.BytesToStr(key))
 }
 
 func (c *Cache) ReadCount() int64 {
@@ -85,9 +88,9 @@ func (c *Cache) HitCount() int64 {
 	return atomic.LoadInt64(&c.hitCount)
 }
 
-func (c *Cache) validate(key string) bool {
+func (c *Cache) validate(key []byte) bool {
 	// validate key
-	if key == "" {
+	if len(key) == 0 {
 		return false
 	}
 	// validate lru cache
