@@ -120,6 +120,13 @@ func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
 	return dtt.updateCount > 0
 }
 
+func (dtt *DeliverTxTask) resetUpdateCount()  {
+	dtt.mtx.Lock()
+	defer dtt.mtx.Unlock()
+
+	dtt.updateCount = 0
+}
+
 //-------------------------------------
 
 type NeedToRerunFn func(index int)
@@ -429,7 +436,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		// execute ante
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-		task.setUpdateCount(0)
+		task.resetUpdateCount()
 		task.fee, task.isEvm, task.from = dm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 
 		if err := validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
@@ -453,7 +460,7 @@ func (dm *DeliverTxTasksManager) runTxPartConcurrent(txByte []byte, index int, t
 
 		task.setStep(partialConcurrentStepStart)
 		task.info.ctx = dm.app.getContextForTx(mode, task.info.txBytes) // same context for all txs in a block
-		task.setUpdateCount(0)
+		task.resetUpdateCount()
 	}
 
 	if dm.app.anteHandler != nil {

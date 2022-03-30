@@ -310,7 +310,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent)                 //dm.handler
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
-	task.setUpdateCount(0)
+	task.resetUpdateCount()
 	task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
@@ -337,7 +337,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 
 		task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.setStep(partialConcurrentStepAnteStart)
-		task.setUpdateCount(0)
+		task.resetUpdateCount()
 		//task.setStep(partialConcurrentStepBasicSucceed)
 		//task.needToRerun = false
 		task.canRerun = 0
