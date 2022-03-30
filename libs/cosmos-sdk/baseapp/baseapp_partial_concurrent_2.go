@@ -284,7 +284,7 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 }
 
 func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
-	dttm.app.logger.Info("RunBasic", "index", index)
+	//dttm.app.logger.Info("RunBasic", "index", index)
 	// create a new task
 	var realTx sdk.Tx
 	var err error
@@ -343,7 +343,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	//}
 
 	//if global.GetGlobalHeight() == 5811244 {
-		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -539,7 +539,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811244 {
-		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
@@ -567,7 +567,7 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
+		//dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			//logger.Debug("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialTask.index)
