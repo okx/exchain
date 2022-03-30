@@ -369,13 +369,13 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	//	dttm.app.logger.Error("ResetContext", "index", task.index)
 
 		task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
+	task.setStep(partialConcurrentStepAnteStart)
 		task.setUpdateCount(0)
 		//task.setStep(partialConcurrentStepBasicSucceed)
 		//task.needToRerun = false
 		task.canRerun = 0
 	//}
 
-	task.setStep(partialConcurrentStepAnteStart)
 	//if global.GetGlobalHeight() == 5811244 {
 		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	//}
@@ -387,9 +387,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	err := dttm.runAnte(task)
 	totalAnteDuration += time.Since(anteStart).Microseconds()
 	if err != nil {
+		task.setStep(partialConcurrentStepAnteFailed)
 		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 		//task.anteFailed = true
-		task.setStep(partialConcurrentStepAnteFailed)
 	} else {
 		//dttm.app.logger.Info("AnteSucceed", "index", task.index)
 		task.setStep(partialConcurrentStepAnteSucceed)
