@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/feecollector"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/blockfee"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -19,7 +19,7 @@ type Keeper struct {
 	ak        types.AccountKeeper
 	bk        types.BankKeeper
 	permAddrs map[string]types.PermissionsForAddress
-	feecollector.FeeCollector
+	blockfee.Pool
 }
 
 // NewKeeper creates a new Keeper instance
@@ -31,12 +31,12 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, ak types.AccountKeeper, bk ty
 	}
 
 	return Keeper{
-		cdc:          cdc,
-		storeKey:     key,
-		ak:           ak,
-		bk:           bk,
-		permAddrs:    permAddrs,
-		FeeCollector: feecollector.NewFeeCollectorCoins(),
+		cdc:       cdc,
+		storeKey:  key,
+		ak:        ak,
+		bk:        bk,
+		permAddrs: permAddrs,
+		Pool:      blockfee.NewCollector(),
 	}
 }
 
