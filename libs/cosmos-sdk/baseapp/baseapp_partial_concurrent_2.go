@@ -657,7 +657,7 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
 	num := len(dttm.dttRoutineList)
 	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened)
+		dttm.app.logger.Error("OnAccountUpdated", "times", times, "happened", happened, "addr", address)
 	//}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
