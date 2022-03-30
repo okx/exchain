@@ -100,10 +100,10 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 	case partialConcurrentStepFinished:
 		return false
 	}
-	if dtt.canRerun == 0 && !dtt.needToRerun {
-		return true
-	}
-	return false
+	//if dtt.canRerun == 0 && !dtt.needToRerun {
+	//	return true
+	//}
+	return true
 }
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8) {
