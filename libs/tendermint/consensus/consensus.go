@@ -729,13 +729,14 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
+		_, val := cs.Validators.GetByAddress(msg.NewProposer)
 		if peerID == "" {
 			// ApplyBlock of height-1 is not finished
 			// RoundStepNewHeight enterNewRound use msg.val
-			cs.proposer = &msg.val
+			cs.proposer = val
 		} else {
 			// ApplyBlock of height-1 is finished, and vc immediately
-			cs.enterNewRound(cs.Height, 0, &msg.val)
+			cs.enterNewRound(cs.Height, 0, val)
 		}
 	case *ProposeRequestMessage:
 		// ApplyBlock of height-1 is not finished
@@ -945,7 +946,8 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 
 func (cs *State) requestForProposer() {
 	// broadcast ProposeRequestMessage
-	cs.evsw.FireEvent(types.EventProposeRequest, ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address.String()})
+	cs.evsw.FireEvent(types.EventProposeRequest, ProposeRequestMessage{cs.Height,
+		cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()})
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
