@@ -20,11 +20,6 @@ var totalSerialWaitingCount = 0
 type BasicProcessFn func(txByte []byte, index int) *DeliverTxTask
 type RunAnteFn func(task *DeliverTxTask) error
 
-//type txBytesWithTxIndex struct {
-//	txBytes []byte
-//	index int
-//}
-
 type dttRoutine struct {
 	//service.BaseService
 	done    chan int
@@ -121,7 +116,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	dttr.mtx.Lock()
 	defer dttr.mtx.Unlock()
 
-	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex != fromIndex {
+	if len(dttr.rerunCh) > 0 || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex != fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
 		return
 	}
