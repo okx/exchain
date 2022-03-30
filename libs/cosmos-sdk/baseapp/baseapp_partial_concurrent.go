@@ -108,18 +108,16 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 	return true
 }
 
-func (dtt *DeliverTxTask) setUpdateCount(count int8) {
+func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
 	dtt.mtx.Lock()
 	defer dtt.mtx.Unlock()
 
-	dtt.updateCount = count
-}
-
-func (dtt *DeliverTxTask) getUpdateCount() int8 {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
-
-	return dtt.updateCount
+	if add {
+		dtt.updateCount += count
+	} else {
+		dtt.updateCount -= count
+	}
+	return dtt.updateCount > 0
 }
 
 //-------------------------------------
@@ -301,15 +299,13 @@ func (sm *sendersMap) accountUpdated(happened bool, times int8, address string, 
 	num := len(tasksList)
 	for i := 0; i < num; i++ {
 		task := tasksList[i]
-		count := task.getUpdateCount()
 		if happened {
-			tasksList[i].setUpdateCount(count+times)
 			// todo: whether should rerun the task
-			if task.index != waitingIndex && task.updateCount > 0 && task.needToRerunWhenContextChanged() {
+			if tasksList[i].setUpdateCount(times, true) && task.index != waitingIndex && task.needToRerunWhenContextChanged() {
 				sm.pushToRerunList(task)
 			}
 		} else {
-			task.setUpdateCount(count-times)
+			task.setUpdateCount(times, false)
 		}
 	}
 }
