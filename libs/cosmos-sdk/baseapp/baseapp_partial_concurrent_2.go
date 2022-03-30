@@ -127,6 +127,23 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	}
 }
 
+func (dttr *dttRoutine) readyForSerialExecution() bool {
+	dttr.mtx.Lock()
+	defer dttr.mtx.Unlock()
+
+	if len(dttr.rerunCh) > 0 {
+		return false
+	}
+
+	step := dttr.task.step
+	if step == partialConcurrentStepBasicFailed ||
+		step == partialConcurrentStepAnteFailed ||
+		step == partialConcurrentStepAnteSucceed {
+		return true
+	}
+	return false
+}
+
 //-------------------------------------
 
 type DTTManager struct {
@@ -264,7 +281,7 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 }
 
 func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask {
-	dttm.app.logger.Info("concurrentBasic", "index", index)
+	dttm.app.logger.Info("RunBasic", "index", index)
 	// create a new task
 	var realTx sdk.Tx
 	var err error
@@ -465,13 +482,8 @@ func (dttm *DTTManager) serialRoutine() {
 						} else if dttr.task.index < rerunRoutine.task.index {
 							rerunRoutine = dttr
 						}
-					} else if dttr.task.index == dttm.serialIndex+1 {
-						step := dttr.task.getStep()
-						if step == partialConcurrentStepBasicFailed ||
-							step == partialConcurrentStepAnteFailed ||
-							step == partialConcurrentStepAnteSucceed {
-							nextTask = dttr.task
-						}
+					} else if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
+						nextTask = dttr.task
 					}
 
 					//// if exists the next task which has finished the concurrent execution
@@ -524,7 +536,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811244 {
-		dttm.app.logger.Info("RunStatefulSerialRoutine", "index", dttm.serialTask.index)
+		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
