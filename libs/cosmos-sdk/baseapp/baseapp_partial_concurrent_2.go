@@ -116,6 +116,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 }
 
 func (dttr *dttRoutine) shouldRerun() {
+	dttr.mtx.Lock()
+	defer dttr.mtx.Unlock()
+	
 	if len(dttr.rerunCh) > 0 {
 		return
 	}
