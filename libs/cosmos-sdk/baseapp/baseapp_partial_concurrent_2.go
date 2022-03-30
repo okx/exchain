@@ -433,9 +433,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttr := dttm.dttRoutineList[task.routineIndex]
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
-					//if !dttm.startFinished {
-					//	time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
-					//}
+					if !dttm.startFinished {
+						time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
+					}
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
@@ -452,7 +452,8 @@ func (dttm *DTTManager) serialRoutine() {
 					if dttr.task == nil || dttr.task.index <= task.index || dttr.task.step == partialConcurrentStepFinished {
 						continue
 					}
-					if dttr.task.from == task.from {
+					//if dttr.task.from == task.from {
+					if dttr.task.prevTaskIndex == task.index {
 						if rerunRoutine == nil {
 							rerunRoutine = dttr
 						} else if dttr.task.index < rerunRoutine.task.index {
