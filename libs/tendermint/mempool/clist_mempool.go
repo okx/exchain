@@ -277,9 +277,22 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 	// CACHE
+	// Record a new sender for a tx we've already seen.
+	// Note it's possible a tx is still in the cache but no longer in the mempool
+	// (eg. after committing a block, txs are removed from mempool but not cache),
+	// so we only record the sender for txs still in the mempool.
+	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
+		memTx := e.(*clist.CElement).Value.(*mempoolTx)
+		memTx.senders.LoadOrStore(txInfo.SenderID, true)
+		// TODO: consider punishing peer for dups,
+		// its non-trivial since invalid txs can become valid,
+		// but they can spam the same tx with little cost to them atm.
+		return ErrTxInCache
+	}
 	if !mem.cache.Push(tx) {
 		return ErrTxInCache
 	}
+	// END CACHE
 
 	var err error
 	var gasUsed int64
@@ -303,20 +316,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			return ErrPreCheck{err}
 		}
 	}
-
-	// CACHE
-	// Record a new sender for a tx we've already seen.
-	// Note it's possible a tx is still in the cache but no longer in the mempool
-	// (eg. after committing a block, txs are removed from mempool but not cache),
-	// so we only record the sender for txs still in the mempool.
-	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
-		memTx := e.(*clist.CElement).Value.(*mempoolTx)
-		memTx.senders.LoadOrStore(txInfo.SenderID, true)
-		// TODO: consider punishing peer for dups,
-		// its non-trivial since invalid txs can become valid,
-		// but they can spam the same tx with little cost to them atm.
-	}
-	// END CACHE
 
 	// WAL
 	if mem.wal != nil {
