@@ -18,7 +18,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 )
@@ -248,7 +247,7 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		csdb.setHeightHashInRawDB(height, hash)
 	}
 }
@@ -789,7 +788,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	}
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 			usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
@@ -1300,7 +1299,7 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			csdb.setWhiteAddressInRawDB(addrList[i])
 		}
 	}
@@ -1324,7 +1323,7 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			csdb.deleteWhiteAddressInRawDB(addrList[i])
 		}
 	}
@@ -1376,7 +1375,7 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			csdb.setBlockedAddressInRawDB(addrList[i], []byte(""))
 		}
 	}
@@ -1401,7 +1400,7 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			csdb.deleteBlockedAddressInRawDB(addrList[i])
 		}
 	}
@@ -1588,7 +1587,7 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	key := GetContractBlockedListMemberKey(contract.Address)
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	store.Set(key, value)
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		csdb.setBlockedAddressInRawDB(contract.Address, value)
 	}
 }

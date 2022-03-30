@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	"github.com/okex/exchain/libs/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -306,7 +306,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	}
 
 	var tr ethstate.Trie = nil
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		tr = so.getTrie(db)
 	}
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
@@ -338,7 +338,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			if UseCompositeKey {
 				key = prefixKey
 			}
@@ -354,7 +354,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 	}
 
-	if so.stateDB.prefetcher != nil && mpttypes.EnableDoubleWrite {
+	if so.stateDB.prefetcher != nil && mpt.EnableDoubleWrite {
 		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 

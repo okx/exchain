@@ -15,7 +15,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -249,7 +248,7 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		k.setBlockHashInDiskDB(hash, height)
 	}
 }
@@ -314,7 +313,7 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		k.setBlockBloomInDiskDB(height, bloom)
 	}
 }
@@ -408,7 +407,7 @@ func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		k.setChainConfigInDiskDB(config)
 	}
 

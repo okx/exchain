@@ -43,12 +43,14 @@ func (it *mptIterator) Next() {
 	}
 }
 
-func (it *mptIterator) Key() (key []byte) {
-	return it.iterator.Key
+func (it *mptIterator) Key() []byte {
+	key := it.iterator.Key
+	return key
 }
 
-func (it *mptIterator) Value() (value []byte) {
-	return it.iterator.Value
+func (it *mptIterator) Value() []byte {
+	value := it.iterator.Value
+	return value
 }
 
 func (it *mptIterator) Error() error {

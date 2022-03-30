@@ -18,6 +18,20 @@ const (
 	FlagAccStoreCache = "account-store-cache"
 )
 
+const (
+	FlagTrieDirtyDisabled     = "trie-dirty-disabled"
+	FlagTrieCacheSize         = "trie-cache-size"
+	FlagEnableDoubleWrite     = "enable-double-write"
+	FlagEnableTrieCommitAsync = "enable-trie-commit-async"
+)
+
+var (
+	TrieDirtyDisabled      = false
+	TrieCacheSize     uint = 2048 // MB
+	MptAsnyc               = false
+	EnableDoubleWrite      = false
+)
+
 var (
 	KeyPrefixAccRootMptHash             = []byte{0x11}
 	KeyPrefixAccLatestStoredHeight      = []byte{0x12}

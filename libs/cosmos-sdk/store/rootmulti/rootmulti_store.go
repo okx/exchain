@@ -21,7 +21,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -957,7 +956,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			}
 		} else {
 			// old version, mpt(acc) store
-			if key.Name() == mpt.StoreKey && !mpttypes.EnableDoubleWrite {
+			if key.Name() == mpt.StoreKey && !mpt.EnableDoubleWrite {
 				continue
 			}
 		}

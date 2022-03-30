@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	MptDataDir = "data"
-	MptSpace   = "mpt"
+	mptDataDir = "data"
+	mptSpace   = "mpt"
 )
 
 var (
@@ -28,20 +28,20 @@ var (
 func InstanceOfMptStore() ethstate.Database {
 	initMptOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
-		path := filepath.Join(homeDir, MptDataDir)
+		path := filepath.Join(homeDir, mptDataDir)
 
 		backend := sdk.DBBackend
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}
 
-		kvstore, e := types.CreateKvDB(MptSpace, types.BackendType(backend), path)
+		kvstore, e := types.CreateKvDB(mptSpace, types.BackendType(backend), path)
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
 		db := rawdb.NewDatabase(kvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:     int(types.TrieCacheSize),
+			Cache:     int(TrieCacheSize),
 			Journal:   "",
 			Preimages: true,
 		})

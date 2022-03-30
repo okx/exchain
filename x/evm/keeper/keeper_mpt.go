@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -97,7 +96,7 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 // Stop stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt.
 func (k *Keeper) OnStop(ctx sdk.Context) error {
-	if !mpttypes.TrieDirtyDisabled {
+	if !mpt.TrieDirtyDisabled {
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
@@ -136,7 +135,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 	curMptRoot := k.GetMptRootHash(uint64(curHeight))
 
 	triedb := k.db.TrieDB()
-	if mpttypes.TrieDirtyDisabled {
+	if mpt.TrieDirtyDisabled {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
@@ -210,7 +209,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
 		k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 		// The onleaf func is called _serially_, so we can reuse the same account
