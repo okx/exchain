@@ -2,6 +2,7 @@ package app
 
 import (
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -23,8 +24,12 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	resp := app.BaseApp.DeliverTx(req)
 
+	cpcdc := &codec.CompoundCodec{
+		app.Codec(),
+		app.Marshal(),
+	}
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec(), app.Marshal())(req.Tx)
+		tx, err := evm.TxDecoder(cpcdc)(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
