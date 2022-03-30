@@ -22,6 +22,7 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
+			//from = feeTx.FeePayer(ctx)
 			feePayer := feeTx.FeePayer(ctx)
 			//from = ak.GetAccount(ctx, feePayer)
 			feePayerAcc := ak.GetAccount(ctx, feePayer)
