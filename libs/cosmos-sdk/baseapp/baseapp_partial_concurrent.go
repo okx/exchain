@@ -60,6 +60,7 @@ type DeliverTxTask struct {
 	fee   sdk.Coins
 	isEvm bool
 	err error
+	prevTaskIndex int // true: if there exists a not finished tx which has the same sender but smaller index
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
@@ -67,6 +68,7 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 		//tx:    tx,
 		index: index,
 		info:  &runTxInfo{tx: tx},
+		prevTaskIndex: -1,
 	}
 
 	return t
