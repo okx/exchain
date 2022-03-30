@@ -3,13 +3,11 @@ package refund
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
-func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
-	blockTime := ctx.BlockTime()
-	feeCollector := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
-	coins := feeCollector.GetCoins()
+func RefundFees(supplyKeeper exported.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
+	coins := supplyKeeper.GetFeeFromBlockPool()
 
 	if !refundFees.IsValid() {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid refund fee amount: %s", refundFees)
@@ -22,15 +20,7 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 			"insufficient funds to refund for fees; %s < %s", coins, refundFees)
 	}
 
-	// Validate the account has enough "spendable" coins as this will cover cases
-	// such as vesting accounts.
-	spendableCoins := feeCollector.SpendableCoins(blockTime)
-	if _, hasNeg := spendableCoins.SafeSub(refundFees); hasNeg {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
-			"insufficient funds to pay for refund fees; %s < %s", spendableCoins, refundFees)
-	}
-	ctx.UpdateFromAccountCache(feeCollector, 0)
-	err := supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.FeeCollectorName, acc, refundFees)
+	err := supplyKeeper.AddCoins(ctx, acc, refundFees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}

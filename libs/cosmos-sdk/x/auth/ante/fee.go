@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -74,10 +75,10 @@ func (mfd MempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 // CONTRACT: Tx must implement FeeTx interface to use DeductFeeDecorator
 type DeductFeeDecorator struct {
 	ak           keeper.AccountKeeper
-	supplyKeeper types.SupplyKeeper
+	supplyKeeper exported2.SupplyKeeper
 }
 
-func NewDeductFeeDecorator(ak keeper.AccountKeeper, sk types.SupplyKeeper) DeductFeeDecorator {
+func NewDeductFeeDecorator(ak keeper.AccountKeeper, sk exported2.SupplyKeeper) DeductFeeDecorator {
 	return DeductFeeDecorator{
 		ak:           ak,
 		supplyKeeper: sk,
@@ -116,7 +117,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+func DeductFees(supplyKeeper exported2.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -139,7 +140,7 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
+	err := supplyKeeper.SubtractCoins(ctx, acc.GetAddress(), fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}

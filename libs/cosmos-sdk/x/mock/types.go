@@ -16,6 +16,22 @@ type DummySupplyKeeper struct {
 	ak auth.AccountKeeper
 }
 
+func (sk DummySupplyKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (sk DummySupplyKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (sk DummySupplyKeeper) AddFeeBlockPool(amt sdk.Coins) {}
+
+func (sk DummySupplyKeeper) GetFeeFromBlockPool() sdk.Coins {
+	return nil
+}
+
+func (sk DummySupplyKeeper) ResetFeeBlockPool() {}
+
 // NewDummySupplyKeeper creates a DummySupplyKeeper instance
 func NewDummySupplyKeeper(ak auth.AccountKeeper) DummySupplyKeeper {
 	return DummySupplyKeeper{ak}

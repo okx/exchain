@@ -2,10 +2,10 @@ package token
 
 import (
 	"encoding/json"
+	authTypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	authTypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/common/version"

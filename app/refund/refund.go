@@ -1,6 +1,7 @@
 package refund
 
 import (
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -13,10 +14,9 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+func NewGasRefundHandler(ak auth.AccountKeeper, sk exported2.SupplyKeeper) sdk.GasRefundHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
@@ -33,7 +33,7 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRe
 
 type Handler struct {
 	ak           keeper.AccountKeeper
-	supplyKeeper types.SupplyKeeper
+	supplyKeeper exported2.SupplyKeeper
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
@@ -64,6 +64,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
 	ctx.EnableAccountCache()
 	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
+
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	return gasFees, nil
 }
 
-func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+func NewGasRefundDecorator(ak auth.AccountKeeper, sk exported2.SupplyKeeper) sdk.GasRefundHandler {
 	chandler := Handler{
 		ak:           ak,
 		supplyKeeper: sk,

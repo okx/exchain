@@ -188,3 +188,18 @@ func (k Keeper) deflate(ctx sdk.Context, tokenSymbol string, deflationAmount sdk
 	k.setTokenSupplyAmount(ctx, tokenSymbol, supplyAmount)
 	return nil
 }
+
+func (k Keeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	_, err := k.bk.SubtractCoins(ctx, addr, amt)
+
+	return err
+}
+
+func (k Keeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	if k.bk.BlacklistedAddr(addr) {
+		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "Address <%s> in blacklist is not allowed", addr)
+	}
+	_, err := k.bk.AddCoins(ctx, addr, amt)
+
+	return err
+}

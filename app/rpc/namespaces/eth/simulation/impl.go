@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"encoding/binary"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/x/evm"
 	"sync"
 
@@ -98,6 +99,18 @@ func (a AccountKeeperProxy) RemoveAccount(ctx sdk.Context, account authexported.
 }
 
 type SupplyKeeperProxy struct {
+}
+
+func (s SupplyKeeperProxy) GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI {
+	return nil
+}
+
+func (s SupplyKeeperProxy) GetFeeFromBlockPool() sdk.Coins {
+	return nil
+}
+
+func (s SupplyKeeperProxy) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
 }
 
 func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {

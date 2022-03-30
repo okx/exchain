@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
 // AccountKeeper defines the expected account keeper interface
@@ -20,6 +21,10 @@ type AccountKeeper interface {
 
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+
+	GetModuleAccount(ctx sdk.Context, moduleName string) exported2.ModuleAccountI
+	GetFeeFromBlockPool() sdk.Coins
+	AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error
 }
 
 type Subspace interface {

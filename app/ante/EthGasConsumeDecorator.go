@@ -1,6 +1,7 @@
 package ante
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -9,7 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -17,12 +17,12 @@ import (
 // gas consumption.
 type EthGasConsumeDecorator struct {
 	ak        auth.AccountKeeper
-	sk        types.SupplyKeeper
+	sk        exported.SupplyKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
-func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
+func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk exported.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
 		ak:        ak,
 		sk:        sk,
