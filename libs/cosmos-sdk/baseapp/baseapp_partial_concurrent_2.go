@@ -70,10 +70,6 @@ func (dttr *dttRoutine) OnStart() error {
 	return nil
 }
 
-//func (dttr *dttRoutine) OnReset() error {
-//	return nil
-//}
-
 func (dttr *dttRoutine) stop() {
 	dttr.done <- 0
 }
@@ -104,7 +100,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				step == partialConcurrentStepAnteFailed ||
 				step == partialConcurrentStepAnteSucceed {
 				//dttr.task.needToRerun = true
-				dttr.logger.Info("RerunTask", "index", dttr.task.index, "step", step)
+				dttr.logger.Error("RerunTask", "index", dttr.task.index, "step", step)
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index, "step", step)
@@ -501,7 +497,7 @@ func (dttm *DTTManager) serialRoutine() {
 					//	break
 					//}
 					dttr = dttm.dttRoutineList[i]
-					if dttr.task == nil || dttr.task.index == task.index {
+					if dttr.task == nil || dttr.task.index <= task.index || dttr.task.step == partialConcurrentStepFinished || dttr.task.step == partialConcurrentStepBasicFailed {
 						continue
 					}
 					if dttr.task.from == task.from {
@@ -549,7 +545,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 				if rerunRoutine != nil {
 					//rerunRoutine.couldRerun(task.index)
-					dttm.app.logger.Info("rerunRoutine", "index", rerunRoutine.task.index)
+					dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
 					rerunRoutine.rerunCh <- 0
 				}
 				if nextTask != nil {
