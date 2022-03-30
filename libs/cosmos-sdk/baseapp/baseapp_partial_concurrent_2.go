@@ -55,7 +55,9 @@ func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txIndex = index
 	//dttr.task = nil
 	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
-	dttr.txByte <- txByte
+	go func() {
+		dttr.txByte <- txByte
+	}()
 }
 
 func (dttr *dttRoutine) OnStart() error {
@@ -125,8 +127,10 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	}
 	if dttr.task.step == partialConcurrentStepAnteStart || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed  {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "step", dttr.task.step)
-		dttr.rerunCh <- 0	// todo: maybe blocked for several milliseconds. why?
-		dttr.logger.Error("sendRerunCh", "index", dttr.task.index, "step", dttr.task.step)
+		go func() {
+			dttr.rerunCh <- 0	// todo: maybe blocked for several milliseconds. why?
+			dttr.logger.Error("sendRerunCh", "index", dttr.task.index, "step", dttr.task.step)
+		}()
 	}
 }
 
@@ -391,10 +395,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr.shouldRerun(-1)
 		//}()
 	} else if dttm.serialIndex+1 == task.index && dttm.serialTask == nil {
-			//go func() {
+			go func() {
 			//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
-			dttm.serialCh <- task//.routineIndex
-			//}()
+				dttm.serialCh <- task//.routineIndex
+			}()
 	}
 
 	return nil

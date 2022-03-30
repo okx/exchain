@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 3
+	maxDeliverTxsConcurrentNum = 2
 )
 
 var totalAnteDuration = int64(0)
