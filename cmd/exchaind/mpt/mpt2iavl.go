@@ -120,7 +120,7 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 		for cItr.Next() {
 			originKey := contractTrie.GetKey(cItr.Key)
 			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.Bytes2Hex(cItr.Value))
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.BytesToHash(cItr.Value))
 			tree.Set(key, ethcmn.BytesToHash(cItr.Value).Bytes())
 		}
 	}
