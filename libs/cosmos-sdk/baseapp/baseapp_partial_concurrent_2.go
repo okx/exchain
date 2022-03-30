@@ -88,7 +88,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			//	dttr.logger.Error("DonotRunAnte", "index", dttr.task.index)
 			}
 		case <-dttr.rerunCh:
-			step := dttr.task.getStep()
+			step := dttr.task.step//getStep()
 			if dttr.task.prevTaskIndex > 0 {
 				dttr.logger.Error("hasPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex)
 			} else if step == partialConcurrentStepFinished ||
@@ -122,8 +122,8 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	}
 	if dttr.task.step == partialConcurrentStepAnteStart || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed  {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "step", dttr.task.step)
-		dttr.task.prevTaskIndex = -1
 		dttr.rerunCh <- 0
+		dttr.task.prevTaskIndex = -1
 	}
 }
 
@@ -131,7 +131,7 @@ func (dttr *dttRoutine) readyForSerialExecution() bool {
 	dttr.mtx.Lock()
 	defer dttr.mtx.Unlock()
 
-	if len(dttr.rerunCh) > 0 {
+	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex > 0 {
 		return false
 	}
 
