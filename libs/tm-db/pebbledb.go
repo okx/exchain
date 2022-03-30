@@ -24,11 +24,35 @@ func init() {
 
 // NewPebbleDB creates a *PebbleDB.
 func NewPebbleDB(name, dir string) (*PebbleDB, error) {
-	opts := &pebble.Options{}
-	opts.Levels = make([]pebble.LevelOptions, 7)
+	cache := pebble.NewCache(1 << 28)
+	defer cache.Unref()
+	opts := &pebble.Options{
+		Cache:                       cache,
+		L0CompactionThreshold:       4,
+		L0StopWritesThreshold:       1000,
+		LBaseMaxBytes:               64 << 20, // 64 MB
+		Levels:                      make([]pebble.LevelOptions, 7),
+		MaxConcurrentCompactions:    3,
+		MaxOpenFiles:                16384,
+		MemTableSize:                64 << 20,
+		MemTableStopWritesThreshold: 4,
+	}
+
+	for i := 0; i < len(opts.Levels); i++ {
+		l := &opts.Levels[i]
+		l.BlockSize = 32 << 10       // 32 KB
+		l.IndexBlockSize = 256 << 10 // 256 KB
+		l.FilterPolicy = bloom.FilterPolicy(10)
+		l.FilterType = pebble.TableFilter
+		if i > 0 {
+			l.TargetFileSize = opts.Levels[i-1].TargetFileSize * 2
+		}
+		l.EnsureDefaults()
+	}
+	opts.Levels[6].FilterPolicy = nil
+	opts.FlushSplitBytes = opts.Levels[0].TargetFileSize
+
 	opts.EnsureDefaults()
-	opts.BytesPerSync = 4 << 20
-	opts.Levels[0].FilterPolicy = bloom.FilterPolicy(10)
 	return NewPebbleDBWithOptions(name, dir, opts)
 }
 
