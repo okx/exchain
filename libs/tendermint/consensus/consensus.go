@@ -501,6 +501,9 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
+	// request for proposer of new height
+	prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
+	go cs.requestForProposer(sleepDuration, prMsg)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -729,6 +732,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
+		//cs.Logger.Error("handle vcMsg", "msg", msg)
 		_, val := cs.Validators.GetByAddress(msg.NewProposer)
 		if peerID == "" {
 			// ApplyBlock of height-1 is not finished
@@ -741,10 +745,10 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ProposeRequestMessage:
 		// ApplyBlock of height-1 is not finished
 		// RoundStepNewHeight enterNewRound use peer as val
-		if srcAddress, err := hex.DecodeString(string(peerID)); err == nil {
-			_, val := cs.Validators.GetByAddress(srcAddress)
-			cs.proposer = val
-		}
+		//cs.Logger.Error("handle prMsg", "msg", msg)
+		_, val := cs.Validators.GetByAddress(msg.NewProposer)
+		cs.proposer = val
+
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -878,6 +882,7 @@ func (cs *State) handleTxsAvailable() {
 // NOTE: cs.StartTime was already set for height.
 func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
+	//logger.Error("enterNewRound", "assignedVal", assignedVal)
 
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight && assignedVal == nil) {
 		logger.Debug(fmt.Sprintf(
@@ -924,7 +929,10 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
-	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+
+	if assignedVal == nil {
+		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+	}
 	cs.TriggeredTimeoutPrecommit = false
 
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
@@ -944,10 +952,15 @@ func (cs *State) enterNewRound(height int64, round int, assignedVal *types.Valid
 	}
 }
 
-func (cs *State) requestForProposer() {
-	// broadcast ProposeRequestMessage
-	cs.evsw.FireEvent(types.EventProposeRequest, ProposeRequestMessage{cs.Height,
-		cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()})
+// requestForProposer FireEvent to broadcast ProposeRequestMessage
+func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequestMessage) {
+	// itself is proposer, no need to request
+	if prMsg.NewProposer.String() == prMsg.CurrentProposer.String() {
+		return
+	}
+	time.Sleep(duration + time.Millisecond)
+	//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
+	cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
@@ -989,6 +1002,7 @@ func (cs *State) isBlockProducer() (string, string) {
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
+	//logger.Error("enterPropose", "step", cs.Step)
 
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
 		logger.Debug(fmt.Sprintf(
@@ -1604,6 +1618,11 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	//if cs.isProposer(cs.privValidatorPubKey.Address()) {
+	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
+	//	time.Sleep(time.Second * 10)
+	//}
+
 	/*
 		if types.EnableBroadcastP2PDelta() {
 			// persists the given deltas to the underlying db.
@@ -1642,8 +1661,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("Waiting")
 
-	// request for proposer of new height
-	cs.requestForProposer()
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)

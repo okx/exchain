@@ -325,6 +325,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			// ApplyBlock of height-1 is finished
+			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			if msg.Height == conR.conS.Height {
 				// verify if src(peer) is proposer. To be sure the message is sent by proposer
 				if conR.conS.isProposer(msg.CurrentProposer) {
@@ -339,6 +340,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 		case *ProposeRequestMessage:
 			// this peer has not vc before this height, and it needs vc, and it is nextProposer
+			//conR.Logger.Error("reactor prMsg", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
@@ -518,11 +520,13 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 }
 
 func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
+	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
 	vcMsg := ViewChangeMessage{prMsg.Height, prMsg.CurrentProposer, prMsg.NewProposer}
+	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(vcMsg))
 }
 
@@ -1550,7 +1554,7 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 type ProposeRequestMessage struct {
 	Height          int64
 	CurrentProposer types.Address
-	NewProposer     types.Address
+	NewProposer		types.Address
 }
 
 func (m *ProposeRequestMessage) ValidateBasic() error {
@@ -1564,7 +1568,7 @@ func (m *ProposeRequestMessage) ValidateBasic() error {
 type ViewChangeMessage struct {
 	Height          int64
 	CurrentProposer types.Address
-	NewProposer     types.Address
+	NewProposer		types.Address
 }
 
 func (m *ViewChangeMessage) ValidateBasic() error {
