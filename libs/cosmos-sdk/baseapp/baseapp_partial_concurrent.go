@@ -341,7 +341,7 @@ type DeliverTxTasksManager struct {
 	sendersMap *sendersMap
 
 	txResponses []*abci.ResponseDeliverTx
-
+	invalidTxs int
 	app                *BaseApp
 }
 
@@ -384,6 +384,7 @@ func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
 	dm.sendersMap.setLogger(dm.app.logger)
 
 	dm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
+	dm.invalidTxs = 0
 
 	go dm.makeTasksRoutine(txs)
 	go dm.runStatefulSerialRoutine()
@@ -612,6 +613,10 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		execFinishedFn := func(txRs abci.ResponseDeliverTx) {
 			//dm.app.logger.Info("SerialFinished", "txIndex", dm.statefulTask.txIndex)
 			dm.txResponses[dm.statefulTask.index] = &txRs
+			if txRs.Code != abci.CodeTypeOK {
+				//logger.Debug("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialTask.index)
+				dm.invalidTxs++
+			}
 			dm.resetStatefulTask()
 			finished++
 		}
@@ -747,7 +752,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
-		app.deliverTxsMgr = NewDTTManager(app)//NewDeliverTxTasksManager(app)
+		app.deliverTxsMgr = NewDeliverTxTasksManager(app)//NewDTTManager(app)
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))
@@ -765,7 +770,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 }
 
 func (app *BaseApp) OnAccountUpdated(acc exported.Account) {
-	if app.deliverTxsMgr != nil {
-		app.deliverTxsMgr.OnAccountUpdated(acc)
-	}
+	//if app.deliverTxsMgr != nil {
+	//	app.deliverTxsMgr.OnAccountUpdated(acc)
+	//}
 }
