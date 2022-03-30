@@ -349,7 +349,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	count := len(dttm.dttRoutineList)
 	for i := 0; i < count; i++ {
 		dttr := dttm.dttRoutineList[i]
-		if dttr.task == nil || dttr.task.index > task.index || dttr.task.from != task.from {
+		if dttr.task == nil || dttr.task.index >= task.index || dttr.task.from != task.from {
 			continue
 		}
 		if dttr.task.step != partialConcurrentStepFinished && dttr.task.index > task.prevTaskIndex {
