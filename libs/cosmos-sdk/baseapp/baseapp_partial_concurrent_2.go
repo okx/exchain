@@ -122,6 +122,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	defer dttr.mtx.Unlock()
 
 	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex != fromIndex {
+		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
 		return
 	}
 	if dttr.task.step == partialConcurrentStepAnteStart || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed  {
@@ -354,6 +355,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		if dttr.task.step != partialConcurrentStepFinished && dttr.task.index > task.prevTaskIndex {
 			task.prevTaskIndex = dttr.task.index
 		}
+	}
+	if task.prevTaskIndex > 0 {
+		dttm.app.logger.Error("hasExistPrevTask", "index", task.index, "prev", task.prevTaskIndex, "from", task.from)
 	}
 	if task.canRerun > 0 {
 		dttr := dttm.dttRoutineList[task.routineIndex]
@@ -627,10 +631,6 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
 	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	//}
-	//waitingIndex := -1
-	//if dttm.serialTask == nil {
-	//	waitingIndex = dttm.serialIndex + 1
 	//}
 	dttm.accountUpdated(true, 1, addr)
 }
