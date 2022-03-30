@@ -90,9 +90,11 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 		case <-dttr.rerunCh:
 			dttr.logger.Error("readRerunCh", "index", dttr.task.index)
 			step := dttr.task.step//getStep()
-			if dttr.task.prevTaskIndex > 0 {
-				dttr.logger.Error("hasPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex)
-			} else if step == partialConcurrentStepFinished ||
+			//if dttr.task.prevTaskIndex > 0 {
+			//	dttr.logger.Error("hasPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex)
+			//} else
+			dttr.task.prevTaskIndex = -1
+			if step == partialConcurrentStepFinished ||
 				step == partialConcurrentStepSerialExecute ||
 				step == partialConcurrentStepBasicFailed {
 				dttr.logger.Error("task is empty or finished")
@@ -125,13 +127,12 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "step", dttr.task.step)
 		dttr.rerunCh <- 0	// todo: maybe blocked for several milliseconds. why?
 		dttr.logger.Error("sendRerunCh", "index", dttr.task.index, "step", dttr.task.step)
-		dttr.task.prevTaskIndex = -1
 	}
 }
 
 func (dttr *dttRoutine) readyForSerialExecution() bool {
-	dttr.mtx.Lock()
-	defer dttr.mtx.Unlock()
+	//dttr.mtx.Lock()
+	//defer dttr.mtx.Unlock()
 
 	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex >= 0 {
 		return false
