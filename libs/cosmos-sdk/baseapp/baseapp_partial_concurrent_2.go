@@ -122,7 +122,8 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	}
 	if dttr.task.step == partialConcurrentStepAnteStart || dttr.task.step == partialConcurrentStepAnteFailed || dttr.task.step == partialConcurrentStepAnteSucceed  {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "step", dttr.task.step)
-		dttr.rerunCh <- 0
+		dttr.rerunCh <- 0	// todo: maybe blocked for several milliseconds. why?
+		dttr.logger.Error("sendRerunCh", "index", dttr.task.index, "step", dttr.task.step)
 		dttr.task.prevTaskIndex = -1
 	}
 }
@@ -131,7 +132,7 @@ func (dttr *dttRoutine) readyForSerialExecution() bool {
 	dttr.mtx.Lock()
 	defer dttr.mtx.Unlock()
 
-	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex > 0 {
+	if len(dttr.rerunCh) > 0 || dttr.task.prevTaskIndex >= 0 {
 		return false
 	}
 
