@@ -45,29 +45,30 @@ const (
 
 type DeliverTxTask struct {
 	//tx            sdk.Tx
-	index         int
-	feeForCollect int64
-	step          partialConcurrentStep
-	updateCount   int8
-	mtx           sync.Mutex
-	needToRerun   bool
-	canRerun int8
+	index              int
+	feeForCollect      int64
+	step               partialConcurrentStep
+	updateCount        int8
+	mtx                sync.Mutex
+	needToRerun        bool
+	canRerun           int8
 	concurrentFinished bool
-	routineIndex int8
+	routineIndex       int8
 
-	info  *runTxInfo
-	from  string //sdk.Address//exported.Account
-	fee   sdk.Coins
-	isEvm bool
-	err error
+	info          *runTxInfo
+	from          string //sdk.Address//exported.Account
+	fromNumber    uint64
+	fee           sdk.Coins
+	isEvm         bool
+	err           error
 	prevTaskIndex int // true: if there exists a not finished tx which has the same sender but smaller index
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	t := &DeliverTxTask{
 		//tx:    tx,
-		index: index,
-		info:  &runTxInfo{tx: tx},
+		index:         index,
+		info:          &runTxInfo{tx: tx},
 		prevTaskIndex: -1,
 	}
 
@@ -120,7 +121,7 @@ func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
 	return dtt.updateCount > 0
 }
 
-func (dtt *DeliverTxTask) resetUpdateCount()  {
+func (dtt *DeliverTxTask) resetUpdateCount() {
 	dtt.mtx.Lock()
 	defer dtt.mtx.Unlock()
 
@@ -336,13 +337,13 @@ type DeliverTxTasksManager struct {
 	pendingTasks  sync.Map
 	statefulTask  *DeliverTxTask
 	currTxFee     sdk.Coins
-	finished bool
+	finished      bool
 
 	sendersMap *sendersMap
 
 	txResponses []*abci.ResponseDeliverTx
-	invalidTxs int
-	app                *BaseApp
+	invalidTxs  int
+	app         *BaseApp
 }
 
 func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
@@ -360,9 +361,9 @@ func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account) {
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	waitingIndex := -1
 	if dm.statefulTask == nil {
-		waitingIndex = dm.statefulIndex+1
+		waitingIndex = dm.statefulIndex + 1
 	}
-		dm.sendersMap.accountUpdated(true, 1, addr, waitingIndex)
+	dm.sendersMap.accountUpdated(true, 1, addr, waitingIndex)
 }
 
 func (dm *DeliverTxTasksManager) deliverTxs(txs [][]byte) {
@@ -752,7 +753,7 @@ func (dm *DeliverTxTasksManager) incrementWaitingCount(increment bool) {
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
 	if app.deliverTxsMgr == nil {
-		app.deliverTxsMgr = NewDeliverTxTasksManager(app)//NewDTTManager(app)
+		app.deliverTxsMgr = NewDTTManager(app) //NewDeliverTxTasksManager(app)
 	}
 
 	//app.logger.Info("deliverTxs", "txs", len(txs))

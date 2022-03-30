@@ -162,7 +162,7 @@ type DTTManager struct {
 	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
 	serialIndex    int
 	serialTask     *DeliverTxTask
-	serialCh       chan *DeliverTxTask//int8//
+	serialCh       chan int8//*DeliverTxTask//
 	//serialNextCh       chan *DeliverTxTask
 
 	mtx       sync.Mutex
@@ -205,8 +205,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.currTxFee = sdk.Coins{}
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
-	dttm.serialCh = make(chan *DeliverTxTask, 2)
-	//dttm.serialCh = make(chan int8, 2)
+	//dttm.serialCh = make(chan *DeliverTxTask, 2)
+	dttm.serialCh = make(chan int8, 3)
 	//dttm.serialNextCh = make(chan *DeliverTxTask, 1)
 	dttm.startFinished = false
 
@@ -397,7 +397,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	} else if dttm.serialIndex+1 == task.index && dttm.serialTask == nil {
 			go func() {
 			//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", task.index)
-				dttm.serialCh <- task//.routineIndex
+				dttm.serialCh <- task.routineIndex
 			}()
 	}
 
@@ -431,11 +431,11 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 func (dttm *DTTManager) serialRoutine() {
 	for {
 		select {
-		case task := <-dttm.serialCh:
-		//case routineIndex := <-dttm.serialCh:
+		//case task := <-dttm.serialCh:
+		case routineIndex := <-dttm.serialCh:
 			// runMsgs etc.
-			//rt := dttm.dttRoutineList[routineIndex]
-			//task := rt.task
+			rt := dttm.dttRoutineList[routineIndex]
+			task := rt.task
 			if task.index == dttm.serialIndex+1 {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
@@ -475,8 +475,8 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// todo: check whether there are ante-finished task
 				count := len(dttm.dttRoutineList)
-				var nextTask *DeliverTxTask
-				//nextTaskRoutine := int8(-1)
+				//var nextTask *DeliverTxTask
+				nextTaskRoutine := int8(-1)
 				var rerunRoutine *dttRoutine
 				//getRerun := false
 				for i := 0; i < count; i++ {
@@ -495,8 +495,8 @@ func (dttm *DTTManager) serialRoutine() {
 							rerunRoutine = dttr
 						}
 					} else if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
-						nextTask = dttr.task
-						//nextTaskRoutine = dttr.index
+						//nextTask = dttr.task
+						nextTaskRoutine = dttr.index
 					}
 
 					//// if exists the next task which has finished the concurrent execution
@@ -532,12 +532,12 @@ func (dttm *DTTManager) serialRoutine() {
 					dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
 					rerunRoutine.shouldRerun(task.index)
 				}
-				if nextTask != nil {
-				//if nextTaskRoutine >= 0 {
+				//if nextTask != nil {
+				if nextTaskRoutine >= 0 {
 					totalSerialWaitingCount--
 					go func() {
 						//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
-						dttm.serialCh <- nextTask//nextTaskRoutine//
+						dttm.serialCh <- nextTaskRoutine//nextTask//
 					}()
 					//dttm.serialNextCh <- nextTask
 				}
@@ -658,11 +658,11 @@ func (dttm *DTTManager) updateFeeCollector() {
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
-	addr := acc.GetAddress().String()
-	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	//}
-	dttm.accountUpdated(true, 1, addr)
+	//addr := acc.GetAddress().String()
+	////if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	////	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	////}
+	//dttm.accountUpdated(true, 1, addr)
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
