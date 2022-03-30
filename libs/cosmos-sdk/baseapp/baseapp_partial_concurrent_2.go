@@ -60,7 +60,7 @@ func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 
 func (dttr *dttRoutine) OnStart() error {
 	dttr.done = make(chan int)
-	dttr.txByte = make(chan []byte, 2)
+	dttr.txByte = make(chan []byte, 3)
 	dttr.rerunCh = make(chan int, 5)
 	//dttr.runAnteCh = make(chan int, 5)
 	go dttr.executeTaskRoutine()
@@ -345,11 +345,17 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	count := len(dttm.dttRoutineList)
 	for i := 0; i < count; i++ {
 		dttr := dttm.dttRoutineList[i]
-		if dttr.task == nil || dttr.task.index >= task.index || dttr.task.from != task.from {
+		if dttr.task == nil || dttr.task.index == task.index ||
+			dttr.task.step == partialConcurrentStepFinished ||
+			dttr.task.step == partialConcurrentStepBasicFailed ||
+			dttr.task.from != task.from {
 			continue
 		}
-		if dttr.task.step != partialConcurrentStepFinished && dttr.task.index > task.prevTaskIndex {
+		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
 			task.prevTaskIndex = dttr.task.index
+		} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
+			dttr.task.prevTaskIndex = task.index
+			dttm.app.logger.Error("hasExistPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
 	if task.prevTaskIndex > 0 {
@@ -433,9 +439,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttr := dttm.dttRoutineList[task.routineIndex]
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if dttr != nil && nextIndex < dttm.totalCount {
-					if !dttm.startFinished {
-						time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
-					}
+					//if !dttm.startFinished {
+					//	time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
+					//}
 					dttr.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
