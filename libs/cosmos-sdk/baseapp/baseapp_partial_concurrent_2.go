@@ -88,6 +88,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			//	dttr.logger.Error("DonotRunAnte", "index", dttr.task.index)
 			}
 		case <-dttr.rerunCh:
+			dttr.logger.Error("readRerunCh", "index", dttr.task.index)
 			step := dttr.task.step//getStep()
 			if dttr.task.prevTaskIndex > 0 {
 				dttr.logger.Error("hasPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex)
@@ -113,8 +114,8 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 }
 
 func (dttr *dttRoutine) shouldRerun(fromIndex int) {
-	dttr.mtx.Lock()
-	defer dttr.mtx.Unlock()
+	//dttr.mtx.Lock()
+	//defer dttr.mtx.Unlock()
 
 	if len(dttr.rerunCh) > 0 || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex != fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
