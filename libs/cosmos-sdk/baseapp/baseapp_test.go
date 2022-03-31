@@ -15,7 +15,6 @@ import (
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -90,7 +89,7 @@ func TestLoadVersion(t *testing.T) {
 	app.InitChain(abci.RequestInitChain{})
 	// make a cap key and mount the store
 	capKey := sdk.NewKVStoreKey(MainStoreKey)
-	app.MountStores(capKey, sdk.NewKVStoreKey(mpt.StoreKey))
+	app.MountStores(capKey)
 	err := app.LoadLatestVersion(capKey) // needed to make stores non-nil
 	require.Nil(t, err)
 
