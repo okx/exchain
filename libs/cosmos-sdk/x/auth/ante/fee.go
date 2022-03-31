@@ -124,8 +124,9 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	case sdk.StdTxType:
 		err = deductStdTxFees(supplyKeeper, ctx, acc, fees)
 	case sdk.EvmTxType:
-		if !ctx.IsCheckTx() {
+		if ctx.IsDeliver() || ctx.IsAsync() {
 			supplyKeeper.AddFee(fees)
+			fmt.Printf("%v addfee--->", ctx)
 		} else {
 			err = deductStdTxFees(supplyKeeper, ctx, acc, fees)
 		}
