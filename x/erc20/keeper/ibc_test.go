@@ -12,6 +12,8 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
+const IbcDenom = "ibc/ddcd907790b8aa2bf9b2b3b614718fa66bfc7540e832ce3e3696ea717dceff49"
+
 func (suite *KeeperTestSuite) TestConvertVouchers() {
 	addr1 := common.BigToAddress(big.NewInt(1))
 	addr1Bech := sdk.AccAddress(addr1.Bytes())
@@ -30,7 +32,7 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 		{
 			"Wrong from address",
 			"test",
-			sdk.NewCoins(sdk.NewCoin(types.IbcDenomDefaultValue, sdk.NewInt(1))),
+			sdk.NewCoins(sdk.NewCoin(IbcDenom, sdk.NewInt(1))),
 			func() {},
 			func() {},
 			errors.New("encoding/hex: invalid byte: U+0074 't'"),
@@ -38,7 +40,7 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 		{
 			"Empty address",
 			"",
-			sdk.NewCoins(sdk.NewCoin(types.IbcDenomDefaultValue, sdk.NewInt(1))),
+			sdk.NewCoins(sdk.NewCoin(IbcDenom, sdk.NewInt(1))),
 			func() {},
 			func() {},
 			errors.New("empty from address string is not allowed"),
@@ -54,35 +56,24 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 		{
 			"Correct address with not enough IBC evm token",
 			addr1Bech.String(),
-			sdk.NewCoins(sdk.NewCoin(types.IbcDenomDefaultValue, sdk.NewInt(123))),
+			sdk.NewCoins(sdk.NewCoin(IbcDenom, sdk.NewInt(123))),
 			func() {
-				coin := sdk.NewCoin(types.IbcDenomDefaultValue, amountDec.Sub(sdk.NewDec(3)))
+				coin := sdk.NewCoin(IbcDenom, amountDec.Sub(sdk.NewDec(3)))
 				err := suite.MintCoins(addr1Bech, sdk.NewCoins(coin))
 				suite.Require().NoError(err)
+
+				params := types.DefaultParams()
+				params.EnableAutoDeployment = true
+				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
+
+				evmParams := evmtypes.DefaultParams()
+				evmParams.EnableCreate = true
+				evmParams.EnableCall = true
+				suite.app.EvmKeeper.SetParams(suite.ctx, evmParams)
 			},
 			func() {},
 			fmt.Errorf("insufficient funds: insufficient account funds; 120.000000000000000000%s < 123.000000000000000000%s",
-				types.IbcDenomDefaultValue, types.IbcDenomDefaultValue),
-		},
-		{
-			"Correct address with enough IBC-evm token : Should receive evm tokens",
-			addr1Bech.String(),
-			sdk.NewDecCoinsFromDec(types.IbcDenomDefaultValue, amountDec),
-			func() {
-				coin := sdk.NewCoin(types.IbcDenomDefaultValue, amountDec)
-				err := suite.MintCoins(addr1Bech, sdk.NewCoins(coin))
-				suite.Require().NoError(err)
-
-				balance := suite.GetBalance(addr1Bech, types.IbcDenomDefaultValue)
-				suite.Require().Equal(coin, balance)
-			},
-			func() {
-				coin := sdk.NewCoin(sdk.DefaultBondDenom, amountDec)
-
-				balance := suite.GetBalance(addr1Bech, sdk.DefaultBondDenom)
-				suite.Require().Equal(coin, balance)
-			},
-			nil,
+				IbcDenom, IbcDenom),
 		},
 		{
 			"Correct address with not enough IBC token",
@@ -92,6 +83,10 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 				coin := sdk.NewCoin(CorrectIbcDenom, amountDec.Sub(sdk.NewDec(3)))
 				err := suite.MintCoins(addr1Bech, sdk.NewCoins(coin))
 				suite.Require().NoError(err)
+
+				params := types.DefaultParams()
+				params.EnableAutoDeployment = true
+				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
 
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
@@ -113,6 +108,10 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 
 				balance := suite.GetBalance(addr1Bech, CorrectIbcDenom)
 				suite.Require().Equal(coin, balance)
+
+				params := types.DefaultParams()
+				params.EnableAutoDeployment = true
+				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
 
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
