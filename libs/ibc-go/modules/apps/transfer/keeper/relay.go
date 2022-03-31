@@ -222,14 +222,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		if denomTrace.Path != "" {
 			denom = denomTrace.IBCDenom()
 		}
-		//token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
-		//okcToken, err := sdk.NewDecFromStr(transferAmount.OKCString())
-		//if nil != err {
-		//	return err
-		//}
 
 		token := sdk.NewCoin(denom, okcToken)
-		//token := sdk.NewDecCoin(denom, transferAmount)
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
@@ -336,7 +330,6 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	// parse the denomination from the full denom path
 	trace := types.ParseDenomTrace(data.Denom)
 
-	// parse the transfer amount
 	// parse the transfer amount
 	transferAmount, ok := sdk.NewIntFromString(data.Amount)
 	if !ok {

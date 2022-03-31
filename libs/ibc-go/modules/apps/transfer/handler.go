@@ -1,10 +1,6 @@
 package transfer
 
 import (
-
-	//"github.com/okex/exchain/common"
-	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
@@ -19,8 +15,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case *types.MsgTransfer:
-			res, err := k.Transfer(sdk.WrapSDKContext(ctx), msg)
-			fmt.Println(res)
+			_, err := k.Transfer(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, nil, err)
 
 		default:
