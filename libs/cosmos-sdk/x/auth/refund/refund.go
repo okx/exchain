@@ -30,7 +30,7 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
 	supplyKeeper.ResetFee()
-	fmt.Printf("<---refundfee %v \n", ctx)
+	fmt.Printf("<---refundfee \n")
 
 	return nil
 }
