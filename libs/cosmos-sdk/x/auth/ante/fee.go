@@ -126,6 +126,8 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	case sdk.EvmTxType:
 		if ctx.IsDeliver() {
 			supplyKeeper.AddFee(fees)
+		} else {
+			err = deductStdTxFees(supplyKeeper, ctx, acc, fees)
 		}
 	default:
 		err = sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
