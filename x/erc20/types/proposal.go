@@ -69,11 +69,7 @@ func (tp TokenMappingProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("invalid denom")
 	}
 
-	if len(strings.TrimSpace(tp.Contract)) == 0 {
-		return govtypes.ErrInvalidProposalContent("contract is required")
-	}
-
-	if !common.IsHexAddress(tp.Contract) {
+	if len(strings.TrimSpace(tp.Contract)) > 0 && !common.IsHexAddress(tp.Contract) {
 		return govtypes.ErrInvalidProposalContent("invalid contract")
 	}
 

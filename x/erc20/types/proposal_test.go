@@ -28,7 +28,7 @@ func TestTokenMappingProposal_ValidateBasic(t *testing.T) {
 		{"no-description", TokenMappingProposal{"proposal", "", "eth", contractAddrStr}, false},
 		{"no-denom", TokenMappingProposal{"proposal", "delist proposal", "", contractAddrStr}, false},
 		{"err-denom", TokenMappingProposal{"proposal", "delist proposal", ".@..", contractAddrStr}, false},
-		{"no-contract", TokenMappingProposal{"proposal", "delist proposal", "btc", ""}, false},
+		{"no-contract", TokenMappingProposal{"proposal", "delist proposal", "btc", ""}, true},
 		{"err-contract", TokenMappingProposal{"proposal", "delist proposal", "btc", "0xqwoifej923jd"}, false},
 		{"long-title", TokenMappingProposal{getLongString(15),
 			"right delist proposal", "eth", contractAddrStr}, false},

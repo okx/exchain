@@ -19,24 +19,6 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			false,
 		},
 		{
-			"Wrong ibcDenom length",
-			func() {},
-			types.GenesisState{
-				Params: types.Params{
-					IbcDenom: "ibc/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB086534",
-				}},
-			true,
-		},
-		{
-			"Wrong ibcDenom prefix",
-			func() {},
-			types.GenesisState{
-				Params: types.Params{
-					IbcDenom: "aaa/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
-				}},
-			true,
-		},
-		{
 			"Wrong denom in external token mapping",
 			func() {},
 			types.GenesisState{
@@ -126,5 +108,6 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 
 func (suite *Erc20TestSuite) TestExportGenesis() {
 	genesisState := erc20.ExportGenesis(suite.ctx, suite.app.Erc20Keeper)
-	suite.Require().Equal(genesisState.Params.IbcDenom, types.DefaultParams().IbcDenom)
+	suite.Require().Equal(genesisState.Params.IbcTimeout, types.DefaultParams().IbcTimeout)
+	suite.Require().Equal(genesisState.Params.EnableAutoDeployment, types.DefaultParams().EnableAutoDeployment)
 }

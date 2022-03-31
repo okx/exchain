@@ -176,7 +176,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	return
 }
 
-
 func (app *BaseApp) addCommitTraceInfo() {
 	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
 	dbReadCountStr := strconv.Itoa(app.cms.GetDBReadCount())
@@ -305,44 +304,39 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
-	var resp abci.ResponseQuery
-
 	ceptor := app.interceptors[req.Path]
 	if nil != ceptor {
-		if err := ceptor.Before(&req); nil != err {
-			return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, err.Error()))
-		}
-		defer ceptor.After(&resp)
+		// interceptor is like `aop`,it may record the request or rewrite the data in the request
+		// it should have funcs like `Begin` `End`,
+		// but for now, we will just redirect the path router,so once the request was intercepted(see #makeInterceptors),
+		// grpcQueryRouter#Route will return nil
+		ceptor.Intercept(&req)
 	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		resp = sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
-		return resp
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
-		resp = app.handleQueryGRPC(grpcHandler, req)
-		return resp
+		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
 	switch path[0] {
 	// "/app" prefix for special application queries
 	case "app":
-		resp = handleQueryApp(app, path, req)
+		return handleQueryApp(app, path, req)
 
 	case "store":
-		resp = handleQueryStore(app, path, req)
+		return handleQueryStore(app, path, req)
 
 	case "p2p":
-		resp = handleQueryP2P(app, path)
+		return handleQueryP2P(app, path)
 
 	case "custom":
-		resp = handleQueryCustom(app, path, req)
+		return handleQueryCustom(app, path, req)
 	default:
-		resp = sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
-
-	return resp
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {

@@ -106,28 +106,29 @@ func gRPCErrorToSDKError(err error) error {
 	}
 }
 
+// it is like hooker ,grap the request and do sth....(like redirect the path or anything else)
 type Interceptor interface {
-	Before(req *abci.RequestQuery) error
-	After(resp *abci.ResponseQuery)
+	Intercept(req *abci.RequestQuery)
 }
 
 var (
-	_ Interceptor = (*FunctionInterceptor)(nil)
+	_ Interceptor = (*functionInterceptor)(nil)
 )
 
-type FunctionInterceptor struct {
-	beforeF func(req *abci.RequestQuery) error
-	afterF  func(resp *abci.ResponseQuery)
+type functionInterceptor struct {
+	hookF func(req *abci.RequestQuery)
 }
 
-func NewFunctionInterceptor(beforeF func(req *abci.RequestQuery) error, afterF func(resp *abci.ResponseQuery)) *FunctionInterceptor {
-	return &FunctionInterceptor{beforeF: beforeF, afterF: afterF}
+func (f *functionInterceptor) Intercept(req *abci.RequestQuery) {
+	f.hookF(req)
 }
 
-func (f *FunctionInterceptor) Before(req *abci.RequestQuery) error {
-	return f.beforeF(req)
+func NewRedirectInterceptor(redirectPath string) Interceptor {
+	return newFunctionInterceptor(func(req *abci.RequestQuery) {
+		req.Path = redirectPath
+	})
 }
 
-func (f *FunctionInterceptor) After(resp *abci.ResponseQuery) {
-	f.afterF(resp)
+func newFunctionInterceptor(f func(req *abci.RequestQuery)) *functionInterceptor {
+	return &functionInterceptor{hookF: f}
 }
