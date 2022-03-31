@@ -152,17 +152,17 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 }
 
 func (dttr *dttRoutine) shouldRerun(fromIndex int) {
-	if dttr.step == dttRoutineStepReadyForSerial || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex != fromIndex) {
+	if dttr.step == dttRoutineStepReadyForSerial || dttr.step == dttRoutineStepNeedRerun || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex != fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
 		return
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index)
-		go func() {
-			dttr.step = dttRoutineStepNeedRerun
+		dttr.step = dttRoutineStepNeedRerun
+		//go func() {
 			dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
 			dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
-		}()
+		//}()
 	}
 }
 
