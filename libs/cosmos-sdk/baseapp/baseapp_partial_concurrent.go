@@ -771,7 +771,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 }
 
 func (app *BaseApp) OnAccountUpdated(acc exported.Account) {
-	//if app.deliverTxsMgr != nil {
-	//	app.deliverTxsMgr.OnAccountUpdated(acc)
-	//}
+	if app.deliverTxsMgr != nil {
+		app.deliverTxsMgr.OnAccountUpdated(acc)
+	}
 }

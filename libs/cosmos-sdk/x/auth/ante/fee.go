@@ -140,9 +140,9 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if global.GetGlobalHeight() == 5811244 {
+	if global.GetGlobalHeight() == 5811070 {
 		hexacc := hex.EncodeToString(acc.GetAddress())
-		if hexacc == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+		if hexacc == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
 			log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
 		}
 	}

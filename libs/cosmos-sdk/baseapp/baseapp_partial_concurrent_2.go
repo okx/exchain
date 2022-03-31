@@ -1,11 +1,13 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"runtime"
 
@@ -183,11 +185,6 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 		dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
-		//dttm.app.logger.Info("newDttRoutine", "index", i, "list", len(dttm.dttRoutineList))
-		//err := dttr.OnStart()
-		//if err != nil {
-		//	dttm.app.logger.Error("Error starting DttRoutine", "err", err)
-		//}
 	}
 
 	return dttm
@@ -347,9 +344,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		task.canRerun = 0
 	//}
 
-	//if global.GetGlobalHeight() == 5811244 {
-	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
-	//}
+	if global.GetGlobalHeight() == 5811070 {
+		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
@@ -443,9 +440,9 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialExecution()
 				dttm.serialTask = nil
 				task.setStep(partialConcurrentStepFinished)
-				//if global.GetGlobalHeight() == 5811244 {
-				//	dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
-				//}
+				if global.GetGlobalHeight() == 5811070 {
+					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
 					//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
@@ -549,9 +546,9 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	//if global.GetGlobalHeight() == 5811244 {
-	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
-	//}
+	if global.GetGlobalHeight() == 5811070 {
+		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	}
 
 	info := dttm.serialTask.info
 	handler := info.handler
@@ -659,15 +656,15 @@ func (dttm *DTTManager) updateFeeCollector() {
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 	addr := acc.GetAddress().String()
-	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	//}
+	if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+		dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	}
 	dttm.accountUpdated(true, 1, addr)
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
 	num := len(dttm.dttRoutineList)
-	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+	//if global.GetGlobalHeight() == 5811070 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
 	//	dttm.app.logger.Info("OnAccountUpdated", "times", times, "happened", happened, "addr", address)
 	//}
 	for i := 0; i < num; i++ {

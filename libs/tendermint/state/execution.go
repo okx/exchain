@@ -468,7 +468,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	start = time.Now()
 	for count, tx := range block.Txs {
-		//if global.GetGlobalHeight() == 5810705 {
+		//if global.GetGlobalHeight() == 5811070 {
 		//	logger.Info("DeliverTxAsync", "index", count)
 		//}
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
