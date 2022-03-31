@@ -404,10 +404,11 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			// TODO: make use of this info
 			// Blocks may include invalid txs.
 			txRes := r.DeliverTx
+			logger.Error("tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex, "")
 			if txRes.Code == abci.CodeTypeOK {
 				validTxs++
 			} else {
-				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
+				logger.Error("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex, "txRes", txRes)
 				invalidTxs++
 			}
 			abciResponses.DeliverTxs[txIndex] = txRes
