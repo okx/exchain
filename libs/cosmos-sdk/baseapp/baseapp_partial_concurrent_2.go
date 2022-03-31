@@ -372,19 +372,19 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || dttr.task.index == task.index ||
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-			dttr.step == dttRoutineStepReadyForSerial ||
+			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
 			dttr.task.from != task.from {
 			continue
 		}
 		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
 			task.prevTaskIndex = dttr.task.index
+			dttm.app.logger.Error("hasExistPrevTask", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
 		} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
 			dttr.task.prevTaskIndex = task.index
 			dttm.app.logger.Error("hasExistPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
 	if task.prevTaskIndex > 0 {
-		dttm.app.logger.Error("hasExistPrevTask", "index", task.index, "prev", task.prevTaskIndex, "from", task.from)
 		return err
 	}
 	if task.canRerun > 0 {
