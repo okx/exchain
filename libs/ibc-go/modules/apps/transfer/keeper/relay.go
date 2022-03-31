@@ -110,8 +110,6 @@ func (k Keeper) SendTransfer(
 
 	isSource := types.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath)
 	if isSource {
-		//labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
-
 		// create the escrow address for the tokens
 		escrowAddress := types.GetEscrowAddress(sourcePort, sourceChannel)
 
@@ -122,8 +120,6 @@ func (k Keeper) SendTransfer(
 			return err
 		}
 	} else {
-		//labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "false"))
-
 		// transfer the coins to the module account and burn them
 		if err := k.bankKeeper.SendCoinsFromAccountToModule(
 			ctx, sender, types.ModuleName, sdk.NewCoins(token),
