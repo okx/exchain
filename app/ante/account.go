@@ -2,7 +2,7 @@ package ante
 
 import (
 	"bytes"
-	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -19,12 +19,12 @@ import (
 
 type AccountAnteDecorator struct {
 	ak        auth.AccountKeeper
-	sk        exported2.SupplyKeeper
+	sk        types.SupplyKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewAccountVerificationDecorator creates a new AccountVerificationDecorator
-func NewAccountAnteDecorator(ak auth.AccountKeeper, ek EVMKeeper, sk exported2.SupplyKeeper) AccountAnteDecorator {
+func NewAccountAnteDecorator(ak auth.AccountKeeper, ek EVMKeeper, sk types.SupplyKeeper) AccountAnteDecorator {
 	return AccountAnteDecorator{
 		ak:        ak,
 		sk:        sk,
@@ -132,7 +132,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, sk exported2.SupplyKeeper) error {
+func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) error {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {

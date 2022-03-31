@@ -1,7 +1,7 @@
 package refund
 
 import (
-	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -16,7 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 )
 
-func NewGasRefundHandler(ak auth.AccountKeeper, sk exported2.SupplyKeeper) sdk.GasRefundHandler {
+func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
@@ -33,7 +33,7 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk exported2.SupplyKeeper) sdk.G
 
 type Handler struct {
 	ak           keeper.AccountKeeper
-	supplyKeeper exported2.SupplyKeeper
+	supplyKeeper types.SupplyKeeper
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
@@ -73,7 +73,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	return gasFees, nil
 }
 
-func NewGasRefundDecorator(ak auth.AccountKeeper, sk exported2.SupplyKeeper) sdk.GasRefundHandler {
+func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 	chandler := Handler{
 		ak:           ak,
 		supplyKeeper: sk,
