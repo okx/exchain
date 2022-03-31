@@ -214,8 +214,6 @@ func (k Keeper) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
 	if acc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", authtypes.FeeCollectorName)
 	}
-	// GetModuleAccount may create a new module account, we don't know does the gas consumed contains the gas of new account creation
-	ctx.UpdateToAccountCache(recipientAcc, 0)
 
 	_, err := k.bk.AddCoins(ctx, acc.GetAddress(), amt)
 
