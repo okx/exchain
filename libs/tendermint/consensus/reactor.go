@@ -341,7 +341,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			// this peer has not vc before this height, and it needs vc, and it is nextProposer
 			//conR.Logger.Error("reactor prMsg", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			if msg.Height > conR.hasViewChanged && msg.Height == conR.conS.Height+1 && conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
+			if msg.Height > conR.hasViewChanged && msg.Height < conR.conS.Height && conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg)
