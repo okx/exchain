@@ -198,8 +198,14 @@ func (rs *Store) LoadVersion(ver int64) error {
 
 func (rs *Store) GetCommitVersion() (int64, error) {
 	var minVersion int64 = 1<<63 - 1
+	latestVersion := rs.GetLatestVersion()
+
 	for _, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
+			if (storeParams.key.Name() == "acc" || storeParams.key.Name() == "evm") && tmtypes.HigherThanMars(latestVersion) {
+				continue
+			}
+
 			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
 			if err != nil {
 				return 0, err
@@ -249,6 +255,10 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
+		if (key.Name() == "acc" || key.Name() == "evm") && tmtypes.HigherThanMars(ver) {
+			continue
+		}
+
 		commitID := rs.getCommitID(infos, key.Name())
 
 		// If it has been added, set the initial version
@@ -511,6 +521,10 @@ func (rs *Store) pruneStores() {
 	}()
 	for key, store := range rs.stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
+			if (key.Name() == "acc" || key.Name() == "evm") && tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
+				continue
+			}
+
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
