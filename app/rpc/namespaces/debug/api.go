@@ -10,6 +10,8 @@ import (
 
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // PublicTxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.
@@ -31,8 +33,21 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash) (interface{}, error) {
-	resTrace, _, err := api.clientCtx.QueryWithData("app/trace", txHash.Bytes())
+func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config *evmtypes.TraceConfig) (interface{}, error) {
+
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	queryParam := sdk.QueryTraceTx{
+		TxHash:      txHash,
+		ConfigBytes: configBytes,
+	}
+	queryBytes, err := json.Marshal(&queryParam)
+	if err != nil {
+		return nil, err
+	}
+	resTrace, _, err := api.clientCtx.QueryWithData("app/trace", queryBytes)
 	if err != nil {
 		return nil, err
 	}

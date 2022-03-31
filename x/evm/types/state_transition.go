@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/eth/tracers"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
@@ -107,6 +108,25 @@ func (st *StateTransition) newEVM(
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
+func newTracer(traceConfig *TraceConfig) (vm.Tracer, error) {
+
+	var tracer vm.Tracer
+	if traceConfig != nil && traceConfig.Tracer == "" {
+		logConfig := vm.LogConfig{
+			DisableMemory:     traceConfig.DisableMemory,
+			DisableStorage:    traceConfig.DisableStorage,
+			DisableStack:      traceConfig.DisableStack,
+			DisableReturnData: traceConfig.DisableReturnData,
+			Debug:             traceConfig.Debug,
+		}
+		tracer = vm.NewStructLogger(&logConfig)
+		return tracer, nil
+	}
+	tCtx := &tracers.Context{}
+	// Construct the JavaScript tracer to execute with
+	return tracers.New(traceConfig.Tracer, tCtx)
+}
+
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
@@ -168,18 +188,25 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		to = EthAddressToString(st.Recipient)
 		recipientStr = to
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), senderStr, to)
-
 	var tracer vm.Tracer
-	if st.TraceTxLog || enableDebug {
-		tracer = vm.NewStructLogger(evmLogConfig)
+	if st.TraceTxLog {
+		configBytes := ctx.TraceTxLogConfig()
+		var traceConfig TraceConfig
+		err = json.Unmarshal(configBytes, &traceConfig)
+		if err != nil {
+			return
+		}
+		tracer, err = newTracer(&traceConfig)
+		if err != nil {
+			return
+		}
 	} else {
 		tracer = NewNoOpTracer()
 	}
 
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
-		Debug:            st.TraceTxLog || enableDebug,
+		Debug:            st.TraceTxLog,
 		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
@@ -254,7 +281,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 
 	defer func() {
-		if !st.Simulate && enableDebug && !st.TraceTx {
+		if !st.Simulate && !st.TraceTx {
 			result := &core.ExecutionResult{
 				UsedGas:    gasConsumed,
 				Err:        err,

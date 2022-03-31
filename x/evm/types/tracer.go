@@ -46,6 +46,21 @@ var (
 	evmLogConfig *vm.LogConfig
 )
 
+type TraceConfig struct {
+	// custom javascript tracer
+	Tracer string `json:"tracer,omitempty"`
+	// disable stack capture
+	DisableStack bool `json:"disableStack"`
+	// disable storage capture
+	DisableStorage bool `json:"disableStorage"`
+	// print output during capture end
+	Debug bool `json:"debug,omitempty"`
+	// enable memory capture
+	DisableMemory bool `json:"disableMemory"`
+	// enable return data capture
+	DisableReturnData bool `json:"disableReturnData"`
+}
+
 func CloseTracer() {
 	if tracesDB != nil {
 		tracesDB.Close()
