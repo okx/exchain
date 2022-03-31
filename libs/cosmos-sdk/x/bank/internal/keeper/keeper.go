@@ -311,7 +311,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	if !amt.IsValid() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
-	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
 	return keeper.subtractCoins(ctx, addr, acc, gasUsed, amt)
 }
 
@@ -345,7 +345,7 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 
 	// oldCoins := keeper.GetCoins(ctx, addr)
 
-	acc, gasUsed := authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
 	return keeper.addCoins(ctx, addr, acc, gasUsed, amt)
 }
 
@@ -400,7 +400,7 @@ func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, 
 			return acc, gasused
 		}
 	}
-	return authexported.GetAccountAndGas(*ctx, keeper.ak, addr)
+	return authexported.GetAccountAndGas(ctx, keeper.ak, addr)
 }
 
 func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {

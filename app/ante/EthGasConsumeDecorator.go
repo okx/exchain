@@ -78,6 +78,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
 	}
 
+	// Charge sender for gas up to limit
 	if gasLimit != 0 {
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
@@ -95,6 +96,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	// Set gas meter after ante handler to ignore gaskv costs
-	newCtx = auth.SetGasMeter(simulate, ctx, gasLimit)
-	return next(newCtx, tx, simulate)
+	auth.SetGasMeter(simulate, &ctx, gasLimit)
+	return next(ctx, tx, simulate)
 }

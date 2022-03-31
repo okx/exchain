@@ -758,7 +758,8 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		).(sdk.CacheMultiStore)
 	}
 
-	return ctx.WithMultiStore(msCache), msCache
+	ctx.SetMultiStore(msCache)
+	return ctx, msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {

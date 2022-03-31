@@ -1336,7 +1336,7 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 }
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
-func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.IsDeliver() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
@@ -1426,7 +1426,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 }
 
 // GetContractMethodBlockedList get the list of contract method blocked from blocked list store
-func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
+func (csdb *CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()

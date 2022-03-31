@@ -49,6 +49,19 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.From = addr
 }
 
+// GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
+func (tx *MsgEthereumTx) GetFrom() string {
+	from := tx.BaseTx.GetFrom()
+	if from == "" {
+		from, _ = tmtypes.SignatureCache().Get(string(tx.TxHash()))
+		if from == "" {
+			from, _ = tx.firstVerifySig(tx.ChainID())
+		}
+	}
+
+	return from
+}
+
 func (msg *MsgEthereumTx) GetNonce() uint64 {
 	return msg.Data.AccountNonce
 }
@@ -250,24 +263,13 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	return nil
 }
 
-func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
-	if msg.GetFrom() != "" {
-		//fmt.Println("skip firstVerifySig")
-		return nil
-	}
-
-	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
-	if ok {
-		msg.BaseTx.From = from
-		return nil
-	}
-
+func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return errors.New("chainID cannot be zero")
+			return "", errors.New("chainID cannot be zero")
 		}
 
 		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
@@ -283,11 +285,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
-		return err
+		return "", err
 	}
-	tmtypes.SignatureCache().Add(string(msg.TxHash()), sender.String())
-	msg.BaseTx.From = sender.String()
-	return nil
+	return sender.String(), nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -296,7 +296,21 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if !isProtectedV(msg.Data.V) && tmtypes.HigherThanMercury(height) {
 		return errors.New("deprecated support for homestead Signer")
 	}
-	return msg.firstVerifySig(chainID)
+	if msg.BaseTx.GetFrom() != "" {
+		return nil
+	}
+	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	if ok {
+		msg.BaseTx.From = from
+		return nil
+	}
+	from, err := msg.firstVerifySig(chainID)
+	if err != nil {
+		return err
+	}
+	tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
+	msg.BaseTx.From = from
+	return nil
 }
 
 // codes from go-ethereum/core/types/transaction.go:122

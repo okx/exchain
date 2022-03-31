@@ -44,7 +44,7 @@ func (c *Cache) IsNeedParamsUpdate() bool {
 	return c.needParamsUpdate
 }
 
-func (c Cache) GetParams() Params {
+func (c *Cache) GetParams() Params {
 	c.paramsMutex.RLock()
 	defer c.paramsMutex.RUnlock()
 	return NewParams(c.paramsCache.EnableCreate,
