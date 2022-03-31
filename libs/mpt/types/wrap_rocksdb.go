@@ -10,6 +10,9 @@ import (
 	"github.com/tecbot/gorocksdb"
 )
 
+//------------------------------------------
+//	Register go-ethereum gorocksdb
+//------------------------------------------
 func init() {
 	dbCreator := func(name string, dir string) (ethdb.KeyValueStore, error) {
 		return NewWrapRocksDB(name, dir)
@@ -35,8 +38,8 @@ func (db *WrapRocksDB) NewBatch() ethdb.Batch {
 }
 
 func (db *WrapRocksDB) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	st := append(prefix, start...)
-	return NewWrapRocksDBIterator(db.RocksDB, st, nil)
+	limit := bytesPrefix(prefix)
+	return NewWrapRocksDBIterator(db.RocksDB, append(prefix, start...), limit)
 }
 
 func (db *WrapRocksDB) Stat(property string) (string, error) {
@@ -51,4 +54,20 @@ func (db *WrapRocksDB) Stat(property string) (string, error) {
 func (db *WrapRocksDB) Compact(start []byte, limit []byte) error {
 	db.DB().CompactRange(gorocksdb.Range{Start: start, Limit: limit})
 	return nil
+}
+
+// BytesPrefix returns key range that satisfy the given prefix.
+// This only applicable for the standard 'bytes comparer'.
+func bytesPrefix(prefix []byte) []byte {
+	var limit []byte
+	for i := len(prefix) - 1; i >= 0; i-- {
+		c := prefix[i]
+		if c < 0xff {
+			limit = make([]byte, i+1)
+			copy(limit, prefix)
+			limit[i] = c + 1
+			break
+		}
+	}
+	return limit
 }

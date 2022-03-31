@@ -18,7 +18,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -253,7 +252,7 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 	curMptRoot := ms.GetMptRootHash(uint64(curHeight))
 
 	triedb := ms.db.TrieDB()
-	if mpttypes.TrieDirtyDisabled {
+	if TrieDirtyDisabled {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
@@ -327,12 +326,12 @@ func (ms *MptStore) OnStop() error {
 	ms.exitSignal <- struct{}{}
 	ms.StopPrefetcher()
 
-	if !tmtypes.HigherThanMars(ms.version) && !mpttypes.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ms.version) && !EnableDoubleWrite {
 		return nil
 	}
 
 	// Ensure the state of a recent block is also stored to disk before exiting.
-	if !mpttypes.TrieDirtyDisabled {
+	if !TrieDirtyDisabled {
 		triedb := ms.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
@@ -381,7 +380,7 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	trie, err := ms.getTrieWithHeight(height)
+	trie, err := ms.getTrieByHeight(height)
 	if err != nil {
 		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", err)
 		return
@@ -448,7 +447,7 @@ func (ms *MptStore) getHeight(req abci.RequestQuery) uint64 {
 }
 
 // Handle gatest the latest height, if height is 0
-func (ms *MptStore) getTrieWithHeight(height uint64) (ethstate.Trie, error) {
+func (ms *MptStore) getTrieByHeight(height uint64) (ethstate.Trie, error) {
 	latestRootHash := ms.GetMptRootHash(height)
 	return ms.db.OpenTrie(latestRootHash)
 }

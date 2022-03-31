@@ -17,7 +17,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -245,10 +244,10 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
-	cmd.Flags().UintVar(&mpttypes.TrieCacheSize, mpttypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
-	cmd.Flags().BoolVar(&mpttypes.MptAsnyc, mpttypes.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
-	cmd.Flags().BoolVar(&mpttypes.TrieDirtyDisabled, mpttypes.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	cmd.Flags().BoolVar(&mpttypes.EnableDoubleWrite, mpttypes.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
+	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().BoolVar(&mpt.MptAsnyc, mpt.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
+	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
+	cmd.Flags().BoolVar(&mpt.EnableDoubleWrite, mpt.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
 	cmd.Flags().BoolVar(&evmtypes.UseCompositeKey, evmtypes.FlagUseCompositeKey, false, "Use composite key to store contract state")
 	cmd.Flags().UintVar(&evmtypes.ContractStateCache, evmtypes.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")

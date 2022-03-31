@@ -78,7 +78,7 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvmKey))
 	defer prefixDb.Close()
 
-	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height})
+	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
 	if err != nil {
 		panic("fail to create iavl tree: " + err.Error())
 	}
@@ -93,11 +93,14 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	// 1.1 set ChainConfig back to iavl
 	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil), 1)
 	// 1.2 set BlockHash/HeightHash back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), 1+32)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), 1+ethcmn.HashLength)
 	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), 1+8)
 	// 1.3 set Bloom back to iavl
 	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), 1+8)
-	// 1.4 set Code back to iavl
+	// 1.4 set white、blocked addresses back to iavl
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractDeploymentWhitelist, nil), 1+ethcmn.AddressLength)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractBlockedList, nil), 1+ethcmn.AddressLength)
+	// 1.5 set Code back to iavl
 	for dIter := diskdb.NewIterator(rawdb.CodePrefix, nil); dIter.Next(); {
 		if len(dIter.Key()) != 1+32 {
 			continue
@@ -120,7 +123,7 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 		for cItr.Next() {
 			originKey := contractTrie.GetKey(cItr.Key)
 			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.Bytes2Hex(cItr.Value))
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.BytesToHash(cItr.Value))
 			tree.Set(key, ethcmn.BytesToHash(cItr.Value).Bytes())
 		}
 	}
@@ -153,10 +156,11 @@ func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
 func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, keyLen int) {
 	defer dIter.Release()
 	for dIter.Next() {
-		if len(dIter.Key()) != keyLen {
+		key, value := dIter.Key(), dIter.Value()
+		if len(key) != keyLen {
 			continue
 		}
-		k, v := deepCopyKV(dIter.Key(), dIter.Value())
+		k, v := deepCopyKV(key, value)
 		tree.Set(k, v)
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
@@ -128,13 +127,105 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 	return value
 }
 
-func (csdb *CommitStateDB) GetCodeByHashMpt(hash ethcmn.Hash) []byte {
+func (csdb *CommitStateDB) GetCodeByHashInRawDB(hash ethcmn.Hash) []byte {
 	code, err := csdb.db.ContractCode(ethcmn.Hash{}, hash)
 	if err != nil {
 		return nil
 	}
 
 	return code
+}
+
+func (csdb *CommitStateDB) setHeightHashInRawDB(height uint64, hash ethcmn.Hash) {
+	key := append(KeyPrefixHeightHash, HeightHashKey(height)...)
+	csdb.db.TrieDB().DiskDB().Put(key, hash.Bytes())
+}
+
+func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
+	key := append(KeyPrefixHeightHash, HeightHashKey(height)...)
+	bz, err := csdb.db.TrieDB().DiskDB().Get(key)
+	if err != nil {
+		return ethcmn.Hash{}
+	}
+	return ethcmn.BytesToHash(bz)
+}
+
+func (csdb *CommitStateDB) setWhiteAddressInRawDB(address sdk.AccAddress) {
+	csdb.db.TrieDB().DiskDB().Put(GetContractDeploymentWhitelistMemberKey(address), []byte(""))
+}
+
+func (csdb *CommitStateDB) deleteWhiteAddressInRawDB(address sdk.AccAddress) {
+	csdb.db.TrieDB().DiskDB().Delete(GetContractDeploymentWhitelistMemberKey(address))
+}
+
+func (csdb *CommitStateDB) getWhitelistInRawDB() (whitelist AddressList) {
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractDeploymentWhitelist, nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		key := iterator.Key()
+		whitelist = append(whitelist, splitApprovedDeployerAddress(key))
+	}
+	return
+}
+
+func (csdb *CommitStateDB) isWhiteAddressInRawDB(address sdk.AccAddress) bool {
+	has, err := csdb.db.TrieDB().DiskDB().Has(GetContractDeploymentWhitelistMemberKey(address))
+	if err != nil {
+		return false
+	}
+	return has
+}
+
+func (csdb *CommitStateDB) setBlockedAddressInRawDB(address sdk.AccAddress, value []byte) {
+	csdb.db.TrieDB().DiskDB().Put(GetContractBlockedListMemberKey(address), value)
+}
+
+func (csdb *CommitStateDB) deleteBlockedAddressInRawDB(address sdk.AccAddress) {
+	csdb.db.TrieDB().DiskDB().Delete(GetContractBlockedListMemberKey(address))
+}
+
+func (csdb *CommitStateDB) getBlockedlistInRawDB() (blockedList AddressList) {
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractBlockedList, nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		key, value := iterator.Key(), iterator.Value()
+		if len(value) == 0 {
+			blockedList = append(blockedList, splitBlockedContractAddress(key))
+		}
+	}
+	return
+}
+
+func (csdb *CommitStateDB) getBlockedlistWithMethodsInRawDB() (blockedContractList BlockedContractList) {
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractBlockedList, nil)
+	defer iterator.Release()
+	for iterator.Next() {
+		key, value := iterator.Key(), iterator.Value()
+		addr := sdk.AccAddress(splitBlockedContractAddress(key))
+		methods := ContractMethods{}
+		if len(value) != 0 {
+			csdb.cdc.MustUnmarshalJSON(value, &methods)
+		}
+		bc := NewBlockContract(addr, methods)
+		blockedContractList = append(blockedContractList, *bc)
+	}
+	return
+}
+
+func (csdb *CommitStateDB) isBlockedAddressInRawDB(address sdk.AccAddress) bool {
+	has, err := csdb.db.TrieDB().DiskDB().Has(GetContractBlockedListMemberKey(address))
+	if err != nil {
+		return false
+	}
+	return has
+}
+
+func (csdb *CommitStateDB) getContractMethodBytesInRawDB(address sdk.AccAddress) []byte {
+	value, err := csdb.db.TrieDB().DiskDB().Get(GetContractBlockedListMemberKey(address))
+	if err != nil {
+		return nil
+	}
+	return value
 }
 
 // getDeletedStateObject is similar to getStateObject, but instead of returning
@@ -162,7 +253,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 	}
 
 	storageRoot := types.EmptyRootHash
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpt.EnableDoubleWrite {
 		root, err := csdb.loadContractStorageRoot(addr)
 		if err != nil {
 			csdb.SetError(err)

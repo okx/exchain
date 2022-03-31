@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -96,7 +96,7 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpttypes.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
 	}
 

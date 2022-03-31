@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
+	"github.com/okex/exchain/libs/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -306,7 +306,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	}
 
 	var tr ethstate.Trie = nil
-	if mpttypes.EnableDoubleWrite {
+	if mpt.EnableDoubleWrite {
 		tr = so.getTrie(db)
 	}
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
@@ -338,7 +338,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-		if mpttypes.EnableDoubleWrite {
+		if mpt.EnableDoubleWrite {
 			if UseCompositeKey {
 				key = prefixKey
 			}
@@ -354,7 +354,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 	}
 
-	if so.stateDB.prefetcher != nil && mpttypes.EnableDoubleWrite {
+	if so.stateDB.prefetcher != nil && mpt.EnableDoubleWrite {
 		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 
@@ -409,35 +409,35 @@ func (so *stateObject) Nonce() uint64 {
 
 // Code returns the contract code associated with this object, if any.
 func (so *stateObject) Code(db ethstate.Database) []byte {
-	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		if len(so.code) > 0 {
-			return so.code
-		}
-
-		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-			return nil
-		}
-
-		code := make([]byte, 0)
-		ctx := &so.stateDB.ctx
-		if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
-			code = data
-		} else {
-			store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-			code = store.Get(so.CodeHash())
-			ctx.Cache().UpdateCode(so.CodeHash(), code, false)
-		}
-
-		if len(code) == 0 {
-			so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
-		} else {
-			so.code = code
-		}
-
-		return code
-	} else {
-		return so.CodeMpt(db)
+	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
+		return so.CodeInRawDB(db)
 	}
+
+	if len(so.code) > 0 {
+		return so.code
+	}
+
+	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+		return nil
+	}
+
+	code := make([]byte, 0)
+	ctx := &so.stateDB.ctx
+	if data, ok := ctx.Cache().GetCode(so.CodeHash()); ok {
+		code = data
+	} else {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+		code = store.Get(so.CodeHash())
+		ctx.Cache().UpdateCode(so.CodeHash(), code, false)
+	}
+
+	if len(code) == 0 {
+		so.setError(fmt.Errorf("failed to get code hash %x for address %s", so.CodeHash(), so.Address().String()))
+	} else {
+		so.code = code
+	}
+
+	return code
 }
 
 // GetState retrieves a value from the account storage trie. Note, the key will
@@ -461,44 +461,44 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 //
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
-	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		// If the fake storage is set, only lookup the state here(in the debugging mode)
-		if so.fakeStorage != nil {
-			return so.fakeStorage[key]
-		}
-
-		// If we have a pending write or clean cached, return that
-		if value, pending := so.pendingStorage[key]; pending {
-			return value
-		}
-		if value, cached := so.originStorage[key]; cached {
-			return value
-		}
-
-		// otherwise load the value from the KVStore
-		state := NewState(key, ethcmn.Hash{})
-
-		ctx := &so.stateDB.ctx
-		rawValue := make([]byte, 0)
-		var ok bool
-
-		prefixKey := so.GetStorageByAddressKey(key.Bytes())
-		rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
-		if !ok {
-			store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-			rawValue = store.Get(prefixKey.Bytes())
-			ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
-		}
-
-		if len(rawValue) > 0 {
-			state.Value.SetBytes(rawValue)
-		}
-
-		so.originStorage[key] = state.Value
-		return state.Value
-	} else {
+	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		return so.GetCommittedStateMpt(db, key)
 	}
+
+	// If the fake storage is set, only lookup the state here(in the debugging mode)
+	if so.fakeStorage != nil {
+		return so.fakeStorage[key]
+	}
+
+	// If we have a pending write or clean cached, return that
+	if value, pending := so.pendingStorage[key]; pending {
+		return value
+	}
+	if value, cached := so.originStorage[key]; cached {
+		return value
+	}
+
+	// otherwise load the value from the KVStore
+	state := NewState(key, ethcmn.Hash{})
+
+	ctx := &so.stateDB.ctx
+	rawValue := make([]byte, 0)
+	var ok bool
+
+	prefixKey := so.GetStorageByAddressKey(key.Bytes())
+	rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
+	if !ok {
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+		rawValue = store.Get(prefixKey.Bytes())
+		ctx.Cache().UpdateStorage(so.address, prefixKey, rawValue, false)
+	}
+
+	if len(rawValue) > 0 {
+		state.Value.SetBytes(rawValue)
+	}
+
+	so.originStorage[key] = state.Value
+	return state.Value
 }
 
 // ----------------------------------------------------------------------------
@@ -510,30 +510,30 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 func (so *stateObject) ReturnGas(gas *big.Int) {}
 
 func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
-	if !tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		newAccount := types.ProtoAccount().(*types.EthAccount)
-		jsonAccount, err := so.account.MarshalJSON()
-		if err != nil {
-			return nil
-		}
-		err = newAccount.UnmarshalJSON(jsonAccount)
-		if err != nil {
-			return nil
-		}
-		newStateObj := newStateObject(db, newAccount, so.stateRoot)
-
-		newStateObj.code = make(types.Code, len(so.code))
-		copy(newStateObj.code, so.code)
-		newStateObj.dirtyStorage = so.dirtyStorage.Copy()
-		newStateObj.originStorage = so.originStorage.Copy()
-		newStateObj.suicided = so.suicided
-		newStateObj.dirtyCode = so.dirtyCode
-		newStateObj.deleted = so.deleted
-
-		return newStateObj
-	} else {
+	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
 		return so.deepCopyMpt(db)
 	}
+
+	newAccount := types.ProtoAccount().(*types.EthAccount)
+	jsonAccount, err := so.account.MarshalJSON()
+	if err != nil {
+		return nil
+	}
+	err = newAccount.UnmarshalJSON(jsonAccount)
+	if err != nil {
+		return nil
+	}
+	newStateObj := newStateObject(db, newAccount, so.stateRoot)
+
+	newStateObj.code = make(types.Code, len(so.code))
+	copy(newStateObj.code, so.code)
+	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
+	newStateObj.originStorage = so.originStorage.Copy()
+	newStateObj.suicided = so.suicided
+	newStateObj.dirtyCode = so.dirtyCode
+	newStateObj.deleted = so.deleted
+
+	return newStateObj
 }
 
 // empty returns whether the account is considered empty.

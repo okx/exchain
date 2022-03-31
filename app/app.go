@@ -28,7 +28,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
-	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -615,7 +614,7 @@ func PreRun(ctx *server.Context) error {
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
 			return ak.OnStop(ctx)
 		}
 		return nil
@@ -624,8 +623,8 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpttypes.EnableDoubleWrite {
-			if mpttypes.MptAsnyc {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
+			if mpt.MptAsnyc {
 				ak.AddMptAsyncTask(ctx.BlockHeight())
 			} else {
 				ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
