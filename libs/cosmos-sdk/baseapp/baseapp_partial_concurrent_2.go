@@ -16,6 +16,21 @@ import (
 
 var totalSerialWaitingCount = 0
 
+type (
+	dttRoutineStep uint8
+)
+const (
+	dttRoutineStepNone dttRoutineStep = iota
+	dttRoutineStepStart
+	dttRoutineStepBasic
+	dttRoutineStepAnteStart
+	dttRoutineStepAnteFinished
+	dttRoutineStepNeedRerun
+	dttRoutineStepReadyForSerial
+	dttRoutineStepSerial
+	dttRoutineStepFinished
+)
+
 //-------------------------------------
 type BasicProcessFn func(txByte []byte, index int) *DeliverTxTask
 type RunAnteFn func(task *DeliverTxTask) error
@@ -30,6 +45,7 @@ type dttRoutine struct {
 	//runAnteCh chan int
 	index int8
 	mtx   sync.Mutex
+	step dttRoutineStep
 
 	logger log.Logger
 
@@ -52,6 +68,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 }
 
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
+	dttr.step = dttRoutineStepStart
 	dttr.txIndex = index
 	//dttr.task = nil
 	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
@@ -65,6 +82,7 @@ func (dttr *dttRoutine) OnStart() {
 	dttr.txByte = make(chan []byte, 3)
 	dttr.rerunCh = make(chan int8, 5)
 	//dttr.runAnteCh = make(chan int, 5)
+	dttr.step = dttRoutineStepNone
 	go dttr.executeTaskRoutine()
 }
 
@@ -81,10 +99,15 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			return
 		case tx := <-dttr.txByte:
 			//dttr.logger.Info("basicProFn", "index", dttr.txIndex)
+			dttr.step = dttRoutineStepBasic
 			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
 			dttr.task.routineIndex = dttr.index
 			if dttr.task.err == nil {
+				dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
+				dttr.step = dttRoutineStepAnteFinished
+			} else {
+				dttr.step = dttRoutineStepReadyForSerial
 			}
 		case <-dttr.rerunCh:
 			dttr.logger.Error("readRerunCh", "index", dttr.task.index)
@@ -99,11 +122,14 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				step == partialConcurrentStepAnteSucceed {
 				//dttr.task.needToRerun = true
 				dttr.logger.Error("RerunTask", "index", dttr.task.index, "step", step)
+				dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
+				dttr.step = dttRoutineStepAnteFinished
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index, "step", step)
 				// maybe the task is in other condition, running concurrent execution or running make new task.
-				dttr.task.canRerun++
+				//dttr.task.canRerun++
+				dttr.step = dttRoutineStepNeedRerun
 				//dttr.task.needToRerun = false
 			}
 
@@ -546,10 +572,8 @@ func (dttm *DTTManager) serialExecution() {
 		panic(err)
 	}
 	//cache.Write()
-
 	info.msCacheAnte.Write()
 	info.ctx.Cache().Write(true)
-
 
 	gasStart := time.Now()
 	err := info.handler.handleGasConsumed(info)
@@ -589,8 +613,8 @@ func (dttm *DTTManager) serialExecution() {
 }
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
-	dttm.mtx.Lock()
-	defer dttm.mtx.Unlock()
+	//dttm.mtx.Lock()
+	//defer dttm.mtx.Unlock()
 
 	if add {
 		dttm.currTxFee = dttm.currTxFee.Add(fee...)
@@ -610,14 +634,17 @@ func (dttm *DTTManager) updateFeeCollector() {
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
-	addr := acc.GetAddress().String()
-	//if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	//}
-	dttm.accountUpdated(true, 1, addr)
+	//addr := acc.GetAddress().String()
+	////if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
+	////	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	////}
+	//dttm.accountUpdated(true, 1, addr)
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
+	dttm.mtx.Lock()
+	defer dttm.mtx.Unlock()
+
 	num := len(dttm.dttRoutineList)
 	//if global.GetGlobalHeight() == 5811070 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
 	//	dttm.app.logger.Info("OnAccountUpdated", "times", times, "happened", happened, "addr", address)

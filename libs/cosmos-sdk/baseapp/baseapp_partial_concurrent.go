@@ -110,8 +110,8 @@ func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 }
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
+	//dtt.mtx.Lock()
+	//defer dtt.mtx.Unlock()
 
 	if add {
 		dtt.updateCount += count
