@@ -3,10 +3,10 @@ package refund
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-func RefundFees(supplyKeeper exported.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
+func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
 	coins := supplyKeeper.GetFee()
 
 	if !refundFees.IsValid() {

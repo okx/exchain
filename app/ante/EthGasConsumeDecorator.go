@@ -1,7 +1,7 @@
 package ante
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,12 +17,12 @@ import (
 // gas consumption.
 type EthGasConsumeDecorator struct {
 	ak        auth.AccountKeeper
-	sk        exported.SupplyKeeper
+	sk        types.SupplyKeeper
 	evmKeeper EVMKeeper
 }
 
 // NewEthGasConsumeDecorator creates a new EthGasConsumeDecorator
-func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk exported.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
+func NewEthGasConsumeDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ek EVMKeeper) EthGasConsumeDecorator {
 	return EthGasConsumeDecorator{
 		ak:        ak,
 		sk:        sk,
@@ -89,7 +89,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
+		err = auth.DeductEvmFees(egcd.sk, ctx, senderAcc, feeAmt)
 		if err != nil {
 			return ctx, err
 		}

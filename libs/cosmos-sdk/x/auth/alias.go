@@ -32,6 +32,7 @@ var (
 	GetSignerAcc                      = ante.GetSignerAcc
 	DefaultSigVerificationGasConsumer = ante.DefaultSigVerificationGasConsumer
 	DeductFees                        = ante.DeductFees
+	DeductEvmFees                     = ante.DeductEvmFees
 	SetGasMeter                       = ante.SetGasMeter
 	NewAccountKeeper                  = keeper.NewAccountKeeper
 	NewQuerier                        = keeper.NewQuerier

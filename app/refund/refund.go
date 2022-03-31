@@ -1,7 +1,7 @@
 package refund
 
 import (
-	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	exported2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
