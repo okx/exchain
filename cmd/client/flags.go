@@ -16,6 +16,7 @@ import (
 	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
 )
@@ -114,4 +115,14 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	// flags for infura rpc
+	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")
+	cmd.Flags().String(infura.FlagRedisUrl, "", "Redis url(host:port) of infura rpc service")
+	cmd.Flags().String(infura.FlagRedisAuth, "", "Redis auth of infura rpc service")
+	cmd.Flags().Int(infura.FlagRedisDB, 0, "Redis db of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlUrl, "", "Mysql url(host:port) of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlUser, "", "Mysql user of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlPass, "", "Mysql password of infura rpc service")
+	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
 }

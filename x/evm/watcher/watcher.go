@@ -44,6 +44,8 @@ type Watcher struct {
 	watchData *WatchData
 
 	jobChan chan func()
+
+	InfuraKeeper InfuraKeeper
 }
 
 var (
@@ -83,7 +85,7 @@ func (w *Watcher) Used() {
 }
 
 func (w *Watcher) Enabled() bool {
-	return w.sw
+	return w.sw || w.InfuraKeeper != nil
 }
 
 func (w *Watcher) Enable(sw bool) {
@@ -143,7 +145,11 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	tr := newTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveTransactionReceipt(tr)
+	}
+	wMsg := NewMsgTransactionReceipt(tr, txHash)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -466,7 +472,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
-	batch:=w.batch
+	batch := w.batch
 	return func() ([]byte, error) {
 		ddsBatch := make([]*Batch, len(batch))
 		for i, b := range batch {
@@ -534,7 +540,6 @@ func bytes2Key(keyBytes []byte) string {
 func key2Bytes(key string) []byte {
 	return []byte(key)
 }
-
 
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{

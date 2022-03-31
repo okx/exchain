@@ -480,8 +480,7 @@ type TransactionReceipt struct {
 	To                *common.Address `json:"to"`
 }
 
-func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-
+func newTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) TransactionReceipt {
 	tr := TransactionReceipt{
 		Status:            hexutil.Uint64(status),
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
@@ -502,6 +501,10 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
+	return tr
+}
+
+func NewMsgTransactionReceipt(tr TransactionReceipt, txHash common.Hash) *MsgTransactionReceipt {
 	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
 }
 

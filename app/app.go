@@ -6,13 +6,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/okex/exchain/app/utils/sanity"
-
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -48,6 +47,7 @@ import (
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
@@ -105,6 +105,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		infura.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -166,6 +167,7 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
+	InfuraKeeper   infura.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -294,7 +296,7 @@ func NewOKExChainApp(
 
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
-
+	app.InfuraKeeper = infura.NewKeeper(app.EvmKeeper, logger, streamMetrics)
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
 		cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
@@ -356,6 +358,7 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
+		infura.NewAppModule(app.InfuraKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 	)
 
@@ -363,6 +366,7 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
+		infura.ModuleName,
 		bank.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
@@ -382,6 +386,7 @@ func NewOKExChainApp(
 		order.ModuleName,
 		staking.ModuleName,
 		evm.ModuleName,
+		infura.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
