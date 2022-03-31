@@ -503,7 +503,6 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 	// request for proposer of new height
 	prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
-	// ensure broadcast reqMsg after enterNewHeight
 	go cs.requestForProposer(sleepDuration, prMsg)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
@@ -963,6 +962,7 @@ func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequest
 	if prMsg.NewProposer.String() == prMsg.CurrentProposer.String() {
 		return
 	}
+	// ensure broadcast reqMsg after enterNewHeight
 	time.Sleep(duration + time.Millisecond)
 	//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
 	cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
@@ -1080,12 +1080,6 @@ func (cs *State) enterPropose(height int64, round int) {
 
 func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
-}
-
-func (cs *State) isNextNProposer(address []byte, times int) bool {
-	vals := cs.Validators.Copy()
-	vals.IncrementProposerPriority(times)
-	return bytes.Equal(vals.GetProposer().Address, address)
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int) {

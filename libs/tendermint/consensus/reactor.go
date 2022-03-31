@@ -324,20 +324,24 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			// ApplyBlock of height-1 is finished
 			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			if msg.Height == conR.conS.Height {
-				// verify if src(peer) is proposer. To be sure the message is sent by proposer
+				// ApplyBlock of height-1 is finished
 				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 			} else if msg.Height == conR.conS.Height+1 {
-				// ApplyBlock of height-1 is not finished, and src should be next proposer of current state
+				// ApplyBlock of height-1 is not finished
 				// vc after scheduleRound0
 				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 			}
 		case *ProposeRequestMessage:
-			// this peer has not vc before this height, and it needs vc, and it is nextProposer
 			//conR.Logger.Error("reactor prMsg", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			if msg.Height > conR.hasViewChanged && msg.Height < conR.conS.Height && conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
+			// three judgement:
+			//1.this peer has not vc before this height;
+			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
+			//3.it is CurrentProposer
+			if msg.Height > conR.hasViewChanged &&
+				msg.Height < conR.conS.Height &&
+				conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg)
