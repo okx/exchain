@@ -432,6 +432,8 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 		Tx:     memTx.tx,
 	}})
 
+	types.SignatureCache().Remove(memTx.realTx.TxHash())
+
 	return nil
 }
 
@@ -888,10 +890,15 @@ func (mem *CListMempool) Update(
 			nonce = ele.Nonce
 			mem.removeTx(ele)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
-		} else if mem.txInfoparser != nil {
-			txInfo := mem.txInfoparser.GetRawTxInfo(tx)
-			addr = txInfo.Sender
-			nonce = txInfo.Nonce
+		} else {
+			if mem.txInfoparser != nil {
+				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
+				addr = txInfo.Sender
+				nonce = txInfo.Nonce
+			}
+
+			// remove tx signature cache
+			types.SignatureCache().Remove(tx.Hash(height))
 		}
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
@@ -902,9 +909,6 @@ func (mem *CListMempool) Update(
 		if mem.pendingPool != nil {
 			mem.pendingPool.removeTxByHash(txID(tx, height))
 		}
-
-		// remove tx signature cache
-		types.SignatureCache().Remove(tx.Hash(height))
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))

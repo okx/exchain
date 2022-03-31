@@ -207,14 +207,10 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil {
 			return nil
 		}
+		app.blockDataCache.SetTx(tx, realTx)
 
 		if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
-			err = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
-			if err == nil {
-				if realTx.GetFrom() != "" {
-					app.blockDataCache.SetSender(realTx.TxHash(), realTx.GetFrom())
-				}
-			}
+			_ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
 		}
 	}
 	return realTx

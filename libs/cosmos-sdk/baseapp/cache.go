@@ -1,35 +1,49 @@
 package baseapp
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/tendermint/go-amino"
+)
 
 type blockDataCache struct {
-	senderLock sync.RWMutex
-	sender     map[string]string
+	txLock sync.RWMutex
+	txs    map[string]types.Tx
 }
 
 func NewBlockDataCache() *blockDataCache {
 	return &blockDataCache{
-		sender: make(map[string]string),
+		txs: make(map[string]types.Tx),
 	}
 }
 
-func (cache *blockDataCache) SetSender(tx []byte, sender string) {
-	cache.senderLock.Lock()
-	cache.sender[string(tx)] = sender
-	cache.senderLock.Unlock()
+func (cache *blockDataCache) SetTx(txRaw []byte, tx types.Tx) {
+	if cache == nil {
+		return
+	}
+	cache.txLock.Lock()
+	cache.txs[amino.BytesToStr(txRaw)] = tx
+	cache.txLock.Unlock()
 }
 
-func (cache *blockDataCache) GetSender(tx []byte) (sender string, ok bool) {
-	cache.senderLock.RLock()
-	sender, ok = cache.sender[string(tx)]
-	cache.senderLock.RUnlock()
+func (cache *blockDataCache) GetTx(txRaw []byte) (tx types.Tx, ok bool) {
+	if cache == nil {
+		return
+	}
+	cache.txLock.RLock()
+	tx, ok = cache.txs[string(txRaw)]
+	cache.txLock.RUnlock()
 	return
 }
 
 func (cache *blockDataCache) Clear() {
-	cache.senderLock.Lock()
-	for k := range cache.sender {
-		delete(cache.sender, k)
+	if cache == nil {
+		return
 	}
-	cache.senderLock.Unlock()
+	cache.txLock.Lock()
+	for k := range cache.txs {
+		delete(cache.txs, k)
+	}
+	cache.txLock.Unlock()
 }

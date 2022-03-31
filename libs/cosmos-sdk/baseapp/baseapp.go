@@ -864,21 +864,18 @@ func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 }
 
 func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
-	tx, err := app.txDecoder(rawTx)
-	if err != nil {
-		return mempool.ExTxInfo{}
-	}
-	app.tryRestoreSenderFromCache(tx)
-	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
-}
-
-func (app *BaseApp) tryRestoreSenderFromCache(tx sdk.Tx) {
-	if tx.GetType() == sdk.EvmTxType {
-		sender, ok := app.blockDataCache.GetSender(tx.TxHash())
-		if ok {
-			_ = app.evmTxVerifySigHandler(app.checkState.ctx.WithFrom(sender).WithBlockHeight(app.checkState.ctx.BlockHeight()+1), tx)
+	var err error
+	tx, ok := app.blockDataCache.GetTx(rawTx)
+	if !ok {
+		tx, err = app.txDecoder(rawTx)
+		if err != nil {
+			return mempool.ExTxInfo{}
 		}
 	}
+	if tx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+		_ = app.evmTxVerifySigHandler(app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight()+1), tx)
+	}
+	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
