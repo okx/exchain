@@ -658,11 +658,11 @@ func (dttm *DTTManager) updateFeeCollector() {
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
-	//addr := acc.GetAddress().String()
-	////if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	////	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
-	////}
-	//dttm.accountUpdated(true, 1, addr)
+	addr := acc.GetAddress().String()
+	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+	//}
+	dttm.accountUpdated(true, 1, addr)
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
