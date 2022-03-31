@@ -1,10 +1,6 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-
 	"io"
 	"math/big"
 	"os"
@@ -21,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -34,16 +31,17 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -129,7 +127,7 @@ var (
 		farm.AppModuleBasic{},
 		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
-		transfer.AppModuleBasic{},
+		ibctransfer.AppModuleBasic{},
 		erc20.AppModuleBasic{},
 	)
 
@@ -265,7 +263,7 @@ func NewOKExChainApp(
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		host.StoreKey,
+		ibchost.StoreKey,
 		erc20.StoreKey,
 	)
 
@@ -299,7 +297,7 @@ func NewOKExChainApp(
 	app.subspaces[order.ModuleName] = app.ParamsKeeper.Subspace(order.DefaultParamspace)
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
-	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
+	app.subspaces[ibchost.ModuleName] = app.ParamsKeeper.Subspace(ibchost.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
 
@@ -368,14 +366,14 @@ func NewOKExChainApp(
 
 	// add capability keeper and ScopeToModule for ibc module
 	app.CapabilityKeeper = capabilitykeeper.NewKeeper(codecProxy, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
-	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(host.ModuleName)
+	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		codecProxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
+		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
@@ -399,7 +397,7 @@ func NewOKExChainApp(
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
-		AddRoute(host.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
+		AddRoute(ibchost.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -424,10 +422,10 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := transfer.NewAppModule(app.TransferKeeper, codecProxy)
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
-	ibcRouter := porttypes.NewRouter()
+	ibcRouter := ibcporttypes.NewRouter()
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
@@ -482,7 +480,7 @@ func NewOKExChainApp(
 		farm.ModuleName,
 		evidence.ModuleName,
 		evm.ModuleName,
-		host.ModuleName,
+		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
@@ -502,7 +500,7 @@ func NewOKExChainApp(
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
 		ibctransfertypes.ModuleName,
-		host.ModuleName,
+		ibchost.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 	)
