@@ -278,7 +278,7 @@ func NewOKExChainApp(
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
-	bApp.SetInterceptors(makeInterceptors(cdc))
+	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -670,23 +670,11 @@ func (app *OKExChainApp) setupUpgradeModules() {
 
 var protoCodec = encoding.GetCodec(proto.Name)
 
-func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
+func makeInterceptors() map[string]bam.Interceptor {
 	m := make(map[string]bam.Interceptor)
-	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "app/simulate"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
-	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "custom/bank/grpc_balances"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
-	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "custom/staking/parameters"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
+	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewRedirectInterceptor("app/simulate")
+	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewRedirectInterceptor("custom/bank/grpc_balances")
+	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/parameters")
 	return m
 }
 
