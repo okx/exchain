@@ -124,7 +124,9 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	case sdk.StdTxType:
 		err = supplyKeeper.AddCoinsToFeeCollector(ctx, fees)
 	case sdk.EvmTxType:
-		supplyKeeper.AddFee(fees)
+		if ctx.IsDeliver() {
+			supplyKeeper.AddFee(fees)
+		}
 	default:
 		err = sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds unknown transition type %v", txType)
