@@ -102,7 +102,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
+		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee(), feeTx.GetType())
 		if err != nil {
 			return ctx, err
 		}
@@ -115,25 +115,22 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins, txType sdk.TransactionType) error {
 	err := checkAccountAndDeductFee(supplyKeeper, ctx, acc, fees)
 	if err != nil {
 		return err
 	}
-
-	return supplyKeeper.AddCoinsToFeeCollector(ctx, fees)
-}
-
-func DeductEvmFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
-	err := checkAccountAndDeductFee(supplyKeeper, ctx, acc, fees)
-	if err != nil {
-		return err
-	}
-	if ctx.IsDeliver() {
+	switch txType {
+	case sdk.StdTxType:
+		err = supplyKeeper.AddCoinsToFeeCollector(ctx, fees)
+	case sdk.EvmTxType:
 		supplyKeeper.AddFee(fees)
+	default:
+		err = sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+			"insufficient funds unknown transition type %v", txType)
 	}
 
-	return nil
+	return err
 }
 
 func checkAccountAndDeductFee(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {

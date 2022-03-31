@@ -89,7 +89,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
 		)
 
-		err = auth.DeductEvmFees(egcd.sk, ctx, senderAcc, feeAmt)
+		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt, msgEthTx.GetType())
 		if err != nil {
 			return ctx, err
 		}
