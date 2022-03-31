@@ -598,8 +598,10 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		defer analyzer.StopTxLog(funcName)
 	}
 
+	fmt.Println("addr.String", addr.String(), csdb.ctx.GasMeter().GasConsumed())
 	// check for the contract calling from blocked list if contract blocked list is enabled
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
+		fmt.Println("errMsg", addr.String(), csdb.ctx.GasMeter().GasConsumed())
 		err := ErrContractBlockedVerify{fmt.Sprintf("failed. the contract %s is not allowed to invoke", addr.Hex())}
 		panic(err)
 	}
