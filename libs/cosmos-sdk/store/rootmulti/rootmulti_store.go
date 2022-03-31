@@ -641,7 +641,6 @@ func (rs *Store) getStoreByName(name string) types.Store {
 // TODO: add proof for `multistore -> substore`.
 func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	path := req.Path
-	str := string(req.Data)
 	storeName, subpath, err := parsePath(path)
 	if err != nil {
 		return sdkerrors.QueryResult(err)
@@ -660,13 +659,6 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// trim the path and make the query
 	req.Path = subpath
 	res := queryable.Query(req)
-	if strings.Contains(str, "connections") {
-		defer func() {
-			if res.Proof == nil || len(res.Proof.Ops) == 0 {
-				panic("asd")
-			}
-		}()
-	}
 
 	if !req.Prove || !RequireProof(subpath) {
 		return res
