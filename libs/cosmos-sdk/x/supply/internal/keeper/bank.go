@@ -212,7 +212,7 @@ func (k Keeper) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
 
 	acc := k.GetModuleAccount(ctx, authtypes.FeeCollectorName)
 	if acc == nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", authtypes.FeeCollectorName)
+		panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", authtypes.FeeCollectorName))
 	}
 
 	_, err := k.bk.AddCoins(ctx, acc.GetAddress(), amt)

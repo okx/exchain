@@ -116,13 +116,13 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
 func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins, txType sdk.TransactionType) error {
-	err := checkAccountAndDeductFee(supplyKeeper, ctx, acc, fees)
+	err := checkAccountAndFees(ctx, acc, fees)
 	if err != nil {
 		return err
 	}
 	switch txType {
 	case sdk.StdTxType:
-		err = supplyKeeper.AddCoinsToFeeCollector(ctx, fees)
+		err = deductStdTxFees(supplyKeeper, ctx, acc, fees)
 	case sdk.EvmTxType:
 		if ctx.IsDeliver() {
 			supplyKeeper.AddFee(fees)
@@ -135,7 +135,15 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	return err
 }
 
-func checkAccountAndDeductFee(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+func deductStdTxFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
+	}
+	return nil
+}
+
+func checkAccountAndFees(ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -156,11 +164,6 @@ func checkAccountAndDeductFee(supplyKeeper types.SupplyKeeper, ctx sdk.Context, 
 	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
-	}
-
-	err := supplyKeeper.SubtractCoins(ctx, acc.GetAddress(), fees)
-	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
 
 	return nil
