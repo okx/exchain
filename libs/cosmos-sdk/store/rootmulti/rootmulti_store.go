@@ -520,7 +520,6 @@ func (rs *Store) pruneStores() {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-			store.LastCommitID()
 			if err := store.(*iavl.Store).DeleteVersions(rs.pruneHeights...); err != nil {
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
 					panic(err)
