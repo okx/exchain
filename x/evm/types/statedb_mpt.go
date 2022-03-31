@@ -163,6 +163,9 @@ func (csdb *CommitStateDB) getWhitelistInRawDB() (whitelist AddressList) {
 	defer iterator.Release()
 	for iterator.Next() {
 		key := iterator.Key()
+		if len(key) != len(KeyPrefixContractDeploymentWhitelist)+ethcmn.AddressLength {
+			continue
+		}
 		whitelist = append(whitelist, splitApprovedDeployerAddress(key))
 	}
 	return
@@ -189,6 +192,9 @@ func (csdb *CommitStateDB) getBlockedlistInRawDB() (blockedList AddressList) {
 	defer iterator.Release()
 	for iterator.Next() {
 		key, value := iterator.Key(), iterator.Value()
+		if len(key) != len(KeyPrefixContractBlockedList)+ethcmn.AddressLength {
+			continue
+		}
 		if len(value) == 0 {
 			blockedList = append(blockedList, splitBlockedContractAddress(key))
 		}
@@ -201,6 +207,9 @@ func (csdb *CommitStateDB) getBlockedlistWithMethodsInRawDB() (blockedContractLi
 	defer iterator.Release()
 	for iterator.Next() {
 		key, value := iterator.Key(), iterator.Value()
+		if len(key) != len(KeyPrefixContractBlockedList)+ethcmn.AddressLength {
+			continue
+		}
 		addr := sdk.AccAddress(splitBlockedContractAddress(key))
 		methods := ContractMethods{}
 		if len(value) != 0 {
