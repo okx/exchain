@@ -453,7 +453,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
-	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.getStores(version), inputDeltaMap, rs.commitHeightFilterPipeline(version))
+	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitHeightFilterPipeline(version))
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -1005,12 +1005,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		if f(key.Name()) {
 			continue
 		}
-		//if !tmtypes.HigherThanVenus1(version) {
-		//	name := key.Name()
-		//	if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
-		//		continue
-		//	}
-		//}
 		if tmtypes.GetIBCHeight()+1 == version {
 			//init store tree version with block height
 			store.UpgradeVersion(version)
@@ -1022,9 +1016,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		si := storeInfo{}
-		//if f(key.Name()) {
-		//	continue
-		//}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		si.Core.CommitID.Version = version

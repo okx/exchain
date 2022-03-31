@@ -1,14 +1,9 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-
 	"io"
 	"math/big"
 	"os"
-	"sort"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -37,13 +32,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -129,7 +124,7 @@ var (
 		farm.AppModuleBasic{},
 		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
-		transfer.AppModuleBasic{},
+		ibctransfer.AppModuleBasic{},
 		erc20.AppModuleBasic{},
 	)
 
@@ -265,7 +260,7 @@ func NewOKExChainApp(
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		host.StoreKey,
+		ibchost.StoreKey,
 		erc20.StoreKey,
 	)
 
@@ -280,7 +275,7 @@ func NewOKExChainApp(
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
-	bApp.SetInterceptors(makeInterceptors(cdc))
+	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -299,7 +294,7 @@ func NewOKExChainApp(
 	app.subspaces[order.ModuleName] = app.ParamsKeeper.Subspace(order.DefaultParamspace)
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
-	app.subspaces[host.ModuleName] = app.ParamsKeeper.Subspace(host.ModuleName)
+	app.subspaces[ibchost.ModuleName] = app.ParamsKeeper.Subspace(ibchost.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
 
@@ -368,14 +363,14 @@ func NewOKExChainApp(
 
 	// add capability keeper and ScopeToModule for ibc module
 	app.CapabilityKeeper = capabilitykeeper.NewKeeper(codecProxy, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
-	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(host.ModuleName)
+	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		codecProxy, keys[host.StoreKey], app.GetSubspace(host.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
+		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
@@ -399,7 +394,7 @@ func NewOKExChainApp(
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
-		AddRoute(host.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
+		AddRoute(ibchost.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -424,10 +419,10 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := transfer.NewAppModule(app.TransferKeeper, codecProxy)
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
-	ibcRouter := porttypes.NewRouter()
+	ibcRouter := ibcporttypes.NewRouter()
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
@@ -482,7 +477,7 @@ func NewOKExChainApp(
 		farm.ModuleName,
 		evidence.ModuleName,
 		evm.ModuleName,
-		host.ModuleName,
+		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
@@ -502,7 +497,7 @@ func NewOKExChainApp(
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
 		ibctransfertypes.ModuleName,
-		host.ModuleName,
+		ibchost.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 	)
@@ -653,42 +648,14 @@ func (app *OKExChainApp) Marshal() *codec.CodecProxy {
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
 }
-func (app *OKExChainApp) setupUpgradeModules() {
-	heightTasks, pip, prunePip, pR := app.CollectUpgradeModules(app.mm)
-	app.heightTasks = heightTasks
-	if pip != nil {
-		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		app.GetCMS().SetCommitHeightFilterPipeline(pip)
-	}
-	vs := app.subspaces
-	for k, vv := range pR {
-		supace, exist := vs[k]
-		if !exist {
-			continue
-		}
-		vs[k] = supace.LazyWithKeyTable(subspace.NewKeyTable(vv.ParamSetPairs()...))
-	}
-}
 
 var protoCodec = encoding.GetCodec(proto.Name)
 
-func makeInterceptors(cdc *codec.Codec) map[string]bam.Interceptor {
+func makeInterceptors() map[string]bam.Interceptor {
 	m := make(map[string]bam.Interceptor)
-	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "app/simulate"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
-	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "custom/bank/grpc_balances"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
-	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewFunctionInterceptor(func(req *abci.RequestQuery) error {
-		req.Path = "custom/staking/parameters"
-		return nil
-	}, func(resp *abci.ResponseQuery) {})
-
+	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewRedirectInterceptor("app/simulate")
+	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewRedirectInterceptor("custom/bank/grpc_balances")
+	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/parameters")
 	return m
 }
 
@@ -772,91 +739,4 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
-}
-
-func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, types.HeightFilterPipeline, types.HeightFilterPipeline, map[string]params.ParamSet) {
-	hm := make(map[int64]*upgradetypes.HeightTasks)
-	hStoreInfoModule := make(map[int64]map[string]struct{})
-	paramsRet := make(map[string]params.ParamSet)
-	for _, mm := range m.Modules {
-		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
-			set := ada.RegisterParam()
-			if set != nil {
-				if _, exist := paramsRet[ada.ModuleName()]; !exist {
-					paramsRet[ada.ModuleName()] = set
-				}
-			}
-			h := ada.UpgradeHeight()
-			if h <= 0 {
-				continue
-			}
-			t := ada.RegisterTask()
-			if t == nil {
-				continue
-			}
-			if err := t.ValidateBasic(); nil != err {
-				panic(err)
-			}
-			storeInfoModule := hStoreInfoModule[h]
-			if storeInfoModule == nil {
-				storeInfoModule = make(map[string]struct{})
-				hStoreInfoModule[h] = storeInfoModule
-			}
-			names := ada.BlockStoreModules()
-			for _, n := range names {
-				storeInfoModule[n] = struct{}{}
-			}
-			taskList := hm[h]
-			if taskList == nil {
-				v := make(upgradetypes.HeightTasks, 0)
-				taskList = &v
-				hm[h] = taskList
-			}
-			*taskList = append(*taskList, t)
-		}
-	}
-	for _, v := range hm {
-		sort.Sort(*v)
-	}
-	var (
-		pip      types.HeightFilterPipeline
-		prunePip types.HeightFilterPipeline
-	)
-	for height, mm := range hStoreInfoModule {
-		f := func(h int64) func(str string) bool {
-			if h >= height {
-				// next
-				return nil
-			}
-			// filter block module
-			return func(str string) bool {
-				_, exist := mm[str]
-				return exist
-			}
-		}
-		if pip == nil {
-			pip = f
-		} else {
-			pip = types.LinkPipeline(f, pip)
-		}
-	}
-	for height, mm := range hStoreInfoModule {
-		f := func(h int64) func(str string) bool {
-			if h > height {
-				// next
-				return nil
-			}
-			// filter block module
-			return func(str string) bool {
-				_, exist := mm[str]
-				return exist
-			}
-		}
-		if prunePip == nil {
-			prunePip = f
-		} else {
-			prunePip = types.LinkPipeline(f, prunePip)
-		}
-	}
-	return hm, pip, prunePip, paramsRet
 }

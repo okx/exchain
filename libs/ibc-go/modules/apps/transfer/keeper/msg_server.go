@@ -11,11 +11,8 @@ import (
 
 // See createOutgoingPacket in spec:https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer#packet-relay
 
-type MsgTransferResponse struct {
-}
-
 // Transfer defines a rpc handler method for MsgTransfer.
-func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTransferResponse, error) {
+func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*types.MsgTransferResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	sender, err := sdk.AccAddressFromBech32(msg.Sender)
@@ -43,5 +40,5 @@ func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*MsgTra
 		),
 	})
 
-	return &MsgTransferResponse{}, nil
+	return &types.MsgTransferResponse{}, nil
 }

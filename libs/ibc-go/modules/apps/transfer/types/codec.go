@@ -4,6 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
@@ -25,7 +26,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 
 	registry.RegisterImplementations((*types.MsgProtoAdapter)(nil), &MsgTransfer{})
-	//msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
 var (
@@ -39,8 +40,6 @@ var (
 	//ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 	ModuleCdc = codec.New()
 	Marshal   *codec.CodecProxy
-	// AminoCdc is a amino codec created to support amino json compatible msgs.
-	//AminoCdc = codec.NewAminoCodec(amino)
 )
 
 func init() {
