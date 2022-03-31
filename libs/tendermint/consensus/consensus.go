@@ -503,6 +503,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 	// request for proposer of new height
 	prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
+	// ensure broadcast reqMsg after enterNewHeight
 	go cs.requestForProposer(sleepDuration, prMsg)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
@@ -620,7 +621,10 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
-	cs.vcMsg = nil
+	// cs.Height has been update
+	if cs.vcMsg != nil && cs.Height > cs.vcMsg.Height {
+		cs.vcMsg = nil
+	}
 
 	// Finally, broadcast RoundState
 	cs.newStep()
