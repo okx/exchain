@@ -16,13 +16,13 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			isEvm = true
 			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
 			from = evmTx.From
-			//fee = evmTx.GetFee()
+			fee = evmTx.GetFee()
 			////feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
 			////feePayerAcc := ak.GetAccount(ctx, feePayer)
 			////from = feePayerAcc.GetAddress().String()
-			//} else if feeTx, ok := tx.(authante.FeeTx); ok {
-		}
-			if feeTx, ok := tx.(authante.FeeTx); ok {
+			} else if feeTx, ok := tx.(authante.FeeTx); ok {
+		//}
+		//	if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
 			//from = feeTx.FeePayer(ctx)
 			feePayer := feeTx.FeePayer(ctx)

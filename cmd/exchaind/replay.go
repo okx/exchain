@@ -43,6 +43,8 @@ const (
 
 	saveBlock = "save_block"
 
+	deliverTxModeFlag = "deliver_tx_mode"
+
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
 )
@@ -126,7 +128,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 		panicError(err)
 	}
 	// replay
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight, int8(0))
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 	if viper.GetBool(sm.FlagParalleledTx) {
 		baseapp.ParaLog.PrintLog()
 	}
@@ -139,6 +141,8 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Int(deliverTxModeFlag, 0, "deliver tx mode when replay")
+
 	return cmd
 }
 
@@ -241,7 +245,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64, deliverTxsMode int8) {
+	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
@@ -272,7 +276,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		panicError(err)
 	}
 
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, deliverTxsMode)
+	deliverTxsMode := viper.GetInt(deliverTxModeFlag)
+	fmt.Println("deliverTxModeFlag", deliverTxsMode)
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, int8(deliverTxsMode))
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()
@@ -281,7 +287,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
-	blockExec.SetDeliverTxsMode(int8(1))
+	//blockExec.SetDeliverTxsMode(int8(1))
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 	//height := lastBlockHeight + 1
 	//for i := 0; i < 413; i++ {
