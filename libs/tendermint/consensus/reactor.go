@@ -328,15 +328,11 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			if msg.Height == conR.conS.Height {
 				// verify if src(peer) is proposer. To be sure the message is sent by proposer
-				if conR.conS.isProposer(msg.CurrentProposer) {
-					conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
-				}
+				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 			} else if msg.Height == conR.conS.Height+1 {
 				// ApplyBlock of height-1 is not finished, and src should be next proposer of current state
-				if conR.conS.isNextNProposer(msg.CurrentProposer, 1) {
-					// vc after scheduleRound0
-					conR.conS.peerMsgQueue <- msgInfo{msg, ""}
-				}
+				// vc after scheduleRound0
+				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 			}
 		case *ProposeRequestMessage:
 			// this peer has not vc before this height, and it needs vc, and it is nextProposer
@@ -1554,7 +1550,7 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 type ProposeRequestMessage struct {
 	Height          int64
 	CurrentProposer types.Address
-	NewProposer		types.Address
+	NewProposer     types.Address
 }
 
 func (m *ProposeRequestMessage) ValidateBasic() error {
@@ -1568,7 +1564,7 @@ func (m *ProposeRequestMessage) ValidateBasic() error {
 type ViewChangeMessage struct {
 	Height          int64
 	CurrentProposer types.Address
-	NewProposer		types.Address
+	NewProposer     types.Address
 }
 
 func (m *ViewChangeMessage) ValidateBasic() error {
