@@ -124,9 +124,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		}
 	}()
 
-	if st.Sender.String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
-		fmt.Println("begin", ctx.GasMeter().GasConsumed())
-	}
+	//if st.Sender.String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
+	fmt.Println("begin", ctx.GasMeter().GasConsumed())
+	//}
 
 	contractCreation := st.Recipient == nil
 
@@ -152,9 +152,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	csdb := st.Csdb.WithContext(ctx)
 
-	if st.Sender.String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
-		fmt.Println("beginRUn", ctx.GasMeter().GasConsumed())
-	}
+	//if st.Sender.String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
+	fmt.Println("beginRUn", ctx.GasMeter().GasConsumed())
+	//}
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
 			analyzer.StartTxLog(tag)
