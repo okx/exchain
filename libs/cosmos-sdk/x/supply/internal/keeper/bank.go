@@ -209,9 +209,6 @@ func (k Keeper) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
 	if amt == nil {
 		return nil
 	}
-	gasMeter := ctx.GasMeter()
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	defer ctx.SetGasMeter(gasMeter)
 
 	acc := k.GetModuleAccount(ctx, authtypes.FeeCollectorName)
 	if acc == nil {

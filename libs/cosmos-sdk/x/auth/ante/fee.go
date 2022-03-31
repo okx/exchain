@@ -2,8 +2,6 @@ package ante
 
 import (
 	"fmt"
-	"log"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
@@ -102,10 +100,6 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
 
-	if ctx.IsDeliver() {
-		txtype := feeTx.GetType()
-		log.Println(txtype)
-	}
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
 		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
