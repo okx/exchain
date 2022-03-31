@@ -1,32 +1,27 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"testing"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-
-	"github.com/stretchr/testify/suite"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
-	tmdb "github.com/okex/exchain/libs/tm-db"
-
-	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
+	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/mpt"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
+	tmdb "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/params"
+	"github.com/stretchr/testify/suite"
 )
 
 type JournalTestSuite struct {
@@ -68,7 +63,7 @@ func (suite *JournalTestSuite) SetupTest() {
 
 	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
 	// suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), balance)
-	suite.stateDB.SetLogs([]*ethtypes.Log{
+	suite.stateDB.SetLogs(ethcmn.BytesToHash([]byte("topic")), []*ethtypes.Log{
 		{
 			Address:     suite.address,
 			Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic_0"))},
@@ -270,7 +265,7 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 
 func (suite *JournalTestSuite) TestJournal_preimage_revert() {
 	suite.stateDB.preimages = map[ethcmn.Hash][]byte{
-		ethcmn.BytesToHash([]byte("hash")): []byte("preimage0"),
+		ethcmn.BytesToHash([]byte("hash")):  []byte("preimage0"),
 		ethcmn.BytesToHash([]byte("hash1")): []byte("preimage1"),
 		ethcmn.BytesToHash([]byte("hash2")): []byte("preimage2"),
 	}
@@ -292,7 +287,7 @@ func (suite *JournalTestSuite) TestJournal_createObjectChange_revert() {
 	addr := ethcmn.BytesToAddress([]byte("addr"))
 
 	suite.stateDB.stateObjects = map[ethcmn.Address]*stateObject{
-		addr:  &stateObject{
+		addr: &stateObject{
 			address: addr,
 		},
 		ethcmn.BytesToAddress([]byte("addr1")): &stateObject{

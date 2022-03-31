@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -77,8 +77,9 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
-	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
 
 	expLogs = []*ethtypes.Log{log, log2}
@@ -92,8 +93,9 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 
 	expLogs = append(expLogs, log3)
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
-	txLogs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	txLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(3, len(txLogs))
 
 	suite.Require().Equal(ethHash.String(), txLogs[0].TxHash.String())
