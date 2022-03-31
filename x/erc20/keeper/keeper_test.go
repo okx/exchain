@@ -60,15 +60,15 @@ func (suite *KeeperTestSuite) GetBalance(address sdk.AccAddress, denom string) s
 	return sdk.Coin{denom, acc.GetCoins().AmountOf(denom)}
 }
 
-type IbcKeeperMock struct {
-}
+type IbcKeeperMock struct{}
 
-func (i IbcKeeperMock) SendTransfer(ctx sdk.Context, sourcePort, sourceChannel string, token sdk.CoinAdapter, sender sdk.AccAddress, receiver string, timeoutHeight clienttypes.Height, timeoutTimestamp uint64) error {
+func (i IbcKeeperMock) SendTransfer(ctx sdk.Context, sourcePort, sourceChannel string, token sdk.CoinAdapter,
+	sender sdk.AccAddress, receiver string, timeoutHeight clienttypes.Height, timeoutTimestamp uint64) error {
 	return nil
 }
 
 func (i IbcKeeperMock) DenomPathFromHash(ctx sdk.Context, denom string) (string, error) { //nolint
-	if denom == "ibc/DDCD907790B8AA2BF9B2B3B614718FA66BFC7540E832CE3E3696EA717DCEFF49" {
+	if denom == "ibc/ddcd907790b8aa2bf9b2b3b614718fa66bfc7540e832ce3e3696ea717dceff49" {
 		return "transfer/channel-0", nil
 	}
 	if denom == "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" {

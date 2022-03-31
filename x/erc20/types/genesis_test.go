@@ -19,15 +19,6 @@ func TestGenesisStateValidate(t *testing.T) {
 			},
 			false,
 		},
-		{
-			"valid invalid IBC param",
-			GenesisState{
-				Params: Params{
-					IbcDenom: "aaa",
-				},
-			},
-			true,
-		},
 	}
 
 	for _, tc := range testCases {

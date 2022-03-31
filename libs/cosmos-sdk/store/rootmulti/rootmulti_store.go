@@ -79,7 +79,6 @@ type Store struct {
 var (
 	_ types.CommitMultiStore = (*Store)(nil)
 	_ types.Queryable        = (*Store)(nil)
-	_ types.CommitMultiStore = (*Store)(nil)
 )
 
 // NewStore returns a reference to a new Store object with the provided DB. The
@@ -453,7 +452,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
-	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.getStores(version), inputDeltaMap, rs.commitHeightFilterPipeline(version))
+	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitHeightFilterPipeline(version))
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -520,7 +519,6 @@ func (rs *Store) pruneStores() {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-			store.LastCommitID()
 			if err := store.(*iavl.Store).DeleteVersions(rs.pruneHeights...); err != nil {
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
 					panic(err)
@@ -642,7 +640,6 @@ func (rs *Store) getStoreByName(name string) types.Store {
 // TODO: add proof for `multistore -> substore`.
 func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	path := req.Path
-	str := string(req.Data)
 	storeName, subpath, err := parsePath(path)
 	if err != nil {
 		return sdkerrors.QueryResult(err)
@@ -661,13 +658,6 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// trim the path and make the query
 	req.Path = subpath
 	res := queryable.Query(req)
-	if strings.Contains(str, "connections") {
-		defer func() {
-			if res.Proof == nil || len(res.Proof.Ops) == 0 {
-				panic("asd")
-			}
-		}()
-	}
 
 	if !req.Prove || !RequireProof(subpath) {
 		return res
@@ -1005,13 +995,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		if f(key.Name()) {
 			continue
 		}
-		//if !tmtypes.HigherThanVenus1(version) {
-		//	name := key.Name()
-		//	if name == "ibc" || name == "transfer" || name == "erc20" || name == "capability" {
-		//		continue
-		//	}
-		//}
-		if tmtypes.GetIBCHeight()+1 == version {
+		if tmtypes.GetVenus1Height()+1 == version {
 			//init store tree version with block height
 			store.UpgradeVersion(version)
 		}
@@ -1022,9 +1006,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		si := storeInfo{}
-		//if f(key.Name()) {
-		//	continue
-		//}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
 		si.Core.CommitID.Version = version

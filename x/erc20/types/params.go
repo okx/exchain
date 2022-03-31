@@ -10,13 +10,13 @@ import (
 
 const (
 	// DefaultParamspace for params keeper
-	DefaultParamspace      = ModuleName
-	IbcDenomDefaultValue   = "ibc/DDCD907790B8AA2BF9B2B3B614718FA66BFC7540E832CE3E3696EA717DCEFF49"
-	IbcTimeoutDefaultValue = uint64(86400000000000) // 1 day
+	DefaultParamspace = ModuleName
+
+	DefaultIbcTimeout            = uint64(86400000000000) // 1 day
+	DefaultAutoDeploymentEnabled = false
 )
 
 var (
-	KeyIbcDenom             = []byte("IbcDenom")
 	KeyEnableAutoDeployment = []byte("EnableAutoDeployment")
 	KeyIbcTimeout           = []byte("IbcTimeout")
 )
@@ -28,15 +28,13 @@ func ParamKeyTable() params.KeyTable {
 
 // Params defines the module parameters
 type Params struct {
-	IbcDenom             string `json:"ibc_denom" yaml:"ibc_denom"`
 	EnableAutoDeployment bool   `json:"enable_auto_deployment" yaml:"enable_auto_deployment"`
 	IbcTimeout           uint64 `json:"ibc_timeout" yaml:"ibc_timeout"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(ibc_denom string, enableAutoDeployment bool, ibcTimeout uint64) Params {
+func NewParams(enableAutoDeployment bool, ibcTimeout uint64) Params {
 	return Params{
-		IbcDenom:             ibc_denom,
 		EnableAutoDeployment: enableAutoDeployment,
 		IbcTimeout:           ibcTimeout,
 	}
@@ -45,9 +43,8 @@ func NewParams(ibc_denom string, enableAutoDeployment bool, ibcTimeout uint64) P
 // DefaultParams returns default parameters
 func DefaultParams() Params {
 	return Params{
-		IbcDenom:             IbcDenomDefaultValue,
-		EnableAutoDeployment: true,
-		IbcTimeout:           IbcTimeoutDefaultValue,
+		EnableAutoDeployment: DefaultAutoDeploymentEnabled,
+		IbcTimeout:           DefaultIbcTimeout,
 	}
 }
 
@@ -60,7 +57,6 @@ func (p Params) String() string {
 // ParamSetPairs returns the parameter set pairs.
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		params.NewParamSetPair(KeyIbcDenom, &p.IbcDenom, validateIbcDenom),
 		params.NewParamSetPair(KeyEnableAutoDeployment, &p.EnableAutoDeployment, validateBool),
 		params.NewParamSetPair(KeyIbcTimeout, &p.IbcTimeout, validateUint64),
 	}
@@ -69,9 +65,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 // Validate performs basic validation on erc20 parameters.
 func (p Params) Validate() error {
 	if err := validateUint64(p.IbcTimeout); err != nil {
-		return err
-	}
-	if err := validateIbcDenom(p.IbcDenom); err != nil {
 		return err
 	}
 	return nil
@@ -88,18 +81,6 @@ func validateBool(i interface{}) error {
 	_, ok := i.(bool)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-	return nil
-}
-
-func validateIbcDenom(i interface{}) error {
-	s, ok := i.(string)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if !IsValidIBCDenom(s) {
-		return fmt.Errorf("invalid ibc denom: %T", i)
 	}
 	return nil
 }

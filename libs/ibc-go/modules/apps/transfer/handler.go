@@ -1,10 +1,6 @@
 package transfer
 
 import (
-
-	//"github.com/okex/exchain/common"
-	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
@@ -20,8 +16,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case *types.MsgTransfer:
 			res, err := k.Transfer(sdk.WrapSDKContext(ctx), msg)
-			fmt.Println(res)
-			return sdk.WrapServiceResult(ctx, nil, err)
+			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ICS-20 transfer message type: %T", msg)

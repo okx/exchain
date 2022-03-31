@@ -85,7 +85,7 @@ func relayTx(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx, er
 		return nil, errors.New("relayTx empty txBytes is not allowed")
 	}
 
-	cdc, ok := cdcWrapper.(codec.CompoundCodec)
+	cdc, ok := cdcWrapper.(*codec.CompoundCodec)
 	if !ok {
 		return nil, errors.New("Invalid cdc abstraction!")
 	}
@@ -98,8 +98,6 @@ func relayTx(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx, er
 
 	return txdata, nil
 }
-
-
 
 type decodeFunc func(codec.CdcAbstraction, []byte, int64) (sdk.Tx, error)
 

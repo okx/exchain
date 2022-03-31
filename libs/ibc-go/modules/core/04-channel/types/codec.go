@@ -69,7 +69,3 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
-
-func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(&Channel{}, "channel", nil)
-}
