@@ -4,7 +4,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"sort"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -17,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -31,7 +29,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
@@ -651,22 +648,6 @@ func (app *OKExChainApp) Marshal() *codec.CodecProxy {
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
 }
-func (app *OKExChainApp) setupUpgradeModules() {
-	heightTasks, pip, prunePip, pR := app.CollectUpgradeModules(app.mm)
-	app.heightTasks = heightTasks
-	if pip != nil {
-		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		app.GetCMS().SetCommitHeightFilterPipeline(pip)
-	}
-	vs := app.subspaces
-	for k, vv := range pR {
-		supace, exist := vs[k]
-		if !exist {
-			continue
-		}
-		vs[k] = supace.LazyWithKeyTable(subspace.NewKeyTable(vv.ParamSetPairs()...))
-	}
-}
 
 var protoCodec = encoding.GetCodec(proto.Name)
 
@@ -758,91 +739,4 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
-}
-
-func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, types.HeightFilterPipeline, types.HeightFilterPipeline, map[string]params.ParamSet) {
-	hm := make(map[int64]*upgradetypes.HeightTasks)
-	hStoreInfoModule := make(map[int64]map[string]struct{})
-	paramsRet := make(map[string]params.ParamSet)
-	for _, mm := range m.Modules {
-		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
-			set := ada.RegisterParam()
-			if set != nil {
-				if _, exist := paramsRet[ada.ModuleName()]; !exist {
-					paramsRet[ada.ModuleName()] = set
-				}
-			}
-			h := ada.UpgradeHeight()
-			if h <= 0 {
-				continue
-			}
-			t := ada.RegisterTask()
-			if t == nil {
-				continue
-			}
-			if err := t.ValidateBasic(); nil != err {
-				panic(err)
-			}
-			storeInfoModule := hStoreInfoModule[h]
-			if storeInfoModule == nil {
-				storeInfoModule = make(map[string]struct{})
-				hStoreInfoModule[h] = storeInfoModule
-			}
-			names := ada.BlockStoreModules()
-			for _, n := range names {
-				storeInfoModule[n] = struct{}{}
-			}
-			taskList := hm[h]
-			if taskList == nil {
-				v := make(upgradetypes.HeightTasks, 0)
-				taskList = &v
-				hm[h] = taskList
-			}
-			*taskList = append(*taskList, t)
-		}
-	}
-	for _, v := range hm {
-		sort.Sort(*v)
-	}
-	var (
-		pip      types.HeightFilterPipeline
-		prunePip types.HeightFilterPipeline
-	)
-	for height, mm := range hStoreInfoModule {
-		f := func(h int64) func(str string) bool {
-			if h >= height {
-				// next
-				return nil
-			}
-			// filter block module
-			return func(str string) bool {
-				_, exist := mm[str]
-				return exist
-			}
-		}
-		if pip == nil {
-			pip = f
-		} else {
-			pip = types.LinkPipeline(f, pip)
-		}
-	}
-	for height, mm := range hStoreInfoModule {
-		f := func(h int64) func(str string) bool {
-			if h > height {
-				// next
-				return nil
-			}
-			// filter block module
-			return func(str string) bool {
-				_, exist := mm[str]
-				return exist
-			}
-		}
-		if prunePip == nil {
-			prunePip = f
-		} else {
-			prunePip = types.LinkPipeline(f, prunePip)
-		}
-	}
-	return hm, pip, prunePip, paramsRet
 }
