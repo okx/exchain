@@ -666,24 +666,24 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
-	//num := len(dttm.dttRoutineList)
-	////if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
-	//	dttm.app.logger.Info("OnAccountUpdated", "times", times, "happened", happened, "addr", address)
-	////}
-	//for i := 0; i < num; i++ {
-	//	dttr := dttm.dttRoutineList[i]
-	//	if dttr.task == nil || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
-	//		continue
-	//	}
-	//
-	//	task := dttr.task
-	//	//count := task.getUpdateCount()
-	//	if task.setUpdateCount(times, happened) {
-	//		//go func() {
-	//		dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
-	//		//dttr.task.needToRerun = true
-	//		dttr.shouldRerun(-1)
-	//		//}()
-	//	}
+	num := len(dttm.dttRoutineList)
+	//if global.GetGlobalHeight() == 5811244 && address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557" {
+		dttm.app.logger.Info("OnAccountUpdated", "times", times, "happened", happened, "addr", address)
 	//}
+	for i := 0; i < num; i++ {
+		dttr := dttm.dttRoutineList[i]
+		if dttr.task == nil || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
+			continue
+		}
+
+		//task := dttr.task
+		////count := task.getUpdateCount()
+		//if task.setUpdateCount(times, happened) {
+		//	//go func() {
+		//	dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
+		//	//dttr.task.needToRerun = true
+		//	dttr.shouldRerun(-1)
+		//	//}()
+		//}
+	}
 }
