@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -200,6 +201,21 @@ func (k Keeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) er
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "Address <%s> in blacklist is not allowed", addr)
 	}
 	_, err := k.bk.AddCoins(ctx, addr, amt)
+
+	return err
+}
+
+func (k Keeper) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
+	if amt == nil {
+		return nil
+	}
+
+	acc := k.GetModuleAccount(ctx, authtypes.FeeCollectorName)
+	if acc == nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", authtypes.FeeCollectorName)
+	}
+
+	_, err := k.bk.AddCoins(ctx, acc.GetAddress(), amt)
 
 	return err
 }

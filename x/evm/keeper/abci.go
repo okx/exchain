@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -107,9 +106,9 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	}
 
 	k.UpdateInnerBlockData()
+
 	coins := k.supplyKeeper.GetFeeFromBlockPool()
-	acc := k.supplyKeeper.GetModuleAccount(ctx, authtypes.FeeCollectorName)
-	err := k.supplyKeeper.AddCoins(ctx, acc.GetAddress(), coins)
+	err := k.supplyKeeper.AddCoinsToFeeCollector(ctx, coins)
 	if err != nil {
 		panic(fmt.Errorf("end block set to fee-collector fail %v ", err))
 	}
