@@ -16,6 +16,10 @@ type DummySupplyKeeper struct {
 	ak auth.AccountKeeper
 }
 
+func (sk DummySupplyKeeper) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
+	return nil
+}
+
 func (sk DummySupplyKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error {
 	return nil
 }
