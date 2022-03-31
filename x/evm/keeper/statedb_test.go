@@ -38,7 +38,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
+				suite.stateDB.WithContext(suite.ctx).SetLogs(tHash, logs)
 			},
 			1,
 			false,
@@ -53,7 +53,8 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
+		suite.Require().NoError(err)
 		if !tc.isBloom {
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
@@ -199,6 +200,7 @@ func (suite *KeeperTestSuite) TestStateDB_Code() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_Logs() {
+	txHash := ethcmn.BytesToHash([]byte("topic"))
 	testCase := []struct {
 		name string
 		log  ethtypes.Log
@@ -207,10 +209,10 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 			"state db log",
 			ethtypes.Log{
 				Address:     suite.address,
-				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+				Topics:      []ethcmn.Hash{txHash},
 				Data:        []byte("data"),
 				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{},
+				TxHash:      txHash,
 				TxIndex:     1,
 				BlockHash:   ethcmn.Hash{},
 				Index:       1,
@@ -222,8 +224,9 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 	for _, tc := range testCase {
 		logs := []*ethtypes.Log{&tc.log}
 
-		suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
-		dbLogs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+		suite.stateDB.WithContext(suite.ctx).SetLogs(txHash, logs)
+		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(txHash)
+		suite.Require().NoError(err)
 		suite.Require().Equal(logs, dbLogs, tc.name)
 	}
 }

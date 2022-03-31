@@ -119,7 +119,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs := suite.stateDB.GetLogs()
+		logs, err := suite.stateDB.GetLogs(tHash)
+		suite.Require().NoError(err)
 		if !tc.isBloom {
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
@@ -260,6 +261,7 @@ func (suite *StateDBTestSuite) TestStateDB_Code() {
 }
 
 func (suite *StateDBTestSuite) TestStateDB_Logs() {
+	txhash := ethcmn.BytesToHash([]byte("topic"))
 	testCase := []struct {
 		name string
 		log  ethtypes.Log
@@ -268,10 +270,10 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 			"state db log",
 			ethtypes.Log{
 				Address:     suite.address,
-				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+				Topics:      []ethcmn.Hash{txhash},
 				Data:        []byte("data"),
 				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{},
+				TxHash:      txhash,
 				TxIndex:     1,
 				BlockHash:   ethcmn.Hash{},
 				Index:       1,
@@ -284,22 +286,26 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		suite.stateDB.SetLogs(logs)
-		dbLogs := suite.stateDB.GetLogs()
+		suite.stateDB.SetLogs(txhash, logs)
+		dbLogs, err := suite.stateDB.GetLogs(txhash)
+		suite.Require().NoError(err)
 		suite.Require().Equal(logs, dbLogs, tc.name)
 
-		suite.stateDB.DeleteLogs()
-		dbLogs = suite.stateDB.GetLogs()
+		suite.stateDB.DeleteLogs(txhash)
+		dbLogs, err = suite.stateDB.GetLogs(txhash)
+		suite.Require().NoError(err)
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.Prepare(hash, ethcmn.BytesToHash([]byte("bhash")), 1)
 		suite.stateDB.AddLog(&tc.log)
-		newLogs := suite.stateDB.GetLogs()
+		newLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err)
 		suite.Require().Equal(logs, newLogs, tc.name)
 
 		//resets state but checking to see if storekey still persists.
 		suite.stateDB.Reset(hash)
-		newLogs = suite.stateDB.GetLogs()
+		newLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().NoError(err)
 		suite.Require().Equal(logs, newLogs, tc.name)
 	}
 }

@@ -225,8 +225,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs), 1)
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
-	suite.stateDB.WithContext(suite.ctx).SetLogs(resultData.Logs)
-	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	txHash := ethcmn.BytesToHash(tx.TxHash())
+	suite.stateDB.WithContext(suite.ctx).SetLogs(txHash, resultData.Logs)
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(txHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(logs, resultData.Logs)
 }
 
