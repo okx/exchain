@@ -1005,7 +1005,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		if f(key.Name()) {
 			continue
 		}
-		if tmtypes.GetIBCHeight()+1 == version {
+		if tmtypes.GetVenus1Height()+1 == version {
 			//init store tree version with block height
 			store.UpgradeVersion(version)
 		}
