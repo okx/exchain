@@ -20,9 +20,6 @@ type AccountKeeper interface {
 
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
-
-	GetFeeFromBlockPool() sdk.Coins
-	AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error
 }
 
 type Subspace interface {

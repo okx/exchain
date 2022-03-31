@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -106,12 +105,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	}
 
 	k.UpdateInnerBlockData()
-
-	coins := k.supplyKeeper.GetFeeFromBlockPool()
-	err := k.supplyKeeper.AddCoinsToFeeCollector(ctx, coins)
-	if err != nil {
-		panic(fmt.Errorf("end block set to fee-collector fail %v ", err))
-	}
 
 	return []abci.ValidatorUpdate{}
 }

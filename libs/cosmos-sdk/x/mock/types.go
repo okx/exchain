@@ -24,13 +24,13 @@ func (sk DummySupplyKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt s
 	return nil
 }
 
-func (sk DummySupplyKeeper) AddFeeBlockPool(amt sdk.Coins) {}
+func (sk DummySupplyKeeper) AddFee(amt sdk.Coins) {}
 
-func (sk DummySupplyKeeper) GetFeeFromBlockPool() sdk.Coins {
+func (sk DummySupplyKeeper) GetFee() sdk.Coins {
 	return nil
 }
 
-func (sk DummySupplyKeeper) ResetFeeBlockPool() {}
+func (sk DummySupplyKeeper) ResetFee() {}
 
 // NewDummySupplyKeeper creates a DummySupplyKeeper instance
 func NewDummySupplyKeeper(ak auth.AccountKeeper) DummySupplyKeeper {

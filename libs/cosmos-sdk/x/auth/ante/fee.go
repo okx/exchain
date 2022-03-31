@@ -140,7 +140,9 @@ func DeductFees(supplyKeeper exported2.SupplyKeeper, ctx sdk.Context, acc export
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	supplyKeeper.AddFeeBlockPool(fees)
+	if ctx.IsDeliver() {
+		supplyKeeper.AddFee(fees)
+	}
 	err := supplyKeeper.SubtractCoins(ctx, acc.GetAddress(), fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())

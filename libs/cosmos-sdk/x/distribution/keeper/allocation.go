@@ -31,8 +31,6 @@ func (k Keeper) AllocateTokens(
 		panic(err)
 	}
 
-	k.supplyKeeper.ResetFeeBlockPool()
-
 	// temporary workaround to keep CanWithdrawInvariant happy
 	// general discussions here: https://github.com/cosmos/cosmos-sdk/issues/2906#issuecomment-441867634
 	feePool := k.GetFeePool(ctx)

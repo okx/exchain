@@ -12,7 +12,8 @@ type SupplyKeeper interface {
 	GetModuleAddress(moduleName string) sdk.AccAddress
 	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error
 	AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) error
-	AddFeeBlockPool(amt sdk.Coins)
-	GetFeeFromBlockPool() sdk.Coins
-	ResetFeeBlockPool()
+	AddFee(amt sdk.Coins)
+	GetFee() sdk.Coins
+	ResetFee()
+	AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error
 }

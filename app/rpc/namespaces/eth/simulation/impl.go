@@ -100,14 +100,6 @@ func (a AccountKeeperProxy) RemoveAccount(ctx sdk.Context, account authexported.
 type SupplyKeeperProxy struct {
 }
 
-func (s SupplyKeeperProxy) GetFeeFromBlockPool() sdk.Coins {
-	return nil
-}
-
-func (s SupplyKeeperProxy) AddCoinsToFeeCollector(ctx sdk.Context, amt sdk.Coins) error {
-	return nil
-}
-
 func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {
 	return nil
 }
