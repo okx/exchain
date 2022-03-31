@@ -673,14 +673,14 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			continue
 		}
 
-		task := dttr.task
-		//count := task.getUpdateCount()
-		if task.setUpdateCount(times, happened) {
-			//go func() {
-			dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
-			//dttr.task.needToRerun = true
-			dttr.shouldRerun(-1)
-			//}()
-		}
+		//task := dttr.task
+		////count := task.getUpdateCount()
+		//if task.setUpdateCount(times, happened) {
+		//	//go func() {
+		//	dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
+		//	//dttr.task.needToRerun = true
+		//	dttr.shouldRerun(-1)
+		//	//}()
+		//}
 	}
 }
