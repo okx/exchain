@@ -47,7 +47,6 @@ func init() {
 		} else if MILESTONE_VENUS1_HEIGHT == "" {
 			milestoneVenus1Height = 1
 		}
-		milestoneVenus1Height = 15
 	})
 }
 

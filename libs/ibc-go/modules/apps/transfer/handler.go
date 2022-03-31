@@ -15,8 +15,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case *types.MsgTransfer:
-			_, err := k.Transfer(sdk.WrapSDKContext(ctx), msg)
-			return sdk.WrapServiceResult(ctx, nil, err)
+			res, err := k.Transfer(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ICS-20 transfer message type: %T", msg)
