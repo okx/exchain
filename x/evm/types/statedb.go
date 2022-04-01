@@ -1340,12 +1340,19 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+
 	if csdb.ctx.IsDeliver() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
+
+		ss := GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
+		if ethcmn.BytesToAddress(contractAddr).String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
+			fmt.Println("CheckContract", ss)
+			return ss
+		}
+		return ss
 	}
 
 	//use dbAdapter for watchdb or prefixdb
