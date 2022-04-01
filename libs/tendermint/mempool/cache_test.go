@@ -49,10 +49,10 @@ func TestCacheAfterUpdate(t *testing.T) {
 		reAddIndices   []int
 		txsInCache     []int
 	}{
-		{1, []int{}, []int{1}, []int{1, 0}},    // adding new txs works
-		{2, []int{1}, []int{}, []int{1, 0}},    // update doesn't remove tx from cache
-		{2, []int{2}, []int{}, []int{2, 1, 0}}, // update adds new tx to cache
-		{2, []int{1}, []int{1}, []int{1, 0}},   // re-adding after update doesn't make dupe
+		{1, []int{}, []int{1}, []int{}},   // adding new txs works
+		{2, []int{1}, []int{}, []int{1}},  // update doesn't remove tx from cache
+		{2, []int{2}, []int{}, []int{2}},  // update adds new tx to cache
+		{2, []int{1}, []int{1}, []int{1}}, // re-adding after update doesn't make dupe
 	}
 	for tcIndex, tc := range tests {
 		for i := 0; i < tc.numTxsToCreate; i++ {
