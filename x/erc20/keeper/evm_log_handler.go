@@ -86,7 +86,8 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 	sender := sdk.AccAddress(unpacked[0].(common.Address).Bytes())
 	recipient := unpacked[1].(string)
 	amount := sdk.NewIntFromBigInt(unpacked[2].(*big.Int))
-	vouchers := sdk.NewCoins(sdk.NewCoin(denom, amount))
+	amountDec := sdk.NewDecFromIntWithPrec(amount, sdk.Precision)
+	vouchers := sdk.NewCoins(sdk.NewCoin(denom, amountDec))
 
 	// 1. transfer IBC coin to user so that he will be the refunded address if transfer fails
 	if err = h.bankKeeper.SendCoins(ctx, contractAddr, sender, vouchers); err != nil {
