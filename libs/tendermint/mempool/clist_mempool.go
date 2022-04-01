@@ -90,7 +90,7 @@ type CListMempool struct {
 	txInfoparser TxInfoParser
 	checkCnt     int64
 
-	checkingTxsMap sync.Map
+	checkingTxsMap *checkingCache
 }
 
 var _ Mempool = &CListMempool{}
@@ -116,6 +116,8 @@ func NewCListMempool(
 		eventBus:      types.NopEventBus{},
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
+
+		checkingTxsMap: newCheckingCache(),
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -279,7 +281,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	txkey := txKey(tx)
-	if _, checking := mem.checkingTxsMap.LoadOrStore(txkey, nil); checking {
+	if checking := mem.checkingTxsMap.TryAdd(txkey); checking {
 		return ErrTxInCache
 	} else {
 		defer mem.checkingTxsMap.Delete(txkey)
