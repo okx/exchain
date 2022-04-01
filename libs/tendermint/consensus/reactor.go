@@ -340,7 +340,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
 			//3.it is CurrentProposer
 			if msg.Height > conR.hasViewChanged &&
-				msg.Height < conR.conS.Height &&
+				msg.Height > conR.conS.Height &&
 				conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
