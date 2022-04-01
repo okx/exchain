@@ -137,12 +137,12 @@ func (csdb *CommitStateDB) GetCodeByHashInRawDB(hash ethcmn.Hash) []byte {
 }
 
 func (csdb *CommitStateDB) setHeightHashInRawDB(height uint64, hash ethcmn.Hash) {
-	key := append(KeyPrefixHeightHash, HeightHashKey(height)...)
+	key := AppendHeightHashKey(height)
 	csdb.db.TrieDB().DiskDB().Put(key, hash.Bytes())
 }
 
 func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
-	key := append(KeyPrefixHeightHash, HeightHashKey(height)...)
+	key := AppendHeightHashKey(height)
 	bz, err := csdb.db.TrieDB().DiskDB().Get(key)
 	if err != nil {
 		return ethcmn.Hash{}
@@ -151,28 +151,28 @@ func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
 }
 
 func (csdb *CommitStateDB) setWhiteAddressInRawDB(address sdk.AccAddress) {
-	csdb.db.TrieDB().DiskDB().Put(GetContractDeploymentWhitelistMemberKey(address), []byte(""))
+	csdb.db.TrieDB().DiskDB().Put(AppendUpgradedContractDeploymentWhitelistKey(address), []byte(""))
 }
 
 func (csdb *CommitStateDB) deleteWhiteAddressInRawDB(address sdk.AccAddress) {
-	csdb.db.TrieDB().DiskDB().Delete(GetContractDeploymentWhitelistMemberKey(address))
+	csdb.db.TrieDB().DiskDB().Delete(AppendUpgradedContractDeploymentWhitelistKey(address))
 }
 
 func (csdb *CommitStateDB) getWhitelistInRawDB() (whitelist AddressList) {
-	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractDeploymentWhitelist, nil)
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(UpgradedKeyPrefixContractDeploymentWhitelist, nil)
 	defer iterator.Release()
 	for iterator.Next() {
 		key := iterator.Key()
-		if len(key) != len(KeyPrefixContractDeploymentWhitelist)+ethcmn.AddressLength {
+		if !IsUpgradedContractDeploymentWhitelistKey(key) {
 			continue
 		}
-		whitelist = append(whitelist, splitApprovedDeployerAddress(key))
+		whitelist = append(whitelist, SplitUpgradedContractDeploymentWhitelistKey(key))
 	}
 	return
 }
 
 func (csdb *CommitStateDB) isWhiteAddressInRawDB(address sdk.AccAddress) bool {
-	has, err := csdb.db.TrieDB().DiskDB().Has(GetContractDeploymentWhitelistMemberKey(address))
+	has, err := csdb.db.TrieDB().DiskDB().Has(AppendUpgradedContractDeploymentWhitelistKey(address))
 	if err != nil {
 		return false
 	}
@@ -180,37 +180,37 @@ func (csdb *CommitStateDB) isWhiteAddressInRawDB(address sdk.AccAddress) bool {
 }
 
 func (csdb *CommitStateDB) setBlockedAddressInRawDB(address sdk.AccAddress, value []byte) {
-	csdb.db.TrieDB().DiskDB().Put(GetContractBlockedListMemberKey(address), value)
+	csdb.db.TrieDB().DiskDB().Put(AppendUpgradedContractBlockedListKey(address), value)
 }
 
 func (csdb *CommitStateDB) deleteBlockedAddressInRawDB(address sdk.AccAddress) {
-	csdb.db.TrieDB().DiskDB().Delete(GetContractBlockedListMemberKey(address))
+	csdb.db.TrieDB().DiskDB().Delete(AppendUpgradedContractBlockedListKey(address))
 }
 
 func (csdb *CommitStateDB) getBlockedlistInRawDB() (blockedList AddressList) {
-	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractBlockedList, nil)
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(UpgradedKeyPrefixContractBlockedList, nil)
 	defer iterator.Release()
 	for iterator.Next() {
 		key, value := iterator.Key(), iterator.Value()
-		if len(key) != len(KeyPrefixContractBlockedList)+ethcmn.AddressLength {
+		if !IsUpgradedContractBlockedListKey(key) {
 			continue
 		}
 		if len(value) == 0 {
-			blockedList = append(blockedList, splitBlockedContractAddress(key))
+			blockedList = append(blockedList, SplitUpgradedContractBlockedListKey(key))
 		}
 	}
 	return
 }
 
 func (csdb *CommitStateDB) getBlockedlistWithMethodsInRawDB() (blockedContractList BlockedContractList) {
-	iterator := csdb.db.TrieDB().DiskDB().NewIterator(KeyPrefixContractBlockedList, nil)
+	iterator := csdb.db.TrieDB().DiskDB().NewIterator(UpgradedKeyPrefixContractBlockedList, nil)
 	defer iterator.Release()
 	for iterator.Next() {
 		key, value := iterator.Key(), iterator.Value()
-		if len(key) != len(KeyPrefixContractBlockedList)+ethcmn.AddressLength {
+		if !IsUpgradedContractBlockedListKey(key) {
 			continue
 		}
-		addr := sdk.AccAddress(splitBlockedContractAddress(key))
+		addr := sdk.AccAddress(SplitUpgradedContractBlockedListKey(key))
 		methods := ContractMethods{}
 		if len(value) != 0 {
 			csdb.cdc.MustUnmarshalJSON(value, &methods)
@@ -222,7 +222,7 @@ func (csdb *CommitStateDB) getBlockedlistWithMethodsInRawDB() (blockedContractLi
 }
 
 func (csdb *CommitStateDB) isBlockedAddressInRawDB(address sdk.AccAddress) bool {
-	has, err := csdb.db.TrieDB().DiskDB().Has(GetContractBlockedListMemberKey(address))
+	has, err := csdb.db.TrieDB().DiskDB().Has(AppendUpgradedContractBlockedListKey(address))
 	if err != nil {
 		return false
 	}
@@ -230,7 +230,7 @@ func (csdb *CommitStateDB) isBlockedAddressInRawDB(address sdk.AccAddress) bool 
 }
 
 func (csdb *CommitStateDB) getContractMethodBytesInRawDB(address sdk.AccAddress) []byte {
-	value, err := csdb.db.TrieDB().DiskDB().Get(GetContractBlockedListMemberKey(address))
+	value, err := csdb.db.TrieDB().DiskDB().Get(AppendUpgradedContractBlockedListKey(address))
 	if err != nil {
 		return nil
 	}

@@ -247,7 +247,8 @@ func (k *Keeper) asyncCommit(logger log.Logger) {
  * Getters for keys in x/evm/types/keys.go
  */
 func (k Keeper) getBlockHashInDiskDB(hash []byte) (int64, bool) {
-	bz, err := k.db.TrieDB().DiskDB().Get(append(types.KeyPrefixBlockHash, hash...))
+	key := types.AppendBlockHashKey(hash)
+	bz, err := k.db.TrieDB().DiskDB().Get(key)
 	if err != nil {
 		return 0, false
 	}
@@ -260,15 +261,16 @@ func (k Keeper) getBlockHashInDiskDB(hash []byte) (int64, bool) {
 }
 
 func (k Keeper) setBlockHashInDiskDB(hash []byte, height int64) {
+	key := types.AppendBlockHashKey(hash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
-	k.db.TrieDB().DiskDB().Put(append(types.KeyPrefixBlockHash, hash...), bz)
+	k.db.TrieDB().DiskDB().Put(key, bz)
 }
 
 func (k Keeper) iterateBlockHashInDiskDB(fn func(key []byte, value []byte) (stop bool)) {
 	iterator := k.db.TrieDB().DiskDB().NewIterator(types.KeyPrefixBlockHash, nil)
 	defer iterator.Release()
 	for iterator.Next() {
-		if len(iterator.Key()) != len(types.KeyPrefixBlockHash)+ethcmn.HashLength {
+		if !types.IsBlockHashKey(iterator.Key()) {
 			continue
 		}
 		key, value := iterator.Key(), iterator.Value()
@@ -279,7 +281,8 @@ func (k Keeper) iterateBlockHashInDiskDB(fn func(key []byte, value []byte) (stop
 }
 
 func (k Keeper) getBlockBloomInDiskDB(height int64) ethtypes.Bloom {
-	bz, err := k.db.TrieDB().DiskDB().Get(append(types.KeyPrefixBloom, types.BloomKey(height)...))
+	key := types.AppendBloomKey(height)
+	bz, err := k.db.TrieDB().DiskDB().Get(key)
 	if err != nil {
 		return ethtypes.Bloom{}
 	}
@@ -288,14 +291,15 @@ func (k Keeper) getBlockBloomInDiskDB(height int64) ethtypes.Bloom {
 }
 
 func (k Keeper) setBlockBloomInDiskDB(height int64, bloom ethtypes.Bloom) {
-	k.db.TrieDB().DiskDB().Put(append(types.KeyPrefixBloom, types.BloomKey(height)...), bloom.Bytes())
+	key := types.AppendBloomKey(height)
+	k.db.TrieDB().DiskDB().Put(key, bloom.Bytes())
 }
 
 func (k Keeper) iterateBlockBloomInDiskDB(fn func(key []byte, value []byte) (stop bool)) {
 	iterator := k.db.TrieDB().DiskDB().NewIterator(types.KeyPrefixBloom, nil)
 	defer iterator.Release()
 	for iterator.Next() {
-		if len(iterator.Key()) != len(types.KeyPrefixBloom)+8 {
+		if !types.IsBloomKey(iterator.Key()) {
 			continue
 		}
 		key, value := iterator.Key(), iterator.Value()

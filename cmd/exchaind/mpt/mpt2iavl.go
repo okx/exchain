@@ -6,7 +6,6 @@ import (
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -91,39 +90,52 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	 */
 	diskdb := evmMptDb.TrieDB().DiskDB()
 	// 1.1 set ChainConfig back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil), 1)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil), evmtypes.IsChainConfigKey)
 	// 1.2 set BlockHash/HeightHash back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), 1+ethcmn.HashLength)
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), 1+8)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), evmtypes.IsBlockHashKey)
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), evmtypes.IsHeightHashKey)
 	// 1.3 set Bloom back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), 1+8)
-	// 1.4 set white、blocked addresses back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractDeploymentWhitelist, nil), 1+ethcmn.AddressLength)
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixContractBlockedList, nil), 1+ethcmn.AddressLength)
-	// 1.5 set Code back to iavl
-	for dIter := diskdb.NewIterator(rawdb.CodePrefix, nil); dIter.Next(); {
-		if len(dIter.Key()) != 1+32 {
+	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), evmtypes.IsBloomKey)
+	// 2.1 set white、blocked addresses back to iavl
+	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixContractDeploymentWhitelist, nil); dIter.Next(); {
+		if !evmtypes.IsUpgradedContractDeploymentWhitelistKey(dIter.Key()) {
 			continue
 		}
-		k, v := deepCopyKV(append(evmtypes.KeyPrefixCode, dIter.Key()[1:]...), dIter.Value())
+		address := evmtypes.SplitUpgradedContractDeploymentWhitelistKey(dIter.Key())
+		k, v := deepCopyKV(evmtypes.GetContractDeploymentWhitelistMemberKey(address), dIter.Value())
+		tree.Set(k, v)
+	}
+	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixContractBlockedList, nil); dIter.Next(); {
+		if !evmtypes.IsUpgradedContractBlockedListKey(dIter.Key()) {
+			continue
+		}
+		address := evmtypes.SplitUpgradedContractBlockedListKey(dIter.Key())
+		k, v := deepCopyKV(evmtypes.GetContractBlockedListMemberKey(address), dIter.Value())
+		tree.Set(k, v)
+	}
+	// 2.2 set Code back to iavl
+	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixCode, nil); dIter.Next(); {
+		if !evmtypes.IsCodeHashKey(dIter.Key()) {
+			continue
+		}
+		codeHash := evmtypes.SplitCodeHashKey(dIter.Key())
+		k, v := deepCopyKV(append(evmtypes.KeyPrefixCode, codeHash...), dIter.Value())
 		tree.Set(k, v)
 	}
 
-	// 2.migrate state data to iavl
+	// 3.migrate state data to iavl
 	var stateRoot ethcmn.Hash
 	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
 	for itr.Next() {
 		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
 		stateRoot.SetBytes(itr.Value)
-		// 1.1 get solo contract mpt
+		// 3.1 get solo contract mpt
 		contractTrie := getStorageTrie(evmMptDb, ethcrypto.Keccak256Hash(addr[:]), stateRoot)
-		fmt.Println(addr.String(), contractTrie.Hash())
 
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
 		for cItr.Next() {
 			originKey := contractTrie.GetKey(cItr.Key)
 			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(key), ethcmn.BytesToHash(cItr.Value))
 			tree.Set(key, ethcmn.BytesToHash(cItr.Value).Bytes())
 		}
 	}
@@ -153,11 +165,11 @@ func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
 	return t, binary.BigEndian.Uint64(heightBytes)
 }
 
-func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, keyLen int) {
+func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, isValid func(key []byte) bool) {
 	defer dIter.Release()
 	for dIter.Next() {
 		key, value := dIter.Key(), dIter.Value()
-		if len(key) != keyLen {
+		if !isValid(key) {
 			continue
 		}
 		k, v := deepCopyKV(key, value)

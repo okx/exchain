@@ -124,14 +124,14 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	panicError(err)
 
 	/* Here are prefix keys from evm module:
-			KeyPrefixBlockHash                   = []byte{0x01}
-			KeyPrefixBloom                       = []byte{0x02}
-			KeyPrefixCode                        = []byte{0x04}
-			KeyPrefixStorage                     = []byte{0x05}
-			KeyPrefixChainConfig                 = []byte{0x06}
-			KeyPrefixHeightHash                  = []byte{0x07}
-			KeyPrefixContractDeploymentWhitelist = []byte{0x08}
-			KeyPrefixContractBlockedList         = []byte{0x09}
+			KeyPrefixBlockHash
+			KeyPrefixBloom
+			KeyPrefixCode
+			KeyPrefixStorage
+			KeyPrefixChainConfig
+			KeyPrefixHeightHash
+			KeyPrefixContractDeploymentWhitelist
+			KeyPrefixContractBlockedList
 
 	   So, here are data list about the migration process:
 	   1. Accounts    -> evmTrie
@@ -245,12 +245,12 @@ func migrateSpecialAddrsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, 
 	csdb := evmtypes.CreateEmptyCommitStateDB(migrationApp.EvmKeeper.GenerateCSDBParams(), cmCtx)
 	whiteList := csdb.GetContractDeploymentWhitelist()
 	for i := 0; i < len(whiteList); i++ {
-		panicError(batch.Put(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte("")))
+		panicError(batch.Put(evmtypes.AppendUpgradedContractDeploymentWhitelistKey(whiteList[i]), []byte("")))
 	}
 
 	blockedList := csdb.GetContractBlockedList()
 	for i := 0; i < len(blockedList); i++ {
-		panicError(batch.Put(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte("")))
+		panicError(batch.Put(evmtypes.AppendUpgradedContractBlockedListKey(blockedList[i]), []byte("")))
 	}
 	bcml := csdb.GetContractMethodBlockedList()
 	for i := 0; i < len(bcml); i++ {
@@ -258,7 +258,7 @@ func migrateSpecialAddrsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, 
 			evmtypes.SortContractMethods(bcml[i].BlockMethods)
 			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
 			sortedValue := sdk.MustSortJSON(value)
-			panicError(batch.Put(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue))
+			panicError(batch.Put(evmtypes.AppendUpgradedContractBlockedListKey(bcml[i].Address), sortedValue))
 		}
 	}
 
