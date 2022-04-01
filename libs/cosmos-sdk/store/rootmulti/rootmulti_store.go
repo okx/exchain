@@ -997,7 +997,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 		if tmtypes.GetVenus1Height()+1 == version {
 			//init store tree version with block height
-			store.UpgradeVersion(version)
+			store.SetUpgradeVersion(version)
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
@@ -1303,7 +1303,7 @@ func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
 }
 
-func (rs *Store) UpgradeVersion(version int64) {
+func (rs *Store) SetUpgradeVersion(version int64) {
 
 	rs.upgradeVersion = version
 }

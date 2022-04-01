@@ -100,4 +100,4 @@ func (s *Store) SetPruning(pruning types.PruningOptions) {}
 func (s *Store) GetPruning() types.PruningOptions { return types.PruningOptions{} }
 
 func (s Store) LastCommitID() (id types.CommitID) { return }
-func (s *Store) UpgradeVersion(int64)             {}
+func (s *Store) SetUpgradeVersion(int64)          {}

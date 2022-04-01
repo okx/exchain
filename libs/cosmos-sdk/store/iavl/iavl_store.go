@@ -147,8 +147,8 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 	}
 	ver := st.GetUpgradeVersion()
 	if ver != -1 {
-		st.tree.UpgradeVersion(ver)
-		st.UpgradeVersion(-1)
+		st.tree.SetUpgradeVersion(ver)
+		st.SetUpgradeVersion(-1)
 	}
 	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
@@ -580,7 +580,7 @@ func (st *Store) Import(version int64) (*iavl.Importer, error) {
 	return tree.Import(version)
 }
 
-func (st *Store) UpgradeVersion(version int64) {
+func (st *Store) SetUpgradeVersion(version int64) {
 	st.upgradeVersion = version
 }
 

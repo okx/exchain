@@ -186,7 +186,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
 	okcToken, err := sdk.NewDecFromStr(transferAmount.OKCString())
-	if nil != err {
+	if err != nil {
 		return err
 	}
 
@@ -332,7 +332,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
 	okcToken, err := sdk.NewDecFromStr(transferAmount.OKCString())
-	if nil != err {
+	if err != nil {
 		return err
 	}
 

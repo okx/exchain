@@ -232,7 +232,7 @@ func (t *ImmutableTree) nodeSize() int {
 	return size
 }
 
-func (t *ImmutableTree) UpgradeVersion(version int64) {
+func (t *ImmutableTree) SetUpgradeVersion(version int64) {
 	t.upgradeVersion = version
 }
 

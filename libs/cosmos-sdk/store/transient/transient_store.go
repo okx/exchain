@@ -81,6 +81,6 @@ func (ts *Store) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func (ts *Store) UpgradeVersion(int64) {
+func (ts *Store) SetUpgradeVersion(int64) {
 
 }
