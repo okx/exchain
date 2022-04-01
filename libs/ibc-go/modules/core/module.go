@@ -178,7 +178,8 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+		defer am.Sealed()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
@@ -260,6 +261,9 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 		return nil
 	}
 	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
+		if am.Sealed() {
+			return nil
+		}
 		data := lazyGenesis()
 		am.initGenesis(ctx, data)
 		return nil

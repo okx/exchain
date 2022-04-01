@@ -12,11 +12,11 @@ var (
 )
 
 type BaseIBCUpgradeModule struct {
-	appModule module.AppModuleBasicAdapter
+	appModule module.AppModuleBasic
 	Inited    bool
 }
 
-func NewBaseIBCUpgradeModule(appModule module.AppModuleBasicAdapter) *BaseIBCUpgradeModule {
+func NewBaseIBCUpgradeModule(appModule module.AppModuleBasic) *BaseIBCUpgradeModule {
 	return &BaseIBCUpgradeModule{appModule: appModule}
 }
 

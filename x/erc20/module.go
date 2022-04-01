@@ -87,10 +87,12 @@ type AppModule struct {
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(k Keeper) AppModule {
-	return AppModule{
+	ret := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
 	}
+	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
+	return ret
 }
 
 // Name is module name
@@ -133,7 +135,8 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+		defer am.Sealed()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
@@ -163,6 +166,9 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 		return nil
 	}
 	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
+		if am.Sealed() {
+			return nil
+		}
 		am.initGenesis(ctx, types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState()))
 		return nil
 	})
