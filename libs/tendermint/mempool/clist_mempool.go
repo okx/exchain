@@ -281,7 +281,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	txkey := txKey(tx)
-	if checking := mem.checkingTxsMap.TryAdd(txkey); checking {
+	if ok := mem.checkingTxsMap.TryAdd(txkey); !ok {
 		return ErrTxInCache
 	} else {
 		defer mem.checkingTxsMap.Delete(txkey)
