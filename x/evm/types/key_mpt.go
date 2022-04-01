@@ -15,8 +15,8 @@ const (
 // Below are the keys which are different from the key in iavl
 var (
 	UpgradedKeyPrefixCode                        = rawdb.CodePrefix                             // Old: KeyPrefixCode                        = []byte{0x04}
-	UpgradedKeyPrefixContractDeploymentWhitelist = []byte("ContractDeploymentWhitelist_xxxxxx") // Old: KeyPrefixContractDeploymentWhitelist = []byte{0x08}
-	UpgradedKeyPrefixContractBlockedList         = []byte("ContractBlockedList_xxxxxxxxxxxxxx") // Old: KeyPrefixContractBlockedList         = []byte{0x09}
+	UpgradedKeyPrefixContractDeploymentWhitelist = []byte("ContractDeploymentWhitelist_xxxxx_") // Old: KeyPrefixContractDeploymentWhitelist = []byte{0x08}
+	UpgradedKeyPrefixContractBlockedList         = []byte("ContractBlockedList_xxxxxxxxxxxxx_") // Old: KeyPrefixContractBlockedList         = []byte{0x09}
 )
 
 /*
