@@ -89,6 +89,8 @@ type CListMempool struct {
 
 	txInfoparser TxInfoParser
 	checkCnt     int64
+
+	checkingTxsMap sync.Map
 }
 
 var _ Mempool = &CListMempool{}
@@ -265,7 +267,6 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -276,12 +277,19 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if txSize > mem.config.MaxTxBytes {
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
+
+	txkey := txKey(tx)
+	if _, checking := mem.checkingTxsMap.LoadOrStore(txkey, nil); checking {
+		return ErrTxInCache
+	} else {
+		defer mem.checkingTxsMap.Delete(txkey)
+	}
 	// CACHE
 	// Record a new sender for a tx we've already seen.
 	// Note it's possible a tx is still in the cache but no longer in the mempool
 	// (eg. after committing a block, txs are removed from mempool but not cache),
 	// so we only record the sender for txs still in the mempool.
-	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
+	if e, ok := mem.txsMap.Load(txkey); ok {
 		memTx := e.(*clist.CElement).Value.(*mempoolTx)
 		memTx.senders.LoadOrStore(txInfo.SenderID, true)
 		// TODO: consider punishing peer for dups,
@@ -289,7 +297,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// but they can spam the same tx with little cost to them atm.
 		return ErrTxInCache
 	}
-	if !mem.cache.Push(tx) {
+	if mem.cache.Exists(txkey) {
 		return ErrTxInCache
 	}
 	// END CACHE
@@ -593,8 +601,6 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				// remove from cache (mempool might have a space later)
-				mem.cache.Remove(tx)
 				mem.logger.Error(err.Error())
 				return
 			}
@@ -606,7 +612,6 @@ func (mem *CListMempool) resCbFirstTime(
 			//	return
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
-				mem.cache.Remove(tx)
 				mem.logger.Error("Failed to get extra info for this tx!")
 				return
 			}
@@ -646,8 +651,6 @@ func (mem *CListMempool) resCbFirstTime(
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
 					"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
-				// remove from cache (it might be good later)
-				mem.cache.Remove(tx)
 
 				r.CheckTx.Code = 1
 				r.CheckTx.Log = err.Error()
@@ -657,8 +660,6 @@ func (mem *CListMempool) resCbFirstTime(
 			mem.logger.Info("Rejected bad transaction",
 				"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
-			// remove from cache (it might be good later)
-			mem.cache.Remove(tx)
 		}
 	default:
 		// ignore other messages
@@ -689,8 +690,6 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 		} else {
 			// Tx became invalidated due to newly committed block.
 			mem.logger.Info("Tx is no longer valid", "tx", txID(tx, memTx.height), "res", r, "err", postCheckErr)
-			// NOTE: we remove tx from the cache because it might be good later
-			mem.cache.Remove(tx)
 			mem.removeTx(mem.recheckCursor)
 		}
 		if mem.recheckCursor == mem.recheckEnd {
@@ -862,9 +861,6 @@ func (mem *CListMempool) Update(
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
 			_ = mem.cache.Push(tx)
-		} else {
-			// Allow invalid transactions to be resubmitted.
-			mem.cache.Remove(tx)
 		}
 
 		// Remove committed tx from the mempool.
@@ -1011,6 +1007,7 @@ type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
 	Remove(tx types.Tx)
+	Exists(txHash [32]byte) bool
 }
 
 // mapTxCache maintains a LRU cache of transactions. This only stores the hash
@@ -1080,13 +1077,21 @@ func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.mtx.Unlock()
 }
 
+func (cache *mapTxCache) Exists(txHash [32]byte) bool {
+	cache.mtx.Lock()
+	_, exists := cache.cacheMap[txHash]
+	cache.mtx.Unlock()
+	return exists
+}
+
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()             {}
-func (nopTxCache) Push(types.Tx) bool { return true }
-func (nopTxCache) Remove(types.Tx)    {}
+func (nopTxCache) Reset()               {}
+func (nopTxCache) Push(types.Tx) bool   { return true }
+func (nopTxCache) Remove(types.Tx)      {}
+func (nopTxCache) Exists([32]byte) bool { return false }
 
 //--------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
