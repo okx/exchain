@@ -138,7 +138,11 @@ func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (a
 	if !strings.HasPrefix(address, bech32PrefixAccAddr) {
 		// strip 0x prefix if exists
 		addrStr := strings.TrimPrefix(address, "0x")
-		return AccAddressFromHex(addrStr)
+		addr, err = AccAddressFromHex(addrStr)
+		if err != nil {
+			return addr, err
+		}
+		return addr, VerifyAddressFormat(addr)
 	}
 
 	//decodes a bytestring from a Bech32 encoded string
