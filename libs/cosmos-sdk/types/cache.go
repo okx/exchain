@@ -16,10 +16,8 @@ var (
 	maxStorageInMap    = 10000000
 	deleteStorageCount = 1000000
 
-	FlagMultiCache         = "multi-cache"
 	MaxAccInMultiCache     = "multi-cache-acc"
 	MaxStorageInMultiCache = "multi-cache-storage"
-	UseCache               bool
 )
 
 type account interface {
@@ -65,7 +63,6 @@ type Cache struct {
 }
 
 func initCacheParam() {
-	UseCache = viper.GetBool(FlagMultiCache)
 
 	if data := viper.GetInt(MaxAccInMultiCache); data != 0 {
 		maxAccInMap = data
@@ -80,7 +77,7 @@ func initCacheParam() {
 
 func NewChainCache() *Cache {
 	initCacheParam()
-	return NewCache(nil, UseCache)
+	return NewCache(nil, true)
 }
 
 func NewCache(parent *Cache, useCache bool) *Cache {
