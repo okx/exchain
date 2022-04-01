@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -56,6 +57,7 @@ func (c *Cache) GetParams() Params {
 }
 
 func (c *Cache) SetNeedBlockedUpdate() {
+	fmt.Println("SetNeedBlockedUpdate")
 	c.blockedMutex.Lock()
 	defer c.blockedMutex.Unlock()
 	c.needBlockedUpdate = true
