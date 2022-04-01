@@ -133,7 +133,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 }
 
 func (dttr *dttRoutine) shouldRerun(fromIndex int) {
-	if dttr.step == dttRoutineStepReadyForSerial || dttr.step == dttRoutineStepNeedRerun || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex != fromIndex) {
+	if dttr.step == dttRoutineStepReadyForSerial || dttr.step == dttRoutineStepNeedRerun || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex > fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
 		return
 	}
