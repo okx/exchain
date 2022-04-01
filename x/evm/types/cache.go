@@ -71,9 +71,9 @@ func (c *Cache) IsNeedBlockedUpdate() bool {
 func (c *Cache) GetBlockedContractMethod(addr string) (contract *BlockedContract) {
 	c.blockedMutex.RLock()
 	bc, ok := c.blockedContractMethodsCache[addr]
-	if addr == "ex1st8zh7tjnkfdtd42xsp3k8rudr8q4k4ey6ap40" {
-		fmt.Println("Size", len(c.blockedContractMethodsCache), ok)
-	}
+	//if addr == "ex1st8zh7tjnkfdtd42xsp3k8rudr8q4k4ey6ap40" {
+	fmt.Println("CSize", len(c.blockedContractMethodsCache), addr, ok)
+	//}
 	c.blockedMutex.RUnlock()
 	if ok {
 		return NewBlockContract(bc.Address, bc.BlockMethods)
