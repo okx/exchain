@@ -106,7 +106,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			if dttr.task.err == nil {
 				dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
-				dttr.step = dttRoutineStepAnteFinished
+				if dttr.step != dttRoutineStepNeedRerun {
+					dttr.step = dttRoutineStepAnteFinished
+				}
 			} else {
 				dttr.step = dttRoutineStepReadyForSerial
 			}
@@ -118,7 +120,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				dttr.logger.Error("RerunTask", "index", dttr.task.index)
 				dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
-				dttr.step = dttRoutineStepAnteFinished
+				if dttr.step != dttRoutineStepNeedRerun {
+					dttr.step = dttRoutineStepAnteFinished
+				}
 			} else if dttr.step == dttRoutineStepReadyForSerial ||
 				dttr.step == dttRoutineStepSerial ||
 				dttr.step == dttRoutineStepFinished {
@@ -384,7 +388,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			dttm.app.logger.Error("hasExistPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
-	if task.prevTaskIndex > 0 || dttm.dttRoutineList[task.routineIndex].step == dttRoutineStepNeedRerun {
+	if task.prevTaskIndex > 0 {
 		return err
 	}
 	if task.canRerun > 0 {
@@ -436,7 +440,7 @@ func (dttm *DTTManager) serialRoutine() {
 			// runMsgs etc.
 			rt := dttm.dttRoutineList[routineIndex]
 			task := rt.task
-			if task.index == dttm.serialIndex+1 {
+			if task.index == dttm.serialIndex+1 && (rt.step != dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
 				//dttm.serialTask.setStep(partialConcurrentStepSerialExecute)
