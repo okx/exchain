@@ -1344,6 +1344,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 	if csdb.ctx.IsDeliver() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
+			fmt.Println("GGGGGGGGGGG", len(bcl))
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
 		}
 
