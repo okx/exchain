@@ -21,7 +21,7 @@ type Store interface { //nolint
 type Committer interface {
 	CommitterCommit(*iavl.TreeDelta) (CommitID, *iavl.TreeDelta) // CommitterCommit
 	//for add module to init store version eg:ibc/erc20/capabilty module
-	UpgradeVersion(int64)
+	SetUpgradeVersion(int64)
 
 	LastCommitID() CommitID
 

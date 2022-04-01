@@ -539,7 +539,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	if upgradeVersion != -1 {
 		version = upgradeVersion
 		tree.version = version - 1
-		tree.UpgradeVersion(-1)
+		tree.SetUpgradeVersion(-1)
 	} //end for upgrade new module
 
 	if version == 1 && tree.ndb.opts.InitialVersion > 0 {
@@ -915,7 +915,7 @@ func (tree *MutableTree) GetDelta() {
 	}
 	tree.deltas.OrphansDelta = orphans
 }
-func (tree *MutableTree) UpgradeVersion(version int64) {
+func (tree *MutableTree) SetUpgradeVersion(version int64) {
 	tree.upgradeVersion = version
 }
 
