@@ -136,19 +136,20 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 	}
 }
 
-func (dttr *dttRoutine) shouldRerun(fromIndex int) {
+func (dttr *dttRoutine) shouldRerun(fromIndex int) bool {
 	if dttr.step == dttRoutineStepReadyForSerial || dttr.step == dttRoutineStepNeedRerun || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex > fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
-		return
+		return false
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index)
 		dttr.step = dttRoutineStepNeedRerun
-		//go func() {
+		go func() {
 			dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
 			dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
-		//}()
+		}()
 	}
+	return true
 }
 
 func (dttr *dttRoutine) readyForSerialExecution() bool {
@@ -440,7 +441,7 @@ func (dttm *DTTManager) serialRoutine() {
 			// runMsgs etc.
 			rt := dttm.dttRoutineList[routineIndex]
 			task := rt.task
-			if task.index == dttm.serialIndex+1 && (rt.step != dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
+			if task.index == dttm.serialIndex+1 && (rt.step == dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
 				//dttm.serialTask.setStep(partialConcurrentStepSerialExecute)
@@ -659,6 +660,9 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
 			//dttr.task.needToRerun = true
 			dttr.shouldRerun(-1)
+			//if !dttr.shouldRerun(-1) {
+			//	task.setUpdateCount(times, !happened)
+			//}
 			//}()
 		}
 	}
