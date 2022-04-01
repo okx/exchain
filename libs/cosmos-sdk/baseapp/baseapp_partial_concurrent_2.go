@@ -484,6 +484,9 @@ func (dttm *DTTManager) serialRoutine() {
 						continue
 					}
 					if dttr.task.prevTaskIndex == task.index || dttr.task.from == task.from {
+						if dttr.task.prevTaskIndex < task.index {
+							dttr.task.prevTaskIndex = task.index
+						}
 						if rerunRoutine == nil {
 							rerunRoutine = dttr
 						} else if dttr.task.index < rerunRoutine.task.index {
