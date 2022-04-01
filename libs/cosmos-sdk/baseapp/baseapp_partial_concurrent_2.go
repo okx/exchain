@@ -500,13 +500,17 @@ func (dttm *DTTManager) serialRoutine() {
 						} else if dttr.task.index < rerunRoutine.task.index {
 							rerunRoutine = dttr
 						}
-					} else if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
-						nextTaskRoutine = dttr.index
-						totalSerialWaitingCount--
-						//go func() {
-						dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+					} else if dttr.task.index == dttm.serialIndex+1 {
+						if dttr.readyForSerialExecution() {
+							nextTaskRoutine = dttr.index
+							totalSerialWaitingCount--
+							//go func() {
+							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
 							dttm.serialCh <- nextTaskRoutine //nextTask//
-						//}()
+							//}()
+						} else {
+							dttm.app.logger.Error("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+						}
 					}
 				}
 
