@@ -453,7 +453,7 @@ func (dttm *DTTManager) serialRoutine() {
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
-					//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
+					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 					count := len(dttm.dttRoutineList)
 					for i := 0; i < count; i++ {
 						dttr := dttm.dttRoutineList[i]
@@ -461,10 +461,10 @@ func (dttm *DTTManager) serialRoutine() {
 					}
 
 					dttm.done <- 0
-					go func() {
+					//go func() {
 						close(dttm.serialCh)
 						//close(dttm.serialNextCh)
-					}()
+					//}()
 					return
 				}
 
@@ -498,10 +498,10 @@ func (dttm *DTTManager) serialRoutine() {
 					} else if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
 						nextTaskRoutine = dttr.index
 						totalSerialWaitingCount--
-						go func() {
+						//go func() {
 							//	dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", nextTask.index)
 							dttm.serialCh <- nextTaskRoutine //nextTask//
-						}()
+						//}()
 					}
 				}
 
@@ -562,14 +562,14 @@ func (dttm *DTTManager) serialExecution() {
 
 	////dttm.app.logger.Info("WriteAnteCache", "index", dttm.serialTask.txIndex)
 	////ctx, msCacheAnte := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	//dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
-	//if err := dttm.app.updateF eeCollectorAccHandler(info.ctx, dttm.currTxFee); err != nil {
-	//	panic(err)
-	//}
+	dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
+	if err := dttm.app.updateFeeCollectorAccHandler(info.ctx, dttm.currTxFee); err != nil {
+		panic(err)
+	}
 	////cache.Write()
 	info.msCacheAnte.Write()
 	info.ctx.Cache().Write(true)
-	dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
+	//dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
 
 	gasStart := time.Now()
 	err := info.handler.handleGasConsumed(info)
