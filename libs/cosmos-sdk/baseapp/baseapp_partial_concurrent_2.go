@@ -465,6 +465,8 @@ func (dttm *DTTManager) serialRoutine() {
 						dttr.stop()
 					}
 
+					dttm.updateFeeCollector()
+
 					dttm.done <- 0
 					//go func() {
 						close(dttm.serialCh)
@@ -534,7 +536,7 @@ func (dttm *DTTManager) serialExecution() {
 	handleGasFn := func() {
 		gasStart := time.Now()
 
-		dttm.updateFeeCollector()
+		//dttm.updateFeeCollector()
 
 		//dttm.app.logger.Info("handleDeferRefund", "index", dttm.serialTask.txIndex, "addr", dttm.serialTask.from)
 		dttm.accountUpdated(false, 1, dttm.serialTask.from)

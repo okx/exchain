@@ -104,7 +104,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
+		err = DeductFees(dfd.ak, ctx, feePayerAcc, feeTx.GetFee())
 		if err != nil {
 			return ctx, err
 		}
@@ -117,7 +117,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -126,7 +126,7 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	}
 
 	// verify the account has enough funds to pay for fees
-	_, hasNeg := coins.SafeSub(fees)
+	balance, hasNeg := coins.SafeSub(fees)
 	if hasNeg {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", coins, fees)
@@ -146,10 +146,22 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
 		}
 	}
-	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
-	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
+
+	if err := acc.SetCoins(balance); err != nil {
+		return err
 	}
+
+	ak.SetAccount(ctx, acc)
+
+	//err := supplyKeeper.SetCoins(ctx, acc.GetAddress(), balance)
+	//if err != nil {
+	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
+	//}
+
+	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
+	//if err != nil {
+	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
+	//}
 
 	return nil
 }
