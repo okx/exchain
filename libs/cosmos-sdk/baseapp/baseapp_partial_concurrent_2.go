@@ -389,11 +389,12 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			dttm.app.logger.Error("hasExistPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
+	dttr := dttm.dttRoutineList[task.routineIndex]
 	if task.prevTaskIndex > 0 {
+		dttr.step = dttRoutineStepAnteStart
 		return err
 	}
 	if task.canRerun > 0 {
-		dttr := dttm.dttRoutineList[task.routineIndex]
 		//go func() {
 		dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		//dttr.task.needToRerun = true
