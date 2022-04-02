@@ -83,6 +83,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 		log.Println(fmt.Sprintf("There is no need to repair data. The latest block height is %d, start block height is %d", latestBlockHeight, startBlockHeight))
 		return
 	}
+	rootmulti.IsRepairState = true
 
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)

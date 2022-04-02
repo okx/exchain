@@ -37,9 +37,14 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	//todo for ibc upgrade repair state
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
+var (
+	IsRepairState   bool
+	FlagStartHeight string = "start-height"
+)
 
 const (
 	latestVersionKey      = "s/latest"
@@ -366,7 +371,16 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 func (rs *Store) getCommitID(infos map[string]storeInfo, name string) types.CommitID {
 	info, ok := infos[name]
 	if !ok {
-		return types.CommitID{Version: 20}
+		//for ibc upgrade repair version lower than Venus1Height
+		height := tmtypes.GetVenus1Height()
+		startVersion := viper.GetInt64(FlagStartHeight)
+
+		if IsRepairState && startVersion < height {
+			return types.CommitID{Version: height}
+		} else {
+			return types.CommitID{Version: tmtypes.GetStartBlockHeight()}
+		}
+		//return types.CommitID{Version: 20}
 	}
 	return info.Core.CommitID
 }
