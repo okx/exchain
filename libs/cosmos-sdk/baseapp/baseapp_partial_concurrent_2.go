@@ -155,6 +155,22 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	}
 }
 
+func (dttr *dttRoutine) needToRerunWhenContextChanged() bool {
+	switch dttr.step {
+	case dttRoutineStepNone:
+		fallthrough
+	case dttRoutineStepStart:
+		fallthrough
+	case dttRoutineStepReadyForSerial:
+		fallthrough
+	case dttRoutineStepSerial:
+		fallthrough
+	case dttRoutineStepFinished:
+		return false
+	}
+	return true
+}
+
 func (dttr *dttRoutine) readyForSerialExecution() bool {
 	if dttr.task == nil || dttr.needToRerun || dttr.task.canRerun > 0 || dttr.task.prevTaskIndex >= 0 {
 		return false
@@ -672,7 +688,7 @@ func (dttm *DTTManager) updateFeeCollector() {
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
-	if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	if global.GetGlobalHeight() == 5811244 && updateState && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 		dttm.app.logger.Error("OnAccountUpdated", "updateState", updateState)
 	}
 	if updateState {
@@ -694,7 +710,10 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 	//}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
-		if dttr.task == nil || dttr.txIndex != dttr.task.index || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
+		if dttr.task == nil || dttr.txIndex != dttr.task.index || !dttr.needToRerunWhenContextChanged() || dttr.task.from != address {
+			if global.GetGlobalHeight() == 5811244 && (dttr.task.index == 3 || address == "ex1fnsgllqfpaw9gqfuvth7xrtzuetcuuudrhc557") {
+				dttm.app.logger.Error("NoNeedToRerunFromObserver", "index", dttr.task.index, "txIndex", dttr.txIndex, "setp", dttr.step, "from", dttr.task.from)
+			}
 			continue
 		}
 
