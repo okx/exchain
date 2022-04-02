@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/app/logevents"
 
 	"github.com/okex/exchain/app/rpc"
+	proxyCodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -47,6 +48,9 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	cdc := codec.MakeCodec(app.ModuleBasics)
+	reg := codec.MakeIBC(app.ModuleBasics)
+	proC := proxyCodec.NewProtoCodec(reg)
+	proxy := proxyCodec.NewCodecProxy(proC, cdc)
 
 	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
@@ -97,7 +101,7 @@ func main() {
 		return logevents.NewProvider(logger)
 	}
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
+	server.AddCommands(ctx, proxy, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags

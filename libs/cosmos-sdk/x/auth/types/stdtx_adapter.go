@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -41,4 +42,65 @@ func IbcSignBytes(chainID string, accnum uint64,
 		return nil
 	}
 	return r
+}
+
+//////
+
+///////////
+type IbcViewMsg struct {
+	RouterStr string
+	TypeStr   string
+	SignBytes []byte
+	Signers   []sdk.AccAddress
+	Data      []byte
+}
+
+func NewIbcViewMsg(routerStr string, typeStr string, signBytes []byte, signers []sdk.AccAddress, data []byte) *IbcViewMsg {
+	return &IbcViewMsg{RouterStr: routerStr, TypeStr: typeStr, SignBytes: signBytes, Signers: signers, Data: data}
+}
+
+func (b IbcViewMsg) Route() string {
+	return b.RouterStr
+}
+
+func (b IbcViewMsg) Type() string {
+	return b.TypeStr
+}
+
+func (b IbcViewMsg) ValidateBasic() error {
+	return nil
+}
+
+func (b IbcViewMsg) GetSignBytes() []byte {
+	return nil
+}
+
+func (b IbcViewMsg) GetSigners() []sdk.AccAddress {
+	return b.Signers
+}
+
+type RawIBCViewTx struct {
+	sdk.BaseTx
+	RawJSONMsg []sdk.Msg
+}
+
+func NewRawIBCViewTx(baseTx sdk.BaseTx, rawJSONMsg []sdk.Msg) *RawIBCViewTx {
+	return &RawIBCViewTx{BaseTx: baseTx, RawJSONMsg: rawJSONMsg}
+}
+
+func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (StdTx, error) {
+	//ret := &RawIBCViewTx{
+	//	BaseTx:     tx.BaseTx,
+	//	RawJSONMsg: nil,
+	//}
+	msgs := make([]sdk.Msg, 0)
+	for _, msg := range tx.GetMsgs() {
+		m := (interface{})(msg).(sdk.MsgProtoAdapter)
+		data, err := cdc.GetProtocMarshal().MarshalJSON(m)
+		if nil != err {
+			return StdTx{}, err
+		}
+		msgs = append(msgs, NewIbcViewMsg(msg.Route(), msg.Type(), nil, msg.GetSigners(), data))
+	}
+	return NewStdTx(msgs, tx.Fee, tx.Signatures, tx.Memo), nil
 }

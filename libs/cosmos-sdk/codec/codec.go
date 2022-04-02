@@ -68,8 +68,3 @@ type CdcAbstraction interface {
 	UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz []byte, ptr interface{}) (interface{}, error)
 	UnmarshalBinaryLengthPrefixed(bz []byte, ptr interface{}) error
 }
-
-type CompoundCodec struct {
-	*Codec
-	*CodecProxy
-}

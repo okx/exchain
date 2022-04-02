@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"sync"
@@ -331,6 +332,10 @@ func (bs *BlockStore) deleteBatch(height int64, deleteFromTop bool) (uint64, err
 func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit) {
 	if block == nil {
 		panic("BlockStore can only save a non-nil block")
+	}
+
+	for _, data := range block.Data.Txs {
+		fmt.Println(hex.EncodeToString(data.Hash(block.Height)))
 	}
 
 	height := block.Height

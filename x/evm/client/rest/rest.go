@@ -95,27 +95,33 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		}
 	}
 
-	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+	tx, err := evmtypes.TxDecoder(cliCtx.CodecProy)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
-
-	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
-	if ok {
-		return getEthTxResponse(node, resTx, ethTx)
+	switch realTx := tx.(type) {
+	case *evmtypes.MsgEthereumTx:
+		return getEthTxResponse(node, resTx, realTx)
 	}
+
 	// not eth Tx
 	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-
-	out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
-	if err != nil {
-		return out, err
+	var ret interface{}
+	switch tx.(type) {
+	case *types.IbcTx:
+		jsonTx, err := types.FromRelayIBCTx(cliCtx.CodecProy, tx.(*types.IbcTx))
+		if nil != err {
+			return nil, err
+		}
+		return sdk.NewResponseResultTx(resTx, jsonTx, resBlocks[resTx.Height].Block.Time.Format(time.RFC3339)), nil
+	default:
+		ret, err = formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
 	}
 
-	return out, nil
+	return ret, err
 
 }
 
@@ -180,6 +186,20 @@ func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.R
 	return sdk.NewResponseResultTx(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 
+//func formatIbcTxResult(cdc *codec.CodecProxy, res *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
+//	tx, err := parseIBCTx(cdc, res.Tx)
+//	if err != nil {
+//		return sdk.TxResponse{}, err
+//	}
+//
+//	return sdk.NewResponseResultTx(res, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
+//}
+
+//func parseIBCTx(cdc *codec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
+//	var tx sdk.MsgProtoAdapter
+//	err := cdc.GetProtocMarshal().UnmarshalInterface(txBytes, &tx)
+//	return tx, err
+//}
 func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx types.StdTx
 
