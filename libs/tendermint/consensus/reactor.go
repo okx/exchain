@@ -26,6 +26,7 @@ const (
 	DataChannel        = byte(0x21)
 	VoteChannel        = byte(0x22)
 	VoteSetBitsChannel = byte(0x23)
+	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
 	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
@@ -39,6 +40,13 @@ const (
 type blockchainReactor interface {
 	// CheckFastSyncCondition called when we're hanging in a height for some time during consensus
 	CheckFastSyncCondition()
+}
+
+type p2pMsgInfo struct {
+	Msg  Message    `json:"msg"`
+	ChID byte       `json:"ch_id"`
+	Src  p2p.Peer   `json:"src"`
+	Ps   *PeerState `json:"ps"`
 }
 
 // Reactor defines a reactor for the consensus service.
@@ -232,6 +240,12 @@ func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			RecvBufferCapacity:  1024,
 			RecvMessageCapacity: maxMsgSize,
 		},
+		{
+			ID:                  ViewChangeChannel,
+			Priority:            5,
+			SendQueueCapacity:   100,
+			RecvMessageCapacity: maxMsgSize,
+		},
 	}
 }
 
@@ -315,19 +329,14 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		panic(fmt.Sprintf("Peer %v has no state", src))
 	}
 
-	if err != nil {
-		conR.Logger.Error("Error decoding peer ID", "src", src, "err", err)
-		return
-	}
-
 	switch chID {
-	case StateChannel:
+	case ViewChangeChannel:
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			if msg.Height == conR.conS.Height {
 				// ApplyBlock of height-1 is finished
-				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+				conR.conS.peerMsgQueue <- msgInfo{msg, "p"}
 			} else if msg.Height == conR.conS.Height+1 {
 				// ApplyBlock of height-1 is not finished
 				// vc after scheduleRound0
@@ -346,8 +355,12 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg)
 				// vc after ApplyBlock scheduleRound0
-				conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
+				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 			}
+		}
+
+	case StateChannel:
+		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
@@ -356,9 +369,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 			if height != msg.Height {
 				return
 			}
@@ -417,9 +430,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteMessage:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, valSize, lastCommitSize := cs.Height, cs.Validators.Size(), cs.LastCommit.Size()
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 			ps.EnsureVoteBitArrays(height, valSize)
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
@@ -439,9 +452,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteSetBitsMessage:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 
 			if height == msg.Height {
 				var ourVotes *bits.BitArray
@@ -521,13 +534,13 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 
 func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
 	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(prMsg))
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
 	vcMsg := ViewChangeMessage{prMsg.Height, prMsg.CurrentProposer, prMsg.NewProposer}
 	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {

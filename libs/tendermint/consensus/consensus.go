@@ -105,7 +105,8 @@ type State struct {
 	evpool evidencePool
 
 	// internal state
-	mtx sync.RWMutex
+	mtx      sync.RWMutex
+	stateMtx sync.RWMutex
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -155,7 +156,7 @@ type State struct {
 	prerunTx bool
 
 	// assigned proposer when enterNewRound
-	vcMsg	*ViewChangeMessage
+	vcMsg *ViewChangeMessage
 }
 
 // StateOption sets an optional parameter on the State.
@@ -746,9 +747,9 @@ func (cs *State) handleMsg(mi msgInfo) {
 			cs.enterNewRound(cs.Height, 0)
 		}
 	case *ProposeRequestMessage:
+		//cs.Logger.Error("handle prMsg", "msg", msg)
 		// ApplyBlock of height-1 is not finished
 		// RoundStepNewHeight enterNewRound use peer as val
-		//cs.Logger.Error("handle prMsg", "msg", msg)
 		cs.vcMsg = &ViewChangeMessage{msg.Height, msg.CurrentProposer, msg.NewProposer}
 
 	case *ProposalMessage:
@@ -922,7 +923,9 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.stateMtx.Lock()
 	cs.Validators = validators
+	cs.stateMtx.Unlock()
 	if round == 0 {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
@@ -1649,7 +1652,9 @@ func (cs *State) finalizeCommit(height int64) {
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
+	cs.stateMtx.Lock()
 	cs.updateToState(stateCopy)
+	cs.stateMtx.Unlock()
 
 	fail.Fail() // XXX
 
