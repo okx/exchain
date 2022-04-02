@@ -11,11 +11,6 @@ func (coin CoinAdapter) String() string {
 	return fmt.Sprintf("%v%v", coin.Amount, coin.Denom)
 }
 
-// String provides a human-readable representation of a coin
-func (coin CoinAdapter) OKCString() string {
-	return fmt.Sprintf("%v%v", coin.Amount.OKCString(), coin.Denom)
-}
-
 // Validate returns an error if the Coin has a negative amount or if
 // the denom is invalid.
 func (coin CoinAdapter) Validate() error {
