@@ -65,6 +65,16 @@ func (h SendToIbcEventHandler) EventID() common.Hash {
 // Handle Process the log
 func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
+	// first confirm that the contract address and denom are registered,
+	// to avoid unpacking any contract '__OecSendToIbc' event, which consumes performance
+	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
+	if !found {
+		return fmt.Errorf("contract %s is not connected to native token", contract)
+	}
+	if !types.IsValidIBCDenom(denom) {
+		return fmt.Errorf("the native token associated with the contract %s is not an ibc voucher", contract)
+	}
+
 	unpacked, err := SendToIbcEvent.Inputs.Unpack(data)
 	if err != nil {
 		// log and ignore
@@ -72,20 +82,12 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 		return nil
 	}
 
-	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
-	if !found {
-		return fmt.Errorf("contract %s is not connected to native token", contract)
-	}
-
-	if !types.IsValidIBCDenom(denom) {
-		return fmt.Errorf("the native token associated with the contract %s is not an ibc voucher", contract)
-	}
-
 	contractAddr := sdk.AccAddress(contract.Bytes())
 	sender := sdk.AccAddress(unpacked[0].(common.Address).Bytes())
 	recipient := unpacked[1].(string)
 	amount := sdk.NewIntFromBigInt(unpacked[2].(*big.Int))
-	vouchers := sdk.NewCoins(sdk.NewCoin(denom, amount))
+	amountDec := sdk.NewDecFromIntWithPrec(amount, sdk.Precision)
+	vouchers := sdk.NewCoins(sdk.NewCoin(denom, amountDec))
 
 	// 1. transfer IBC coin to user so that he will be the refunded address if transfer fails
 	if err = h.bankKeeper.SendCoins(ctx, contractAddr, sender, vouchers); err != nil {
