@@ -1620,7 +1620,7 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	//if cs.isProposer(cs.privValidatorPubKey.Address()) {
+	//if stateCopy.Validators.GetProposer().Address.String() == cs.privValidatorPubKey.Address().String() {
 	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
 	//	time.Sleep(time.Second * 5)
 	//}
