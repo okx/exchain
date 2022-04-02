@@ -99,8 +99,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
-	switch realTx := tx.(type) {
-	case *evmtypes.MsgEthereumTx:
+	if realTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 		return getEthTxResponse(node, resTx, realTx)
 	}
 
@@ -186,20 +185,6 @@ func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.R
 	return sdk.NewResponseResultTx(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 
-//func formatIbcTxResult(cdc *codec.CodecProxy, res *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
-//	tx, err := parseIBCTx(cdc, res.Tx)
-//	if err != nil {
-//		return sdk.TxResponse{}, err
-//	}
-//
-//	return sdk.NewResponseResultTx(res, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
-//}
-
-//func parseIBCTx(cdc *codec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
-//	var tx sdk.MsgProtoAdapter
-//	err := cdc.GetProtocMarshal().UnmarshalInterface(txBytes, &tx)
-//	return tx, err
-//}
 func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx types.StdTx
 

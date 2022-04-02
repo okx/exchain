@@ -24,8 +24,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		}
 		return tx, len(bytes), nil
 	})
-	cdc.RegisterConcrete(&RawIBCViewTx{}, "cosmos-sdk/IbcViewTx", nil)
-	cdc.RegisterConcrete(&IbcViewMsg{}, "cosmos-sdk/IbcViewMsg", nil)
+	cdc.RegisterConcrete(&IbcViewMsg{}, "okexchain/ibc/IbcMsgWrapper", nil)
 }
 
 // RegisterAccountTypeCodec registers an external account type defined in

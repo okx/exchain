@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -48,19 +49,16 @@ func IbcSignBytes(chainID string, accnum uint64,
 
 ///////////
 type IbcViewMsg struct {
-	RouterStr string
-	TypeStr   string
-	SignBytes []byte
-	Signers   []sdk.AccAddress
-	Data      []byte
+	TypeStr string `json:"type"`
+	Data    string `json:"data"`
 }
 
-func NewIbcViewMsg(routerStr string, typeStr string, signBytes []byte, signers []sdk.AccAddress, data []byte) *IbcViewMsg {
-	return &IbcViewMsg{RouterStr: routerStr, TypeStr: typeStr, SignBytes: signBytes, Signers: signers, Data: data}
+func NewIbcViewMsg(typeStr string, data string) *IbcViewMsg {
+	return &IbcViewMsg{TypeStr: typeStr, Data: data}
 }
 
 func (b IbcViewMsg) Route() string {
-	return b.RouterStr
+	return ""
 }
 
 func (b IbcViewMsg) Type() string {
@@ -76,23 +74,10 @@ func (b IbcViewMsg) GetSignBytes() []byte {
 }
 
 func (b IbcViewMsg) GetSigners() []sdk.AccAddress {
-	return b.Signers
-}
-
-type RawIBCViewTx struct {
-	sdk.BaseTx
-	RawJSONMsg []sdk.Msg
-}
-
-func NewRawIBCViewTx(baseTx sdk.BaseTx, rawJSONMsg []sdk.Msg) *RawIBCViewTx {
-	return &RawIBCViewTx{BaseTx: baseTx, RawJSONMsg: rawJSONMsg}
+	return nil
 }
 
 func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (StdTx, error) {
-	//ret := &RawIBCViewTx{
-	//	BaseTx:     tx.BaseTx,
-	//	RawJSONMsg: nil,
-	//}
 	msgs := make([]sdk.Msg, 0)
 	for _, msg := range tx.GetMsgs() {
 		m := (interface{})(msg).(sdk.MsgProtoAdapter)
@@ -100,7 +85,7 @@ func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (StdTx, error) {
 		if nil != err {
 			return StdTx{}, err
 		}
-		msgs = append(msgs, NewIbcViewMsg(msg.Route(), msg.Type(), nil, msg.GetSigners(), data))
+		msgs = append(msgs, NewIbcViewMsg("/"+proto.MessageName(m), string(data)))
 	}
 	return NewStdTx(msgs, tx.Fee, tx.Signatures, tx.Memo), nil
 }
