@@ -652,9 +652,23 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	}
 
 	var addr ethcmn.Address
-	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
+	copy(addr[:], keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+// keccak256 calculates and returns the Keccak256 hash of the input data.
+func keccak256(data ...[]byte) []byte {
+	b := make([]byte, 32)
+	// d := ethcrypto.NewKeccakState()
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(b)
+	keccakStatePool.Put(d)
+	return b
 }
 
 var ethAddrStringPool = &sync.Pool{

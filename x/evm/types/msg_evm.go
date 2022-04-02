@@ -24,6 +24,7 @@ var (
 	_ ante.FeeTx = (*MsgEthereumTx)(nil)
 )
 
+var big2 = big.NewInt(2)
 var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
@@ -272,7 +273,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 			return "", errors.New("chainID cannot be zero")
 		}
 
-		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+		chainIDMul := new(big.Int).Mul(chainID, big2)
 		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
@@ -287,7 +288,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return sender.String(), nil
+	return EthAddressToString(&sender), nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
