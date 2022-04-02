@@ -1,15 +1,12 @@
 package ante
 
 import (
-	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"log"
 )
 
 var (
@@ -140,12 +137,12 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if global.GetGlobalHeight() == 5811244 {
-		hexacc := hex.EncodeToString(acc.GetAddress())
-		if hexacc == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-			log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
-		}
-	}
+	//if global.GetGlobalHeight() == 5811244 {
+	//	hexacc := hex.EncodeToString(acc.GetAddress())
+	//	if hexacc == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
+	//		log.Printf("To FeeCollector:%s acc:%s\n", fees, acc.GetCoins())
+	//	}
+	//}
 
 	if err := acc.SetCoins(balance); err != nil {
 		return err
