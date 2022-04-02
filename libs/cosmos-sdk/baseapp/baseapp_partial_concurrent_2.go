@@ -688,6 +688,7 @@ func (dttm *DTTManager) updateFeeCollector() {
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
+	start := time.Now()
 	if global.GetGlobalHeight() == 5811244 && updateState && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
 		dttm.app.logger.Error("OnAccountUpdated", "updateState", updateState)
 	}
@@ -698,6 +699,7 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool)
 		//dttm.app.logger.Info("CallAccountUpdated", "addr", addr, "hex", hex.EncodeToString(acc.GetAddress()))
 		dttm.accountUpdated(true, 1, addr)
 	}
+	totalAccountUpdateDuration += time.Since(start).Microseconds()
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {

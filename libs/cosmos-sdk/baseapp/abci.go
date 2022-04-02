@@ -183,7 +183,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		"anteAll", totalAnteDuration,
 		"waitingAll", totalWaitingTime,
 		"serialWaitingCount", totalSerialWaitingCount,
-		"preload", totalPreloadConDuration)
+		"preload", totalPreloadConDuration,
+		"accountUpdated", totalAccountUpdateDuration)
 
 	return
 }

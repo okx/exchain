@@ -26,6 +26,7 @@ var totalRunMsgsTime = int64(0)
 var totalWaitingTime = int64(0)
 var totalBasicTime = int64(0)
 var totalPreloadConDuration = int64(0)
+var totalAccountUpdateDuration = int64(0)
 
 type (
 	partialConcurrentStep uint8
