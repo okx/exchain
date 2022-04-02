@@ -524,7 +524,8 @@ func (mem *CListMempool) isFull(txSize int) error {
 func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
 	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
-	if memTx.realTx.GetNonce() == memTx.senderNonce+uint64(pendingCnt) {
+	expectNonce := memTx.senderNonce + uint64(pendingCnt)
+	if memTx.realTx.GetNonce() == expectNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
 			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
@@ -539,7 +540,10 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	pendingTx := &PendingTx{
 		mempoolTx: memTx,
 	}
-	mem.pendingPool.addTx(pendingTx)
+	pendingTxOk := mem.pendingPool.addTxAndCheckNonce(pendingTx, expectNonce)
+	if pendingTxOk {
+		go mem.consumePendingTx(memTx.from, expectNonce)
+	}
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
 
 	return nil

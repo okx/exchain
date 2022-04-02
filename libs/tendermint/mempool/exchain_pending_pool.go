@@ -74,6 +74,20 @@ func (p *PendingPool) addTx(pendingTx *PendingTx) {
 	p.txsMap[txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height)] = pendingTx
 }
 
+func (p *PendingPool) addTxAndCheckNonce(pendingTx *PendingTx, expectNonce uint64) (exists bool) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	addressTxs, ok := p.addressTxsMap[pendingTx.mempoolTx.from]
+	if !ok {
+		addressTxs = make(map[uint64]*PendingTx)
+		p.addressTxsMap[pendingTx.mempoolTx.from] = addressTxs
+	}
+	addressTxs[pendingTx.mempoolTx.realTx.GetNonce()] = pendingTx
+	_, exists = addressTxs[expectNonce]
+	p.txsMap[txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height)] = pendingTx
+	return
+}
+
 func (p *PendingPool) removeTx(address string, nonce uint64) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
