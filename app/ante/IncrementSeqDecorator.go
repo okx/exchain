@@ -64,7 +64,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 		if err := acc.SetSequence(seq); err != nil {
 			panic(err)
 		}
-		issd.ak.SetAccount(ctx, acc)
+		issd.ak.SetAccount(ctx, acc, false)
 	}
 
 	// set the original gas meter

@@ -9,7 +9,7 @@ import (
 type AccountKeeper interface {
 	IterateAccounts(ctx sdk.Context, process func(exported.Account) (stop bool))
 	GetAccount(sdk.Context, sdk.AccAddress) exported.Account
-	SetAccount(sdk.Context, exported.Account)
+	SetAccount(sdk.Context, exported.Account, bool)
 	NewAccount(sdk.Context, exported.Account) exported.Account
 }
 

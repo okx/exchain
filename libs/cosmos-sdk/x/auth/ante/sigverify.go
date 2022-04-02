@@ -92,7 +92,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		if err != nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, err.Error())
 		}
-		spkd.ak.SetAccount(ctx, acc)
+		spkd.ak.SetAccount(ctx, acc, false)
 	}
 
 	return next(ctx, tx, simulate)
@@ -250,7 +250,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 			panic(err)
 		}
 
-		isd.ak.SetAccount(ctx, acc)
+		isd.ak.SetAccount(ctx, acc, false)
 	}
 
 	return next(ctx, tx, simulate)

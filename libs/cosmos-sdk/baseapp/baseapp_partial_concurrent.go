@@ -356,7 +356,7 @@ func NewDeliverTxTasksManager(app *BaseApp) *DeliverTxTasksManager {
 	return dm
 }
 
-func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account) {
+func (dm *DeliverTxTasksManager) OnAccountUpdated(acc exported.Account, updateState bool) {
 	addr := acc.GetAddress().String()
 	//dm.app.logger.Info("OnAccountUpdated", "coins", acc.GetCoins(), "addr", addr)
 	waitingIndex := -1
@@ -770,8 +770,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 	return app.deliverTxsMgr.txResponses
 }
 
-func (app *BaseApp) OnAccountUpdated(acc exported.Account) {
+func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState bool) {
 	if app.deliverTxsMgr != nil {
-		app.deliverTxsMgr.OnAccountUpdated(acc)
+		app.deliverTxsMgr.OnAccountUpdated(acc, updateState)
 	}
 }

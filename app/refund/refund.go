@@ -68,7 +68,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	if err = feePayerAcc.SetCoins(newCoins); err != nil {
 		return nil, err
 	}
-	handler.ak.SetAccount(ctx, feePayerAcc)
+	handler.ak.SetAccount(ctx, feePayerAcc, false)
 
 	return gasFees, nil
 }

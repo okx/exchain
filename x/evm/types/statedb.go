@@ -784,7 +784,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			}
 
 			// update the object in the KVStore
-			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
+			if err := csdb.updateStateObject(stateEntry.stateObject, true); err != nil {
 				return ethcmn.Hash{}, err
 			}
 		}
@@ -823,7 +823,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 			// Set all the dirty state storage items for the state object in the
 			// KVStore and finally set the account in the account mapper.
 			stateEntry.stateObject.commitState()
-			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
+			if err := csdb.updateStateObject(stateEntry.stateObject, false); err != nil {
 				return err
 			}
 		}
@@ -853,7 +853,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
@@ -875,7 +875,8 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return err
 	}
 
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	// todo: call csdb.accountKeeper.Observer
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, fromCommit)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.Watcher.Enabled() {
 			csdb.Watcher.SaveAccount(so.account, false)

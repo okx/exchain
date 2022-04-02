@@ -15,7 +15,7 @@ func InitGenesis(ctx sdk.Context, ak AccountKeeper, data GenesisState) {
 
 	for _, a := range data.Accounts {
 		acc := ak.NewAccount(ctx, a)
-		ak.SetAccount(ctx, acc)
+		ak.SetAccount(ctx, acc, false)
 	}
 }
 

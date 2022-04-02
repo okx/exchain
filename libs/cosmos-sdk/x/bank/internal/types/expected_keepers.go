@@ -12,7 +12,7 @@ type AccountKeeper interface {
 
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account
 	GetAllAccounts(ctx sdk.Context) []exported.Account
-	SetAccount(ctx sdk.Context, acc exported.Account)
+	SetAccount(ctx sdk.Context, acc exported.Account, updateState bool)
 
 	IterateAccounts(ctx sdk.Context, process func(exported.Account) bool)
 }

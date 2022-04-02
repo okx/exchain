@@ -41,8 +41,8 @@ func (sk DummySupplyKeeper) SendCoinsFromAccountToModule(ctx sdk.Context, fromAd
 		return err
 	}
 
-	sk.ak.SetAccount(ctx, fromAcc)
-	sk.ak.SetAccount(ctx, moduleAcc)
+	sk.ak.SetAccount(ctx, fromAcc, false)
+	sk.ak.SetAccount(ctx, moduleAcc, false)
 
 	return nil
 }
@@ -70,7 +70,7 @@ func (sk DummySupplyKeeper) GetModuleAccount(ctx sdk.Context, moduleName string)
 	}
 
 	maccI := (sk.ak.NewAccount(ctx, macc)).(exported.ModuleAccountI)
-	sk.ak.SetAccount(ctx, maccI)
+	sk.ak.SetAccount(ctx, maccI, false)
 	return maccI
 }
 
@@ -98,8 +98,8 @@ func (sk DummySupplyKeeper) SendCoinsFromModuleToAccount(ctx sdk.Context, sender
 		return err
 	}
 
-	sk.ak.SetAccount(ctx, recipientAcc)
-	sk.ak.SetAccount(ctx, moduleAcc)
+	sk.ak.SetAccount(ctx, recipientAcc, false)
+	sk.ak.SetAccount(ctx, moduleAcc, false)
 
 	return nil
 }

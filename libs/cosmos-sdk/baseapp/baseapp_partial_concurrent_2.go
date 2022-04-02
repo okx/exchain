@@ -364,7 +364,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
-	dttm.accountUpdated(false, 2, task.from)
+	//dttm.accountUpdated(false, 2, task.from)
 	anteStart := time.Now()
 	err := dttm.runAnte(task)
 	totalAnteDuration += time.Since(anteStart).Microseconds()
@@ -539,7 +539,7 @@ func (dttm *DTTManager) serialExecution() {
 		//dttm.updateFeeCollector()
 
 		//dttm.app.logger.Info("handleDeferRefund", "index", dttm.serialTask.txIndex, "addr", dttm.serialTask.from)
-		dttm.accountUpdated(false, 1, dttm.serialTask.from)
+		//dttm.accountUpdated(false, 1, dttm.serialTask.from)
 		handler.handleDeferRefund(info)
 
 		handler.handleDeferGasConsumed(info)
@@ -596,7 +596,7 @@ func (dttm *DTTManager) serialExecution() {
 
 	// execute runMsgs
 	//dttm.app.logger.Info("handleRunMsg", "index", dttm.serialTask.txIndex, "addr", dttm.serialTask.from)
-	dttm.accountUpdated(false, 2, dttm.serialTask.from)
+	//dttm.accountUpdated(false, 2, dttm.serialTask.from)
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
@@ -640,12 +640,17 @@ func (dttm *DTTManager) updateFeeCollector() {
 	cache.Write()
 }
 
-func (dttm *DTTManager) OnAccountUpdated(acc exported.Account) {
-	addr := acc.GetAddress().String()
+func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
 	//if global.GetGlobalHeight() == 5811070 && hex.EncodeToString(acc.GetAddress()) == "34bfa7d438d3b1cb23c3f4557ba5ac6160be4e4c" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "addr", addr)
+
 	//}
-	dttm.accountUpdated(true, 1, addr)
+	if updateState {
+		addr := acc.GetAddress().String()
+		// called twice on each handleRunMsg
+		// addr=ex14h6fzmg37df2yaywr8es2epgvwf38ahpdq367z hex=adf4916d11f352a2748e19f3056428639313f6e1
+		//dttm.app.logger.Info("OnAccountUpdated", "addr", addr, "hex", hex.EncodeToString(acc.GetAddress()))
+		dttm.accountUpdated(true, 1, addr)
+	}
 }
 
 func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
@@ -666,9 +671,10 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 		//count := task.getUpdateCount()
 		if task.setUpdateCount(times, happened) {
 			//go func() {
-			dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
 			//dttr.task.needToRerun = true
-			dttr.shouldRerun(-1)
+			if dttr.shouldRerun(-1) {
+				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
+			}
 			//if !dttr.shouldRerun(-1) {
 			//	task.setUpdateCount(times, !happened)
 			//}
