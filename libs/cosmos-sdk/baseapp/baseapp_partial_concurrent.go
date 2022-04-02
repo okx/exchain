@@ -94,6 +94,8 @@ func (dtt *DeliverTxTask) getStep() partialConcurrentStep {
 func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
 	step := dtt.getStep()
 	switch step {
+	case partialConcurrentStepStart:
+		fallthrough
 	case partialConcurrentStepBasicFailed:
 		fallthrough
 	case partialConcurrentStepInRerun:

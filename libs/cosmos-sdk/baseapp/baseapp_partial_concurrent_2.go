@@ -662,7 +662,7 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 	//}
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
-		if dttr.task == nil || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
+		if dttr.task == nil || dttr.txIndex != dttr.task.index || !dttr.task.needToRerunWhenContextChanged() || dttr.task.from != address {
 			continue
 		}
 
