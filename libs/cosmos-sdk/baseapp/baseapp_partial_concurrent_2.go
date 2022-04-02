@@ -71,6 +71,7 @@ func (dttr *dttRoutine) setLogger(logger log.Logger) {
 func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.step = dttRoutineStepStart
 	dttr.txIndex = index
+	dttr.needToRerun = false
 	//dttr.task = nil
 	//dttr.logger.Info("makeNewTask", "index", dttr.txIndex)
 	//go func() {
@@ -124,6 +125,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			} else if dttr.step == dttRoutineStepReadyForSerial ||
 				dttr.step == dttRoutineStepSerial ||
 				dttr.step == dttRoutineStepFinished {
+				dttr.needToRerun = false
 				dttr.logger.Error("task is empty or finished")
 			} else {
 				dttr.logger.Error("shouldRerunLater", "index", dttr.task.index)
@@ -137,7 +139,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 
 func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	if dttr.step == dttRoutineStepReadyForSerial || dttr.needToRerun == true || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex > fromIndex) {
-		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
+		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
 		return
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
