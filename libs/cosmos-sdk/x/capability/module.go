@@ -155,7 +155,8 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+		defer am.Sealed()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
@@ -226,6 +227,9 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 	}
 	return upgrade.NewHeightTask(
 		0, func(ctx sdk.Context) error {
+			if am.Sealed() {
+				return nil
+			}
 			data := ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 			am.initGenesis(ctx, data)
 			return nil

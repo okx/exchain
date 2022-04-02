@@ -129,3 +129,22 @@ type (
 		MustUnmarshalJSON(bz []byte, ptr proto.Message)
 	}
 )
+
+/////////
+
+type CodecProxy struct {
+	protoCodec *ProtoCodec
+	cdc        *Codec
+}
+
+func NewCodecProxy(protoCodec *ProtoCodec, cdc *Codec) *CodecProxy {
+	return &CodecProxy{protoCodec: protoCodec, cdc: cdc}
+}
+
+func (mp *CodecProxy) GetCdc() *Codec {
+	return mp.cdc
+}
+
+func (mp *CodecProxy) GetProtocMarshal() *ProtoCodec {
+	return mp.protoCodec
+}

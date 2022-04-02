@@ -17,8 +17,8 @@ func NewDecodeStore(cdc *codec.CodecProxy, kvA, kvB kv.Pair) (string, bool) {
 	switch {
 	case bytes.HasPrefix(kvA.Key, host.KeyClientStorePrefix) && bytes.HasSuffix(kvA.Key, []byte(host.KeyConnectionPrefix)):
 		var clientConnectionsA, clientConnectionsB types.ClientPaths
-		cdc.MustUnMarshal(kvA.Value, &clientConnectionsA)
-		cdc.MustUnMarshal(kvB.Value, &clientConnectionsB)
+		cdc.GetProtocMarshal().MustUnmarshalBinaryBare(kvA.Value, &clientConnectionsA)
+		cdc.GetProtocMarshal().MustUnmarshalBinaryBare(kvB.Value, &clientConnectionsB)
 		return fmt.Sprintf("ClientPaths A: %v\nClientPaths B: %v", clientConnectionsA, clientConnectionsB), true
 
 	case bytes.HasPrefix(kvA.Key, []byte(host.KeyConnectionPrefix)):

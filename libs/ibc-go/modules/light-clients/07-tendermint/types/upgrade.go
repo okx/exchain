@@ -55,10 +55,10 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 
 	// unmarshal proofs
 	var merkleProofClient, merkleProofConsState commitmenttypes.MerkleProof
-	if err := cdc.UnMarshal(proofUpgradeClient, &merkleProofClient); err != nil {
+	if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(proofUpgradeClient, &merkleProofClient); err != nil {
 		return nil, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof, "could not unmarshal client merkle proof: %v", err)
 	}
-	if err := cdc.UnMarshal(proofUpgradeConsState, &merkleProofConsState); err != nil {
+	if err := cdc.GetProtocMarshal().UnmarshalBinaryBare(proofUpgradeConsState, &merkleProofConsState); err != nil {
 		return nil, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof, "could not unmarshal consensus state merkle proof: %v", err)
 	}
 
