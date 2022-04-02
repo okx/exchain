@@ -37,14 +37,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	//todo for ibc upgrade repair state
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
-var (
-	IsRepairState   bool
-	FlagStartHeight string = "start-height"
-)
+
+//for ibc upgrade modules name
+var IbcModules = []string{"erc20", "capability", "ibc", "transfer", "mem_capability", "transient_params"}
 
 const (
 	latestVersionKey      = "s/latest"
@@ -76,10 +74,9 @@ type Store struct {
 
 	logger tmlog.Logger
 
-	commitHeightFilterPipeline  func(h int64) func(str string) bool
-	pruneHeightFilterPipeline   func(h int64) func(str string) bool
-	moduleSupportedLatestHeight map[string]int64
-	upgradeVersion              int64
+	commitHeightFilterPipeline func(h int64) func(str string) bool
+	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	upgradeVersion             int64
 }
 
 var (
@@ -97,18 +94,17 @@ func NewStore(db dbm.DB) *Store {
 		flatKVDB = newFlatKVDB()
 	}
 	ret := &Store{
-		db:                          db,
-		flatKVDB:                    flatKVDB,
-		pruningOpts:                 types.PruneNothing,
-		storesParams:                make(map[types.StoreKey]storeParams),
-		stores:                      make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:                  make(map[string]types.StoreKey),
-		pruneHeights:                make([]int64, 0),
-		versions:                    make([]int64, 0),
-		commitHeightFilterPipeline:  types.DefaultAcceptAll,
-		pruneHeightFilterPipeline:   types.DefaultAcceptAll,
-		upgradeVersion:              -1,
-		moduleSupportedLatestHeight: make(map[string]int64),
+		db:                         db,
+		flatKVDB:                   flatKVDB,
+		pruningOpts:                types.PruneNothing,
+		storesParams:               make(map[types.StoreKey]storeParams),
+		stores:                     make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:                 make(map[string]types.StoreKey),
+		pruneHeights:               make([]int64, 0),
+		versions:                   make([]int64, 0),
+		commitHeightFilterPipeline: types.DefaultAcceptAll,
+		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		upgradeVersion:             -1,
 	}
 
 	return ret
@@ -254,6 +250,14 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
 		}
+
+		for _, name := range IbcModules {
+			ibcInfo := infos[name]
+			if ibcInfo.Core.CommitID.Version == 0 {
+				ibcInfo.Core.CommitID.Version = tmtypes.GetVenus1Height()
+				infos[name] = ibcInfo
+			}
+		}
 	}
 
 	roots := make(map[int64][]byte)
@@ -371,16 +375,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 func (rs *Store) getCommitID(infos map[string]storeInfo, name string) types.CommitID {
 	info, ok := infos[name]
 	if !ok {
-		//for ibc upgrade repair version lower than Venus1Height
-		height := tmtypes.GetVenus1Height()
-		startVersion := viper.GetInt64(FlagStartHeight)
-
-		if IsRepairState && startVersion < height {
-			return types.CommitID{Version: height}
-		} else {
-			return types.CommitID{Version: tmtypes.GetStartBlockHeight()}
-		}
-		//return types.CommitID{Version: 20}
+		return types.CommitID{Version: tmtypes.GetStartBlockHeight()}
 	}
 	return info.Core.CommitID
 }
