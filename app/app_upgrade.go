@@ -86,7 +86,8 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 		prunePip types.HeightFilterPipeline
 	)
 
-	for height, mm := range hStoreInfoModule {
+	for hh, mm := range hStoreInfoModule {
+		height := hh - 1 // 19
 		// filter block module
 		blockModuleFilter := func(str string) bool {
 			_, exist := mm[str]

@@ -71,9 +71,10 @@ type Store struct {
 
 	logger tmlog.Logger
 
-	commitHeightFilterPipeline func(h int64) func(str string) bool
-	pruneHeightFilterPipeline  func(h int64) func(str string) bool
-	upgradeVersion             int64
+	commitHeightFilterPipeline  func(h int64) func(str string) bool
+	pruneHeightFilterPipeline   func(h int64) func(str string) bool
+	moduleSupportedLatestHeight map[string]int64
+	upgradeVersion              int64
 }
 
 var (
@@ -91,17 +92,18 @@ func NewStore(db dbm.DB) *Store {
 		flatKVDB = newFlatKVDB()
 	}
 	ret := &Store{
-		db:                         db,
-		flatKVDB:                   flatKVDB,
-		pruningOpts:                types.PruneNothing,
-		storesParams:               make(map[types.StoreKey]storeParams),
-		stores:                     make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:                 make(map[string]types.StoreKey),
-		pruneHeights:               make([]int64, 0),
-		versions:                   make([]int64, 0),
-		commitHeightFilterPipeline: types.DefaultAcceptAll,
-		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
-		upgradeVersion:             -1,
+		db:                          db,
+		flatKVDB:                    flatKVDB,
+		pruningOpts:                 types.PruneNothing,
+		storesParams:                make(map[types.StoreKey]storeParams),
+		stores:                      make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:                  make(map[string]types.StoreKey),
+		pruneHeights:                make([]int64, 0),
+		versions:                    make([]int64, 0),
+		commitHeightFilterPipeline:  types.DefaultAcceptAll,
+		pruneHeightFilterPipeline:   types.DefaultAcceptAll,
+		upgradeVersion:              -1,
+		moduleSupportedLatestHeight: make(map[string]int64),
 	}
 
 	return ret
@@ -364,7 +366,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 func (rs *Store) getCommitID(infos map[string]storeInfo, name string) types.CommitID {
 	info, ok := infos[name]
 	if !ok {
-		return types.CommitID{Version: tmtypes.GetStartBlockHeight()}
+		return types.CommitID{Version: 20}
 	}
 	return info.Core.CommitID
 }
@@ -992,12 +994,12 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if f(key.Name()) {
-			continue
-		}
-		if tmtypes.GetVenus1Height()+1 == version {
+		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
 			store.SetUpgradeVersion(version)
+		}
+		if f(key.Name()) {
+			continue
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
