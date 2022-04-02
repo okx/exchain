@@ -181,7 +181,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Sealed()
+		defer am.Seal()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
