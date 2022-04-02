@@ -135,10 +135,10 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 	}
 }
 
-func (dttr *dttRoutine) shouldRerun(fromIndex int) bool {
+func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	if dttr.step == dttRoutineStepReadyForSerial || dttr.needToRerun == true || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex > fromIndex) {
 		dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex)
-		return false
+		return
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index)
@@ -149,7 +149,6 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) bool {
 			dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
 		//}()
 	}
-	return true
 }
 
 func (dttr *dttRoutine) readyForSerialExecution() bool {
@@ -670,15 +669,10 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 		task := dttr.task
 		//count := task.getUpdateCount()
 		if task.setUpdateCount(times, happened) {
-			//go func() {
-			//dttr.task.needToRerun = true
-			if dttr.shouldRerun(-1) {
-				dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
-			}
-			//if !dttr.shouldRerun(-1) {
-			//	task.setUpdateCount(times, !happened)
+			dttr.shouldRerun(-1)
+			//if dttr.shouldRerun(-1) {
+			//	dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
 			//}
-			//}()
 		}
 	}
 }
