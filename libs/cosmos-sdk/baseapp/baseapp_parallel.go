@@ -231,12 +231,12 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	for index, v := range txs {
 		txString := string(v)
 		if app.parallelTxManage.txReps[index].paraMsg.AnteErr != nil {
-			fmt.Println("err235", index, app.parallelTxManage.txReps[index].paraMsg.AnteErr)
+			//fmt.Println("err235", index, app.parallelTxManage.txReps[index].paraMsg.AnteErr)
 			continue
 		}
 		txFee := app.parallelTxManage.fee[txString]
 		refundFee := app.parallelTxManage.txReps[index].paraMsg.RefundFee
-		fmt.Println("index", index, txFee, refundFee)
+		//fmt.Println("index", index, txFee, refundFee)
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
 	}

@@ -1344,13 +1344,13 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 	if csdb.ctx.IsDeliver() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
-			fmt.Println("GGGGGGGGGGG", len(bcl))
+			//fmt.Println("GGGGGGGGGGG", len(bcl))
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
 		}
 
 		ss := GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
 		if ethcmn.BytesToAddress(contractAddr).String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
-			fmt.Println("CheckContract", ss == nil, contractAddr.String())
+			//fmt.Println("CheckContract", ss == nil, contractAddr.String())
 			return ss
 		}
 		return ss
