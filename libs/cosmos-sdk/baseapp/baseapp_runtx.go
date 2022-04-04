@@ -182,7 +182,7 @@ var (
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	fmt.Println("deleiveTx", cnt)
+	//fmt.Println("deleiveTx", cnt)
 	cnt++
 	var realTx sdk.Tx
 	var err error
