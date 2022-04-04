@@ -300,12 +300,13 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		}
 
 		for txReps[txIndex] != nil {
+			fmt.Println("ready to check", txIndex)
 			txBytes := app.parallelTxManage.indexMapBytes[txIndex]
 			s := pm.txStatus[txBytes]
 			res := txReps[txIndex]
 
 			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
-
+				fmt.Println("runRun", txIndex)
 				rerunIdx++
 				s.reRun = true
 				res = app.deliverTxWithCache(txs[txIndex], txIndex)
@@ -332,7 +333,9 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 
+			fmt.Println("SetCurrent", txIndex)
 			pm.SetCurrentIndex(txIndex, res) //Commit
+			fmt.Println("SetCurrent end", txIndex)
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
@@ -738,7 +741,7 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 			f.txReps[next] = nil
 		}
 	}
-
+	fmt.Println("run", index, base)
 	f.runBase[index] = base
 
 	return ms
