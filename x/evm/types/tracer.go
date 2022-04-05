@@ -121,14 +121,27 @@ func (dt NoOpTracer) CaptureEnd(
 	err error,
 ) {
 }
-
+func defaultTracerConfig() *TraceConfig {
+	return &TraceConfig{
+		Tracer:            "",
+		DisableMemory:     false,
+		DisableStorage:    false,
+		DisableStack:      false,
+		DisableReturnData: false,
+		Debug:             false,
+	}
+}
 func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer, err error) {
 	if ctx.IsTraceTxLog() {
 		configBytes := ctx.TraceTxLogConfig()
-		var traceConfig TraceConfig
-		err = json.Unmarshal(configBytes, &traceConfig)
-		if err != nil {
-			return nil, err
+		var traceConfig *TraceConfig
+		if configBytes == nil {
+			traceConfig = defaultTracerConfig()
+		} else {
+			err = json.Unmarshal(configBytes, traceConfig)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if traceConfig.Tracer == "" {
 			//Basic tracer with config
