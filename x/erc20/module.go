@@ -39,9 +39,6 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // DefaultGenesis is json default structure
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsSupportIBC() {
-		return nil
-	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 	}
@@ -50,9 +47,6 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis is the validation check of the Genesis
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if !tmtypes.IsSupportIBC() {
-		return nil
-	}
 	if tmtypes.IsUpgradeIBCInRuntime() {
 		if nil == bz {
 			return nil
@@ -141,9 +135,6 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.IsSupportIBC() {
-		return nil
-	}
 	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
 		defer am.Seal()
 		return am.initGenesis(ctx, data)
@@ -159,9 +150,6 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis exports the genesis state to be used by daemon
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsSupportIBC() {
-		return nil
-	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return am.exportGenesis(ctx)
 	}
@@ -174,9 +162,6 @@ func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsSupportIBC() {
-		return nil
-	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return nil
 	}
