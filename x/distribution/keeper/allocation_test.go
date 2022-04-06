@@ -91,7 +91,7 @@ func setTestFees(t *testing.T, ctx sdk.Context, k Keeper, ak auth.AccountKeeper,
 	require.NotNil(t, feeCollector)
 	err := feeCollector.SetCoins(fees)
 	require.NoError(t, err)
-	ak.SetAccount(ctx, feeCollector)
+	ak.SetAccount(ctx, feeCollector, false)
 }
 
 func createTestVotes(ctx sdk.Context, sk staking.Keeper, test testAllocationParam) []abci.VoteInfo {

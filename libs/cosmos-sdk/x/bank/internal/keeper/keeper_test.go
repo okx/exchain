@@ -27,7 +27,7 @@ func TestKeeper(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 	require.True(t, app.BankKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
 
 	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10)))
@@ -114,7 +114,7 @@ func TestSendKeeper(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 	require.True(t, sendKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
 
 	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10)))
@@ -155,7 +155,7 @@ func TestInputOutputNewAccount(t *testing.T) {
 	addr1 := sdk.AccAddress([]byte("addr1"))
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	require.NoError(t, app.BankKeeper.SetCoins(ctx, addr1, balances))
 
 	acc1Balances := app.BankKeeper.GetCoins(ctx, addr1)
@@ -190,7 +190,7 @@ func TestMsgSendEvents(t *testing.T) {
 	addr2 := sdk.AccAddress([]byte("addr2"))
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50))
 	err := app.BankKeeper.SendCoins(ctx, addr, addr2, newCoins)
 	require.Error(t, err)

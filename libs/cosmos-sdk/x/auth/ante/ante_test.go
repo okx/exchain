@@ -49,15 +49,15 @@ func TestSimulateGasCost(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 	acc3 := app.AccountKeeper.NewAccountWithAddress(ctx, addr3)
 	acc3.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc3.SetAccountNumber(2))
-	app.AccountKeeper.SetAccount(ctx, acc3)
+	app.AccountKeeper.SetAccount(ctx, acc3, false)
 
 	// set up msgs and fee
 	var tx sdk.Tx
@@ -129,7 +129,7 @@ func TestAnteHandlerSigErrors(t *testing.T) {
 	// save the first account, but second is still unrecognized
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(fee.Amount)
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrUnknownAddress)
 }
 
@@ -148,11 +148,11 @@ func TestAnteHandlerAccountNumbers(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 
 	// msg and signatures
 	var tx sdk.Tx
@@ -204,11 +204,11 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 	// set the accounts, we don't need the acc numbers as it is in the genesis block
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 
 	// msg and signatures
 	var tx sdk.Tx
@@ -262,15 +262,15 @@ func TestAnteHandlerSequences(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 	acc3 := app.AccountKeeper.NewAccountWithAddress(ctx, addr3)
 	acc3.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc3.SetAccountNumber(2))
-	app.AccountKeeper.SetAccount(ctx, acc3)
+	app.AccountKeeper.SetAccount(ctx, acc3, false)
 
 	// msg and signatures
 	var tx sdk.Tx
@@ -334,7 +334,7 @@ func TestAnteHandlerFees(t *testing.T) {
 
 	// set the accounts
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 
 	// msg and signatures
 	var tx sdk.Tx
@@ -348,14 +348,14 @@ func TestAnteHandlerFees(t *testing.T) {
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
 	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 149)))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
 	require.True(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().Empty())
 	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(149)))
 
 	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	checkValidTx(t, anteHandler, ctx, tx, false)
 
 	require.True(sdk.DecEq(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().AmountOf("atom"), sdk.NewDec(150)))
@@ -375,7 +375,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 	// set the accounts
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 
 	// msg and signatures
 	var tx sdk.Tx
@@ -418,15 +418,15 @@ func TestAnteHandlerMultiSigner(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 	acc3 := app.AccountKeeper.NewAccountWithAddress(ctx, addr3)
 	acc3.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc3.SetAccountNumber(2))
-	app.AccountKeeper.SetAccount(ctx, acc3)
+	app.AccountKeeper.SetAccount(ctx, acc3, false)
 
 	// set up msgs and fee
 	var tx sdk.Tx
@@ -467,11 +467,11 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 
 	var tx sdk.Tx
 	msg := types.NewTestMsg(addr1)
@@ -544,11 +544,11 @@ func TestAnteHandlerSetPubKey(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	acc2.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 
 	var tx sdk.Tx
 
@@ -671,7 +671,7 @@ func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		acc.SetCoins(types.NewTestCoins())
 		acc.SetAccountNumber(uint64(i))
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 	}
 
 	var tx sdk.Tx
@@ -706,7 +706,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	priv1, _, addr1 := types.KeyTestPubAddr()
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	_ = acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 
 	var tx sdk.Tx
 	msg := types.NewTestMsg(addr1)
@@ -723,7 +723,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 	require.NoError(t, acc2.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150))))
 	require.NoError(t, acc2.SetAccountNumber(1))
-	app.AccountKeeper.SetAccount(ctx, acc2)
+	app.AccountKeeper.SetAccount(ctx, acc2, false)
 	msg = types.NewTestMsg(addr2)
 	privs, accnums, seqs = []crypto.PrivKey{priv2}, []uint64{1}, []uint64{0}
 	fee = types.NewTestStdFee()
@@ -747,7 +747,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc1.SetCoins(types.NewTestCoins())
 	require.NoError(t, acc1.SetAccountNumber(0))
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 
 	antehandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
@@ -807,7 +807,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 
 	// remove funds for account so antehandler fails on recheck
 	acc1.SetCoins(sdk.Coins{})
-	app.AccountKeeper.SetAccount(ctx, acc1)
+	app.AccountKeeper.SetAccount(ctx, acc1, false)
 
 	_, err = antehandler(ctx, tx, false)
 	require.NotNil(t, err, "antehandler on recheck did not fail once feePayer no longer has sufficient funds")
