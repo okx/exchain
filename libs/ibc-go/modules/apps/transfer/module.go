@@ -64,6 +64,9 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	if !tmtypes.IsSupportIBC() {
+		return nil
+	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 	}
@@ -72,6 +75,9 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	if !tmtypes.IsSupportIBC() {
+		return nil
+	}
 	if tmtypes.IsUpgradeIBCInRuntime() {
 		if nil == bz {
 			return nil
@@ -166,6 +172,9 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if !tmtypes.IsSupportIBC() {
+		return nil
+	}
 	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
 		defer am.Seal()
 		return am.initGenesis(ctx, data)
@@ -183,6 +192,9 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.IsSupportIBC() {
+		return nil
+	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return am.exportGenesis(ctx)
 	}
@@ -509,6 +521,9 @@ func (am AppModule) NegotiateAppVersion(
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
+	if !tmtypes.IsSupportIBC() {
+		return nil
+	}
 	if !tmtypes.IsUpgradeIBCInRuntime() {
 		return nil
 	}

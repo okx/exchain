@@ -81,6 +81,10 @@ func IsUpgradeIBCInRuntime() bool {
 	return milestoneVenus1Height >= 1
 }
 
+func IsSupportIBC() bool {
+	return milestoneVenus1Height != 0
+}
+
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight
