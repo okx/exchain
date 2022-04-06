@@ -354,7 +354,7 @@ func TestMsgString(t *testing.T) {
 	require.True(t, strings.EqualFold(msgEthereumTx.String(), expectedOutput))
 }
 
-func newProxyDecoder() *codec.CompoundCodec {
+func newProxyDecoder() *codec.CodecProxy {
 	ModuleBasics := module.NewBasicManager(
 		ibc.AppModuleBasic{},
 		ibctransfer.AppModuleBasic{},
@@ -363,10 +363,7 @@ func newProxyDecoder() *codec.CompoundCodec {
 	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
-	return &codec.CompoundCodec{
-		cdc,
-		codecProxy,
-	}
+	return codecProxy
 }
 func TestMsgIBCTxValidate(t *testing.T) {
 	IBCRouterKey := "ibc"
