@@ -141,7 +141,7 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 		} else {
 			err = json.Unmarshal(configBytes, traceConfig)
 			if err != nil {
-				traceConfig = defaultTracerConfig()
+				return NewNoOpTracer()
 			}
 		}
 		if traceConfig.Tracer == "" {
