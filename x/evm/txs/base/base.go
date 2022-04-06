@@ -8,6 +8,7 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -67,23 +68,21 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	receipt := &ethtypes.Receipt{
-		//Type:              ethtypes.DynamicFeeTxType,// TODO: hardcode
-		PostState:         nil, // TODO: intermediate state root
-		Status:            ethtypes.ReceiptStatusSuccessful,
-		CumulativeGasUsed: 0, // TODO: cumulativeGasUsed
-		Bloom:             result.ResultData.Bloom,
-		Logs:              result.ResultData.Logs,
-		TxHash:            result.ResultData.TxHash,
-		ContractAddress:   result.ResultData.ContractAddress,
-		GasUsed:           result.ExecResult.GasInfo.GasConsumed,
-		//BlockHash:         tx.Keeper.GetHeightHash(tx.Ctx, uint64(tx.Ctx.BlockHeight())), TODO smb
-		BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
-		TransactionIndex: uint(tx.Keeper.TxCount),
-	}
-	if err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt); err != nil {
-		tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
-		return
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
+		receipt := &ethtypes.Receipt{
+			Status:           ethtypes.ReceiptStatusSuccessful,
+			Bloom:            result.ResultData.Bloom,
+			Logs:             result.ResultData.Logs,
+			TxHash:           result.ResultData.TxHash,
+			ContractAddress:  result.ResultData.ContractAddress,
+			GasUsed:          result.ExecResult.GasInfo.GasConsumed,
+			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
+			TransactionIndex: uint(tx.Keeper.TxCount),
+		}
+		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+		if err != nil {
+			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+		}
 	}
 
 	return

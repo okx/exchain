@@ -351,59 +351,6 @@ func (i Int) String() string {
 	return i.i.String()
 }
 
-func (d Int) OKCString() string {
-	if d.i == nil {
-		return d.i.String()
-	}
-
-	isNeg := d.IsNegative()
-	if d.IsNegative() {
-		d = d.Neg()
-	}
-
-	bzInt, err := d.i.MarshalText()
-	if err != nil {
-		return ""
-	}
-	inputSize := len(bzInt)
-
-	var bzStr []byte
-
-	// TODO: Remove trailing zeros
-	// case 1, purely decimal
-	if inputSize <= Precision {
-		bzStr = make([]byte, Precision+2)
-
-		// 0. prefix
-		bzStr[0] = byte('0')
-		bzStr[1] = byte('.')
-
-		// set relevant digits to 0
-		for i := 0; i < Precision-inputSize; i++ {
-			bzStr[i+2] = byte('0')
-		}
-
-		// set final digits
-		copy(bzStr[2+(Precision-inputSize):], bzInt)
-
-	} else {
-
-		// inputSize + 1 to account for the decimal point that is being added
-		bzStr = make([]byte, inputSize+1)
-		decPointPlace := inputSize - Precision
-
-		copy(bzStr, bzInt[:decPointPlace])                   // pre-decimal digits
-		bzStr[decPointPlace] = byte('.')                     // decimal point
-		copy(bzStr[decPointPlace+1:], bzInt[decPointPlace:]) // post-decimal digits
-	}
-
-	if isNeg {
-		return "-" + string(bzStr)
-	}
-
-	return amino.BytesToStr(bzStr)
-}
-
 // MarshalAmino defines custom encoding scheme
 func (i Int) MarshalAmino() (string, error) {
 	if i.i == nil { // Necessary since default Uint initialization has i.i as nil

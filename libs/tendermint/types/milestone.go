@@ -1,7 +1,6 @@
 package types
 
 import (
-	"math"
 	"strconv"
 	"sync"
 )
@@ -34,19 +33,6 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
-		if milestoneVenus1Height != 0 {
-			if IsMainNet() || IsTestNet() {
-				if milestoneVenus1Height == 1 {
-					// FOR LRP
-					milestoneVenus1Height = math.MaxInt64 - 2
-				} else if milestoneVenus1Height < milestoneVenusHeight || milestoneVenus1Height < milestoneMercuryHeight {
-					panic("invalid ibc height")
-				}
-			}
-			// TEST CASE OR IDE DEBUG MODE
-		} else if MILESTONE_VENUS1_HEIGHT == "" {
-			milestoneVenus1Height = 1
-		}
 	})
 }
 
