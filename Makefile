@@ -20,7 +20,7 @@ ClientName=exchaincli
 GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
-Venus1Height=1
+Venus1Height=10124840
 
 # process linker flags
 ifeq ($(VERSION),)
