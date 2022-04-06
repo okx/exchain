@@ -56,6 +56,8 @@ type Tx interface {
 	GetFrom() string
 	GetNonce() uint64
 	TxHash() []byte
+	WithRaw([]byte) Tx
+	WithTxHash([]byte) Tx
 }
 
 type BaseTx struct {
