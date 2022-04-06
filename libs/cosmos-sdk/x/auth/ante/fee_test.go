@@ -79,7 +79,7 @@ func TestDeductFees(t *testing.T) {
 	// Set account with insufficient funds
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 	acc.SetCoins([]sdk.Coin{sdk.NewCoin("atom", sdk.NewInt(10))})
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 
 	dfd := ante.NewDeductFeeDecorator(app.AccountKeeper, app.SupplyKeeper)
 	antehandler := sdk.ChainAnteDecorators(dfd)
@@ -90,7 +90,7 @@ func TestDeductFees(t *testing.T) {
 
 	// Set account with sufficient funds
 	acc.SetCoins([]sdk.Coin{sdk.NewCoin("atom", sdk.NewInt(200))})
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 
 	_, err = antehandler(ctx, tx, false)
 

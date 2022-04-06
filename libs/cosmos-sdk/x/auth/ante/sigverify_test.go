@@ -32,7 +32,7 @@ func TestSetPubKey(t *testing.T) {
 	for i, addr := range addrs {
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		require.NoError(t, acc.SetAccountNumber(uint64(i)))
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 		msgs[i] = types.NewTestMsg(addr)
 	}
 
@@ -117,7 +117,7 @@ func TestSigVerification(t *testing.T) {
 	for i, addr := range addrs {
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		require.NoError(t, acc.SetAccountNumber(uint64(i)))
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 		msgs[i] = types.NewTestMsg(addr)
 	}
 
@@ -189,7 +189,7 @@ func runSigDecorators(t *testing.T, params types.Params, multisig bool, privs ..
 		addr := sdk.AccAddress(priv.PubKey().Address())
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		require.NoError(t, acc.SetAccountNumber(uint64(i)))
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 		msgs[i] = types.NewTestMsg(addr)
 		accNums[i] = uint64(i)
 		seqs[i] = uint64(0)
@@ -218,7 +218,7 @@ func TestIncrementSequenceDecorator(t *testing.T) {
 	priv, _, addr := types.KeyTestPubAddr()
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 	require.NoError(t, acc.SetAccountNumber(uint64(50)))
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 
 	msgs := []sdk.Msg{types.NewTestMsg(addr)}
 	privKeys := []crypto.PrivKey{priv}
