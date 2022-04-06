@@ -37,6 +37,7 @@ func init() {
 		if milestoneVenus1Height == 0 {
 			milestoneVenus1Height = math.MaxInt64 - 2
 		}
+		milestoneVenus1Height = 20
 	})
 }
 

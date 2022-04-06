@@ -296,7 +296,6 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 	if !keeper.bankKeeper.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled().Result()
 	}
-
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
 		return types.ErrSendCoinsFromAccountToAccountFailed(err.Error()).Result()

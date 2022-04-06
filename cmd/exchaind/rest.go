@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	erc20client "github.com/okex/exchain/x/erc20/client"
@@ -17,6 +18,7 @@ import (
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
+	ibcrest "github.com/okex/exchain/libs/ibc-go/modules/core/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	dexrest "github.com/okex/exchain/x/dex/client/rest"
@@ -39,6 +41,7 @@ import (
 // NOTE: details on the routes added for each module are in the module documentation
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
 func registerRoutes(rs *lcd.RestServer) {
+	registerGrpc(rs)
 	rpc.RegisterRoutes(rs)
 	pathPrefix := viper.GetString(server.FlagRestPathPrefix)
 	if pathPrefix == "" {
@@ -46,6 +49,11 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
+
+}
+
+func registerGrpc(rs *lcd.RestServer) {
+	app.ModuleBasics.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
@@ -64,6 +72,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
+	ibcrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -75,6 +84,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
+
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {

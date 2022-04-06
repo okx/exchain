@@ -81,6 +81,10 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 	return hm, paramsRet, commitPip, prunePip
 }
 
+//func (o *OKExChainApp) OnGrpc(clientCtx clientCtx.CLIContext, rtr *runtime.ServeMux) {
+//	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, rtr)
+//}
+
 func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types.HeightFilterPipeline, types.HeightFilterPipeline) {
 	var (
 		pip      types.HeightFilterPipeline

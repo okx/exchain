@@ -84,7 +84,7 @@ func TestAppSmoke(t *testing.T) {
 
 	appModule.RegisterCodec(mApp.Cdc.GetCdc())
 	appModule.RegisterInvariants(MockInvariantRegistry{})
-	rs := cliLcd.NewRestServer(mApp.Cdc, nil)
+	rs := cliLcd.NewRestServer(mApp.Cdc, nil, nil)
 	appModule.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	handler := appModule.NewHandler()
 	require.True(t, handler != nil)
