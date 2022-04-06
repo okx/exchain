@@ -401,8 +401,6 @@ func EmptyContext() Context {
 	return Context{}
 }
 
-
-
 // ContextKey defines a type alias for a stdlib Context key.
 type ContextKey string
 
@@ -423,7 +421,7 @@ func WrapSDKContext(ctx Context) context.Context {
 func UnwrapSDKContext(ctx context.Context) Context {
 	return ctx.Value(SdkContextKey).(Context)
 }
-func (c Context)WithAnteTracer(trc *trace.Tracer) Context {c.trc = trc
+func (c Context) WithAnteTracer(trc *trace.Tracer) Context {
+	c.trc = trc
 	return c
 }
-

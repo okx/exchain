@@ -41,6 +41,9 @@ import (
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
+//for ibc upgrade modules name
+var IbcModules = []string{"erc20", "capability", "ibc", "transfer", "mem_capability", "transient_params"}
+
 const (
 	latestVersionKey      = "s/latest"
 	pruneHeightsKey       = "s/pruneheights"
@@ -246,6 +249,14 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		// convert StoreInfos slice to map
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
+		}
+
+		for _, name := range IbcModules {
+			ibcInfo := infos[name]
+			if ibcInfo.Core.CommitID.Version == 0 {
+				ibcInfo.Core.CommitID.Version = tmtypes.GetVenus1Height()
+				infos[name] = ibcInfo
+			}
 		}
 	}
 
@@ -992,12 +1003,12 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if f(key.Name()) {
-			continue
-		}
-		if tmtypes.GetVenus1Height()+1 == version {
+		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
 			store.SetUpgradeVersion(version)
+		}
+		if f(key.Name()) {
+			continue
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit

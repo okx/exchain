@@ -409,6 +409,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := int64(0)
 
 	var latestRoot []byte
+
 	for version, r := range roots {
 		tree.versions.Set(version, true)
 		if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
