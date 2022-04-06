@@ -30,7 +30,7 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 				suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(1000))
 			},
@@ -43,7 +43,7 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 				suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(1000000000000000000))
 			},
@@ -53,7 +53,7 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 			"invalid account type",
 			func() {
 				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc, false)
 			},
 			false,
 		},
@@ -93,7 +93,7 @@ func (suite *KeeperTestSuite) TestNonceInvariant() {
 				suite.Require().NotNil(acc)
 				err := acc.SetSequence(1)
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 				suite.app.EvmKeeper.SetNonce(suite.ctx, address, 100)
 			},
@@ -106,7 +106,7 @@ func (suite *KeeperTestSuite) TestNonceInvariant() {
 				suite.Require().NotNil(acc)
 				err := acc.SetSequence(1)
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 				suite.app.EvmKeeper.SetNonce(suite.ctx, address, 1)
 			},
@@ -116,7 +116,7 @@ func (suite *KeeperTestSuite) TestNonceInvariant() {
 			"invalid account type",
 			func() {
 				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc, false)
 			},
 			false,
 		},

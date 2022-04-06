@@ -39,7 +39,7 @@ func TestBalances(t *testing.T) {
 
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 	acc.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("foo", 10)))
-	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc, false)
 	res, err = querier(ctx, []string{"balances"}, req)
 	require.Nil(t, err)
 	require.NotNil(t, res)

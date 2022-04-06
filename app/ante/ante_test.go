@@ -43,11 +43,11 @@ func (suite *AnteTestSuite) TestValidEthTx() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
@@ -68,11 +68,11 @@ func (suite *AnteTestSuite) TestValidTx() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
 
 	// require a valid SDK tx to pass
 	fee := newTestStdFee()
@@ -97,11 +97,11 @@ func (suite *AnteTestSuite) TestSDKInvalidSigs() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
 
 	fee := newTestStdFee()
 	msg1 := newTestMsg(addr1, addr2)
@@ -145,7 +145,7 @@ func (suite *AnteTestSuite) TestSDKInvalidAcc() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
 
 	fee := newTestStdFee()
 	msg1 := newTestMsg(addr1)
@@ -195,7 +195,7 @@ func (suite *AnteTestSuite) TestEthInvalidNonce() {
 	err := acc.SetSequence(10)
 	suite.Require().NoError(err)
 	_ = acc.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
@@ -215,7 +215,7 @@ func (suite *AnteTestSuite) TestEthInsufficientBalance() {
 	addr2, _ := newTestAddrKey()
 
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
@@ -236,7 +236,7 @@ func (suite *AnteTestSuite) TestEthInvalidIntrinsicGas() {
 
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
@@ -263,7 +263,7 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())

@@ -27,10 +27,10 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	gAcc := CreateEthAccounts(3, sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000)),
 	})
-	okexapp.AccountKeeper.SetAccount(ctx, gAcc[0])
-	okexapp.AccountKeeper.SetAccount(ctx, gAcc[1])
+	okexapp.AccountKeeper.SetAccount(ctx, gAcc[0], false)
+	okexapp.AccountKeeper.SetAccount(ctx, gAcc[1], false)
 	gAcc[2].CodeHash = []byte("contract code hash")
-	okexapp.AccountKeeper.SetAccount(ctx, gAcc[2])
+	okexapp.AccountKeeper.SetAccount(ctx, gAcc[2], false)
 
 	// multi send
 	multiSendStr := `[{"to":"` + gAcc[1].Address.String() + `","amount":" 10` + common.NativeToken + `"}]`

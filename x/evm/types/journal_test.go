@@ -66,7 +66,7 @@ func (suite *JournalTestSuite) SetupTest() {
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
-	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc)
+	suite.stateDB.accountKeeper.SetAccount(suite.ctx, acc, false)
 	// suite.stateDB.bankKeeper.SetBalance(suite.ctx, sdk.AccAddress(suite.address.Bytes()), balance)
 	suite.stateDB.SetLogs([]*ethtypes.Log{
 		{

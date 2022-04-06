@@ -144,7 +144,6 @@ func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
 	if c.skip() {
 		return nil, 0, false
 	}
-
 	if data, ok := c.accMap[addr]; ok {
 		return data.acc, data.gas, ok
 	}

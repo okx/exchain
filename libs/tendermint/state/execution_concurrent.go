@@ -43,14 +43,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	elapsed := time.Since(start).Microseconds()
 	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
 
-	//var validTxs, invalidTxs = 0, 0
-	//for _, v := range abciResponses.DeliverTxs {
-	//	if v.Code == abci.CodeTypeOK {
-	//		validTxs++
-	//	} else {
-	//		invalidTxs++
-	//	}
-	//}
 	deliverTxDuration += elapsed
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
@@ -58,8 +50,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)
 		return nil, err
 	}
-
-	//trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
 }

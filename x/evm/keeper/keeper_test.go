@@ -54,7 +54,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

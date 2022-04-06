@@ -219,7 +219,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	balance := ethermint.NewPhotonCoin(sdk.NewInt(5000))
 	acc := suite.app.AccountKeeper.GetAccount(suite.ctx, addr)
 	_ = acc.SetCoins(sdk.NewCoins(balance))
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 

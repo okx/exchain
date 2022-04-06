@@ -52,7 +52,7 @@ func TestInvariants(t *testing.T) {
 		acc := supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 		err := acc.SetCoins(test.totalCommission)
 		require.NoError(t, err)
-		ak.SetAccount(ctx, acc)
+		ak.SetAccount(ctx, acc, false)
 		for i, commission := range test.commissions {
 			val := sk.Validator(ctx, valOpAddrs[i])
 			keeper.AllocateTokensToValidator(ctx, val, commission)

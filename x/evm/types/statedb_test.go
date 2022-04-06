@@ -51,7 +51,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 	suite.stateObject = suite.stateDB.GetOrNewStateObject(suite.address)
 	params := types.DefaultParams()
 	params.EnableCreate = true

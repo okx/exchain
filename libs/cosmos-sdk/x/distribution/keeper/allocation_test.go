@@ -90,7 +90,7 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 
 	err = feeCollector.SetCoins(fees)
 	require.NoError(t, err)
-	ak.SetAccount(ctx, feeCollector)
+	ak.SetAccount(ctx, feeCollector, false)
 
 	votes := []abci.VoteInfo{
 		{
@@ -180,7 +180,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 	err = feeCollector.SetCoins(fees)
 	require.NoError(t, err)
 
-	ak.SetAccount(ctx, feeCollector)
+	ak.SetAccount(ctx, feeCollector, false)
 
 	votes := []abci.VoteInfo{
 		{

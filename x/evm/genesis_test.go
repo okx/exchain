@@ -67,7 +67,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 			},
 			types.GenesisState{
 				Params: types.DefaultParams(),
@@ -101,7 +101,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			"invalid account type",
 			func() {
 				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc, false)
 			},
 			types.GenesisState{
 				Params: types.DefaultParams(),
@@ -121,7 +121,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 			},
 			types.GenesisState{
 				Params: types.DefaultParams(),
@@ -146,7 +146,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 			},
 			types.GenesisState{
 				Params: types.DefaultParams(),
@@ -171,7 +171,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 			},
 			types.GenesisState{
 				Params: types.DefaultParams(),
@@ -265,7 +265,7 @@ func (suite *EvmTestSuite) TestInit() {
 				suite.Require().NotNil(acc)
 				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 				suite.Require().NoError(err)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				authGenesisState := auth.ExportGenesis(suite.ctx, suite.app.AccountKeeper)
 				(*genesisState)["auth"] = authtypes.ModuleCdc.MustMarshalJSON(authGenesisState)
 
@@ -337,7 +337,7 @@ func (suite *EvmTestSuite) TestExport() {
 	suite.Require().NotNil(acc)
 	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 	suite.Require().NoError(err)
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	initGenesis := types.GenesisState{
 		Params: types.DefaultParams(),
@@ -392,7 +392,7 @@ func (suite *EvmTestSuite) TestExport1() {
 	suite.Require().NotNil(acc)
 	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 	suite.Require().NoError(err)
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 
 	initGenesis := types.GenesisState{
 		Params: types.DefaultParams(),
@@ -464,7 +464,7 @@ func (suite *EvmTestSuite) TestExport_db() {
 		},
 		CodeHash: ethcrypto.Keccak256(code),
 	}
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	storage := types.Storage{
 		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
@@ -519,7 +519,7 @@ func testImport_db(suite *EvmTestSuite,
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", dbPath)
@@ -559,7 +559,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 		},
 		CodeHash: ethcrypto.Keccak256(code),
 	}
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	storage := types.Storage{
 		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
@@ -635,7 +635,7 @@ func (suite *EvmTestSuite) TestExport_files1() {
 		},
 		CodeHash: ethcrypto.Keccak256(code),
 	}
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	storage := types.Storage{
 		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
@@ -719,7 +719,7 @@ func (suite *EvmTestSuite) TestExport_files2() {
 		},
 		CodeHash: ethcrypto.Keccak256(code),
 	}
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	storage := types.Storage{
 		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
@@ -790,7 +790,7 @@ func testImport_files(suite *EvmTestSuite,
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
-	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount, false)
 
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", filePath)

@@ -177,7 +177,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))).String(), acc.GetCoins().String(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},
@@ -199,7 +199,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), acc.GetCoins(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},
@@ -224,7 +224,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},
@@ -249,7 +249,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},
@@ -274,7 +274,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},
@@ -300,7 +300,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(70, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
 					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
-					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+					suite.app.AccountKeeper.SetAccount(suite.ctx, acc, false)
 				}
 			},
 		},

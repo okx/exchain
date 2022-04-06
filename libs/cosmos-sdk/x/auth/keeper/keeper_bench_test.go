@@ -14,7 +14,7 @@ func BenchmarkAccountMapperGetAccountFound(b *testing.B) {
 		arr := []byte{byte((i & 0xFF0000) >> 16), byte((i & 0xFF00) >> 8), byte(i & 0xFF)}
 		addr := sdk.AccAddress(arr)
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 	}
 
 	b.ResetTimer()
@@ -42,7 +42,7 @@ func BenchmarkAccountMapperGetAccountFoundWithCoins(b *testing.B) {
 		addr := sdk.AccAddress(arr)
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		acc.SetCoins(coins)
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 	}
 
 	b.ResetTimer()
@@ -62,7 +62,7 @@ func BenchmarkAccountMapperSetAccount(b *testing.B) {
 		arr := []byte{byte((i & 0xFF0000) >> 16), byte((i & 0xFF00) >> 8), byte(i & 0xFF)}
 		addr := sdk.AccAddress(arr)
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 	}
 }
 
@@ -86,6 +86,6 @@ func BenchmarkAccountMapperSetAccountWithCoins(b *testing.B) {
 		addr := sdk.AccAddress(arr)
 		acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 		acc.SetCoins(coins)
-		app.AccountKeeper.SetAccount(ctx, acc)
+		app.AccountKeeper.SetAccount(ctx, acc, false)
 	}
 }
