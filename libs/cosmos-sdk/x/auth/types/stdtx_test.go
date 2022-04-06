@@ -48,7 +48,7 @@ func TestStdTxAmino(t *testing.T) {
 
 	tx := NewStdTx(msgs, fee, sigs, "")
 
-	testCases := []StdTx{
+	testCases := []*StdTx{
 		{},
 		tx,
 		{

@@ -31,7 +31,7 @@ type StdTx struct {
 	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
 	Memo       string         `json:"memo" yaml:"memo"`
 
-	sdk.BaseTx `json:"-" yaml:"-"`
+	*sdk.BaseTx `json:"-" yaml:"-"`
 }
 
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
