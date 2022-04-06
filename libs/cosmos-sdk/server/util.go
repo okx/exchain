@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/gogo/protobuf/jsonpb"
 	"net"
 	"os"
 	"os/signal"
@@ -130,6 +131,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 // add server commands
 func AddCommands(
 	ctx *Context, cdc *codec.CodecProxy,
+	registry jsonpb.AnyResolver,
 	rootCmd *cobra.Command,
 	appCreator AppCreator, appStop AppStop, appExport AppExporter,
 	registerRouters func(rs *lcd.RestServer),
@@ -154,7 +156,7 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		StartCmd(ctx, cdc, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
+		StartCmd(ctx, cdc, registry, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
 		StopCmd(ctx),
 		UnsafeResetAllCmd(ctx),
 		flags.LineBreak,

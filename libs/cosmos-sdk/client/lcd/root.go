@@ -2,9 +2,14 @@ package lcd
 
 import (
 	"fmt"
+	"github.com/gogo/gateway"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	grpctypes "github.com/okex/exchain/libs/cosmos-sdk/types/grpc"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -35,10 +40,26 @@ type RestServer struct {
 
 	log      log.Logger
 	listener net.Listener
+
+	GRPCGatewayRouter *runtime.ServeMux
+}
+
+// CustomGRPCHeaderMatcher for mapping request headers to
+// GRPC metadata.
+// HTTP headers that start with 'Grpc-Metadata-' are automatically mapped to
+// gRPC metadata after removing prefix 'Grpc-Metadata-'. We can use this
+// CustomGRPCHeaderMatcher if headers don't start with `Grpc-Metadata-`
+func CustomGRPCHeaderMatcher(key string) (string, bool) {
+	switch strings.ToLower(key) {
+	case grpctypes.GRPCBlockHeightHeader:
+		return grpctypes.GRPCBlockHeightHeader, true
+	default:
+		return runtime.DefaultHeaderMatcher(key)
+	}
 }
 
 // NewRestServer creates a new rest server instance
-func NewRestServer(cdc *codec.CodecProxy, tmNode *node.Node) *RestServer {
+func NewRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, tmNode *node.Node) *RestServer {
 	rootRouter := mux.NewRouter()
 	cliCtx := context.NewCLIContext().WithProxy(cdc)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
@@ -50,12 +71,31 @@ func NewRestServer(cdc *codec.CodecProxy, tmNode *node.Node) *RestServer {
 
 	cliCtx.TrustNode = true
 
+	marshalerOption := &gateway.JSONPb{
+		EmitDefaults: true,
+		Indent:       "  ",
+		OrigName:     true,
+		AnyResolver:  interfaceReg,
+	}
+
 	return &RestServer{
 		Mux:    rootRouter,
 		CliCtx: cliCtx,
 		Cdc:    cdc,
 
 		log: logger,
+		GRPCGatewayRouter: runtime.NewServeMux(
+			// Custom marshaler option is required for gogo proto
+			runtime.WithMarshalerOption(runtime.MIMEWildcard, marshalerOption),
+
+			// This is necessary to get error details properly
+			// marshalled in unary requests.
+			runtime.WithProtoErrorHandler(runtime.DefaultHTTPProtoErrorHandler),
+
+			// Custom header matcher for mapping request headers to
+			// GRPC metadata
+			runtime.WithIncomingHeaderMatcher(CustomGRPCHeaderMatcher),
+		),
 	}
 }
 
@@ -79,6 +119,9 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 	if err != nil {
 		return
 	}
+
+	rs.registerGRPCGatewayRoutes()
+
 	rs.log.Info(
 		fmt.Sprintf(
 			"Starting application REST service (chain-id: %q)...",
@@ -95,15 +138,20 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 	return tmrpcserver.Serve(rs.listener, h, rs.log, cfg)
 }
 
+func (s *RestServer) registerGRPCGatewayRoutes() {
+	s.Mux.PathPrefix("/").Handler(s.GRPCGatewayRouter)
+	//mix.SSS(s.CliCtx, s.GRPCGatewayRouter)
+}
+
 // ServeCommand will start the application REST service as a blocking process. It
 // takes a codec to create a RestServer object and a function to register all
 // necessary routes.
-func ServeCommand(cdc *codec.CodecProxy, registerRoutesFn func(*RestServer)) *cobra.Command {
+func ServeCommand(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, registerRoutesFn func(*RestServer)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rest-server",
 		Short: "Start LCD (light-client daemon), a local REST server",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			rs := NewRestServer(cdc, nil)
+			rs := NewRestServer(cdc, interfaceReg, nil)
 
 			registerRoutesFn(rs)
 			rs.registerSwaggerUI()
@@ -124,22 +172,20 @@ func ServeCommand(cdc *codec.CodecProxy, registerRoutesFn func(*RestServer)) *co
 	return flags.RegisterRestServerFlags(cmd)
 }
 
-func StartRestServer(cdc *codec.CodecProxy, registerRoutesFn func(*RestServer), tmNode *node.Node, addr string) error {
-	rs := NewRestServer(cdc, tmNode)
+func StartRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, registerRoutesFn func(*RestServer), tmNode *node.Node, addr string) error {
+	rs := NewRestServer(cdc, interfaceReg, tmNode)
 
 	registerRoutesFn(rs)
 	rs.registerSwaggerUI()
 	rs.log.Info("start rest server")
 	// Start the rest server and return error if one exists
-	err := rs.Start(
+	return rs.Start(
 		addr,
 		viper.GetInt(flags.FlagMaxOpenConnections),
 		uint(viper.GetInt(flags.FlagRPCReadTimeout)),
 		uint(viper.GetInt(flags.FlagRPCWriteTimeout)),
 		viper.GetBool(flags.FlagUnsafeCORS),
 	)
-
-	return err
 }
 
 func (rs *RestServer) registerSwaggerUI() {
