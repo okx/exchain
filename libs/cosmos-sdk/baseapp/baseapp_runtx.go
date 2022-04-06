@@ -296,7 +296,7 @@ func useCache(mode runTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		return true
 	}
 	return false

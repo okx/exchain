@@ -143,7 +143,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 		return
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
-		dttr.logger.Error("shouldRerun", "index", dttr.task.index)
+		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
 		//dttr.step = dttRoutineStepNeedRerun
 		dttr.needToRerun = true
 		//go func() {
@@ -389,7 +389,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
-	if task.prevTaskIndex >= 0 {//|| dttr.needToRerun {
+	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex {//|| dttr.needToRerun {
 		return nil
 	}
 
@@ -399,7 +399,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -498,7 +498,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = nil
 				//task.setStep(partialConcurrentStepFinished)
 				//if global.GetGlobalHeight() == 5811070 {
-				//	dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
@@ -571,7 +571,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811070 {
-	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
