@@ -54,18 +54,28 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context   { return c.ctx }
-func (c Context) MultiStore() MultiStore     { return c.ms }
-func (c Context) BlockHeight() int64         { return c.header.Height }
-func (c Context) BlockTime() time.Time       { return c.header.Time }
-func (c Context) ChainID() string            { return c.chainID }
-func (c Context) From() string               { return c.from }
-func (c Context) TxBytes() []byte            { return c.txBytes }
-func (c Context) Logger() log.Logger         { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
-func (c Context) GasMeter() GasMeter         { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
-func (c Context) IsDeliver() bool {
+func (c *Context) Context() context.Context { return c.ctx }
+func (c *Context) MultiStore() MultiStore   { return c.ms }
+func (c *Context) BlockHeight() int64 {
+	if c.header == nil {
+		return 0
+	}
+	return c.header.Height
+}
+func (c *Context) BlockTime() time.Time {
+	if c.header == nil {
+		return time.Time{}
+	}
+	return c.header.Time
+}
+func (c *Context) ChainID() string            { return c.chainID }
+func (c *Context) From() string               { return c.from }
+func (c *Context) TxBytes() []byte            { return c.txBytes }
+func (c *Context) Logger() log.Logger         { return c.logger }
+func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
+func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
+func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+func (c *Context) IsDeliver() bool {
 	return c.isDeliver || c.isAsync
 }
 func (c *Context) IsCheckTx() bool             { return c.checkTx }

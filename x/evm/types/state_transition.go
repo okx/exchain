@@ -124,10 +124,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		}
 	}()
 
-	//if st.Sender.String() == "0xEB63D12544e933228B6271c62c6c1B63D84BA134" {
-	//	fmt.Println("begin", st.Sender.String(), ctx.GasMeter().GasConsumed())
-	//}
-
 	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
@@ -149,12 +145,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx.SetGasMeter(evmGasMeter)
-
 	csdb := st.Csdb.WithContext(ctx)
 
-	//if st.Sender.String() == "0xEB63D12544e933228B6271c62c6c1B63D84BA134" {
-	//fmt.Println("beginRUn", st.Sender.String(), ctx.GasMeter().GasConsumed())
-	//}
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
 			analyzer.StartTxLog(tag)

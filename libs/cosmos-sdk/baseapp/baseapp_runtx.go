@@ -125,7 +125,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		info.msCacheAnte = msCacheAnte
 		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
 	}
-	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
 
@@ -176,14 +175,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	return nil
 }
 
-var (
-	cnt = 0
-)
-
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
 
-	//fmt.Println("deleiveTx", cnt)
-	cnt++
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {

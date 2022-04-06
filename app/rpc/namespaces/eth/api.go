@@ -765,7 +765,6 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		// Return nil is for when gasLimit overflows uint64
 		return common.Hash{}, err
 	}
-	fmt.Println("SendRawTransaction", tx.Nonce)
 
 	txBytes := data
 	if !tmtypes.HigherThanVenus(int64(height)) {
@@ -795,7 +794,6 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	if res.Code != abci.CodeTypeOK {
 		return CheckError(res)
 	}
-	fmt.Println("SendRawTransaction", common.HexToHash(res.TxHash).String())
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
 }
@@ -1313,8 +1311,6 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	if tx.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
 		gasUsed = 0
 	}
-	status = hexutil.Uint64(1)
-	fmt.Println("GetTransactionReceipt", hash.String())
 
 	receipt := &watcher.TransactionReceipt{
 		Status:            status,

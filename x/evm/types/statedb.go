@@ -598,13 +598,8 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		defer analyzer.StopTxLog(funcName)
 	}
 
-	if addr.String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
-		fmt.Println("addr.String", addr.String(), csdb.ctx.GasMeter().GasConsumed(), csdb.GetParams().EnableContractBlockedList)
-	}
-
 	// check for the contract calling from blocked list if contract blocked list is enabled
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
-		fmt.Println("errMsg", addr.String(), csdb.ctx.GasMeter().GasConsumed())
 		err := ErrContractBlockedVerify{fmt.Sprintf("failed. the contract %s is not allowed to invoke", addr.Hex())}
 		panic(err)
 	}
@@ -1340,20 +1335,12 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
-
 	if csdb.ctx.IsDeliver() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
-			//fmt.Println("GGGGGGGGGGG", len(bcl))
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
 		}
-
-		ss := GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
-		if ethcmn.BytesToAddress(contractAddr).String() == "0x82Ce2bF9729d92D5B6aa34031B1C7c68CE0adab9" {
-			//fmt.Println("CheckContract", ss == nil, contractAddr.String())
-			return ss
-		}
-		return ss
+		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
 	}
 
 	//use dbAdapter for watchdb or prefixdb

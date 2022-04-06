@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"sort"
@@ -113,7 +112,6 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	cnt = 0
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
@@ -175,20 +173,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	go func() {
-
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey sdk.StoreKey) bool {
-
-			sdk.DebugLogByScf.AddCommitInfo(fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete))
-			return true
-		}, nil)
-		if app.deliverState.ctx.BlockHeight() == 123 {
-			sdk.DebugLogByScf.PrintDebugInfo()
-		}
-		app.deliverState.ms.Write()
-		app.parallelTxManage.commitDone <- struct{}{}
-	}()
-
 	return
 }
 
@@ -243,6 +227,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
+
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
 		var ok bool
@@ -251,7 +236,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 			panic("use TreeDeltaMap failed")
 		}
 	}
-
 	<-app.parallelTxManage.commitDone
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
