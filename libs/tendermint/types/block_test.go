@@ -144,7 +144,7 @@ func TestBlockHashesTo(t *testing.T) {
 	evList := []Evidence{ev}
 
 	block := MakeBlock(h, []Tx{Tx("Hello World")}, commit, evList)
-	block.ValidatorsHash = valSet.Hash()
+	block.ValidatorsHash = valSet.Hash(block.Height)
 	assert.False(t, block.HashesTo([]byte{}))
 	assert.False(t, block.HashesTo([]byte("something else")))
 	assert.True(t, block.HashesTo(block.Hash()))

@@ -68,7 +68,7 @@ func ConvCommitToIBCCommit(hh *types.Header, h *types.Commit) *types.IBCCommit {
 		Height: h.Height,
 		Round:  int32(h.Round),
 		BlockID: types.IBCBlockID{
-			Hash: hh.IBCHash(),
+			Hash: hh.Hash(),
 			PartSetHeader: types.IBCPartSetHeader{
 				Total: uint32(h.BlockID.PartsHeader.Total),
 				Hash:  h.BlockID.PartsHeader.Hash,
