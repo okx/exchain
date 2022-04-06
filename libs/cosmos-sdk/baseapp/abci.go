@@ -173,9 +173,13 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
+	go func() {
+		app.deliverState.ms.Write()
+		app.parallelTxManage.commitDone <- struct{}{}
+	}()
+
 	return
 }
-
 
 func (app *BaseApp) addCommitTraceInfo() {
 	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
