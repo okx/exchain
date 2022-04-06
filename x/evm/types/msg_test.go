@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -393,6 +394,7 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
+	tmtypes.SetVenus1HeightForTest()
 	chainID := "exchain-101"
 	accnum := 1
 	sequence := 0
