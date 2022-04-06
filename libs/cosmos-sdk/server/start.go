@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
 
@@ -60,6 +61,8 @@ const (
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
+
+	FlagActiveViewChange = "active-view-change"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -184,6 +187,8 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
+
+	cmd.Flags().Bool(FlagActiveViewChange, false, "Active view change when proposer delay")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -338,4 +343,6 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
+
+	consensus.ActiveViewChange = viper.GetBool(FlagActiveViewChange)
 }

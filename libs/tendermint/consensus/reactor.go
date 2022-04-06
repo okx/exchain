@@ -329,8 +329,16 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		panic(fmt.Sprintf("Peer %v has no state", src))
 	}
 
+	lock := &conR.conS.mtx
+	if ActiveViewChange {
+		lock = &conR.conS.stateMtx
+	}
+
 	switch chID {
 	case ViewChangeChannel:
+		if !ActiveViewChange {
+			return
+		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
@@ -369,9 +377,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
 			cs := conR.conS
-			cs.stateMtx.RLock()
+			lock.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.stateMtx.RUnlock()
+			lock.RUnlock()
 			if height != msg.Height {
 				return
 			}
@@ -430,9 +438,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteMessage:
 			cs := conR.conS
-			cs.stateMtx.RLock()
+			lock.RLock()
 			height, valSize, lastCommitSize := cs.Height, cs.Validators.Size(), cs.LastCommit.Size()
-			cs.stateMtx.RUnlock()
+			lock.RUnlock()
 			ps.EnsureVoteBitArrays(height, valSize)
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
@@ -452,9 +460,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteSetBitsMessage:
 			cs := conR.conS
-			cs.stateMtx.RLock()
+			lock.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.stateMtx.RUnlock()
+			lock.RUnlock()
 
 			if height == msg.Height {
 				var ourVotes *bits.BitArray

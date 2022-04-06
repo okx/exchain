@@ -47,6 +47,8 @@ var (
 var (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
+
+	ActiveViewChange = false
 )
 
 // msgs from the reactor which may update the state
@@ -502,9 +504,11 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
-	// request for proposer of new height
-	prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
-	go cs.requestForProposer(sleepDuration, prMsg)
+	if ActiveViewChange {
+		// request for proposer of new height
+		prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
+		go cs.requestForProposer(sleepDuration, prMsg)
+	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -738,19 +742,24 @@ func (cs *State) handleMsg(mi msgInfo) {
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
 		//cs.Logger.Error("handle vcMsg", "msg", msg)
-		cs.vcMsg = msg
-		if peerID == "" {
-			// ApplyBlock of height-1 is not finished
-			// RoundStepNewHeight enterNewRound use msg.val
-		} else {
-			// ApplyBlock of height-1 is finished, and vc immediately
-			cs.enterNewRound(cs.Height, 0)
+		if ActiveViewChange {
+			cs.vcMsg = msg
+			if peerID == "" {
+				// ApplyBlock of height-1 is not finished
+				// RoundStepNewHeight enterNewRound use msg.val
+			} else {
+				// ApplyBlock of height-1 is finished, and vc immediately
+				cs.enterNewRound(cs.Height, 0)
+			}
 		}
+
 	case *ProposeRequestMessage:
 		//cs.Logger.Error("handle prMsg", "msg", msg)
 		// ApplyBlock of height-1 is not finished
 		// RoundStepNewHeight enterNewRound use peer as val
-		cs.vcMsg = &ViewChangeMessage{msg.Height, msg.CurrentProposer, msg.NewProposer}
+		if ActiveViewChange {
+			cs.vcMsg = &ViewChangeMessage{msg.Height, msg.CurrentProposer, msg.NewProposer}
+		}
 
 	case *ProposalMessage:
 		// will not cause transition.
@@ -914,7 +923,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		validators = validators.Copy()
 		validators.IncrementProposerPriority(round - cs.Round)
 	}
-	if cs.vcMsg != nil && validators.Proposer.Address.String() == cs.vcMsg.CurrentProposer.String() {
+	if ActiveViewChange && cs.vcMsg != nil && validators.Proposer.Address.String() == cs.vcMsg.CurrentProposer.String() {
 		_, val := validators.GetByAddress(cs.vcMsg.NewProposer)
 		validators.Proposer = val
 	}
