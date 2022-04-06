@@ -168,10 +168,10 @@ func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, m
 // Don't perform online validation or lookups if offline is true.
 func SignStdTx(
 	txBldr authtypes.TxBuilder, cliCtx context.CLIContext, name string,
-	stdTx authtypes.StdTx, appendSig bool, offline bool,
-) (authtypes.StdTx, error) {
+	stdTx *authtypes.StdTx, appendSig bool, offline bool,
+) (*authtypes.StdTx, error) {
 
-	var signedStdTx authtypes.StdTx
+	var signedStdTx *authtypes.StdTx
 
 	info, err := txBldr.Keybase().Get(name)
 	if err != nil {
@@ -199,8 +199,8 @@ func SignStdTx(
 // Don't perform online validation or lookups if offline is true, else
 // populate account and sequence numbers from a foreign account.
 func SignStdTxWithSignerAddress(txBldr authtypes.TxBuilder, cliCtx context.CLIContext,
-	addr sdk.AccAddress, name string, stdTx authtypes.StdTx,
-	offline bool) (signedStdTx authtypes.StdTx, err error) {
+	addr sdk.AccAddress, name string, stdTx *authtypes.StdTx,
+	offline bool) (signedStdTx *authtypes.StdTx, err error) {
 
 	// check whether the address is a signer
 	if !isTxSigner(addr, stdTx.GetSigners()) {
@@ -218,8 +218,10 @@ func SignStdTxWithSignerAddress(txBldr authtypes.TxBuilder, cliCtx context.CLICo
 }
 
 // Read and decode a StdTx from the given filename.  Can pass "-" to read from stdin.
-func ReadStdTxFromFile(cdc *codec.Codec, filename string) (stdTx authtypes.StdTx, err error) {
+func ReadStdTxFromFile(cdc *codec.Codec, filename string) (*authtypes.StdTx, error) {
 	var bytes []byte
+	var err error
+	var stdTx authtypes.StdTx
 
 	if filename == "-" {
 		bytes, err = ioutil.ReadAll(os.Stdin)
@@ -228,14 +230,12 @@ func ReadStdTxFromFile(cdc *codec.Codec, filename string) (stdTx authtypes.StdTx
 	}
 
 	if err != nil {
-		return
+		return &stdTx, err
 	}
 
-	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {
-		return
-	}
+	err = cdc.UnmarshalJSON(bytes, &stdTx)
 
-	return
+	return &stdTx, err
 }
 
 func populateAccountFromState(
@@ -334,7 +334,7 @@ func PrepareTxBuilder(txBldr authtypes.TxBuilder, cliCtx context.CLIContext) (au
 	return txBldr, nil
 }
 
-func buildUnsignedStdTxOffline(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (stdTx authtypes.StdTx, err error) {
+func buildUnsignedStdTxOffline(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (stdTx *authtypes.StdTx, err error) {
 	if txBldr.SimulateAndExecute() {
 		if cliCtx.GenerateOnly {
 			return stdTx, errors.New("cannot estimate gas with generate-only")

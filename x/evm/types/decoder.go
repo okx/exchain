@@ -42,7 +42,7 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
 				switch realTx := tx.(type) {
-				case authtypes.StdTx:
+				case *authtypes.StdTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
 					return realTx, nil
@@ -82,7 +82,13 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err != nil {
 		return nil, err
 	}
-	return sanityCheck(v.(sdk.Tx), height)
+
+	std, ok := v.(authtypes.StdTx)
+	if !ok {
+		panic("invalid ubruDecoder")
+	}
+
+	return sanityCheck(&std, height)
 }
 
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0

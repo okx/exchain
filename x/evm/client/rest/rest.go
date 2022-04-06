@@ -188,7 +188,7 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 		return nil, err
 	}
 
-	return tx, nil
+	return &tx, nil
 }
 
 // ManageContractDeploymentWhitelistProposalRESTHandler defines evm proposal handler
