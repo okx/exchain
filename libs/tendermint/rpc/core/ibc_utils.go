@@ -12,15 +12,6 @@ func ConvResultCommitTOIBC(r *coretypes.ResultCommit) *coretypes.IBCResultCommit
 		IBCSignedHeader: *v,
 		CanonicalCommit: r.CanonicalCommit,
 	}
-	//for _,commit:=range v.Commit.Signatures{
-	//
-	//	voteSignBytes := commit.VoteSignBytes(chainID, int32(idx))
-	//}
-
-	//if hhash, chash := r.Header.IBCHash(), ret.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
-	//	panic("asd")
-	//}
-
 	return ret
 }
 
