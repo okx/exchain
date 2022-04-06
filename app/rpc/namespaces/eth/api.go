@@ -1642,8 +1642,8 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	if pending {
 		// nonce is continuous in mempool txs
-		pendingNonce, err := api.backend.GetPendingNonce(address.String())
-		if err == nil && pendingNonce > 0 {
+		pendingNonce, ok := api.backend.GetPendingNonce(address.String())
+		if ok {
 			return pendingNonce + 1, nil
 		}
 	}

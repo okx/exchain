@@ -45,7 +45,7 @@ type Backend interface {
 	UserPendingTransactionsCnt(address string) (int, error)
 	UserPendingTransactions(address string, limit int) ([]*watcher.Transaction, error)
 	PendingAddressList() ([]string, error)
-	GetPendingNonce(address string) (uint64, error)
+	GetPendingNonce(address string) (uint64, bool)
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
@@ -311,12 +311,12 @@ func (b *EthermintBackend) UserPendingTransactionsCnt(address string) (int, erro
 	return result.Count, nil
 }
 
-func (b *EthermintBackend) GetPendingNonce(address string) (uint64, error) {
-	result, err := b.clientCtx.Client.GetPendingNonce(address)
-	if err != nil {
-		return 0, err
+func (b *EthermintBackend) GetPendingNonce(address string) (uint64, bool) {
+	result, ok := b.clientCtx.Client.GetPendingNonce(address)
+	if !ok {
+		return 0, false
 	}
-	return result.Nonce, nil
+	return result.Nonce, true
 }
 
 func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*watcher.Transaction, error) {
