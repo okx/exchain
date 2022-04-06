@@ -29,6 +29,8 @@ var (
 
 const (
 	IbcEvmModuleName = "ibc-evm"
+
+	ContractMintMethod = "mint_by_oec_module"
 )
 
 func init() {
