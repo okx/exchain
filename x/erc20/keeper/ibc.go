@@ -80,16 +80,12 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		return err
 	}
 	// 2. call contract, mint token to user address in contract
-	ac, err := sdk.ConvertDecCoinToAdapterCoin(voucher)
-	if err != nil {
-		return err
-	}
 	if _, err := k.CallModuleERC20(
 		ctx,
 		contract,
-		"mint_by_oec_module",
+		types.ContractMintMethod,
 		common.BytesToAddress(from.Bytes()),
-		ac.Amount.BigInt()); err != nil {
+		voucher.Amount.BigInt()); err != nil {
 		return err
 	}
 	return nil
@@ -113,6 +109,8 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 
 // CallModuleERC20 call a method of ModuleERC20 contract
 func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
+	k.Logger(ctx).Info("call erc20 module contract", "contract", contract.String(), "method", method, "args", args)
+
 	data, err := types.ModuleERC20Contract.ABI.Pack(method, args...)
 	if err != nil {
 		return nil, err
@@ -175,7 +173,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 	if len(to) == 0 {
 		return errors.New("to address cannot be empty")
 	}
-	k.Logger(ctx).Info("transfer vouchers to other chain by ibc", "from", from, "to", to)
+	k.Logger(ctx).Info("transfer vouchers to other chain by ibc", "from", from, "to", to, "vouchers", vouchers)
 
 	for _, c := range vouchers {
 		if _, found := k.GetContractByDenom(ctx, c.Denom); !found {
@@ -197,10 +195,6 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 		return err
 	}
 
-	ac, err := sdk.ConvertDecCoinToAdapterCoin(coin)
-	if err != nil {
-		return err
-	}
 	// Transfer coins to receiver through IBC
 	// We use current time for timeout timestamp and zero height for timeoutHeight
 	// it means it can never fail by timeout
@@ -212,7 +206,7 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 		ctx,
 		ibctransferType.PortID,
 		channelID,
-		ac,
+		sdk.NewCoinAdapter(coin.Denom, sdk.NewIntFromBigInt(coin.Amount.BigInt())),
 		sender,
 		to,
 		timeoutHeight,

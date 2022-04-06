@@ -166,7 +166,8 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+		defer am.Seal()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
@@ -512,6 +513,9 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 		return nil
 	}
 	return upgrade.NewHeightTask(2, func(ctx sdk.Context) error {
+		if am.Sealed() {
+			return nil
+		}
 		data := lazeGenesis()
 		am.initGenesis(ctx, data)
 		return nil

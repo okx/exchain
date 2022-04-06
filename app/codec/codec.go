@@ -36,6 +36,12 @@ func MakeIBC(bm module.BasicManager) types.InterfaceRegistry {
 	interfaceReg := types.NewInterfaceRegistry()
 	bm.RegisterInterfaces(interfaceReg)
 	cosmoscryptocodec.RegisterInterfaces(interfaceReg)
-
 	return interfaceReg
+}
+
+func MakeCodecSuit(bm module.BasicManager) (*codec.CodecProxy, types.InterfaceRegistry) {
+	aminoCodec := MakeCodec(bm)
+	interfaceReg := MakeIBC(bm)
+	protoCdc := codec.NewProtoCodec(interfaceReg)
+	return codec.NewCodecProxy(protoCdc, aminoCodec), interfaceReg
 }

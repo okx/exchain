@@ -106,7 +106,7 @@ func (k Keeper) GetClientConnectionPaths(ctx sdk.Context, clientID string) ([]st
 	}
 
 	var clientPaths types.ClientPaths
-	k.cdc.MustUnMarshal(bz, &clientPaths)
+	k.cdc.GetProtocMarshal().MustUnmarshalBinaryBare(bz, &clientPaths)
 	return clientPaths.Paths, true
 }
 
@@ -114,7 +114,7 @@ func (k Keeper) GetClientConnectionPaths(ctx sdk.Context, clientID string) ([]st
 func (k Keeper) SetClientConnectionPaths(ctx sdk.Context, clientID string, paths []string) {
 	store := ctx.KVStore(k.storeKey)
 	clientPaths := types.ClientPaths{Paths: paths}
-	bz := k.cdc.MustMarshal(&clientPaths)
+	bz := k.cdc.GetProtocMarshal().MustMarshalBinaryBare(&clientPaths)
 	store.Set(host.ClientConnectionsKey(clientID), bz)
 }
 
@@ -165,7 +165,7 @@ func (k Keeper) IterateConnections(ctx sdk.Context, cb func(types.IdentifiedConn
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var connection types.ConnectionEnd
-		k.cdc.MustUnMarshal(iterator.Value(), &connection)
+		k.cdc.GetProtocMarshal().UnmarshalBinaryBare(iterator.Value(), &connection)
 
 		connectionID := host.MustParseConnectionPath(string(iterator.Key()))
 		identifiedConnection := types.NewIdentifiedConnection(connectionID, connection)

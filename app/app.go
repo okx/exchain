@@ -230,11 +230,10 @@ func NewOKExChainApp(
 		logStartingFlags(logger)
 	})
 
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -242,17 +241,6 @@ func NewOKExChainApp(
 	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
-
-	protoCodec := codec.NewProtoCodec(interfaceReg)
-	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
-
-	cpcdc := &codec.CompoundCodec{
-		cdc,
-		codecProxy,
-	}
-	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		return evm.TxDecoder(cpcdc)(txBytes, height...)
-	})
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
@@ -278,7 +266,7 @@ func NewOKExChainApp(
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey])
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -302,7 +290,7 @@ func NewOKExChainApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
@@ -311,7 +299,7 @@ func NewOKExChainApp(
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
+		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
 	stakingKeeper := staking.NewKeeper(
@@ -319,15 +307,15 @@ func NewOKExChainApp(
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
-		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
 	)
 	app.DistrKeeper = distr.NewKeeper(
-		cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
-		cdc, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
+		codecProxy.GetCdc(), keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
 	)
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
@@ -355,7 +343,7 @@ func NewOKExChainApp(
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
+		codecProxy.GetCdc(), keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
 	)
 	evidenceRouter := evidence.NewRouter()
 	evidenceKeeper.SetRouter(evidenceRouter)

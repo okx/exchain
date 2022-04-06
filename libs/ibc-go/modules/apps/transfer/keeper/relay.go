@@ -48,24 +48,21 @@ func (k Keeper) SendTransfer(
 	ctx sdk.Context,
 	sourcePort,
 	sourceChannel string,
-	adaToken sdk.CoinAdapter,
+	adapterToken sdk.CoinAdapter,
 	sender sdk.AccAddress,
 	receiver string,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
-
 	if !k.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled
 	}
-	token, e := sdk.ParseCoin(adaToken.OKCString())
-	if nil != e {
-		return e
-	}
+
+	transferAmountDec := sdk.NewDecFromIntWithPrec(adapterToken.Amount, sdk.Precision)
+	token := sdk.NewCoin(adapterToken.Denom, transferAmountDec)
 	k.Logger(ctx).Info("sendTransfer",
-		"token", token.String(),
-		"tokenAmountBigInt", token.Amount.Int.String(),
-		"adaToken", adaToken.String(), "adaTokenBigInt", adaToken.Amount.String(),
+		"token", token.String(), "tokenAmountBigInt", token.Amount.Int.String(),
+		"adapterToken", adapterToken.String(), "adapterTokenBigInt", adapterToken.Amount.String(),
 	)
 	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
@@ -137,7 +134,7 @@ func (k Keeper) SendTransfer(
 		}
 	}
 	packetData := types.NewFungibleTokenPacketData(
-		fullDenomPath, adaToken.Amount.String(), sender.String(), receiver,
+		fullDenomPath, adapterToken.Amount.String(), sender.String(), receiver,
 	)
 
 	packet := channeltypes.NewPacket(
@@ -185,13 +182,10 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
-	okcToken, err := sdk.NewDecFromStr(transferAmount.OKCString())
-	if nil != err {
-		return err
-	}
+	transferAmountDec := sdk.NewDecFromIntWithPrec(transferAmount, sdk.Precision)
 
-	k.Logger(ctx).Info("OnRecvPacket", "transferAmount", transferAmount,
-		"okcToken", okcToken.String(), "okcTokenAmount", okcToken.Int.String())
+	k.Logger(ctx).Info("OnRecvPacket", "transferAmount", transferAmount.String(),
+		"transferAmountDec", transferAmountDec.String(), "transferAmountDecInt", transferAmountDec.Int.String())
 
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
@@ -219,7 +213,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 
-		token := sdk.NewCoin(denom, okcToken)
+		token := sdk.NewCoin(denom, transferAmountDec)
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
@@ -265,8 +259,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		),
 	)
 
-	//voucher := sdk.NewDecCoin(voucherDenom, transferAmount)
-	voucher := sdk.NewCoin(voucherDenom, okcToken)
+	voucher := sdk.NewCoin(voucherDenom, transferAmountDec)
 	k.Logger(ctx).Info("on recvPacket", "info", voucher.String())
 
 	// mint new tokens if the source of the transfer is the same chain
@@ -331,12 +324,8 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	if !ok {
 		return sdkerrors.Wrapf(types.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
-	okcToken, err := sdk.NewDecFromStr(transferAmount.OKCString())
-	if nil != err {
-		return err
-	}
-
-	token := sdk.NewCoin(trace.IBCDenom(), okcToken)
+	transferAmountDec := sdk.NewDecFromIntWithPrec(transferAmount, sdk.Precision)
+	token := sdk.NewCoin(trace.IBCDenom(), transferAmountDec)
 
 	// decode the sender address
 	sender, err := sdk.AccAddressFromBech32(data.Sender)

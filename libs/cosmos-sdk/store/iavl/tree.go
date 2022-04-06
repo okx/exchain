@@ -39,7 +39,7 @@ type (
 		SetInitialVersion(version uint64)
 		SetDelta(delta *iavl.TreeDelta)
 		GetPersistedRoots() map[int64][]byte
-		UpgradeVersion(int64)
+		SetUpgradeVersion(int64)
 	}
 
 	// immutableTree is a simple wrapper around a reference to an iavl.ImmutableTree

@@ -59,7 +59,7 @@ func MustUnmarshalConsensusState(cdc *codec.CodecProxy, bz []byte) exported.Cons
 // failure.
 func UnmarshalConsensusState(cdc *codec.CodecProxy, bz []byte) (exported.ConsensusState, error) {
 	var consensusState exported.ConsensusState
-	if err := cdc.UnMarshal(bz, &consensusState); err != nil {
+	if err := cdc.GetProtocMarshal().UnmarshalInterface(bz, &consensusState); err != nil {
 		return nil, err
 	}
 

@@ -24,7 +24,7 @@ func newBaseLazyMarshal(o interface{}) *baseLazyMarshal {
 func (b *baseLazyMarshal) GetValue() string {
 	if b.origin != nil {
 		vs, err := json.Marshal(b.origin)
-		if nil != err {
+		if err != nil {
 			panic("cant happen")
 		}
 		b.value = string(vs)

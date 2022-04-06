@@ -11,11 +11,6 @@ func (coin CoinAdapter) String() string {
 	return fmt.Sprintf("%v%v", coin.Amount, coin.Denom)
 }
 
-// String provides a human-readable representation of a coin
-func (coin CoinAdapter) OKCString() string {
-	return fmt.Sprintf("%v%v", coin.Amount.OKCString(), coin.Denom)
-}
-
 // Validate returns an error if the Coin has a negative amount or if
 // the denom is invalid.
 func (coin CoinAdapter) Validate() error {
@@ -257,13 +252,4 @@ func ValidCoins(coins Coins) bool {
 
 		return true
 	}
-}
-
-func ConvertDecCoinToAdapterCoin(decCoin DecCoin) (CoinAdapter, error) {
-	truncated := decCoin.Amount.TruncateInt()
-	change := decCoin.Amount.Sub(truncated.ToDec())
-	if !change.IsZero() {
-		return CoinAdapter{}, fmt.Errorf("convert %s to adatper coin failed", decCoin.String())
-	}
-	return NewCoinAdapter(decCoin.Denom, truncated), nil
 }

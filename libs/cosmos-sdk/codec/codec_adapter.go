@@ -129,3 +129,33 @@ type (
 		MustUnmarshalJSON(bz []byte, ptr proto.Message)
 	}
 )
+
+/////////
+var (
+	_ CdcAbstraction = (*CodecProxy)(nil)
+)
+
+type CodecProxy struct {
+	protoCodec *ProtoCodec
+	cdc        *Codec
+}
+
+func (mp *CodecProxy) UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz []byte, ptr interface{}) (interface{}, error) {
+	return mp.cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz, ptr)
+}
+
+func (mp *CodecProxy) UnmarshalBinaryLengthPrefixed(bz []byte, ptr interface{}) error {
+	return mp.cdc.UnmarshalBinaryLengthPrefixed(bz, ptr)
+}
+
+func NewCodecProxy(protoCodec *ProtoCodec, cdc *Codec) *CodecProxy {
+	return &CodecProxy{protoCodec: protoCodec, cdc: cdc}
+}
+
+func (mp *CodecProxy) GetCdc() *Codec {
+	return mp.cdc
+}
+
+func (mp *CodecProxy) GetProtocMarshal() *ProtoCodec {
+	return mp.protoCodec
+}

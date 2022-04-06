@@ -1,6 +1,8 @@
 package types
 
 import (
+	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -41,4 +43,49 @@ func IbcSignBytes(chainID string, accnum uint64,
 		return nil
 	}
 	return r
+}
+
+//////
+
+///////////
+type IbcViewMsg struct {
+	TypeStr string `json:"type"`
+	Data    string `json:"data"`
+}
+
+func NewIbcViewMsg(typeStr string, data string) *IbcViewMsg {
+	return &IbcViewMsg{TypeStr: typeStr, Data: data}
+}
+
+func (b IbcViewMsg) Route() string {
+	return ""
+}
+
+func (b IbcViewMsg) Type() string {
+	return b.TypeStr
+}
+
+func (b IbcViewMsg) ValidateBasic() error {
+	return nil
+}
+
+func (b IbcViewMsg) GetSignBytes() []byte {
+	return nil
+}
+
+func (b IbcViewMsg) GetSigners() []sdk.AccAddress {
+	return nil
+}
+
+func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (StdTx, error) {
+	msgs := make([]sdk.Msg, 0)
+	for _, msg := range tx.GetMsgs() {
+		m := (interface{})(msg).(sdk.MsgProtoAdapter)
+		data, err := cdc.GetProtocMarshal().MarshalJSON(m)
+		if nil != err {
+			return StdTx{}, err
+		}
+		msgs = append(msgs, NewIbcViewMsg("/"+proto.MessageName(m), string(data)))
+	}
+	return NewStdTx(msgs, tx.Fee, tx.Signatures, tx.Memo), nil
 }
