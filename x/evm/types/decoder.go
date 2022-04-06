@@ -45,11 +45,8 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 			relayTx,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
-				switch tx.(type) {
-				case authtypes.StdTx, *MsgEthereumTx, *authtypes.IbcTx:
-					tx = tx.WithRaw(txBytes).WithTxHash(types.Tx(txBytes).Hash(height))
-					return tx, nil
-				}
+				tx = tx.WithRaw(txBytes).WithTxHash(types.Tx(txBytes).Hash(height))
+				return tx, nil
 			}
 		}
 
