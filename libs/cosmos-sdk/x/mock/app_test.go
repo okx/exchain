@@ -55,9 +55,10 @@ func getMockApp(t *testing.T) *App {
 
 func TestCheckAndDeliverGenTx(t *testing.T) {
 	mApp := getMockApp(t)
-	mApp.Cdc.RegisterConcrete(testMsg{}, "mock/testMsg", nil)
-	mApp.Cdc.RegisterInterface((*exported.ModuleAccountI)(nil), nil)
-	mApp.Cdc.RegisterConcrete(supply.ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
+
+	mApp.Cdc.GetCdc().RegisterConcrete(testMsg{}, "mock/testMsg", nil)
+	mApp.Cdc.GetCdc().RegisterInterface((*exported.ModuleAccountI)(nil), nil)
+	mApp.Cdc.GetCdc().RegisterConcrete(supply.ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
 
 	SetGenesis(mApp, accs)
 	ctxCheck := mApp.BaseApp.NewContext(true, abci.Header{})
@@ -69,7 +70,7 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 
 	header := abci.Header{Height: mApp.LastBlockHeight() + 1}
 	SignCheckDeliver(
-		t, mApp.Cdc, mApp.BaseApp, header, []sdk.Msg{msg},
+		t, mApp.Cdc.GetCdc(), mApp.BaseApp, header, []sdk.Msg{msg},
 		[]uint64{accs[0].GetAccountNumber()}, []uint64{accs[0].GetSequence()},
 		true, true, privKeys[0],
 	)
@@ -77,7 +78,7 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 	// Signing a tx with the wrong privKey should result in an auth error
 	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
 	_, _, err := SignCheckDeliver(
-		t, mApp.Cdc, mApp.BaseApp, header, []sdk.Msg{msg},
+		t, mApp.Cdc.GetCdc(), mApp.BaseApp, header, []sdk.Msg{msg},
 		[]uint64{accs[1].GetAccountNumber()}, []uint64{accs[1].GetSequence() + 1},
 		true, false, privKeys[1],
 	)
@@ -90,7 +91,7 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 	// Resigning the tx with the correct privKey should result in an OK result
 	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
 	SignCheckDeliver(
-		t, mApp.Cdc, mApp.BaseApp, header, []sdk.Msg{msg},
+		t, mApp.Cdc.GetCdc(), mApp.BaseApp, header, []sdk.Msg{msg},
 		[]uint64{accs[0].GetAccountNumber()}, []uint64{accs[0].GetSequence() + 1},
 		true, true, privKeys[0],
 	)
@@ -98,8 +99,8 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 
 func TestCheckGenTx(t *testing.T) {
 	mApp := getMockApp(t)
-	mApp.Cdc.RegisterConcrete(testMsg{}, "mock/testMsg", nil)
-	mApp.Cdc.RegisterInterface((*exported.ModuleAccountI)(nil), nil)
+	mApp.Cdc.GetCdc().RegisterConcrete(testMsg{}, "mock/testMsg", nil)
+	mApp.Cdc.GetCdc().RegisterInterface((*exported.ModuleAccountI)(nil), nil)
 
 	SetGenesis(mApp, accs)
 
