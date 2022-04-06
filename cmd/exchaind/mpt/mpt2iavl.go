@@ -9,6 +9,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
@@ -136,7 +137,11 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 		for cItr.Next() {
 			originKey := contractTrie.GetKey(cItr.Key)
 			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
-			tree.Set(key, ethcmn.BytesToHash(cItr.Value).Bytes())
+			var value []byte
+			if err := rlp.DecodeBytes(cItr.Value, &value); err != nil {
+				panic(err)
+			}
+			tree.Set(key, ethcmn.BytesToHash(value).Bytes())
 		}
 	}
 	_, _, _, err = tree.SaveVersion(false)
