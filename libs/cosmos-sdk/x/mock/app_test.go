@@ -55,7 +55,6 @@ func getMockApp(t *testing.T) *App {
 
 func TestCheckAndDeliverGenTx(t *testing.T) {
 	mApp := getMockApp(t)
-
 	mApp.Cdc.GetCdc().RegisterConcrete(testMsg{}, "mock/testMsg", nil)
 	mApp.Cdc.GetCdc().RegisterInterface((*exported.ModuleAccountI)(nil), nil)
 	mApp.Cdc.GetCdc().RegisterConcrete(supply.ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
