@@ -34,7 +34,7 @@ func DefaultGenesisState() GenesisState {
 
 // NewGenesisStateFromStdTx creates a new GenesisState object
 // from auth transactions
-func NewGenesisStateFromStdTx(genTxs []authtypes.StdTx) GenesisState {
+func NewGenesisStateFromStdTx(genTxs []*authtypes.StdTx) GenesisState {
 	genTxsBz := make([]json.RawMessage, len(genTxs))
 	for i, genTx := range genTxs {
 		genTxsBz[i] = ModuleCdc.MustMarshalJSON(genTx)
