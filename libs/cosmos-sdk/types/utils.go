@@ -83,3 +83,9 @@ func NewLevelDB(name, dir string) (db dbm.DB, err error) {
 	}()
 	return dbm.NewDB(name, backend, dir), err
 }
+
+type ParaMsg struct {
+	AnteErr   error
+	RefundFee Coins
+	LogIndex  int
+}

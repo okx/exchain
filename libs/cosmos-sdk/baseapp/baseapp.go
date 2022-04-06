@@ -626,6 +626,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
+		ctx = ctx.WithParaMsg(&sdk.ParaMsg{})
 	}
 
 	if mode == runTxModeDeliver {

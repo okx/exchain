@@ -136,16 +136,19 @@ func (cms Store) Write() {
 	}
 }
 
-func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
-	if !cms.db.IteratorCache(cb) {
-		return false
-	}
-	for _, store := range cms.stores {
-		if !store.IteratorCache(cb) {
+func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
+	for key, store := range cms.stores {
+		if !store.IteratorCache(cb, key) {
 			return false
 		}
 	}
 	return true
+}
+
+func (cms Store) GetRWSet(rSet map[string][]byte, wSet map[string][]byte) {
+	for _, store := range cms.stores {
+		store.GetRWSet(rSet, wSet)
+	}
 }
 
 // Implements CacheWrapper.

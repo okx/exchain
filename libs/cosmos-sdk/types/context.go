@@ -47,6 +47,7 @@ type Context struct {
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
+	paraMsg        *ParaMsg
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -75,7 +76,7 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver
+	return c.isDeliver || c.isAsync
 }
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
 func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
@@ -89,6 +90,9 @@ func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
+}
+func (c Context) ParaMsg() *ParaMsg {
+	return c.paraMsg
 }
 
 type AccountCache struct {
@@ -321,6 +325,11 @@ func (c Context) WithAccountNonce(nonce uint64) Context {
 
 func (c Context) WithCache(cache *Cache) Context {
 	c.cache = cache
+	return c
+}
+
+func (c Context) WithParaMsg(m *ParaMsg) Context {
+	c.paraMsg = m
 	return c
 }
 

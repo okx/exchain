@@ -118,6 +118,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 1. CacheTxContext
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+
+	if mode == runTxModeDeliverInAsync {
+		info.msCacheAnte = nil
+		msCacheAnte := app.parallelTxManage.getTxResult(info.txBytes)
+		info.msCacheAnte = msCacheAnte
+		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
+	}
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
 
@@ -149,7 +156,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
 	if mode == runTxModeDeliverInAsync {
-		app.parallelTxManage.txStatus[string(info.txBytes)].anteErr = err
+		info.ctx.ParaMsg().AnteErr = err
 	}
 
 	if err != nil {
@@ -231,19 +238,20 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
 	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
 	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvmTx {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, e := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	info, errM := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	m, e := info.msCacheAnte, errM
 	if e != nil {
 		resp = sdkerrors.ResponseDeliverTx(e, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -256,7 +264,7 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex, info.ctx.ParaMsg())
 	asyncExe.err = e
 	app.parallelTxManage.workgroup.Push(asyncExe)
 }

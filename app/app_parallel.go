@@ -1,6 +1,7 @@
 package app
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -19,10 +20,12 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 // evmTxFeeHandler get tx fee for evm tx
 func evmTxFeeHandler() sdk.GetTxFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool) {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to *ethcmn.Address) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			from = evmTx.BaseTx.From
+			to = evmTx.To()
 
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
@@ -35,7 +38,7 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 
 // fixLogForParallelTxHandler fix log for parallel tx
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(execResults [][]string) (logs [][]byte) {
-		return ek.FixLog(execResults)
+	return func(logIndex []int, anteErrs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, anteErrs)
 	}
 }
