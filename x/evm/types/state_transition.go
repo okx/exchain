@@ -168,10 +168,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		to = EthAddressToString(st.Recipient)
 		recipientStr = to
 	}
-	tracer, err := newTracer(ctx, st.TxHash)
-	if err != nil {
-		return
-	}
+	tracer := newTracer(ctx, st.TxHash)
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
 		Debug:            st.TraceTxLog,

@@ -131,8 +131,9 @@ func defaultTracerConfig() *TraceConfig {
 		Debug:             false,
 	}
 }
-func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer, err error) {
+func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 	if ctx.IsTraceTxLog() {
+		var err error
 		configBytes := ctx.TraceTxLogConfig()
 		var traceConfig *TraceConfig
 		if configBytes == nil {
@@ -140,7 +141,7 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer, err erro
 		} else {
 			err = json.Unmarshal(configBytes, traceConfig)
 			if err != nil {
-				return nil, err
+				traceConfig = defaultTracerConfig()
 			}
 		}
 		if traceConfig.Tracer == "" {
@@ -152,17 +153,19 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer, err erro
 				DisableReturnData: traceConfig.DisableReturnData,
 				Debug:             traceConfig.Debug,
 			}
-			tracer = vm.NewStructLogger(&logConfig)
-			return tracer, nil
+			return vm.NewStructLogger(&logConfig)
 		}
 		// Json-based tracer
 		tCtx := &tracers.Context{
 			TxHash: *txHash,
 		}
-		return tracers.New(traceConfig.Tracer, tCtx)
+		tracer, err = tracers.New(traceConfig.Tracer, tCtx)
+		if err != nil {
+			return NewNoOpTracer()
+		}
+		return tracer
 	} else {
 		//no op tracer
-		tracer = NewNoOpTracer()
-		return tracer, nil
+		return NewNoOpTracer()
 	}
 }
