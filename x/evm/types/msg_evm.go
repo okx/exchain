@@ -415,3 +415,13 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 	}
 	return nil
 }
+
+func (msg *MsgEthereumTx) WithRaw(raw []byte) sdk.Tx {
+	msg.Raw = raw
+	return msg
+}
+
+func (msg *MsgEthereumTx) WithTxHash(hash []byte) sdk.Tx {
+	msg.Hash = hash
+	return msg
+}

@@ -26,6 +26,15 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	)
 }
 
+func (tx *IbcTx) WithRaw(raw []byte) sdk.Tx {
+	tx.Raw = raw
+	return tx
+}
+func (tx *IbcTx) WithTxHash(hash []byte) sdk.Tx {
+	tx.Hash = hash
+	return tx
+}
+
 // StdSignBytes returns the bytes to sign for a transaction.
 func IbcSignBytes(chainID string, accnum uint64,
 	sequence uint64, fee StdFee, msgs []sdk.Msg,

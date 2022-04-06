@@ -262,6 +262,15 @@ func (tx StdTx) GetNonce() uint64 {
 	return 0
 }
 
+func (tx StdTx) WithRaw(raw []byte) sdk.Tx {
+	tx.Raw = raw
+	return tx
+}
+func (tx StdTx) WithTxHash(hash []byte) sdk.Tx {
+	tx.Hash = hash
+	return tx
+}
+
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
@@ -397,7 +406,7 @@ func StdSignBytes(chainID string, accnum uint64, sequence uint64, fee StdFee, ms
 // StdSignature represents a sig
 type StdSignature struct {
 	crypto.PubKey `json:"pub_key" yaml:"pub_key"` // optional
-	Signature     []byte `json:"signature" yaml:"signature"`
+	Signature     []byte                          `json:"signature" yaml:"signature"`
 }
 
 // DefaultTxDecoder logic for standard transaction decoding
