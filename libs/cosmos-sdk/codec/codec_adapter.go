@@ -131,10 +131,21 @@ type (
 )
 
 /////////
+var (
+	_ CdcAbstraction = (*CodecProxy)(nil)
+)
 
 type CodecProxy struct {
 	protoCodec *ProtoCodec
 	cdc        *Codec
+}
+
+func (mp *CodecProxy) UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz []byte, ptr interface{}) (interface{}, error) {
+	return mp.cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(bz, ptr)
+}
+
+func (mp *CodecProxy) UnmarshalBinaryLengthPrefixed(bz []byte, ptr interface{}) error {
+	return mp.cdc.UnmarshalBinaryLengthPrefixed(bz, ptr)
 }
 
 func NewCodecProxy(protoCodec *ProtoCodec, cdc *Codec) *CodecProxy {

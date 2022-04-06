@@ -136,7 +136,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Sealed()
+		defer am.Seal()
 		return am.initGenesis(ctx, data)
 	}
 	return nil
