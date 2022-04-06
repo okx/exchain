@@ -74,7 +74,10 @@ func HigherThanVenus1(h int64) bool {
 	return h > milestoneVenus1Height
 }
 func SetVenus1HeightForTest() {
-	milestoneVenus1Height = 99999999
+	milestoneVenus1Height = math.MaxInt64 - 2
+}
+func SetVenus1HeightForIbcTest(h int64) {
+	milestoneVenus1Height = h
 }
 
 func GetVenus1Height() int64 {
