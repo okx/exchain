@@ -15,13 +15,13 @@ import (
 
 type TraceConfig struct {
 	// custom javascript tracer
-	Tracer string `json:"tracer,omitempty"`
+	Tracer string `json:"tracer"`
 	// disable stack capture
 	DisableStack bool `json:"disableStack"`
 	// disable storage capture
 	DisableStorage bool `json:"disableStorage"`
 	// print output during capture end
-	Debug bool `json:"debug,omitempty"`
+	Debug bool `json:"debug"`
 	// enable memory capture
 	DisableMemory bool `json:"disableMemory"`
 	// enable return data capture
@@ -131,11 +131,20 @@ func defaultTracerConfig() *TraceConfig {
 		Debug:             false,
 	}
 }
+func TestTracerConfig(traceConfig *TraceConfig) error {
+	if traceConfig.Tracer != "" {
+		_, err := tracers.New(traceConfig.Tracer, &tracers.Context{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 	if ctx.IsTraceTxLog() {
 		var err error
 		configBytes := ctx.TraceTxLogConfig()
-		var traceConfig *TraceConfig
+		traceConfig := &TraceConfig{}
 		if configBytes == nil {
 			traceConfig = defaultTracerConfig()
 		} else {

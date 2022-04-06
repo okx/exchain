@@ -2,6 +2,7 @@ package debug
 
 import (
 	"encoding/json"
+	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -33,8 +34,12 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
-func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config *evmtypes.TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.TraceConfig) (interface{}, error) {
 
+	err := evmtypes.TestTracerConfig(&config)
+	if err != nil {
+		return nil, fmt.Errorf("tracer err : %s", err.Error())
+	}
 	configBytes, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -44,6 +49,10 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config *evmtypes
 		ConfigBytes: configBytes,
 	}
 	queryBytes, err := json.Marshal(&queryParam)
+	if err != nil {
+		return nil, err
+	}
+	_, err = api.clientCtx.Client.Tx(txHash.Bytes(), false)
 	if err != nil {
 		return nil, err
 	}
