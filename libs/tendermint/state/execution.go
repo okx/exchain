@@ -57,15 +57,17 @@ type BlockExecutor struct {
 	isFastSync bool
 
 	// async write db
-	abciMsgQueue     chan abciMsg
-	stateQueue       chan State
+	abciResponseQueue chan abciResponse
+	stateQueue        chan State
+	// channel to feed back height of saved state
 	syncedHeightChan chan int64
-	isAsyncSaveDB    bool
-
+	// switch to turn on async save abciResponse and state
+	isAsyncSaveDB bool
+	// flag to avoid waiting async result for the first block
 	isStateAsyncing bool
 }
 
-type abciMsg struct {
+type abciResponse struct {
 	height    int64
 	responses *ABCIResponses
 }
@@ -107,7 +109,7 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
-	res.abciMsgQueue = make(chan abciMsg, msgQueueSize)
+	res.abciResponseQueue = make(chan abciResponse, msgQueueSize)
 	res.stateQueue = make(chan State, msgQueueSize)
 	res.syncedHeightChan = make(chan int64, msgQueueSize)
 
@@ -217,13 +219,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	//wait till the last block state be saved
 	if blockExec.isAsyncSaveDB && blockExec.isStateAsyncing {
-	WAIT_LOOP:
-		for {
-			select {
-			case r := <-blockExec.syncedHeightChan:
-				if r == (block.Height - 1) {
-					break WAIT_LOOP
-				}
+		for r := range blockExec.syncedHeightChan {
+			if r == (block.Height - 1) {
+				break
 			}
 		}
 	}
@@ -425,7 +423,7 @@ func (blockExec *BlockExecutor) commit(
 }
 
 func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
-	blockExec.abciMsgQueue <- abciMsg{height, responses}
+	blockExec.abciResponseQueue <- abciResponse{height, responses}
 }
 
 func (blockExec *BlockExecutor) SaveStateAsync(state State) {
@@ -435,21 +433,15 @@ func (blockExec *BlockExecutor) SaveStateAsync(state State) {
 
 // asyncSaveRoutine handle the write db work
 func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
-	for {
-		select {
-		case stateMsg := <-blockExec.stateQueue:
-			SaveState(blockExec.db, stateMsg)
-			blockExec.syncedHeightChan <- stateMsg.LastBlockHeight
-		}
+	for stateMsg := range blockExec.stateQueue {
+		SaveState(blockExec.db, stateMsg)
+		blockExec.syncedHeightChan <- stateMsg.LastBlockHeight
 	}
 }
 
 func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
-	for {
-		select {
-		case abciMsg := <-blockExec.abciMsgQueue:
-			SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
-		}
+	for abciMsg := range blockExec.abciResponseQueue {
+		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
 	}
 }
 
