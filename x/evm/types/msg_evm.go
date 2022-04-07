@@ -38,7 +38,7 @@ const (
 type MsgEthereumTx struct {
 	Data TxData
 
-	*sdk.BaseTx `json:"-" rlp:"-"`
+	sdk.BaseTx `json:"-" rlp:"-"`
 }
 
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
