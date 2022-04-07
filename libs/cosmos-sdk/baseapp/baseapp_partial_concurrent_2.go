@@ -217,6 +217,7 @@ type DTTManager struct {
 	invalidTxs    int
 	app           *BaseApp
 	checkStateCtx sdk.Context
+	maxConcurrentCount int8
 }
 
 func NewDTTManager(app *BaseApp) *DTTManager {
