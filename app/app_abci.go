@@ -13,7 +13,6 @@ import (
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
@@ -26,7 +25,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
@@ -61,7 +60,6 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 
 // EndBlock implements the Application interface
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-
 	return app.BaseApp.EndBlock(req)
 }
 
@@ -69,6 +67,16 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	defer analyzer.OnCommitDone()
+
+	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
+	if tasks != nil {
+		ctx := app.BaseApp.GetDeliverStateCtx()
+		for _, t := range *tasks {
+			if err := t.Execute(ctx); nil != err {
+				panic("bad things")
+			}
+		}
+	}
 	res := app.BaseApp.Commit(req)
 
 	// we call watch#Commit here ,because

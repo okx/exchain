@@ -379,10 +379,10 @@ func (c *Client) initializeWithTrustOptions(options TrustOptions) error {
 		return err
 	}
 
-	if !bytes.Equal(h.ValidatorsHash, vals.Hash()) {
+	if !bytes.Equal(h.ValidatorsHash, vals.Hash(h.Height)) {
 		return fmt.Errorf("expected header's validators (%X) to match those that were supplied (%X)",
 			h.ValidatorsHash,
-			vals.Hash(),
+			vals.Hash(h.Height),
 		)
 	}
 
@@ -549,7 +549,7 @@ func (c *Client) VerifyHeader(newHeader *types.SignedHeader, newVals *types.Vali
 
 func (c *Client) verifyHeader(newHeader *types.SignedHeader, newVals *types.ValidatorSet, now time.Time) error {
 	c.logger.Info("VerifyHeader", "height", newHeader.Height, "hash", hash2str(newHeader.Hash()),
-		"vals", hash2str(newVals.Hash()))
+		"vals", hash2str(newVals.Hash(newHeader.Height)))
 
 	var err error
 
@@ -841,8 +841,8 @@ func (c *Client) cleanupAfter(height int64) error {
 }
 
 func (c *Client) updateTrustedHeaderAndVals(h *types.SignedHeader, vals *types.ValidatorSet) error {
-	if !bytes.Equal(h.ValidatorsHash, vals.Hash()) {
-		return fmt.Errorf("expected validator's hash %X, but got %X", h.ValidatorsHash, vals.Hash())
+	if !bytes.Equal(h.ValidatorsHash, vals.Hash(h.Height)) {
+		return fmt.Errorf("expected validator's hash %X, but got %X", h.ValidatorsHash, vals.Hash(h.Height))
 	}
 
 	if err := c.trustedStore.SaveSignedHeaderAndValidatorSet(h, vals); err != nil {
