@@ -3,6 +3,7 @@ package mock
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"math/rand"
 	"os"
 	"sort"
@@ -29,7 +30,7 @@ const chainID = ""
 // capabilities aren't needed for testing.
 type App struct {
 	*bam.BaseApp
-	Cdc        *codec.Codec // Cdc is public since the codec is passed into the module anyways
+	Cdc        *codec.CodecProxy // Cdc is public since the codec is passed into the module anyways
 	KeyMain    *sdk.KVStoreKey
 	KeyAccount *sdk.KVStoreKey
 	KeyParams  *sdk.KVStoreKey
@@ -50,12 +51,13 @@ func NewApp() *App {
 	db := dbm.NewMemDB()
 
 	// Create the cdc with some standard codecs
-	cdc := createCodec()
+	cdcP := createCodec()
+	cdc := cdcP.GetCdc()
 
 	// Create your application object
 	app := &App{
 		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc)),
-		Cdc:              cdc,
+		Cdc:              cdcP,
 		KeyMain:          sdk.NewKVStoreKey(bam.MainStoreKey),
 		KeyAccount:       sdk.NewKVStoreKey(auth.StoreKey),
 		KeyParams:        sdk.NewKVStoreKey("params"),
@@ -64,10 +66,10 @@ func NewApp() *App {
 	}
 
 	// define keepers
-	app.ParamsKeeper = params.NewKeeper(app.Cdc, app.KeyParams, app.TKeyParams)
+	app.ParamsKeeper = params.NewKeeper(app.Cdc.GetCdc(), app.KeyParams, app.TKeyParams)
 
 	app.AccountKeeper = auth.NewAccountKeeper(
-		app.Cdc,
+		app.Cdc.GetCdc(),
 		app.KeyAccount,
 		app.ParamsKeeper.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount,
@@ -308,10 +310,12 @@ func RandomSetGenesis(r *rand.Rand, app *App, addrs []sdk.AccAddress, denoms []s
 	app.GenesisAccounts = accts
 }
 
-func createCodec() *codec.Codec {
+func createCodec() *codec.CodecProxy {
 	cdc := codec.New()
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	auth.RegisterCodec(cdc)
-	return cdc
+	reg := types.NewInterfaceRegistry()
+	proc := codec.NewProtoCodec(reg)
+	return codec.NewCodecProxy(proc, cdc)
 }
