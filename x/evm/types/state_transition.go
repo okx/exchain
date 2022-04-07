@@ -168,18 +168,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		to = EthAddressToString(st.Recipient)
 		recipientStr = to
 	}
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), senderStr, to)
-
-	var tracer vm.Tracer
-	if st.TraceTxLog || enableDebug {
-		tracer = vm.NewStructLogger(evmLogConfig)
-	} else {
-		tracer = NewNoOpTracer()
-	}
-
+	tracer := newTracer(ctx, st.TxHash)
 	vmConfig := vm.Config{
 		ExtraEips:        params.ExtraEIPs,
-		Debug:            st.TraceTxLog || enableDebug,
+		Debug:            st.TraceTxLog,
 		Tracer:           tracer,
 		ContractVerifier: NewContractVerifier(params),
 	}
@@ -253,16 +245,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		currentGasMeter.ConsumeGas(gasConsumed, "EVM execution consumption")
 	}()
 
-	defer func() {
-		if !st.Simulate && enableDebug && !st.TraceTx {
-			result := &core.ExecutionResult{
-				UsedGas:    gasConsumed,
-				Err:        err,
-				ReturnData: ret,
-			}
-			saveTraceResult(ctx, tracer, result)
-		}
-	}()
 	// return trace log if tracetxlog no matter err = nil  or not nil
 	defer func() {
 		var traceLogs []byte
