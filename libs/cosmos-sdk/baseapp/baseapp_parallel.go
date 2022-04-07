@@ -10,6 +10,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 	"runtime"
 	"sync"
 )
@@ -466,6 +468,7 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 }
 
 type asyncWorkGroup struct {
+	isAsync       bool
 	runningStatus map[int]int
 	isrunning     map[int]bool
 
@@ -481,8 +484,9 @@ type asyncWorkGroup struct {
 	taskRun func([]byte)
 }
 
-func newAsyncWorkGroup() *asyncWorkGroup {
+func newAsyncWorkGroup(isAsync bool) *asyncWorkGroup {
 	return &asyncWorkGroup{
+		isAsync:         isAsync,
 		runningStatus:   make(map[int]int),
 		isrunning:       make(map[int]bool),
 		markFailedStats: make(map[int]bool),
@@ -542,6 +546,9 @@ func (a *asyncWorkGroup) AddTask(tx []byte, index int) {
 }
 
 func (a *asyncWorkGroup) Start() {
+	if !a.isAsync {
+		return
+	}
 	for index := 0; index < 64; index++ {
 		go func() {
 			for true {
@@ -656,9 +663,10 @@ type txStatus struct {
 }
 
 func newParallelTxManager() *parallelTxManager {
+	isAsync := viper.GetBool(sm.FlagParalleledTx)
 	return &parallelTxManager{
-		isAsyncDeliverTx: false,
-		workgroup:        newAsyncWorkGroup(),
+		isAsyncDeliverTx: isAsync,
+		workgroup:        newAsyncWorkGroup(isAsync),
 		fee:              make(map[string]sdk.Coins),
 
 		txStatus:      make(map[string]*txStatus),
