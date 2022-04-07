@@ -8,9 +8,9 @@ import (
 
 const (
 	// DefaultSendEnabled enabled
-	DefaultSendEnabled = false
+	DefaultSendEnabled = true
 	// DefaultReceiveEnabled enabled
-	DefaultReceiveEnabled = false
+	DefaultReceiveEnabled = true
 )
 
 var (
