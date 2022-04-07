@@ -411,12 +411,12 @@ func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults,
 }
 
 func (c *baseRPCClient) Commit(height *int64) (*ctypes.ResultCommit, error) {
-	result := new(ctypes.ResultCommit)
+	result := new(ctypes.IBCResultCommit)
 	_, err := c.caller.Call("commit", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "Commit")
 	}
-	return result, nil
+	return result.ToCommit(), nil
 }
 
 func (c *baseRPCClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {

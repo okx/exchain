@@ -1,13 +1,13 @@
 package keeper
 
 import (
-	"testing"
-
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/types"
+	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
+	"testing"
 )
 
 func TestQueryValidators(t *testing.T) {
@@ -99,10 +99,9 @@ func TestQueryParams(t *testing.T) {
 	querior := NewQuerier(keeper)
 	data, err := querior(ctx, []string{types.QueryParameters}, abci.RequestQuery{})
 	require.True(t, err == nil)
-
-	params := types.Params{}
-	_ = amino.UnmarshalJSON(data, &params)
-	require.Equal(t, types.DefaultMaxValidators, params.MaxValidators)
+	params := &stakingtypes.QueryParamsResponse{}
+	_ = keeper.cdcMarshl.GetProtocMarshal().UnmarshalBinaryBare(data, params)
+	require.Equal(t, types.DefaultMaxValidators, uint16(params.Params.MaxValidators))
 }
 
 func TestQueryAddress(t *testing.T) {

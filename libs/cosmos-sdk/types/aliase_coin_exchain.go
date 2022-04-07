@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"strings"
 )
 
 type Coin = DecCoin
@@ -96,10 +97,16 @@ func ZeroFee() Coin {
 // ValidateDenom validates a denomination string returning an error if it is
 // invalid.
 func ValidateDenom(denom string) error {
+	// TODO ,height
 	if denom == DefaultBondDenom {
 		return nil
 	}
 	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
+		if strings.HasPrefix(denom, "ibc") {
+			if validIBCCoinDenom(denom) {
+				return nil
+			}
+		}
 		return fmt.Errorf("invalid denom: %s", denom)
 	}
 	return nil

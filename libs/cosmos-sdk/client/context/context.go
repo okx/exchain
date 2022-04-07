@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io"
 	"os"
 
@@ -43,6 +44,9 @@ type CLIContext struct {
 	GenerateOnly  bool
 	Indent        bool
 	SkipConfirm   bool
+
+	InterfaceRegistry types.InterfaceRegistry
+	CodecProy         *codec.CodecProxy
 }
 
 // NewCLIContextWithInputAndFrom returns a new initialized CLIContext with parameters from the
