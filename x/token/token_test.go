@@ -54,8 +54,8 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 
 	mapp := mock.NewApp()
 	//mapp.Cdc = makeCodec()
-	registerCodec(mapp.Cdc)
-	app.RegisterCodec(mapp.Cdc)
+	registerCodec(mapp.Cdc.GetCdc())
+	app.RegisterCodec(mapp.Cdc.GetCdc())
 
 	mockDexApp = &MockDexApp{
 		App: mapp,
@@ -79,7 +79,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Minter, supply.Burner},
 	}
-	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc, mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
+	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc.GetCdc(), mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
 	mockDexApp.tokenKeeper = NewKeeper(
 		mockDexApp.bankKeeper,
 		mockDexApp.ParamsKeeper.Subspace(DefaultParamspace),
@@ -87,7 +87,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		mockDexApp.supplyKeeper,
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
-		mockDexApp.Cdc,
+		mockDexApp.Cdc.GetCdc(),
 		true, mapp.AccountKeeper)
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
@@ -133,7 +133,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 
 	mapp := mock.NewApp()
 	//mapp.Cdc = makeCodec()
-	registerCodec(mapp.Cdc)
+	registerCodec(mapp.Cdc.GetCdc())
 
 	mockDexApp = &MockDexApp{
 		App: mapp,
@@ -158,7 +158,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		types.ModuleName:      nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(
-		mockDexApp.Cdc,
+		mockDexApp.Cdc.GetCdc(),
 		mockDexApp.keySupply,
 		mockDexApp.AccountKeeper,
 		mockDexApp.bankKeeper,
@@ -171,7 +171,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.supplyKeeper,
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
-		mockDexApp.Cdc,
+		mockDexApp.Cdc.GetCdc(),
 		true, mockDexApp.AccountKeeper)
 
 	// for staking/distr rollback to cosmos-sdk
