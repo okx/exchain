@@ -178,20 +178,12 @@ func (dttr *dttRoutine) readyForSerialExecution() bool {
 		fallthrough
 	case dttRoutineStepStart:
 		fallthrough
-	//case dttRoutineStepBasic:
-	//	fallthrough
 	case dttRoutineStepAnteStart:
 		fallthrough
-	//case dttRoutineStepNeedRerun:
-	//	fallthrough
 	case dttRoutineStepFinished:
 		fallthrough
 	case dttRoutineStepSerial:
 		return false
-	//case dttRoutineStepAnteFinished:
-	//	fallthrough
-	//case dttRoutineStepReadyForSerial:
-	//	return true
 	}
 	return true
 }
@@ -340,25 +332,17 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	task.info.txBytes = txByte
 	if err != nil {
 		task.err = err
-		////dm.app.logger.Error("tx decode failed", "err", err)
-		//task.step = partialConcurrentStepBasicFailed
-		////task.setStep(partialConcurrentStepBasicFailed)
 		return task
 	}
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent)                 //dm.handler
-	//task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
-	//task.resetUpdateCount()
-	//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(task.info.ctx, task.info.tx)
 	task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
 		dttm.app.logger.Error("validateBasicTxMsgs failed", "err", err)
-		//task.setStep(partialConcurrentStepBasicFailed)
 	} else {
 		//dttm.app.logger.Info("hasExistPrevTask", "index", task.index, "from", task.from)
-		//task.setStep(partialConcurrentStepBasicSucceed)
 		if dttm.serialTask == nil && task.index == dttm.serialIndex+1 {
 			return task
 		}
@@ -395,7 +379,6 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
-	//task.setStep(partialConcurrentStepAnteStart)
 	task.resetUpdateCount()
 	task.canRerun = 0
 
@@ -418,11 +401,20 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if task.canRerun > 0 {
 		dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		dttr.shouldRerun(-1)
-	} else if dttm.serialIndex+1 == task.index && dttm.serialTask == nil && !dttr.needToRerun && task.prevTaskIndex < 0 {
-		//go func() {
-		//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
-			dttm.serialCh <- task.routineIndex
-		//}()
+	} else if dttm.serialIndex+1 == task.index {
+		if !dttr.needToRerun && task.prevTaskIndex < 0 {
+			if dttm.serialTask == nil {
+				//go func() {
+				dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+				dttm.serialCh <- task.routineIndex
+				//}()
+			} else {
+				dttm.app.logger.Info("AnteFinished", "index", dttr.task.index)
+			}
+
+		} else {
+
+		}
 	}
 
 	return nil
@@ -472,7 +464,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = nil
 				//task.setStep(partialConcurrentStepFinished)
 				//if global.GetGlobalHeight() == 5811070 {
-				//	dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
