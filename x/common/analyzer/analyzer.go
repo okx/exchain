@@ -2,8 +2,9 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"sync"
+
+	"github.com/spf13/viper"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -17,7 +18,20 @@ var (
 	openAnalyzer  bool
 	once          sync.Once
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
+
+	forceAnalyzerTags map[string]struct{}
 )
+
+func initForceAnalyzerTags() {
+	forceAnalyzerTags = make(map[string]struct{})
+	forceAnalyzerTags[bam.RunAnte] = struct{}{}
+	forceAnalyzerTags[bam.Refund] = struct{}{}
+	forceAnalyzerTags[bam.RunMsg] = struct{}{}
+}
+
+func init() {
+	initForceAnalyzerTags()
+}
 
 func SetDynamicConfig(c IDynamicConfig) {
 	dynamicConfig = c
@@ -67,13 +81,25 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
+	newAnalys(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
 		return
 	}
-	newAnalys(height)
 	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
+	}
+}
+
+func skip(a *analyer, oper string) bool {
+	if a != nil {
+		if oper == "" {
+			return false
+		}
+		_, ok := forceAnalyzerTags[oper]
+		return !ok
+	} else {
+		return true
 	}
 }
 
@@ -91,13 +117,13 @@ func OnCommitDone() {
 }
 
 func StartTxLog(oper string) {
-	if singleAnalys != nil {
+	if !skip(singleAnalys, oper) {
 		singleAnalys.startTxLog(oper)
 	}
 }
 
 func StopTxLog(oper string) {
-	if singleAnalys != nil {
+	if !skip(singleAnalys, oper) {
 		singleAnalys.stopTxLog(oper)
 	}
 }
