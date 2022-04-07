@@ -2,31 +2,30 @@ package analyzer
 
 import (
 	"fmt"
-	"sync"
-
-	"github.com/spf13/viper"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/spf13/viper"
 )
 
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	singleAnalys  *analyer
-	openAnalyzer  bool
-	once          sync.Once
+	singleAnalys *analyer
+	openAnalyzer bool
+
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
 
 	forceAnalyzerTags map[string]struct{}
 )
 
 func initForceAnalyzerTags() {
-	forceAnalyzerTags = make(map[string]struct{})
-	forceAnalyzerTags[bam.RunAnte] = struct{}{}
-	forceAnalyzerTags[bam.Refund] = struct{}{}
-	forceAnalyzerTags[bam.RunMsg] = struct{}{}
+	forceAnalyzerTags = map[string]struct{}{
+		bam.RunAnte: {},
+		bam.Refund:  {},
+		bam.RunMsg:  {},
+	}
 }
 
 func init() {
@@ -83,8 +82,10 @@ func newAnalys(height int64) {
 func OnAppBeginBlockEnter(height int64) {
 	newAnalys(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
+		openAnalyzer = false
 		return
 	}
+	openAnalyzer = true
 	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
@@ -93,7 +94,7 @@ func OnAppBeginBlockEnter(height int64) {
 
 func skip(a *analyer, oper string) bool {
 	if a != nil {
-		if oper == "" {
+		if openAnalyzer {
 			return false
 		}
 		_, ok := forceAnalyzerTags[oper]
