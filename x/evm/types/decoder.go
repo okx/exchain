@@ -84,11 +84,11 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 	}
 
 	std, ok := v.(authtypes.StdTx)
-	if !ok {
-		panic("invalid ubruDecoder")
+	if ok {
+		return sanityCheck(&std, height)
 	}
 
-	return sanityCheck(&std, height)
+	return sanityCheck(v.(sdk.Tx), height)
 }
 
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
