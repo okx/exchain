@@ -475,7 +475,7 @@ func (dttm *DTTManager) serialRoutine() {
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
-					//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
+					dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
 					count := len(dttm.dttRoutineList)
 					for i := 0; i < count; i++ {
 						dttr := dttm.dttRoutineList[i]
