@@ -290,7 +290,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	//blockExec.SetDeliverTxsMode(int8(1))
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 	//height := lastBlockHeight + 1
-	//for i := 0; i < 413; i++ {
+	//for i := 0; i < 3; i++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
