@@ -190,12 +190,12 @@ func TestValidatorSimpleSaveLoad(t *testing.T) {
 	// Should be able to load for height 1.
 	v, err := sm.LoadValidators(stateDB, 1)
 	assert.Nil(err, "expected no err at height 1")
-	assert.Equal(v.Hash(), state.Validators.Hash(), "expected validator hashes to match")
+	assert.Equal(v.Hash(1), state.Validators.Hash(1), "expected validator hashes to match")
 
 	// Should be able to load for height 2.
 	v, err = sm.LoadValidators(stateDB, 2)
 	assert.Nil(err, "expected no err at height 2")
-	assert.Equal(v.Hash(), state.NextValidators.Hash(), "expected validator hashes to match")
+	assert.Equal(v.Hash(2), state.NextValidators.Hash(2), "expected validator hashes to match")
 
 	// Increment height, save; should be able to load for next & next next height.
 	state.LastBlockHeight++
@@ -205,8 +205,8 @@ func TestValidatorSimpleSaveLoad(t *testing.T) {
 	assert.Nil(err, "expected no err")
 	vp1, err := sm.LoadValidators(stateDB, nextHeight+1)
 	assert.Nil(err, "expected no err")
-	assert.Equal(vp0.Hash(), state.Validators.Hash(), "expected validator hashes to match")
-	assert.Equal(vp1.Hash(), state.NextValidators.Hash(), "expected next validator hashes to match")
+	assert.Equal(vp0.Hash(nextHeight), state.Validators.Hash(nextHeight), "expected validator hashes to match")
+	assert.Equal(vp1.Hash(nextHeight), state.NextValidators.Hash(nextHeight), "expected next validator hashes to match")
 }
 
 // TestValidatorChangesSaveLoad tests saving and loading a validator set with changes.

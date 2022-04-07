@@ -2,6 +2,7 @@ package dex
 
 import (
 	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"testing"
@@ -30,7 +31,11 @@ func TestAppModule_Smoke(t *testing.T) {
 	appModule.RegisterCodec(codec.New())
 
 	appModule.RegisterInvariants(MockInvariantRegistry{})
-	rs := cliLcd.NewRestServer(types.ModuleCdc, nil)
+	reg := interfacetypes.NewInterfaceRegistry()
+	proc := codec.NewProtoCodec(reg)
+	cdcProxy := codec.NewCodecProxy(proc, types.ModuleCdc)
+
+	rs := cliLcd.NewRestServer(cdcProxy, nil)
 	appModule.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	handler := appModule.NewHandler()
 	require.True(t, handler != nil)

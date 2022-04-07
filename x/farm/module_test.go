@@ -1,6 +1,7 @@
 package farm
 
 import (
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
 
 	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
@@ -24,6 +25,9 @@ func TestAppModule(t *testing.T) {
 
 	cdc := types.ModuleCdc
 	//module.RegisterCodec(cdc)
+	reg := interfacetypes.NewInterfaceRegistry()
+	proc := codec.NewProtoCodec(reg)
+	cdcProxy := codec.NewCodecProxy(proc, types.ModuleCdc)
 
 	msg := module.DefaultGenesis()
 	require.Nil(t, module.ValidateGenesis(msg))
@@ -47,7 +51,7 @@ func TestAppModule(t *testing.T) {
 	module.GetTxCmd(cdc)
 	module.NewQuerierHandler()
 	module.NewHandler()
-	rs := cliLcd.NewRestServer(cdc, nil)
+	rs := cliLcd.NewRestServer(cdcProxy, nil)
 	module.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	//module.RegisterInvariants(nil)
 	module.RegisterCodec(codec.New())
