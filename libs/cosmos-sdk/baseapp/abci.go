@@ -207,7 +207,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	return
 }
 
-
 func (app *BaseApp) addCommitTraceInfo() {
 	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
 	dbReadCountStr := strconv.Itoa(app.cms.GetDBReadCount())
@@ -346,9 +345,21 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	ceptor := app.interceptors[req.Path]
+	if nil != ceptor {
+		// interceptor is like `aop`,it may record the request or rewrite the data in the request
+		// it should have funcs like `Begin` `End`,
+		// but for now, we will just redirect the path router,so once the request was intercepted(see #makeInterceptors),
+		// grpcQueryRouter#Route will return nil
+		ceptor.Intercept(&req)
+	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+	}
+
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
 	switch path[0] {
@@ -364,9 +375,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 
 	case "custom":
 		return handleQueryCustom(app, path, req)
+	default:
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
-
-	return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {

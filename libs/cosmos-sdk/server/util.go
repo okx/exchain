@@ -129,7 +129,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 
 // add server commands
 func AddCommands(
-	ctx *Context, cdc *codec.Codec,
+	ctx *Context, cdc *codec.CodecProxy,
 	rootCmd *cobra.Command,
 	appCreator AppCreator, appStop AppStop, appExport AppExporter,
 	registerRouters func(rs *lcd.RestServer),
@@ -159,7 +159,7 @@ func AddCommands(
 		UnsafeResetAllCmd(ctx),
 		flags.LineBreak,
 		tendermintCmd,
-		ExportCmd(ctx, cdc, appExport),
+		ExportCmd(ctx, cdc.GetCdc(), appExport),
 		flags.LineBreak,
 		version.Cmd,
 	)

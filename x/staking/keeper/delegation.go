@@ -140,14 +140,14 @@ func (k Keeper) GetUndelegating(ctx sdk.Context, delAddr sdk.AccAddress) (undele
 		return undelegationInfo, false
 	}
 
-	undelegationInfo = types.MustUnMarshalUndelegationInfo(k.cdc, bytes)
+	undelegationInfo = types.MustUnMarshalUndelegationInfo(k.cdcMarshl.GetCdc(), bytes)
 	return undelegationInfo, true
 }
 
 // SetUndelegating sets UndelegationInfo entity to store
 func (k Keeper) SetUndelegating(ctx sdk.Context, undelegationInfo types.UndelegationInfo) {
 	key := types.GetUndelegationInfoKey(undelegationInfo.DelegatorAddress)
-	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(undelegationInfo)
+	bytes := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(undelegationInfo)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
 }
 
@@ -183,7 +183,7 @@ func (k Keeper) IterateUndelegationInfo(ctx sdk.Context,
 
 	for i := int64(0); iterator.Valid(); iterator.Next() {
 		var undelegationInfo types.UndelegationInfo
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &undelegationInfo)
+		k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &undelegationInfo)
 		if stop := fn(i, undelegationInfo); stop {
 			break
 		}
