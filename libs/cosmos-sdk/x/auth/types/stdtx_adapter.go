@@ -77,13 +77,13 @@ func (b IbcViewMsg) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
-func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (StdTx, error) {
+func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
 	msgs := make([]sdk.Msg, 0)
 	for _, msg := range tx.GetMsgs() {
 		m := (interface{})(msg).(sdk.MsgProtoAdapter)
 		data, err := cdc.GetProtocMarshal().MarshalJSON(m)
 		if nil != err {
-			return StdTx{}, err
+			return &StdTx{}, err
 		}
 		msgs = append(msgs, NewIbcViewMsg("/"+proto.MessageName(m), string(data)))
 	}
