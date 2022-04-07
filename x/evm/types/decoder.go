@@ -46,7 +46,7 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
 				switch realTx := tx.(type) {
-				case authtypes.StdTx:
+				case *authtypes.StdTx:
 					realTx.Raw = txBytes
 					realTx.Hash = types.Tx(txBytes).Hash(height)
 					return realTx, nil

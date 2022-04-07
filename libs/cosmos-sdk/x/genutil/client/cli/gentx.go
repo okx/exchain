@@ -202,17 +202,17 @@ func makeOutputFilepath(rootDir, nodeID string) (string, error) {
 	return filepath.Join(writePath, fmt.Sprintf("gentx-%v.json", nodeID)), nil
 }
 
-func readUnsignedGenTxFile(cdc *codec.Codec, r io.Reader) (auth.StdTx, error) {
+func readUnsignedGenTxFile(cdc *codec.Codec, r io.Reader) (*auth.StdTx, error) {
 	var stdTx auth.StdTx
 	bytes, err := ioutil.ReadAll(r)
 	if err != nil {
-		return stdTx, err
+		return nil, err
 	}
 	err = cdc.UnmarshalJSON(bytes, &stdTx)
-	return stdTx, err
+	return &stdTx, err
 }
 
-func writeSignedGenTx(cdc *codec.Codec, outputDocument string, tx auth.StdTx) error {
+func writeSignedGenTx(cdc *codec.Codec, outputDocument string, tx *auth.StdTx) error {
 	outputFile, err := os.OpenFile(outputDocument, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
