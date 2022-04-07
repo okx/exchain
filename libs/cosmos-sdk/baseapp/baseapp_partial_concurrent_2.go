@@ -408,7 +408,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		if !curDttr.needToRerun && task.prevTaskIndex < 0 {
 			if dttm.serialTask == nil {
 				//go func() {
-				dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
+				//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 				dttm.serialCh <- task.routineIndex
 				//}()
 			} else {
