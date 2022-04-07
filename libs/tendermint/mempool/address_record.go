@@ -157,10 +157,10 @@ func (ar *AddressRecord) GetAddressTxsCnt(address string) int {
 	return len(am.items)
 }
 
-func (ar *AddressRecord) GetAddressNonce(address string) uint64 {
+func (ar *AddressRecord) GetAddressNonce(address string) (uint64, bool) {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
-		return 0
+		return 0, false
 	}
 	am := v.(*addrMap)
 	am.RLock()
@@ -171,7 +171,7 @@ func (ar *AddressRecord) GetAddressNonce(address string) uint64 {
 			nonce = e.Nonce
 		}
 	}
-	return nonce
+	return nonce, true
 }
 
 func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) types.Txs {

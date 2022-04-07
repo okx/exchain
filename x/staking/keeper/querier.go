@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -146,7 +147,17 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
+	//QueryParamsResponse
+	ret := &stakingtypes.QueryParamsResponse{
+		Params: stakingtypes.IBCParams{
+			UnbondingTime:     params.UnbondingTime,
+			MaxValidators:     uint32(params.MaxValidators),
+			MaxEntries:        uint32(params.MaxValsToAddShares),
+			HistoricalEntries: params.HistoricalEntries,
+			BondDenom:         "okt",
+		},
+	}
+	res, err := k.cdcMarshl.GetProtocMarshal().MarshalBinaryBare(ret)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}

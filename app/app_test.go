@@ -1,13 +1,14 @@
 package app
 
 import (
+	"os"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/params"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 
@@ -23,7 +24,7 @@ func TestOKExChainAppExport(t *testing.T) {
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
 	genesisState := ModuleBasics.DefaultGenesis()
-	stateBytes, err := codec.MarshalJSONIndent(app.cdc, genesisState)
+	stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
 	require.NoError(t, err)
 
 	// Initialize the chain
