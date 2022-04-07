@@ -679,8 +679,6 @@ func newParallelTxManager() *parallelTxManager {
 		cc:        newConflictCheck(),
 		currIndex: -1,
 		runBase:   make([]int, 0),
-
-		commitDone: make(chan struct{}, 1),
 	}
 }
 
@@ -787,4 +785,28 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Unlock()
 	<-chanStop
 	<-chanStop
+}
+
+type asyncCommitMs struct {
+	isRunning bool
+	stopChan  chan struct{}
+}
+
+func newAsyncCommitMs() *asyncCommitMs {
+	return &asyncCommitMs{
+		stopChan: make(chan struct{}, 1),
+	}
+}
+
+func (a *asyncCommitMs) setRunning() {
+	a.isRunning = true
+}
+
+func (a *asyncCommitMs) setComplete() {
+	a.stopChan <- struct{}{}
+}
+
+func (a *asyncCommitMs) wait() {
+	<-a.stopChan
+	a.isRunning = false
 }
