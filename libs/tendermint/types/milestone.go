@@ -67,6 +67,7 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
+// HigherThanVenus1 will be true if milestoneVenus1Height is larger than current height
 func HigherThanVenus1(h int64) bool {
 	if milestoneVenus1Height == 0 {
 		return false
