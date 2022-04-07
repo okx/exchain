@@ -448,6 +448,8 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 		return err
 	}
 
+	info.ctx = info.ctx.WithFeeForCollector(newCtx.FeeForCollector())
+
 	return nil
 }
 
