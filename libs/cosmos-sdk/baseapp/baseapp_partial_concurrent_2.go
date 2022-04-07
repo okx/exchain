@@ -412,40 +412,11 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 	}
 	task.err = err
-	// need to check whether exist running tx who has the same sender but smaller txIndex
-	//count := len(dttm.dttRoutineList)
-	//for i := 0; i < count; i++ {
-	//	dttr := dttm.dttRoutineList[i]
-	//	if dttr.task == nil ||
-	//		//dttr.txIndex != dttr.task.index ||
-	//		//dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-	//		dttr.step == dttRoutineStepReadyForSerial ||
-	//		//dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
-	//		dttr.task.from != task.from {
-	//		continue
-	//	}
-	//	if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
-	//		task.prevTaskIndex = dttr.task.index
-	//		dttm.app.logger.Error("hasExistPrevTask", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
-	//	} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
-	//		dttr.task.prevTaskIndex = task.index
-	//		dttm.app.logger.Error("hasExistPrevTask", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
-	//	}
-	//}
-	//dttr := dttm.dttRoutineList[task.routineIndex]
-	//dttm.app.logger.Info("AnteFinished", "index", task.index, "step", dttr.step, "prev", task.prevTaskIndex, "canRerun", task.canRerun)
-	//if task.prevTaskIndex > 0 || dttr.needToRerun {
-	//	return err
-	//}
-	dttr := dttm.dttRoutineList[task.routineIndex]
-	//dttm.app.logger.Info("AnteFinished", "index", task.index, "step", dttr.step, "prev", task.prevTaskIndex, "canRerun", task.canRerun)
 
+	dttr := dttm.dttRoutineList[task.routineIndex]
 	if task.canRerun > 0 {
-		//go func() {
 		dttr.logger.Error("rerunChInFromAnte", "index", task.index)
-		//dttr.task.needToRerun = true
 		dttr.shouldRerun(-1)
-		//}()
 	} else if dttm.serialIndex+1 == task.index && dttm.serialTask == nil && !dttr.needToRerun && task.prevTaskIndex < 0 {
 		//go func() {
 		//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
@@ -555,7 +526,7 @@ func (dttm *DTTManager) serialRoutine() {
 							dttm.serialCh <- nextTaskRoutine //nextTask//
 							//}()
 						} else {
-							//dttm.app.logger.Error("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+							dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
 						}
 					}
 				}
