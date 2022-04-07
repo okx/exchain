@@ -398,7 +398,7 @@ func (c *Client) Validators(height *int64, page, perPage int) (*ctypes.ResultVal
 
 	// Verify validators.
 	if res.Count <= res.Total {
-		if rH, tH := types.NewValidatorSet(res.Validators).Hash(), h.ValidatorsHash; !bytes.Equal(rH, tH) {
+		if rH, tH := types.NewValidatorSet(res.Validators).Hash(*height), h.ValidatorsHash; !bytes.Equal(rH, tH) {
 			return nil, fmt.Errorf("validators %X does not match with trusted validators %X",
 				rH, tH)
 		}
