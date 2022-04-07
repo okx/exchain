@@ -133,7 +133,7 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 				// 4. Verify ERC20 balance post operation
 				ret, err := suite.app.Erc20Keeper.CallModuleERC20(suite.ctx, contract, "balanceOf", common.BytesToAddress(addr1Bech.Bytes()))
 				suite.Require().NoError(err)
-				suite.Require().Equal(big.NewInt(amount), big.NewInt(0).SetBytes(ret))
+				suite.Require().Equal(amountDec.BigInt(), big.NewInt(0).SetBytes(ret))
 			},
 			nil,
 		},
