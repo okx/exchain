@@ -414,7 +414,7 @@ func TestTxDecoder(t *testing.T) {
 	dTx, err := app.txDecoder(txBytes)
 	require.NoError(t, err)
 
-	cTx := dTx.(txTest)
+	cTx := dTx.(*txTest)
 	require.Equal(t, tx.Counter, cTx.Counter)
 }
 
@@ -672,7 +672,7 @@ func (msg msgCounter2) ValidateBasic() error {
 // amino decode
 func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, _ ...int64) (sdk.Tx, error) {
-		var tx txTest
+		var tx sdk.Tx
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
 		}
@@ -689,7 +689,7 @@ func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 func anteHandlerTxTest(t *testing.T, capKey sdk.StoreKey, storeKey []byte) sdk.AnteHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
 		store := ctx.KVStore(capKey)
-		txTest := tx.(txTest)
+		txTest := tx.(*txTest)
 
 		if txTest.FailOnAnte {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "ante handler failure")
@@ -1076,7 +1076,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 	// transaction with no known route
 	{
-		unknownRouteTx := txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx := &txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err := app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1085,7 +1085,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
 
-		unknownRouteTx = txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx = &txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
