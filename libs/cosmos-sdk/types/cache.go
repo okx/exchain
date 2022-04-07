@@ -2,12 +2,14 @@ package types
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
-	"time"
 )
 
 var (
@@ -62,6 +64,8 @@ type Cache struct {
 	storageMap map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache
 	accMap     map[ethcmn.Address]*accountWithCache
 	codeMap    map[ethcmn.Hash]*codeWithCache
+
+	accMutex sync.RWMutex
 }
 
 func initCacheParam() {
@@ -108,11 +112,13 @@ func (c *Cache) UpdateAccount(addr AccAddress, acc Account, lenBytes int, isDirt
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
+	c.accMutex.Lock()
 	c.accMap[ethAddr] = &accountWithCache{
 		acc:     acc,
 		isDirty: isDirty,
 		gas:     types.Gas(lenBytes)*c.gasConfig.ReadCostPerByte + c.gasConfig.ReadCostFlat,
 	}
+	c.accMutex.Unlock()
 }
 
 func (c *Cache) UpdateStorage(addr ethcmn.Address, key ethcmn.Hash, value []byte, isDirty bool) {
@@ -145,7 +151,10 @@ func (c *Cache) GetAccount(addr ethcmn.Address) (Account, uint64, bool) {
 		return nil, 0, false
 	}
 
-	if data, ok := c.accMap[addr]; ok {
+	c.accMutex.RLock()
+	data, ok := c.accMap[addr]
+	c.accMutex.RUnlock()
+	if ok {
 		return data.acc, data.gas, ok
 	}
 
@@ -218,13 +227,26 @@ func (c *Cache) writeStorage(updateDirty bool) {
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 }
 
+func (c *Cache) setAcc(addr ethcmn.Address, v *accountWithCache) {
+	c.accMutex.Lock()
+	c.accMap[addr] = v
+	c.accMutex.Unlock()
+}
+
 func (c *Cache) writeAcc(updateDirty bool) {
+	c.accMutex.RLock()
 	for addr, v := range c.accMap {
 		if needWriteToParent(updateDirty, v.isDirty) {
-			c.parent.accMap[addr] = v
+			c.parent.setAcc(addr, v)
 		}
 	}
-	c.accMap = make(map[ethcmn.Address]*accountWithCache)
+	c.accMutex.RUnlock()
+
+	c.accMutex.Lock()
+	for k := range c.accMap {
+		delete(c.accMap, k)
+	}
+	c.accMutex.Unlock()
 }
 
 func (c *Cache) writeCode(updateDirty bool) {
@@ -266,14 +288,16 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 	}
 
 	lenStorage := c.storageSize()
-	if len(c.accMap) < maxAccInMap && lenStorage < maxStorageInMap {
+	if c.lenOfAccMap() < maxAccInMap && lenStorage < maxStorageInMap {
 		return
 	}
 
 	deleteMsg := ""
-	if len(c.accMap) >= maxAccInMap {
-		deleteMsg += fmt.Sprintf("Acc:Deleted Before:%d", len(c.accMap))
+	lenOfAcc := c.lenOfAccMap()
+	if lenOfAcc >= maxAccInMap {
+		deleteMsg += fmt.Sprintf("Acc:Deleted Before:%d", lenOfAcc)
 		cnt := 0
+		c.accMutex.Lock()
 		for key := range c.accMap {
 			delete(c.accMap, key)
 			cnt++
@@ -281,6 +305,7 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 				break
 			}
 		}
+		c.accMutex.Unlock()
 	}
 
 	if lenStorage >= maxStorageInMap {
@@ -300,6 +325,13 @@ func (c *Cache) TryDelete(logger log.Logger, height int64) {
 }
 
 func (c *Cache) logInfo(logger log.Logger, deleteMsg string) {
-	nowStats := fmt.Sprintf("len(acc):%d len(contracts):%d len(storage):%d", len(c.accMap), len(c.storageMap), c.storageSize())
+	nowStats := fmt.Sprintf("len(acc):%d len(contracts):%d len(storage):%d", c.lenOfAccMap(), len(c.storageMap), c.storageSize())
 	logger.Info("MultiCache", "deleteMsg", deleteMsg, "nowStats", nowStats)
+}
+
+func (c *Cache) lenOfAccMap() (l int) {
+	c.accMutex.RLock()
+	l = len(c.accMap)
+	c.accMutex.RUnlock()
+	return
 }
