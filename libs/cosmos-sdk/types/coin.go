@@ -599,6 +599,8 @@ var (
 	reSpc  = `[[:space:]]*`
 	reDnm  *regexp.Regexp
 	reCoin *regexp.Regexp
+
+	//ibcReDnm       *regexp.Regexp
 	//reDecCoin   *regexp.Regexp
 )
 
@@ -621,7 +623,6 @@ func SetCoinDenomRegex(reFn func() string) {
 
 	reDnm = regexp.MustCompile(fmt.Sprintf(`^%s$`, coinDenomRegex()))
 	reCoin = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reAmt, reSpc, coinDenomRegex()))
-	//reDecCoin = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reDecAmt, reSpc, coinDenomRegex()))
 }
 
 // ValidateDenom validates a denomination string returning an error if it is
