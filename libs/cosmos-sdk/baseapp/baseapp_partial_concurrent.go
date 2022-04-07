@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -24,26 +25,10 @@ var totalBasicTime = int64(0)
 var totalPreloadConDuration = int64(0)
 var totalAccountUpdateDuration = int64(0)
 
-//type (
-//	partialConcurrentStep uint8
-//)
-//
-//const (
-//	partialConcurrentStepStart partialConcurrentStep = iota
-//	partialConcurrentStepBasicFailed
-//	partialConcurrentStepBasicSucceed
-//	partialConcurrentStepAnteStart
-//	partialConcurrentStepAnteFailed
-//	partialConcurrentStepAnteSucceed
-//	partialConcurrentStepInRerun
-//	partialConcurrentStepSerialExecute
-//	partialConcurrentStepFinished
-//)
-
 type DeliverTxTask struct {
 	//tx            sdk.Tx
-	index              int
-	feeForCollect      int64
+	index         int
+	feeForCollect int64
 	//step               partialConcurrentStep
 	updateCount        int8
 	mtx                sync.Mutex
@@ -54,7 +39,7 @@ type DeliverTxTask struct {
 
 	info          *runTxInfo
 	from          string //sdk.Address//exported.Account
-	fromNumber    uint64
+	to            *ethcmn.Address
 	fee           sdk.Coins
 	isEvm         bool
 	err           error
@@ -71,42 +56,6 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 
 	return t
 }
-
-//func (dtt *DeliverTxTask) setStep(step partialConcurrentStep) {
-//	dtt.mtx.Lock()
-//	defer dtt.mtx.Unlock()
-//
-//	if dtt.step == partialConcurrentStepInRerun && step != partialConcurrentStepStart {
-//		return
-//	}
-//	dtt.step = step
-//}
-//
-//func (dtt *DeliverTxTask) getStep() partialConcurrentStep {
-//	dtt.mtx.Lock()
-//	defer dtt.mtx.Unlock()
-//	return dtt.step
-//}
-//
-//func (dtt *DeliverTxTask) needToRerunWhenContextChanged() bool {
-//	step := dtt.getStep()
-//	switch step {
-//	case partialConcurrentStepStart:
-//		fallthrough
-//	case partialConcurrentStepBasicFailed:
-//		fallthrough
-//	case partialConcurrentStepInRerun:
-//		fallthrough
-//	case partialConcurrentStepSerialExecute:
-//		fallthrough
-//	case partialConcurrentStepFinished:
-//		return false
-//	}
-//	//if dtt.canRerun == 0 && !dtt.needToRerun {
-//	//	return true
-//	//}
-//	return true
-//}
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
 	//dtt.mtx.Lock()
