@@ -44,7 +44,7 @@ func (m *modeHandlerDeliverPartConcurrent) handleDeferRefund(info *runTxInfo) {
 
 	diff, hasNeg := app.feeForCollector.SafeSub(app.deliverTxsMgr.currTxFee)
 	if hasNeg || !diff.IsZero() {
-		app.logger.Error("NotEqual.", info.ctx.FeeForCollector(), app.deliverTxsMgr.currTxFee)
+		app.logger.Error("NotEqual", app.feeForCollector, app.deliverTxsMgr.currTxFee)
 	}
 }
 
