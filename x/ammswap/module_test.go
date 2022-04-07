@@ -2,6 +2,7 @@ package ammswap
 
 import (
 	"encoding/json"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
 
 	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
@@ -23,6 +24,9 @@ func TestAppModule(t *testing.T) {
 	require.EqualValues(t, QuerierRoute, module.QuerierRoute())
 
 	cdc := ModuleCdc
+	reg := types2.NewInterfaceRegistry()
+	proc := codec.NewProtoCodec(reg)
+	cdcProxy := codec.NewCodecProxy(proc, cdc)
 	//module.RegisterCodec(cdc)
 
 	msg := module.DefaultGenesis()
@@ -45,7 +49,7 @@ func TestAppModule(t *testing.T) {
 	module.GetTxCmd(cdc)
 	module.NewQuerierHandler()
 	module.NewHandler()
-	rs := cliLcd.NewRestServer(cdc, nil)
+	rs := cliLcd.NewRestServer(cdcProxy, nil)
 	module.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	module.RegisterInvariants(nil)
 	module.RegisterCodec(codec.New())

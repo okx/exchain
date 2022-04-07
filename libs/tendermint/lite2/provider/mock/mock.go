@@ -37,7 +37,7 @@ func (p *mock) String() string {
 
 	var vals strings.Builder
 	for _, v := range p.vals {
-		fmt.Fprintf(&vals, " %X", v.Hash())
+		fmt.Fprintf(&vals, " %X", v.Hash(1))
 	}
 
 	return fmt.Sprintf("mock{headers: %s, vals: %v}", headers.String(), vals.String())

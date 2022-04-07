@@ -374,7 +374,7 @@ func TestClientRestoresTrustedHeaderAfterStartup1(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 		}
 	}
 
@@ -421,7 +421,7 @@ func TestClientRestoresTrustedHeaderAfterStartup1(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 		}
 	}
 }
@@ -458,7 +458,7 @@ func TestClientRestoresTrustedHeaderAfterStartup2(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 		}
 	}
 
@@ -543,7 +543,7 @@ func TestClientRestoresTrustedHeaderAfterStartup3(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 		}
 
 		// Check we no longer have 2nd header (+header2+).
@@ -604,7 +604,7 @@ func TestClientRestoresTrustedHeaderAfterStartup3(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 		}
 
 		// Check we no longer have invalid 2nd header (+header2+).
@@ -639,7 +639,7 @@ func TestClient_Update(t *testing.T) {
 	valSet, _, err := c.TrustedValidatorSet(3)
 	assert.NoError(t, err)
 	if assert.NotNil(t, valSet) {
-		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 	}
 }
 
@@ -839,7 +839,7 @@ func TestClient_NewClientFromTrustedStore(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, valSet)
 	if assert.NotNil(t, valSet) {
-		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(1))
 	}
 }
 
