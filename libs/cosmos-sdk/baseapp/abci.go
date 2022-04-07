@@ -174,7 +174,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	//go func() {
-	app.deliverState.ms.Write()
 	//app.parallelTxManage.commitDone <- struct{}{}
 	//}()
 
@@ -232,7 +231,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-
+	app.deliverState.ms.Write()
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
 		var ok bool
