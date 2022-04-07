@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -16,8 +19,6 @@ import (
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channelutils "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/client/utils"
 	"github.com/spf13/cobra"
-	"strings"
-	"time"
 )
 
 const (
@@ -42,14 +43,14 @@ corresponding to the counterparty channel. Any timeout set to 0 is disabled.`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
 
 			sender := clientCtx.GetFromAddress()
 			srcPort := args[0]
 			srcChannel := args[1]
 			receiver := args[2]
 
-			coin, err := sdk.ParseCoinNormalized(args[3])
+			coin, err := sdk.ParseDecCoin(args[3])
 			if err != nil {
 				return err
 			}
