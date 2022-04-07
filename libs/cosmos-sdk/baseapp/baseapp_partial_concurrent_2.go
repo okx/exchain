@@ -399,7 +399,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -498,7 +498,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttm.serialTask = nil
 				//task.setStep(partialConcurrentStepFinished)
 				//if global.GetGlobalHeight() == 5811070 {
-					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				//	dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
@@ -551,11 +551,11 @@ func (dttm *DTTManager) serialRoutine() {
 							nextTaskRoutine = dttr.index
 							totalSerialWaitingCount--
 							//go func() {
-							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+							//dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
 							dttm.serialCh <- nextTaskRoutine //nextTask//
 							//}()
 						} else {
-							dttm.app.logger.Error("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+							//dttm.app.logger.Error("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
 						}
 					}
 				}
@@ -571,7 +571,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811070 {
-		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
