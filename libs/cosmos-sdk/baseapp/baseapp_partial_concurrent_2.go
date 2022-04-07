@@ -582,7 +582,7 @@ func (dttm *DTTManager) serialExecution() {
 	////dttm.app.logger.Info("WriteAnteCache", "index", dttm.serialTask.txIndex)
 	info.msCacheAnte.Write()
 	info.ctx.Cache().Write(true)
-	dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
+	//dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
 
 	gasStart := time.Now()
 	err := info.handler.handleGasConsumed(info)
@@ -621,15 +621,15 @@ func (dttm *DTTManager) serialExecution() {
 	execFinishedFn(resp)
 }
 
-func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
-	if add {
-		dttm.currTxFee = dttm.currTxFee.Add(fee...)
-	} else {
-		dttm.currTxFee = dttm.currTxFee.Sub(fee)
-	}
-	//dttm.app.logger.Info("CalculateFeeForCollector", "fee", dttm.currTxFee)
-}
-
+//func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
+//	if add {
+//		dttm.currTxFee = dttm.currTxFee.Add(fee...)
+//	} else {
+//		dttm.currTxFee = dttm.currTxFee.Sub(fee)
+//	}
+//	//dttm.app.logger.Info("CalculateFeeForCollector", "fee", dttm.currTxFee)
+//}
+//
 //func (dttm *DTTManager) updateFeeCollector() {
 //		//dttm.app.logger.Info("updateFeeCollector", "now", dttm.currTxFee)
 //	ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
