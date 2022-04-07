@@ -173,10 +173,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	go func() {
-		app.deliverState.ms.Write()
-		app.parallelTxManage.commitDone <- struct{}{}
-	}()
+	//go func() {
+	app.deliverState.ms.Write()
+	//app.parallelTxManage.commitDone <- struct{}{}
+	//}()
 
 	return
 }
@@ -241,7 +241,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 			panic("use TreeDeltaMap failed")
 		}
 	}
-	<-app.parallelTxManage.commitDone
+	//<-app.parallelTxManage.commitDone
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
