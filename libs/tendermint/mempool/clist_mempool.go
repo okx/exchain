@@ -523,8 +523,12 @@ func (mem *CListMempool) isFull(txSize int) error {
 
 func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
-	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
-	if memTx.realTx.GetNonce() == memTx.senderNonce+uint64(pendingCnt) {
+	expectedNonce := memTx.senderNonce
+	pendingNonce, ok := mem.GetPendingNonce(memTx.from)
+	if ok {
+		expectedNonce = pendingNonce + 1
+	}
+	if memTx.realTx.GetNonce() == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
 			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
@@ -825,7 +829,7 @@ func (mem *CListMempool) GetAddressList() []string {
 	return mem.addressRecord.GetAddressList()
 }
 
-func (mem *CListMempool) GetPendingNonce(address string) uint64 {
+func (mem *CListMempool) GetPendingNonce(address string) (uint64, bool) {
 	return mem.addressRecord.GetAddressNonce(address)
 }
 

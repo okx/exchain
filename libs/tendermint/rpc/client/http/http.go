@@ -318,13 +318,13 @@ func (c *baseRPCClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, er
 	return result, nil
 }
 
-func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	result := new(ctypes.ResultPendingNonce)
 	_, err := c.caller.Call("get_pending_nonce", map[string]interface{}{"address": address}, result)
 	if err != nil {
-		return nil, errors.Wrap(err, "get_pending_nonce")
+		return nil, false
 	}
-	return result, nil
+	return result, true
 }
 
 func (c *baseRPCClient) NetInfo() (*ctypes.ResultNetInfo, error) {
