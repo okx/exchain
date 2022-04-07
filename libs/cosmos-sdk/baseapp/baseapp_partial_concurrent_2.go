@@ -355,6 +355,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 
 	curDttr := dttm.dttRoutineList[task.routineIndex]
 	curDttr.step = dttRoutineStepAnteStart
+	defer func() {
+		curDttr.step = dttRoutineStepAnteFinished
+	}()
 
 	count := len(dttm.dttRoutineList)
 	for i := 0; i < count; i++ {
@@ -396,7 +399,6 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if err != nil {
 		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 	}
-	curDttr.step = dttRoutineStepAnteFinished
 	task.err = err
 
 	if task.canRerun > 0 {
