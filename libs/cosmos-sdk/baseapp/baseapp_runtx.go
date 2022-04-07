@@ -195,6 +195,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		info.ctx.Cache().Write(true)
 		app.pin(CacheStoreWrite, false, mode)
 	}
+	info.ctx = info.ctx.WithFeeForCollector(newCtx.FeeForCollector())
 
 	return nil
 }

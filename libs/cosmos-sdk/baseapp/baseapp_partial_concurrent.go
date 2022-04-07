@@ -596,11 +596,15 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		handleGasFn := func() {
 			gasStart := time.Now()
 
-			dm.updateFeeCollector()
+			//dm.updateFeeCollector()
 
 			//dm.app.logger.Info("handleDeferRefund", "txIndex", dm.statefulTask.txIndex, "addr", dm.statefulTask.from)
 			dm.sendersMap.accountUpdated(false, 1, dm.statefulTask.from, -1)
 			handler.handleDeferRefund(info)
+			//diff, hasNeg := info.ctx.FeeForCollector().SafeSub(dm.currTxFee)
+			//if hasNeg || !diff.IsZero() {
+			//	fmt.Println("NotEqual.", info.ctx.FeeForCollector(), dm.currTxFee)
+			//}
 
 			handler.handleDeferGasConsumed(info)
 
@@ -636,7 +640,11 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 		//dm.app.logger.Info("WriteAnteCache", "txIndex", dm.statefulTask.txIndex)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		dm.calculateFeeForCollector(dm.statefulTask.fee, true)
+		//dm.calculateFeeForCollector(dm.statefulTask.fee, true)
+		//diff, hasNeg := info.ctx.FeeForCollector().SafeSub(dm.currTxFee)
+		//if hasNeg || !diff.IsZero() {
+		//	fmt.Println("NotEqual.", info.ctx.FeeForCollector(), dm.currTxFee)
+		//}
 
 		gasStart := time.Now()
 		err := info.handler.handleGasConsumed(info)
@@ -691,26 +699,26 @@ func (dm *DeliverTxTasksManager) runStatefulSerialRoutine() {
 	}
 }
 
-func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
-	dm.mtx.Lock()
-	defer dm.mtx.Unlock()
-
-	if add {
-		dm.currTxFee = dm.currTxFee.Add(fee...)
-	} else {
-		dm.currTxFee = dm.currTxFee.Sub(fee)
-	}
-	//dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
-}
-
-func (dm *DeliverTxTasksManager) updateFeeCollector() {
-	//	dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee)
-	ctx, cache := dm.app.cacheTxContext(dm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	if err := dm.app.updateFeeCollectorAccHandler(ctx, dm.currTxFee); err != nil {
-		panic(err)
-	}
-	cache.Write()
-}
+//func (dm *DeliverTxTasksManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
+//	dm.mtx.Lock()
+//	defer dm.mtx.Unlock()
+//
+//	if add {
+//		dm.currTxFee = dm.currTxFee.Add(fee...)
+//	} else {
+//		dm.currTxFee = dm.currTxFee.Sub(fee)
+//	}
+//	//dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
+//}
+//
+//func (dm *DeliverTxTasksManager) updateFeeCollector() {
+//	//	dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee)
+//	ctx, cache := dm.app.cacheTxContext(dm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+//	if err := dm.app.updateFeeCollectorAccHandler(ctx, dm.currTxFee); err != nil {
+//		panic(err)
+//	}
+//	cache.Write()
+//}
 
 func (dm *DeliverTxTasksManager) extractStatefulTask() bool {
 	//dm.app.logger.Info("extractStatefulTask", "txIndex", dm.statefulIndex + 1)

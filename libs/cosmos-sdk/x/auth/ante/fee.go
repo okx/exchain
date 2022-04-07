@@ -106,6 +106,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 			return ctx, err
 		}
 	}
+	fmt.Println("AfterDeductFee.", ctx.FeeForCollector())
 
 	return next(ctx, tx, simulate)
 }
@@ -148,6 +149,7 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 		return err
 	}
 	ak.SetAccount(ctx, acc, false)
+	ctx = ctx.UpdateFeeForCollector(fees, true)
 
 	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	//if err != nil {
