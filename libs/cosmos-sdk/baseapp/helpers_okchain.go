@@ -20,9 +20,10 @@ func (app *BaseApp) GetDeliverStateCtx() sdk.Context {
 //and the predesessors in the same block must be run before tracing the tx.
 //The runtx procedure for TraceTx is nearly same with that for DeliverTx,  but the
 //state was saved in different Cache in app.
-func (app *BaseApp) TraceTx(targetTxData []byte, targetTx sdk.Tx, txIndex uint32, block *tmtypes.Block) (*sdk.Result, error) {
+func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIndex uint32, block *tmtypes.Block) (*sdk.Result, error) {
 
 	//get first tx
+	targetTxData := queryTraceTx.TxHash.Bytes()
 	var initialTxBytes []byte
 	predesessors := block.Txs[:txIndex]
 	if len(predesessors) == 0 {
@@ -50,6 +51,7 @@ func (app *BaseApp) TraceTx(targetTxData []byte, targetTx sdk.Tx, txIndex uint32
 
 	//trace tx
 	traceState.ctx = traceState.ctx.WithIsTraceTxLog(true)
+	traceState.ctx = traceState.ctx.WithTraceTxLogConfig(queryTraceTx.ConfigBytes)
 	info, err := app.tracetx(targetTxData, targetTx, block.Height, traceState)
 	if info == nil {
 		return nil, err

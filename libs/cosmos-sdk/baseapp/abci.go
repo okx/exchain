@@ -378,7 +378,12 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			return handleSimulate(app, path, req.Height, queryData.TxBytes, queryData.OverridesBytes)
 
 		case "trace":
-			tmtx, err := GetABCITx(req.Data)
+			var queryParam sdk.QueryTraceTx
+			err := json.Unmarshal(req.Data, &queryParam)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx params"))
+			}
+			tmtx, err := GetABCITx(queryParam.TxHash.Bytes())
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
 			}
@@ -390,7 +395,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
 			}
-			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
+			res, err := app.TraceTx(queryParam, tx, tmtx.Index, block.Block)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
 			}
