@@ -285,7 +285,12 @@ func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
 }
 
 func (app *BaseApp) newBlockCache() {
-	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
+	u := sdk.UseCache
+	if app.parallelTxManage.isAsyncDeliverTx {
+		u = false
+	}
+
+	app.blockCache = sdk.NewCache(app.chainCache, u)
 	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
 }
 
