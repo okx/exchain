@@ -22,10 +22,8 @@ type (
 const (
 	dttRoutineStepNone dttRoutineStep = iota
 	dttRoutineStepStart
-	//dttRoutineStepBasic
 	dttRoutineStepAnteStart
 	dttRoutineStepAnteFinished
-	//dttRoutineStepNeedRerun
 	dttRoutineStepReadyForSerial
 	dttRoutineStepSerial
 	dttRoutineStepFinished
@@ -386,7 +384,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-		dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
+	//	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -412,7 +410,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 				dttm.serialCh <- task.routineIndex
 				//}()
 			} else {
-				dttm.app.logger.Info("AnteFinished", "index", dttr.task.index)
+				//dttm.app.logger.Info("AnteFinished", "index", dttr.task.index)
 			}
 
 		} else {
@@ -452,7 +450,6 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 func (dttm *DTTManager) serialRoutine() {
 	for {
 		select {
-		//case task := <-dttm.serialCh:
 		case routineIndex := <-dttm.serialCh:
 			// runMsgs etc.
 			rt := dttm.dttRoutineList[routineIndex]
@@ -460,14 +457,13 @@ func (dttm *DTTManager) serialRoutine() {
 			if task.index == dttm.serialIndex+1 {//&& (rt.step == dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
-				//dttm.serialTask.setStep(partialConcurrentStepSerialExecute)
 				rt.step = dttRoutineStepSerial
 				dttm.serialExecution()
 				rt.step = dttRoutineStepFinished
 				dttm.serialTask = nil
-				//task.setStep(partialConcurrentStepFinished)
+
 				//if global.GetGlobalHeight() == 5811070 {
-					dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
+				//	dttm.app.logger.Info("NextSerialTask", "index", dttm.serialIndex+1)
 				//}
 
 				if dttm.serialIndex == dttm.totalCount-1 {
@@ -491,9 +487,6 @@ func (dttm *DTTManager) serialRoutine() {
 				// make new task for this routine
 				nextIndex := maxDeliverTxsConcurrentNum + task.index
 				if nextIndex < dttm.totalCount {
-					//if !dttm.startFinished {
-					//	time.Sleep(maxDeliverTxsConcurrentNum * time.Millisecond)
-					//}
 					rt.makeNewTask(dttm.txs[nextIndex], nextIndex)
 				}
 
@@ -520,7 +513,7 @@ func (dttm *DTTManager) serialRoutine() {
 							nextTaskRoutine = dttr.index
 							totalSerialWaitingCount--
 							//go func() {
-							//dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
 							dttm.serialCh <- nextTaskRoutine //nextTask//
 							//}()
 						} else {
@@ -540,7 +533,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811070 {
-		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
@@ -568,7 +561,7 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
+		//dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			//logger.Debug("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialTask.index)
@@ -627,9 +620,6 @@ func (dttm *DTTManager) serialExecution() {
 }
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
-	//dttm.mtx.Lock()
-	//defer dttm.mtx.Unlock()
-
 	if add {
 		dttm.currTxFee = dttm.currTxFee.Add(fee...)
 	} else {
@@ -654,9 +644,6 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool)
 	//}
 	if updateState {
 		addr := acc.GetAddress().String()
-		// called twice on each handleRunMsg
-		// addr=ex14h6fzmg37df2yaywr8es2epgvwf38ahpdq367z hex=adf4916d11f352a2748e19f3056428639313f6e1
-		//dttm.app.logger.Info("CallAccountUpdated", "addr", addr, "hex", hex.EncodeToString(acc.GetAddress()))
 		dttm.accountUpdated(true, 1, addr)
 	}
 	totalAccountUpdateDuration += time.Since(start).Microseconds()
@@ -683,9 +670,6 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 		//count := task.getUpdateCount()
 		if task.setUpdateCount(times, happened) {
 			dttr.shouldRerun(-1)
-			//if dttr.shouldRerun(-1) {
-			//	dttm.app.logger.Error("accountUpdatedToRerun", "index", task.index, "step", task.getStep())
-			//}
 		}
 	}
 }
