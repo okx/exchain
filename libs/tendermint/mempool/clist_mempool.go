@@ -536,9 +536,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	if err := mem.pendingPool.validate(memTx.from, memTx.tx, memTx.height); err != nil {
 		return err
 	}
-	pendingTx := &PendingTx{
-		mempoolTx: memTx,
-	}
+	pendingTx := memTx
 	mem.pendingPool.addTx(pendingTx)
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
 
@@ -551,12 +549,12 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		if pendingTx == nil {
 			return
 		}
-		if err := mem.isFull(len(pendingTx.mempoolTx.tx)); err != nil {
+		if err := mem.isFull(len(pendingTx.tx)); err != nil {
 			time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 			continue
 		}
 
-		mempoolTx := pendingTx.mempoolTx
+		mempoolTx := pendingTx
 		mempoolTx.height = mem.height
 		if err := mem.addTx(mempoolTx); err != nil {
 			mem.logger.Error(fmt.Sprintf("Pending Pool add tx failed:%s", err.Error()))
