@@ -1,12 +1,13 @@
 package app
 
 import (
+	"sort"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-	"sort"
 )
 
 func (app *OKExChainApp) setupUpgradeModules() {
@@ -80,17 +81,14 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 	return hm, paramsRet, commitPip, prunePip
 }
 
-//func (o *OKExChainApp) OnGrpc(clientCtx clientCtx.CLIContext, rtr *runtime.ServeMux) {
-//	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, rtr)
-//}
-
 func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types.HeightFilterPipeline, types.HeightFilterPipeline) {
 	var (
 		pip      types.HeightFilterPipeline
 		prunePip types.HeightFilterPipeline
 	)
 
-	for height, mm := range hStoreInfoModule {
+	for hh, mm := range hStoreInfoModule {
+		height := hh - 1
 		// filter block module
 		blockModuleFilter := func(str string) bool {
 			_, exist := mm[str]

@@ -34,18 +34,8 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
-		if milestoneVenus1Height != 0 {
-			if IsMainNet() || IsTestNet() {
-				if milestoneVenus1Height == 1 {
-					// FOR LRP
-					milestoneVenus1Height = math.MaxInt64 - 2
-				} else if milestoneVenus1Height < milestoneVenusHeight || milestoneVenus1Height < milestoneMercuryHeight {
-					panic("invalid ibc height")
-				}
-			}
-			// TEST CASE OR IDE DEBUG MODE
-		} else if MILESTONE_VENUS1_HEIGHT == "" {
-			milestoneVenus1Height = 1
+		if milestoneVenus1Height == 0 {
+			milestoneVenus1Height = math.MaxInt64 - 2
 		}
 	})
 }
@@ -77,6 +67,7 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
+// HigherThanVenus1 will be true if milestoneVenus1Height is larger than current height
 func HigherThanVenus1(h int64) bool {
 	if milestoneVenus1Height == 0 {
 		return false
@@ -84,7 +75,10 @@ func HigherThanVenus1(h int64) bool {
 	return h > milestoneVenus1Height
 }
 func SetVenus1HeightForTest() {
-	milestoneVenus1Height = 99999999
+	milestoneVenus1Height = math.MaxInt64 - 2
+}
+func SetVenus1HeightForIbcTest(h int64) {
+	milestoneVenus1Height = h
 }
 
 func GetVenus1Height() int64 {

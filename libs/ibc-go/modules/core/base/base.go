@@ -29,9 +29,6 @@ func (b *BaseIBCUpgradeModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
-	if types.GetVenus1Height() == 1 {
-		return 1
-	}
 	return types.GetVenus1Height() + 1
 }
 

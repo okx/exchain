@@ -163,7 +163,7 @@ func (c *Client) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return c.next.GetAddressList()
 }
 
-func (c *Client) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *Client) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	return c.next.GetPendingNonce(address)
 }
 
