@@ -119,7 +119,7 @@ type MempoolClient interface {
 	UserNumUnconfirmedTxs(address string) (*ctypes.ResultUserUnconfirmedTxs, error)
 	GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error)
 	GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error)
-	GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error)
+	GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool)
 }
 
 // EvidenceClient is used for submitting an evidence of the malicious
