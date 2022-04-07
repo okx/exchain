@@ -106,9 +106,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
 			dttr.task.routineIndex = dttr.index
 			if dttr.task.err == nil {
-				dttr.step = dttRoutineStepAnteStart
+				//dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
-				dttr.step = dttRoutineStepAnteFinished
+				//dttr.step = dttRoutineStepAnteFinished
 			} else {
 				dttr.step = dttRoutineStepReadyForSerial
 			}
@@ -119,9 +119,9 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			if dttr.step == dttRoutineStepAnteFinished {
 				dttr.logger.Error("RerunTask", "index", dttr.task.index)
 				dttr.needToRerun = false
-				dttr.step = dttRoutineStepAnteStart
+				//dttr.step = dttRoutineStepAnteStart
 				dttr.runAnteFn(dttr.task)
-				dttr.step = dttRoutineStepAnteFinished
+				//dttr.step = dttRoutineStepAnteFinished
 			} else if dttr.step == dttRoutineStepReadyForSerial ||
 				dttr.step == dttRoutineStepSerial ||
 				dttr.step == dttRoutineStepFinished {
@@ -378,6 +378,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		return nil
 	}
 
+	dttr := dttm.dttRoutineList[task.routineIndex]
+	dttr.step = dttRoutineStepAnteStart
+
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.resetUpdateCount()
 	task.canRerun = 0
@@ -395,9 +398,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if err != nil {
 		dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
 	}
+	dttr.step = dttRoutineStepAnteFinished
 	task.err = err
 
-	dttr := dttm.dttRoutineList[task.routineIndex]
 	if task.canRerun > 0 {
 		dttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		dttr.shouldRerun(-1)
