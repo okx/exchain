@@ -1,7 +1,6 @@
 package dex
 
 import (
-	"github.com/okex/exchain/x/common"
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -24,80 +23,8 @@ func getMockTestCaseEvn(t *testing.T) (mApp *mockApp,
 	return mApp, fakeTokenKeeper, fakeSupplyKeeper, mockDexKeeper, ctx
 }
 
-func TestHandler_HandleMsgList(t *testing.T) {
-	mApp, tkKeeper, spKeeper, mDexKeeper, ctx := getMockTestCaseEvn(t)
 
-	address := mApp.GenesisAccounts[0].GetAddress()
-	listMsg := NewMsgList(address, "btc", common.NativeToken, sdk.NewDec(10))
-	mDexKeeper.SetOperator(ctx, types.DEXOperator{Address: address, HandlingFeeAddress: address})
 
-	handlerFunctor := NewHandler(mApp.dexKeeper)
-
-	// fail case : failed to list because token is invalid
-	tkKeeper.exist = false
-	_, err := handlerFunctor(ctx, listMsg)
-	require.NotNil(t, err)
-
-	// fail case : failed to list because tokenpair has been exist
-	tkKeeper.exist = true
-	_, err = handlerFunctor(ctx, listMsg)
-	require.NotNil(t, err)
-
-	// fail case : failed to list because SendCoinsFromModuleToAccount return error
-	tkKeeper.exist = true
-	mDexKeeper.getFakeTokenPair = false
-	spKeeper.behaveEvil = true
-	_, err = handlerFunctor(ctx, listMsg)
-	require.NotNil(t, err)
-
-	// successful case
-	tkKeeper.exist = true
-	spKeeper.behaveEvil = false
-	mDexKeeper.getFakeTokenPair = false
-	goodResult, err := handlerFunctor(ctx, listMsg)
-	require.Nil(t, err)
-	require.True(t, goodResult.Events != nil)
-}
-
-func TestHandler_HandleMsgDeposit(t *testing.T) {
-	mApp, _, _, mDexKeeper, ctx := getMockTestCaseEvn(t)
-	builtInTP := GetBuiltInTokenPair()
-	depositMsg := NewMsgDeposit(builtInTP.Name(),
-		sdk.NewDecCoin(builtInTP.QuoteAssetSymbol, sdk.NewInt(100)), builtInTP.Owner)
-
-	handlerFunctor := NewHandler(mApp.dexKeeper)
-
-	// Case1: failed to deposit
-	mDexKeeper.failToDeposit = true
-	_, err := handlerFunctor(ctx, depositMsg)
-	require.NotNil(t, err)
-
-	// Case2: success to deposit
-	mDexKeeper.failToDeposit = false
-	good1, err := handlerFunctor(ctx, depositMsg)
-	require.Nil(t, err)
-	require.True(t, good1.Events != nil)
-}
-
-func TestHandler_HandleMsgWithdraw(t *testing.T) {
-	mApp, _, _, mDexKeeper, ctx := getMockTestCaseEvn(t)
-	builtInTP := GetBuiltInTokenPair()
-	withdrawMsg := NewMsgWithdraw(builtInTP.Name(),
-		sdk.NewDecCoin(builtInTP.QuoteAssetSymbol, sdk.NewInt(100)), builtInTP.Owner)
-
-	handlerFunctor := NewHandler(mApp.dexKeeper)
-
-	// Case1: failed to deposit
-	mDexKeeper.failToWithdraw = true
-	_, err := handlerFunctor(ctx, withdrawMsg)
-	require.NotNil(t, err)
-
-	// Case2: success to deposit
-	mDexKeeper.failToWithdraw = false
-	good1, err := handlerFunctor(ctx, withdrawMsg)
-	require.Nil(t, err)
-	require.True(t, good1.Events != nil)
-}
 
 func TestHandler_HandleMsgBad(t *testing.T) {
 	mApp, _, _, _, ctx := getMockTestCaseEvn(t)

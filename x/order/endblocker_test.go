@@ -1,7 +1,6 @@
 package order
 
 import (
-	"fmt"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -381,117 +380,117 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	require.EqualValues(t, 11+feeParams.OrderExpireBlocks, k.GetLastExpiredBlockHeight(ctx))
 }
 
-func TestEndBlockerExpireOrders(t *testing.T) {
-	mapp, addrKeysSlice := getMockApp(t, 3)
-	k := mapp.orderKeeper
-	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-
-	var startHeight int64 = 10
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
-
-	feeParams := types.DefaultTestParams()
-
-	tokenPair := dex.GetBuiltInTokenPair()
-	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
-	require.Nil(t, err)
-
-	tokenPairDex := dex.GetBuiltInTokenPair()
-	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPairDex)
-	require.Nil(t, err)
-	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
-		Address:            tokenPair.Owner,
-		HandlingFeeAddress: tokenPair.Owner,
-	})
-
-	mapp.orderKeeper.SetParams(ctx, &feeParams)
-	EndBlocker(ctx, k)
-
-	// mock orders
-	orders := []*types.Order{
-		types.MockOrder(types.FormatOrderID(startHeight, 1), types.TestTokenPair, types.BuyOrder, "9.8", "1.0"),
-		types.MockOrder(types.FormatOrderID(startHeight, 2), types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
-		types.MockOrder(types.FormatOrderID(startHeight, 3), types.TestTokenPair, types.BuyOrder, "10.0", "0.5"),
-	}
-	orders[0].Sender = addrKeysSlice[0].Address
-	orders[1].Sender = addrKeysSlice[1].Address
-	orders[2].Sender = addrKeysSlice[2].Address
-	for i := 0; i < 3; i++ {
-		err := k.PlaceOrder(ctx, orders[i])
-		require.NoError(t, err)
-	}
-	EndBlocker(ctx, k)
-
-	// check account balance
-	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.SysCoins{
-		// 100 - 9.8 - 0.2592 = 89.9408
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.9408")),
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
-	}
-	expectCoins1 := sdk.SysCoins{
-		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592 = 104.7408
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
-	}
-	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
-	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
-
-	// check depth book
-	depthBook := k.GetDepthBookCopy(types.TestTokenPair)
-	require.EqualValues(t, 2, len(depthBook.Items))
-
-	// call EndBlocker to expire orders
-	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).
-		WithBlockHeight(startHeight + feeParams.OrderExpireBlocks)
-
-	EndBlocker(ctx, k)
-
-	// check order status
-	order0 := k.GetOrder(ctx, orders[0].OrderID)
-	order1 := k.GetOrder(ctx, orders[1].OrderID)
-	require.EqualValues(t, types.OrderStatusExpired, order0.Status)
-	require.EqualValues(t, types.OrderStatusPartialFilledExpired, order1.Status)
-
-	// check depth book
-	depthBook = k.GetDepthBookCopy(types.TestTokenPair)
-	require.EqualValues(t, 0, len(depthBook.Items))
-	// check order ids
-	key := types.FormatOrderIDsKey(types.TestTokenPair, sdk.MustNewDecFromStr("9.8"), types.BuyOrder)
-	orderIDs := k.GetProductPriceOrderIDs(key)
-	require.EqualValues(t, 0, len(orderIDs))
-	// check updated order ids
-	updatedOrderIDs := k.GetUpdatedOrderIDs()
-	require.EqualValues(t, 2, len(updatedOrderIDs))
-	require.EqualValues(t, orders[0].OrderID, updatedOrderIDs[0])
-	// check closed order id
-	closedOrderIDs := k.GetDiskCache().GetClosedOrderIDs()
-	require.Equal(t, 2, len(closedOrderIDs))
-	require.Equal(t, orders[0].OrderID, closedOrderIDs[0])
-
-	// check account balance
-	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.7408")), // 100 - 0.2592
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
-	}
-	expectCoins1 = sdk.SysCoins{
-		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99.5")),
-	}
-	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
-	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
-
-	// check fee pool
-	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
-	collectedFees := feeCollector.GetCoins()
-	// 0.2592 + 0.2592
-	require.EqualValues(t, "0.518400000000000000"+common.NativeToken, collectedFees.String())
-}
+//func TestEndBlockerExpireOrders(t *testing.T) {
+//	mapp, addrKeysSlice := getMockApp(t, 3)
+//	k := mapp.orderKeeper
+//	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+//
+//	var startHeight int64 = 10
+//	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+//	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+//
+//	feeParams := types.DefaultTestParams()
+//
+//	tokenPair := dex.GetBuiltInTokenPair()
+//	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+//	require.Nil(t, err)
+//
+//	tokenPairDex := dex.GetBuiltInTokenPair()
+//	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPairDex)
+//	require.Nil(t, err)
+//	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+//		Address:            tokenPair.Owner,
+//		HandlingFeeAddress: tokenPair.Owner,
+//	})
+//
+//	mapp.orderKeeper.SetParams(ctx, &feeParams)
+//	EndBlocker(ctx, k)
+//
+//	// mock orders
+//	orders := []*types.Order{
+//		types.MockOrder(types.FormatOrderID(startHeight, 1), types.TestTokenPair, types.BuyOrder, "9.8", "1.0"),
+//		types.MockOrder(types.FormatOrderID(startHeight, 2), types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
+//		types.MockOrder(types.FormatOrderID(startHeight, 3), types.TestTokenPair, types.BuyOrder, "10.0", "0.5"),
+//	}
+//	orders[0].Sender = addrKeysSlice[0].Address
+//	orders[1].Sender = addrKeysSlice[1].Address
+//	orders[2].Sender = addrKeysSlice[2].Address
+//	for i := 0; i < 3; i++ {
+//		err := k.PlaceOrder(ctx, orders[i])
+//		require.NoError(t, err)
+//	}
+//	EndBlocker(ctx, k)
+//
+//	// check account balance
+//	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
+//	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
+//	expectCoins0 := sdk.SysCoins{
+//		// 100 - 9.8 - 0.2592 = 89.9408
+//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.9408")),
+//		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
+//	}
+//	expectCoins1 := sdk.SysCoins{
+//		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592 = 104.7408
+//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
+//		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
+//	}
+//	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
+//	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
+//
+//	// check depth book
+//	depthBook := k.GetDepthBookCopy(types.TestTokenPair)
+//	require.EqualValues(t, 2, len(depthBook.Items))
+//
+//	// call EndBlocker to expire orders
+//	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+//	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).
+//		WithBlockHeight(startHeight + feeParams.OrderExpireBlocks)
+//
+//	EndBlocker(ctx, k)
+//
+//	// check order status
+//	order0 := k.GetOrder(ctx, orders[0].OrderID)
+//	order1 := k.GetOrder(ctx, orders[1].OrderID)
+//	require.EqualValues(t, types.OrderStatusExpired, order0.Status)
+//	require.EqualValues(t, types.OrderStatusPartialFilledExpired, order1.Status)
+//
+//	// check depth book
+//	depthBook = k.GetDepthBookCopy(types.TestTokenPair)
+//	require.EqualValues(t, 0, len(depthBook.Items))
+//	// check order ids
+//	key := types.FormatOrderIDsKey(types.TestTokenPair, sdk.MustNewDecFromStr("9.8"), types.BuyOrder)
+//	orderIDs := k.GetProductPriceOrderIDs(key)
+//	require.EqualValues(t, 0, len(orderIDs))
+//	// check updated order ids
+//	updatedOrderIDs := k.GetUpdatedOrderIDs()
+//	require.EqualValues(t, 2, len(updatedOrderIDs))
+//	require.EqualValues(t, orders[0].OrderID, updatedOrderIDs[0])
+//	// check closed order id
+//	closedOrderIDs := k.GetDiskCache().GetClosedOrderIDs()
+//	require.Equal(t, 2, len(closedOrderIDs))
+//	require.Equal(t, orders[0].OrderID, closedOrderIDs[0])
+//
+//	// check account balance
+//	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
+//	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
+//	expectCoins0 = sdk.SysCoins{
+//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.7408")), // 100 - 0.2592
+//		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
+//	}
+//	expectCoins1 = sdk.SysCoins{
+//		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592
+//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
+//		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99.5")),
+//	}
+//	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
+//	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
+//
+//	// check fee pool
+//	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
+//	collectedFees := feeCollector.GetCoins()
+//	// 0.2592 + 0.2592
+//	require.EqualValues(t, "0.518400000000000000"+common.NativeToken, collectedFees.String())
+//}
 
 func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 2)
@@ -650,50 +649,50 @@ func buildRandomOrderMsg(addr sdk.AccAddress) MsgNewOrders {
 
 }
 
-func TestEndBlocker(t *testing.T) {
-	mapp, addrKeysSlice := getMockAppWithBalance(t, 2, 100000000)
-	k := mapp.orderKeeper
-	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-
-	var startHeight int64 = 10
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
-
-	feeParams := types.DefaultTestParams()
-	mapp.orderKeeper.SetParams(ctx, &feeParams)
-
-	tokenPair := dex.GetBuiltInTokenPair()
-	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
-	require.Nil(t, err)
-
-	handler := NewOrderHandler(k)
-
-	blockHeight := startHeight
-	for i := 0; i < 100000; i++ {
-		msg := buildRandomOrderMsg(addrKeysSlice[0].Address)
-		result, err := handler(ctx, msg)
-		if (i+1)%1000 == 0 {
-			blockHeight = blockHeight + 1
-			ctx = ctx.WithBlockHeight(blockHeight)
-		}
-		require.Nil(t, err)
-		require.EqualValues(t, "", result.Log)
-	}
-	// call EndBlocker to execute periodic match
-	EndBlocker(ctx, k)
-
-	quantityList := [3]string{"200", "500", "1000"}
-	for _, quantity := range quantityList {
-		startTime := time.Now()
-		blockHeight = blockHeight + 1
-		ctx = ctx.WithBlockHeight(blockHeight)
-		orderItems := []types.OrderItem{
-			types.NewOrderItem(types.TestTokenPair, types.SellOrder, "100", quantity),
-		}
-		msg := types.NewMsgNewOrders(addrKeysSlice[1].Address, orderItems)
-		handler(ctx, msg)
-		EndBlocker(ctx, k)
-		fmt.Println(time.Since(startTime))
-		fmt.Println(k.GetOrder(ctx, types.FormatOrderID(blockHeight, 1)))
-	}
-}
+//func TestEndBlocker(t *testing.T) {
+//	mapp, addrKeysSlice := getMockAppWithBalance(t, 2, 100000000)
+//	k := mapp.orderKeeper
+//	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+//
+//	var startHeight int64 = 10
+//	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+//	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+//
+//	feeParams := types.DefaultTestParams()
+//	mapp.orderKeeper.SetParams(ctx, &feeParams)
+//
+//	tokenPair := dex.GetBuiltInTokenPair()
+//	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+//	require.Nil(t, err)
+//
+//	handler := NewOrderHandler(k)
+//
+//	blockHeight := startHeight
+//	for i := 0; i < 100000; i++ {
+//		msg := buildRandomOrderMsg(addrKeysSlice[0].Address)
+//		result, err := handler(ctx, msg)
+//		if (i+1)%1000 == 0 {
+//			blockHeight = blockHeight + 1
+//			ctx = ctx.WithBlockHeight(blockHeight)
+//		}
+//		require.Nil(t, err)
+//		require.EqualValues(t, "", result.Log)
+//	}
+//	// call EndBlocker to execute periodic match
+//	EndBlocker(ctx, k)
+//
+//	quantityList := [3]string{"200", "500", "1000"}
+//	for _, quantity := range quantityList {
+//		startTime := time.Now()
+//		blockHeight = blockHeight + 1
+//		ctx = ctx.WithBlockHeight(blockHeight)
+//		orderItems := []types.OrderItem{
+//			types.NewOrderItem(types.TestTokenPair, types.SellOrder, "100", quantity),
+//		}
+//		msg := types.NewMsgNewOrders(addrKeysSlice[1].Address, orderItems)
+//		handler(ctx, msg)
+//		EndBlocker(ctx, k)
+//		fmt.Println(time.Since(startTime))
+//		fmt.Println(k.GetOrder(ctx, types.FormatOrderID(blockHeight, 1)))
+//	}
+//}
