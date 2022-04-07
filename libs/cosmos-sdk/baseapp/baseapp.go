@@ -203,8 +203,6 @@ type BaseApp struct { // nolint: maligned
 	interceptors map[string]Interceptor
 
 	anteTracer *trace.Tracer
-
-	asyncMs *asyncCommitMs
 }
 
 type recordHandle func(string)
@@ -238,7 +236,6 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		anteTracer: trace.NewTracer(trace.AnteChainDetail),
-		asyncMs:    newAsyncCommitMs(),
 	}
 
 	for _, option := range options {

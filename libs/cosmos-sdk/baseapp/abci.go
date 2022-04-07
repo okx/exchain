@@ -173,11 +173,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	go func() {
-		app.asyncMs.setRunning()
-		app.deliverState.ms.Write()
-		app.asyncMs.setComplete()
-	}()
+	//go func() {
+	//app.parallelTxManage.commitDone <- struct{}{}
+	//}()
 
 	return
 }
@@ -233,12 +231,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-	if app.asyncMs.isRunning {
-		app.asyncMs.wait()
-	} else {
-		app.deliverState.ms.Write()
-	}
-
+	app.deliverState.ms.Write()
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
 		var ok bool
@@ -247,6 +240,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 			panic("use TreeDeltaMap failed")
 		}
 	}
+	//<-app.parallelTxManage.commitDone
 
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
