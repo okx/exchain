@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -214,6 +215,11 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 			_ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
 		}
 	}
+
+	if realTx != nil && realTx.GetType() == sdk.EvmTxType {
+		app.blockCache.GetAccount(ethcmn.BytesToAddress(realTx.GetSigners()[0]))
+	}
+
 	return realTx
 }
 
