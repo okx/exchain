@@ -356,7 +356,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	a2 := newMockAccount(1, 2)
 	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
