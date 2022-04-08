@@ -13,6 +13,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -202,7 +203,14 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
-	anteTracer        *trace.Tracer
+
+	interfaceRegistry types.InterfaceRegistry
+	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
+	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
+
+	interceptors map[string]Interceptor
+
+	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -228,8 +236,13 @@ func NewBaseApp(
 		trace:          false,
 
 		//parallelTxManage: newParallelTxManager(),
-		chainCache: sdk.NewChainCache(),
-		txDecoder:  txDecoder,
+		chainCache:       sdk.NewChainCache(),
+		txDecoder:        txDecoder,
+
+		msgServiceRouter: NewMsgServiceRouter(),
+		grpcQueryRouter:  NewGRPCQueryRouter(),
+		interceptors:     make(map[string]Interceptor),
+
 		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
@@ -245,6 +258,10 @@ func NewBaseApp(
 	//app.parallelTxManage.workgroup.Start()
 
 	return app
+}
+
+func (app *BaseApp) SetInterceptors(interceptors map[string]Interceptor) {
+	app.interceptors = interceptors
 }
 
 // Name returns the name of the BaseApp.
@@ -794,16 +811,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
-
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message txIndex: %d", msgRoute, i)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
 		}
 
 		msgResult, err := handler(ctx, msg)
 		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "failed to execute message; message txIndex: %d", i)
+			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
 		}
 
 		msgEvents := sdk.Events{
@@ -900,4 +916,10 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
+}
+
+func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
+
+func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
+	return app.cms
 }
