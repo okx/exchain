@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -174,12 +176,26 @@ func (s *analyer) format() {
 }
 
 func addInfo(name string, keys []string, record map[string]int64) {
-	var comma, format string
-	for _, v := range keys {
-		format += fmt.Sprintf("%s%s<%dms>", comma, v, record[v])
-		comma = ", "
+	var strs = make([]string, len(keys))
+	length := 0
+	for i, v := range keys {
+		t := strconv.FormatInt(record[v], 10)
+		b := strings.Builder{}
+		b.Grow(2 + len(v) + 1 + len(t) + 3)
+		b.WriteString(", ")
+		b.WriteString(v)
+		b.WriteString("<")
+		b.WriteString(t)
+		b.WriteString("ms>")
+		length += b.Len()
+		strs[i] = b.String()
 	}
-	trace.GetElapsedInfo().AddInfo(name, format)
+	builder := strings.Builder{}
+	builder.Grow(length)
+	for _, v := range strs {
+		builder.WriteString(v)
+	}
+	trace.GetElapsedInfo().AddInfo(name, builder.String())
 }
 
 func (s *analyer) genRecord() (int64, map[string]int64) {
