@@ -110,7 +110,7 @@ func TestAnteHandlerSigErrors(t *testing.T) {
 
 	// tx.GetSigners returns addresses in correct order: addr1, addr2, addr3
 	expectedSigners := []sdk.AccAddress{addr1, addr2, addr3}
-	stdTx := tx.(types.StdTx)
+	stdTx := tx.(*types.StdTx)
 	require.Equal(t, expectedSigners, stdTx.GetSigners())
 
 	// Check no signatures fails
@@ -567,7 +567,7 @@ func TestAnteHandlerSetPubKey(t *testing.T) {
 	msg = types.NewTestMsg(addr2)
 	msgs = []sdk.Msg{msg}
 	tx = types.NewTestTx(ctx, msgs, privs, []uint64{1}, seqs, fee)
-	sigs := tx.(types.StdTx).Signatures
+	sigs := tx.(*types.StdTx).Signatures
 	sigs[0].PubKey = nil
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInvalidPubKey)
 
@@ -762,7 +762,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 
 	// make signature array empty which would normally cause ValidateBasicDecorator and SigVerificationDecorator fail
 	// since these decorators don't run on recheck, the tx should pass the antehandler
-	stdTx := tx.(types.StdTx)
+	stdTx := tx.(*types.StdTx)
 	stdTx.Signatures = []types.StdSignature{}
 
 	_, err := antehandler(ctx, stdTx, false)

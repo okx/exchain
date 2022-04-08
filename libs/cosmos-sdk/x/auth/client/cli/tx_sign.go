@@ -113,7 +113,7 @@ func makeSignCmd(cdc *codec.Codec) func(cmd *cobra.Command, args []string) error
 		}
 
 		// if --signature-only is on, then override --append
-		var newTx types.StdTx
+		var newTx *types.StdTx
 		generateSignatureOnly := viper.GetBool(flagSigOnly)
 		multisigAddrStr := viper.GetString(flagMultisig)
 
@@ -162,7 +162,7 @@ func makeSignCmd(cdc *codec.Codec) func(cmd *cobra.Command, args []string) error
 	}
 }
 
-func getSignatureJSON(cdc *codec.Codec, newTx types.StdTx, indent, generateSignatureOnly bool) ([]byte, error) {
+func getSignatureJSON(cdc *codec.Codec, newTx *types.StdTx, indent, generateSignatureOnly bool) ([]byte, error) {
 	switch generateSignatureOnly {
 	case true:
 		switch indent {
@@ -187,7 +187,7 @@ func getSignatureJSON(cdc *codec.Codec, newTx types.StdTx, indent, generateSigna
 // its expected signers. In addition, if offline has not been supplied, the
 // signature is verified over the transaction sign bytes.
 func printAndValidateSigs(
-	cliCtx context.CLIContext, chainID string, stdTx types.StdTx, offline bool,
+	cliCtx context.CLIContext, chainID string, stdTx *types.StdTx, offline bool,
 ) bool {
 
 	fmt.Println("Signers:")
