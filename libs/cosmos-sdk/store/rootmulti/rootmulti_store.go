@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -251,11 +250,13 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			infos[storeInfo.Name] = storeInfo
 		}
 
-		for _, name := range IbcModules {
-			ibcInfo := infos[name]
-			if ibcInfo.Core.CommitID.Version == 0 {
-				ibcInfo.Core.CommitID.Version = tmtypes.GetVenus1Height()
-				infos[name] = ibcInfo
+		if tmtypes.IsVenus1HeightEnable() {
+			for _, name := range IbcModules {
+				ibcInfo := infos[name]
+				if ibcInfo.Core.CommitID.Version == 0 {
+					ibcInfo.Core.CommitID.Version = tmtypes.GetVenus1Height()
+					infos[name] = ibcInfo
+				}
 			}
 		}
 	}

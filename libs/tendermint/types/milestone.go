@@ -12,6 +12,10 @@ import (
 // 3. BankTransferBlock
 // 4. ibc
 
+const (
+	MaxBlockHeight = math.MaxInt64 - 2
+)
+
 var (
 	MILESTONE_GENESIS_HEIGHT string
 	genesisHeight            int64
@@ -35,7 +39,7 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		if milestoneVenus1Height == 0 {
-			milestoneVenus1Height = math.MaxInt64 - 2
+			milestoneVenus1Height = MaxBlockHeight
 		}
 	})
 }
@@ -74,8 +78,11 @@ func HigherThanVenus1(h int64) bool {
 	}
 	return h > milestoneVenus1Height
 }
+func IsVenus1HeightEnable() bool {
+	return MaxBlockHeight != milestoneVenus1Height
+}
 func SetVenus1HeightForTest() {
-	milestoneVenus1Height = math.MaxInt64 - 2
+	milestoneVenus1Height = MaxBlockHeight
 }
 func SetVenus1HeightForIbcTest(h int64) {
 	milestoneVenus1Height = h
