@@ -178,22 +178,27 @@ func (s *analyer) format() {
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
 
+// formatRecord format the record in the format fmt.Sprintf(", %s<%dms>", v, record[v])
+func formatRecord(i int, key string, ms int64) string {
+	t := strconv.FormatInt(ms, 10)
+	b := strings.Builder{}
+	b.Grow(2 + len(key) + 1 + len(t) + 3)
+	if i != 0 {
+		b.WriteString(", ")
+	}
+	b.WriteString(key)
+	b.WriteString("<")
+	b.WriteString(t)
+	b.WriteString("ms>")
+	return b.String()
+}
+
 func addInfo(name string, keys []string, record map[string]int64) {
 	var strs = make([]string, len(keys))
 	length := 0
 	for i, v := range keys {
-		t := strconv.FormatInt(record[v], 10)
-		b := strings.Builder{}
-		b.Grow(2 + len(v) + 1 + len(t) + 3)
-		if i != 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(v)
-		b.WriteString("<")
-		b.WriteString(t)
-		b.WriteString("ms>")
-		length += b.Len()
-		strs[i] = b.String()
+		strs[i] = formatRecord(i, v, record[v])
+		length += len(strs[i])
 	}
 	builder := strings.Builder{}
 	builder.Grow(length)
