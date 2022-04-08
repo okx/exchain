@@ -189,5 +189,5 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 		return paresAppTx(cdc, txBytes)
 	}
 
-	return tx, nil
+	return &tx, nil
 }
