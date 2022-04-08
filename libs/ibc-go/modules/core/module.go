@@ -51,18 +51,16 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	if tmtypes.IsDisableVenus1Feature() {
+		return nil
 	}
-	return nil
+	return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
+	if tmtypes.IsDisableVenus1Feature() || bz == nil {
+		return nil
 	}
 	var data types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
@@ -177,7 +175,10 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+	if tmtypes.IsDisableVenus1Feature() {
+		return nil
+	}
+	if data != nil {
 		defer am.Seal()
 		return am.initGenesis(ctx, data)
 	}
@@ -197,10 +198,10 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
+	if tmtypes.IsDisableVenus1Feature() {
+		return nil
 	}
-	return nil
+	return am.exportGenesis(ctx)
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
@@ -256,7 +257,7 @@ func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.W
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if tmtypes.IsDisableVenus1Feature() {
 		return nil
 	}
 	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {

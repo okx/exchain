@@ -1,10 +1,28 @@
 package rootmulti
 
 import (
-	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
+
+var (
+	ibcModules = map[string]struct{}{
+		"ibc":            {},
+		"mem_capability": {},
+		"capability":     {},
+		"transfer":       {},
+		"erc20":          {},
+	}
+)
+
+func isNeedFilterIbcModules(h int64, m string) bool {
+	if !tmtypes.HigherThanVenus1(h) {
+		_, exist := ibcModules[m]
+		return exist
+	}
+	return false
+}
 
 func queryIbcProof(res *abci.ResponseQuery, info *commitInfo, storeName string) {
 	// Restore origin path and append proof op.
@@ -12,20 +30,15 @@ func queryIbcProof(res *abci.ResponseQuery, info *commitInfo, storeName string) 
 }
 
 func (s *Store) getFilterStores(h int64) map[types.StoreKey]types.CommitKVStore {
-	f := s.pruneHeightFilterPipeline(h)
+	if tmtypes.HigherThanVenus1(h) {
+		return s.stores
+	}
 	m := make(map[types.StoreKey]types.CommitKVStore)
 	for k, v := range s.stores {
-		if f(k.Name()) {
+		if _, exist := ibcModules[k.Name()]; exist {
 			continue
 		}
 		m[k] = v
 	}
 	return m
-}
-
-func (rs *Store) SetCommitHeightFilterPipeline(f storetypes.HeightFilterPipeline) {
-	rs.commitHeightFilterPipeline = storetypes.LinkPipeline(f, rs.commitHeightFilterPipeline)
-}
-func (rs *Store) SetPruneHeightFilterPipeline(f storetypes.HeightFilterPipeline) {
-	rs.pruneHeightFilterPipeline = storetypes.LinkPipeline(f, rs.pruneHeightFilterPipeline)
 }

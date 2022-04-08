@@ -9,7 +9,6 @@ import (
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64
-	BlockStoreModules() []string
 	RegisterParam() params.ParamSet
 	ModuleName() string
 }
@@ -38,13 +37,13 @@ type heightTask struct {
 	taskExecutor func(ctx sdk.Context) error
 }
 
+func NewHeightTask(orderer int16, taskExecutor func(ctx sdk.Context) error) *heightTask {
+	return &heightTask{orderer: orderer, taskExecutor: taskExecutor}
+}
+
 var (
 	_ HeightTask = (*heightTask)(nil)
 )
-
-func NewHeightTask(orderer int16, taskExecutor func(ctx sdk.Context) error) HeightTask {
-	return &heightTask{orderer: orderer, taskExecutor: taskExecutor}
-}
 
 func (t *heightTask) GetOrderer() int16 {
 	return t.orderer

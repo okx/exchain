@@ -61,18 +61,13 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
-	}
-	return nil
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
+	if nil == bz {
+		return nil
 	}
 	var genState types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &genState); err != nil {
@@ -155,7 +150,10 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
+	if tmtypes.IsDisableVenus1Feature() {
+		return nil
+	}
+	if data != nil {
 		defer am.Seal()
 		return am.initGenesis(ctx, data)
 	}
@@ -173,10 +171,10 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
+	if tmtypes.IsDisableVenus1Feature() {
+		return nil
 	}
-	return nil
+	return am.exportGenesis(ctx)
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	genState := ExportGenesis(ctx, am.keeper)
@@ -222,7 +220,7 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simula
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
+	if tmtypes.IsDisableVenus1Feature() {
 		return nil
 	}
 	return upgrade.NewHeightTask(

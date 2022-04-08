@@ -29,11 +29,7 @@ func (b *BaseIBCUpgradeModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
-	return types.GetVenus1Height() + 1
-}
-
-func (b *BaseIBCUpgradeModule) BlockStoreModules() []string {
-	return []string{"ibc", "mem_capability", "capability", "transfer", "erc20"}
+	return types.GetVenus1Height()
 }
 
 func (b *BaseIBCUpgradeModule) RegisterParam() params.ParamSet {
@@ -43,6 +39,7 @@ func (b *BaseIBCUpgradeModule) RegisterParam() params.ParamSet {
 func (b *BaseIBCUpgradeModule) Seal() {
 	b.Inited = true
 }
+
 func (b *BaseIBCUpgradeModule) Sealed() bool {
 	return b.Inited
 }

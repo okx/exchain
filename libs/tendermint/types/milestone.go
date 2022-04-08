@@ -34,9 +34,6 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
-		if milestoneVenus1Height == 0 {
-			milestoneVenus1Height = math.MaxInt64 - 2
-		}
 	})
 }
 
@@ -72,7 +69,7 @@ func HigherThanVenus1(h int64) bool {
 	if milestoneVenus1Height == 0 {
 		return false
 	}
-	return h > milestoneVenus1Height
+	return h >= milestoneVenus1Height
 }
 func SetVenus1HeightForTest() {
 	milestoneVenus1Height = math.MaxInt64 - 2
@@ -85,9 +82,13 @@ func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
 
-func IsUpgradeIBCInRuntime() bool {
-	return milestoneVenus1Height >= 1
+func IsDisableVenus1Feature() bool {
+	return milestoneVenus1Height == 0
 }
+
+//func IsUpgradeIBCInRuntime() bool {
+//	return milestoneVenus1Height >= 1
+//}
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
