@@ -134,6 +134,32 @@ else
 	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
 endif
 
+
+test:
+	go list ./app/... |xargs go test -count=1
+	go list ./x/... |xargs go test -count=1
+	go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+	go list ./libs/tendermint/... |xargs go test -count=1
+	go list ./libs/tm-db/... |xargs go test -count=1
+	go list ./libs/iavl/... |xargs go test -count=1
+	go list ./libs/ibc-go/... |xargs go test -count=1
+
+testapp:
+	go list ./app/... |xargs go test -count=1
+
+testx:
+	go list ./x/... |xargs go test -count=1
+
+testcm:
+	go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
+testtm:
+	go list ./libs/tendermint/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
+testibc:
+	go list ./libs/ibc-go/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
+
 build-linux:
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 

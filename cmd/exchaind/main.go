@@ -115,7 +115,6 @@ func closeApp(iApp abci.Application) {
 	app := iApp.(*app.OKExChainApp)
 	app.StopStore()
 	evmtypes.CloseIndexer()
-	evmtypes.CloseTracer()
 	rpc.CloseEthBackend()
 }
 
