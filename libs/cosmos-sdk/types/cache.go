@@ -198,6 +198,7 @@ func (c *Cache) Write(updateDirty bool) {
 		c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 		c.accMap = make(map[ethcmn.Address]*accountWithCache)
 		c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+		return
 	}
 
 	if c.parent == nil {
