@@ -166,6 +166,10 @@ func (s *analyer) format() {
 
 	evmcore, record := s.genRecord()
 
+	if !openAnalyzer {
+		formatNecessaryDeliverTx(record)
+		return
+	}
 	formatDeliverTx(record)
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
@@ -206,6 +210,16 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 	}
 
 	return evmcore, record
+}
+
+func formatNecessaryDeliverTx(record map[string]int64) {
+	// deliver txs
+	var deliverTxsKeys = []string{
+		bam.RunAnte,
+		bam.RunMsg,
+		bam.Refund,
+	}
+	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatDeliverTx(record map[string]int64) {
