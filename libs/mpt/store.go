@@ -511,3 +511,5 @@ func (ms *MptStore) prefetchData() {
 		}
 	}()
 }
+
+func (ms *MptStore) SetUpgradeVersion(i int64) {}

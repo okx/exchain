@@ -95,27 +95,32 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		}
 	}
 
-	tx, err := evmtypes.TxDecoder(cliCtx.Codec)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+	tx, err := evmtypes.TxDecoder(cliCtx.CodecProy)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
-
-	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
-	if ok {
-		return getEthTxResponse(node, resTx, ethTx)
+	if realTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+		return getEthTxResponse(node, resTx, realTx)
 	}
+
 	// not eth Tx
 	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-
-	out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
-	if err != nil {
-		return out, err
+	var ret interface{}
+	switch tx.(type) {
+	case *types.IbcTx:
+		jsonTx, err := types.FromRelayIBCTx(cliCtx.CodecProy, tx.(*types.IbcTx))
+		if nil != err {
+			return nil, err
+		}
+		return sdk.NewResponseResultTx(resTx, jsonTx, resBlocks[resTx.Height].Block.Time.Format(time.RFC3339)), nil
+	default:
+		ret, err = formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
 	}
 
-	return out, nil
+	return ret, err
 
 }
 
@@ -188,7 +193,7 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 		return nil, err
 	}
 
-	return tx, nil
+	return &tx, nil
 }
 
 // ManageContractDeploymentWhitelistProposalRESTHandler defines evm proposal handler

@@ -21,6 +21,7 @@ GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
 MarsHeight=0
+Venus1Height=0
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -56,6 +57,7 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_GENESIS_HEIGHT=$(GenesisHeight) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
@@ -133,6 +135,32 @@ else
 	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind ./cmd/exchaind
 	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
 endif
+
+
+test:
+	go list ./app/... |xargs go test -count=1
+	go list ./x/... |xargs go test -count=1
+	go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+	go list ./libs/tendermint/... |xargs go test -count=1
+	go list ./libs/tm-db/... |xargs go test -count=1
+	go list ./libs/iavl/... |xargs go test -count=1
+	go list ./libs/ibc-go/... |xargs go test -count=1
+
+testapp:
+	go list ./app/... |xargs go test -count=1
+
+testx:
+	go list ./x/... |xargs go test -count=1
+
+testcm:
+	go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
+testtm:
+	go list ./libs/tendermint/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
+testibc:
+	go list ./libs/ibc-go/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+
 
 build-linux:
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build

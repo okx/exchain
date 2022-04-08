@@ -48,7 +48,7 @@ func getMockApp(t *testing.T, numGenAccs int) (mockApp *MockApp, addrKeysSlice m
 func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp *MockApp,
 	addrKeysSlice mock.AddrKeysSlice) {
 	mapp := mock.NewApp()
-	registerCodec(mapp.Cdc)
+	registerCodec(mapp.Cdc.GetCdc())
 
 	mockApp = &MockApp{
 		App:       mapp,
@@ -71,7 +71,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		token.ModuleName:      {supply.Minter, supply.Burner},
 		ModuleName:            {supply.Minter, supply.Burner},
 	}
-	mockApp.supplyKeeper = supply.NewKeeper(mockApp.Cdc, mockApp.keySupply, mockApp.AccountKeeper,
+	mockApp.supplyKeeper = supply.NewKeeper(mockApp.Cdc.GetCdc(), mockApp.keySupply, mockApp.AccountKeeper,
 		mockApp.bankKeeper, maccPerms)
 
 	mockApp.tokenKeeper = token.NewKeeper(
@@ -81,13 +81,13 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.supplyKeeper,
 		mockApp.keyToken,
 		mockApp.keyLock,
-		mockApp.Cdc,
+		mockApp.Cdc.GetCdc(),
 		true, mockApp.AccountKeeper)
 
 	mockApp.swapKeeper = NewKeeper(
 		mockApp.supplyKeeper,
 		mockApp.tokenKeeper,
-		mockApp.Cdc,
+		mockApp.Cdc.GetCdc(),
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),
 	)

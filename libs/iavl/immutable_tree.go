@@ -14,9 +14,10 @@ import (
 // Returned key/value byte slices must not be modified, since they may point to data located inside
 // IAVL which would also be modified.
 type ImmutableTree struct {
-	root    *Node
-	ndb     *nodeDB
-	version int64
+	root           *Node
+	ndb            *nodeDB
+	version        int64
+	upgradeVersion int64
 }
 
 // NewImmutableTree creates both in-memory and persistent instances
@@ -214,9 +215,10 @@ func (t *ImmutableTree) IterateRangeInclusive(start, end []byte, ascending bool,
 // Used internally by MutableTree.
 func (t *ImmutableTree) clone() *ImmutableTree {
 	return &ImmutableTree{
-		root:    t.root,
-		ndb:     t.ndb,
-		version: t.version,
+		root:           t.root,
+		ndb:            t.ndb,
+		version:        t.version,
+		upgradeVersion: -1,
 	}
 }
 
@@ -228,4 +230,12 @@ func (t *ImmutableTree) nodeSize() int {
 		return false
 	})
 	return size
+}
+
+func (t *ImmutableTree) SetUpgradeVersion(version int64) {
+	t.upgradeVersion = version
+}
+
+func (t *ImmutableTree) GetUpgradeVersion() int64 {
+	return t.upgradeVersion
 }

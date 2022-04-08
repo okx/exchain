@@ -699,6 +699,9 @@ func ParseDecCoin(coinStr string) (coin DecCoin, err error) {
 
 	matches := reDecCoin.FindStringSubmatch(coinStr)
 	if matches == nil {
+		if strings.Contains(coinStr, "ibc/") {
+			return IBCParseDecCoin(coinStr)
+		}
 		return DecCoin{}, fmt.Errorf("invalid decimal coin expression: %s", coinStr)
 	}
 

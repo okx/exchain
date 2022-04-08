@@ -47,16 +47,16 @@ var invCheckPeriod uint
 func main() {
 	cobra.EnableCommandSorting = false
 
-	cdc := codec.MakeCodec(app.ModuleBasics)
+	codecProxy, _ := codec.MakeCodecSuit(app.ModuleBasics)
 
 	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 
-	keys.CryptoCdc = cdc
-	genutil.ModuleCdc = cdc
-	genutiltypes.ModuleCdc = cdc
-	clientkeys.KeysCdc = cdc
+	keys.CryptoCdc = codecProxy.GetCdc()
+	genutil.ModuleCdc = codecProxy.GetCdc()
+	genutiltypes.ModuleCdc = codecProxy.GetCdc()
+	clientkeys.KeysCdc = codecProxy.GetCdc()
 
 	config := sdk.GetConfig()
 	okexchain.SetBech32Prefixes(config)
@@ -73,34 +73,34 @@ func main() {
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
 		client.ValidateChainID(
-			genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome),
+			genutilcli.InitCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics, app.DefaultNodeHome),
 		),
-		genutilcli.CollectGenTxsCmd(ctx, cdc, auth.GenesisAccountIterator{}, app.DefaultNodeHome),
-		genutilcli.MigrateGenesisCmd(ctx, cdc),
+		genutilcli.CollectGenTxsCmd(ctx, codecProxy.GetCdc(), auth.GenesisAccountIterator{}, app.DefaultNodeHome),
+		genutilcli.MigrateGenesisCmd(ctx, codecProxy.GetCdc()),
 		genutilcli.GenTxCmd(
-			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{},
+			ctx, codecProxy.GetCdc(), app.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{},
 			app.DefaultNodeHome, app.DefaultCLIHome,
 		),
-		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
-		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
+		genutilcli.ValidateGenesisCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics),
+		client.TestnetCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx, client.RegisterAppFlag),
 		repairStateCmd(ctx),
 		displayStateCmd(ctx),
 		mpt.MptCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
-		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
+		AddGenesisAccountCmd(ctx, codecProxy.GetCdc(), app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
 		dataCmd(ctx),
 		exportAppCmd(ctx),
-		iaviewerCmd(ctx, cdc),
-		subscribeCmd(cdc),
+		iaviewerCmd(ctx, codecProxy.GetCdc()),
+		subscribeCmd(codecProxy.GetCdc()),
 	)
 
 	subFunc := func(logger log.Logger) log.Subscriber {
 		return logevents.NewProvider(logger)
 	}
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
+	server.AddCommands(ctx, codecProxy, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags
@@ -119,7 +119,6 @@ func closeApp(iApp abci.Application) {
 	app := iApp.(*app.OKExChainApp)
 	app.StopBaseApp()
 	evmtypes.CloseIndexer()
-	evmtypes.CloseTracer()
 	rpc.CloseEthBackend()
 }
 

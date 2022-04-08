@@ -244,9 +244,9 @@ func (bldr TxBuilder) BuildTxForSim(msgs []sdk.Msg) ([]byte, error) {
 
 // SignStdTx appends a signature to a StdTx and returns a copy of it. If append
 // is false, it replaces the signatures already attached with the new signature.
-func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx StdTx, appendSig bool) (signedStdTx StdTx, err error) {
+func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx *StdTx, appendSig bool) (signedStdTx *StdTx, err error) {
 	if bldr.chainID == "" {
-		return StdTx{}, fmt.Errorf("chain ID required but not specified")
+		return nil, fmt.Errorf("chain ID required but not specified")
 	}
 
 	stdSignature, err := MakeSignature(bldr.keybase, name, passphrase, StdSignMsg{

@@ -55,6 +55,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.EvmKeeper.ResetHooks()
 }
 
 func TestKeeperTestSuite(t *testing.T) {

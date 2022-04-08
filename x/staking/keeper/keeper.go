@@ -19,16 +19,19 @@ var _ types.ValidatorSet = Keeper{}
 // Keeper is the keeper struct of the staking store
 type Keeper struct {
 	storeKey     sdk.StoreKey
-	cdc          *codec.Codec
+	cdcMarshl    *codec.CodecProxy
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {
-
+	// set KeyTable if it has not already been set
+	if !paramstore.HasKeyTable() {
+		paramstore = paramstore.WithKeyTable(ParamKeyTable())
+	}
 	// ensure bonded and not bonded module accounts are set
 	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))
@@ -40,9 +43,9 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeep
 
 	return Keeper{
 		storeKey:     key,
-		cdc:          cdc,
+		cdcMarshl:    cdcMarshl,
 		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore.WithKeyTable(ParamKeyTable()),
+		paramstore:   paramstore,
 		hooks:        nil,
 	}
 }
@@ -73,14 +76,14 @@ func (k Keeper) GetLastTotalPower(ctx sdk.Context) (power sdk.Int) {
 	if b == nil {
 		return sdk.ZeroInt()
 	}
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &power)
+	k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(b, &power)
 	return
 }
 
 // SetLastTotalPower sets the last total validator power
 func (k Keeper) SetLastTotalPower(ctx sdk.Context, power sdk.Int) {
 	store := ctx.KVStore(k.storeKey)
-	b := k.cdc.MustMarshalBinaryLengthPrefixed(power)
+	b := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(power)
 	store.Set(types.LastTotalPowerKey, b)
 }
 

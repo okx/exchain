@@ -70,7 +70,9 @@ type Keeper struct {
 	asyncChain  chan int64
 
 	// cache chain config
-	cci chainConfigInfo
+	cci *chainConfigInfo
+
+	hooks types.EvmHooks
 }
 
 type chainConfigInfo struct {
@@ -92,7 +94,6 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
-	types.InitTxTraces()
 	err := initInnerDB()
 	if err != nil {
 		panic(err)
@@ -124,6 +125,7 @@ func NewKeeper(
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		mptCommitMu:    &sync.Mutex{},
 		asyncChain:     make(chan int64, 1000),
+		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -376,7 +378,7 @@ func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 // GetChainConfig gets chain config, the result if from cached result, or
 // it gains chain config and gas costs from getChainConfig, then
 // cache the chain config and gas costs.
-func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately, and increase gas costs.
 	if k.cci.cc != nil {
 		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
@@ -429,4 +431,35 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.IsContractInBlockedList(addr.Bytes())
+}
+
+// SetHooks sets the hooks for the EVM module
+// It should be called only once during initialization, it panics if called more than once.
+func (k *Keeper) SetHooks(hooks types.EvmHooks) *Keeper {
+	if k.hooks != nil {
+		panic("cannot set evm hooks twice")
+	}
+	k.hooks = hooks
+
+	return k
+}
+
+// ResetHooks resets the hooks for the EVM module
+func (k *Keeper) ResetHooks() *Keeper {
+	k.hooks = nil
+
+	return k
+}
+
+// GetHooks gets the hooks for the EVM module
+func (k *Keeper) GetHooks() types.EvmHooks {
+	return k.hooks
+}
+
+// CallEvmHooks delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
+func (k *Keeper) CallEvmHooks(ctx sdk.Context, from ethcmn.Address, to *ethcmn.Address, receipt *ethtypes.Receipt) error {
+	if k.hooks == nil {
+		return nil
+	}
+	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
