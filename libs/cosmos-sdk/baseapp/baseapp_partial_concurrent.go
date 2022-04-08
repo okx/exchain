@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
-	"sync"
 )
 
 const (
@@ -25,29 +24,21 @@ var totalPreloadConDuration = int64(0)
 var totalAccountUpdateDuration = int64(0)
 
 type DeliverTxTask struct {
-	//tx            sdk.Tx
-	index         int
-	feeForCollect int64
-	//step               partialConcurrentStep
-	updateCount        int8
-	mtx                sync.Mutex
-	needToRerun        bool
-	canRerun           int8
-	concurrentFinished bool
-	routineIndex       int8
+	index        int
+	updateCount  int8
+	needToRerun  bool
+	canRerun     int8
+	routineIndex int8
 
 	info          *runTxInfo
 	from          string //sdk.Address//exported.Account
 	to            string
-	fee           sdk.Coins
-	isEvm         bool
 	err           error
 	prevTaskIndex int // true: if there exists a not finished tx which has the same sender but smaller index
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	t := &DeliverTxTask{
-		//tx:    tx,
 		index:         index,
 		info:          &runTxInfo{tx: tx},
 		prevTaskIndex: -1,
@@ -57,9 +48,6 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 }
 
 func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
-	//dtt.mtx.Lock()
-	//defer dtt.mtx.Unlock()
-
 	if add {
 		dtt.updateCount += count
 	} else {
@@ -69,9 +57,6 @@ func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
 }
 
 func (dtt *DeliverTxTask) resetUpdateCount() {
-	dtt.mtx.Lock()
-	defer dtt.mtx.Unlock()
-
 	dtt.updateCount = 0
 }
 
