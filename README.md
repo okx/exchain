@@ -1,7 +1,7 @@
-# OEC
+# OKC
 The Infrastructure of Decentralized Exchange
 
-![banner](./docs/images/oec.jpeg)
+![banner](docs/images/okc.jpg)
 
 [![version](https://img.shields.io/github/tag/okex/exchain.svg)](https://github.com/okex/exchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)
@@ -11,9 +11,9 @@ The Infrastructure of Decentralized Exchange
 [![LoC](https://tokei.rs/b1/github/okex/exchain)](https://github.com/okex/exchain)
 [![GolangCI](https://golangci.com/badges/github.com/okex/exchain.svg)](https://golangci.com/r/github.com/okex/exchain)
 
-This repository hosts `OEC`, the implementation of the OEC based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
+This repository hosts `OKC`, the implementation of the OKC based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
-**Note**: Requires [Go 1.14](https://golang.org/dl/)
+**Note**: Requires [Go 1.17](https://golang.org/dl/)
 
 ## Getting Started
 Refer to the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).

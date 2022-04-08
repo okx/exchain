@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 const (
 	// ModuleName is the name of this module
 	ModuleName = "upgrade"
@@ -12,6 +14,15 @@ const (
 
 	// QuerierKey is used to handle abci_query requests
 	QuerierKey = ModuleName
+
+	// KeyUpgradedIBCState is the key under which upgraded ibc state is stored in the upgrade store
+	KeyUpgradedIBCState = "upgradedIBCState"
+
+	// KeyUpgradedClient is the sub-key under which upgraded client state will be stored
+	KeyUpgradedClient = "upgradedClient"
+
+	// KeyUpgradedConsState is the sub-key under which upgraded consensus state will be stored
+	KeyUpgradedConsState = "upgradedConsState"
 )
 
 const (
@@ -25,4 +36,18 @@ const (
 // We store PlanByte as a const to keep it immutable (unlike a []byte)
 func PlanKey() []byte {
 	return []byte{PlanByte}
+}
+
+// UpgradedConsStateKey is the key under which the upgraded consensus state is saved
+// Connecting IBC chains can verify against the upgraded consensus state in this path before
+// upgrading their clients.
+func UpgradedConsStateKey(height int64) []byte {
+	return []byte(fmt.Sprintf("%s/%d/%s", KeyUpgradedIBCState, height, KeyUpgradedConsState))
+}
+
+// UpgradedClientKey is the key under which the upgraded client state is saved
+// Connecting IBC chains can verify against the upgraded client in this path before
+// upgrading their clients
+func UpgradedClientKey(height int64) []byte {
+	return []byte(fmt.Sprintf("%s/%d/%s", KeyUpgradedIBCState, height, KeyUpgradedClient))
 }

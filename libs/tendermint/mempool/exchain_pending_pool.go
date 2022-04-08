@@ -12,8 +12,8 @@ const (
 
 type PendingPool struct {
 	maxSize         int
-	addressTxsMap   map[string]map[uint64]*PendingTx
-	txsMap          map[string]*PendingTx
+	addressTxsMap   map[string]map[uint64]*mempoolTx
+	txsMap          map[string]*mempoolTx
 	mtx             sync.RWMutex
 	period          int
 	reserveBlocks   int
@@ -24,8 +24,8 @@ type PendingPool struct {
 func newPendingPool(maxSize int, period int, reserveBlocks int, maxTxPerAddress int) *PendingPool {
 	return &PendingPool{
 		maxSize:         maxSize,
-		addressTxsMap:   make(map[string]map[uint64]*PendingTx),
-		txsMap:          make(map[string]*PendingTx),
+		addressTxsMap:   make(map[string]map[uint64]*mempoolTx),
+		txsMap:          make(map[string]*mempoolTx),
 		period:          period,
 		reserveBlocks:   reserveBlocks,
 		periodCounter:   make(map[string]int),
@@ -48,7 +48,7 @@ func (p *PendingPool) txCount(address string) int {
 	return len(p.addressTxsMap[address])
 }
 
-func (p *PendingPool) getTx(address string, nonce uint64) *PendingTx {
+func (p *PendingPool) getTx(address string, nonce uint64) *mempoolTx {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
 	if _, ok := p.addressTxsMap[address]; ok {
@@ -64,14 +64,14 @@ func (p *PendingPool) hasTx(tx types.Tx, height int64) bool {
 	return exist
 }
 
-func (p *PendingPool) addTx(pendingTx *PendingTx) {
+func (p *PendingPool) addTx(pendingTx *mempoolTx) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
-	if _, ok := p.addressTxsMap[pendingTx.exTxInfo.Sender]; !ok {
-		p.addressTxsMap[pendingTx.exTxInfo.Sender] = make(map[uint64]*PendingTx)
+	if _, ok := p.addressTxsMap[pendingTx.from]; !ok {
+		p.addressTxsMap[pendingTx.from] = make(map[uint64]*mempoolTx)
 	}
-	p.addressTxsMap[pendingTx.exTxInfo.Sender][pendingTx.exTxInfo.Nonce] = pendingTx
-	p.txsMap[txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height)] = pendingTx
+	p.addressTxsMap[pendingTx.from][pendingTx.realTx.GetNonce()] = pendingTx
+	p.txsMap[txID(pendingTx.tx, pendingTx.height)] = pendingTx
 }
 
 func (p *PendingPool) removeTx(address string, nonce uint64) {
@@ -80,7 +80,7 @@ func (p *PendingPool) removeTx(address string, nonce uint64) {
 	if _, ok := p.addressTxsMap[address]; ok {
 		if pendingTx, ok := p.addressTxsMap[address][nonce]; ok {
 			delete(p.addressTxsMap[address], nonce)
-			delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
+			delete(p.txsMap, txID(pendingTx.tx, pendingTx.height))
 		}
 		if len(p.addressTxsMap[address]) == 0 {
 			delete(p.addressTxsMap, address)
@@ -100,15 +100,15 @@ func (p *PendingPool) removeTxByHash(txHash string) {
 	defer p.mtx.Unlock()
 	if pendingTx, ok := p.txsMap[txHash]; ok {
 		delete(p.txsMap, txHash)
-		if _, ok := p.addressTxsMap[pendingTx.exTxInfo.Sender]; ok {
-			delete(p.addressTxsMap[pendingTx.exTxInfo.Sender], pendingTx.exTxInfo.Nonce)
-			if len(p.addressTxsMap[pendingTx.exTxInfo.Sender]) == 0 {
-				delete(p.addressTxsMap, pendingTx.exTxInfo.Sender)
-				delete(p.periodCounter, pendingTx.exTxInfo.Sender)
+		if _, ok := p.addressTxsMap[pendingTx.from]; ok {
+			delete(p.addressTxsMap[pendingTx.from], pendingTx.realTx.GetNonce())
+			if len(p.addressTxsMap[pendingTx.from]) == 0 {
+				delete(p.addressTxsMap, pendingTx.from)
+				delete(p.periodCounter, pendingTx.from)
 			}
 			// update period counter
-			if count, ok := p.periodCounter[pendingTx.exTxInfo.Sender]; ok && count > 0 {
-				p.periodCounter[pendingTx.exTxInfo.Sender] = count - 1
+			if count, ok := p.periodCounter[pendingTx.from]; ok && count > 0 {
+				p.periodCounter[pendingTx.from] = count - 1
 			}
 		}
 	}
@@ -124,7 +124,7 @@ func (p *PendingPool) handlePendingTx(addressNonce map[string]uint64) map[string
 				// remove invalid pending tx
 				if nonce <= accountNonce {
 					delete(p.addressTxsMap[addr], nonce)
-					delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
+					delete(p.txsMap, txID(pendingTx.tx, pendingTx.height))
 				} else if nonce == accountNonce+1 {
 					addrMap[addr] = nonce
 				}
@@ -145,7 +145,7 @@ func (p *PendingPool) handlePeriodCounter() {
 		if count >= p.reserveBlocks {
 			delete(p.addressTxsMap, addr)
 			for _, pendingTx := range txMap {
-				delete(p.txsMap, txID(pendingTx.mempoolTx.tx, pendingTx.mempoolTx.height))
+				delete(p.txsMap, txID(pendingTx.tx, pendingTx.height))
 			}
 			delete(p.periodCounter, addr)
 		} else {
@@ -178,11 +178,6 @@ func (p *PendingPool) validate(address string, tx types.Tx, height int64) error 
 		}
 	}
 	return nil
-}
-
-type PendingTx struct {
-	mempoolTx *mempoolTx
-	exTxInfo  ExTxInfo
 }
 
 type AccountRetriever interface {

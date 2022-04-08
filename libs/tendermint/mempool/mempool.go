@@ -24,7 +24,8 @@ type Mempool interface {
 	// maxGas.
 	// If both maxes are negative, there is no cap on the size of all returned
 	// transactions (~ all available transactions).
-	ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs
+	ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx
+	ReapEssentialTx(tx types.Tx) abci.TxEssentials
 
 	// ReapMaxTxs reaps up to max transactions from the mempool.
 	// If max is negative, there is no cap on the size of all returned
@@ -37,7 +38,7 @@ type Mempool interface {
 	GetUserPendingTxsCnt(address string) int
 
 	ReapUserTxs(address string, max int) types.Txs
-	GetPendingNonce(address string) uint64
+	GetPendingNonce(address string) (uint64, bool)
 
 	// Lock locks the mempool. The consensus must be able to hold lock to safely update.
 	Lock()

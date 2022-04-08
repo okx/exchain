@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -17,7 +18,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/mempool"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -184,6 +184,7 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
+	tmtypes.SetVenus1HeightForIbcTest(2)
 	// write a renamer to a file
 	f, err := ioutil.TempFile("", "upgrade-*.json")
 	require.NoError(t, err)
@@ -558,6 +559,8 @@ func TestInitChainer(t *testing.T) {
 
 // Simple tx with a list of Msgs.
 type txTest struct {
+	sdk.BaseTx
+
 	Msgs       []sdk.Msg
 	Counter    int64
 	FailOnAnte bool
@@ -577,12 +580,12 @@ func (tx *txTest) setFailOnHandler(fail bool) {
 func (tx txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
 func (tx txTest) ValidateBasic() error { return nil }
 
-func (tx txTest) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	return mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
+func (tx txTest) GetFrom() string {
+	return ""
+}
+
+func (tx txTest) GetNonce() uint64 {
+	return 0
 }
 
 func (tx txTest) GetGasPrice() *big.Int {
@@ -592,7 +595,6 @@ func (tx txTest) GetGasPrice() *big.Int {
 func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
-
 
 func (tx txTest) GetGas() uint64 {
 	return 0
@@ -635,7 +637,7 @@ func newTxCounter(counter int64, msgCounters ...int64) *txTest {
 		msgs = append(msgs, msgCounter{c, false})
 	}
 
-	return &txTest{msgs, counter, false}
+	return &txTest{Msgs: msgs, Counter: counter, FailOnAnte: false}
 }
 
 // a msg we dont know how to route
@@ -1076,7 +1078,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 	// transaction with no known route
 	{
-		unknownRouteTx := txTest{[]sdk.Msg{msgNoRoute{}}, 0, false}
+		unknownRouteTx := txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err := app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1085,7 +1087,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
 
-		unknownRouteTx = txTest{[]sdk.Msg{msgCounter{}, msgNoRoute{}}, 0, false}
+		unknownRouteTx = txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)

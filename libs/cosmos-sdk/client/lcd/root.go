@@ -31,16 +31,16 @@ type RestServer struct {
 	Mux     *mux.Router
 	CliCtx  context.CLIContext
 	KeyBase keybase.Keybase
-	Cdc     *codec.Codec
+	Cdc     *codec.CodecProxy
 
 	log      log.Logger
 	listener net.Listener
 }
 
 // NewRestServer creates a new rest server instance
-func NewRestServer(cdc *codec.Codec, tmNode *node.Node) *RestServer {
+func NewRestServer(cdc *codec.CodecProxy, tmNode *node.Node) *RestServer {
 	rootRouter := mux.NewRouter()
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	cliCtx := context.NewCLIContext().WithProxy(cdc)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
 	if tmNode != nil {
 		cliCtx = cliCtx.WithChainID(tmNode.ConsensusState().GetState().ChainID)
@@ -98,7 +98,7 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 // ServeCommand will start the application REST service as a blocking process. It
 // takes a codec to create a RestServer object and a function to register all
 // necessary routes.
-func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.Command {
+func ServeCommand(cdc *codec.CodecProxy, registerRoutesFn func(*RestServer)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rest-server",
 		Short: "Start LCD (light-client daemon), a local REST server",
@@ -124,7 +124,7 @@ func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.C
 	return flags.RegisterRestServerFlags(cmd)
 }
 
-func StartRestServer(cdc *codec.Codec, registerRoutesFn func(*RestServer), tmNode *node.Node, addr string) error {
+func StartRestServer(cdc *codec.CodecProxy, registerRoutesFn func(*RestServer), tmNode *node.Node, addr string) error {
 	rs := NewRestServer(cdc, tmNode)
 
 	registerRoutesFn(rs)

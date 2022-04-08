@@ -544,6 +544,8 @@ func TestDecAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, bareData, actualData)
 
+		require.Equal(t, len(bareData), dec.AminoSize(cdc))
+
 		var expectValue Dec
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)

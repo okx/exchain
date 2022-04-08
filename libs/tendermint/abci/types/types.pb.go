@@ -1445,7 +1445,7 @@ type ResponseQuery struct {
 	Index                int64         `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
 	Key                  []byte        `protobuf:"bytes,6,opt,name=key,proto3" json:"key,omitempty"`
 	Value                []byte        `protobuf:"bytes,7,opt,name=value,proto3" json:"value,omitempty"`
-	Proof                *merkle.Proof `protobuf:"bytes,8,opt,name=proof,proto3" json:"proof,omitempty"`
+	Proof                *merkle.Proof `protobuf:"bytes,8,opt,name=proof_ops,json=proofOps,proto3" json:"proof_ops,omitempty"`
 	Height               int64         `protobuf:"varint,9,opt,name=height,proto3" json:"height,omitempty"`
 	Codespace            string        `protobuf:"bytes,10,opt,name=codespace,proto3" json:"codespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
@@ -1597,6 +1597,8 @@ func (m *ResponseBeginBlock) GetEvents() []Event {
 }
 
 type ResponseCheckTx struct {
+	Tx                   TxEssentials
+	SenderNonce          uint64
 	Code                 uint32   `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Log                  string   `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
@@ -1704,8 +1706,8 @@ type ResponseDeliverTx struct {
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Log                  string   `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
 	Info                 string   `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
-	GasWanted            int64    `protobuf:"varint,5,opt,name=gas_wanted,json=gasWanted,proto3" json:"gas_wanted,omitempty"`
-	GasUsed              int64    `protobuf:"varint,6,opt,name=gas_used,json=gasUsed,proto3" json:"gas_used,omitempty"`
+	GasWanted            int64    `protobuf:"varint,5,opt,name=gas_wanted,json=gas_wanted,proto3" json:"gas_wanted,omitempty"`
+	GasUsed              int64    `protobuf:"varint,6,opt,name=gas_used,json=gas_used,proto3" json:"gas_used,omitempty"`
 	Events               []Event  `protobuf:"bytes,7,rep,name=events,proto3" json:"events,omitempty"`
 	Codespace            string   `protobuf:"bytes,8,opt,name=codespace,proto3" json:"codespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`

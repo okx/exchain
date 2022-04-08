@@ -50,6 +50,7 @@ func (suite *EvmTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
@@ -73,7 +74,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -138,6 +139,16 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			func() {
 				suite.ctx = suite.ctx.WithFrom(sender.String())
 				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
+				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
+			},
+			true,
+		},
+		{
+			"trace log tx",
+			func() {
+				suite.ctx = suite.ctx.WithFrom(sender.String())
+				suite.ctx = suite.ctx.WithIsTraceTxLog(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -214,13 +225,8 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs), 1)
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
-	hash := []byte{1}
-	err = suite.stateDB.WithContext(suite.ctx).SetLogs(ethcmn.BytesToHash(hash), resultData.Logs)
-	suite.Require().NoError(err)
-
-	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethcmn.BytesToHash(hash))
-	suite.Require().NoError(err, "failed to get logs")
-
+	suite.stateDB.WithContext(suite.ctx).SetLogs(resultData.Logs)
+	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
 	suite.Require().Equal(logs, resultData.Logs)
 }
 
@@ -791,6 +797,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx.SetDeliver()
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 

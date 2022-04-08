@@ -88,6 +88,10 @@ func ValidatorListString(vals []*Validator) string {
 // as its redundant with the pubkey. This also excludes ProposerPriority
 // which changes every round.
 func (v *Validator) Bytes() []byte {
+	panic("call HeightBytes")
+}
+
+func (v *Validator) OriginBytes() []byte {
 	return cdcEncode(struct {
 		PubKey      crypto.PubKey
 		VotingPower int64

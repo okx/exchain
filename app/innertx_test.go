@@ -58,6 +58,7 @@ func (suite *InnerTxTestSuite) SetupTest() {
 
 	suite.app = Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	suite.ctx.SetDeliver()
 	suite.stateDB = evm_types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.codec = codec.New()
 
@@ -180,7 +181,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				suite.Require().NoError(err)
 
 				// sign transaction
-				ethTx, ok := tx.(evm_types.MsgEthereumTx)
+				ethTx, ok := tx.(*evm_types.MsgEthereumTx)
 				suite.Require().True(ok)
 
 				err = ethTx.Sign(chainID, privFrom.ToECDSA())
