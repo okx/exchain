@@ -194,23 +194,29 @@ func (c *Cache) Write(updateDirty bool) {
 		return
 	}
 
+	if !updateDirty {
+		c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+		c.accMap = make(map[ethcmn.Address]*accountWithCache)
+		c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+	}
+
 	if c.parent == nil {
 		return
 	}
 
-	c.writeStorage(updateDirty)
-	c.writeAcc(updateDirty)
-	c.writeCode(updateDirty)
+	c.writeStorage()
+	c.writeAcc()
+	c.writeCode()
 }
 
-func (c *Cache) writeStorage(updateDirty bool) {
+func (c *Cache) writeStorage() {
 	for addr, storages := range c.storageMap {
 		if _, ok := c.parent.storageMap[addr]; !ok {
 			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
 		}
 
 		for key, v := range storages {
-			if needWriteToParent(updateDirty, v.dirty) {
+			if v.dirty {
 				c.parent.storageMap[addr][key] = v
 			}
 		}
@@ -218,35 +224,22 @@ func (c *Cache) writeStorage(updateDirty bool) {
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 }
 
-func (c *Cache) writeAcc(updateDirty bool) {
+func (c *Cache) writeAcc() {
 	for addr, v := range c.accMap {
-		if needWriteToParent(updateDirty, v.isDirty) {
+		if v.isDirty {
 			c.parent.accMap[addr] = v
 		}
 	}
 	c.accMap = make(map[ethcmn.Address]*accountWithCache)
 }
 
-func (c *Cache) writeCode(updateDirty bool) {
+func (c *Cache) writeCode() {
 	for hash, v := range c.codeMap {
-		if needWriteToParent(updateDirty, v.isDirty) {
+		if v.isDirty {
 			c.parent.codeMap[hash] = v
 		}
 	}
 	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
-}
-
-func needWriteToParent(updateDirty bool, dirty bool) bool {
-	// not dirty
-	if !dirty {
-		return true
-	}
-
-	// dirty
-	if updateDirty {
-		return true
-	}
-	return false
 }
 
 func (c *Cache) storageSize() int {
