@@ -74,11 +74,12 @@ func init() {
 
 func newAnalys(height int64) {
 	if singleAnalys == nil {
-		singleAnalys = &analyer{
-			status:      !viper.GetBool(sm.FlagParalleledTx),
-			blockHeight: height,
-		}
+		singleAnalys = &analyer{}
+	} else {
+		*singleAnalys = analyer{}
 	}
+	singleAnalys.blockHeight = height
+	singleAnalys.status = !viper.GetBool(sm.FlagParalleledTx)
 }
 
 func OnAppBeginBlockEnter(height int64) {
@@ -116,7 +117,6 @@ func OnCommitDone() {
 	if singleAnalys != nil {
 		singleAnalys.onCommitDone()
 	}
-	singleAnalys = nil
 }
 
 func StartTxLog(oper string) {
@@ -141,7 +141,6 @@ func (s *analyer) onCommitDone() {
 	if s.status {
 		s.format()
 	}
-	singleAnalys = nil
 }
 
 func (s *analyer) newTxLog() {
