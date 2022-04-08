@@ -351,14 +351,15 @@ func TestAnteHandlerFees(t *testing.T) {
 	app.AccountKeeper.SetAccount(ctx, acc1)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
-	require.True(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().Empty())
+	//require.True(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().Empty())
+	require.True(t, ctx.FeeForCollector().Empty())
 	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(149)))
 
 	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))
 	app.AccountKeeper.SetAccount(ctx, acc1)
 	checkValidTx(t, anteHandler, ctx, tx, false)
 
-	require.True(sdk.DecEq(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().AmountOf("atom"), sdk.NewDec(150)))
+	//require.True(sdk.DecEq(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().AmountOf("atom"), sdk.NewDec(150)))
 	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(0)))
 }
 
