@@ -39,6 +39,7 @@ type Context struct {
 	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
 	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
 	isAsync        bool
 	minGasPrice    DecCoins
 	consParams     *abci.ConsensusParams
@@ -82,6 +83,7 @@ func (c *Context) IsCheckTx() bool             { return c.checkTx }
 func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c *Context) IsTraceTx() bool             { return c.traceTx }
 func (c *Context) IsTraceTxLog() bool          { return c.traceTxLog }
+func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
@@ -168,7 +170,6 @@ func (c Context) ConsensusParams() *abci.ConsensusParams {
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
-	//fmt.Println("CreateGasMeter.")
 	return Context{
 		ctx:          context.Background(),
 		ms:           ms,
@@ -288,6 +289,10 @@ func (c Context) WithIsTraceTx(isTraceTx bool) Context {
 		c.checkTx = true
 	}
 	c.traceTx = isTraceTx
+	return c
+}
+func (c Context) WithTraceTxLogConfig(traceLogConfigBytes []byte) Context {
+	c.traceTxConfigBytes = traceLogConfigBytes
 	return c
 }
 
@@ -423,6 +428,26 @@ func EmptyContext() Context {
 	return Context{}
 }
 
+// ContextKey defines a type alias for a stdlib Context key.
+type ContextKey string
+
+// SdkContextKey is the key in the context.Context which holds the sdk.Context.
+const SdkContextKey ContextKey = "sdk-context"
+
+// WrapSDKContext returns a stdlib context.Context with the provided sdk.Context's internal
+// context as a value. It is useful for passing an sdk.Context  through methods that take a
+// stdlib context.Context parameter such as generated gRPC methods. To get the original
+// sdk.Context back, call UnwrapSDKContext.
+func WrapSDKContext(ctx Context) context.Context {
+	return context.WithValue(ctx.ctx, SdkContextKey, ctx)
+}
+
+// UnwrapSDKContext retrieves a Context from a context.Context instance
+// attached with WrapSDKContext. It panics if a Context was not properly
+// attached
+func UnwrapSDKContext(ctx context.Context) Context {
+	return ctx.Value(SdkContextKey).(Context)
+}
 func (c Context) WithAnteTracer(trc *trace.Tracer) Context {
 	c.trc = trc
 	return c
