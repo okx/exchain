@@ -186,7 +186,9 @@ func addInfo(name string, keys []string, record map[string]int64) {
 		t := strconv.FormatInt(record[v], 10)
 		b := strings.Builder{}
 		b.Grow(2 + len(v) + 1 + len(t) + 3)
-		b.WriteString(", ")
+		if i != 0 {
+			b.WriteString(", ")
+		}
 		b.WriteString(v)
 		b.WriteString("<")
 		b.WriteString(t)
