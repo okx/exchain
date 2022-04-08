@@ -13,15 +13,15 @@ const (
 	ConstTestHeight = 1
 )
 
-func getRedisClient(t *testing.T) *RedisClient {
+func getRedisClient(t *testing.T) (*RedisClient, *miniredis.Miniredis) {
 	s := miniredis.RunT(t)
 	logger := log.TestingLogger()
 	ss := NewRedisClient(s.Addr(), "", time.Minute, 0, logger)
-	return ss
+	return ss, s
 }
 
 func TestRedisClient_SetGetDeltas(t *testing.T) {
-	r := getRedisClient(t)
+	r, _ := getRedisClient(t)
 	require.True(t, r != nil, r)
 
 	height := int64(ConstTestHeight)
@@ -48,7 +48,7 @@ func TestRedisClient_SetGetDeltas(t *testing.T) {
 }
 
 func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
-	r := getRedisClient(t)
+	r, _ := getRedisClient(t)
 	require.True(t, r != nil, r)
 	uploadSuccess := func(int64) bool { return true }
 	uploadFailed := func(int64) bool { return false }
@@ -79,7 +79,7 @@ func TestRedisClient_ResetLatestHeightAfterUpload(t *testing.T) {
 }
 
 func TestRedisClient_GetReleaseLocker(t *testing.T) {
-	r := getRedisClient(t)
+	r, s := getRedisClient(t)
 	require.True(t, r != nil, r)
 
 	// first time lock
@@ -96,7 +96,7 @@ func TestRedisClient_GetReleaseLocker(t *testing.T) {
 	require.True(t, locker, locker)
 
 	// when locker expire time, locker release itself
-	time.Sleep(lockerExpire)
+	s.FastForward(lockerExpire)
 	locker = r.GetLocker()
 	require.True(t, locker, locker)
 }
