@@ -39,8 +39,6 @@ var Routes = map[string]*rpc.RPCFunc{
 	"broadcast_tx_commit": rpc.NewRPCFunc(BroadcastTxCommit, "tx"),
 	"broadcast_tx_sync":   rpc.NewRPCFunc(BroadcastTxSync, "tx"),
 	"broadcast_tx_async":  rpc.NewRPCFunc(BroadcastTxAsync, "tx"),
-	// ibc
-	"/cosmos/tx/v1beta1/txs": rpc.NewRPCFunc(BroadcastTxSync, "tx"),
 
 	// abci API
 	"abci_query": rpc.NewRPCFunc(ABCIQuery, "path,data,height,prove"),

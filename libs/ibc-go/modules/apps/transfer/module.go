@@ -91,6 +91,7 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Rout
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
 	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
+
 }
 
 // GetTxCmd implements AppModuleBasic interface

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	erc20client "github.com/okex/exchain/x/erc20/client"
@@ -54,6 +55,7 @@ func registerRoutes(rs *lcd.RestServer) {
 
 func registerGrpc(rs *lcd.RestServer) {
 	app.ModuleBasics.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
+	tx.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
