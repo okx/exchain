@@ -43,15 +43,8 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 				}
 			}
 			h := ada.UpgradeHeight()
-			if h <= 0 {
+			if h < 0 {
 				continue
-			}
-			t := ada.RegisterTask()
-			if t == nil {
-				continue
-			}
-			if err := t.ValidateBasic(); nil != err {
-				panic(err)
 			}
 			storeInfoModule := hStoreInfoModule[h]
 			if storeInfoModule == nil {
@@ -61,6 +54,13 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 			names := ada.BlockStoreModules()
 			for _, n := range names {
 				storeInfoModule[n] = struct{}{}
+			}
+			t := ada.RegisterTask()
+			if t == nil {
+				continue
+			}
+			if err := t.ValidateBasic(); nil != err {
+				panic(err)
 			}
 			taskList := hm[h]
 			if taskList == nil {
@@ -94,7 +94,11 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			_, exist := mm[str]
 			return exist
 		}
+
 		commitF := func(h int64) func(str string) bool {
+			if hh == 0 {
+				return blockModuleFilter
+			}
 			if h >= height {
 				// call next filter
 				return nil
@@ -102,6 +106,9 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			return blockModuleFilter
 		}
 		pruneF := func(h int64) func(str string) bool {
+			if hh == 0 {
+				return blockModuleFilter
+			}
 			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
 			if h > height {
 				// call next filter

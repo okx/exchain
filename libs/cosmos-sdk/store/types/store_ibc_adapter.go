@@ -30,7 +30,9 @@ func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
 	return func(h int64) func(str string) bool {
 		filter := f(h)
 		if nil != filter {
-			return filter
+			return func(str string) bool {
+				return filter(str) || s(h)(str)
+			}
 		}
 		return s(h)
 	}
