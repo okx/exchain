@@ -32,12 +32,15 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	info.ctx.Cache().Write(false)
 	gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 
-	_, err := app.GasRefundHandler(gasRefundCtx, info.tx)
+	refund, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)
 	}
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
+
+	info.ctx = info.ctx.UpdateFeeForCollector(refund, false)
+	app.UpdateFeeForCollector(info.ctx.FeeForCollector(), true)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {
