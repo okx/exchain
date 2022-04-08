@@ -20,10 +20,6 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-var (
-	msgQueueSize = 100
-)
-
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
@@ -57,14 +53,20 @@ type BlockExecutor struct {
 	isFastSync bool
 
 	// async write db
-	abciResponseQueue chan abciResponse
-	stateQueue        chan State
-	// channel to feed back height of saved state
-	syncedHeightChan chan int64
 	// switch to turn on async save abciResponse and state
 	isAsyncSaveDB bool
-	// flag to avoid waiting async result for the first block
+	// channel to write abciResponse async
+	abciResponseQueue chan abciResponse
+	/// channe to write state async
+	stateQueue chan State
+	// channel to feed back height of saved abci response
+	syncedABCIResponseHeightChan chan int64
+	// channel to feed back height of saved state
+	syncedStateHeightChan chan int64
+	// flag to avoid waiting async state result for the first block
 	isStateAsyncing bool
+	// flag to avoid waiting async abciResponse result for the first block
+	isABCIResponseAsyncing bool
 }
 
 type abciResponse struct {
@@ -109,9 +111,10 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
-	res.abciResponseQueue = make(chan abciResponse, msgQueueSize)
-	res.stateQueue = make(chan State, msgQueueSize)
-	res.syncedHeightChan = make(chan int64, msgQueueSize)
+	res.abciResponseQueue = make(chan abciResponse)
+	res.stateQueue = make(chan State)
+	res.syncedABCIResponseHeightChan = make(chan int64)
+	res.syncedStateHeightChan = make(chan int64)
 
 	go res.asyncSaveStateRoutine()
 	go res.asyncSaveABCIRespRoutine()
@@ -217,10 +220,21 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	//wait till the last block abciResponse be saved
+	if blockExec.isAsyncSaveDB && blockExec.isABCIResponseAsyncing {
+		for r := range blockExec.syncedABCIResponseHeightChan {
+			if r == (block.Height - 1) {
+				fmt.Println("Got abciResponse synced:", r)
+				break
+			}
+		}
+	}
+
 	//wait till the last block state be saved
 	if blockExec.isAsyncSaveDB && blockExec.isStateAsyncing {
-		for r := range blockExec.syncedHeightChan {
+		for r := range blockExec.syncedStateHeightChan {
 			if r == (block.Height - 1) {
+				fmt.Println("Got State synced:", r)
 				break
 			}
 		}
@@ -435,13 +449,14 @@ func (blockExec *BlockExecutor) SaveStateAsync(state State) {
 func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 	for stateMsg := range blockExec.stateQueue {
 		SaveState(blockExec.db, stateMsg)
-		blockExec.syncedHeightChan <- stateMsg.LastBlockHeight
+		blockExec.syncedStateHeightChan <- stateMsg.LastBlockHeight
 	}
 }
 
 func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
 	for abciMsg := range blockExec.abciResponseQueue {
 		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
+		blockExec.syncedABCIResponseHeightChan <- abciMsg.height
 	}
 }
 
