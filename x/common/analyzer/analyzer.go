@@ -20,6 +20,8 @@ var (
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
 
 	forceAnalyzerTags map[string]struct{}
+
+	isParalleledTxOn *bool
 )
 
 func initForceAnalyzerTags() {
@@ -73,13 +75,17 @@ func init() {
 }
 
 func newAnalys(height int64) {
+	if isParalleledTxOn == nil {
+		isParalleledTxOn = new(bool)
+		*isParalleledTxOn = !viper.GetBool(sm.FlagParalleledTx)
+	}
 	if singleAnalys == nil {
 		singleAnalys = &analyer{}
 	} else {
 		*singleAnalys = analyer{}
 	}
 	singleAnalys.blockHeight = height
-	singleAnalys.status = !viper.GetBool(sm.FlagParalleledTx)
+	singleAnalys.status = *isParalleledTxOn
 }
 
 func OnAppBeginBlockEnter(height int64) {
