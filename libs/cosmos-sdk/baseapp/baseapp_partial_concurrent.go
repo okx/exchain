@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -39,7 +38,7 @@ type DeliverTxTask struct {
 
 	info          *runTxInfo
 	from          string //sdk.Address//exported.Account
-	to            *ethcmn.Address
+	to            string
 	fee           sdk.Coins
 	isEvm         bool
 	err           error

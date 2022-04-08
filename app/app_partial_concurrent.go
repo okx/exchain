@@ -1,18 +1,15 @@
 package app
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
-//type SetAccountObserver func(o keeper.ObserverI) ()
-
 // getTxFeeAndFromHandler get tx fee and from
 func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to *ethcmn.Address) {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
@@ -20,7 +17,9 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			fee = evmTx.GetFee()
 			feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
 			//from = ak.GetAccount(ctx, feePayer)
-			to = evmTx.To()
+			if evmTx.To() != nil {
+				to = evmTx.To().String()
+			}
 			feePayerAcc := ak.GetAccount(ctx, feePayer)
 			from = feePayerAcc.GetAddress().String()//hex.EncodeToString(feePayerAcc.GetAddress())
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
@@ -35,9 +34,3 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 		return
 	}
 }
-
-//func setAccountObserver(ak auth.AccountKeeper) sdk.SetAccountObserver {
-//	return func(funco keeper.ObserverI) {
-//		ak.SetObserverKeeper(o)
-//	}
-//}

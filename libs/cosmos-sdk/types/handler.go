@@ -1,7 +1,5 @@
 package types
 
-import ethcmn "github.com/ethereum/go-ethereum/common"
-
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
 
@@ -19,7 +17,7 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 
-type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, *ethcmn.Address)//Address)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string)//Address)
 
 //type SetAccountObserver func(o keeper.ObserverI) ()
 //type SetAccountObserver func() ()

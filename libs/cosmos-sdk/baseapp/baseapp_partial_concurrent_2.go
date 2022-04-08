@@ -348,6 +348,28 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	return task
 }
 
+func (dttm *DTTManager) hasConflict(taskA *DeliverTxTask, taskB *DeliverTxTask) bool {
+	if taskA.from == taskB.from {
+		return true
+	}
+	toALen := len(taskA.to)
+	toBLen := len(taskB.to)
+	if toALen == 0 && toBLen == 0 {
+		return false
+	}
+	if toALen > 0 {
+		if taskA.to == taskB.from || taskA.to == taskB.to {
+			dttm.app.logger.Error("hasConflict", "index", taskA.index, "conflict", taskB.index, "addr", taskA.to)
+			return true
+		}
+	}
+	if toBLen > 0 && taskA.from == taskB.to {
+		dttm.app.logger.Error("hasConflict", "index", taskA.index, "conflict", taskB.index, "addr", taskB.to)
+			return true
+	}
+	return false
+}
+
 func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	if dttm.app.anteHandler == nil {
 		return fmt.Errorf("anteHandler cannot be nil")
@@ -367,7 +389,8 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
 			//dttr.step == dttRoutineStepReadyForSerial ||
 			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
-			dttr.task.from != task.from {
+			//dttr.task.from != task.from {
+			!dttm.hasConflict(dttr.task, task) {
 			continue
 		}
 		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
@@ -501,7 +524,7 @@ func (dttm *DTTManager) serialRoutine() {
 					if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart {
 						continue
 					}
-					if dttr.task.prevTaskIndex == task.index || dttr.task.from == task.from {
+					if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 						if dttr.task.prevTaskIndex < task.index {
 							dttr.task.prevTaskIndex = task.index
 						}
