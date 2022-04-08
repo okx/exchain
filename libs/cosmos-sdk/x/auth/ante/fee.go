@@ -144,10 +144,5 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	}
 	ak.SetAccount(ctx, acc)
 
-	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
-	//if err != nil {
-	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
-	//}
-
 	return nil
 }
