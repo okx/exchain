@@ -222,21 +222,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	//wait till the last block abciResponse be saved
 	if blockExec.isAsyncSaveDB && blockExec.isABCIResponseAsyncing {
-		for r := range blockExec.syncedABCIResponseHeightChan {
-			if r == (block.Height - 1) {
-				fmt.Println("Got abciResponse synced:", r)
-				break
-			}
+		r, ok := <-blockExec.syncedABCIResponseHeightChan
+		if !ok || r != (block.Height-1) {
+			panic("Incorrect synced ABCI Response Height")
 		}
 	}
 
 	//wait till the last block state be saved
 	if blockExec.isAsyncSaveDB && blockExec.isStateAsyncing {
-		for r := range blockExec.syncedStateHeightChan {
-			if r == (block.Height - 1) {
-				fmt.Println("Got State synced:", r)
-				break
-			}
+		r, ok := <-blockExec.syncedStateHeightChan
+		if !ok || r != (block.Height-1) {
+			panic("Incorrect synced State Height")
 		}
 	}
 
