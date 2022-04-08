@@ -437,6 +437,7 @@ func (blockExec *BlockExecutor) commit(
 }
 
 func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
+	blockExec.isABCIResponseAsyncing = true
 	blockExec.abciResponseQueue <- abciResponse{height, responses}
 }
 
