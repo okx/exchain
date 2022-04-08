@@ -103,7 +103,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		ctx, err = DeductFees(dfd.ak, ctx, feePayerAcc, feeTx.GetFee())
+		err = DeductFees(dfd.ak, &ctx, feePayerAcc, feeTx.GetFee())
 		if err != nil {
 			return ctx, err
 		}
@@ -116,18 +116,18 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) (sdk.Context, error) {
+func DeductFees(ak keeper.AccountKeeper, ctx *sdk.Context, acc exported.Account, fees sdk.Coins) (error) {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
 	if !fees.IsValid() {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
 	}
 
 	// verify the account has enough funds to pay for fees
 	balance, hasNeg := coins.SafeSub(fees)
 	if hasNeg {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", coins, fees)
 	}
 
@@ -135,20 +135,20 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	// such as vesting accounts.
 	spendableCoins := acc.SpendableCoins(blockTime)
 	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
-		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
 	if err := acc.SetCoins(balance); err != nil {
-		return ctx, err
+		return err
 	}
-	ak.SetAccount(ctx, acc)
-	ctx = ctx.UpdateFeeForCollector(fees, true)
+	ak.SetAccount(*ctx, acc)
+	*ctx = ctx.UpdateFeeForCollector(fees, true)
 
 	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	//if err != nil {
 	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	//}
 
-	return ctx, nil
+	return nil
 }

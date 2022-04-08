@@ -331,11 +331,6 @@ func (c Context) WithCache(cache *Cache) Context {
 	return c
 }
 
-func (c Context) WithFeeForCollector(fee Coins) Context {
-	c.feesForCollector = fee
-	return c
-}
-
 func (c Context) FeeForCollector() Coins {
 	return c.feesForCollector
 }
