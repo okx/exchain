@@ -352,7 +352,6 @@ func TestAnteHandlerFees(t *testing.T) {
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
 	//require.True(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().Empty())
-	require.True(t, ctx.FeeForCollector().Empty())
 	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(149)))
 
 	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))

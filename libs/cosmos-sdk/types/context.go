@@ -48,7 +48,6 @@ type Context struct {
 	cache              *Cache
 	trc                *trace.Tracer
 	accountCache       *AccountCache
-	feesForCollector Coins
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -328,21 +327,6 @@ func (c Context) WithAccountNonce(nonce uint64) Context {
 
 func (c Context) WithCache(cache *Cache) Context {
 	c.cache = cache
-	return c
-}
-
-func (c Context) FeeForCollector() Coins {
-	return c.feesForCollector
-}
-
-func (c Context) UpdateFeeForCollector(fee Coins, add bool) Context {
-	if add {
-		c.feesForCollector = Coins{}
-		c.feesForCollector = c.feesForCollector.Add(fee...)
-	} else {
-		c.feesForCollector = c.feesForCollector.Sub(fee)
-	}
-	//fmt.Println("UpdateFeeForCollector.", fee, add, c.feesForCollector)
 	return c
 }
 

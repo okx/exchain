@@ -157,7 +157,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = auth.DeductFees(ak, ctx, acc, feeAmt)
+		err = auth.DeductFees(ak, *ctx, acc, feeAmt)
 		if err != nil {
 			return err
 		}

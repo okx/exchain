@@ -39,8 +39,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
 
-	info.ctx = info.ctx.UpdateFeeForCollector(refund, false)
-	app.UpdateFeeForCollector(info.ctx.FeeForCollector(), true)
+	app.UpdateFeeForCollector(refund, false)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {

@@ -103,7 +103,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		err = DeductFees(dfd.ak, &ctx, feePayerAcc, feeTx.GetFee())
+		err = DeductFees(dfd.ak, ctx, feePayerAcc, feeTx.GetFee())
 		if err != nil {
 			return ctx, err
 		}
@@ -116,7 +116,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(ak keeper.AccountKeeper, ctx *sdk.Context, acc exported.Account, fees sdk.Coins) (error) {
+func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) (error) {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -142,8 +142,7 @@ func DeductFees(ak keeper.AccountKeeper, ctx *sdk.Context, acc exported.Account,
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
-	ak.SetAccount(*ctx, acc)
-	*ctx = ctx.UpdateFeeForCollector(fees, true)
+	ak.SetAccount(ctx, acc)
 
 	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	//if err != nil {

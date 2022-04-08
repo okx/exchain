@@ -97,6 +97,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
+
+	if fee, ok := app.getTxFee(info.ctx, tx); ok {
+		app.UpdateFeeForCollector(fee, true)
+	}
+
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
