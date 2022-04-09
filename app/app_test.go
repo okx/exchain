@@ -1,8 +1,6 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
-	"math"
 	"os"
 	"testing"
 
@@ -22,7 +20,6 @@ import (
 )
 
 func TestOKExChainAppExport(t *testing.T) {
-	types.SetVenus1HeightForIbcTest(math.MaxInt64 - 2)
 	db := dbm.NewMemDB()
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 

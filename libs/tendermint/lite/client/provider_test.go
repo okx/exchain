@@ -1,7 +1,6 @@
 package client
 
 import (
-	"math"
 	"os"
 	"testing"
 
@@ -25,7 +24,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestProvider(t *testing.T) {
-	types.SetVenus1HeightForIbcTest(math.MaxInt64 - 2)
 	assert, require := assert.New(t), require.New(t)
 
 	cfg := rpctest.GetConfig()
