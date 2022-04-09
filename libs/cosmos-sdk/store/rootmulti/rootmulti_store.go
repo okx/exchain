@@ -1003,7 +1003,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if tmtypes.GetVenus1Height() == version {
+		if tmtypes.GetVenus1Height()-1 == version {
 			//init store tree version with block height
 			store.SetUpgradeVersion(version)
 		}
