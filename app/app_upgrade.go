@@ -43,7 +43,7 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 				}
 			}
 			h := ada.UpgradeHeight()
-			if h != 0 {
+			if h > 0 {
 				h++
 			}
 			storeInfoModule := hStoreInfoModule[h]
@@ -89,10 +89,10 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 
 	for hh, storeMap := range hStoreInfoModule {
 		filterM := copyBlockStoreMap(storeMap)
-		height := hh - 1
-		if height < 0 {
+		if hh < 0 {
 			continue
 		}
+		height := hh - 1
 		// filter block module
 		blockModuleFilter := func(str string) bool {
 			_, exist := filterM[str]
