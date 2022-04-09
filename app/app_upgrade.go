@@ -43,7 +43,7 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 				}
 			}
 			h := ada.UpgradeHeight()
-			if h != 0 {
+			if h > 0 {
 				h++
 			}
 			storeInfoModule := hStoreInfoModule[h]
@@ -87,12 +87,13 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 		prunePip types.HeightFilterPipeline
 	)
 
-	for hh, storeMap := range hStoreInfoModule {
+	for storeH, storeMap := range hStoreInfoModule {
 		filterM := copyBlockStoreMap(storeMap)
-		height := hh - 1
-		if height < 0 {
+		if storeH < 0 {
 			continue
 		}
+		hh := storeH
+		height := hh - 1
 		// filter block module
 		blockModuleFilter := func(str string) bool {
 			_, exist := filterM[str]
@@ -100,7 +101,7 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 		}
 
 		commitF := func(h int64) func(str string) bool {
-			if height == 0 {
+			if hh == 0 {
 				return blockModuleFilter
 			}
 			if h >= height {
@@ -110,7 +111,7 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			return blockModuleFilter
 		}
 		pruneF := func(h int64) func(str string) bool {
-			if height == 0 {
+			if hh == 0 {
 				return blockModuleFilter
 			}
 			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
