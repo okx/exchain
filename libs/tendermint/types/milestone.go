@@ -37,6 +37,7 @@ func init() {
 		if milestoneVenus1Height == 0 {
 			milestoneVenus1Height = math.MaxInt64 - 2
 		}
+		milestoneVenus1Height = 20
 	})
 }
 
@@ -83,10 +84,6 @@ func SetVenus1HeightForIbcTest(h int64) {
 
 func GetVenus1Height() int64 {
 	return milestoneVenus1Height
-}
-
-func IsUpgradeIBCInRuntime() bool {
-	return milestoneVenus1Height >= 1
 }
 
 // GetMilestoneVenusHeight returns milestoneVenusHeight

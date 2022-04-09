@@ -29,7 +29,6 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 
@@ -64,19 +63,11 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
-	}
-	return nil
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
-	}
 	var data types.GenesisState
 	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
 		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
@@ -166,11 +157,8 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Seal()
-		return am.initGenesis(ctx, data)
-	}
-	return nil
+	defer am.Seal()
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -183,10 +171,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
-	}
-	return nil
+	return am.exportGenesis(ctx)
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)
@@ -509,9 +494,6 @@ func (am AppModule) NegotiateAppVersion(
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return nil
-	}
 	return upgrade.NewHeightTask(2, func(ctx sdk.Context) error {
 		if am.Sealed() {
 			return nil

@@ -5,7 +5,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -39,20 +38,11 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // DefaultGenesis is json default structure
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
-	}
-	return nil
+	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis is the validation check of the Genesis
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
-	}
-
 	var genesisState types.GenesisState
 	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
 	if err != nil {
@@ -135,11 +125,8 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Seal()
-		return am.initGenesis(ctx, data)
-	}
-	return nil
+	defer am.Seal()
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -150,10 +137,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis exports the genesis state to be used by daemon
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
-	}
-	return nil
+	return am.exportGenesis(ctx)
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
@@ -162,9 +146,6 @@ func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return nil
-	}
 	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
 		if am.Sealed() {
 			return nil
