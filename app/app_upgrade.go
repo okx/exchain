@@ -43,15 +43,8 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 				}
 			}
 			h := ada.UpgradeHeight()
-			if h <= 0 {
-				continue
-			}
-			t := ada.RegisterTask()
-			if t == nil {
-				continue
-			}
-			if err := t.ValidateBasic(); nil != err {
-				panic(err)
+			if h != 0 {
+				h++
 			}
 			storeInfoModule := hStoreInfoModule[h]
 			if storeInfoModule == nil {
@@ -61,6 +54,13 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 			names := ada.BlockStoreModules()
 			for _, n := range names {
 				storeInfoModule[n] = struct{}{}
+			}
+			t := ada.RegisterTask()
+			if t == nil {
+				continue
+			}
+			if err := t.ValidateBasic(); nil != err {
+				panic(err)
 			}
 			taskList := hm[h]
 			if taskList == nil {
@@ -87,14 +87,22 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 		prunePip types.HeightFilterPipeline
 	)
 
-	for hh, mm := range hStoreInfoModule {
+	for hh, storeMap := range hStoreInfoModule {
+		filterM := copyBlockStoreMap(storeMap)
 		height := hh - 1
+		if height < 0 {
+			continue
+		}
 		// filter block module
 		blockModuleFilter := func(str string) bool {
-			_, exist := mm[str]
+			_, exist := filterM[str]
 			return exist
 		}
+
 		commitF := func(h int64) func(str string) bool {
+			if height == 0 {
+				return blockModuleFilter
+			}
 			if h >= height {
 				// call next filter
 				return nil
@@ -102,6 +110,9 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			return blockModuleFilter
 		}
 		pruneF := func(h int64) func(str string) bool {
+			if height == 0 {
+				return blockModuleFilter
+			}
 			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
 			if h > height {
 				// call next filter
@@ -115,6 +126,14 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 	}
 
 	return pip, prunePip
+}
+
+func copyBlockStoreMap(m map[string]struct{}) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for k, _ := range m {
+		ret[k] = struct{}{}
+	}
+	return ret
 }
 
 func linkPipeline(p types.HeightFilterPipeline, f func(h int64) func(str string) bool) types.HeightFilterPipeline {
