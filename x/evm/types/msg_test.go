@@ -396,7 +396,7 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
-	tmtypes.SetVenus1HeightForTest()
+	tmtypes.SetVenus1HeightForIbcTest(math.MaxInt64 - 2)
 	chainID := "exchain-101"
 	accnum := 1
 	sequence := 0
