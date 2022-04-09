@@ -51,9 +51,9 @@ func getMockApp(
 
 	mApp := mock.NewApp()
 
-	staking.RegisterCodec(mApp.Cdc)
-	types.RegisterCodec(mApp.Cdc)
-	supply.RegisterCodec(mApp.Cdc)
+	staking.RegisterCodec(mApp.Cdc.GetCdc())
+	types.RegisterCodec(mApp.Cdc.GetCdc())
+	supply.RegisterCodec(mApp.Cdc.GetCdc())
 
 	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
 	keyGov := sdk.NewKVStoreKey(types.StoreKey)
@@ -80,13 +80,13 @@ func getMockApp(
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 	}
-	supplyKeeper := supply.NewKeeper(mApp.Cdc, keySupply, mApp.AccountKeeper, bk, maccPerms)
+	supplyKeeper := supply.NewKeeper(mApp.Cdc.GetCdc(), keySupply, mApp.AccountKeeper, bk, maccPerms)
 	sk := staking.NewKeeper(
-		mApp.Cdc, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace),
+		mApp.Cdc.GetCdc(), keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace),
 	)
 
 	keeper := keep.NewKeeper(
-		mApp.Cdc, keyGov, pk.Subspace(DefaultParamspace).WithKeyTable(ParamKeyTable()), supplyKeeper, sk, rtr,
+		mApp.Cdc.GetCdc(), keyGov, pk.Subspace(DefaultParamspace).WithKeyTable(ParamKeyTable()), supplyKeeper, sk, rtr,
 	)
 
 	mApp.Router().AddRoute(types.RouterKey, NewHandler(keeper))

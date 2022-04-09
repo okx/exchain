@@ -62,7 +62,7 @@ const (
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
 func StartCmd(ctx *Context,
-	cdc *codec.Codec,
+	cdc *codec.CodecProxy,
 	appCreator AppCreator,
 	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
@@ -128,7 +128,7 @@ which accepts a path for the resulting pprof file.
 	return cmd
 }
 
-func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
+func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
@@ -222,7 +222,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
 
 	if cfg.Mempool.EnablePendingPool {
-		cliCtx := context.NewCLIContext().WithCodec(cdc)
+		cliCtx := context.NewCLIContext().WithProxy(cdc)
 		cliCtx.Client = local.New(tmNode)
 		cliCtx.TrustNode = true
 		accRetriever := types.NewAccountRetriever(cliCtx)

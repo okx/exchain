@@ -87,7 +87,7 @@ func (genDoc *GenesisDoc) ValidatorHash() []byte {
 		vals[i] = NewValidator(v.PubKey, v.Power)
 	}
 	vset := NewValidatorSet(vals)
-	return vset.Hash()
+	return vset.Hash(genesisHeight)
 }
 
 // ValidateAndComplete checks that all necessary fields are present
