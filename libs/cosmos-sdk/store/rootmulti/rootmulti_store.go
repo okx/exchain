@@ -267,10 +267,10 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
 		// below venus1Height when restart app, no need to load ibc module versions
-		f := rs.commitHeightFilterPipeline(ver)
-		if f(key.Name()) {
-			continue
-		}
+		//f := rs.commitHeightFilterPipeline(ver)
+		//if f(key.Name()) {
+		//	continue
+		//}
 
 		commitID := rs.getCommitID(infos, key.Name())
 

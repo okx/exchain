@@ -46,9 +46,12 @@ func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
 //with callback
 func LinkPipeline2(f, s VersionFilterPipeline) VersionFilterPipeline {
 	return func(h int64) func(func(key string, version int64)) {
-		filter := f(h)
-		if nil != filter {
-			return func(func(string, int64)) {}
+		hook := f(h)
+		if nil != hook {
+			return func(f func(key string, version int64)) {
+				hook(f)
+				s(h)(f)
+			}
 		}
 		return func(func(string, int64)) {}
 	}
