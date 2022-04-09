@@ -14,16 +14,21 @@ const (
 )
 
 type HeightFilterPipeline func(h int64) func(str string) bool
+type VersionFilterPipeline func(h int64) func(func(name string, version int64))
 
 var (
 	DefaultAcceptAll HeightFilterPipeline = func(h int64) func(str string) bool {
 		return func(_ string) bool { return false }
+	}
+	DefaultLoopAll VersionFilterPipeline = func(int64) func(func(string, int64)) {
+		return func(func(string, int64)) {}
 	}
 )
 
 type CommitMultiStorePipeline interface {
 	SetCommitHeightFilterPipeline(f HeightFilterPipeline)
 	SetPruneHeightFilterPipeline(f HeightFilterPipeline)
+	SetVersionFilterPipeline(f VersionFilterPipeline)
 }
 
 func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
@@ -35,6 +40,20 @@ func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
 			}
 		}
 		return s(h)
+	}
+}
+
+//with callback
+func LinkPipeline2(f, s VersionFilterPipeline) VersionFilterPipeline {
+	return func(h int64) func(func(key string, version int64)) {
+		hook := f(h)
+		if nil != hook {
+			return func(f func(key string, version int64)) {
+				hook(f)
+				s(h)(f)
+			}
+		}
+		return func(func(string, int64)) {}
 	}
 }
 
