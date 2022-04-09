@@ -89,6 +89,19 @@ func Block(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlock, error)
 	return &ctypes.ResultBlock{BlockID: blockMeta.BlockID, Block: block}, nil
 }
 
+func BlockTxNums(heightPtr *int64) (int, error) {
+	height, err := getHeight(env.BlockStore.Height(), heightPtr)
+	if err != nil {
+		return 0, err
+	}
+	blockMeta := env.BlockStore.LoadBlockMeta(height)
+	if blockMeta == nil {
+		return 0, nil
+	}
+
+	return blockMeta.NumTxs, nil
+}
+
 // BlockByHash gets block by hash.
 // More: https://docs.tendermint.com/master/rpc/#/Info/block_by_hash
 func BlockByHash(ctx *rpctypes.Context, hash []byte) (*ctypes.ResultBlock, error) {

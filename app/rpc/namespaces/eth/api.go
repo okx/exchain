@@ -1202,11 +1202,6 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		return nil, err
 	}
 
-	txs, e := api.wrappedBackend.GetTransactionsByBlockNumber(uint64(blockNum), uint64(offset), uint64(limit))
-	if e == nil && txs != nil {
-		return txs, nil
-	}
-
 	height := blockNum.Int64()
 	switch blockNum {
 	case rpctypes.PendingBlockNumber:
@@ -1228,6 +1223,20 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	blockTxNums, err := api.clientCtx.Client.BlockTxNums(&height)
+	if err != nil {
+		return nil, err
+	}
+
+	blockTxNumsWatcher, _ := api.wrappedBackend.GetTransactionNums(uint64(height))
+	// watcher's tx may not include invalid ones. todo modify watcher
+	watcherValid := blockTxNumsWatcher == blockTxNums
+
+	txs, e := api.wrappedBackend.GetTransactionsByBlockNumber(uint64(blockNum), uint64(offset), uint64(limit))
+	if e == nil && txs != nil && watcherValid {
+		return txs, nil
 	}
 
 	resBlock, err := api.clientCtx.Client.Block(&height)

@@ -291,6 +291,11 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return res, nil
 }
 
+func (*Client) BlockTxNums(height *int64) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c *Client) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	res, err := c.next.BlockResults(height)
 	if err != nil {

@@ -401,6 +401,11 @@ func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return result, nil
 }
 
+func (c *baseRPCClient) BlockTxNums(height *int64) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	result := new(ctypes.ResultBlockResults)
 	_, err := c.caller.Call("block_results", map[string]interface{}{"height": height}, result)
@@ -417,6 +422,11 @@ func (c *baseRPCClient) Commit(height *int64) (*ctypes.ResultCommit, error) {
 		return nil, errors.Wrap(err, "Commit")
 	}
 	return result.ToCommit(), nil
+}
+
+func (c *HTTP) BlockTxNums(height *int64) (int, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (c *baseRPCClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {

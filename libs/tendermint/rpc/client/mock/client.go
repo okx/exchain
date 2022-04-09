@@ -150,6 +150,10 @@ func (c Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return core.Block(&rpctypes.Context{}, height)
 }
 
+func (c Client) BlockTxNums(height *int64) (int, error) {
+	return core.BlockTxNums(height)
+}
+
 func (c Client) Commit(height *int64) (*ctypes.ResultCommit, error) {
 	return core.Commit(&rpctypes.Context{}, height)
 }

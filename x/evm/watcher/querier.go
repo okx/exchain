@@ -306,6 +306,26 @@ func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transac
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) GetTransactionNums(height uint64) (int, error) {
+	if !q.enabled() {
+		return 0, errors.New(MsgFunctionDisable)
+	}
+	block, err := q.GetBlockByNumber(height, true)
+	if err != nil || block == nil {
+		return 0, err
+	}
+	if block.Transactions == nil {
+		return 0, errors.New("no such transaction in target block")
+	}
+
+	rawTxs, ok := block.Transactions.([]*Transaction)
+	if ok {
+		return len(rawTxs), nil
+	}
+
+	return 0, errors.New("no such transaction in target block")
+}
+
 func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
