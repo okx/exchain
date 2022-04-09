@@ -85,7 +85,7 @@ func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
 
-func IsUpgradeIBCInRuntime() bool {
+func IsUpgradeVenus1FeatureInRuntime() bool {
 	return milestoneVenus1Height >= 1
 }
 

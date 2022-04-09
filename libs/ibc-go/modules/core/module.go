@@ -51,25 +51,12 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
-	}
 	return nil
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
-	}
-	var data types.GenesisState
-	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
-	}
-
-	return data.Validate()
+	return nil
 }
 
 // RegisterRESTRoutes does nothing. IBC does not support legacy REST routes.
@@ -177,10 +164,6 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Seal()
-		return am.initGenesis(ctx, data)
-	}
 	return nil
 }
 
@@ -197,9 +180,6 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
-	}
 	return nil
 }
 
@@ -256,13 +236,7 @@ func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.W
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return nil
-	}
 	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
-		if am.Sealed() {
-			return nil
-		}
 		data := lazyGenesis()
 		am.initGenesis(ctx, data)
 		return nil
