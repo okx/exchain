@@ -127,7 +127,7 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			//if h < height {
 			//	return nil
 			//}
-			if h == -1 {
+			if h < 0 {
 				return nil
 			}
 
