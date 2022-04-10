@@ -24,7 +24,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestProvider(t *testing.T) {
-	types.SetVenus1HeightForTest()
 	assert, require := assert.New(t), require.New(t)
 
 	cfg := rpctest.GetConfig()
