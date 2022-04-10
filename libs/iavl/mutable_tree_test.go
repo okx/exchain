@@ -38,17 +38,77 @@ func TestDelete(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 0, bytes.Compare([]byte("Fred"), k1Value))
 }
-
+//            []
+//          /    \
+//        []     []
+//      /   \     \
+//    []    []    []
+//   / \   /  \  /  \
+//  [] [] [] [] [] []
 func TestTraverse(t *testing.T) {
 	memDB := db.NewMemDB()
 	tree, err := NewMutableTree(memDB, 0)
 	require.NoError(t, err)
 
-	for i := 0; i < 6; i++ {
+	for i := 0; i < 7; i++ {
 		tree.set([]byte(fmt.Sprintf("k%d", i)), []byte(fmt.Sprintf("v%d", i)))
+		if i == 5 {
+			dump(tree)
+			fmt.Printf("\n===================================\n")
+		}
+		if i == 6 {
+			dump(tree)
+			fmt.Printf("\n===================================\n")
+		}
 	}
 
-	require.Equal(t, 11, tree.nodeSize(), "Size of tree unexpected")
+	//require.Equal(t, 11, tree.nodeSize(), "Size of tree unexpected")
+}
+
+func dump(tree *MutableTree)  {
+
+	fmt.Printf("level[0]: %s[%p]", string(tree.root.key), tree.root)
+	var nodeMap map[int][]*Node = make(map[int][]*Node)
+
+	polling(tree.root, 1, nodeMap)
+
+	for i := 1; i <= len(nodeMap)+1; i++ {
+		nodeList := nodeMap[i]
+		fmt.Printf("\nlevel[%d]:", i)
+
+
+
+		for _, n := range nodeList {
+			nkey := string(n.key)
+			if n.isLeaf() {
+				nkey = "["+nkey+"]"
+			}
+			fmt.Printf("%s[%p] ", nkey, n)
+		}
+	}
+}
+//level[0]:                   k2[false]
+//level[1]:     k1[false]                    k4[false]
+//level[2]:k0[true] k1[true]        k3[false]       k5[false]
+//level[3]:                     k2[true] k3[true] k4[true] k5[true]
+
+//level[0]:                           k4[false]
+//level[1]:             k2[false]                   k5[false]
+//level[2]:      k1[false]      k3[false]        k4[true] k6[false]
+//level[3]:k0[true] k1[true] k2[true] k3[true]         k5[true] k6[true]
+
+
+func polling(n *Node, level int, nodeMap map[int][]*Node)  {
+
+	if n.leftNode != nil {
+		nodeMap[level] = append(nodeMap[level], n.leftNode)
+		polling(n.leftNode, level+1, nodeMap)
+	}
+
+	if n.rightNode != nil {
+		nodeMap[level] = append(nodeMap[level], n.rightNode)
+		polling(n.rightNode, level+1, nodeMap)
+	}
 }
 
 func TestMutableTree_DeleteVersions(t *testing.T) {
