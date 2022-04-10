@@ -103,10 +103,6 @@ func (c *Cache) skip() bool {
 	return false
 }
 
-func (c *Cache) UseCache() bool {
-	return !c.skip()
-}
-
 func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
 	if c.skip() {
 		return
