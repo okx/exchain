@@ -63,22 +63,6 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
-// HigherThanVenus1 will be true if milestoneVenus1Height is larger than current height
-func HigherThanVenus1(h int64) bool {
-	if milestoneVenus1Height == 0 {
-		return false
-	}
-	return h >= milestoneVenus1Height
-}
-
-func SetVenus1HeightForIbcTest(h int64) {
-	milestoneVenus1Height = h
-}
-
-func GetVenus1Height() int64 {
-	return milestoneVenus1Height
-}
-
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight
@@ -110,3 +94,23 @@ func GetMercuryHeight() int64 {
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
+
+
+// ==================================
+// =========== Venus1 ===============
+func HigherThanVenus1(h int64) bool {
+	if milestoneVenus1Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus1Height
+}
+
+func SetVenus1HeightForIbcTest(h int64) {
+	milestoneVenus1Height = h
+}
+
+func GetVenus1Height() int64 {
+	return milestoneVenus1Height
+}
+// =========== Venus1 ===============
+// ==================================
