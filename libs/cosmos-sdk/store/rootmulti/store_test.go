@@ -123,7 +123,6 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
-
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()

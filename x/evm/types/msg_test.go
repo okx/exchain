@@ -396,7 +396,6 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
-	
 	chainID := "exchain-101"
 	accnum := 1
 	sequence := 0
