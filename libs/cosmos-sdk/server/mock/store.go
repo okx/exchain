@@ -25,6 +25,10 @@ func (ms multiStore) SetPruneHeightFilterPipeline(f store.HeightFilterPipeline) 
 	panic("implement me")
 }
 
+func (ms multiStore) SetVersionFilterPipeline(f store.VersionFilterPipeline) {
+	panic("implement me")
+}
+
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 	panic("not implemented")
 }

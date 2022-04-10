@@ -55,14 +55,14 @@ func (st *Store) GetHeights() map[int64][]byte {
 // store's version (id) from the provided DB. An error is returned if the version
 // fails to load.
 func LoadStore(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, startVersion int64) (types.CommitKVStore, error) {
-	return LoadStoreWithInitialVersion(db, flatKVDB, id, lazyLoading, uint64(startVersion))
+	return LoadStoreWithInitialVersion(db, flatKVDB, id, lazyLoading, uint64(startVersion), uint64(0))
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
 // to the one given. Internally, it will load the store's version (id) from the
 // provided DB. An error is returned if the version fails to load.
-func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
-	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: initialVersion})
+func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64, upgradeVersion uint64) (types.CommitKVStore, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: initialVersion, UpgradeVersion: upgradeVersion})
 	if err != nil {
 		return nil, err
 	}
