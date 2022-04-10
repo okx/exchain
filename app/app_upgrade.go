@@ -127,8 +127,12 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			//if h < height {
 			//	return nil
 			//}
+			if h == -1 {
+				return nil
+			}
 
 			return func(cb func(name string, version int64)) {
+
 				for k, _ := range filterM {
 					cb(k, hh-1)
 				}
