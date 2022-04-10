@@ -94,6 +94,7 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg types2.InterfaceR
 // AppModule implements the AppModule interface for the capability module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 }
 
