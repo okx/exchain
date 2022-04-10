@@ -72,6 +72,13 @@ const (
 	FlagNodeIndex          = "node-index"
 )
 
+const (
+	FlagPageKey       = "page-key"
+	FlagOffset        = "offset"
+	FlagTimeoutHeight = "timeout-height"
+	FlagCountTotal    = "count-total"
+)
+
 // LineBreak can be included in a command list to provide a blank line
 // to help with readability
 var (
@@ -219,4 +226,51 @@ To configure your bash shell to load completions for each session add to your ba
 	cmd.Flags().Bool(flagZsh, false, "Generate Zsh completion script")
 
 	return cmd
+}
+
+// AddQueryFlagsToCmd adds common flags to a module query command.
+func AddQueryFlagsToCmd(cmd *cobra.Command) {
+	cmd.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to Tendermint RPC interface for this chain")
+	cmd.Flags().Int64(FlagHeight, 0, "Use a specific height to query state at (this can error if the node is pruning state)")
+	cmd.Flags().StringP(tmcli.OutputFlag, "o", "text", "Output format (text|json)")
+
+	cmd.MarkFlagRequired(FlagChainID)
+
+	cmd.SetErr(cmd.ErrOrStderr())
+	cmd.SetOut(cmd.OutOrStdout())
+}
+
+// AddTxFlagsToCmd adds common flags to a module tx command.
+func AddTxFlagsToCmd(cmd *cobra.Command) {
+	cmd.Flags().String(FlagFrom, "", "Name or address of private key with which to sign")
+	cmd.Flags().Uint64P(FlagAccountNumber, "a", 0, "The account number of the signing account (offline mode only)")
+	cmd.Flags().Uint64P(FlagSequence, "s", 0, "The sequence number of the signing account (offline mode only)")
+	cmd.Flags().String(FlagMemo, "", "Memo to send along with transaction")
+	cmd.Flags().String(FlagFees, "", "Fees to pay along with transaction; eg: 10uatom")
+	cmd.Flags().String(FlagGasPrices, "", "Gas prices in decimal format to determine the transaction fee (e.g. 0.1uatom)")
+	cmd.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to tendermint rpc interface for this chain")
+	cmd.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
+	cmd.Flags().Float64(FlagGasAdjustment, DefaultGasAdjustment, "adjustment factor to be multiplied against the estimate returned by the tx simulation; if the gas limit is set manually this flag is ignored ")
+	cmd.Flags().StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
+	cmd.Flags().Bool(FlagDryRun, false, "ignore the --gas flag and perform a simulation of a transaction, but don't broadcast it")
+	cmd.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible)")
+	cmd.Flags().BoolP(FlagSkipConfirmation, "y", false, "Skip tx broadcasting prompt confirmation")
+	cmd.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test|memory)")
+	cmd.Flags().Uint64(FlagTimeoutHeight, 0, "Set a block timeout height to prevent the tx from being committed past a certain height")
+
+	// --gas can accept integers and "auto"
+
+	cmd.MarkFlagRequired(FlagChainID)
+
+	cmd.SetErr(cmd.ErrOrStderr())
+	cmd.SetOut(cmd.OutOrStdout())
+}
+
+// AddPaginationFlagsToCmd adds common pagination flags to cmd
+func AddPaginationFlagsToCmd(cmd *cobra.Command, query string) {
+	cmd.Flags().Uint64(FlagPage, 1, fmt.Sprintf("pagination page of %s to query for. This sets offset to a multiple of limit", query))
+	cmd.Flags().String(FlagPageKey, "", fmt.Sprintf("pagination page-key of %s to query for", query))
+	cmd.Flags().Uint64(FlagOffset, 0, fmt.Sprintf("pagination offset of %s to query for", query))
+	cmd.Flags().Uint64(FlagLimit, 100, fmt.Sprintf("pagination limit of %s to query for", query))
+	cmd.Flags().Bool(FlagCountTotal, false, fmt.Sprintf("count total number of records in %s to query for", query))
 }

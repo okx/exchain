@@ -210,7 +210,17 @@ func (vote *Vote) CommitSig() CommitSig {
 }
 
 func (vote *Vote) SignBytes(chainID string) []byte {
-	bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainID, vote))
+	if HigherThanVenus1(vote.Height) {
+		return vote.ibcSignBytes(chainID)
+	}
+	return vote.originSignBytes(chainID)
+}
+
+func (vote *Vote) ibcSignBytes(chainID string) []byte {
+	return VoteSignBytes(chainID, vote)
+}
+func (vote *Vote) originSignBytes(chainId string) []byte {
+	bz, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote(chainId, vote))
 	if err != nil {
 		panic(err)
 	}

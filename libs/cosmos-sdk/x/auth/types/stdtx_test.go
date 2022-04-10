@@ -48,7 +48,7 @@ func TestStdTxAmino(t *testing.T) {
 
 	tx := NewStdTx(msgs, fee, sigs, "")
 
-	testCases := []StdTx{
+	testCases := []*StdTx{
 		{},
 		tx,
 		{
@@ -100,7 +100,7 @@ func TestStdTxAmino(t *testing.T) {
 		tx3 := StdTx{}
 		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(txBytes, &tx3)
 		require.NoError(t, err)
-		tx3 = v.(StdTx)
+		tx3 = *(v.(*StdTx))
 
 		require.EqualValues(t, tx2, tx3)
 	}

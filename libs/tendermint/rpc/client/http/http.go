@@ -318,13 +318,13 @@ func (c *baseRPCClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, er
 	return result, nil
 }
 
-func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	result := new(ctypes.ResultPendingNonce)
 	_, err := c.caller.Call("get_pending_nonce", map[string]interface{}{"address": address}, result)
 	if err != nil {
-		return nil, errors.Wrap(err, "get_pending_nonce")
+		return nil, false
 	}
-	return result, nil
+	return result, true
 }
 
 func (c *baseRPCClient) NetInfo() (*ctypes.ResultNetInfo, error) {
@@ -411,12 +411,12 @@ func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults,
 }
 
 func (c *baseRPCClient) Commit(height *int64) (*ctypes.ResultCommit, error) {
-	result := new(ctypes.ResultCommit)
+	result := new(ctypes.IBCResultCommit)
 	_, err := c.caller.Call("commit", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "Commit")
 	}
-	return result, nil
+	return result.ToCommit(), nil
 }
 
 func (c *baseRPCClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {

@@ -40,10 +40,10 @@ func (fc FullCommit) ValidateFull(chainID string) error {
 	}
 	if !bytes.Equal(
 		fc.SignedHeader.ValidatorsHash,
-		fc.Validators.Hash()) {
+		fc.Validators.Hash(fc.Height())) {
 		return fmt.Errorf("header has vhash %X but valset hash is %X",
 			fc.SignedHeader.ValidatorsHash,
-			fc.Validators.Hash(),
+			fc.Validators.Hash(fc.Height()),
 		)
 	}
 	// Ensure that NextValidators exists and matches the header.
@@ -52,10 +52,10 @@ func (fc FullCommit) ValidateFull(chainID string) error {
 	}
 	if !bytes.Equal(
 		fc.SignedHeader.NextValidatorsHash,
-		fc.NextValidators.Hash()) {
+		fc.NextValidators.Hash(fc.Height())) {
 		return fmt.Errorf("header has next vhash %X but next valset hash is %X",
 			fc.SignedHeader.NextValidatorsHash,
-			fc.NextValidators.Hash(),
+			fc.NextValidators.Hash(fc.Height()),
 		)
 	}
 	// Validate the header.

@@ -30,6 +30,7 @@ const (
 	BackendKWallet = "kwallet"
 	BackendPass    = "pass"
 	BackendTest    = "test"
+	BackendMemory  = "memory"
 )
 
 const (
@@ -79,6 +80,8 @@ func NewKeyring(
 		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
 		config = newPassBackendKeyringConfig(appName, rootDir, userInput)
+	case BackendMemory:
+		return NewInMemory(opts...), err
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
 	}
@@ -89,6 +92,7 @@ func NewKeyring(
 
 	return newKeyringKeybase(db, config.FileDir, opts...), nil
 }
+
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
 // using the provided password. It returns the generated mnemonic and the key Info.
@@ -514,6 +518,9 @@ func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.C
 		FilePasswordFunc: newRealPrompt(dir, buf),
 	}
 }
+
+
+
 
 func newKWalletBackendKeyringConfig(appName, _ string, _ io.Reader) keyring.Config {
 	return keyring.Config{

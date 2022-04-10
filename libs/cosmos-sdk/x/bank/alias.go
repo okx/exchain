@@ -25,6 +25,7 @@ var (
 	RegisterInvariants          = keeper.RegisterInvariants
 	NonnegativeBalanceInvariant = keeper.NonnegativeBalanceInvariant
 	NewBaseKeeper               = keeper.NewBaseKeeper
+	NewBaseKeeperWithMarshal    = keeper.NewBaseKeeperWithMarshal
 	NewBaseSendKeeper           = keeper.NewBaseSendKeeper
 	NewBaseViewKeeper           = keeper.NewBaseViewKeeper
 	NewQuerier                  = keeper.NewQuerier
