@@ -119,7 +119,7 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:3]))
 	for i, addr := range keeper.Addrs[:3] {
@@ -159,7 +159,7 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:4]))
 	for i, addr := range keeper.Addrs[:4] {
@@ -200,7 +200,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:4]))
 	for i, addr := range keeper.Addrs[:4] {
@@ -229,7 +229,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	res, err = govHandler(ctx, newVoteMsg)
 	require.Nil(t, err)
 
-	ctx = ctx.WithBlockHeight(int64(height))
+	ctx.SetBlockHeight(int64(height))
 	waitingQueue := gk.WaitingProposalQueueIterator(ctx, uint64(ctx.BlockHeight()))
 	require.True(t, waitingQueue.Valid())
 	waitingQueue.Close()

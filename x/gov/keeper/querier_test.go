@@ -327,7 +327,7 @@ func TestQueryTally(t *testing.T) {
 	querier := NewQuerier(keeper)
 	cdc := keeper.Cdc()
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
 	for i, addr := range Addrs[:2] {

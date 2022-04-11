@@ -62,7 +62,7 @@ func TestTallyNoBondedTokens(t *testing.T) {
 func TestTallyNoOneVotes(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
@@ -96,7 +96,7 @@ func TestTallyNoOneVotes(t *testing.T) {
 func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
@@ -138,7 +138,7 @@ func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
 func TestTallyAllValidatorsMoreThanOneThirdVeto(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
@@ -175,7 +175,7 @@ func TestTallyAllValidatorsMoreThanOneThirdVeto(t *testing.T) {
 
 func TestTallyOtherCase(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
 	for i, addr := range Addrs[:2] {

@@ -55,13 +55,13 @@ func TestGetOrderCostFee(t *testing.T) {
 	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, order.FeePerBlock.Amount.Mul(sdk.NewDec(diffHeight)))}
 	require.EqualValues(t, exceptFee, GetOrderCostFee(order, ctx))
 
-	ctx = ctx.WithBlockHeight(currentHeight + types.DefaultOrderExpireBlocks)
+	ctx.SetBlockHeight(currentHeight + types.DefaultOrderExpireBlocks)
 	fee := GetOrderCostFee(order, ctx)
 	exceptFee = sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.2592"))}
 	require.EqualValues(t, exceptFee, fee)
 
 	currentHeight = 0
-	ctx = ctx.WithBlockHeight(currentHeight)
+	ctx.SetBlockHeight(currentHeight)
 	exceptFee = GetZeroFee()
 	require.EqualValues(t, exceptFee, GetOrderCostFee(order, ctx))
 

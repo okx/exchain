@@ -36,7 +36,7 @@ func requireInvalidTx(
 }
 
 func (suite *AnteTestSuite) TestValidEthTx() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -61,7 +61,7 @@ func (suite *AnteTestSuite) TestValidEthTx() {
 }
 
 func (suite *AnteTestSuite) TestValidTx() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
@@ -89,7 +89,7 @@ func (suite *AnteTestSuite) TestValidTx() {
 }
 
 func (suite *AnteTestSuite) TestSDKInvalidSigs() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
@@ -139,7 +139,7 @@ func (suite *AnteTestSuite) TestSDKInvalidSigs() {
 }
 
 func (suite *AnteTestSuite) TestSDKInvalidAcc() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 
@@ -168,7 +168,7 @@ func (suite *AnteTestSuite) TestSDKInvalidAcc() {
 }
 
 func (suite *AnteTestSuite) TestEthInvalidSig() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	_, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -187,7 +187,7 @@ func (suite *AnteTestSuite) TestEthInvalidSig() {
 
 func (suite *AnteTestSuite) TestEthInvalidNonce() {
 
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -210,7 +210,7 @@ func (suite *AnteTestSuite) TestEthInvalidNonce() {
 }
 
 func (suite *AnteTestSuite) TestEthInsufficientBalance() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -230,7 +230,7 @@ func (suite *AnteTestSuite) TestEthInsufficientBalance() {
 }
 
 func (suite *AnteTestSuite) TestEthInvalidIntrinsicGas() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()

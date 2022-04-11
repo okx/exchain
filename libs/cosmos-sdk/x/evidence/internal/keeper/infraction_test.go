@@ -74,7 +74,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.Error(suite.app.SlashingKeeper.Unjail(ctx, operatorAddr))
 
 	// require we be able to unbond now
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	del, _ := suite.app.StakingKeeper.GetDelegation(ctx, sdk.AccAddress(operatorAddr), operatorAddr)
 	validator, _ := suite.app.StakingKeeper.GetValidator(ctx, operatorAddr)
 	totalBond := validator.TokensFromShares(del.GetShares()).TruncateInt()

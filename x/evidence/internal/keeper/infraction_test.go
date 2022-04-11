@@ -68,7 +68,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.Error(suite.app.SlashingKeeper.Unjail(ctx, operatorAddr))
 
 	// require we be able to unbond now
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	msgDestroy := stakingtypes.NewMsgDestroyValidator(sdk.AccAddress(operatorAddr))
 	res, err = staking.NewHandler(suite.app.StakingKeeper)(ctx, msgDestroy)
 	suite.NoError(err)

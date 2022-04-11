@@ -37,7 +37,7 @@ func checkInvalidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, 
 func TestSimulateGasCost(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -137,7 +137,7 @@ func TestAnteHandlerSigErrors(t *testing.T) {
 func TestAnteHandlerAccountNumbers(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -194,7 +194,7 @@ func TestAnteHandlerAccountNumbers(t *testing.T) {
 func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(0)
+	ctx.SetBlockHeight(0)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -250,7 +250,7 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 func TestAnteHandlerSequences(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -366,7 +366,7 @@ func TestAnteHandlerFees(t *testing.T) {
 func TestAnteHandlerMemoGas(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -406,7 +406,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 func TestAnteHandlerMultiSigner(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -456,7 +456,7 @@ func TestAnteHandlerMultiSigner(t *testing.T) {
 func TestAnteHandlerBadSignBytes(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -533,7 +533,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 func TestAnteHandlerSetPubKey(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -651,7 +651,7 @@ func TestCountSubkeys(t *testing.T) {
 func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -690,7 +690,7 @@ func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	// setup an ante handler that only accepts PubKeyEd25519
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, func(meter sdk.GasMeter, sig []byte, pubkey crypto.PubKey, params types.Params) error {
 		switch pubkey := pubkey.(type) {
@@ -736,7 +736,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
 	// set blockheight and recheck=true
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	ctx.SetIsReCheckTx(true)
 
 	// keys and addresses

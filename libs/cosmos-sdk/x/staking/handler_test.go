@@ -314,7 +314,7 @@ func TestIncrementsMsgDelegate(t *testing.T) {
 	msgDelegate := NewTestMsgDelegate(delegatorAddr, validatorAddr, bondAmount)
 
 	for i := int64(0); i < 5; i++ {
-		ctx = ctx.WithBlockHeight(i)
+		ctx.SetBlockHeight(i)
 
 		res, err := handleMsgDelegate(ctx, msgDelegate, keeper)
 		require.NoError(t, err)
@@ -1264,7 +1264,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.Equal(t, 2, len(updates))
 
 	// a block passes
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 
 	// begin unbonding 4 stake
 	unbondAmt := sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(4))
@@ -1314,7 +1314,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.Equal(t, valTokens.QuoRaw(2), validator.GetBondedTokens())
 
 	// slash the validator for an infraction committed after the unbonding and redelegation begin
-	ctx = ctx.WithBlockHeight(3)
+	ctx.SetBlockHeight(3)
 	keeper.Slash(ctx, consAddr0, 2, 10, sdk.NewDecWithPrec(5, 1))
 
 	// unbonding delegation should be unchanged

@@ -103,7 +103,7 @@ func TestSigVerification(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
 	// make block height non-zero to ensure account numbers part of signBytes
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 
 	// keys and addresses
 	priv1, _, addr1 := types.KeyTestPubAddr()
@@ -178,7 +178,7 @@ func runSigDecorators(t *testing.T, params types.Params, multisig bool, privs ..
 	// setup
 	app, ctx := createTestApp(true)
 	// Make block-height non-zero to include accNum in SignBytes
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	app.AccountKeeper.SetParams(ctx, params)
 
 	msgs := make([]sdk.Msg, len(privs))

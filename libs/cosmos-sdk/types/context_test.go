@@ -204,7 +204,7 @@ func TestContextHeaderClone(t *testing.T) {
 
 			// update only changes one field
 			var newHeight int64 = 17
-			ctx = ctx.WithBlockHeight(newHeight)
+			ctx.SetBlockHeight(newHeight)
 			require.Equal(t, newHeight, ctx.BlockHeight())
 			require.Equal(t, tc.h.Time.UTC(), ctx.BlockTime())
 		})
