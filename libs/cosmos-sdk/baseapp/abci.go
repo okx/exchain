@@ -177,12 +177,14 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	go func() {
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
-			tt := fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
-			sdk.DebugLogByScf.AddCommitInfo(tt)
+		if app.deliverState.ms != nil {
+			app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+				tt := fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
+				sdk.DebugLogByScf.AddCommitInfo(tt)
 
-			return true
-		}, nil)
+				return true
+			}, nil)
+		}
 	}()
 
 	//go func() {
