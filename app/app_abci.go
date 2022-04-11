@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
+	stdlog "log"
 )
 
 // BeginBlock implements the Application interface
@@ -38,6 +39,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	// error returned from ante
 	// record invalid tx to watcher
 	if resp.Code > errors.AnteErrorsLowerBoundary {
+		stdlog.Println("giskook--- should not here")
 		var realTx sdk.Tx
 		if realTx, _ = app.BaseApp.ReapOrDecodeTx(req); realTx != nil {
 			for _, msg := range realTx.GetMsgs() {
