@@ -128,7 +128,6 @@ func NewSimulateKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
-		cci:           &chainConfigInfo{},
 	}
 }
 
