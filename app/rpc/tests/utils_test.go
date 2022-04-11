@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -12,13 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 const (
@@ -157,7 +158,7 @@ func deployTestContract(t *testing.T, senderAddr ethcmn.Address, kind int) (ethc
 
 func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {
 	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
-	var transaction types.Transaction
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 
 	if transaction.BlockNumber == nil {
@@ -169,7 +170,7 @@ func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {
 
 func getBlockHashFromTxHash(t *testing.T, hash ethcmn.Hash) *ethcmn.Hash {
 	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
-	var transaction types.Transaction
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 
 	return transaction.BlockHash
