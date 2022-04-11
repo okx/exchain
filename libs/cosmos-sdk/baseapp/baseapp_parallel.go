@@ -61,7 +61,8 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
 
-	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+	checkStateCtx := app.checkState.ctx
+	checkStateCtx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 
 	maxNums := runtime.NumCPU()
 	txSize := len(txs)
