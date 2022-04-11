@@ -92,7 +92,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			return sdkerrors.NewAnteError(err)
+			return err
 		}
 	}
 	app.pin(RunAnte, false, mode)
