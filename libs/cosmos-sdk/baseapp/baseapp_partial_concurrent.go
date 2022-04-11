@@ -30,7 +30,7 @@ const (
 	dttRoutineStepSerial
 	dttRoutineStepFinished
 
-	maxDeliverTxsConcurrentNum = 8
+	maxDeliverTxsConcurrentNum = 4
 	keepAliveIntervalMS        = 1
 )
 
@@ -47,17 +47,15 @@ var totalAccountUpdateDuration = int64(0)
 
 type DeliverTxTask struct {
 	index        int
-	updateCount  int8
-	needToRerun  bool
 	canRerun     int8
 	routineIndex int8
 
 	info          *runTxInfo
 	fee           sdk.Coins
-	from          string //sdk.Address//exported.Account
+	from          string
 	to            string
 	err           error
-	prevTaskIndex int // true: if there exists a not finished tx which has the same sender but smaller index
+	prevTaskIndex int // the index of a not finished tx with a smaller index while its from or to equals to this tx's from
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
@@ -68,19 +66,6 @@ func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
 	}
 
 	return t
-}
-
-func (dtt *DeliverTxTask) setUpdateCount(count int8, add bool) bool {
-	if add {
-		dtt.updateCount += count
-	} else {
-		dtt.updateCount -= count
-	}
-	return dtt.updateCount > 0
-}
-
-func (dtt *DeliverTxTask) resetUpdateCount() {
-	dtt.updateCount = 0
 }
 
 //-------------------------------------
@@ -360,7 +345,6 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
-	task.resetUpdateCount()
 	task.canRerun = 0
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -574,12 +558,12 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool)
 	start := time.Now()
 	if updateState {
 		addr := hex.EncodeToString(acc.GetAddress())
-		dttm.accountUpdated(true, 1, addr)
+		dttm.accountUpdated(addr)
 	}
 	totalAccountUpdateDuration += time.Since(start).Microseconds()
 }
 
-func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string) {
+func (dttm *DTTManager) accountUpdated(address string) {
 	dttm.mtx.Lock()
 	defer dttm.mtx.Unlock()
 
@@ -590,10 +574,7 @@ func (dttm *DTTManager) accountUpdated(happened bool, times int8, address string
 			continue
 		}
 
-		task := dttr.task
-		if task.setUpdateCount(times, happened) {
-			dttr.shouldRerun(-1)
-		}
+		dttr.shouldRerun(-1)
 	}
 }
 
