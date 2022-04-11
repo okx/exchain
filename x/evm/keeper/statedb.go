@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"log"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/types"
