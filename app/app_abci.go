@@ -45,7 +45,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 				if ok {
 					evmTxHash := common.BytesToHash(evmTx.TxHash())
 					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(app.EvmKeeper.TxIndexInBlock), uint64(resp.GasUsed))
-					app.EvmKeeper.TxCount++
 				}
 			}
 		}
