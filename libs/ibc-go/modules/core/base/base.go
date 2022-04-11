@@ -29,7 +29,7 @@ func (b *BaseIBCUpgradeModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
-	return types.GetVenus1Height() + 1
+	return types.GetVenus1Height()
 }
 
 func (b *BaseIBCUpgradeModule) BlockStoreModules() []string {
