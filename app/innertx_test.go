@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -24,6 +25,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	staking_keeper "github.com/okex/exchain/x/staking/keeper"
 	staking_types "github.com/okex/exchain/x/staking/types"
+
 	"github.com/stretchr/testify/suite"
 )
 
@@ -58,6 +60,7 @@ func (suite *InnerTxTestSuite) SetupTest() {
 
 	suite.app = Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	suite.ctx.SetDeliver()
 	suite.stateDB = evm_types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.codec = codec.New()
 
@@ -180,7 +183,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				suite.Require().NoError(err)
 
 				// sign transaction
-				ethTx, ok := tx.(evm_types.MsgEthereumTx)
+				ethTx, ok := tx.(*evm_types.MsgEthereumTx)
 				suite.Require().True(ok)
 
 				err = ethTx.Sign(chainID, privFrom.ToECDSA())

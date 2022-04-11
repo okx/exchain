@@ -38,7 +38,7 @@ func (app *OKExChainApp) ExportAppStateAndValidators(
 
 	// Export genesis to be used by SDK modules
 	genState := app.mm.ExportGenesis(ctx)
-	appState, err = codec.MarshalJSONIndent(app.cdc, genState)
+	appState, err = codec.MarshalJSONIndent(app.marshal.GetCdc(), genState)
 	if err != nil {
 		return nil, nil, err
 	}

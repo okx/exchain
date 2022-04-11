@@ -45,12 +45,14 @@ func (ar *AddressRecord) AddItem(address string, cElement *clist.CElement) {
 	}
 }
 
-func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, info ExTxInfo, txPriceBump int64) *clist.CElement {
-	newElement := clist.NewCElement(memTx, info.Sender, info.GasPrice, info.Nonce)
+func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump int64) *clist.CElement {
+	gasPrice := memTx.realTx.GetGasPrice()
+	nonce := memTx.realTx.GetNonce()
+	newElement := clist.NewCElement(memTx, memTx.from, gasPrice, nonce)
 
-	v, ok := ar.addrTxs.Load(info.Sender)
+	v, ok := ar.addrTxs.Load(memTx.from)
 	if !ok {
-		v, ok = ar.addrTxs.LoadOrStore(info.Sender, &addrMap{items: make(map[uint64]*clist.CElement)})
+		v, ok = ar.addrTxs.LoadOrStore(memTx.from, &addrMap{items: make(map[uint64]*clist.CElement)})
 	}
 	am := v.(*addrMap)
 	am.Lock()
@@ -63,10 +65,10 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, info ExTxInfo
 	}
 
 	for _, e := range am.items {
-		if e.Nonce == info.Nonce {
+		if e.Nonce == nonce {
 			// only replace tx for bigger gas price
 			expectedGasPrice := MultiPriceBump(e.GasPrice, txPriceBump)
-			if info.GasPrice.Cmp(expectedGasPrice) <= 0 {
+			if gasPrice.Cmp(expectedGasPrice) <= 0 {
 				return nil
 			}
 
@@ -74,7 +76,7 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, info ExTxInfo
 			ar.removeElement(e)
 			var items []*clist.CElement
 			for _, item := range am.items {
-				if item.Nonce > info.Nonce {
+				if item.Nonce > nonce {
 					items = append(items, item)
 				}
 			}
@@ -155,10 +157,10 @@ func (ar *AddressRecord) GetAddressTxsCnt(address string) int {
 	return len(am.items)
 }
 
-func (ar *AddressRecord) GetAddressNonce(address string) uint64 {
+func (ar *AddressRecord) GetAddressNonce(address string) (uint64, bool) {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
-		return 0
+		return 0, false
 	}
 	am := v.(*addrMap)
 	am.RLock()
@@ -169,7 +171,7 @@ func (ar *AddressRecord) GetAddressNonce(address string) uint64 {
 			nonce = e.Nonce
 		}
 	}
-	return nonce
+	return nonce, true
 }
 
 func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) types.Txs {

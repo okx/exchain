@@ -151,12 +151,16 @@ func (state State) MakeBlock(
 	block.Header.Populate(
 		state.Version.Consensus, state.ChainID,
 		timestamp, state.LastBlockID,
-		state.Validators.Hash(), state.NextValidators.Hash(),
+		state.Validators.Hash(height), state.NextValidators.Hash(height+1),
 		state.ConsensusParams.Hash(), state.AppHash, state.LastResultsHash,
 		proposerAddress,
 	)
 
 	return block, block.MakePartSet(types.BlockPartSizeBytes)
+}
+
+func (state *State) String() string {
+	return fmt.Sprintf("%+v", *state)
 }
 
 // MedianTime computes a median time for a given Commit (based on Timestamp field of votes messages) and the
@@ -231,7 +235,7 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 	}
 
 	return State{
-		Version: initStateVersion,
+		Version: GetStateVersion(types.GetStartBlockHeight()),
 		ChainID: genDoc.ChainID,
 
 		LastBlockHeight: types.GetStartBlockHeight(),

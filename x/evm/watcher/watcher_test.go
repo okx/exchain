@@ -63,6 +63,7 @@ func setupTest() *WatcherTestSt {
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	w.ctx.SetDeliver()
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
 
 	ethermint.SetChainId(chain_id)
@@ -108,7 +109,7 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
@@ -125,7 +126,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
 
@@ -146,7 +147,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	require.NoError(t, err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -197,7 +198,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 
 func TestMsgEthereumTxByWatcher(t *testing.T) {
 	var (
-		tx   types.MsgEthereumTx
+		tx   *types.MsgEthereumTx
 		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
@@ -355,7 +356,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	a2 := newMockAccount(1, 2)
 	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
@@ -373,8 +374,10 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a1, true)
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
+	// waiting 1 second for initializing jobChan
+	time.Sleep(time.Millisecond)
 	w.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))

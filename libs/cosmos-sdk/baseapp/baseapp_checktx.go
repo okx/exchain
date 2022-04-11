@@ -47,20 +47,24 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		data, _ := json.Marshal(exTxInfo)
 
 		return abci.ResponseCheckTx{
-			Data: data,
+			Tx:          tx,
+			SenderNonce: exTxInfo.SenderNonce,
+			Data:        data,
 		}
 	}
 
-	gInfo, result, _, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight, req.From)
+	info, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight, req.From)
 	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		return sdkerrors.ResponseCheckTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
 	return abci.ResponseCheckTx{
-		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-		Log:       result.Log,
-		Data:      result.Data,
-		Events:    result.Events.ToABCIEvents(),
+		Tx:          tx,
+		SenderNonce: info.accountNonce,
+		GasWanted:   int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:     int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:         info.result.Log,
+		Data:        info.result.Data,
+		Events:      info.result.Events.ToABCIEvents(),
 	}
 }

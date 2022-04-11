@@ -58,6 +58,10 @@ func (w WatchStore) Get(key []byte) ([]byte, error) {
 	return w.db.Get(key)
 }
 
+func (w WatchStore) GetUnsafe(key []byte, processor dbm.UnsafeValueProcessor) (interface{}, error) {
+	return w.db.GetUnsafeValue(key, processor)
+}
+
 func (w WatchStore) Delete(key []byte) {
 	err := w.db.Delete(key)
 	if err != nil {

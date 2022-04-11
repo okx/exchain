@@ -2,10 +2,12 @@ package keeper
 
 import (
 	"bytes"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"strconv"
 	"testing"
 	"time"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -124,6 +126,9 @@ func CreateTestInput(
 		},
 	)
 	cdc := MakeTestCodec()
+	reg := types2.NewInterfaceRegistry()
+	cc := codec.NewProtoCodec(reg)
+	pro := codec.NewCodecProxy(cc, cdc)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	notBondedPool := supply.NewEmptyModuleAccount(staking.NotBondedPoolName, supply.Staking)
@@ -166,7 +171,7 @@ func CreateTestInput(
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	// for staking/distr rollback to cosmos-sdk
-	stakingKeeper := staking.NewKeeper(cdc, stakingSk, supplyKeeper,
+	stakingKeeper := staking.NewKeeper(pro, stakingSk, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())

@@ -2,6 +2,11 @@ package txs
 
 import (
 	"fmt"
+	"math/big"
+	"reflect"
+	"testing"
+	"time"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,10 +14,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var sdkResult sdk.Result
@@ -99,10 +100,10 @@ func TestTransitionEvmTx(t *testing.T) {
 		wantResult *sdk.Result
 		wantErr    bool
 	}{
-		{"1. none error", args{tx: EmptyTx{}, msg: &msg}, &sdkResult, false},
-		{"2. prepare error", args{tx: EmptyTx{PrepareFail: true}, msg: &msg}, nil, true},
-		{"3. transition error", args{tx: EmptyTx{TransitionFail: true}, msg: &msg}, nil, true},
-		{"4. decorate result error", args{tx: EmptyTx{DecorateResultFail: true}, msg: &msg}, nil, true},
+		{"1. none error", args{tx: EmptyTx{}, msg: msg}, &sdkResult, false},
+		{"2. prepare error", args{tx: EmptyTx{PrepareFail: true}, msg: msg}, nil, true},
+		{"3. transition error", args{tx: EmptyTx{TransitionFail: true}, msg: msg}, nil, true},
+		{"4. decorate result error", args{tx: EmptyTx{DecorateResultFail: true}, msg: msg}, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -28,7 +28,7 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	signers := tx.GetSigners()
 
 	currentGasMeter := ctx.GasMeter()
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	for _, signer := range signers {
 		//TODO it may be optimizate by cache blockedAddressList
@@ -37,6 +37,6 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", signer.String())
 		}
 	}
-	ctx = ctx.WithGasMeter(currentGasMeter)
+	ctx.SetGasMeter(currentGasMeter)
 	return next(ctx, tx, simulate)
 }

@@ -3,6 +3,8 @@ package refund
 import (
 	"math/big"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
@@ -35,14 +37,8 @@ type Handler struct {
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
-
 	currentGasMeter := ctx.GasMeter()
-	TempGasMeter := sdk.NewInfiniteGasMeter()
-	ctx = ctx.WithGasMeter(TempGasMeter)
-
-	defer func() {
-		ctx = ctx.WithGasMeter(currentGasMeter)
-	}()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	gasLimit := currentGasMeter.Limit()
 	gasUsed := currentGasMeter.GasConsumed()
@@ -57,7 +53,8 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
-	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
+
+	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(&ctx, handler.ak, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
@@ -65,6 +62,8 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	ctx.EnableAccountCache()
+	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err

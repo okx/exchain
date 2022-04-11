@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -194,7 +195,14 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
-	anteTracer        *trace.Tracer
+
+	interfaceRegistry types.InterfaceRegistry
+	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
+	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
+
+	interceptors map[string]Interceptor
+
+	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -222,7 +230,12 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
-		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+
+		msgServiceRouter: NewMsgServiceRouter(),
+		grpcQueryRouter:  NewGRPCQueryRouter(),
+		interceptors:     make(map[string]Interceptor),
+
+		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
@@ -237,6 +250,10 @@ func NewBaseApp(
 	app.parallelTxManage.workgroup.Start()
 
 	return app
+}
+
+func (app *BaseApp) SetInterceptors(interceptors map[string]Interceptor) {
+	app.interceptors = interceptors
 }
 
 // Name returns the name of the BaseApp.
@@ -625,10 +642,11 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx = ctx.WithAsync()
-		if s, ok := app.parallelTxManage.txStatus[string(txBytes)]; ok && s.signCache != nil {
-			ctx = ctx.WithSigCache(s.signCache)
-		}
 		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
+	}
+
+	if mode == runTxModeDeliver {
+		ctx.SetDeliver()
 	}
 
 	return ctx
@@ -749,7 +767,8 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		).(sdk.CacheMultiStore)
 	}
 
-	return ctx.WithMultiStore(msCache), msCache
+	ctx.SetMultiStore(msCache)
+	return ctx, msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
@@ -783,7 +802,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
-
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
@@ -839,7 +857,12 @@ func (app *BaseApp) StopStore() {
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
-	exTxInfo := tx.GetTxInfo(ctx)
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   tx.GetFrom(),
+		GasPrice: tx.GetGasPrice(),
+		Nonce:    tx.GetNonce(),
+	}
+
 	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.AccHandler != nil {
 		addr, _ := sdk.AccAddressFromBech32(exTxInfo.Sender)
 		exTxInfo.Nonce = app.AccHandler(ctx, addr)
@@ -884,4 +907,10 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
+}
+
+func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
+
+func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
+	return app.cms
 }

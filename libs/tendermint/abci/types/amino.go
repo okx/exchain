@@ -372,7 +372,7 @@ func (vp *ValidatorParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 	return nil
 }
 
-func (event Event) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+func (event *Event) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	var err error
 	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}

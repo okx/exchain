@@ -25,6 +25,7 @@ import (
 	"github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/app/rpc/websockets"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )
@@ -414,7 +415,7 @@ func TestEth_GetTransactionByHash(t *testing.T) {
 
 	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
 
-	var transaction types.Transaction
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 	require.True(t, hexAddr1 == transaction.From)
 	require.True(t, receiverAddr == *transaction.To)
@@ -764,7 +765,7 @@ func TestEth_GetTransactionByBlockHashAndIndex(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	blockHash, index := getBlockHashFromTxHash(t, hash), hexutil.Uint(0)
 	rpcRes := Call(t, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index})
-	var transaction types.Transaction
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 	require.True(t, hash == transaction.Hash)
 	require.True(t, *blockHash == *transaction.BlockHash)
@@ -823,7 +824,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 func TestEth_PendingTransactions(t *testing.T) {
 	// there will be no pending tx in mempool because of the quick grab of block building
 	rpcRes := Call(t, "eth_pendingTransactions", nil)
-	var transactions []types.Transaction
+	var transactions []watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactions))
 	require.Zero(t, len(transactions))
 }

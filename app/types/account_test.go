@@ -244,6 +244,7 @@ func TestEthAccountAmino(t *testing.T) {
 		if err != nil {
 			t.Fatal("marshal error")
 		}
+		require.Equal(t, len(data), 4+testAccount.AminoSize(cdc))
 
 		var accountFromAmino exported.Account
 

@@ -158,7 +158,7 @@ func newMockApp(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, accountsInGe
 	app *mockApp, mockDexKeeper *mockDexKeeper, err error) {
 
 	mApp := mock.NewApp()
-	RegisterCodec(mApp.Cdc)
+	RegisterCodec(mApp.Cdc.GetCdc())
 
 	storeKey := sdk.NewKVStoreKey(StoreKey)
 	keyTokenPair := sdk.NewKVStoreKey(TokenPairStoreKey)
@@ -168,7 +168,7 @@ func newMockApp(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, accountsInGe
 	paramsSubspace := paramsKeeper.Subspace(DefaultParamspace)
 
 	dexKeeper := NewKeeper(AuthFeeCollector, supplyKeeper, paramsSubspace, tokenKeeper, nil, nil,
-		storeKey, keyTokenPair, mApp.Cdc)
+		storeKey, keyTokenPair, mApp.Cdc.GetCdc())
 
 	dexKeeper.SetGovKeeper(mockGovKeeper{})
 

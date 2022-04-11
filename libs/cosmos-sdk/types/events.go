@@ -105,9 +105,13 @@ func (a Attribute) MarshalJsonToBuffer(buf *bytes.Buffer) error {
 // attributes.
 func NewEvent(ty string, attrs ...Attribute) Event {
 	e := Event{Type: ty}
+	if len(attrs) > 0 {
+		e.Attributes = make([]tmkv.Pair, len(attrs))
+	}
 
-	for _, attr := range attrs {
-		e.Attributes = append(e.Attributes, attr.ToKVPair())
+	for i, attr := range attrs {
+		e.Attributes[i].Key = []byte(attr.Key)
+		e.Attributes[i].Value = []byte(attr.Value)
 	}
 
 	return e
@@ -129,7 +133,7 @@ func (a Attribute) String() string {
 
 // ToKVPair converts an Attribute object into a Tendermint key/value pair.
 func (a Attribute) ToKVPair() tmkv.Pair {
-	return tmkv.Pair{Key: toBytes(a.Key), Value: toBytes(a.Value)}
+	return tmkv.Pair{Key: []byte(a.Key), Value: []byte(a.Value)}
 }
 
 // AppendAttributes adds one or more attributes to an Event.
@@ -317,7 +321,7 @@ func (se StringEvents) Flatten() StringEvents {
 }
 
 // StringifyEvent converts an Event object to a StringEvent object.
-func StringifyEvent(e abci.Event) StringEvent {
+func StringifyEvent(e Event) StringEvent {
 	res := StringEvent{Type: e.Type}
 
 	for _, attr := range e.Attributes {
@@ -332,7 +336,7 @@ func StringifyEvent(e abci.Event) StringEvent {
 
 // StringifyEvents converts a slice of Event objects into a slice of StringEvent
 // objects.
-func StringifyEvents(events []abci.Event) StringEvents {
+func StringifyEvents(events []Event) StringEvents {
 	res := make(StringEvents, 0, len(events))
 
 	for _, e := range events {

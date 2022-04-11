@@ -2,7 +2,6 @@ package simulation
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/x/evm"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,6 +19,7 @@ import (
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
@@ -127,6 +127,11 @@ func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	}
 
 }
+
+func (p SubspaceProxy) RegisterSignal(handler func()) {
+
+}
+
 func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {
 
 }
