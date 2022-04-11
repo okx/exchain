@@ -5,6 +5,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
@@ -42,8 +43,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 				evmTx, ok := msg.(*types.MsgEthereumTx)
 				if ok {
 					evmTxHash := common.BytesToHash(evmTx.TxHash())
-					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(app.EvmKeeper.TxCount), uint64(resp.GasUsed))
-					app.EvmKeeper.TxCount++
+					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(global.TxIndex), uint64(resp.GasUsed))
 				}
 			}
 		}
