@@ -208,7 +208,7 @@ func SetGenesis(app *App, accs []authexported.Account) {
 }
 
 // GenTx generates a signed mock transaction.
-func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
+func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) *auth.StdTx {
 	// Make the transaction free
 	fee := auth.StdFee{
 		Amount: sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)),

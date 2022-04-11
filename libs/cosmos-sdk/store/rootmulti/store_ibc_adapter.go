@@ -29,3 +29,6 @@ func (rs *Store) SetCommitHeightFilterPipeline(f storetypes.HeightFilterPipeline
 func (rs *Store) SetPruneHeightFilterPipeline(f storetypes.HeightFilterPipeline) {
 	rs.pruneHeightFilterPipeline = storetypes.LinkPipeline(f, rs.pruneHeightFilterPipeline)
 }
+func (rs *Store) SetVersionFilterPipeline(f storetypes.VersionFilterPipeline) {
+	rs.versionPipeline = storetypes.LinkPipeline2(f, rs.versionPipeline)
+}

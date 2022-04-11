@@ -109,7 +109,7 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
@@ -126,7 +126,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
 
@@ -356,7 +356,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	a2 := newMockAccount(1, 2)
 	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
@@ -375,9 +375,9 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
 	// waiting 1 second for initializing jobChan
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	w.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
