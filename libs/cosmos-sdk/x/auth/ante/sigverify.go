@@ -132,7 +132,7 @@ func (sgcd SigGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		if err != nil {
 			return ctx, err
 		}
-		pubKey := signerAcc.GetPubKey()	// TODO: what's the difference between signerAcc.GetPubKey && sigTx.GetPubKeys()
+		pubKey := signerAcc.GetPubKey()
 
 		if simulate && pubKey == nil {
 			// In simulate mode the transaction comes with no signatures, thus if the

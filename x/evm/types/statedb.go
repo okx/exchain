@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"sort"
 	"sync"
@@ -265,7 +264,6 @@ func (csdb *CommitStateDB) SetParams(params Params) {
 func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
-		log.Println("CommitStateDB.SetBalance", amount.Int64())
 		so.SetBalance(amount)
 	}
 }
@@ -875,7 +873,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 		return err
 	}
 
-	// todo: call csdb.accountKeeper.Observer
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, fromCommit)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.Watcher.Enabled() {

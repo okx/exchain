@@ -171,7 +171,6 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 	} else {
 		app.feeForCollector = app.feeForCollector.Sub(fee)
 	}
-	//app.logger.Info("UpdateFeeForCollector", "fee", app.feeForCollector)
 }
 
 // EndBlock implements the ABCI interface.
@@ -259,15 +258,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-
-	//if header.Height == 5811245 {
-	//	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-	//		if isDirty {
-	//			app.logger.Info(hex.EncodeToString(key), hex.EncodeToString(value))
-	//		}
-	//		return true
-	//	})
-	//}
 
 	app.deliverState.ms.Write()
 

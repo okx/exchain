@@ -38,13 +38,6 @@ func (m *modeHandlerDeliverPartConcurrent) handleDeferRefund(info *runTxInfo) {
 	info.ctx.Cache().Write(true)
 
 	app.UpdateFeeForCollector(refundGas, false)
-
-	//app.deliverTxsMgr.calculateFeeForCollector(refundGas, false)
-	//
-	//diff, hasNeg := app.feeForCollector.SafeSub(app.deliverTxsMgr.currTxFee)
-	//if hasNeg || !diff.IsZero() {
-	//	app.logger.Error("NotEqual", app.feeForCollector, app.deliverTxsMgr.currTxFee)
-	//}
 }
 
 func (m *modeHandlerDeliverPartConcurrent) handleDeferGasConsumed(info *runTxInfo) {

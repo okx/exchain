@@ -244,9 +244,6 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	//if global.GetGlobalHeight() == 5811244 && hex.EncodeToString(acc.Address) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	//		log.Printf("change account: %s\n", coins)
-	//}
 	acc.Coins = coins
 	return nil
 }
@@ -269,9 +266,6 @@ func (acc *BaseAccount) GetSequence() uint64 {
 
 // SetSequence - Implements sdk.Account.
 func (acc *BaseAccount) SetSequence(seq uint64) error {
-	//if hex.EncodeToString(acc.GetAddress().Bytes()) == "5d2238753f3ca5e649f9250c303d5c196a069f24" {
-	//	log.Println("SetSequence", seq)
-	//}
 	acc.Sequence = seq
 	return nil
 }

@@ -262,6 +262,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	log.Println("replay stop block height", "height", haltheight, "lastBlockHeight", lastBlockHeight, "state.LastBlockHeight", state.LastBlockHeight)
 
+	deliverTxsMode := viper.GetInt(deliverTxModeFlag)
+
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
 		global.SetGlobalHeight(lastBlockHeight)
@@ -270,14 +272,12 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, int8(0))
+		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{}, int8(deliverTxsMode))
 		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
 
-	deliverTxsMode := viper.GetInt(deliverTxModeFlag)
-	fmt.Println("deliverTxModeFlag", deliverTxsMode)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{}, int8(deliverTxsMode))
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
@@ -287,10 +287,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
-	//blockExec.SetDeliverTxsMode(int8(1))
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
-	//height := lastBlockHeight + 1
-	//for i := 0; i < 3; i++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
@@ -300,7 +297,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
-		//height++
 	}
 }
 

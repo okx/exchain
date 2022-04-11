@@ -233,7 +233,6 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 	}
 
 	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Add(amt)
-	//log.Println("stateObject.AddBalance", amount.Int64(), so.account.GetAddress().String())
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -245,7 +244,6 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 		return
 	}
 	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Sub(amt)
-	//log.Println("stateObject.SubBalance", amount.Int64(), so.account.GetAddress().String())
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -258,12 +256,10 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom), // int2dec
 	})
 
-	//log.Println("stateObject.SetBalance", amount.Int64())
 	so.setBalance(sdk.DefaultBondDenom, amt)
 }
 
 func (so *stateObject) setBalance(denom string, amount sdk.Dec) {
-	//log.Println("stateObject.setBalance", amount.Int64())
 	so.account.SetBalance(denom, amount)
 }
 

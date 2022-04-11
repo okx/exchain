@@ -150,7 +150,6 @@ type BaseApp struct { // nolint: maligned
 	logFix                       sdk.LogFix
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
-	//setAccountObserverFn SetAccountObserver
 
 	// volatile states:
 	//
