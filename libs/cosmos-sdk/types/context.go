@@ -169,11 +169,6 @@ func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
 	return c
 }
 
-func (c Context) WithMinGasPrices(gasPrices DecCoins) Context {
-	c.minGasPrice = gasPrices
-	return c
-}
-
 func (c *Context) SetAsync(isAsync bool) *Context {
 	c.isAsync = isAsync
 	return c

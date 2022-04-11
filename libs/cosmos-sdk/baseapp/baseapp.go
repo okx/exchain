@@ -518,8 +518,9 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		ctx: sdk.NewContext(ms, header, true, app.logger),
 	}
+	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
@@ -672,8 +673,9 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	simState := &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, abciHeader, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		ctx: sdk.NewContext(ms, abciHeader, true, app.logger),
 	}
+	simState.ctx.SetMinGasPrices(app.minGasPrices)
 
 	ctx := simState.ctx
 	ctx.SetTxBytes(txBytes)
