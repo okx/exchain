@@ -59,26 +59,29 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	dc := setupTest(t)
 	dc.downloadDelta = true
 
-	deltaInfo := &DeltaInfo{
-		from:          "0x01",
-		deltaLen:      1000,
-		abciResponses: &ABCIResponses{},
-		treeDeltaMap:  iavl.TreeDeltaMap{},
+	deltaInfos := make([]*DeltaInfo, 3)
+	for i := 0; i <= 2; i++ {
+		h := int64(i + 1)
+		deltaInfos[i] = &DeltaInfo{
+			from:          "0x01",
+			deltaLen:      1000,
+			deltaHeight:   h,
+			abciResponses: &ABCIResponses{},
+			treeDeltaMap:  iavl.TreeDeltaMap{},
+		}
+		dc.dataMap.insert(h, deltaInfos[i], h)
 	}
-	dc.dataMap.insert(1, deltaInfo, 1)
-	dc.dataMap.insert(2, deltaInfo, 2)
-	dc.dataMap.insert(3, deltaInfo, 3)
 
 	tests := []struct {
 		name     string
 		height   int64
 		wantInfo *DeltaInfo
 	}{
-		{"normal case", 1, deltaInfo},
+		{"normal case", 1, deltaInfos[0]},
 		{"empty delta", 4, nil},
 		{"already remove", 1, nil},
-		{"higher height", 3, deltaInfo},
-		{"lower remove", 2, deltaInfo},
+		{"higher height", 3, deltaInfos[2]},
+		{"lower remove", 2, deltaInfos[1]},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
