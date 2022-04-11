@@ -23,7 +23,6 @@ const (
 	FlagTrieCacheSize         = "trie-cache-size"
 	FlagEnableDoubleWrite     = "enable-double-write"
 	FlagEnableTrieCommitAsync = "enable-trie-commit-async"
-	FlagMptRocksdbBatchSize   = "mpt-rocksdb-batch-size"
 )
 
 var (
@@ -31,7 +30,6 @@ var (
 	TrieCacheSize       uint = 2048 // MB
 	MptAsnyc                 = false
 	EnableDoubleWrite        = false
-	MptRocksdbBatchSize uint = 10
 	AccStoreCache       uint = 2048 // MB
 )
 

@@ -10,6 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
 
+const FlagMptRocksdbBatchSize   = "mpt-rocksdb-batch-size"
+var MptRocksdbBatchSize uint = 10
+
 //------------------------------------------
 type (
 	BackendType string
