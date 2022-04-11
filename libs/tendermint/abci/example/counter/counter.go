@@ -77,7 +77,7 @@ type tx struct {
 	sdk.BaseTx
 }
 
-func (tx tx) GetGasPrice() *big.Int {
+func (tx *tx) GetGasPrice() *big.Int {
 	return big.NewInt(1)
 }
 
@@ -98,7 +98,7 @@ func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx 
 		}
 	}
 	data, _ := json.Marshal(&MockExTxInfo{Sender: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)})
-	return types.ResponseCheckTx{Tx: tx{sdk.BaseTx{From: fmt.Sprintf("%+x", req.Tx)}}, Code: code.CodeTypeOK, Data: data}
+	return types.ResponseCheckTx{Tx: &tx{sdk.BaseTx{From: fmt.Sprintf("%+x", req.Tx)}}, Code: code.CodeTypeOK, Data: data}
 }
 
 func (app *Application) Commit(req types.RequestCommit) types.ResponseCommit {
