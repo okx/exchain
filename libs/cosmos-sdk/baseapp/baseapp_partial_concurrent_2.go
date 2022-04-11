@@ -373,7 +373,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
+	//dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -436,13 +436,19 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 }
 
 func (dttm *DTTManager) serialRoutine() {
+	keepAliveTicker := time.NewTicker(keepAliveIntervalMS * time.Millisecond)
+	nextTaskRoutine := int8(-1)
 	for {
 		select {
 		case routineIndex := <-dttm.serialCh:
+			keepAliveTicker.Stop()
 			// runMsgs etc.
 			rt := dttm.dttRoutineList[routineIndex]
 			task := rt.task
-			if task.index == dttm.serialIndex+1 { //&& (rt.step == dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
+			if task.index != dttm.serialIndex+1{
+				break
+			}
+			//if task.index == dttm.serialIndex+1 { //&& (rt.step == dttRoutineStepReadyForSerial || rt.step == dttRoutineStepAnteFinished) {
 				dttm.serialIndex = task.index
 				dttm.serialTask = task
 				rt.step = dttRoutineStepSerial
@@ -480,7 +486,8 @@ func (dttm *DTTManager) serialRoutine() {
 
 				// check whether there are ante-finished task
 				count := len(dttm.dttRoutineList)
-				nextTaskRoutine := int8(-1)
+				//nextTaskRoutine := int8(-1)
+				nextTaskRoutine = -1
 				var rerunRoutine *dttRoutine
 				for i := 0; i < count; i++ {
 					dttr := dttm.dttRoutineList[i]
@@ -505,7 +512,8 @@ func (dttm *DTTManager) serialRoutine() {
 							dttm.serialCh <- nextTaskRoutine //nextTask//
 							//}()
 						} else {
-							dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+							dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+							keepAliveTicker.Reset(keepAliveIntervalMS * time.Millisecond)
 						}
 					}
 				}
@@ -514,6 +522,11 @@ func (dttm *DTTManager) serialRoutine() {
 					dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
 					rerunRoutine.shouldRerun(task.index)
 				}
+			//}
+		case <-keepAliveTicker.C:
+			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
+				dttm.app.logger.Error("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+				dttm.serialCh <- nextTaskRoutine
 			}
 		}
 	}
