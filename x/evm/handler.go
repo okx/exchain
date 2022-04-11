@@ -14,7 +14,7 @@ import (
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
 		defer func() {
 			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
@@ -95,5 +95,3 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	// core logical to handle ethereum tx
 	return txs.TransitionEvmTx(tx, msg)
 }
-
-

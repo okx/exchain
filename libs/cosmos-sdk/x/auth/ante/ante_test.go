@@ -796,14 +796,14 @@ func TestAnteHandlerReCheck(t *testing.T) {
 
 	// require that local mempool fee check is still run on recheck since validator may change minFee between check and recheck
 	// create new minimum gas price so antehandler fails on recheck
-	ctx = ctx.WithMinGasPrices([]sdk.DecCoin{{
+	ctx.SetMinGasPrices([]sdk.DecCoin{{
 		Denom:  "dnecoin", // fee does not have this denom
 		Amount: sdk.NewDec(5),
 	}})
 	_, err = antehandler(ctx, tx, false)
 	require.NotNil(t, err, "antehandler on recheck did not fail when mingasPrice was changed")
 	// reset min gasprice
-	ctx = ctx.WithMinGasPrices(sdk.DecCoins{})
+	ctx.SetMinGasPrices(sdk.DecCoins{})
 
 	// remove funds for account so antehandler fails on recheck
 	acc1.SetCoins(sdk.Coins{})

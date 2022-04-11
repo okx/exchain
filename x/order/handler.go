@@ -50,7 +50,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 			defer func() { ctx.SetGasMeter(gasMeter) }()
 		}
 
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 		var handlerFun func() (*sdk.Result, error)
 		var name string
 		logger := ctx.Logger().With("module", "order")

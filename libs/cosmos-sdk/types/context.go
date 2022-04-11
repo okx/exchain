@@ -189,11 +189,6 @@ func (c Context) WithMinGasPrices(gasPrices DecCoins) Context {
 	return c
 }
 
-func (c Context) WithEventManager(em *EventManager) Context {
-	c.eventManager = em
-	return c
-}
-
 func (c *Context) SetAsync(isAsync bool) *Context {
 	c.isAsync = isAsync
 	return c
