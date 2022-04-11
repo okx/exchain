@@ -10,8 +10,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
-	//"github.com/okex/exchain/libs/tendermint/libs/service"
-	"sync"
 	"time"
 )
 
@@ -55,7 +53,7 @@ type DeliverTxTask struct {
 	from          string
 	to            string
 	err           error
-	prevTaskIndex int // the index of a not finished tx with a smaller index while its from or to equals to this tx's from
+	prevTaskIndex int // the index of a running tx with a smaller index while its from or to equals to this tx's from
 }
 
 func newDeliverTxTask(tx sdk.Tx, index int) *DeliverTxTask {
@@ -213,18 +211,17 @@ type DTTManager struct {
 	done           chan int8
 	totalCount     int
 	txs            [][]byte
-	dttRoutineList []*dttRoutine //sync.Map	// key: txIndex, value: dttRoutine
+	dttRoutineList []*dttRoutine // key: txIndex, value: dttRoutine
 	serialIndex    int
 	serialTask     *DeliverTxTask
 	serialCh       chan int8
 
-	mtx sync.Mutex
+	//mtx sync.Mutex
 
-	txResponses        []*abci.ResponseDeliverTx
-	invalidTxs         int
-	app                *BaseApp
-	checkStateCtx      sdk.Context
-	maxConcurrentCount int8
+	txResponses   []*abci.ResponseDeliverTx
+	invalidTxs    int
+	app           *BaseApp
+	checkStateCtx sdk.Context
 }
 
 func NewDTTManager(app *BaseApp) *DTTManager {
@@ -564,8 +561,8 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool)
 }
 
 func (dttm *DTTManager) accountUpdated(address string) {
-	dttm.mtx.Lock()
-	defer dttm.mtx.Unlock()
+	//dttm.mtx.Lock()
+	//defer dttm.mtx.Unlock()
 
 	num := len(dttm.dttRoutineList)
 	for i := 0; i < num; i++ {
