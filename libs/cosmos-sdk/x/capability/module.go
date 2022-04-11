@@ -2,7 +2,6 @@ package capability
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -36,12 +35,10 @@ var (
 // AppModuleBasic implements the AppModuleBasic interface for the capability module.
 type AppModuleBasic struct {
 	cdc *codec.CodecProxy
-	*base.BaseIBCUpgradeModule
 }
 
 func NewAppModuleBasic(cdc *codec.CodecProxy) AppModuleBasic {
 	ret := AppModuleBasic{cdc: cdc}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
 }
 
@@ -61,24 +58,12 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
-	}
 	return nil
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	if tmtypes.IsUpgradeIBCInRuntime() {
-		if nil == bz {
-			return nil
-		}
-	}
-	var genState types.GenesisState
-	if err := ModuleCdc.UnmarshalJSON(bz, &genState); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
-	}
-	return genState.Validate()
+	return nil
 }
 
 // RegisterRESTRoutes registers the capability module's REST service handlers.
@@ -110,7 +95,6 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg types2.InterfaceR
 type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
-
 	keeper keeper.Keeper
 }
 
@@ -155,10 +139,6 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if data != nil && !tmtypes.IsUpgradeIBCInRuntime() {
-		defer am.Seal()
-		return am.initGenesis(ctx, data)
-	}
 	return nil
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -173,11 +153,9 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return am.exportGenesis(ctx)
-	}
 	return nil
 }
+
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	genState := ExportGenesis(ctx, am.keeper)
 	return ModuleCdc.MustMarshalJSON(genState)
@@ -222,9 +200,6 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simula
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
-	if !tmtypes.IsUpgradeIBCInRuntime() {
-		return nil
-	}
 	return upgrade.NewHeightTask(
 		0, func(ctx sdk.Context) error {
 			if am.Sealed() {
