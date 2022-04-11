@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -101,7 +102,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 				dttr.step = dttRoutineStepReadyForSerial
 			}
 		case <-dttr.rerunCh:
-			dttr.logger.Error("readRerunCh", "index", dttr.task.index, "step", dttr.step)
+			//dttr.logger.Error("readRerunCh", "index", dttr.task.index, "step", dttr.step)
 			dttr.task.prevTaskIndex = -1
 			if dttr.step == dttRoutineStepAnteFinished {
 				dttr.logger.Error("RerunTask", "index", dttr.task.index)
@@ -131,7 +132,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 		dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
 		dttr.needToRerun = true
 		dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
-		dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
+		//dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
 	}
 }
 
@@ -315,18 +316,13 @@ func (dttm *DTTManager) hasConflict(taskA *DeliverTxTask, taskB *DeliverTxTask) 
 	if taskA.from == taskB.from {
 		return true
 	}
-	toALen := len(taskA.to)
-	toBLen := len(taskB.to)
-	if toALen == 0 && toBLen == 0 {
+	if len(taskA.to) == 0 && len(taskB.to) == 0 {
 		return false
 	}
-	if toALen > 0 {
-		if taskA.to == taskB.from || taskA.to == taskB.to {
+	if taskA.index < taskB.index && taskA.to == taskB.from {
 			dttm.app.logger.Error("hasConflict", "index", taskA.index, "conflict", taskB.index, "addr", taskA.to)
 			return true
-		}
-	}
-	if toBLen > 0 && taskA.from == taskB.to {
+	} else if taskA.index > taskB.index && taskA.from == taskB.to {
 		dttm.app.logger.Error("hasConflict", "index", taskA.index, "conflict", taskB.index, "addr", taskB.to)
 		return true
 	}
@@ -373,7 +369,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-	//dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
+	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -534,7 +530,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811070 {
-	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
@@ -641,10 +637,11 @@ func (dttm *DTTManager) serialExecution() {
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
 	start := time.Now()
 	//if global.GetGlobalHeight() == 5811244 && updateState && hex.EncodeToString(acc.GetAddress()) == "4ce08ffc090f5c54013c62efe30d62e6578e738d" {
-	//	dttm.app.logger.Error("OnAccountUpdated", "updateState", updateState)
+	//	dttm.app.logger.Error("OnAccountUpdated", "updateState", updateState, "acc", hex.EncodeToString(acc.GetAddress()))
 	//}
 	if updateState {
-		addr := string(acc.GetAddress().Bytes())//.String()
+		//addr := string(acc.GetAddress().Bytes())//.String()
+		addr := hex.EncodeToString(acc.GetAddress())
 		dttm.accountUpdated(true, 1, addr)
 	}
 	totalAccountUpdateDuration += time.Since(start).Microseconds()
