@@ -506,7 +506,7 @@ func (dttm *DTTManager) serialRoutine() {
 							dttm.serialCh <- nextTaskRoutine //nextTask//
 							//}()
 						} else {
-							dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+							//dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
 							keepAliveTicker.Reset(keepAliveIntervalMS * time.Microsecond)
 						}
 					}
@@ -518,9 +518,9 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 			//}
 		case <-keepAliveTicker.C:
-			dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
+			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
-				dttm.app.logger.Error("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+				//dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
 				dttm.serialCh <- nextTaskRoutine
 			}
 			keepAliveTicker.Stop()

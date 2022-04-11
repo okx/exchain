@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	maxDeliverTxsConcurrentNum = 4
-	keepAliveIntervalMS        = 5
+	maxDeliverTxsConcurrentNum = 8
+	keepAliveIntervalMS        = 1
 )
 
 var totalAnteDuration = int64(0)
