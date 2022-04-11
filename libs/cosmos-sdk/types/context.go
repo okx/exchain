@@ -151,11 +151,6 @@ func (c Context) WithTxBytes(txBytes []byte) Context {
 	return c
 }
 
-func (c Context) WithGasMeter(meter GasMeter) Context {
-	c.gasMeter = meter
-	return c
-}
-
 func (c Context) WithIsCheckTx(isCheckTx bool) Context {
 	c.checkTx = isCheckTx
 	return c
