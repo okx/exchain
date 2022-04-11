@@ -492,8 +492,9 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	sleepDuration := tmtime.Now().Sub(cs.R0PrevoteTime)
-	if sleepDuration > cs.config.TimeoutCommit {
+	overDuration := tmtime.Now().Sub(cs.R0PrevoteTime)
+	sleepDuration := cs.config.TimeoutCommit - overDuration
+	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
 
