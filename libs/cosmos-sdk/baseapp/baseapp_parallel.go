@@ -78,7 +78,9 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			for txBytes := range ch {
 				tx, err := app.txDecoder(txBytes)
 				if err == nil {
-					app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					ctx := checkStateCtx
+					ctx.SetTxBytes(txBytes)
+					app.getTxFee(ctx, tx)
 				}
 				wg.Done()
 			}

@@ -146,11 +146,6 @@ func (c Context) WithBlockHeight(height int64) Context {
 	return c
 }
 
-func (c Context) WithTxBytes(txBytes []byte) Context {
-	c.txBytes = txBytes
-	return c
-}
-
 func (c Context) WithIsCheckTx(isCheckTx bool) Context {
 	c.checkTx = isCheckTx
 	return c

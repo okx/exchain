@@ -883,7 +883,9 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		return mempool.ExTxInfo{}
 	}
 
-	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
+	ctx := app.checkState.ctx
+	ctx.SetTxBytes(rawTx)
+	return app.GetTxInfo(ctx, tx)
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
