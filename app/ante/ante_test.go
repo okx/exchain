@@ -180,7 +180,8 @@ func (suite *AnteTestSuite) TestEthInvalidSig() {
 	tx, err := newTestEthTx(suite.ctx, ethMsg, priv1)
 	suite.Require().NoError(err)
 
-	ctx := suite.ctx.WithChainID("ethermint-4")
+	ctx := suite.ctx
+	ctx.SetChainID("ethermint-4")
 	requireInvalidTx(suite.T(), suite.anteHandler, ctx, tx, false)
 }
 
@@ -257,7 +258,7 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
-	suite.ctx = suite.ctx.WithMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken, sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
+	suite.ctx.SetMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken, sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 

@@ -132,7 +132,8 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 	item types.OrderItem, ratio string, logger log.Logger) (types.OrderResult, sdk.CacheMultiStore, error) {
 
 	cacheItem := ctx.MultiStore().CacheMultiStore()
-	ctxItem := ctx.WithMultiStore(cacheItem)
+	ctxItem := ctx
+	ctxItem.SetMultiStore(cacheItem)
 	msg := MsgNewOrder{
 		Sender:   sender,
 		Product:  item.Product,
@@ -246,7 +247,8 @@ func handleCancelOrder(context sdk.Context, k Keeper, sender sdk.AccAddress, ord
 	types.OrderResult, sdk.CacheMultiStore) {
 
 	cacheItem := context.MultiStore().CacheMultiStore()
-	ctx := context.WithMultiStore(cacheItem)
+	ctx := context
+	ctx.SetMultiStore(cacheItem)
 
 	// Check order
 	msg := MsgCancelOrder{

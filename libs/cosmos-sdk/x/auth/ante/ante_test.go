@@ -737,7 +737,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	app, ctx := createTestApp(true)
 	// set blockheight and recheck=true
 	ctx = ctx.WithBlockHeight(1)
-	ctx = ctx.WithIsReCheckTx(true)
+	ctx.SetIsReCheckTx(true)
 
 	// keys and addresses
 	priv1, _, addr1 := types.KeyTestPubAddr()
@@ -771,7 +771,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	tx = types.NewTestTxWithMemo(ctx, msgs, privs, accnums, seqs, fee, "thisisatestmemo")
 	txBytes, err := json.Marshal(tx)
 	require.Nil(t, err, "Error marshalling tx: %v", err)
-	ctx = ctx.WithTxBytes(txBytes)
+	ctx.SetTxBytes(txBytes)
 
 	// require that state machine param-dependent checking is still run on recheck since parameters can change between check and recheck
 	testCases := []struct {

@@ -27,7 +27,7 @@ func Test_getSender(t *testing.T) {
 
 	ctxWithFrom := sdk.Context{}
 	ctxWithFrom = ctxWithFrom.WithIsCheckTx(true)
-	ctxWithFrom = ctxWithFrom.WithFrom(sender.String())
+	ctxWithFrom.SetFrom(sender.String())
 
 	type args struct {
 		ctx          *sdk.Context

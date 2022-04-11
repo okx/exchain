@@ -123,7 +123,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"invalid chain ID",
 			func() {
-				suite.ctx = suite.ctx.WithChainID("chainID")
+				suite.ctx.SetChainID("chainID")
 			},
 			false,
 		},
@@ -137,7 +137,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"simulate tx",
 			func() {
-				suite.ctx = suite.ctx.WithFrom(sender.String())
+				suite.ctx.SetFrom(sender.String())
 				suite.ctx = suite.ctx.WithIsCheckTx(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
@@ -147,8 +147,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"trace log tx",
 			func() {
-				suite.ctx = suite.ctx.WithFrom(sender.String())
-				suite.ctx = suite.ctx.WithIsTraceTxLog(true)
+				suite.ctx.SetFrom(sender.String())
+				suite.ctx.SetIsTraceTxLog(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},

@@ -50,8 +50,8 @@ func TestGetOrderCostFee(t *testing.T) {
 	log, err := flags.ParseLogLevel("*:error", testInput.Ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx := testInput.Ctx
-	ctx = ctx.WithLogger(log)
-	ctx = ctx.WithBlockHeight(currentHeight)
+	ctx.SetLogger(log)
+	ctx.SetBlockHeight(currentHeight)
 	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, order.FeePerBlock.Amount.Mul(sdk.NewDec(diffHeight)))}
 	require.EqualValues(t, exceptFee, GetOrderCostFee(order, ctx))
 

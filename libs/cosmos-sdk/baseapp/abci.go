@@ -41,7 +41,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	res = app.initChainer(app.deliverState.ctx, req)
 
@@ -150,7 +150,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -526,7 +526,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	)
+	ctx.SetMinGasPrices(app.minGasPrices)
 
 	// Passes the rest of the path as an argument to the querier.
 	//

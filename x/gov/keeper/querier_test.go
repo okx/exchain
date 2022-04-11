@@ -183,7 +183,7 @@ func TestQueries(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	skHandler := staking.NewHandler(sk)
 	querier := NewQuerier(keeper)
 	cdc := keeper.Cdc()
@@ -323,7 +323,7 @@ func TestQueryTally(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 	cdc := keeper.Cdc()
 
@@ -377,7 +377,7 @@ func TestQueryParams(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	query := abci.RequestQuery{
@@ -394,7 +394,7 @@ func TestQueryVotes(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	query := abci.RequestQuery{
@@ -411,7 +411,7 @@ func TestQueryVote(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	query := abci.RequestQuery{
@@ -428,7 +428,7 @@ func TestQueryDeposits(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	query := abci.RequestQuery{
@@ -445,7 +445,7 @@ func TestQueryDeposit(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	query := abci.RequestQuery{
@@ -461,7 +461,7 @@ func TestQueryProposal(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 	cdc := keeper.Cdc()
 
@@ -502,7 +502,7 @@ func TestQueryProposals(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	querier := NewQuerier(keeper)
 
 	// no query params

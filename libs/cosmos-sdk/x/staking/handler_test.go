@@ -171,7 +171,7 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, res)
 
-	ctx = ctx.WithConsensusParams(&abci.ConsensusParams{
+	ctx.SetConsensusParams(&abci.ConsensusParams{
 		Validator: &abci.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeSecp256k1}},
 	})
 

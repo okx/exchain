@@ -84,7 +84,7 @@ func TestLogContext(t *testing.T) {
 	key := types.NewKVStoreKey(t.Name())
 	ctx := defaultContext(key)
 	logger := NewMockLogger()
-	ctx = ctx.WithLogger(logger)
+	ctx.SetLogger(logger)
 	ctx.Logger().Debug("debug")
 	ctx.Logger().Info("info")
 	ctx.Logger().Error("error")
@@ -115,13 +115,13 @@ func TestContextWithCustom(t *testing.T) {
 	ctx = types.NewContext(nil, header, ischeck, logger)
 	require.Equal(t, header, ctx.BlockHeader())
 
-	ctx = ctx.
-		WithBlockHeight(height).
-		WithChainID(chainid).
-		WithTxBytes(txbytes).
-		WithVoteInfos(voteinfos).
-		WithGasMeter(meter).
-		WithMinGasPrices(minGasPrices)
+	ctx.SetBlockHeight(height)
+	ctx.SetChainID(chainid)
+	ctx.SetTxBytes(txbytes)
+	ctx.SetVoteInfos(voteinfos)
+	ctx.SetGasMeter(meter)
+	ctx.SetMinGasPrices(minGasPrices)
+
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, ischeck, ctx.IsCheckTx())
@@ -143,10 +143,10 @@ func TestContextHeader(t *testing.T) {
 
 	ctx = types.NewContext(nil, abci.Header{}, false, nil)
 
-	ctx = ctx.
-		WithBlockHeight(height).
-		WithBlockTime(time).
-		WithProposer(proposer)
+	ctx.SetBlockHeight(height)
+	ctx.SetBlockTime(time)
+	ctx.SetProposer(proposer)
+
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, height, ctx.BlockHeader().Height)
 	require.Equal(t, time.UTC(), ctx.BlockHeader().Time)

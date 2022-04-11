@@ -145,7 +145,7 @@ func TestSigVerification(t *testing.T) {
 		{"no err on recheck", []crypto.PrivKey{}, []uint64{}, []uint64{}, true, false},
 	}
 	for i, tc := range testCases {
-		ctx = ctx.WithIsReCheckTx(tc.recheck)
+		ctx.SetIsReCheckTx(tc.recheck)
 
 		tx := types.NewTestTx(ctx, msgs, tc.privs, tc.accNums, tc.seqs, fee)
 

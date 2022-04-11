@@ -139,7 +139,7 @@ func TestHandleMsgSubmitProposal(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	handler := NewHandler(gk)
 
 	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin("xxx", 500)}
