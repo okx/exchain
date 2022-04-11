@@ -64,9 +64,7 @@ type BlockExecutor struct {
 	// channel to feed back height of saved state
 	syncedStateHeightChan chan int64
 	// flag to avoid waiting async state result for the first block
-	isStateAsyncing bool
-	// flag to avoid waiting async abciResponse result for the first block
-	isABCIResponseAsyncing bool
+	isSaveDBAsyncing bool
 }
 
 type abciResponse struct {
@@ -221,7 +219,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 
 	//wait till the last block abciResponse be saved
-	if blockExec.isAsyncSaveDB && blockExec.isABCIResponseAsyncing {
+	if blockExec.isAsyncSaveDB && blockExec.isSaveDBAsyncing {
 		r, ok := <-blockExec.syncedABCIResponseHeightChan
 		if !ok || r != (block.Height-1) {
 			panic("Incorrect synced ABCI Response Height")
@@ -229,7 +227,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	//wait till the last block state be saved
-	if blockExec.isAsyncSaveDB && blockExec.isStateAsyncing {
+	if blockExec.isAsyncSaveDB && blockExec.isSaveDBAsyncing {
 		r, ok := <-blockExec.syncedStateHeightChan
 		if !ok || r != (block.Height-1) {
 			panic("Incorrect synced State Height")
@@ -248,6 +246,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Save the results before we commit.
 	if blockExec.isAsyncSaveDB {
+		blockExec.isSaveDBAsyncing = true
 		blockExec.SaveABCIResponsesAsync(block.Height, abciResponses)
 	} else {
 		SaveABCIResponses(blockExec.db, block.Height, abciResponses)
@@ -433,12 +432,10 @@ func (blockExec *BlockExecutor) commit(
 }
 
 func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
-	blockExec.isABCIResponseAsyncing = true
 	blockExec.abciResponseQueue <- abciResponse{height, responses}
 }
 
 func (blockExec *BlockExecutor) SaveStateAsync(state State) {
-	blockExec.isStateAsyncing = true
 	blockExec.stateQueue <- state
 }
 
