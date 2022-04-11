@@ -39,7 +39,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	// error returned from ante
 	// record invalid tx to watcher
 	if resp.Code > errors.AnteErrorsLowerBoundary {
-		stdlog.Println("giskook--- should not here")
+		stdlog.Printf("giskook--- should not here %v \n", resp)
 		var realTx sdk.Tx
 		if realTx, _ = app.BaseApp.ReapOrDecodeTx(req); realTx != nil {
 			for _, msg := range realTx.GetMsgs() {
