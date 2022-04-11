@@ -19,7 +19,7 @@ func newMockAccount(data int) *mockAccount {
 	}
 }
 
-func (m *mockAccount) Copy() interface{} {
+func (m *mockAccount) Copy() Account {
 	return m
 }
 
