@@ -34,7 +34,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 			return nil
 		}
 
-		return data.Copy().(exported.Account)
+		return data.Copy()
 	}
 
 	store := ctx.KVStore(ak.key)
@@ -45,9 +45,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	}
 	acc := ak.decodeAccount(bz)
 
-	if accCopy, ok := acc.Copy().(exported.Account); ok {
-		ctx.Cache().UpdateAccount(addr, accCopy, len(bz), false)
-	}
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
 
 	return acc
 }
@@ -74,9 +72,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		panic(err)
 	}
 	store.Set(types.AddressStoreKey(addr), bz)
-	if accCopy, ok := acc.Copy().(exported.Account); ok {
-		ctx.Cache().UpdateAccount(addr, accCopy, len(bz), true)
-	}
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {
