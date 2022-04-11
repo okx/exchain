@@ -115,12 +115,13 @@ func TestContextWithCustom(t *testing.T) {
 	ctx = types.NewContext(nil, header, ischeck, logger)
 	require.Equal(t, header, ctx.BlockHeader())
 
-	ctx.SetBlockHeight(height)
-	ctx.SetChainID(chainid)
-	ctx.SetTxBytes(txbytes)
-	ctx.SetVoteInfos(voteinfos)
-	ctx.SetGasMeter(meter)
-	ctx.SetMinGasPrices(minGasPrices)
+	ctx.
+		SetBlockHeight(height).
+		SetChainID(chainid).
+		SetTxBytes(txbytes).
+		SetVoteInfos(voteinfos).
+		SetGasMeter(meter).
+		SetMinGasPrices(minGasPrices)
 
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
@@ -143,9 +144,10 @@ func TestContextHeader(t *testing.T) {
 
 	ctx = types.NewContext(nil, abci.Header{}, false, nil)
 
-	ctx.SetBlockHeight(height)
-	ctx.SetBlockTime(time)
-	ctx.SetProposer(proposer)
+	ctx.
+		SetBlockHeight(height).
+		SetBlockTime(time).
+		SetProposer(proposer)
 
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, height, ctx.BlockHeader().Height)
