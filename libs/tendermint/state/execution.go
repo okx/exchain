@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -63,6 +64,10 @@ type BlockExecutor struct {
 	asyncFeedbackQueue chan int64
 	// flag to avoid waiting async state result for the first block
 	isSaveDBAsyncing bool
+	//flag to avoid stop twice
+	isAsyncQueueStop bool
+	//wait group for quiting
+	wg sync.WaitGroup
 }
 
 type abciResponse struct {
@@ -439,6 +444,8 @@ func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 		SaveState(blockExec.db, stateMsg)
 		blockExec.asyncFeedbackQueue <- stateMsg.LastBlockHeight
 	}
+
+	blockExec.wg.Done()
 }
 
 func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
@@ -446,6 +453,20 @@ func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
 		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
 		blockExec.asyncFeedbackQueue <- abciMsg.height
 	}
+	blockExec.wg.Done()
+}
+
+func (blockExec *BlockExecutor) Stop() {
+	if blockExec.isAsyncQueueStop {
+		return
+	}
+
+	blockExec.wg.Add(2)
+	close(blockExec.abciResponseQueue)
+	close(blockExec.stateQueue)
+	blockExec.wg.Wait()
+
+	blockExec.isAsyncQueueStop = true
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
