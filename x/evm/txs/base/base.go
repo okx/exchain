@@ -1,13 +1,17 @@
 package base
 
 import (
+	"math/big"
+
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 // Keeper alias of keeper.Keeper, to solve import circle. also evm.Keeper is alias keeper.Keeper
@@ -58,6 +62,27 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			ResultData: result.ResultData,
 			Err:        err,
 		})
+	}
+	if err != nil {
+		return
+	}
+
+	// call evm hooks
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
+		receipt := &ethtypes.Receipt{
+			Status:           ethtypes.ReceiptStatusSuccessful,
+			Bloom:            result.ResultData.Bloom,
+			Logs:             result.ResultData.Logs,
+			TxHash:           result.ResultData.TxHash,
+			ContractAddress:  result.ResultData.ContractAddress,
+			GasUsed:          result.ExecResult.GasInfo.GasConsumed,
+			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
+			TransactionIndex: uint(tx.Keeper.TxCount),
+		}
+		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+		if err != nil {
+			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+		}
 	}
 
 	return

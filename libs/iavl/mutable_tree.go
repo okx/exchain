@@ -57,6 +57,8 @@ type MutableTree struct {
 
 	commitCh          chan commitEvent
 	lastPersistHeight int64
+	//for ibc module upgrade version
+	upgradeVersion int64
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -94,6 +96,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 
 			commitCh:          make(chan commitEvent),
 			lastPersistHeight: initVersion,
+			upgradeVersion:    -1,
 		}
 	}
 
@@ -406,25 +409,31 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := int64(0)
 
 	var latestRoot []byte
-	for version, r := range roots {
-		tree.versions.Set(version, true)
-		if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
-			latestVersion = version
-			latestRoot = r
-		}
-		if firstVersion == 0 || version < firstVersion {
-			firstVersion = version
-		}
-	}
 
-	if !(targetVersion == 0 || latestVersion == targetVersion) {
-		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
-			targetVersion, latestVersion)
-	}
+	if tree.ndb.opts.UpgradeVersion == 0 {
+		for version, r := range roots {
+			tree.versions.Set(version, true)
+			if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
+				latestVersion = version
+				latestRoot = r
+			}
+			if firstVersion == 0 || version < firstVersion {
+				firstVersion = version
+			}
 
-	if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {
-		return latestVersion, fmt.Errorf("initial version set to %v, but found earlier version %v",
-			tree.ndb.opts.InitialVersion, firstVersion)
+		}
+
+		if !(targetVersion == 0 || latestVersion == targetVersion) {
+			return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
+				targetVersion, latestVersion)
+		}
+
+		if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {
+			return latestVersion, fmt.Errorf("initial version set to %v, but found earlier version %v",
+				tree.ndb.opts.InitialVersion, firstVersion)
+		}
+	} else {
+		latestVersion = int64(tree.ndb.opts.UpgradeVersion)
 	}
 
 	t := &ImmutableTree{
@@ -530,6 +539,15 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 // the tree. Returns the hash and new version number.
 func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, error) {
 	version := tree.version + 1
+
+	//begin for upgrade new module
+	upgradeVersion := tree.GetUpgradeVersion()
+	if upgradeVersion != -1 {
+		version = upgradeVersion
+		tree.version = version - 1
+		tree.SetUpgradeVersion(-1)
+	} //end for upgrade new module
+
 	if version == 1 && tree.ndb.opts.InitialVersion > 0 {
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
@@ -577,7 +595,6 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	h, v, err := tree.SaveVersionSync(version, useDeltas)
 	return h, v, *tree.deltas, err
 }
-
 func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte, int64, error) {
 	batch := tree.NewBatch()
 	if tree.root == nil {
@@ -903,4 +920,11 @@ func (tree *MutableTree) GetDelta() {
 		orphans[i] = NodeToNodeJson(orphan)
 	}
 	tree.deltas.OrphansDelta = orphans
+}
+func (tree *MutableTree) SetUpgradeVersion(version int64) {
+	tree.upgradeVersion = version
+}
+
+func (tree *MutableTree) GetUpgradeVersion() int64 {
+	return tree.upgradeVersion
 }

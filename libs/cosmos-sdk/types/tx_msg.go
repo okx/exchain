@@ -56,6 +56,8 @@ type Tx interface {
 	GetFrom() string
 	GetNonce() uint64
 	TxHash() []byte
+	SetRaw([]byte)
+	SetTxHash([]byte)
 }
 
 type BaseTx struct {
@@ -65,17 +67,19 @@ type BaseTx struct {
 	Nonce uint64
 }
 
-func (tx BaseTx) GetMsgs() []Msg                      { return nil }
-func (tx BaseTx) ValidateBasic() error                { return nil }
-func (tx BaseTx) GetGasPrice() *big.Int               { return big.NewInt(0) }
-func (tx BaseTx) GetTxFnSignatureInfo() ([]byte, int) { return nil, 0 }
-func (tx BaseTx) GetType() TransactionType            { return UnknownType }
-func (tx BaseTx) GetSigners() []AccAddress            { return nil }
-func (tx BaseTx) GetGas() uint64                      { return 0 }
-func (tx BaseTx) GetNonce() uint64                    { return tx.Nonce }
-func (tx BaseTx) GetFrom() string                     { return tx.From }
-func (tx BaseTx) GetRaw() []byte                      { return tx.Raw }
-func (tx BaseTx) TxHash() []byte                      { return tx.Hash }
+func (tx *BaseTx) GetMsgs() []Msg                      { return nil }
+func (tx *BaseTx) ValidateBasic() error                { return nil }
+func (tx *BaseTx) GetGasPrice() *big.Int               { return big.NewInt(0) }
+func (tx *BaseTx) GetTxFnSignatureInfo() ([]byte, int) { return nil, 0 }
+func (tx *BaseTx) GetType() TransactionType            { return UnknownType }
+func (tx *BaseTx) GetSigners() []AccAddress            { return nil }
+func (tx *BaseTx) GetGas() uint64                      { return 0 }
+func (tx *BaseTx) GetNonce() uint64                    { return tx.Nonce }
+func (tx *BaseTx) GetFrom() string                     { return tx.From }
+func (tx *BaseTx) GetRaw() []byte                      { return tx.Raw }
+func (tx *BaseTx) TxHash() []byte                      { return tx.Hash }
+func (tx *BaseTx) SetRaw(raw []byte)                   { tx.Raw = raw }
+func (tx *BaseTx) SetTxHash(hash []byte)               { tx.Hash = hash }
 
 //__________________________________________________________
 

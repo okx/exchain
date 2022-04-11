@@ -55,7 +55,7 @@ func getMockApp(t *testing.T, numGenAccs int) (mockApp *MockApp, addrKeysSlice m
 func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp *MockApp,
 	addrKeysSlice mock.AddrKeysSlice) {
 	mapp := mock.NewApp()
-	registerCodec(mapp.Cdc)
+	registerCodec(mapp.Cdc.GetCdc())
 
 	mockApp = &MockApp{
 		App:      mapp,
@@ -81,7 +81,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		auth.FeeCollectorName: nil,
 		token.ModuleName:      {supply.Minter, supply.Burner},
 	}
-	mockApp.supplyKeeper = supply.NewKeeper(mockApp.Cdc, mockApp.keySupply, mockApp.AccountKeeper,
+	mockApp.supplyKeeper = supply.NewKeeper(mockApp.Cdc.GetCdc(), mockApp.keySupply, mockApp.AccountKeeper,
 		mockApp.bankKeeper, maccPerms)
 
 	mockApp.tokenKeeper = token.NewKeeper(
@@ -91,7 +91,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.supplyKeeper,
 		mockApp.keyToken,
 		mockApp.keyLock,
-		mockApp.Cdc,
+		mockApp.Cdc.GetCdc(),
 		true, mockApp.AccountKeeper)
 
 	mockApp.dexKeeper = dex.NewKeeper(
@@ -103,7 +103,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.bankKeeper,
 		mockApp.keyDex,
 		mockApp.keyTokenPair,
-		mockApp.Cdc)
+		mockApp.Cdc.GetCdc())
 
 	mockApp.orderKeeper = NewKeeper(
 		mockApp.tokenKeeper,
@@ -112,7 +112,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),
 		auth.FeeCollectorName,
 		mockApp.keyOrder,
-		mockApp.Cdc,
+		mockApp.Cdc.GetCdc(),
 		true,
 		monitor.NopOrderMetrics())
 
