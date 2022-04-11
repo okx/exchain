@@ -4,6 +4,10 @@
 // and have started the RPC service with `ethermintcli rest-server`.
 //
 // You can configure the desired HOST and MODE as well
+
+//go:build ignore
+// +build ignore
+
 package tests
 
 import (
