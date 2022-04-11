@@ -20,9 +20,8 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			if len(from) > 2 {
 				from = strings.ToLower(from[2:])
 			}
-			to = evmTx.To().String()
-			if len(to) > 2 {
-				to = strings.ToLower(to[2:])
+			if evmTx.To() != nil {
+				to = strings.ToLower(evmTx.To().String()[2:])
 			}
 			//feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
 			////feeReceiver := evmTx.To()
