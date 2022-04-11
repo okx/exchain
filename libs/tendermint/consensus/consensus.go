@@ -507,7 +507,10 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if ActiveViewChange {
 		// request for proposer of new height
 		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
-		go cs.requestForProposer(sleepDuration, prMsg)
+		// itself is proposer, no need to request
+		if !bytes.Equal(prMsg.NewProposer, prMsg.CurrentProposer) {
+			go cs.requestForProposer(sleepDuration, prMsg)
+		}
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
@@ -970,10 +973,6 @@ func (cs *State) enterNewRound(height int64, round int) {
 
 // requestForProposer FireEvent to broadcast ProposeRequestMessage
 func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequestMessage) {
-	// itself is proposer, no need to request
-	if prMsg.NewProposer.String() == prMsg.CurrentProposer.String() {
-		return
-	}
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		prMsg.Signature = signature
 		// ensure broadcast reqMsg after enterNewHeight
@@ -1024,7 +1023,6 @@ func (cs *State) isBlockProducer() (string, string) {
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-	//logger.Error("enterPropose", "step", cs.Step)
 
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
 		logger.Debug(fmt.Sprintf(
@@ -1678,7 +1676,6 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	cs.trc.Pin("Waiting")
-
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)

@@ -44,13 +44,6 @@ type blockchainReactor interface {
 	CheckFastSyncCondition()
 }
 
-type p2pMsgInfo struct {
-	Msg  Message    `json:"msg"`
-	ChID byte       `json:"ch_id"`
-	Src  p2p.Peer   `json:"src"`
-	Ps   *PeerState `json:"ps"`
-}
-
 // Reactor defines a reactor for the consensus service.
 type Reactor struct {
 	p2p.BaseReactor // BaseService + p2p.Switch
