@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
@@ -38,15 +38,17 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	// error returned from ante
 	// record invalid tx to watcher
-	if resp.Code > errors.AnteErrorsLowerBoundary {
-		stdlog.Printf("giskook--- should not here %v \n", resp)
+	if !resp.IsOK() {
+		if global.TxIndex != app.EvmKeeper.TxCount-1 {
+			stdlog.Printf("giskook--- check %v %v \n", global.TxIndex, resp)
+		}
 		var realTx sdk.Tx
 		if realTx, _ = app.BaseApp.ReapOrDecodeTx(req); realTx != nil {
 			for _, msg := range realTx.GetMsgs() {
 				evmTx, ok := msg.(*types.MsgEthereumTx)
 				if ok {
 					evmTxHash := common.BytesToHash(evmTx.TxHash())
-					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(app.EvmKeeper.TxCount), uint64(resp.GasUsed))
+					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(global.TxIndex), uint64(resp.GasUsed))
 				}
 			}
 		}

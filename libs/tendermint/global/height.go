@@ -13,3 +13,5 @@ func SetGlobalHeight(height int64) {
 func GetGlobalHeight() int64 {
 	return atomic.LoadInt64(&lastCommittedHeight)
 }
+
+var TxIndex int
