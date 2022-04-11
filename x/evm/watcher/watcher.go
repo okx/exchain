@@ -466,7 +466,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
-	batch:=w.batch
+	batch := w.batch
 	return func() ([]byte, error) {
 		ddsBatch := make([]*Batch, len(batch))
 		for i, b := range batch {
@@ -527,6 +527,14 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
 
+func (w *Watcher) FillInvalidTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, gasUsed uint64) {
+	if !w.Enabled() {
+		return
+	}
+	w.SaveEthereumTx(msg, txHash, txIndex)
+	w.SaveTransactionReceipt(TransactionFailed, msg, txHash, txIndex, &evmtypes.ResultData{}, gasUsed)
+}
+
 func bytes2Key(keyBytes []byte) string {
 	return string(keyBytes)
 }
@@ -534,7 +542,6 @@ func bytes2Key(keyBytes []byte) string {
 func key2Bytes(key string) []byte {
 	return []byte(key)
 }
-
 
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{

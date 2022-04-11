@@ -1,11 +1,14 @@
 package app
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	appconfig "github.com/okex/exchain/app/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // BeginBlock implements the Application interface
@@ -28,6 +31,20 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
+		}
+	}
+
+	if !resp.IsOK() {
+		var realTx sdk.Tx
+		realTx, _ = app.BaseApp.ReapOrDecodeTx(req)
+		if realTx != nil {
+			for _, msg := range realTx.GetMsgs() {
+				evmTx, ok := msg.(*types.MsgEthereumTx)
+				if ok {
+					evmTxHash := common.BytesToHash(evmTx.TxHash())
+					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(app.EvmKeeper.TxCount), uint64(resp.GasUsed))
+				}
+			}
 		}
 	}
 

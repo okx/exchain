@@ -168,18 +168,23 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	return nil
 }
 
-func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-
-	var realTx sdk.Tx
-	var err error
+func (app *BaseApp) ReapOrDecodeTx(req abci.RequestDeliverTx) (realTx sdk.Tx, err error) {
 	if mem := GetGlobalMempool(); mem != nil {
 		realTx, _ = mem.ReapEssentialTx(req.Tx).(sdk.Tx)
 	}
 	if realTx == nil {
 		realTx, err = app.txDecoder(req.Tx)
-		if err != nil {
-			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-		}
+	}
+
+	return
+}
+
+func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+	var realTx sdk.Tx
+	var err error
+	realTx, err = app.ReapOrDecodeTx(req)
+	if err != nil {
+		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
