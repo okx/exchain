@@ -138,7 +138,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"simulate tx",
 			func() {
 				suite.ctx.SetFrom(sender.String())
-				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.ctx.SetIsCheckTx(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -611,13 +611,13 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx = suite.ctx.WithIsCheckTx(true)
+	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	suite.ctx.SetIsCheckTx(true)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
 
-	suite.ctx = suite.ctx.WithIsCheckTx(false)
+	suite.ctx.SetIsCheckTx(false)
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
