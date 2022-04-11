@@ -263,7 +263,7 @@ func (dttm *DTTManager) preloadSender(txs [][]byte) {
 				//task := newDeliverTxTask(realTx, tbi.index)
 				//task.info.txBytes = tbi.txBytes
 				if err == nil {
-					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), realTx)
+					dttm.app.getTxFee(checkStateCtx.WithTxBytes(txBytes), realTx, true)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(tbi.txBytes), realTx)
 					//dttm.app.logger.Info("preload", "from", from)
 					//task.fee, task.isEvm, task.from = dttm.app.getTxFeeAndFromHandler(checkStateCtx.WithTxBytes(txBytes), task.info.tx)
@@ -303,7 +303,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	}
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
-	_, _, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
+	task.fee, _, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
@@ -425,8 +425,6 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 	if err != nil {
 		return err
 	}
-
-	info.ctx = info.ctx.WithFeeForCollector(newCtx.FeeForCollector())
 
 	return nil
 }
@@ -592,6 +590,8 @@ func (dttm *DTTManager) serialExecution() {
 		execFinishedFn(txRs)
 		return
 	}
+
+	dttm.app.UpdateFeeForCollector(dttm.serialTask.fee, true)
 
 	// execute runMsgs
 	//dttm.app.logger.Info("handleRunMsg", "index", dttm.serialTask.txIndex, "addr", dttm.serialTask.from)

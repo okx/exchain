@@ -10,7 +10,7 @@ import (
 
 const (
 	maxDeliverTxsConcurrentNum = 4
-	keepAliveIntervalMS = 5
+	keepAliveIntervalMS        = 5
 )
 
 var totalAnteDuration = int64(0)
@@ -32,6 +32,7 @@ type DeliverTxTask struct {
 	routineIndex int8
 
 	info          *runTxInfo
+	fee           sdk.Coins
 	from          string //sdk.Address//exported.Account
 	to            string
 	err           error

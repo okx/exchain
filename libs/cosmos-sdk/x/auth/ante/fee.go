@@ -125,7 +125,7 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	}
 
 	// verify the account has enough funds to pay for fees
-	_, hasNeg := coins.SafeSub(fees)
+	balance, hasNeg := coins.SafeSub(fees)
 	if hasNeg {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", coins, fees)
@@ -142,7 +142,7 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
-	ak.SetAccount(ctx, acc)
+	ak.SetAccount(ctx, acc, false)
 
 	return nil
 }
