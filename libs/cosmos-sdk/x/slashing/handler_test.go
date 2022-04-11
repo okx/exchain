@@ -252,7 +252,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Nil(t, res)
 
 	// unrevocation should succeed after jail expiration
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.DowntimeJailDuration(ctx))})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.DowntimeJailDuration(ctx))})
 	res, err = slh(ctx, types.NewMsgUnjail(addr))
 	require.NoError(t, err)
 	require.NotNil(t, res)

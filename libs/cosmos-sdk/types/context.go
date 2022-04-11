@@ -131,24 +131,19 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	}
 }
 
-func (c Context) WithBlockHeader(header abci.Header) Context {
-	// https://github.com/gogo/protobuf/issues/519
-	header.Time = header.Time.UTC()
-	c.header = &header
-	return c
-}
-
 func (c Context) WithBlockTime(newTime time.Time) Context {
 	newHeader := c.BlockHeader()
 	// https://github.com/gogo/protobuf/issues/519
 	newHeader.Time = newTime.UTC()
-	return c.WithBlockHeader(newHeader)
+	c.SetBlockHeader(newHeader)
+	return c
 }
 
 func (c Context) WithBlockHeight(height int64) Context {
 	newHeader := c.BlockHeader()
 	newHeader.Height = height
-	return c.WithBlockHeader(newHeader)
+	c.SetBlockHeader(newHeader)
+	return c
 }
 
 func (c Context) WithTxBytes(txBytes []byte) Context {

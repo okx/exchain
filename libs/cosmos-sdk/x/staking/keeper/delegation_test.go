@@ -396,7 +396,7 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight
 	blockTime := time.Unix(333, 0)
 	header.Time = blockTime
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond the all self-delegation to put validator in unbonding state
 	val0AccAddr := sdk.AccAddress(addrVals[0].Bytes())
@@ -839,7 +839,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight
 	blockTime := time.Unix(333, 0)
 	header.Time = blockTime
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond the all self-delegation to put validator in unbonding state
 	_, err = keeper.Undelegate(ctx, val0AccAddr, addrVals[0], delTokens.ToDec())
@@ -861,7 +861,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight2
 	blockTime2 := time.Unix(444, 0)
 	header.Time = blockTime2
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond some of the other delegation's shares
 	redelegateTokens := sdk.TokensFromConsensusPower(6)

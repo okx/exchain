@@ -339,7 +339,7 @@ func TestViewKeeper(t *testing.T) {
 func TestVestingAccountSend(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 	endTime := now.Add(24 * time.Hour)
 
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
@@ -371,7 +371,7 @@ func TestVestingAccountSend(t *testing.T) {
 func TestPeriodicVestingAccountSend(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
 	sendCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 50))
 
@@ -406,7 +406,7 @@ func TestPeriodicVestingAccountSend(t *testing.T) {
 func TestVestingAccountReceive(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 	endTime := now.Add(24 * time.Hour)
 
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
@@ -438,7 +438,7 @@ func TestVestingAccountReceive(t *testing.T) {
 func TestPeriodicVestingAccountReceive(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
 	sendCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 50))
@@ -474,7 +474,7 @@ func TestPeriodicVestingAccountReceive(t *testing.T) {
 func TestDelegateCoins(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 	endTime := now.Add(24 * time.Hour)
 	ak := app.AccountKeeper
 
@@ -515,7 +515,7 @@ func TestDelegateCoins(t *testing.T) {
 func TestUndelegateCoins(t *testing.T) {
 	app, ctx := createTestApp(false)
 	now := tmtime.Now()
-	ctx = ctx.WithBlockHeader(abci.Header{Time: now})
+	ctx.SetBlockHeader(abci.Header{Time: now})
 	endTime := now.Add(24 * time.Hour)
 	ak := app.AccountKeeper
 

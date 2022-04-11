@@ -132,7 +132,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 1",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         1,
@@ -154,7 +154,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -170,7 +170,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"height not found, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -184,7 +184,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"empty hash, case 3",
 			1000,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,

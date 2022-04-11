@@ -1028,7 +1028,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 func TestUpdateValidatorCommission(t *testing.T) {
 	ctx, _, keeper, _ := CreateTestInput(t, false, 1000)
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Now().UTC()})
+	ctx.SetBlockHeader(abci.Header{Time: time.Now().UTC()})
 
 	commission1 := types.NewCommissionWithTime(
 		sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(3, 1),
