@@ -62,7 +62,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.keeper.HandleDoubleSign(ctx, evidence)
 
 	// jump to past the unbonding period
-	ctx = ctx.WithBlockTime(time.Unix(1, 0).Add(stakingParams.UnbondingTime))
+	ctx.SetBlockTime(time.Unix(1, 0).Add(stakingParams.UnbondingTime))
 
 	// require we cannot unjail
 	suite.Error(suite.app.SlashingKeeper.Unjail(ctx, operatorAddr))
@@ -102,7 +102,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 		Power:            power.Int64(),
 		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
-	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
+	ctx.SetBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
 	suite.keeper.HandleDoubleSign(ctx, evidence)
 
 	suite.False(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())

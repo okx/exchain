@@ -134,7 +134,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 	cdc := MakeTestCodec()
 	reg := types2.NewInterfaceRegistry()
 	cc := codec.NewProtoCodec(reg)

@@ -1259,7 +1259,7 @@ func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 
 	GlobalContext = ctx
 	return ctx

@@ -361,7 +361,7 @@ func TestVestingAccountSend(t *testing.T) {
 	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that all vested coins are spendable plus any received
-	ctx = ctx.WithBlockTime(now.Add(12 * time.Hour))
+	ctx.SetBlockTime(now.Add(12 * time.Hour))
 	err = app.BankKeeper.SendCoins(ctx, addr1, addr2, sendCoins)
 	vacc = app.AccountKeeper.GetAccount(ctx, addr1).(*vesting.ContinuousVestingAccount)
 	require.NoError(t, err)
@@ -396,7 +396,7 @@ func TestPeriodicVestingAccountSend(t *testing.T) {
 	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that all vested coins are spendable plus any received
-	ctx = ctx.WithBlockTime(now.Add(12 * time.Hour))
+	ctx.SetBlockTime(now.Add(12 * time.Hour))
 	err = app.BankKeeper.SendCoins(ctx, addr1, addr2, sendCoins)
 	vacc = app.AccountKeeper.GetAccount(ctx, addr1).(*vesting.PeriodicVestingAccount)
 	require.NoError(t, err)
@@ -495,7 +495,7 @@ func TestDelegateCoins(t *testing.T) {
 	ak.SetAccount(ctx, macc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
-	ctx = ctx.WithBlockTime(now.Add(12 * time.Hour))
+	ctx.SetBlockTime(now.Add(12 * time.Hour))
 
 	// require the ability for a non-vesting account to delegate
 	err := app.BankKeeper.DelegateCoins(ctx, addr2, addrModule, delCoins)
@@ -536,7 +536,7 @@ func TestUndelegateCoins(t *testing.T) {
 	ak.SetAccount(ctx, macc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
-	ctx = ctx.WithBlockTime(now.Add(12 * time.Hour))
+	ctx.SetBlockTime(now.Add(12 * time.Hour))
 
 	// require the ability for a non-vesting account to delegate
 	err := app.BankKeeper.DelegateCoins(ctx, addr2, addrModule, delCoins)
