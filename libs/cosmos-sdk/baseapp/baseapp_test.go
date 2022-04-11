@@ -596,10 +596,6 @@ func (tx *txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (wtx *txTest) GetPartnerInfo(ctx sdk.Context) (string, string) {
-	return "", ""
-}
-
 func (tx *txTest) GetGas() uint64 {
 	return 0
 }

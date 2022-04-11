@@ -55,7 +55,11 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from == "" {
 		from, _ = tmtypes.SignatureCache().Get(string(tx.TxHash()))
 		if from == "" {
-			from, _ = tx.firstVerifySig(tx.ChainID())
+			from, err := tx.firstVerifySig(tx.ChainID())
+			if err != nil {
+				tmtypes.SignatureCache().Add(string(tx.TxHash()), from)
+				tx.BaseTx.From = from
+			}
 		}
 	}
 

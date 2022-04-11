@@ -288,7 +288,7 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 			}
 
 			// If we exceeded out time allowance, flush an entire trie to disk
-			if chosen%10 == 0 {
+			if chosen % 50 == 0 {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := ms.GetMptRootHash(uint64(chosen))

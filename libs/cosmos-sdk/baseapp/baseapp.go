@@ -963,22 +963,8 @@ func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
 					return
 				}
 
-				// load account from db into cache
-				from, to := cmstx.GetPartnerInfo(app.checkState.ctx.WithTxBytes(tx))
-				if from != "" {
-					senderAddr, err := sdk.AccAddressFromBech32(from)
-					if err != nil {
-						return
-					}
-					app.accNonceHandler(app.checkState.ctx, senderAddr)
-				}
-				if to != "" {
-					receiverAddr, err := sdk.AccAddressFromBech32(to)
-					if err != nil {
-						return
-					}
-					app.accNonceHandler(app.checkState.ctx, receiverAddr)
-				}
+				// parser tx sender and store it in cache
+				cmstx.GetFrom()
 			}(tx)
 		}
 	}()

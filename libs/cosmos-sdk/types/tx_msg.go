@@ -46,8 +46,6 @@ type Tx interface {
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
 
-	GetPartnerInfo(ctx Context) (string, string)
-
 	GetType() TransactionType
 
 	GetSigners() []AccAddress
@@ -80,7 +78,6 @@ func (tx *BaseTx) GetNonce() uint64                    { return tx.Nonce }
 func (tx *BaseTx) GetFrom() string                     { return tx.From }
 func (tx *BaseTx) GetRaw() []byte                      { return tx.Raw }
 func (tx *BaseTx) TxHash() []byte                    { return tx.Hash }
-func (tx *BaseTx) GetPartnerInfo(ctx Context) (string, string) {return "", ""}
 func (tx *BaseTx) SetRaw(raw []byte)                   { tx.Raw = raw }
 func (tx *BaseTx) SetTxHash(hash []byte)               { tx.Hash = hash }
 

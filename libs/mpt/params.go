@@ -23,21 +23,23 @@ const (
 	FlagTrieCacheSize         = "trie-cache-size"
 	FlagEnableDoubleWrite     = "enable-double-write"
 	FlagEnableTrieCommitAsync = "enable-trie-commit-async"
+	FlagMptRocksdbBatchSize   = "mpt-rocksdb-batch-size"
 )
 
 var (
-	TrieDirtyDisabled      = false
-	TrieCacheSize     uint = 2048 // MB
-	MptAsnyc               = false
-	EnableDoubleWrite      = false
+	TrieDirtyDisabled        = false
+	TrieCacheSize       uint = 2048 // MB
+	MptAsnyc                 = false
+	EnableDoubleWrite        = false
+	MptRocksdbBatchSize uint = 10
+	AccStoreCache       uint = 2048 // MB
 )
 
 var (
-	KeyPrefixAccRootMptHash             = []byte{0x11}
-	KeyPrefixAccLatestStoredHeight      = []byte{0x12}
-	KeyPrefixEvmRootMptHash             = []byte{0x13}
-	KeyPrefixEvmLatestStoredHeight      = []byte{0x14}
-	AccStoreCache                  uint = 2048 // MB
+	KeyPrefixAccRootMptHash        = []byte{0x11}
+	KeyPrefixAccLatestStoredHeight = []byte{0x12}
+	KeyPrefixEvmRootMptHash        = []byte{0x13}
+	KeyPrefixEvmLatestStoredHeight = []byte{0x14}
 
 	GAccToPrefetchChannel    = make(chan [][]byte, 2000)
 	GAccTryUpdateTrieChannel = make(chan struct{})

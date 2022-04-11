@@ -79,10 +79,6 @@ func (tx *kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx *kvstoreTx) GetPartnerInfo(ctx sdk.Context) (string, string) {
-	return "", ""
-}
-
 func (tx *kvstoreTx) GetGas() uint64 {
 	return 0
 }

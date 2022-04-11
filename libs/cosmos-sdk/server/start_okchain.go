@@ -251,6 +251,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().BoolVar(&evmtypes.UseCompositeKey, evmtypes.FlagUseCompositeKey, false, "Use composite key to store contract state")
 	cmd.Flags().UintVar(&evmtypes.ContractStateCache, evmtypes.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
+	cmd.Flags().UintVar(&mpt.MptRocksdbBatchSize, mpt.FlagMptRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
 
 	return cmd
 }

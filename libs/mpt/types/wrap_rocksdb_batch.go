@@ -5,6 +5,7 @@ package types
 
 import (
 	"container/list"
+	"github.com/okex/exchain/libs/mpt"
 	"sync"
 	"sync/atomic"
 
@@ -68,10 +69,8 @@ var (
 	batchIdSeed int64
 )
 
-const MaxBatchSize = 100
-
 func init() {
-	bCache = NewBatchCache(MaxBatchSize)
+	bCache = NewBatchCache(int(mpt.MptRocksdbBatchSize))
 }
 
 var _ ethdb.Batch = (*WrapRocksDBBatch)(nil)

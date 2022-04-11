@@ -169,7 +169,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			if chosen%10 == 0 {
+			if chosen % 50 == 0 {
 				k.mptCommitMu.Lock()
 				defer k.mptCommitMu.Unlock()
 				// If the header is missing (canonical chain behind), we're reorging a low
