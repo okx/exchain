@@ -2,6 +2,8 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
+	stdlog "log"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -92,6 +94,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
+			stdlog.Printf("ante error %v \n", global.TxIndex)
 			return err
 		}
 	}
@@ -99,6 +102,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
+	if err != nil {
+		stdlog.Printf("handle msg error %v \n", global.TxIndex)
+	}
 	app.pin(RunMsg, false, mode)
 	return err
 }
