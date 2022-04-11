@@ -572,7 +572,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 			normal()
 			//nolint
 			tc.prepare()
-			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			msgs := tx.GetMsgs()
 			for _, msg := range msgs {
 				_, err := suite.handler(suite.ctx, msg)

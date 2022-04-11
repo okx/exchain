@@ -46,8 +46,8 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		} else {
 			// set an infinite gas meter and recovery it when return
 			gasMeter := ctx.GasMeter()
-			ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			defer func() { ctx = ctx.WithGasMeter(gasMeter) }()
+			ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			defer func() { ctx.SetGasMeter(gasMeter) }()
 		}
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())

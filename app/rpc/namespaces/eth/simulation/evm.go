@@ -108,6 +108,7 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 
 	cms.LoadLatestVersion()
 
-	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
+	ctx.SetGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
 	return ctx
 }
