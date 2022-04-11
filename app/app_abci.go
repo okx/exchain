@@ -24,7 +24,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	analyzer.OnAppDeliverTxEnter()
 
-	originTx := app.EvmKeeper.TxCount
+	originTxCount := app.EvmKeeper.TxCount
 	resp := app.BaseApp.DeliverTx(req)
 	app.EvmKeeper.TxIndexInBlock++
 
@@ -37,7 +37,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	}
 
 	// record invalid tx to watcher
-	if !resp.IsOK() && originTx == app.EvmKeeper.TxCount {
+	if !resp.IsOK() && originTxCount == app.EvmKeeper.TxCount {
 		var realTx sdk.Tx
 		if realTx, _ = app.BaseApp.ReapOrDecodeTx(req); realTx != nil {
 			for _, msg := range realTx.GetMsgs() {
