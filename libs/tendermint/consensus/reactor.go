@@ -344,14 +344,22 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
+			finished := ""
 			if msg.Height == conR.conS.Height {
 				// ApplyBlock of height-1 is finished
-				conR.conS.peerMsgQueue <- msgInfo{msg, "p"}
+				finished = "f"
 			} else if msg.Height == conR.conS.Height+1 {
 				// ApplyBlock of height-1 is not finished
 				// vc after scheduleRound0
-				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+			} else {
+				return
 			}
+			// verify the signature of vcMsg
+			if err := msg.Verify(conR.conS.privValidatorPubKey); err != nil {
+				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
+				return
+			}
+			conR.conS.peerMsgQueue <- msgInfo{msg, p2p.ID(finished)}
 		case *ProposeRequestMessage:
 			//conR.Logger.Error("reactor prMsg", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			// three judgement:
@@ -360,7 +368,12 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//3.it is CurrentProposer
 			if msg.Height > conR.hasViewChanged &&
 				msg.Height > conR.conS.Height &&
-				conR.conS.privValidatorPubKey.Address().String() == msg.CurrentProposer.String() {
+				bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
+				// verify the signature of prMsg
+				if err := msg.Verify(conR.conS.privValidatorPubKey); err != nil {
+					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
+					return
+				}
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
 				conR.broadcastViewChangeMessage(msg)
@@ -548,9 +561,15 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage)
 }
 
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
-	vcMsg := ViewChangeMessage{prMsg.Height, prMsg.CurrentProposer, prMsg.NewProposer}
-	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
+	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
+		vcMsg.Signature = signature
+
+		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	} else {
+		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
+	}
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {

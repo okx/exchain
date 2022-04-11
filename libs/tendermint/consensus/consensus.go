@@ -506,7 +506,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 	if ActiveViewChange {
 		// request for proposer of new height
-		prMsg := ProposeRequestMessage{cs.Height, cs.Validators.GetProposer().Address, cs.privValidatorPubKey.Address()}
+		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
 		go cs.requestForProposer(sleepDuration, prMsg)
 	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
@@ -758,7 +758,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// ApplyBlock of height-1 is not finished
 		// RoundStepNewHeight enterNewRound use peer as val
 		if ActiveViewChange {
-			cs.vcMsg = &ViewChangeMessage{msg.Height, msg.CurrentProposer, msg.NewProposer}
+			cs.vcMsg = &ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
 		}
 
 	case *ProposalMessage:
@@ -923,7 +923,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		validators = validators.Copy()
 		validators.IncrementProposerPriority(round - cs.Round)
 	}
-	if ActiveViewChange && cs.vcMsg != nil && validators.Proposer.Address.String() == cs.vcMsg.CurrentProposer.String() {
+	if ActiveViewChange && cs.vcMsg != nil && bytes.Equal(validators.Proposer.Address, cs.vcMsg.CurrentProposer) {
 		_, val := validators.GetByAddress(cs.vcMsg.NewProposer)
 		validators.Proposer = val
 	}
@@ -974,10 +974,15 @@ func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequest
 	if prMsg.NewProposer.String() == prMsg.CurrentProposer.String() {
 		return
 	}
-	// ensure broadcast reqMsg after enterNewHeight
-	time.Sleep(duration + time.Millisecond)
-	//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
-	cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
+	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
+		prMsg.Signature = signature
+		// ensure broadcast reqMsg after enterNewHeight
+		time.Sleep(duration + time.Millisecond)
+		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
+		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
+	} else {
+		cs.Logger.Error("requestForProposer", "err", err)
+	}
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
