@@ -1,7 +1,9 @@
 package consensus
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
 	"sync"
@@ -1576,6 +1578,7 @@ type ProposeRequestMessage struct {
 	Height          int64
 	CurrentProposer types.Address
 	NewProposer     types.Address
+	Signature       []byte
 }
 
 func (m *ProposeRequestMessage) ValidateBasic() error {
@@ -1585,14 +1588,45 @@ func (m *ProposeRequestMessage) ValidateBasic() error {
 	return nil
 }
 
+func (m *ProposeRequestMessage) SignBytes() []byte {
+	return cdc.MustMarshalBinaryBare(ProposeRequestMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
+}
+
+func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
+	if !bytes.Equal(pubKey.Address(), m.NewProposer) {
+		return errors.New("invalid validator address")
+	}
+
+	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
+		return errors.New("invalid signature")
+	}
+	return nil
+}
+
 // ViewChangeMessage is sent for remind peer to do vc
 type ViewChangeMessage struct {
 	Height          int64
 	CurrentProposer types.Address
 	NewProposer     types.Address
+	Signature       []byte
 }
 
 func (m *ViewChangeMessage) ValidateBasic() error {
+	return nil
+}
+
+func (m *ViewChangeMessage) SignBytes() []byte {
+	return cdc.MustMarshalBinaryBare(ViewChangeMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
+}
+
+func (m *ViewChangeMessage) Verify(pubKey crypto.PubKey) error {
+	if !bytes.Equal(pubKey.Address(), m.CurrentProposer) {
+		return errors.New("invalid validator address")
+	}
+
+	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
+		return errors.New("invalid signature")
+	}
 	return nil
 }
 
