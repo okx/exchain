@@ -369,7 +369,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.canRerun = 0
 
 	//if global.GetGlobalHeight() == 5811070 {
-	dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
+	//dttm.app.logger.Info("RunAnte", "index", task.index, "routine", task.routineIndex, "addr", task.from, "to", task.to)
 	//}
 
 	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
@@ -509,7 +509,7 @@ func (dttm *DTTManager) serialRoutine() {
 							//}()
 						} else {
 							dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
-							keepAliveTicker.Reset(keepAliveIntervalMS * time.Millisecond)
+							keepAliveTicker.Reset(keepAliveIntervalMS * time.Microsecond)
 						}
 					}
 				}
@@ -520,8 +520,9 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 			//}
 		case <-keepAliveTicker.C:
+			dttm.app.logger.Error("keepAliveTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
-				dttm.app.logger.Error("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+				dttm.app.logger.Error("ExtractNextSerialFromTicker")
 				dttm.serialCh <- nextTaskRoutine
 			}
 		}
@@ -530,7 +531,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 func (dttm *DTTManager) serialExecution() {
 	//if global.GetGlobalHeight() == 5811070 {
-		dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	//}
 
 	info := dttm.serialTask.info
