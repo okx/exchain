@@ -16,7 +16,6 @@ import (
 
 const IGNORE_HEIGHT_CHECKING = -1
 
-
 // evmDecoder:  MsgEthereumTx decoder by Ethereum RLP
 // ubruDecoder: OKC customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
 // ubDecoder:   The original amino decoder, decoding by reflection
@@ -72,11 +71,14 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 // Unmarshaler is a generic type for Unmarshal functions
 type Unmarshaler func(bytes []byte, ptr interface{}) error
 
-func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx, error) {
+func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
+	if height >= 0 && !types.HigherThanVenus1(height) {
+		return tx, err
+	}
 	simReq := &typestx.SimulateRequest{}
 	txBytes := bytes
 
-	err := simReq.Unmarshal(bytes)
+	err = simReq.Unmarshal(bytes)
 	if err == nil && simReq.Tx != nil {
 		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
@@ -94,12 +96,12 @@ func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx,
 	}
 	marshaler := cdc.GetProtocMarshal()
 	decode := ibctxdecoder.IbcTxDecoder(marshaler)
-	txdata, err := decode(txBytes)
+	tx, err = decode(txBytes)
 	if err != nil {
 		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
 	}
 
-	return txdata, nil
+	return tx, nil
 }
 
 type decodeFunc func(codec.CdcAbstraction, []byte, int64) (sdk.Tx, error)
