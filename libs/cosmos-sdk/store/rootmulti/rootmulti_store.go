@@ -227,6 +227,11 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			if err != nil {
 				return 0, err
 			}
+
+			if rs.commitHeightFilterPipeline(commitVersion)(storeParams.key.Name()) {
+				continue
+			}
+
 			if commitVersion < minVersion {
 				minVersion = commitVersion
 			}
@@ -316,7 +321,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		// Load it
 		store, err := rs.loadCommitStoreFromParams(key, commitID, storeParams)
 		if err != nil {
-			return fmt.Errorf("failed to load Store: %v", err)
+			return fmt.Errorf("failed to load %s Store: %v", key.Name(), err)
 		}
 		newStores[key] = store
 

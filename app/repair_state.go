@@ -124,6 +124,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
+	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
