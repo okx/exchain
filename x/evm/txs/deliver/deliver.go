@@ -29,7 +29,7 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 	tx.AnalyzeStart(bam.SaveTx)
 	defer tx.AnalyzeStop(bam.SaveTx)
 
-	tx.Keeper.Watcher.SaveEthereumTx(msg, *tx.StateTransition.TxHash, uint64(tx.Keeper.TxCount))
+	tx.Keeper.Watcher.SaveEthereumTx(msg, *tx.StateTransition.TxHash, uint64(tx.Keeper.TxIndexInBlock))
 	// Prepare db for logs
 	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
 	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
@@ -70,7 +70,7 @@ func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
 		watcher.TransactionFailed,
 		msg,
 		*tx.StateTransition.TxHash,
-		uint64(tx.Keeper.TxCount-1),
+		uint64(tx.Keeper.TxIndexInBlock),
 		&types.ResultData{}, tx.Ctx.GasMeter().GasConsumed())
 }
 
@@ -89,7 +89,7 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
 	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
 		msg, *tx.StateTransition.TxHash,
-		uint64(tx.Keeper.TxCount-1), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
+		uint64(tx.Keeper.TxIndexInBlock), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 			tx.Keeper.Watcher.SaveContractCode(addr, c.Code)
