@@ -47,8 +47,8 @@ type Keeper struct {
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
 
-	TxCountAll  int
-	LogsManages *LogsManager
+	TxIndexInBlock int
+	LogsManages    *LogsManager
 
 	// add inner block data
 	innerBlockData BlockInnerData
