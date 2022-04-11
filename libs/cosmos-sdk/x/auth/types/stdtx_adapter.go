@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,6 +14,43 @@ type IbcTx struct {
 	BodyBytes     []byte
 }
 
+type StdIBCSignDoc struct {
+	AccountNumber uint64            `json:"account_number" yaml:"account_number"`
+	Sequence      uint64            `json:"sequence" yaml:"sequence"`
+	TimeoutHeight uint64            `json:"timeout_height,omitempty" yaml:"timeout_height"`
+	ChainID       string            `json:"chain_id" yaml:"chain_id"`
+	Memo          string            `json:"memo" yaml:"memo"`
+	Fee           json.RawMessage   `json:"fee" yaml:"fee"`
+	Msgs          []json.RawMessage `json:"msgs" yaml:"msgs"`
+}
+
+type IBCCoin struct {
+	Denom  string  `json:"denom"`
+	Amount sdk.Int `json:"amount"`
+}
+
+type IBCFee struct {
+	Amount []IBCCoin `json:"amount" yaml:"amount"`
+	Gas    uint64    `json:"gas" yaml:"gas"`
+}
+
+func feeToIBCFeeBytes(fee StdFee) []byte {
+	var ibcFee IBCFee
+	ibcFee.Gas = fee.Gas
+	for _, coin := range fee.Amount {
+		ibcCoin := IBCCoin{
+			Denom:  coin.Denom,
+			Amount: coin.Amount.TruncateInt(),
+		}
+		ibcFee.Amount = append(ibcFee.Amount, ibcCoin)
+	}
+	bz, err := ModuleCdc.MarshalJSON(ibcFee)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
@@ -21,9 +59,23 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 		accNum = acc.GetAccountNumber()
 	}
 
-	return IbcSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
-	)
+	msgsBytes := make([]json.RawMessage, 0, len(tx.Msgs))
+	for _, msg := range tx.Msgs {
+		msgsBytes = append(msgsBytes, json.RawMessage(msg.GetSignBytes()))
+	}
+	bz, err := ModuleCdc.MarshalJSON(StdIBCSignDoc{
+		AccountNumber: accNum,
+		ChainID:       chainID,
+		Fee:           json.RawMessage(feeToIBCFeeBytes(tx.Fee)),
+		Memo:          tx.Memo,
+		Msgs:          msgsBytes,
+		Sequence:      acc.GetSequence(),
+		TimeoutHeight: tx.TimeoutHeight,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(bz)
 }
 
 // StdSignBytes returns the bytes to sign for a transaction.
