@@ -433,7 +433,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 
 	for count, tx := range block.Txs {
-		global.TxIndex = count
 		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
 		if err := proxyAppConn.Error(); err != nil {
 			return nil, err
