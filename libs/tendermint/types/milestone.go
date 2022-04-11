@@ -1,7 +1,6 @@
 package types
 
 import (
-	"math"
 	"strconv"
 	"sync"
 )
@@ -38,9 +37,6 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
-		if milestoneVenus1Height == 0 {
-			milestoneVenus1Height = math.MaxInt64 - 2
-		}
 	})
 }
 
@@ -79,28 +75,6 @@ func HigherThanMars(height int64) bool {
 	return height > milestoneMarsHeight
 }
 
-// HigherThanVenus1 will be true if milestoneVenus1Height is larger than current height
-func HigherThanVenus1(h int64) bool {
-	if milestoneVenus1Height == 0 {
-		return false
-	}
-	return h > milestoneVenus1Height
-}
-func SetVenus1HeightForTest() {
-	milestoneVenus1Height = math.MaxInt64 - 2
-}
-func SetVenus1HeightForIbcTest(h int64) {
-	milestoneVenus1Height = h
-}
-
-func GetVenus1Height() int64 {
-	return milestoneVenus1Height
-}
-
-func IsUpgradeIBCInRuntime() bool {
-	return milestoneVenus1Height >= 1
-}
-
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight
@@ -135,3 +109,23 @@ func GetMarsHeight() int64 {
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
+
+
+// ==================================
+// =========== Venus1 ===============
+func HigherThanVenus1(h int64) bool {
+	if milestoneVenus1Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus1Height
+}
+
+func SetVenus1HeightForIbcTest(h int64) {
+	milestoneVenus1Height = h
+}
+
+func GetVenus1Height() int64 {
+	return milestoneVenus1Height
+}
+// =========== Venus1 ===============
+// ==================================

@@ -410,25 +410,30 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 
 	var latestRoot []byte
 
-	for version, r := range roots {
-		tree.versions.Set(version, true)
-		if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
-			latestVersion = version
-			latestRoot = r
-		}
-		if firstVersion == 0 || version < firstVersion {
-			firstVersion = version
-		}
-	}
+	if tree.ndb.opts.UpgradeVersion == 0 {
+		for version, r := range roots {
+			tree.versions.Set(version, true)
+			if version > latestVersion && (targetVersion == 0 || version <= targetVersion) {
+				latestVersion = version
+				latestRoot = r
+			}
+			if firstVersion == 0 || version < firstVersion {
+				firstVersion = version
+			}
 
-	if !(targetVersion == 0 || latestVersion == targetVersion) {
-		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
-			targetVersion, latestVersion)
-	}
+		}
 
-	if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {
-		return latestVersion, fmt.Errorf("initial version set to %v, but found earlier version %v",
-			tree.ndb.opts.InitialVersion, firstVersion)
+		if !(targetVersion == 0 || latestVersion == targetVersion) {
+			return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
+				targetVersion, latestVersion)
+		}
+
+		if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {
+			return latestVersion, fmt.Errorf("initial version set to %v, but found earlier version %v",
+				tree.ndb.opts.InitialVersion, firstVersion)
+		}
+	} else {
+		latestVersion = int64(tree.ndb.opts.UpgradeVersion)
 	}
 
 	t := &ImmutableTree{

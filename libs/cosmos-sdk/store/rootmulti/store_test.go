@@ -112,7 +112,6 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
 	store1.Set(k, v)
-	tmtypes.SetVenus1HeightForTest()
 	cID, _ := ms.CommitterCommitMap(nil)
 	require.Equal(t, int64(1), cID.Version)
 	hash := cID.Hash
@@ -124,7 +123,6 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
-	tmtypes.SetVenus1HeightForTest()
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
