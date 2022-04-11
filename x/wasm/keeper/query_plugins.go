@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
+	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type QueryHandler struct {
@@ -397,7 +397,7 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 		}
 
 		// shares to amount logic comes from here:
-		// https://github.com/cosmos/cosmos-sdk/blob/v0.38.3/x/staking/keeper/querier.go#L404
+		// https://github.com/okex/exchain/libs/cosmos-sdk/blob/v0.38.3/x/staking/keeper/querier.go#L404
 		val, found := keeper.GetValidator(ctx, valAddr)
 		if !found {
 			return nil, sdkerrors.Wrap(stakingtypes.ErrNoValidatorFound, "can't load validator for delegation")
@@ -432,7 +432,7 @@ func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper
 	delegationCoins := ConvertSdkCoinToWasmCoin(amount)
 
 	// FIXME: this is very rough but better than nothing...
-	// https://github.com/CosmWasm/wasmd/issues/282
+	// https://github.com/okex/exchain/issues/282
 	// if this (val, delegate) pair is receiving a redelegation, it cannot redelegate more
 	// otherwise, it can redelegate the full amount
 	// (there are cases of partial funds redelegated, but this is a start)
@@ -460,7 +460,7 @@ func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper
 }
 
 // FIXME: simplify this enormously when
-// https://github.com/cosmos/cosmos-sdk/issues/7466 is merged
+// https://github.com/okex/exchain/libs/cosmos-sdk/issues/7466 is merged
 func getAccumulatedRewards(ctx sdk.Context, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) ([]wasmvmtypes.Coin, error) {
 	// Try to get *delegator* reward info!
 	params := distributiontypes.QueryDelegationRewardsRequest{

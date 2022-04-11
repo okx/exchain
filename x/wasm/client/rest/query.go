@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func registerQueryRoutes(cliCtx client.Context, r *mux.Router) {

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
 )
 
 func TestDispatchSubmessages(t *testing.T) {

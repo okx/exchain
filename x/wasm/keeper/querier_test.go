@@ -14,16 +14,16 @@ import (
 
 	cosmwasm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkErrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func TestQueryAllContractState(t *testing.T) {

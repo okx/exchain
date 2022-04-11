@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"math/rand"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func GenesisFixture(mutators ...func(*GenesisState)) GenesisState {

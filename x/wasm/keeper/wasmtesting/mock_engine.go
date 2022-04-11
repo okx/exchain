@@ -6,10 +6,10 @@ import (
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/tendermint/tendermint/libs/rand"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var _ types.WasmerEngine = &MockWasmer{}

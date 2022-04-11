@@ -6,16 +6,16 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	wasmUtils "github.com/CosmWasm/wasmd/x/wasm/client/utils"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 const (

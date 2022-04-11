@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 
 	"github.com/stretchr/testify/assert"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 

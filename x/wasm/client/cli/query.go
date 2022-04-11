@@ -10,13 +10,13 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func GetQueryCmd() *cobra.Command {

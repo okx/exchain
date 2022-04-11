@@ -78,6 +78,7 @@ require (
 )
 
 require (
+	github.com/CosmWasm/wasmvm v1.0.0-beta10
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.18 // indirect

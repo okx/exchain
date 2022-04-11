@@ -3,9 +3,9 @@ package keeper
 import (
 	"encoding/binary"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // CountTXDecorator ante handler to count the tx position in a block.

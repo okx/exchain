@@ -8,28 +8,27 @@ import (
 	"path"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/testutil"
-	"github.com/cosmos/cosmos-sdk/testutil/testdata"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltest "github.com/cosmos/cosmos-sdk/x/genutil/client/testutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/testutil"
+	"github.com/okex/exchain/libs/cosmos-sdk/testutil/testdata"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	genutiltest "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/client/testutil"
+	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
+	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var wasmIdent = []byte("\x00\x61\x73\x6D")
@@ -706,12 +705,13 @@ func executeCmdWithContext(t *testing.T, homeDir string, cmd *cobra.Command) err
 	ctx = context.WithValue(ctx, server.ServerContextKey, serverCtx)
 	flagSet := cmd.Flags()
 	flagSet.Set("home", homeDir)
-	flagSet.Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	flagSet.Set(flags.FlagKeyringBackend, keys.BackendTest)
 
 	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
-	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, homeDir, mockIn)
+
+	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), keys.BackendTest, homeDir, mockIn)
 	require.NoError(t, err)
-	_, err = kb.NewAccount(defaultTestKeyName, testdata.TestMnemonic, "", sdk.FullFundraiserPath, hd.Secp256k1)
+	_, err = kb.NewAccount(defaultTestKeyName, testdata.TestMnemonic, "", sdk.FullFundraiserPath, keys.Secp256k1)
 	require.NoError(t, err)
 	return cmd.ExecuteContext(ctx)
 }

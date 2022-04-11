@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // NewHandler returns a handler for "wasm" type messages.

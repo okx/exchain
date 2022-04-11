@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type Recurse struct {

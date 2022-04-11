@@ -4,11 +4,11 @@ import (
 	"time"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/telemetry"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var _ types.IBCContractKeeper = (*Keeper)(nil)
@@ -17,7 +17,7 @@ var _ types.IBCContractKeeper = (*Keeper)(nil)
 // In the IBC protocol this is either the `Channel Open Init` event on the initiating chain or
 // `Channel Open Try` on the counterparty chain.
 // Protocol version and channel ordering should be verified for example.
-// See https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
+// See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnOpenChannel(
 	ctx sdk.Context,
 	contractAddr sdk.AccAddress,
@@ -47,9 +47,9 @@ func (k Keeper) OnOpenChannel(
 // In the IBC protocol this is either the `Channel Open Ack` event on the initiating chain or
 // `Channel Open Confirm` on the counterparty chain.
 //
-// There is an open issue with the [cosmos-sdk](https://github.com/cosmos/cosmos-sdk/issues/8334)
+// There is an open issue with the [cosmos-sdk](https://github.com/okex/exchain/libs/cosmos-sdk/issues/8334)
 // that the counterparty channelID is empty on the initiating chain
-// See https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
+// See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnConnectChannel(
 	ctx sdk.Context,
 	contractAddr sdk.AccAddress,
@@ -79,7 +79,7 @@ func (k Keeper) OnConnectChannel(
 //
 // Once closed, channels cannot be reopened and identifiers cannot be reused. Identifier reuse is prevented because
 // we want to prevent potential replay of previously sent packets
-// See https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
+// See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnCloseChannel(
 	ctx sdk.Context,
 	contractAddr sdk.AccAddress,
@@ -108,9 +108,9 @@ func (k Keeper) OnCloseChannel(
 // OnRecvPacket calls the contract to process the incoming IBC packet. The contract fully owns the data processing and
 // returns the acknowledgement data for the chain level. This allows custom applications and protocols on top
 // of IBC. Although it is recommended to use the standard acknowledgement envelope defined in
-// https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#acknowledgement-envelope
+// https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#acknowledgement-envelope
 //
-// For more information see: https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
+// For more information see: https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
 func (k Keeper) OnRecvPacket(
 	ctx sdk.Context,
 	contractAddr sdk.AccAddress,
@@ -140,11 +140,11 @@ func (k Keeper) OnRecvPacket(
 
 // OnAckPacket calls the contract to handle the "acknowledgement" data which can contain success or failure of a packet
 // acknowledgement written on the receiving chain for example. This is application level data and fully owned by the
-// contract. The use of the standard acknowledgement envelope is recommended: https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#acknowledgement-envelope
+// contract. The use of the standard acknowledgement envelope is recommended: https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#acknowledgement-envelope
 //
 // On application errors the contract can revert an operation like returning tokens as in ibc-transfer.
 //
-// For more information see: https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
+// For more information see: https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
 func (k Keeper) OnAckPacket(
 	ctx sdk.Context,
 	contractAddr sdk.AccAddress,

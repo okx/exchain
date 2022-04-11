@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
 )
 
 // Path contains two endpoints representing two chains connected over IBC

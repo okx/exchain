@@ -5,10 +5,10 @@ import (
 	"reflect"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/gogo/protobuf/proto"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 const (

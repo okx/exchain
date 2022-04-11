@@ -1,8 +1,8 @@
 package rest
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 )
 
 // RegisterRoutes registers staking-related REST handlers to a router

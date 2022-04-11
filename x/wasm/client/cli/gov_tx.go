@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/gov/client/cli"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/cli"
+	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func ProposalStoreCodeCmd() *cobra.Command {

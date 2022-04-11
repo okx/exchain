@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/gogo/protobuf/jsonpb"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )

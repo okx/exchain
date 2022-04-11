@@ -8,17 +8,17 @@ import (
 	"io/ioutil"
 	"strings"
 
-	wasmd "github.com/CosmWasm/wasmd/app"
+	wasmd "github.com/okex/exchain/app"
 
-	ibctesting "github.com/cosmos/ibc-go/v2/testing"
+	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/golang/protobuf/proto" //nolint
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/rand"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var wasmIdent = []byte("\x00\x61\x73\x6D")

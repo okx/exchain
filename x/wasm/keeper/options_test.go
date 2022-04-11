@@ -3,15 +3,15 @@ package keeper
 import (
 	"testing"
 
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
+	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func TestConstructorOptions(t *testing.T) {

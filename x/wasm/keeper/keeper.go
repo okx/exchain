@@ -10,19 +10,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/types/address"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/address"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	"github.com/cosmos/cosmos-sdk/telemetry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/libs/cosmos-sdk/telemetry"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -994,7 +994,7 @@ func (k Keeper) QueryGasLimit() sdk.Gas {
 }
 
 // BankCoinTransferrer replicates the cosmos-sdk behaviour as in
-// https://github.com/cosmos/cosmos-sdk/blob/v0.41.4/x/bank/keeper/msg_server.go#L26
+// https://github.com/okex/exchain/libs/cosmos-sdk/blob/v0.41.4/x/bank/keeper/msg_server.go#L26
 type BankCoinTransferrer struct {
 	keeper types.BankKeeper
 }

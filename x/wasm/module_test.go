@@ -6,20 +6,20 @@ import (
 	"io/ioutil"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 type testData struct {

@@ -9,17 +9,17 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // ReflectInitMsg is {}

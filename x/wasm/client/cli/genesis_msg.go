@@ -8,21 +8,21 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/keeper"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // GenesisReader reads genesis data. Extension point for custom genesis state readers.
@@ -500,7 +500,7 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 
 	homeDir := client.GetClientContextFromCmd(cmd).HomeDir
 	// attempt to lookup address from Keybase if no address was provided
-	kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, homeDir, inBuf)
+	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), keyringBackend, homeDir, inBuf)
 	if err != nil {
 		return nil, err
 	}

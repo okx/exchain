@@ -9,24 +9,24 @@ import (
 	"testing"
 	"time"
 
-	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
-	stypes "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // When migrated to go 1.16, embed package should be used instead.

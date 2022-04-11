@@ -3,13 +3,13 @@ package cli
 import (
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // MigrateContractCmd will migrate a contract to a new code version

@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
-	wasmUtils "github.com/CosmWasm/wasmd/x/wasm/client/utils"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func registerTxRoutes(cliCtx client.Context, r *mux.Router) {
