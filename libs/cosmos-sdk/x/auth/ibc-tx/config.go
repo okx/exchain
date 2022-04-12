@@ -11,7 +11,7 @@ import (
 
 type config struct {
 	handler signing.SignModeHandler
-	//decoder     ibctx.IBCTxEncoder
+	decoder ibctx.IbcTxDecoder
 	encoder ibctx.IBCTxEncoder
 	//jsonDecoder ibctx.IBCTxEncoder
 	jsonEncoder ibctx.IBCTxEncoder
@@ -23,7 +23,7 @@ type config struct {
 func NewTxConfig(protoCodec codec.ProtoCodecMarshaler, enabledSignModes []signing2.SignMode) client.TxConfig {
 	return &config{
 		handler: makeSignModeHandler(enabledSignModes),
-		//decoder:     IbcTxDecoder(protoCodec),
+		decoder: IbcTxDecoder(protoCodec),
 		encoder: IbcTxEncoder(),
 		//jsonDecoder: DefaultJSONTxDecoder(protoCodec),
 		jsonEncoder: DefaultJSONTxEncoder(protoCodec),
@@ -53,9 +53,10 @@ func (g config) TxEncoder() ibctx.IBCTxEncoder {
 	return g.encoder
 }
 
-//func (g config) TxDecoder() sdk.TxDecoder {
-//	return g.decoder
-//}
+func (g config) TxDecoder() ibctx.IbcTxDecoder {
+	return g.decoder
+}
+
 //
 func (g config) TxJSONEncoder() ibctx.IBCTxEncoder {
 	return g.jsonEncoder

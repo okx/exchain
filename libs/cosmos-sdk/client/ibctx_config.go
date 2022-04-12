@@ -12,7 +12,7 @@ type (
 	// encoders and decoders
 	TxEncodingConfig interface {
 		TxEncoder() ibcmsg.IBCTxEncoder
-		//TxDecoder() sdk.TxDecoder
+		TxDecoder() ibcmsg.IbcTxDecoder
 		TxJSONEncoder() ibcmsg.IBCTxEncoder
 		//TxJSONDecoder() sdk.TxDecoder
 		MarshalSignatureJSON([]signing.SignatureV2) ([]byte, error)
