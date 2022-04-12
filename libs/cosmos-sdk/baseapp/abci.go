@@ -115,6 +115,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	sdk.DebugLogByScf.Clean()
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
