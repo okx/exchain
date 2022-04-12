@@ -90,6 +90,51 @@ func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache               { return c.cache }
 
+func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
+func (c *Context) DisableAccountCache() { c.accountCache = nil }
+
+func (c *Context) GetFromAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.FromAcc
+}
+
+func (c *Context) GetFromAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.FromAccGotGas
+}
+
+func (c *Context) GetToAccountCacheData() interface{} {
+	if c.accountCache == nil {
+		return nil
+	}
+	return c.accountCache.ToAcc
+}
+
+func (c *Context) GetToAccountCacheGas() Gas {
+	if c.accountCache == nil {
+		return 0
+	}
+	return c.accountCache.ToAccGotGas
+}
+
+func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.FromAcc = fromAcc
+		c.accountCache.FromAccGotGas = fromAccGettedGas
+	}
+}
+
+func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
+	if c.accountCache != nil {
+		c.accountCache.ToAcc = toAcc
+		c.accountCache.ToAccGotGas = toAccGotGas
+	}
+}
+
 func (c *Context) BlockProposerAddress() []byte {
 	if c.header == nil {
 		return nil
@@ -354,51 +399,6 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	cc.SetEventManager(NewEventManager())
 	writeCache = cms.Write
 	return
-}
-
-func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
-func (c *Context) DisableAccountCache() { c.accountCache = nil }
-
-func (c *Context) GetFromAccountCacheData() interface{} {
-	if c.accountCache == nil {
-		return nil
-	}
-	return c.accountCache.FromAcc
-}
-
-func (c *Context) GetFromAccountCacheGas() Gas {
-	if c.accountCache == nil {
-		return 0
-	}
-	return c.accountCache.FromAccGotGas
-}
-
-func (c *Context) GetToAccountCacheData() interface{} {
-	if c.accountCache == nil {
-		return nil
-	}
-	return c.accountCache.ToAcc
-}
-
-func (c *Context) GetToAccountCacheGas() Gas {
-	if c.accountCache == nil {
-		return 0
-	}
-	return c.accountCache.ToAccGotGas
-}
-
-func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
-	if c.accountCache != nil {
-		c.accountCache.FromAcc = fromAcc
-		c.accountCache.FromAccGotGas = fromAccGettedGas
-	}
-}
-
-func (c *Context) UpdateToAccountCache(toAcc interface{}, toAccGotGas Gas) {
-	if c.accountCache != nil {
-		c.accountCache.ToAcc = toAcc
-		c.accountCache.ToAccGotGas = toAccGotGas
-	}
 }
 
 type AccountCache struct {
