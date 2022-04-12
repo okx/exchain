@@ -135,7 +135,7 @@ type testReactorParams struct {
 }
 
 func newTestReactor(p testReactorParams) *BlockchainReactor {
-	store, state, _ := newReactorStore(p.genDoc, p.privVals, p.startHeight)
+	store, deltaStore, state, _ := newReactorStore(p.genDoc, p.privVals, p.startHeight)
 	reporter := behaviour.NewMockReporter()
 	var appl blockApplier
 
@@ -154,7 +154,7 @@ func newTestReactor(p testReactorParams) *BlockchainReactor {
 		sm.SaveState(db, state)
 	}
 
-	r := newReactor(state, store, nil, reporter, appl, p.bufferSize, true)
+	r := newReactor(state, store, deltaStore, reporter, appl, p.bufferSize, true)
 	logger := log.TestingLogger()
 	r.SetLogger(logger.With("module", "blockchain"))
 
@@ -470,7 +470,7 @@ func randGenesisDoc(chainID string, numValidators int, randPower bool, minPower 
 func newReactorStore(
 	genDoc *types.GenesisDoc,
 	privVals []types.PrivValidator,
-	maxBlockHeight int64) (*store.BlockStore, sm.State, *sm.BlockExecutor) {
+	maxBlockHeight int64) (*store.BlockStore, *store.DeltaStore, sm.State, *sm.BlockExecutor) {
 	if len(privVals) != 1 {
 		panic("only support one validator")
 	}
@@ -484,6 +484,7 @@ func newReactorStore(
 
 	stateDB := dbm.NewMemDB()
 	blockStore := store.NewBlockStore(dbm.NewMemDB())
+	deltaStore := store.NewDeltaStore(dbm.NewMemDB())
 
 	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
 	if err != nil {
@@ -528,5 +529,9 @@ func newReactorStore(
 
 		blockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 	}
-	return blockStore, state, blockExec
+	// add blocks in
+	for blockHeight := int64(1); blockHeight <= maxBlockHeight; blockHeight++ {
+		deltaStore.SaveDeltas(&types.Deltas{Height: blockHeight}, blockHeight)
+	}
+	return blockStore, deltaStore, state, blockExec
 }

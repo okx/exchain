@@ -41,7 +41,6 @@ func NewPersistentKVStoreApplication(dbDir string) *PersistentKVStoreApplication
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
 	state := loadState(db)
 
@@ -51,7 +50,12 @@ func NewPersistentKVStoreApplication(dbDir string) *PersistentKVStoreApplication
 		logger:             log.NewNopLogger(),
 	}
 }
-
+func (app *PersistentKVStoreApplication) Close() error {
+	if app.app == nil {
+		return fmt.Errorf("PersistentKVStoreApplication.app is nil")
+	}
+	return app.app.state.db.Close()
+}
 func (app *PersistentKVStoreApplication) SetLogger(l log.Logger) {
 	app.logger = l
 }
