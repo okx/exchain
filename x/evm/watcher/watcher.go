@@ -374,9 +374,9 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	delayEraseKey := w.delayEraseKey
+	w.clean()
 	w.dispatchJob(func() {
 		w.commitBatch(batch, delayEraseKey)
-		w.clean()
 	})
 }
 
