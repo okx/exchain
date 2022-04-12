@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"os"
 	"sort"
 	"strconv"
@@ -173,7 +174,9 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 	} else {
 		app.feeForCollector = app.feeForCollector.Sub(fee)
 	}
-	app.logger.Info("UpdateFeeForCollector", "fee", app.feeForCollector)
+	if global.GetGlobalHeight() == 4663637 {
+		app.logger.Info("UpdateFeeForCollector", "fee", app.feeForCollector, "add", add)
+	}
 }
 
 // EndBlock implements the ABCI interface.
