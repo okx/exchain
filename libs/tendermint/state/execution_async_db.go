@@ -2,6 +2,7 @@ package state
 
 import (
 	"sync"
+	"time"
 )
 
 type asyncDBContext struct {
@@ -21,6 +22,11 @@ type asyncDBContext struct {
 	wg sync.WaitGroup
 }
 
+const (
+	FEEDBACK_LEN          = 2
+	MAX_WAIT_TIME_SECONDS = 30
+)
+
 type abciResponse struct {
 	height    int64
 	responses *ABCIResponses
@@ -29,7 +35,7 @@ type abciResponse struct {
 func (ctx *BlockExecutor) initAsyncDBContext() {
 	ctx.abciResponseQueue = make(chan abciResponse)
 	ctx.stateQueue = make(chan State)
-	ctx.asyncFeedbackQueue = make(chan int64, 2)
+	ctx.asyncFeedbackQueue = make(chan int64, FEEDBACK_LEN)
 
 	go ctx.asyncSaveStateRoutine()
 	go ctx.asyncSaveABCIRespRoutine()
@@ -84,14 +90,21 @@ func (blockExec *BlockExecutor) SetIsAsyncSaveDB(isAsyncSaveDB bool) {
 
 // wait for the last sate and abciResponse to be saved
 func (blockExec *BlockExecutor) tryWaitLastBlockSave(lastHeight int64) {
+	timeoutCh := time.After(MAX_WAIT_TIME_SECONDS * time.Second)
 	if blockExec.isAsyncSaveDB && blockExec.isWaitingLastBlock {
 		i := 0
-		for r := range blockExec.asyncFeedbackQueue {
-			if r != lastHeight {
-				panic("Incorrect synced aysnc feed Height")
-			}
-			if i++; i == 2 {
-				break
+		for {
+			select {
+			case r := <-blockExec.asyncFeedbackQueue:
+				if r != lastHeight {
+					panic("Incorrect synced aysnc feed Height")
+				}
+				if i++; i == FEEDBACK_LEN {
+					return
+				}
+			case <-timeoutCh:
+				// It shouldn't be timeout. something must be wrong here
+				panic("Can't get last block aysnc result")
 			}
 		}
 	}
