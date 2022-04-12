@@ -101,6 +101,12 @@ func (k Keeper) AllocateTokenToTreasure(ctx sdk.Context, fees sdk.Coins) (remain
 		}
 		k.Logger(ctx).Debug("allocate treasure", "addr", treasures[i].Address, "proportion", treasures[i].Proportion, "sum coins", fees.String(), "allocated", allocated.String(), "remain", remain.String())
 	}
+
+	treasuryFee := sdk.ConvertDecToFloat64(fees.Sub(remain).AmountOf(sdk.DefaultBondDenom))
+	k.feeInfo.totalTreasury += treasuryFee
+	k.mintMetric.ToTreasury.Add(treasuryFee)
+	k.Logger(ctx).Error("Total fee to treasury", "treasury", k.feeInfo.totalTreasury)
+
 	return
 }
 

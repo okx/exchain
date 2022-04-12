@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/staking/exported"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -23,11 +25,14 @@ type Keeper struct {
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
+
+	metric              *monitor.StakingMetric
+	monitoredValidators []string
 }
 
 // NewKeeper creates a new staking Keeper instance
 func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
-	paramstore params.Subspace) Keeper {
+	paramstore params.Subspace, metrics *monitor.StakingMetric) Keeper {
 
 	// ensure bonded and not bonded module accounts are set
 	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
@@ -44,6 +49,9 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeep
 		supplyKeeper: supplyKeeper,
 		paramstore:   paramstore.WithKeyTable(ParamKeyTable()),
 		hooks:        nil,
+
+		metric:              metrics,
+		monitoredValidators: viper.GetStringSlice("test.monitored_validators"),
 	}
 }
 
