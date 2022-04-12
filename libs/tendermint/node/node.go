@@ -359,9 +359,9 @@ func createBlockchainReactor(config *cfg.Config,
 	case "v0":
 		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	case "v1":
-		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	case "v2":
-		bcReactor = bcv2.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+		bcReactor = bcv2.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	default:
 		return nil, fmt.Errorf("unknown fastsync version %s", config.FastSync.Version)
 	}
