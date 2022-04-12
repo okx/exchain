@@ -35,7 +35,7 @@ func (ctx *BlockExecutor) initAsyncDBContext() {
 	go ctx.asyncSaveABCIRespRoutine()
 }
 
-func (blockExec *BlockExecutor) StopAsyncDBContext() {
+func (blockExec *BlockExecutor) stopAsyncDBContext() {
 	if blockExec.isAsyncQueueStop {
 		return
 	}

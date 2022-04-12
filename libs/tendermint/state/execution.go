@@ -110,7 +110,7 @@ func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 }
 
 func (blockExec *BlockExecutor) Stop() {
-	blockExec.StopAsyncDBContext()
+	blockExec.stopAsyncDBContext()
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
