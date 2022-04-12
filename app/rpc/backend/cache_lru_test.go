@@ -92,7 +92,8 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 			},
 		},
 	}
-	viper.Set(FlagApiBackendBlockLruCache, 100) // must be 3
+	viper.Set(FlagApiBackendBlockLruCache, 100)
+	viper.Set(FlagApiBackendTxLruCache, 100)
 	alc := NewLruCache()
 
 	for _, tt := range tests {
