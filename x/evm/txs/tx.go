@@ -6,6 +6,7 @@ import (
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	stdlog "log"
 	"math/big"
 )
 
@@ -63,6 +64,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	// Prepare convert msg to state transition
 	err = tx.Prepare(msg)
 	if err != nil {
+		stdlog.Printf("giskook <<<<<<<<<<<< %v \n ", err)
 		return nil, err
 	}
 
