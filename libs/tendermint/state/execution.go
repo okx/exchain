@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -53,26 +52,8 @@ type BlockExecutor struct {
 
 	isFastSync bool
 
-	// async write db
-	// switch to turn on async save abciResponse and state
-	isAsyncSaveDB bool
-	// channel to write abciResponse async
-	abciResponseQueue chan abciResponse
-	/// channe to write state async
-	stateQueue chan State
-	// channel to feed back height of saved abci response and stat response
-	asyncFeedbackQueue chan int64
-	// flag to avoid waiting async state result for the first block
-	isSaveDBAsyncing bool
-	//flag to avoid stop twice
-	isAsyncQueueStop bool
-	//wait group for quiting
-	wg sync.WaitGroup
-}
-
-type abciResponse struct {
-	height    int64
-	responses *ABCIResponses
+	// async state, validators, consensus params, abci responses here
+	asyncDBContext
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -112,12 +93,7 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
-	res.abciResponseQueue = make(chan abciResponse)
-	res.stateQueue = make(chan State)
-	res.asyncFeedbackQueue = make(chan int64, 2)
-
-	go res.asyncSaveStateRoutine()
-	go res.asyncSaveABCIRespRoutine()
+	res.initAsyncDBContext()
 	return res
 }
 
@@ -133,8 +109,8 @@ func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
 }
 
-func (blockExec *BlockExecutor) SetIsAsyncSaveDB(isAsyncSaveDB bool) {
-	blockExec.isAsyncSaveDB = isAsyncSaveDB
+func (blockExec *BlockExecutor) Stop() {
+	blockExec.StopAsyncDBContext()
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -221,17 +197,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 
 	//wait till the last block async write be saved
-	if blockExec.isAsyncSaveDB && blockExec.isSaveDBAsyncing {
-		i := 0
-		for r := range blockExec.asyncFeedbackQueue {
-			if r != (block.Height - 1) {
-				panic("Incorrect synced aysnc feed Height")
-			}
-			if i++; i == 2 {
-				break
-			}
-		}
-	}
+	blockExec.tryWaitLastBlockSave(block.Height - 1)
 
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
@@ -244,12 +210,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	if blockExec.isAsyncSaveDB {
-		blockExec.isSaveDBAsyncing = true
-		blockExec.SaveABCIResponsesAsync(block.Height, abciResponses)
-	} else {
-		SaveABCIResponses(blockExec.db, block.Height, abciResponses)
-	}
+	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
@@ -298,12 +259,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	if blockExec.isAsyncSaveDB {
-		blockExec.SaveStateAsync(state)
-	} else {
-		//Async save state
-		SaveState(blockExec.db, state)
-	}
+	blockExec.trySaveStateAsync(state)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 
@@ -428,45 +384,6 @@ func (blockExec *BlockExecutor) commit(
 	}
 
 	return res, res.RetainHeight, err
-}
-
-func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
-	blockExec.abciResponseQueue <- abciResponse{height, responses}
-}
-
-func (blockExec *BlockExecutor) SaveStateAsync(state State) {
-	blockExec.stateQueue <- state
-}
-
-// asyncSaveRoutine handle the write db work
-func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
-	for stateMsg := range blockExec.stateQueue {
-		SaveState(blockExec.db, stateMsg)
-		blockExec.asyncFeedbackQueue <- stateMsg.LastBlockHeight
-	}
-
-	blockExec.wg.Done()
-}
-
-func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
-	for abciMsg := range blockExec.abciResponseQueue {
-		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
-		blockExec.asyncFeedbackQueue <- abciMsg.height
-	}
-	blockExec.wg.Done()
-}
-
-func (blockExec *BlockExecutor) Stop() {
-	if blockExec.isAsyncQueueStop {
-		return
-	}
-
-	blockExec.wg.Add(2)
-	close(blockExec.abciResponseQueue)
-	close(blockExec.stateQueue)
-	blockExec.wg.Wait()
-
-	blockExec.isAsyncQueueStop = true
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
