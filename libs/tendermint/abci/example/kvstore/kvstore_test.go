@@ -71,7 +71,6 @@ func TestPersistentKVStoreKV(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
-	defer kvstore.app.state.db.Close()
 
 	key := testKey
 	value := key
@@ -89,7 +88,6 @@ func TestPersistentKVStoreInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
-	defer kvstore.app.state.db.Close() // need to close db when test is done
 
 	InitKVStore(kvstore)
 	height := int64(0)
@@ -123,7 +121,6 @@ func TestValUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
-	defer kvstore.app.state.db.Close() // need to close db when test is done
 	// init with some validators
 	total := 10
 	nInit := 5

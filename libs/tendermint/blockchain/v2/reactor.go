@@ -176,7 +176,6 @@ func newReactor(state state.State, store blockStore, dstore deltaStore, reporter
 		scheduler: newRoutine("scheduler", scheduler.handle, bufferSize),
 		processor: newRoutine("processor", processor.handle, bufferSize),
 		store:     store,
-		dstore:    dstore,
 		reporter:  reporter,
 		logger:    log.NewNopLogger(),
 		fastSync:  fastSync,
