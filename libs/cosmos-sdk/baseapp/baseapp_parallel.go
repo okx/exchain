@@ -103,7 +103,7 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 		if tx.isEvm { //evmTx
 			Union(tx.from, tx.to)
 		} else {
-			app.parallelTxManage.txReps[index] = &executeResult{}
+			app.parallelTxManage.txReps[index] = &executeResult{paraMsg: &sdk.ParaMsg{}}
 		}
 	}
 
