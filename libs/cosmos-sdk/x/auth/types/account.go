@@ -244,6 +244,7 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
+	
 	acc.Coins = coins
 	return nil
 }
