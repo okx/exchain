@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -102,7 +103,7 @@ func GetCmdParams(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *co
 // GetCmdParams returns the command handler for ibc-transfer parameter querying.
 func GetCmdQueryEscrowAddress(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "escrow-address",
+		Use:     "escrow-address [port] [channel-id]",
 		Short:   "Get the escrow address for a channel",
 		Long:    "Get the escrow address for a channel",
 		Args:    cobra.ExactArgs(2),
