@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -13,6 +14,7 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
+		logger.Info("SetFeeCollector", "balance", balance)
 		return bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
 	}
 }
