@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
-
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
 	stdtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -73,11 +72,15 @@ type (
 
 // TxDecoder unmarshals transaction bytes
 //type TxDecoder func(txBytes []byte) (costypes.Tx, error)
-type TxDecoder func(txBytes []byte) (stdtx.StdTx, error)
+//for new cosmos-sdk tx decoder
+type TxDecoder func(txBytes []byte) (Tx, error)
+
+// ibc msg tx decoder
 type IbcTxDecoder func(txBytes []byte) (*stdtx.IbcTx, error)
 
 // TxEncoder marshals transaction to bytes
 type TxEncoder func(tx Tx) ([]byte, error)
+type IBCTxEncoder TxEncoder
 
 // MsgTypeURL returns the TypeURL of a `sdk.Msg`.
 func MsgTypeURL(msg Msg) string {

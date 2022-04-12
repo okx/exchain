@@ -397,7 +397,7 @@ func StdSignBytes(chainID string, accnum uint64, sequence uint64, fee StdFee, ms
 // StdSignature represents a sig
 type StdSignature struct {
 	crypto.PubKey `json:"pub_key" yaml:"pub_key"` // optional
-	Signature     []byte `json:"signature" yaml:"signature"`
+	Signature     []byte                          `json:"signature" yaml:"signature"`
 }
 
 // DefaultTxDecoder logic for standard transaction decoding
@@ -430,6 +430,23 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 		return cdc.MarshalBinaryLengthPrefixed(tx)
 	}
 }
+
+//func IbcTxEncoder() sdk.TxEncoder {
+//	return func(tx sdk.Tx) ([]byte, error) {
+//		txWrapper, ok := tx.(*tx2.Wrapper)
+//		if !ok {
+//			return nil, fmt.Errorf("expected %T, got %T", &wrapper{}, tx)
+//		}
+//
+//		raw := &TxRaw{
+//			BodyBytes:     txWrapper.getBodyBytes(),
+//			AuthInfoBytes: txWrapper.getAuthInfoBytes(),
+//			Signatures:    txWrapper.tx.Signatures,
+//		}
+//
+//		return proto.Marshal(raw)
+//	}
+//}
 
 func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {

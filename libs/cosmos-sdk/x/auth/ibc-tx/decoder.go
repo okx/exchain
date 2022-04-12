@@ -1,8 +1,8 @@
-package tx
+package ibc_tx
 
 import (
 	"fmt"
-
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"google.golang.org/protobuf/encoding/protowire"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -13,7 +13,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
@@ -123,20 +122,20 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 	}
 }
 
-// // DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
-// func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
-// 	return func(txBytes []byte) (sdk.Tx, error) {
-// 		var theTx tx.Tx
-// 		err := cdc.UnmarshalJSON(txBytes, &theTx)
-// 		if err != nil {
-// 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-// 		}
-
-// 		return &wrapper{
-// 			tx: &theTx,
-// 		}, nil
-// 	}
-// }
+// DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
+//func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
+//	return func(txBytes []byte) (sdk.Tx, error) {
+//		var theTx tx.Tx
+//		err := cdc.UnmarshalJSON(txBytes, &theTx)
+//		if err != nil {
+//			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+//		}
+//
+//		return &wrapper{
+//			tx: &theTx,
+//		}, nil
+//	}
+//}
 
 // rejectNonADR027TxRaw rejects txBytes that do not follow ADR-027. This is NOT
 // a generic ADR-027 checker, it only applies decoding TxRaw. Specifically, it
