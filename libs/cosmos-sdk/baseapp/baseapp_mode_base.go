@@ -147,6 +147,7 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
 	}
+	fmt.Println("GasConsumed. ", info.ctx.BlockGasMeter().GasConsumed())
 }
 
 func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) error {
