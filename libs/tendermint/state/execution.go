@@ -52,7 +52,7 @@ type BlockExecutor struct {
 
 	isFastSync bool
 
-	// async state, validators, consensus params, abci responses here
+	// async save state, validators, consensus params, abci responses here
 	asyncDBContext
 }
 
