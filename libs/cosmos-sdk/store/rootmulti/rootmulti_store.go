@@ -3,7 +3,6 @@ package rootmulti
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/global"
-	db "github.com/tendermint/tm-db"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"

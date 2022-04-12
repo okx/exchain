@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"os"
 	"sort"
 	"strconv"
