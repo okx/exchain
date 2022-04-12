@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -143,6 +144,10 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
+
+	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	feeCoins := feeAcc.GetCoins()
+	logger.Info("UpdateFeeForCollector", "fee", feeCoins, "add", 1)
 
 	return nil
 }

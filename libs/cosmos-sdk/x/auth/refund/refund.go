@@ -1,6 +1,7 @@
 package refund
 
 import (
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -34,6 +35,10 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
+
+	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	feeCoins := feeAcc.GetCoins()
+	logger.Info("UpdateFeeForCollector", "fee", feeCoins, "add", 0)
 
 	return nil
 }
