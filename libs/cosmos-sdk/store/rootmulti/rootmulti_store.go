@@ -41,9 +41,6 @@ import (
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
-//for ibc upgrade modules name
-var IbcModules = []string{"erc20", "capability", "ibc", "transfer", "mem_capability", "transient_params"}
-
 const (
 	latestVersionKey      = "s/latest"
 	pruneHeightsKey       = "s/pruneheights"
@@ -74,6 +71,7 @@ type Store struct {
 
 	logger tmlog.Logger
 
+	versionPipeline            func(h int64) func(func(name string, version int64))
 	commitHeightFilterPipeline func(h int64) func(str string) bool
 	pruneHeightFilterPipeline  func(h int64) func(str string) bool
 	upgradeVersion             int64
@@ -102,6 +100,7 @@ func NewStore(db dbm.DB) *Store {
 		keysByName:                 make(map[string]types.StoreKey),
 		pruneHeights:               make([]int64, 0),
 		versions:                   make([]int64, 0),
+		versionPipeline:            types.DefaultLoopAll,
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
 		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
 		upgradeVersion:             -1,
@@ -226,9 +225,15 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		// filter IBC module {}
+		f := rs.commitHeightFilterPipeline(commitVersion)
+		if f(storeParams.key.Name()) {
+			continue
+		}
 		if commitVersion < minVersion {
 			minVersion = commitVersion
 		}
+
 	}
 	return minVersion, nil
 }
@@ -251,20 +256,42 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			infos[storeInfo.Name] = storeInfo
 		}
 
-		for _, name := range IbcModules {
+		//if upgrade version ne
+		callback := func(name string, version int64) {
 			ibcInfo := infos[name]
 			if ibcInfo.Core.CommitID.Version == 0 {
-				ibcInfo.Core.CommitID.Version = tmtypes.GetVenus1Height()
+				ibcInfo.Core.CommitID.Version = version //tmtypes.GetVenus1Height()
 				infos[name] = ibcInfo
+				for key, param := range rs.storesParams {
+					if key.Name() == name {
+						param.upgradeVersion = uint64(version)
+						rs.storesParams[key] = param
+					}
+				}
 			}
 		}
+		f := rs.versionPipeline(ver)
+		f(callback)
 	}
 
 	roots := make(map[int64][]byte)
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
+		// below venus1Height when restart app, no need to load ibc module versions
+		//f := rs.commitHeightFilterPipeline(ver)
+		//if f(key.Name()) {
+		//	continue
+		//}
+
 		commitID := rs.getCommitID(infos, key.Name())
+
+		//if key.Name() == "ibc" || key.Name() == "capability" || key.Name() == "mem_capability" || key.Name() == "transfer" || key.Name() == "erc20" {
+		//	param, exist := rs.storesParams[key]
+		//	if exist {
+		//		param.upgradeVersion = uint64(tmtypes.GetVenus1Height())
+		//	}
+		//}
 
 		// If it has been added, set the initial version
 		if upgrades.IsAdded(key.Name()) {
@@ -747,10 +774,12 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		if rs.flatKVDB != nil {
 			prefixDB = dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
 		}
-		if params.initialVersion == 0 {
+		if params.initialVersion == 0 && params.upgradeVersion != 0 {
+			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, uint64(tmtypes.GetStartBlockHeight()), params.upgradeVersion)
+		} else if params.initialVersion == 0 {
 			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {
-			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, params.initialVersion)
+			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, params.initialVersion, params.upgradeVersion)
 		}
 
 		if err != nil {
@@ -878,6 +907,7 @@ type storeParams struct {
 	db             dbm.DB
 	typ            types.StoreType
 	initialVersion uint64
+	upgradeVersion uint64
 }
 
 //----------------------------------------
