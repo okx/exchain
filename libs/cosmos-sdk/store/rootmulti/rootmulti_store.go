@@ -3,6 +3,7 @@ package rootmulti
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/global"
+	db "github.com/tendermint/tm-db"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -1032,8 +1033,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
-	fmt.Println("==================================================================================")
+	if global.GetGlobalHeight() == 4663637 {
+		fmt.Println("==================================================================================")
+	}
 	for key, store := range storeMap {
 		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
