@@ -1,7 +1,6 @@
 package base
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -50,12 +49,6 @@ func (b *BaseIBCUpgradeModule) BlockStoreModules() map[string]upgrade.HandleStor
 
 func (b *BaseIBCUpgradeModule) RegisterParam() params.ParamSet {
 	return nil
-}
-
-func (b *BaseIBCUpgradeModule) HandleStoreWhenMeetUpgradeHeight() upgrade.HandleStore {
-	return func(st store.CommitKVStore, h int64) {
-		st.SetUpgradeVersion(h)
-	}
 }
 
 func (b *BaseIBCUpgradeModule) Seal() {

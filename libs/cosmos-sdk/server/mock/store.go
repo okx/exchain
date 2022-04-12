@@ -21,7 +21,7 @@ func (ms multiStore) SetCommitHeightFilterPipeline(f store.HeightFilterPipeline)
 	panic("implement me")
 }
 
-func (ms multiStore) SetPruneHeightFilterPipeline(f store.HeightFilterPipeline) {
+func (ms multiStore) SetPruneHeightFilterPipeline(f store.PrunePipeline) {
 	panic("implement me")
 }
 

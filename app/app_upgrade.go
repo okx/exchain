@@ -121,7 +121,9 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.Han
 				}
 			}
 			// call next filter
-			return nil
+			return func(_ string, _ types.CommitKVStore) bool {
+				return false
+			}
 		}
 		pruneF := func(h int64) func(str string) bool {
 			if hh == 0 {
@@ -130,7 +132,9 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.Han
 			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
 			if h > height {
 				// call next filter
-				return nil
+				return func(_ string) bool {
+					return false
+				}
 			}
 			return blockModuleFilter
 		}
@@ -139,7 +143,7 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.Han
 			//	return nil
 			//}
 			if h < 0 {
-				return nil
+				return func(cb func(string, int64)) {}
 			}
 
 			return func(cb func(name string, version int64)) {

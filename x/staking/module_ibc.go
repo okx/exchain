@@ -31,7 +31,3 @@ func (am AppModule) RegisterParam() params.ParamSet {
 func (am AppModule) ModuleName() string {
 	return ModuleName
 }
-
-func (b AppModuleBasic) HandleStoreWhenMeetUpgradeHeight() upgrade.HandleStore {
-	return nil
-}
