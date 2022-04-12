@@ -54,8 +54,21 @@ type Context struct {
 type Request = Context
 
 // Read-only accessors
-func (c *Context) Context() context.Context    { return c.ctx }
-func (c *Context) MultiStore() MultiStore      { return c.ms }
+func (c *Context) Context() context.Context { return c.ctx }
+func (c *Context) MultiStore() MultiStore   { return c.ms }
+func (c *Context) BlockHeight() int64 {
+	if c.header == nil {
+		return 0
+	}
+	return c.header.Height
+}
+
+func (c *Context) BlockTime() time.Time {
+	if c.header == nil {
+		return time.Time{}
+	}
+	return c.header.Time
+}
 func (c *Context) ChainID() string             { return c.chainID }
 func (c *Context) From() string                { return c.from }
 func (c *Context) TxBytes() []byte             { return c.txBytes }
@@ -79,20 +92,6 @@ func (c *Context) Cache() *Cache               { return c.cache }
 
 // TODO: remove???
 func (c *Context) IsZero() bool { return c.ms == nil }
-
-func (c *Context) BlockHeight() int64 {
-	if c.header == nil {
-		return 0
-	}
-	return c.header.Height
-}
-
-func (c *Context) BlockTime() time.Time {
-	if c.header == nil {
-		return time.Time{}
-	}
-	return c.header.Time
-}
 
 func (c *Context) BlockProposerAddress() []byte {
 	if c.header == nil {
@@ -129,6 +128,11 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
 	}
+}
+
+func (c *Context) SetDeliver() *Context {
+	c.isDeliver = true
+	return c
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
@@ -223,11 +227,6 @@ func (c *Context) SetChainID(chainID string) *Context {
 
 func (c *Context) SetConsensusParams(params *abci.ConsensusParams) *Context {
 	c.consParams = params
-	return c
-}
-
-func (c *Context) SetDeliver() *Context {
-	c.isDeliver = true
 	return c
 }
 
