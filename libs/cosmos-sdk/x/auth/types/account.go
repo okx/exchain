@@ -246,7 +246,7 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	if hex.EncodeToString(acc.GetAddress()) == "01c82854bbd93e996e7d279f5038dd70e71da7f026" {
+	if hex.EncodeToString(acc.GetAddress()) == "c82854bbd93e996e7d279f5038dd70e71da7f026" {
 		fmt.Println("SetCoins. ", coins)
 	}
 	acc.Coins = coins
