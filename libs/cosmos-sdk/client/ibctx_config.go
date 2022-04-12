@@ -28,7 +28,7 @@ type (
 
 		NewTxBuilder() TxBuilder
 		WrapTxBuilder(tx ibcmsg.Tx) (TxBuilder, error)
-		//SignModeHandler() signingtypes.SignModeHandler
+		SignModeHandler() signingtypes.SignModeHandler
 	}
 
 	// TxBuilder defines an interface which an application-defined concrete transaction

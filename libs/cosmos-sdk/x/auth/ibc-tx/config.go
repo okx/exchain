@@ -45,9 +45,9 @@ func (g config) WrapTxBuilder(newTx ibctx.Tx) (client.TxBuilder, error) {
 	return newBuilder, nil
 }
 
-//func (g config) SignModeHandler() signing.SignModeHandler {
-//	return g.handler
-//}
+func (g config) SignModeHandler() signing.SignModeHandler {
+	return g.handler
+}
 
 func (g config) TxEncoder() ibctx.IBCTxEncoder {
 	return g.encoder
