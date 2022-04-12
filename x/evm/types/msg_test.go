@@ -396,7 +396,6 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
-	tmtypes.SetVenus1HeightForTest()
 	chainID := "exchain-101"
 	accnum := 1
 	sequence := 0
@@ -424,7 +423,7 @@ func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
 		authInfoBytes,
 		bodyBytes,
 	)
-	fmt.Printf("%X", signBytes)
+
 	expectedHexResult := "0A09626F64794279746573120D61757468696E666F62797465731A0B6578636861696E2D3130312001"
 
 	require.Equal(t, expectedHexResult, fmt.Sprintf("%X", signBytes))

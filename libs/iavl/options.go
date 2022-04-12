@@ -10,6 +10,7 @@ type Options struct {
 	// this, an error is returned when loading the tree. Only used for the initial SaveVersion()
 	// call.
 	InitialVersion uint64
+	UpgradeVersion uint64
 }
 
 // DefaultOptions returns the default options for IAVL.
