@@ -225,9 +225,15 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		// filter IBC module {}
+		f := rs.commitHeightFilterPipeline(commitVersion)
+		if f(storeParams.key.Name()) {
+			continue
+		}
 		if commitVersion < minVersion {
 			minVersion = commitVersion
 		}
+
 	}
 	return minVersion, nil
 }
