@@ -73,8 +73,8 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 type Unmarshaler func(bytes []byte, ptr interface{}) error
 
 func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
-	if height >= 0 && !types.HigherThanVenus(height) {
-		err = fmt.Errorf("IbcTxDecoder decode tx err ,current height %d", height)
+	if height >= 0 && !types.HigherThanVenus1(height) {
+		err = fmt.Errorf("IbcTxDecoder decode tx err,lower than Venus1 height ,current height %d", height)
 		return
 	}
 	simReq := &typestx.SimulateRequest{}
