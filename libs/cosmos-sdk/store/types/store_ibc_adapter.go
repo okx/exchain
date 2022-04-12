@@ -13,11 +13,15 @@ const (
 	ProofOpSimpleMerkleCommitment = "ics23:simple"
 )
 
-type HeightFilterPipeline func(h int64) func(str string) bool
+type HeightFilterPipeline func(h int64) func(str string, store CommitKVStore) bool
+type PrunePipeline func(h int64) func(str string) bool
 type VersionFilterPipeline func(h int64) func(func(name string, version int64))
 
 var (
-	DefaultAcceptAll HeightFilterPipeline = func(h int64) func(str string) bool {
+	DefaultAcceptAll HeightFilterPipeline = func(h int64) func(str string, _ CommitKVStore) bool {
+		return func(_ string, _ CommitKVStore) bool { return false }
+	}
+	PruneDefaultAcceptAll PrunePipeline = func(h int64) func(str string) bool {
 		return func(_ string) bool { return false }
 	}
 	DefaultLoopAll VersionFilterPipeline = func(int64) func(func(string, int64)) {
@@ -27,12 +31,24 @@ var (
 
 type CommitMultiStorePipeline interface {
 	SetCommitHeightFilterPipeline(f HeightFilterPipeline)
-	SetPruneHeightFilterPipeline(f HeightFilterPipeline)
+	SetPruneHeightFilterPipeline(f PrunePipeline)
 	SetVersionFilterPipeline(f VersionFilterPipeline)
 }
 
 func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
-	return func(h int64) func(str string) bool {
+	return func(h int64) func(_ string, _ CommitKVStore) bool {
+		filter := f(h)
+		if nil != filter {
+			return func(str string, st CommitKVStore) bool {
+				return filter(str, st) || s(h)(str, st)
+			}
+		}
+		return s(h)
+	}
+}
+
+func LinkPrunePipeline(f, s PrunePipeline) PrunePipeline {
+	return func(h int64) func(_ string) bool {
 		filter := f(h)
 		if nil != filter {
 			return func(str string) bool {

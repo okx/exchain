@@ -2,14 +2,16 @@ package upgrade
 
 import (
 	"errors"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 
+type HandleStore func(st store.CommitKVStore, h int64)
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64
-	BlockStoreModules() []string
+	BlockStoreModules() map[string]HandleStore
 	RegisterParam() params.ParamSet
 	ModuleName() string
 }

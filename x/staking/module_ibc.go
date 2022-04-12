@@ -19,7 +19,7 @@ func (am AppModule) UpgradeHeight() int64 {
 	return -1
 }
 
-func (am AppModule) BlockStoreModules() []string {
+func (am AppModule) BlockStoreModules() map[string]upgrade.HandleStore {
 	return nil
 }
 
@@ -30,4 +30,8 @@ func (am AppModule) RegisterParam() params.ParamSet {
 
 func (am AppModule) ModuleName() string {
 	return ModuleName
+}
+
+func (b AppModuleBasic) HandleStoreWhenMeetUpgradeHeight() upgrade.HandleStore {
+	return nil
 }

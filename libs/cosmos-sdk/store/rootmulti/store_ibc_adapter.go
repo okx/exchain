@@ -26,8 +26,8 @@ func (s *Store) getFilterStores(h int64) map[types.StoreKey]types.CommitKVStore 
 func (rs *Store) SetCommitHeightFilterPipeline(f storetypes.HeightFilterPipeline) {
 	rs.commitHeightFilterPipeline = storetypes.LinkPipeline(f, rs.commitHeightFilterPipeline)
 }
-func (rs *Store) SetPruneHeightFilterPipeline(f storetypes.HeightFilterPipeline) {
-	rs.pruneHeightFilterPipeline = storetypes.LinkPipeline(f, rs.pruneHeightFilterPipeline)
+func (rs *Store) SetPruneHeightFilterPipeline(f storetypes.PrunePipeline) {
+	rs.pruneHeightFilterPipeline = storetypes.LinkPrunePipeline(f, rs.pruneHeightFilterPipeline)
 }
 func (rs *Store) SetVersionFilterPipeline(f storetypes.VersionFilterPipeline) {
 	rs.versionPipeline = storetypes.LinkPipeline2(f, rs.versionPipeline)

@@ -72,8 +72,8 @@ type Store struct {
 	logger tmlog.Logger
 
 	versionPipeline            func(h int64) func(func(name string, version int64))
-	commitHeightFilterPipeline func(h int64) func(str string) bool
-	pruneHeightFilterPipeline  func(h int64) func(str string) bool
+	commitHeightFilterPipeline func(h int64) func(str string, store types.CommitKVStore) bool
+	pruneHeightFilterPipeline  types.PrunePipeline
 	upgradeVersion             int64
 }
 
@@ -102,7 +102,7 @@ func NewStore(db dbm.DB) *Store {
 		versions:                   make([]int64, 0),
 		versionPipeline:            types.DefaultLoopAll,
 		commitHeightFilterPipeline: types.DefaultAcceptAll,
-		pruneHeightFilterPipeline:  types.DefaultAcceptAll,
+		pruneHeightFilterPipeline:  types.PruneDefaultAcceptAll,
 		upgradeVersion:             -1,
 	}
 
@@ -227,7 +227,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		}
 		// filter IBC module {}
 		f := rs.commitHeightFilterPipeline(commitVersion)
-		if f(storeParams.key.Name()) {
+		if f(storeParams.key.Name(), nil) {
 			continue
 		}
 		if commitVersion < minVersion {
@@ -1028,16 +1028,16 @@ type StoreSort struct {
 
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
-	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
+	inputDeltaMap iavltree.TreeDeltaMap, f func(str string, st types.CommitKVStore) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if tmtypes.GetVenus1Height() == version {
-			//init store tree version with block height
-			store.SetUpgradeVersion(version)
-		}
-		if f(key.Name()) {
+		//if tmtypes.GetVenus1Height() == version {
+		//init store tree version with block height
+		//store.SetUpgradeVersion(version)
+		//}
+		if f(key.Name(), store) {
 			continue
 		}
 

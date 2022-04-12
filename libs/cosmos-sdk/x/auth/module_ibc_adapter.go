@@ -42,6 +42,10 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 	return nil
 }
 
+func (b AppModuleBasic) HandleStoreWhenMeetUpgradeHeight() upgrade.HandleStore {
+	return nil
+}
+
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*exported.Account)(nil),
