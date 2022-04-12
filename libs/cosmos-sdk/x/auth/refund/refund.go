@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAddress, refundFees sdk.Coins) error {
@@ -36,9 +37,11 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
 
-	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
-	feeCoins := feeAcc.GetCoins()
-	logger.Info("UpdateFeeForCollector", "fee", feeCoins, "add", 0)
+	if global.GetGlobalHeight() == 4663637 {
+		feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+		feeCoins := feeAcc.GetCoins()
+		logger.Info("UpdateFeeForCollector. ", "fee", feeCoins, "  add", 0)
+	}
 
 	return nil
 }

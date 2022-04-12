@@ -3,6 +3,7 @@ package ante
 import (
 	"fmt"
 	"github.com/nacos-group/nacos-sdk-go/common/logger"
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -145,9 +146,11 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
 
-	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
-	feeCoins := feeAcc.GetCoins()
-	logger.Info("UpdateFeeForCollector", "fee", feeCoins, "add", 1)
+	if global.GetGlobalHeight() == 4663637 {
+		feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+		feeCoins := feeAcc.GetCoins()
+		logger.Info("UpdateFeeForCollector. ", "fee", feeCoins, "  add", 1)
+	}
 
 	return nil
 }
