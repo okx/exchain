@@ -31,7 +31,6 @@ type BpPeer struct {
 	Height                  int64                  // the peer reported height
 	NumPendingBlockRequests int                    // number of requests still waiting for block responses
 	blocks                  map[int64]*types.Block // blocks received or expected to be received from this peer
-	deltas                  map[int64]*types.Deltas
 	blockResponseTimer      *time.Timer
 	recvMonitor             *flow.Monitor
 	params                  *BpPeerParams // parameters for timer and monitor
@@ -51,7 +50,6 @@ func NewBpPeer(peerID p2p.ID, base int64, height int64,
 		Base:   base,
 		Height: height,
 		blocks: make(map[int64]*types.Block, maxRequestsPerPeer),
-		deltas: make(map[int64]*types.Deltas, maxRequestsPerPeer),
 		logger: log.NewNopLogger(),
 		onErr:  onErr,
 		params: params,
@@ -98,21 +96,9 @@ func (peer *BpPeer) BlockAtHeight(height int64) (*types.Block, error) {
 	return peer.blocks[height], nil
 }
 
-// DeltasAtHeight returns the Deltas at a given height if available and errMissingDeltas otherwise.
-func (peer *BpPeer) DeltasAtHeight(height int64) (*types.Deltas, error) {
-	deltas, ok := peer.deltas[height]
-	if !ok {
-		return nil, errMissingDeltas
-	}
-	if deltas == nil {
-		return nil, errMissingDeltas
-	}
-	return peer.deltas[height], nil
-}
-
 // AddBlock adds a block at peer level. Block must be non-nil and recvSize a positive integer
 // The peer must have a pending request for this block.
-func (peer *BpPeer) AddBlock(block *types.Block, deltas *types.Deltas, recvSize int) error {
+func (peer *BpPeer) AddBlock(block *types.Block, recvSize int) error {
 	if block == nil || recvSize < 0 {
 		panic("bad parameters")
 	}
@@ -129,7 +115,6 @@ func (peer *BpPeer) AddBlock(block *types.Block, deltas *types.Deltas, recvSize 
 		panic("peer does not have pending requests")
 	}
 	peer.blocks[block.Height] = block
-	peer.deltas[block.Height] = deltas
 	peer.NumPendingBlockRequests--
 	if peer.NumPendingBlockRequests == 0 {
 		peer.stopMonitor()
