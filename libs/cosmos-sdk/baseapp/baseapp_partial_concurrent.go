@@ -385,7 +385,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
 	} else {
-		dttm.app.logger.Info("AnteFinished", "index", curDttr.task.index)
+		dttm.app.logger.Info("AnteFinished", "index", curDttr.task.index, "serial", dttm.serialIndex, "needToRerun", curDttr.needToRerun, "prevTaskIndex", task.prevTaskIndex)
 	}
 
 	return nil
@@ -420,12 +420,12 @@ func (dttm *DTTManager) serialRoutine() {
 	for {
 		select {
 		case routineIndex := <-dttm.serialCh:
-			keepAliveTicker.Stop()
 			rt := dttm.dttRoutineList[routineIndex]
 			task := rt.task
 			if task.index != dttm.serialIndex+1 {
 				break
 			}
+			keepAliveTicker.Stop()
 
 			dttm.serialIndex = task.index
 			dttm.serialTask = task
