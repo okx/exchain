@@ -1,14 +1,14 @@
 package keeper_test
 
 import (
+	"github.com/okex/exchain/libs/ibc-go/temp"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	// upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
@@ -710,8 +710,8 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 				suite.Require().True(found)
 
-				proofUpgradeClient, _ := suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
-				proofUpgradedConsState, _ := suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
+				proofUpgradeClient, _ := suite.chainB.QueryUpgradeProof(temp.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
+				proofUpgradedConsState, _ := suite.chainB.QueryUpgradeProof(temp.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
 
 				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState,
 					proofUpgradeClient, proofUpgradedConsState, suite.chainA.SenderAccount().GetAddress())
@@ -732,7 +732,7 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				}
 
 				// last Height is at next block
-				lastHeight = clienttypes.NewHeight(0, uint64(suite.chainB.GetContext().BlockHeight()+1))
+				lastHeight = clienttypes.NewHeight(0, uint64(suite.chainB.GetContextPointer().BlockHeight()+1))
 
 				upgradedClientBz, err := clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 				suite.Require().NoError(err)
