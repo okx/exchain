@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -1031,7 +1030,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
 	for key, store := range storeMap {
 		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
@@ -1042,6 +1040,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}

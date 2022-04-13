@@ -872,6 +872,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 	if err := so.account.SetCoins(coins); err != nil {
 		return err
 	}
+	//fmt.Println("updateState. ", hex.EncodeToString(so.account.GetAddress()))
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, fromCommit)
 	if !csdb.ctx.IsCheckTx() {
