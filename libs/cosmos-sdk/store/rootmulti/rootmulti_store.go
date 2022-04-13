@@ -228,6 +228,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 				return 0, err
 			}
 
+			// filter IBC module {}
 			if rs.commitHeightFilterPipeline(commitVersion)(storeParams.key.Name()) {
 				continue
 			}

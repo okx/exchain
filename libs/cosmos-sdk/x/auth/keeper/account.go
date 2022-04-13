@@ -36,7 +36,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 			return nil
 		}
 
-		return data.Copy().(exported.Account)
+		return data.Copy()
 	}
 
 	var store sdk.KVStore
@@ -52,7 +52,9 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
+
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+
 	return acc
 }
 
@@ -90,7 +92,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.EnableDoubleWrite {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
