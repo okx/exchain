@@ -4,6 +4,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
@@ -11,6 +12,7 @@ type IbcTx struct {
 	*StdTx
 	AuthInfoBytes []byte
 	BodyBytes     []byte
+	SignMode      signing.SignMode
 }
 
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
@@ -21,9 +23,18 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 		accNum = acc.GetAccountNumber()
 	}
 
-	return IbcSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
-	)
+	//modeInfo, ok := tx.AuthInfo.SignerInfos[0].ModeInfo.Sum.(*typestx.ModeInfo_Single_)
+	//if !ok {
+	//	panic("only support ModeInfo_Single")
+	//}
+
+	if tx.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
+		return IbcSignBytes(
+			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
+		)
+	}
+
+	return nil
 }
 
 // StdSignBytes returns the bytes to sign for a transaction.
