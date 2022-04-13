@@ -19,5 +19,4 @@ jobs:
           go-version: 1.17
 
       - name: test
-        run: |
-          go test -count=1 ./libs/tm-db/...
+        run: echo "abandon tm-db tests, move to libs tests"

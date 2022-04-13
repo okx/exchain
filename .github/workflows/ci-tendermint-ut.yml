@@ -53,7 +53,7 @@ jobs:
           go-version: 1.17
 
       - name: Go Test consensus/
-        run: go test $(go list ./libs/tendermint/consensus/... |grep -v commont_test.go) -timeout 20m
+        run: echo "abandon tm-consensus tests, move to libs tests" 
   tm-lite:
     name: tm-lite tests
     runs-on: ubuntu-latest
@@ -66,7 +66,7 @@ jobs:
           go-version: 1.17
 
       - name: Go Test lite/
-        run:  go test -count=1 ./libs/tendermint/lite/...
+        run:  echo "abandon tm-lite tests, move to libs tests" 
   tm-async:
     name: tm-async tests
     runs-on: ubuntu-latest
@@ -79,7 +79,7 @@ jobs:
           go-version: 1.17
 
       - name: Go Test libs/async
-        run: go test -count=1 -ldflags -s $(go list ./... | grep libs/async)
+        run: echo "abandon tm-async tests, move to libs tests" 
 
   tm-mempool:
     name: tm-mempool tests
@@ -94,12 +94,12 @@ jobs:
 
       - name: Go Test mempool/
         id: first-attempt
-        run: go test -count=1 ./libs/tendermint/mempool/...
+        run: echo "abandon tm-mempool tests, move to libs tests" 
         continue-on-error: true
       - name: Go Test mempool Retry again on failure
         id: second-attempt
         if: steps.first-attempt.outcome != 'success'
-        run: go test -count=1 ./libs/tendermint/mempool/...
+        run: echo "abandon tm-mempool Retry tests, move to libs tests" 
 
   test_abci_apps:
     name: abci_apps tests
@@ -118,8 +118,7 @@ jobs:
           path: ~/go/bin
           key: ${{ runner.os }}-go-tm-binary
       - name: test_abci_apps
-        run: ./libs/tendermint/abci/tests/test_app/test.sh
-        shell: bash
+        run: echo "abandon abci_apps tests" 
 
   test_abci_cli:
     name: abci_cli tests
@@ -137,5 +136,4 @@ jobs:
         with:
           path: ~/go/bin
           key: ${{ runner.os }}-go-tm-binary
-      - run: ./libs/tendermint/abci/tests/test_cli/test.sh
-        shell: bash
+      - run: echo "abandon abci_cli tests" 

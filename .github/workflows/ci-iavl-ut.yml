@@ -19,5 +19,4 @@ jobs:
           go-version: 1.17
 
       - name: test & coverage report creation
-        run: |
-          go test ./libs/iavl/...
+        run: echo "abandon iavl tests, move to libs tests"
