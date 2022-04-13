@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -189,11 +190,10 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
-
 		if realTx.GetType() == sdk.EvmTxType {
-			e := app.SaveEvmTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+			e := app.SaveEvmTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), common.BytesToHash(realTx.TxHash()), info.gInfo.GasUsed)
 			if e != nil {
-				app.Logger().Error("watcher save tx and failed receipt error ", "txhash", realTx.TxHash(), "error", e)
+				app.Logger().Error("watcher save tx and failed receipt error ", "txhash", common.Bytes2Hex(realTx.TxHash()), "error", e)
 			}
 		}
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
@@ -202,7 +202,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	if realTx.GetType() == sdk.EvmTxType {
 		e := app.SaveEvmTxAndSuccessReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
 		if e != nil {
-			app.Logger().Error("watcher save tx and success receipt error ", "txhash", realTx.TxHash(), "error", e)
+			app.Logger().Error("watcher save tx and success receipt error ", "txhash", common.Bytes2Hex(realTx.TxHash()), "error", e)
 		}
 	}
 
