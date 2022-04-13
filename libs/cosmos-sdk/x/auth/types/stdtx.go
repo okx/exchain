@@ -99,8 +99,8 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-func NewStdTx(msgs []sdk.Msg, fee StdFee, sigs []StdSignature, memo string) StdTx {
-	return StdTx{
+func NewStdTx(msgs []sdk.Msg, fee StdFee, sigs []StdSignature, memo string) *StdTx {
+	return &StdTx{
 		Msgs:       msgs,
 		Fee:        fee,
 		Signatures: sigs,
@@ -109,11 +109,11 @@ func NewStdTx(msgs []sdk.Msg, fee StdFee, sigs []StdSignature, memo string) StdT
 }
 
 // GetMsgs returns the all the transaction's messages.
-func (tx StdTx) GetMsgs() []sdk.Msg { return tx.Msgs }
+func (tx *StdTx) GetMsgs() []sdk.Msg { return tx.Msgs }
 
 // ValidateBasic does a simple and lightweight validation check that doesn't
 // require access to any other information.
-func (tx StdTx) ValidateBasic() error {
+func (tx *StdTx) ValidateBasic() error {
 	stdSigs := tx.GetSignatures()
 
 	if tx.Fee.Gas > maxGasWanted {
@@ -161,7 +161,7 @@ func CountSubKeys(pub crypto.PubKey) int {
 // They are accumulated from the GetSigners method for each Msg
 // in the order they appear in tx.GetMsgs().
 // Duplicate addresses will be omitted.
-func (tx StdTx) GetSigners() []sdk.AccAddress {
+func (tx *StdTx) GetSigners() []sdk.AccAddress {
 	seen := map[string]bool{}
 	var signers []sdk.AccAddress
 	for _, msg := range tx.GetMsgs() {
@@ -175,12 +175,12 @@ func (tx StdTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (tx StdTx) GetType() sdk.TransactionType {
+func (tx *StdTx) GetType() sdk.TransactionType {
 	return sdk.StdTxType
 }
 
 // GetMemo returns the memo
-func (tx StdTx) GetMemo() string { return tx.Memo }
+func (tx *StdTx) GetMemo() string { return tx.Memo }
 
 // GetSignatures returns the signature of signers who signed the Msg.
 // CONTRACT: Length returned is same as length of
@@ -189,7 +189,7 @@ func (tx StdTx) GetMemo() string { return tx.Memo }
 // CONTRACT: If the signature is missing (ie the Msg is
 // invalid), then the corresponding signature is
 // .Empty().
-func (tx StdTx) GetSignatures() [][]byte {
+func (tx *StdTx) GetSignatures() [][]byte {
 	sigs := make([][]byte, len(tx.Signatures))
 	for i, stdSig := range tx.Signatures {
 		sigs[i] = stdSig.Signature
@@ -199,7 +199,7 @@ func (tx StdTx) GetSignatures() [][]byte {
 
 // GetPubkeys returns the pubkeys of signers if the pubkey is included in the signature
 // If pubkey is not included in the signature, then nil is in the slice instead
-func (tx StdTx) GetPubKeys() []crypto.PubKey {
+func (tx *StdTx) GetPubKeys() []crypto.PubKey {
 	pks := make([]crypto.PubKey, len(tx.Signatures))
 	for i, stdSig := range tx.Signatures {
 		pks[i] = stdSig.PubKey
@@ -208,7 +208,7 @@ func (tx StdTx) GetPubKeys() []crypto.PubKey {
 }
 
 // GetSignBytes returns the signBytes of the tx for a given signer
-func (tx StdTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
+func (tx *StdTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
 	var accNum uint64
@@ -222,15 +222,15 @@ func (tx StdTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 }
 
 // GetGas returns the Gas in StdFee
-func (tx StdTx) GetGas() uint64 { return tx.Fee.Gas }
+func (tx *StdTx) GetGas() uint64 { return tx.Fee.Gas }
 
 // GetFee returns the FeeAmount in StdFee
-func (tx StdTx) GetFee() sdk.Coins { return tx.Fee.Amount }
+func (tx *StdTx) GetFee() sdk.Coins { return tx.Fee.Amount }
 
 // FeePayer returns the address that is responsible for paying fee
 // StdTx returns the first signer as the fee payer
 // If no signers for tx, return empty address
-func (tx StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
+func (tx *StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	if tx.GetSigners() != nil {
 		return tx.GetSigners()[0]
 	}
@@ -238,7 +238,7 @@ func (tx StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 }
 
 // GetGasPrice return gas price
-func (tx StdTx) GetGasPrice() *big.Int {
+func (tx *StdTx) GetGasPrice() *big.Int {
 	gasPrices := tx.Fee.GasPrices()
 	if len(gasPrices) == 0 {
 		return big.NewInt(0)
@@ -246,11 +246,11 @@ func (tx StdTx) GetGasPrice() *big.Int {
 	return tx.Fee.GasPrices()[0].Amount.BigInt()
 }
 
-func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
+func (tx *StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx StdTx) GetFrom() string {
+func (tx *StdTx) GetFrom() string {
 	signers := tx.GetSigners()
 	if len(signers) == 0 {
 		return ""
@@ -258,7 +258,7 @@ func (tx StdTx) GetFrom() string {
 	return signers[0].String()
 }
 
-func (tx StdTx) GetNonce() uint64 {
+func (tx *StdTx) GetNonce() uint64 {
 	return 0
 }
 
@@ -281,7 +281,7 @@ func NewStdFee(gas uint64, amount sdk.Coins) StdFee {
 }
 
 // Bytes for signing later
-func (fee StdFee) Bytes() []byte {
+func (fee *StdFee) Bytes() []byte {
 	// normalize. XXX
 	// this is a sign of something ugly
 	// (in the lcd_test, client side its null,
@@ -301,7 +301,7 @@ func (fee StdFee) Bytes() []byte {
 // NOTE: The gas prices returned are not the true gas prices that were
 // originally part of the submitted transaction because the fee is computed
 // as fee = ceil(gasWanted * gasPrices).
-func (fee StdFee) GasPrices() sdk.DecCoins {
+func (fee *StdFee) GasPrices() sdk.DecCoins {
 	// todook
 	return sdk.NewDecCoinsFromCoins(fee.Amount...).QuoDec(sdk.NewDec(int64(fee.Gas)))
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
@@ -406,7 +406,7 @@ func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if len(heights) > 0 {
 			return nil, fmt.Errorf("too many height parameters")
 		}
-		var tx = StdTx{}
+		var tx StdTx
 
 		if len(txBytes) == 0 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "tx bytes are empty")
@@ -420,7 +420,7 @@ func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		}
 		tx.BaseTx.Raw = txBytes
 
-		return tx, nil
+		return &tx, nil
 	}
 }
 
