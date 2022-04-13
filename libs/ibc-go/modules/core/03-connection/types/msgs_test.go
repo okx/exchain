@@ -33,8 +33,8 @@ type MsgTestSuite struct {
 
 	coordinator *ibctesting.Coordinator
 
-	chainA *ibctesting.TestChain
-	chainB *ibctesting.TestChain
+	chainA ibctesting.TestChainI
+	chainB ibctesting.TestChainI
 
 	proof []byte
 }
@@ -69,7 +69,8 @@ func (suite *MsgTestSuite) SetupTest() {
 	suite.Require().NoError(err)
 	// proof, err := app.AppCodec().Marshal(&merkleProof)
 	// suite.Require().NoError(err)
-	proof := app.AppCodec().MustMarshal(&merkleProof)
+	proof := app.Marshal().GetProtocMarshal().MustMarshalBinaryBare(&merkleProof)
+	//proof := app.AppCodec().MustMarshal(&merkleProof)
 
 	suite.proof = proof
 

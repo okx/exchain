@@ -5,8 +5,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 
-	// sdk "github.com/cosmos/cosmos-sdk/types"
-	// "github.com/cosmos/cosmos-sdk/types/query"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
@@ -55,7 +53,7 @@ func (suite *KeeperTestSuite) TestQueryConnection() {
 
 				counterparty := types.NewCounterparty(path.EndpointB.ClientID, "", suite.chainB.GetPrefix())
 				expConnection = types.NewConnectionEnd(types.INIT, path.EndpointA.ClientID, counterparty, types.ExportedVersionsToProto(types.GetCompatibleVersions()), 500)
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetConnection(suite.chainA.GetContext(), path.EndpointA.ConnectionID, expConnection)
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(suite.chainA.GetContext(), path.EndpointA.ConnectionID, expConnection)
 
 				req = &types.QueryConnectionRequest{
 					ConnectionId: path.EndpointA.ConnectionID,
@@ -72,7 +70,7 @@ func (suite *KeeperTestSuite) TestQueryConnection() {
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.Connection(ctx, req)
+			res, err := suite.chainA.QueryServer().Connection(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -156,7 +154,7 @@ func (suite *KeeperTestSuite) TestQueryConnections() {
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.Connections(ctx, req)
+			res, err := suite.chainA.QueryServer().Connections(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -215,7 +213,7 @@ func (suite *KeeperTestSuite) TestQueryClientConnections() {
 				suite.coordinator.CreateConnections(path2)
 
 				expPaths = []string{path1.EndpointA.ConnectionID, path2.EndpointA.ConnectionID}
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetClientConnectionPaths(suite.chainA.GetContext(), path1.EndpointA.ClientID, expPaths)
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetClientConnectionPaths(suite.chainA.GetContext(), path1.EndpointA.ClientID, expPaths)
 
 				req = &types.QueryClientConnectionsRequest{
 					ClientId: path1.EndpointA.ClientID,
@@ -232,7 +230,7 @@ func (suite *KeeperTestSuite) TestQueryClientConnections() {
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.ClientConnections(ctx, req)
+			res, err := suite.chainA.QueryServer().ClientConnections(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -288,7 +286,7 @@ func (suite *KeeperTestSuite) TestQueryConnectionClientState() {
 				suite.coordinator.Setup(path)
 
 				// set connection to empty so clientID is empty
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetConnection(suite.chainA.GetContext(), path.EndpointA.ConnectionID, types.ConnectionEnd{})
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(suite.chainA.GetContext(), path.EndpointA.ConnectionID, types.ConnectionEnd{})
 
 				req = &types.QueryConnectionClientStateRequest{
 					ConnectionId: path.EndpointA.ConnectionID,
@@ -319,7 +317,7 @@ func (suite *KeeperTestSuite) TestQueryConnectionClientState() {
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.ConnectionClientState(ctx, req)
+			res, err := suite.chainA.QueryServer().ConnectionClientState(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -419,7 +417,7 @@ func (suite *KeeperTestSuite) TestQueryConnectionConsensusState() {
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.ConnectionConsensusState(ctx, req)
+			res, err := suite.chainA.QueryServer().ConnectionConsensusState(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)

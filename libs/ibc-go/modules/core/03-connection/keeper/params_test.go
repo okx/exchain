@@ -7,11 +7,11 @@ import (
 func (suite *KeeperTestSuite) TestParams() {
 	expParams := types.DefaultParams()
 
-	params := suite.chainA.App.GetIBCKeeper().ConnectionKeeper.GetParams(suite.chainA.GetContext())
+	params := suite.chainA.App().GetIBCKeeper().ConnectionKeeper.GetParams(suite.chainA.GetContext())
 	suite.Require().Equal(expParams, params)
 
 	expParams.MaxExpectedTimePerBlock = 10
-	suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), expParams)
-	params = suite.chainA.App.GetIBCKeeper().ConnectionKeeper.GetParams(suite.chainA.GetContext())
+	suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), expParams)
+	params = suite.chainA.App().GetIBCKeeper().ConnectionKeeper.GetParams(suite.chainA.GetContext())
 	suite.Require().Equal(uint64(10), expParams.MaxExpectedTimePerBlock)
 }

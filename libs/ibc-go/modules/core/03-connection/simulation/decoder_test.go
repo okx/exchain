@@ -33,12 +33,14 @@ func TestDecodeStore(t *testing.T) {
 	kvPairs := kv.Pairs{
 		Pairs: []kv.Pair{
 			{
-				Key:   host.ClientConnectionsKey(connection.ClientId),
-				Value: cdc.MustMarshal(&paths),
+				Key: host.ClientConnectionsKey(connection.ClientId),
+				//Value: cdc.MustMarshal(&paths),
+				Value: cdc.GetProtocMarshal().MustMarshalBinaryBare(&paths),
 			},
 			{
-				Key:   host.ConnectionKey(connectionID),
-				Value: cdc.MustMarshal(&connection),
+				Key: host.ConnectionKey(connectionID),
+				//Value: cdc.MustMarshal(&connection),
+				Value: cdc.GetProtocMarshal().MustMarshalBinaryBare(&connection),
 			},
 			{
 				Key:   []byte{0x99},
