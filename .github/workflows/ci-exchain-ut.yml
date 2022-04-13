@@ -38,7 +38,7 @@ jobs:
         run: |
           set -ex
           echo "--> Run tests with coverage:"
-          mkdir -p /tmp/workspace/profilesgo 
+          mkdir -p /tmp/workspace/profiles
 
           path="./app/..."
           package_lines=`go list ${path}`
