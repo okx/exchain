@@ -130,7 +130,7 @@ package types_test
 
 // 		for _, tc := range testCases {
 // 			err := solomachine.ClientState().Initialize(
-// 				suite.chainA.GetContext(), suite.chainA.Codec,
+// 				suite.chainA.GetContext(), suite.chainA.Codec(),
 // 				suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "solomachine"),
 // 				tc.consState,
 // 			)
@@ -154,7 +154,7 @@ package types_test
 // 	// test singlesig and multisig public keys
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 
-// 		value, err := types.ClientStateSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, clientState)
+// 		value, err := types.ClientStateSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, clientState)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -248,7 +248,7 @@ package types_test
 // 				height := clienttypes.NewHeight(solomachine.GetHeight().GetRevisionNumber(), solomachine.GetHeight().GetRevisionHeight()-1)
 
 // 				err := tc.clientState.VerifyClientState(
-// 					suite.store, suite.chainA.Codec, height, tc.prefix, counterpartyClientIdentifier, tc.proof, clientState,
+// 					suite.store, suite.chainA.Codec(), height, tc.prefix, counterpartyClientIdentifier, tc.proof, clientState,
 // 				)
 
 // 				if tc.expPass {
@@ -276,7 +276,7 @@ package types_test
 // 	// test singlesig and multisig public keys
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 
-// 		value, err := types.ConsensusStateSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, consensusState)
+// 		value, err := types.ConsensusStateSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, consensusState)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -369,7 +369,7 @@ package types_test
 // 				height := clienttypes.NewHeight(solomachine.GetHeight().GetRevisionNumber(), solomachine.GetHeight().GetRevisionHeight()-2)
 
 // 				err := tc.clientState.VerifyClientConsensusState(
-// 					suite.store, suite.chainA.Codec, height, counterpartyClientIdentifier, consensusHeight, tc.prefix, tc.proof, consensusState,
+// 					suite.store, suite.chainA.Codec(), height, counterpartyClientIdentifier, consensusHeight, tc.prefix, tc.proof, consensusState,
 // 				)
 
 // 				if tc.expPass {
@@ -393,7 +393,7 @@ package types_test
 // 	// test singlesig and multisig public keys
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 
-// 		value, err := types.ConnectionStateSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, conn)
+// 		value, err := types.ConnectionStateSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, conn)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -448,7 +448,7 @@ package types_test
 // 			expSeq := tc.clientState.Sequence + 1
 
 // 			err := tc.clientState.VerifyConnectionState(
-// 				suite.store, suite.chainA.Codec, solomachine.GetHeight(), tc.prefix, tc.proof, testConnectionID, conn,
+// 				suite.store, suite.chainA.Codec(), solomachine.GetHeight(), tc.prefix, tc.proof, testConnectionID, conn,
 // 			)
 
 // 			if tc.expPass {
@@ -471,7 +471,7 @@ package types_test
 // 	// test singlesig and multisig public keys
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 
-// 		value, err := types.ChannelStateSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, ch)
+// 		value, err := types.ChannelStateSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, ch)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -526,7 +526,7 @@ package types_test
 // 			expSeq := tc.clientState.Sequence + 1
 
 // 			err := tc.clientState.VerifyChannelState(
-// 				suite.store, suite.chainA.Codec, solomachine.GetHeight(), tc.prefix, tc.proof, testPortID, testChannelID, ch,
+// 				suite.store, suite.chainA.Codec(), solomachine.GetHeight(), tc.prefix, tc.proof, testPortID, testChannelID, ch,
 // 			)
 
 // 			if tc.expPass {
@@ -548,7 +548,7 @@ package types_test
 
 // 		path := solomachine.GetPacketCommitmentPath(testPortID, testChannelID)
 
-// 		value, err := types.PacketCommitmentSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, commitmentBytes)
+// 		value, err := types.PacketCommitmentSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, commitmentBytes)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -604,7 +604,7 @@ package types_test
 // 			ctx := suite.chainA.GetContext()
 
 // 			err := tc.clientState.VerifyPacketCommitment(
-// 				ctx, suite.store, suite.chainA.Codec, solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence, commitmentBytes,
+// 				ctx, suite.store, suite.chainA.Codec(), solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence, commitmentBytes,
 // 			)
 
 // 			if tc.expPass {
@@ -624,7 +624,7 @@ package types_test
 
 // 		path := solomachine.GetPacketAcknowledgementPath(testPortID, testChannelID)
 
-// 		value, err := types.PacketAcknowledgementSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, ack)
+// 		value, err := types.PacketAcknowledgementSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, ack)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -680,7 +680,7 @@ package types_test
 // 			ctx := suite.chainA.GetContext()
 
 // 			err := tc.clientState.VerifyPacketAcknowledgement(
-// 				ctx, suite.store, suite.chainA.Codec, solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence, ack,
+// 				ctx, suite.store, suite.chainA.Codec(), solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence, ack,
 // 			)
 
 // 			if tc.expPass {
@@ -700,7 +700,7 @@ package types_test
 // 		// absence uses receipt path as well
 // 		path := solomachine.GetPacketReceiptPath(testPortID, testChannelID)
 
-// 		value, err := types.PacketReceiptAbsenceSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path)
+// 		value, err := types.PacketReceiptAbsenceSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -756,7 +756,7 @@ package types_test
 // 			ctx := suite.chainA.GetContext()
 
 // 			err := tc.clientState.VerifyPacketReceiptAbsence(
-// 				ctx, suite.store, suite.chainA.Codec, solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence,
+// 				ctx, suite.store, suite.chainA.Codec(), solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, solomachine.Sequence,
 // 			)
 
 // 			if tc.expPass {
@@ -776,7 +776,7 @@ package types_test
 // 		nextSeqRecv := solomachine.Sequence + 1
 // 		path := solomachine.GetNextSequenceRecvPath(testPortID, testChannelID)
 
-// 		value, err := types.NextSequenceRecvSignBytes(suite.chainA.Codec, solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, nextSeqRecv)
+// 		value, err := types.NextSequenceRecvSignBytes(suite.chainA.Codec(), solomachine.Sequence, solomachine.Time, solomachine.Diversifier, path, nextSeqRecv)
 // 		suite.Require().NoError(err)
 
 // 		sig := solomachine.GenerateSignature(value)
@@ -832,7 +832,7 @@ package types_test
 // 			ctx := suite.chainA.GetContext()
 
 // 			err := tc.clientState.VerifyNextSequenceRecv(
-// 				ctx, suite.store, suite.chainA.Codec, solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, nextSeqRecv,
+// 				ctx, suite.store, suite.chainA.Codec(), solomachine.GetHeight(), 0, 0, tc.prefix, tc.proof, testPortID, testChannelID, nextSeqRecv,
 // 			)
 
 // 			if tc.expPass {

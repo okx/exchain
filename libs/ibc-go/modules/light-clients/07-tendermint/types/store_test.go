@@ -65,7 +65,7 @@ func (suite *TendermintTestSuite) TestGetConsensusState() {
 			tc.malleate() // change vars as necessary
 
 			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
-			consensusState, err := types.GetConsensusState(store, suite.chainA.Codec, height)
+			consensusState, err := types.GetConsensusState(store, suite.chainA.Codec(), height)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -178,17 +178,17 @@ func (suite *TendermintTestSuite) TestGetNeighboringConsensusStates() {
 	types.SetIterationKey(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), height49)
 	suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), "testClient", height49, cs49)
 
-	prevCs01, ok := types.GetPreviousConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec, height01)
+	prevCs01, ok := types.GetPreviousConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec(), height01)
 	suite.Require().Nil(prevCs01, "consensus state exists before lowest consensus state")
 	suite.Require().False(ok)
-	prevCs49, ok := types.GetPreviousConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec, height49)
+	prevCs49, ok := types.GetPreviousConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec(), height49)
 	suite.Require().Equal(cs04, prevCs49, "previous consensus state is not returned correctly")
 	suite.Require().True(ok)
 
-	nextCs01, ok := types.GetNextConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec, height01)
+	nextCs01, ok := types.GetNextConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec(), height01)
 	suite.Require().Equal(cs04, nextCs01, "next consensus state not returned correctly")
 	suite.Require().True(ok)
-	nextCs49, ok := types.GetNextConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec, height49)
+	nextCs49, ok := types.GetNextConsensusState(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), "testClient"), suite.chainA.Codec(), height49)
 	suite.Require().Nil(nextCs49, "next consensus state exists after highest consensus state")
 	suite.Require().False(ok)
 }

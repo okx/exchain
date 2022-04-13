@@ -180,10 +180,10 @@ func GetChainID(index int) string {
 // CommitBlock commits a block on the provided indexes and then increments the global time.
 //
 // CONTRACT: the passed in list of indexes must not contain duplicates
-func (coord *Coordinator) CommitBlock(chains ...*TestChain) {
+func (coord *Coordinator) CommitBlock(chains ...TestChainI) {
 	for _, chain := range chains {
 		//todo ywmet
-		chain.App.Commit(abci.RequestCommit{})
+		chain.App().Commit(abci.RequestCommit{})
 		chain.NextBlock()
 	}
 	coord.IncrementTime()

@@ -23,8 +23,8 @@ type ClientTestSuite struct {
 
 	coordinator *ibctesting.Coordinator
 
-	chainA *ibctesting.TestChain
-	chainB *ibctesting.TestChain
+	chainA ibctesting.TestChainI
+	chainB ibctesting.TestChainI
 }
 
 func (suite *ClientTestSuite) SetupTest() {
@@ -39,7 +39,7 @@ func (suite *ClientTestSuite) SetupTest() {
 	localHostClient := localhosttypes.NewClientState(
 		tmpCtx.ChainID(), types.NewHeight(revision, uint64(tmpCtx.BlockHeight())),
 	)
-	suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), exported.Localhost, localHostClient)
+	suite.chainA.App()().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), exported.Localhost, localHostClient)
 }
 
 func TestClientTestSuite(t *testing.T) {
@@ -57,7 +57,7 @@ func (suite *ClientTestSuite) TestBeginBlocker() {
 		suite.coordinator.CommitBlock(suite.chainA, suite.chainB)
 
 		suite.Require().NotPanics(func() {
-			client.BeginBlocker(suite.chainA.GetContext(), suite.chainA.App.GetIBCKeeper().ClientKeeper)
+			client.BeginBlocker(suite.chainA.GetContext(), suite.chainA.App()().GetIBCKeeper().ClientKeeper)
 		}, "BeginBlocker shouldn't panic")
 
 		localHostClient = suite.chainA.GetClientState(exported.Localhost)
@@ -74,8 +74,8 @@ func (suite *ClientTestSuite) TestBeginBlockerConsensusState() {
 	}
 	// set upgrade plan in the upgrade store
 	store := tmpCtx.KVStore(suite.chainA.GetSimApp().GetKey(upgradetypes.StoreKey))
-	// bz := suite.chainA.App.AppCodec().MustMarshal(plan)
-	bz := suite.chainA.App.AppCodec().GetCdc().MustMarshalBinaryBare(plan)
+	// bz := suite.chainA.App().AppCodec().MustMarshal(plan)
+	bz := suite.chainA.App().AppCodec().GetCdc().MustMarshalBinaryBare(plan)
 	store.Set(upgradetypes.PlanKey(), bz)
 
 	nextValsHash := []byte("nextValsHash")
@@ -88,12 +88,12 @@ func (suite *ClientTestSuite) TestBeginBlockerConsensusState() {
 	suite.Require().NoError(err)
 
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
-	suite.chainA.App.BeginBlock(req)
+	suite.chainA.App().BeginBlock(req)
 
 	// plan Height is at ctx.BlockHeight+1
 	consState, found := suite.chainA.GetSimApp().UpgradeKeeper.GetUpgradedConsensusState(newCtx, plan.Height)
 	suite.Require().True(found)
-	bz, err = types.MarshalConsensusState(suite.chainA.App.AppCodec(), &ibctmtypes.ConsensusState{Timestamp: newCtx.BlockTime(), NextValidatorsHash: nextValsHash})
+	bz, err = types.MarshalConsensusState(suite.chainA.App().AppCodec(), &ibctmtypes.ConsensusState{Timestamp: newCtx.BlockTime(), NextValidatorsHash: nextValsHash})
 	suite.Require().NoError(err)
 	suite.Require().Equal(bz, consState)
 }

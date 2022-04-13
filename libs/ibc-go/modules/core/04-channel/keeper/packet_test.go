@@ -55,7 +55,7 @@ func (suite *KeeperTestSuite) TestSendPacket() {
 		{"success with solomachine: UNORDERED channel", func() {
 			suite.coordinator.Setup(path)
 			// swap client with solo machine
-			solomachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "solomachinesingle", "testing", 1)
+			solomachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachinesingle", "testing", 1)
 			path.EndpointA.ClientID = clienttypes.FormatClientIdentifier(exported.Solomachine, 10)
 			path.EndpointA.SetClientState(solomachine.ClientState())
 			connection := path.EndpointA.GetConnection()
@@ -69,7 +69,7 @@ func (suite *KeeperTestSuite) TestSendPacket() {
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
 			// swap client with solomachine
-			solomachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "solomachinesingle", "testing", 1)
+			solomachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachinesingle", "testing", 1)
 			path.EndpointA.ClientID = clienttypes.FormatClientIdentifier(exported.Solomachine, 10)
 			path.EndpointA.SetClientState(solomachine.ClientState())
 			connection := path.EndpointA.GetConnection()

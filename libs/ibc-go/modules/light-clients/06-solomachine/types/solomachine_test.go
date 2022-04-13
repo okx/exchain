@@ -37,8 +37,8 @@ package types_test
 // 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
 // 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 
-// 	suite.solomachine = ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "solomachinesingle", "testing", 1)
-// 	suite.solomachineMulti = ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "solomachinemulti", "testing", 4)
+// 	suite.solomachine = ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachinesingle", "testing", 1)
+// 	suite.solomachineMulti = ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachinemulti", "testing", 4)
 
 // 	suite.store = suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), exported.Solomachine)
 // }

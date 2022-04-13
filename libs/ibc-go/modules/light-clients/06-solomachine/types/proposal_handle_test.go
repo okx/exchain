@@ -62,7 +62,7 @@ package types_test
 
 // 				subjectClientState = solomachine.ClientState()
 // 				subjectClientState.AllowUpdateAfterProposal = true
-// 				substitute := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "substitute", "testing", 5)
+// 				substitute := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "substitute", "testing", 5)
 // 				substituteClientState = substitute.ClientState()
 
 // 				tc.malleate()

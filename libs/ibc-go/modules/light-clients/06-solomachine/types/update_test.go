@@ -162,7 +162,7 @@ package types_test
 // 				// setup test
 // 				tc.setup()
 
-// 				clientState, consensusState, err := clientState.CheckHeaderAndUpdateState(suite.chainA.GetContext(), suite.chainA.Codec, suite.store, header)
+// 				clientState, consensusState, err := clientState.CheckHeaderAndUpdateState(suite.chainA.GetContext(), suite.chainA.Codec(), suite.store, header)
 
 // 				if tc.expPass {
 // 					suite.Require().NoError(err)

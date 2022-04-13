@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	okexchaintypes "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/ibc-go/temp"
 	"testing"
 	"time"
 
@@ -40,15 +41,27 @@ import (
 )
 
 type TestChainI interface {
-	ChainID() string
-	Codec() codec.BinaryCodec
-	SenderAccount() AccountI
-	GetClientState(clientID string) exported.ClientState
-	GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool)
 	App() TestingApp
 	GetContext() sdk.Context
+	GetContextPointer() *sdk.Context
+	GetClientState(clientID string) exported.ClientState
+	QueryProof(key []byte) ([]byte, clienttypes.Height)
+	QueryConsensusStateProof(clientID string) ([]byte, clienttypes.Height)
+	GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool)
+	GetPrefix() commitmenttypes.MerklePrefix
+	LastHeader() *ibctmtypes.Header
+	QueryServer() types.QueryService
+	ChainID() string
+	Codec() codec.BinaryCodec
+	SenderAccount() temp.AccountI
 
+	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
+	NextBlock()
+
+	CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibctmtypes.Header
+	Vals() *tmtypes.ValidatorSet
+	Signers() []tmtypes.PrivValidator
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI

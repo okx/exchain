@@ -351,7 +351,7 @@ func (suite *KeeperTestSuite) TestHandleAcknowledgePacket() {
 				proof, proofHeight = path.EndpointB.QueryProof(packetKey)
 			}
 
-			msg := channeltypes.NewMsgAcknowledgement(packet, ibcmock.MockAcknowledgement.Acknowledgement(), proof, proofHeight, suite.chainA.SenderAccount.GetAddress().String())
+			msg := channeltypes.NewMsgAcknowledgement(packet, ibcmock.MockAcknowledgement.Acknowledgement(), proof, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
 			_, err := keeper.Keeper.Acknowledgement(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
@@ -482,7 +482,7 @@ func (suite *KeeperTestSuite) TestHandleTimeoutPacket() {
 				proof, proofHeight = path.EndpointB.QueryProof(packetKey)
 			}
 
-			msg := channeltypes.NewMsgTimeout(packet, 1, proof, proofHeight, suite.chainA.SenderAccount.GetAddress().String())
+			msg := channeltypes.NewMsgTimeout(packet, 1, proof, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
 			_, err := keeper.Keeper.Timeout(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
@@ -638,7 +638,7 @@ func (suite *KeeperTestSuite) TestHandleTimeoutOnClosePacket() {
 			channelKey := host.ChannelKey(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID)
 			proofClosed, _ := suite.chainB.QueryProof(channelKey)
 
-			msg := channeltypes.NewMsgTimeoutOnClose(packet, 1, proof, proofClosed, proofHeight, suite.chainA.SenderAccount.GetAddress().String())
+			msg := channeltypes.NewMsgTimeoutOnClose(packet, 1, proof, proofClosed, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
 			_, err := keeper.Keeper.TimeoutOnClose(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
@@ -748,7 +748,7 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				err = path.EndpointA.UpdateClient()
 				suite.Require().NoError(err)
 
-				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState, nil, nil, suite.chainA.SenderAccount.GetAddress().String())
+				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState, nil, nil, suite.chainA.SenderAccount().GetAddress().String())
 				suite.Require().NoError(err)
 			},
 			expPass: false,
