@@ -3,7 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -763,21 +762,21 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		chanStop <- struct{}{}
 	}()
 
-	go func() {
-		tt := make([]string, 0)
-		for k, v := range res.readList {
-			if len(v) < 200 {
-				tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-			}
-		}
-
-		for k, v := range res.writeList {
-			tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-		}
-		tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
-		sdk.DebugLogByScf.AddRWSet(tt)
-		chanStop <- struct{}{}
-	}()
+	//go func() {
+	//	tt := make([]string, 0)
+	//	for k, v := range res.readList {
+	//		if len(v) < 200 {
+	//			tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+	//		}
+	//	}
+	//
+	//	for k, v := range res.writeList {
+	//		tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+	//	}
+	//	tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
+	//	sdk.DebugLogByScf.AddRWSet(tt)
+	//	chanStop <- struct{}{}
+	//}()
 
 	f.mu.Lock()
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
@@ -793,6 +792,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	}, nil)
 	f.currIndex = txIndex
 	f.mu.Unlock()
-	<-chanStop
+	//<-chanStop
 	<-chanStop
 }
