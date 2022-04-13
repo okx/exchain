@@ -34,7 +34,7 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Go Test app
+      - name: Run Test exchain/app
         run: |
           set -ex
           tmpCache="/tmp/coverage/"
@@ -45,6 +45,8 @@ jobs:
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
           go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic
 
+      - name: Upload code coverage
+        run: |
           echo "--> upload codecov:"
           echo "mode: atomic" > coverage.txt
           tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
@@ -60,7 +62,7 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Go Test libs
+      - name: Go Test exchain/libs
         run: |
           set -ex
           tmpCache="/tmp/coverage/"
@@ -68,7 +70,8 @@ jobs:
           codePath="./libs/..."
           coverageFile="libs_ut.out"
           go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic -tags='norace ledger test_ledger_mock'
-          
+      - name: Upload code coverage
+        run: |
           echo "--> upload codecov:"
           echo "mode: atomic" > coverage.txt
           tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
@@ -84,7 +87,7 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Go Test x
+      - name: Run Test exchain/x
         run: |
           set -ex
           tmpCache="/tmp/coverage/"
@@ -92,7 +95,8 @@ jobs:
           codePath="./x/..."
           coverageFile="x_ut.out"
           go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic 
-
+      - name: Upload code coverage
+        run: |
           echo "--> upload codecov:"
           echo "mode: atomic" > coverage.txt
           tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
