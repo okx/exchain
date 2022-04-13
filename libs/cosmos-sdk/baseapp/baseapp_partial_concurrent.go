@@ -483,10 +483,12 @@ func (dttm *DTTManager) serialRoutine() {
 		case <-keepAliveTicker.C:
 			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
-				dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
-				dttm.serialCh <- nextTaskRoutine
+				dttr := dttm.dttRoutineList[nextTaskRoutine]
+				if dttr.readyForSerialExecution() {
+					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+					dttm.serialCh <- nextTaskRoutine
+				}
 			}
-			keepAliveTicker.Stop()
 		}
 	}
 }
