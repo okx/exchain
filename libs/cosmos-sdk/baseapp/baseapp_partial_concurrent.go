@@ -583,7 +583,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDTTManager(app) //NewDeliverTxTasksManager(app)
 	}
 
-	//app.logger.Info("deliverTxs", "txs", len(txs))
+	app.logger.Info("deliverTxs", "txs", len(txs))
 	//start := time.Now()
 	app.deliverTxsMgr.deliverTxs(txs)
 
