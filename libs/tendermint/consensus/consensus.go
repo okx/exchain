@@ -492,12 +492,13 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
-	sleepDuration := rs.StartTime.Sub(tmtime.Now())
-	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
-	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
-		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
+	overDuration := tmtime.Now().Sub(cs.R0PrevoteTime)
+	sleepDuration := cs.config.TimeoutCommit - overDuration
+	if sleepDuration < 0 {
+		sleepDuration = 0
 	}
+
+	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -586,17 +587,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	if cs.CommitTime.IsZero() {
-		// "Now" makes it easier to sync up dev nodes.
-		// We add timeoutCommit to allow transactions
-		// to be gathered for the first block.
-		// And alternative solution that relies on clocks:
-		// cs.StartTime = state.LastBlockTime.Add(timeoutCommit)
-		cs.StartTime = cs.config.Commit(tmtime.Now())
-	} else {
-		cs.StartTime = cs.config.Commit(cs.CommitTime)
-	}
-	cs.Round0StartTime = time.Now().UnixNano()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -850,7 +840,7 @@ func (cs *State) handleTxsAvailable() {
 // State functions
 // Used internally by handleTimeout and handleMsg to make state transitions
 
-// Enter: `timeoutNewHeight` by startTime (commitTime+timeoutCommit),
+// Enter: `timeoutNewHeight` by startTime (R0PrevoteTime+timeoutCommit),
 // 	or, if SkipTimeoutCommit==true, after receiving all precommits from (height,round-1)
 // Enter: `timeoutPrecommits` after any +2/3 precommits from (height,round-1)
 // Enter: +2/3 precommits for nil at (height,round-1)
@@ -1141,6 +1131,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 	}
 	cs.trc.Pin("Prevote-%d", round)
 
+	if round == 0 {
+		cs.R0PrevoteTime = tmtime.Now()
+	}
+
 	defer func() {
 		// Done enterPrevote:
 		cs.updateRoundStep(round, cstypes.RoundStepPrevote)
@@ -1392,7 +1386,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
-		cs.CommitTime = tmtime.Now()
 		cs.newStep()
 
 		// Maybe finalize immediately.
