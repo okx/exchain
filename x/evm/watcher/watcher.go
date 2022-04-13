@@ -3,7 +3,6 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math/big"
 	"sync"
 
@@ -540,7 +539,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*evmtypes.MsgEthereumTx, error) {
 	return nil, fmt.Errorf("tx is not evm tx")
 }
 
-func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
+func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData interface{}, gasUsed uint64) error {
 	if !w.Enabled() {
 		return nil
 	}

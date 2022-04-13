@@ -3,7 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -58,18 +57,6 @@ type Keeper struct {
 	cci *chainConfigInfo
 
 	hooks types.EvmHooks
-}
-
-func (k *Keeper) SaveEvmTxAndSuccessReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
-	return k.Watcher.SaveTxAndSuccessReceipt(evmTx, txIndexInBlock, resultData, gasUsed)
-}
-
-func (k *Keeper) SaveEvmTxAndFailedReceipt(evmTx sdk.Tx, txIndexInBlock uint64, txHash ethcmn.Hash, gasUsed uint64) error {
-	return k.Watcher.SaveTxAndFailedReceipt(evmTx, txIndexInBlock, txHash, gasUsed)
-}
-
-func (k *Keeper) GetTxIndexInBlock() uint64 {
-	return k.TxIndexInBlock
 }
 
 type chainConfigInfo struct {

@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmkeeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
@@ -205,7 +203,8 @@ type BaseApp struct { // nolint: maligned
 	interceptors map[string]Interceptor
 
 	anteTracer *trace.Tracer
-	evmkeeper.Keeper
+
+	watcherHandler sdk.WatcherHandler
 }
 
 type recordHandle func(string)
@@ -799,7 +798,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	data := make([]byte, 0, len(msgs))
 	events := sdk.EmptyEvents()
 
-	var evmResultData evmtx.ResultData
+	var evmResultData interface{}
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
@@ -919,8 +918,4 @@ func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgService
 
 func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 	return app.cms
-}
-
-func (app *BaseApp) SetEvmKeeper(keeper evmkeeper.Keeper) {
-	app.Keeper = keeper
 }

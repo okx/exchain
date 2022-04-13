@@ -190,8 +190,8 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
-		if realTx.GetType() == sdk.EvmTxType {
-			e := app.SaveEvmTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), common.BytesToHash(realTx.TxHash()), info.gInfo.GasUsed)
+		if app.watcherHandler != nil {
+			e := app.watcherHandler(realTx, nil, info.gInfo.GasUsed)
 			if e != nil {
 				app.Logger().Error("watcher save tx and failed receipt error ", "txhash", common.Bytes2Hex(realTx.TxHash()), "error", e)
 			}
@@ -199,8 +199,8 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	if realTx.GetType() == sdk.EvmTxType {
-		e := app.SaveEvmTxAndSuccessReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+	if app.watcherHandler != nil {
+		e := app.watcherHandler(realTx, info.result.GetEvmResultData(), info.gInfo.GasUsed)
 		if e != nil {
 			app.Logger().Error("watcher save tx and success receipt error ", "txhash", common.Bytes2Hex(realTx.TxHash()), "error", e)
 		}

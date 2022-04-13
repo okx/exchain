@@ -171,3 +171,10 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.getTxFee = txFee
 	app.logFix = fixLog
 }
+
+func (app *BaseApp) SetEvmWatcherHandler(wh sdk.WatcherHandler) {
+	if app.sealed {
+		panic("SetGasHandler() on sealed BaseApp")
+	}
+	app.watcherHandler = wh
+}

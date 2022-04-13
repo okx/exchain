@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math"
 	"strings"
 
@@ -40,10 +39,10 @@ type Result struct {
 
 	// EvmResultData return evm result data to base app.
 	// we use the result data for watcher to save tx and receipt
-	EvmResultData evmtx.ResultData
+	EvmResultData interface{}
 }
 
-func (r *Result) GetEvmResultData() evmtx.ResultData {
+func (r *Result) GetEvmResultData() interface{} {
 	if r == nil {
 		return nil
 	}
