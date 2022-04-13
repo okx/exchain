@@ -75,7 +75,7 @@ jobs:
 
   coverage:
     name: upload coverage
-    needs: app,libs,x
+    needs: ["app","libs","x"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
