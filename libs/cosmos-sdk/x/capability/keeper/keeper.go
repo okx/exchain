@@ -524,7 +524,8 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 	}
 
 	// create context with no block gas meter to ensure we do not consume gas during local initialization logic.
-	noGasCtx := ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	noGasCtx := ctx
+	noGasCtx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	// check if memory store has not been initialized yet by checking if initialized flag is nil.
 	if !k.IsInitialized(noGasCtx) {
