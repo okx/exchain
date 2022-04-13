@@ -3,8 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
@@ -147,9 +145,6 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")
 	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
-	}
-	if global.GetGlobalHeight() == 4663637 {
-		fmt.Println("GasConsumed. ", info.ctx.BlockGasMeter().GasConsumed())
 	}
 }
 
