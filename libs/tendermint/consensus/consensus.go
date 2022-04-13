@@ -47,6 +47,8 @@ var (
 var (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
+
+	ActiveViewChange = false
 )
 
 // msgs from the reactor which may update the state
@@ -105,7 +107,8 @@ type State struct {
 	evpool evidencePool
 
 	// internal state
-	mtx sync.RWMutex
+	mtx      sync.RWMutex
+	stateMtx sync.RWMutex
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -153,6 +156,9 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
+
+	// assigned proposer when enterNewRound
+	vcMsg *ViewChangeMessage
 }
 
 // StateOption sets an optional parameter on the State.
@@ -498,6 +504,14 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
+	if ActiveViewChange {
+		// request for proposer of new height
+		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+		// itself is proposer, no need to request
+		if !bytes.Equal(prMsg.NewProposer, prMsg.CurrentProposer) {
+			go cs.requestForProposer(sleepDuration, prMsg)
+		}
+	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -614,6 +628,10 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
+	// cs.Height has been update
+	if cs.vcMsg != nil && cs.Height > cs.vcMsg.Height {
+		cs.vcMsg = nil
+	}
 
 	// Finally, broadcast RoundState
 	cs.newStep()
@@ -725,6 +743,27 @@ func (cs *State) handleMsg(mi msgInfo) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	case *ViewChangeMessage:
+		//cs.Logger.Error("handle vcMsg", "msg", msg)
+		if ActiveViewChange {
+			cs.vcMsg = msg
+			if peerID == "" {
+				// ApplyBlock of height-1 is not finished
+				// RoundStepNewHeight enterNewRound use msg.val
+			} else {
+				// ApplyBlock of height-1 is finished, and vc immediately
+				cs.enterNewRound(cs.Height, 0)
+			}
+		}
+
+	case *ProposeRequestMessage:
+		//cs.Logger.Error("handle prMsg", "msg", msg)
+		// ApplyBlock of height-1 is not finished
+		// RoundStepNewHeight enterNewRound use peer as val
+		if ActiveViewChange {
+			cs.vcMsg = &ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
+		}
+
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -858,8 +897,11 @@ func (cs *State) handleTxsAvailable() {
 // NOTE: cs.StartTime was already set for height.
 func (cs *State) enterNewRound(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
-	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight) {
+	//logger.Error("enterNewRound", "assignedVal", assignedVal)
+	if round != 0 {
+		cs.vcMsg = nil
+	}
+	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight && cs.vcMsg == nil) {
 		logger.Debug(fmt.Sprintf(
 			"enterNewRound(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
@@ -884,12 +926,18 @@ func (cs *State) enterNewRound(height int64, round int) {
 		validators = validators.Copy()
 		validators.IncrementProposerPriority(round - cs.Round)
 	}
+	if ActiveViewChange && cs.vcMsg != nil && bytes.Equal(validators.Proposer.Address, cs.vcMsg.CurrentProposer) {
+		_, val := validators.GetByAddress(cs.vcMsg.NewProposer)
+		validators.Proposer = val
+	}
 
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.stateMtx.Lock()
 	cs.Validators = validators
+	cs.stateMtx.Unlock()
 	if round == 0 {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
@@ -900,7 +948,10 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
-	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+
+	if cs.vcMsg == nil {
+		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+	}
 	cs.TriggeredTimeoutPrecommit = false
 
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
@@ -917,6 +968,19 @@ func (cs *State) enterNewRound(height int64, round int) {
 		}
 	} else {
 		cs.enterPropose(height, round)
+	}
+}
+
+// requestForProposer FireEvent to broadcast ProposeRequestMessage
+func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequestMessage) {
+	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
+		prMsg.Signature = signature
+		// ensure broadcast reqMsg after enterNewHeight
+		time.Sleep(duration + time.Millisecond)
+		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
+		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
+	} else {
+		cs.Logger.Error("requestForProposer", "err", err)
 	}
 }
 
@@ -1066,7 +1130,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
-	} else if !cs.replayMode {
+	} else if !cs.replayMode && !ActiveViewChange {
 		cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
 	}
 }
@@ -1568,6 +1632,11 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	//if stateCopy.Validators.GetProposer().Address.String() == cs.privValidatorPubKey.Address().String() {
+	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
+	//	time.Sleep(time.Second * 10)
+	//}
+
 	/*
 		if types.EnableBroadcastP2PDelta() {
 			// persists the given deltas to the underlying db.
@@ -1595,7 +1664,9 @@ func (cs *State) finalizeCommit(height int64) {
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
+	cs.stateMtx.Lock()
 	cs.updateToState(stateCopy)
+	cs.stateMtx.Unlock()
 
 	fail.Fail() // XXX
 
@@ -2113,9 +2184,9 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}
-	//if !cs.replayMode {
-	cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
-	//}
+	if !cs.replayMode && !ActiveViewChange {
+		cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
+	}
 	return nil
 }
 
