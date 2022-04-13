@@ -13,7 +13,7 @@ func NewWatcherHandler(evmKeeper *evm.Keeper) sdk.WatcherHandler {
 		var watcherHandler sdk.WatcherHandler
 
 		if tx.GetType() == sdk.EvmTxType {
-			watcherHandler = NewHandler(evmKeeper)
+			watcherHandler = newHandler(evmKeeper)
 		} else {
 			return nil
 		}
@@ -25,7 +25,7 @@ type Handler struct {
 	EvmKeeper *evm.Keeper
 }
 
-func NewHandler(evmKeeper *evm.Keeper) sdk.WatcherHandler {
+func newHandler(evmKeeper *evm.Keeper) sdk.WatcherHandler {
 	handler := Handler{
 		EvmKeeper: evmKeeper,
 	}
