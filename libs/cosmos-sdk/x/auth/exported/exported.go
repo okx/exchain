@@ -1,10 +1,6 @@
 package exported
 
 import (
-	"time"
-
-	"github.com/okex/exchain/libs/tendermint/crypto"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -14,30 +10,7 @@ import (
 // and a pubkey for authentication purposes.
 //
 // Many complex conditions can be used in the concrete struct which implements Account.
-type Account interface {
-	Copy() interface{}
-	GetAddress() sdk.AccAddress
-	SetAddress(sdk.AccAddress) error // errors if already set.
-
-	GetPubKey() crypto.PubKey // can return nil.
-	SetPubKey(crypto.PubKey) error
-
-	GetAccountNumber() uint64
-	SetAccountNumber(uint64) error
-
-	GetSequence() uint64
-	SetSequence(uint64) error
-
-	GetCoins() sdk.Coins
-	SetCoins(sdk.Coins) error
-
-	// Calculates the amount of coins that can be sent to other accounts given
-	// the current time.
-	SpendableCoins(blockTime time.Time) sdk.Coins
-
-	// Ensure that account implements stringer
-	String() string
-}
+type Account = sdk.Account
 
 // GenesisAccounts defines a slice of GenesisAccount objects
 type GenesisAccounts []GenesisAccount

@@ -22,8 +22,8 @@ var (
 	UseCache               bool
 )
 
-type account interface {
-	Copy() interface{}
+type Account interface {
+	Copy() Account
 	GetAddress() AccAddress
 	SetAddress(AccAddress) error
 	GetPubKey() crypto.PubKey
@@ -44,8 +44,8 @@ type storageWithCache struct {
 }
 
 type accountWithCache struct {
-	acc     account
-	gas     uint64
+	acc Account
+	gas uint64
 	isDirty bool
 }
 
@@ -103,7 +103,7 @@ func (c *Cache) skip() bool {
 	return false
 }
 
-func (c *Cache) UpdateAccount(addr AccAddress, acc account, lenBytes int, isDirty bool) {
+func (c *Cache) UpdateAccount(addr AccAddress, acc Account, lenBytes int, isDirty bool) {
 	if c.skip() {
 		return
 	}
@@ -140,7 +140,7 @@ func (c *Cache) UpdateCode(key []byte, value []byte, isdirty bool) {
 	}
 }
 
-func (c *Cache) GetAccount(addr ethcmn.Address) (account, uint64, bool) {
+func (c *Cache) GetAccount(addr ethcmn.Address) (Account, uint64, bool) {
 	if c.skip() {
 		return nil, 0, false
 	}
