@@ -68,7 +68,7 @@ func (coord *Coordinator) UpdateTime() {
 
 // UpdateTimeForChain updates the clock for a specific chain.
 func (coord *Coordinator) UpdateTimeForChain(chain TestChainI) {
-	chain.CurrentHeader().Time = coord.CurrentTime.UTC()
+	chain.CurrentHeaderTime(coord.CurrentTime.UTC())
 	chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
 }
 
