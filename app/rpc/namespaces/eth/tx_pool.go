@@ -138,8 +138,8 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	}
 
 	txHash := common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight))
-	from := common.HexToAddress(tx.GetFrom())
 	tx.Data.Hash = &txHash
+	from := common.HexToAddress(tx.GetFrom())
 
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
