@@ -177,44 +177,6 @@ func (c *Context) SetDeliver() *Context {
 	return c
 }
 
-func (c Context) WithBlockTime(newTime time.Time) Context {
-	newHeader := c.BlockHeader()
-	// https://github.com/gogo/protobuf/issues/519
-	newHeader.Time = newTime.UTC()
-	c.SetBlockHeader(newHeader)
-	return c
-}
-
-func (c Context) WithBlockHeight(height int64) Context {
-	newHeader := c.BlockHeader()
-	newHeader.Height = height
-	c.SetBlockHeader(newHeader)
-	return c
-}
-
-func (c Context) WithIsCheckTx(isCheckTx bool) Context {
-	c.checkTx = isCheckTx
-	return c
-}
-
-// WithIsReCheckTx called with true will also set true on checkTx in order to
-// enforce the invariant that if recheckTx = true then checkTx = true as well.
-func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
-	if isRecheckTx {
-		c.checkTx = true
-	}
-	c.recheckTx = isRecheckTx
-	return c
-}
-
-func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
-	if isTraceTxLog {
-		c.checkTx = true
-	}
-	c.traceTxLog = isTraceTxLog
-	return c
-}
-
 // TODO: remove???
 func (c *Context) IsZero() bool {
 	return c.ms == nil
@@ -399,6 +361,44 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	cc.SetEventManager(NewEventManager())
 	writeCache = cms.Write
 	return
+}
+
+func (c Context) WithBlockTime(newTime time.Time) Context {
+	newHeader := c.BlockHeader()
+	// https://github.com/gogo/protobuf/issues/519
+	newHeader.Time = newTime.UTC()
+	c.SetBlockHeader(newHeader)
+	return c
+}
+
+func (c Context) WithBlockHeight(height int64) Context {
+	newHeader := c.BlockHeader()
+	newHeader.Height = height
+	c.SetBlockHeader(newHeader)
+	return c
+}
+
+func (c Context) WithIsCheckTx(isCheckTx bool) Context {
+	c.checkTx = isCheckTx
+	return c
+}
+
+// WithIsReCheckTx called with true will also set true on checkTx in order to
+// enforce the invariant that if recheckTx = true then checkTx = true as well.
+func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
+	if isRecheckTx {
+		c.checkTx = true
+	}
+	c.recheckTx = isRecheckTx
+	return c
+}
+
+func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
+	if isTraceTxLog {
+		c.checkTx = true
+	}
+	c.traceTxLog = isTraceTxLog
+	return c
 }
 
 type AccountCache struct {
