@@ -242,7 +242,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.done = make(chan int8, 1)
 
 	dttm.totalCount = len(txs)
-	//dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
+	dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
 	totalSerialWaitingCount += dttm.totalCount
 
 	dttm.txs = txs
@@ -341,6 +341,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		return nil
 	}
 
+	dttm.app.logger.Info("RunAnte", "index", task.index)
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
@@ -474,7 +475,7 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	//	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	info := dttm.serialTask.info
 	handler := info.handler
 
