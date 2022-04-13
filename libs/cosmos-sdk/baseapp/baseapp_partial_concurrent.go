@@ -449,7 +449,10 @@ func (dttm *DTTManager) serialRoutine() {
 				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart {
 					continue
 				}
-				if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
+				if !task.isEvm {
+					dttm.app.logger.Error("rerunFromCosmosTx", "index", dttr.task.index, "serial", task.index)
+					dttr.shouldRerun(task.index)
+				} else if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 					if dttr.task.prevTaskIndex < task.index {
 						dttr.task.prevTaskIndex = task.index
 					}
@@ -461,14 +464,9 @@ func (dttm *DTTManager) serialRoutine() {
 				} else if dttr.task.index == dttm.serialIndex+1 {
 					nextTaskRoutine = dttr.index
 					if dttr.readyForSerialExecution() {
-						if dttr.task.isEvm {
-							totalSerialWaitingCount--
-							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
-							dttm.serialCh <- nextTaskRoutine
-						} else {
-							dttm.app.logger.Error("RerunNoEvmTx", "index", dttr.task.index)
-							dttr.rerunCh <- 0
-						}
+						totalSerialWaitingCount--
+						dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+						dttm.serialCh <- nextTaskRoutine
 					} else {
 						dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", dttr.index, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
 						keepAliveTicker.Reset(keepAliveIntervalMS * time.Microsecond)
