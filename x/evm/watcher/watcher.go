@@ -532,10 +532,13 @@ func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, r
 	if !w.Enabled() {
 		return
 	}
+	if sdkTx == nil || resultData == nil || resultData.GetTxHash() == nil {
+		return
+	}
 	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
 	if ok {
 		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
-		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, nil, gasUsed)
+		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, resultData.(*evmtypes.ResultData), gasUsed)
 	}
 }
 
@@ -543,10 +546,13 @@ func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, re
 	if !w.Enabled() {
 		return
 	}
+	if sdkTx == nil || resultData == nil || resultData.GetTxHash() == nil {
+		return
+	}
 	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
 	if ok {
 		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
-		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, nil, gasUsed)
+		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, &evmtypes.ResultData{}, gasUsed)
 	}
 }
 
