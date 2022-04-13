@@ -25,6 +25,7 @@ jobs:
           make build
   app:
     name: app tests
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -34,9 +35,18 @@ jobs:
           go-version: 1.17
 
       - name: Go Test app
-        run: go list ./app/... |xargs go test -count=1
+        run: |
+          set -ex
+          echo "--> Run tests with coverage:"
+          mkdir -p /tmp/workspace/profilesgo 
+
+          path="./app/..."
+          package_lines=`go list ${path}`
+          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+          go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=/tmp/workspace/profiles/app_ut.out -covermode=atomic 
   libs:
     name: libs tests
+     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -46,9 +56,11 @@ jobs:
           go-version: 1.17
 
       - name: Go Test libs
-        run: go list ./libs/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+        run: |
+          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/libs_ut.out -covermode=atomic 
   x:
     name: x tests
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -58,5 +70,31 @@ jobs:
           go-version: 1.17
 
       - name: Go Test x
-        run: go list ./x/... |xargs go test -count=1
+        run: |
+          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/x_ut.out -covermode=atomic 
+
+  coverage:
+    name: upload coverage
+    needs: app,libs,x
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test x
+        run: |
+          set -ex
+
+          echo "--> Gather coverage:"
+          ls /tmp/workspace/profiles/
+          echo "mode: atomic" > coverage.txt
+          for prof in $(ls /tmp/workspace/profiles/); do
+            tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+          done
+
+          echo "--> upload codecov:"
+          bash <(curl -s https://codecov.io/bash) -f coverage.txt
   
