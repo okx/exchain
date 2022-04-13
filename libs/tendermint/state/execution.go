@@ -51,6 +51,9 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
+
+	// async save state, validators, consensus params, abci responses here
+	asyncDBContext
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -90,6 +93,7 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
+	res.initAsyncDBContext()
 	return res
 }
 
@@ -103,6 +107,10 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
+}
+
+func (blockExec *BlockExecutor) Stop() {
+	blockExec.stopAsyncDBContext()
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -188,6 +196,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	//wait till the last block async write be saved
+	blockExec.tryWaitLastBlockSave(block.Height - 1)
+
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -199,7 +210,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	SaveABCIResponses(blockExec.db, block.Height, abciResponses)
+	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
@@ -248,8 +259,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	SaveState(blockExec.db, state)
+	blockExec.trySaveStateAsync(state)
+
 	blockExec.logger.Debug("SaveState", "state", &state)
+
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
