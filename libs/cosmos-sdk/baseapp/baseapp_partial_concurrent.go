@@ -341,7 +341,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		return nil
 	}
 
-	dttm.app.logger.Info("RunAnte", "index", task.index)
+	//dttm.app.logger.Info("RunAnte", "index", task.index)
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
@@ -475,7 +475,7 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	//dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	info := dttm.serialTask.info
 	handler := info.handler
 
@@ -583,7 +583,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		app.deliverTxsMgr = NewDTTManager(app) //NewDeliverTxTasksManager(app)
 	}
 
-	app.logger.Info("deliverTxs", "txs", len(txs))
+	//app.logger.Info("deliverTxs", "txs", len(txs))
 	//start := time.Now()
 	app.deliverTxsMgr.deliverTxs(txs)
 
