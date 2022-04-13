@@ -515,7 +515,7 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
-		//dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
+		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++

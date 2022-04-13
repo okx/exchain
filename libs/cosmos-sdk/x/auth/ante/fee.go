@@ -1,11 +1,13 @@
 package ante
 
 import (
+	"encoding/hex"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -138,6 +140,9 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
+	if global.GetGlobalHeight() == 4663201 && hex.EncodeToString(acc.GetAddress()) == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
+		fmt.Println("DeductFees.", "fees", fees, "coins", coins)
+	}
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
