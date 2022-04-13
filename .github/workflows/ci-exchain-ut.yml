@@ -63,15 +63,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          package_lines=`go list ${codePath}`
-          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 10m -coverprofile=coverage.data -covermode=atomic -tags='norace ledger test_ledger_mock'
-      - name: Upload code coverage
-        run: |
-          set -ex
-          echo "mode: atomic" > coverage.txt
-          tail -n +2 coverage.data >> coverage.txt
-          bash <(curl -s https://codecov.io/bash) -f coverage.txt 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -tags='norace ledger test_ledger_mock'
   x:
     name: x ut
     needs: build
