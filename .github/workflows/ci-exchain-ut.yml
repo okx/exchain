@@ -28,9 +28,8 @@ jobs:
     name: app ut
     needs: build
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - coverage/
+    artifacts:
+      paths: coverage/
     steps:
       - uses: actions/checkout@v2
 
@@ -49,9 +48,8 @@ jobs:
     name: libs ut
     needs: build
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - coverage/
+    artifacts:
+      paths: coverage/
     steps:
       - uses: actions/checkout@v2
 
@@ -84,9 +82,8 @@ jobs:
     name: upload coverage
     needs: ["app","libs","x"]
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - coverage/
+    artifacts:
+      paths: coverage/
     steps:
       - uses: actions/checkout@v2
 
